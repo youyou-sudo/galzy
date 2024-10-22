@@ -100,7 +100,6 @@
 }
 
 /* 背景图片 */
-
 body {
   position: relative;
 }
@@ -113,7 +112,8 @@ body::before {
   right: 0;
   bottom: 0;
   background-image: url("/background.webp");
-  background-size: 100% 100%;
+  background-size: cover;
+  background-position: center;
   opacity: 0.2;
   z-index: -1;
   pointer-events: none;
