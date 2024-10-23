@@ -17,7 +17,7 @@ import { getHomeModalData } from "@/lib/actions/HomeModaldata";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-export function Gamelsit({ datas }) {
+export function Gamelsit({ datas }: { datas: any }) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [modalOpened, setModalOpened] = useState(false); // 标志
   const [manualClose, setManualClose] = useState(false); // 是否是手动关闭
