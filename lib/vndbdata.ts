@@ -47,8 +47,9 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
   try {
     const currentPage = parseInt(pages, 10) || 1;
 
-    // 先使用聚合查询获取文档总数
+    // 聚合查询获取文档总数
     const totalDocumentsPipeline = [
+      { $unwind: "$fields.vndb" },
       {
         $lookup: {
           from: "vndbdatas",
@@ -59,7 +60,7 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
       },
       { $unwind: "$vndbdatas" },
       { $replaceRoot: { newRoot: "$vndbdatas" } },
-      { $count: "total" }, // 统计总数
+      { $count: "total" },
     ];
     const totalDocumentsResult = await prisma.filesiddatas.aggregateRaw({
       pipeline: totalDocumentsPipeline,
@@ -85,6 +86,7 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
 
     // 使用聚合查询当前页的数据
     const dataPipeline = [
+      { $unwind: "$fields.vndb" },
       {
         $lookup: {
           from: "vndbdatas",
@@ -95,6 +97,13 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
       },
       { $unwind: "$vndbdatas" },
       { $replaceRoot: { newRoot: "$vndbdatas" } },
+      {
+        $group: {
+          _id: "$vnid", // 按照 vndb ID 去重
+          doc: { $first: "$$ROOT" }, // 保留第一条记录
+        },
+      },
+      { $replaceRoot: { newRoot: "$doc" } },
       { $sort: { "releases.released": -1 } },
       { $skip: skip },
       { $limit: limit },
@@ -103,6 +112,7 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
     const datase = await prisma.filesiddatas.aggregateRaw({
       pipeline: dataPipeline,
     });
+    console.log(datase);
     // 返回数据、当前页、总页数等信息
     return {
       data: datase,
