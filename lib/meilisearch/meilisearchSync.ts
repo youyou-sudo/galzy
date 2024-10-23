@@ -70,6 +70,12 @@ export async function meilisearch() {
     // 等待最后剩余的请求
     await Promise.all(promises);
   } catch (error) {
-    console.log("Error during MeiliSearch operation:", error);
+    await prisma.meilisearchdatas.update({
+      where: { indexName: "alistVN" },
+      data: {
+        Status: "就绪",
+        Statusdescription: `Error during MeiliSearch operation:${error}`,
+      },
+    });
   }
 }
