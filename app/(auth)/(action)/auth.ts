@@ -69,7 +69,6 @@ export const registerAC = async (formData: FormData) => {
       password: formData.get("password") as string,
       name: formData.get("name") as string,
     };
-    console.log(zodyjvg);
     const { email, password, name } = await registerSchema.parseAsync(zodyjvg);
     const result = await prisma.users.findUnique({ where: { email: email } });
     if (result) {

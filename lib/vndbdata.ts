@@ -112,7 +112,6 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
     const datase = await prisma.filesiddatas.aggregateRaw({
       pipeline: dataPipeline,
     });
-    console.log(datase);
     // 返回数据、当前页、总页数等信息
     return {
       data: datase,

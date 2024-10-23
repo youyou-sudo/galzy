@@ -50,7 +50,6 @@ export default function AuthForm() {
   const reg = async (formData: FormData) => {
     setLoadingsu(true);
     const log = await registerAC(formData);
-    console.log(log);
     setLoadingsu(false);
     if (log?.status === "success") {
       setLoadingsu(false);
