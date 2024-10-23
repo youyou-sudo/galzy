@@ -179,7 +179,7 @@ export function Gamelsit({ datas }) {
               </ModalHeader>
               <ModalBody>
                 <div>
-                  <ContentCard data={modalData} />
+                  <ContentCard fullsereenfill={true} data={modalData} />
                   <Datalistview
                     filedatas={modadldata?.filedatas}
                     dlink={modadldata?.listtest.dlink}

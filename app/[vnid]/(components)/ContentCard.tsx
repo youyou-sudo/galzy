@@ -1,11 +1,25 @@
 "use client";
 
-import { Card, CardBody, Image, Tooltip } from "@nextui-org/react";
+import {
+  Button,
+  Card,
+  CardBody,
+  Image,
+  Link,
+  Tooltip,
+} from "@nextui-org/react";
 import Platform from "./platform";
 import React from "react";
 import { motion } from "framer-motion";
+import { RiFullscreenFill } from "react-icons/ri";
 
-export function ContentCard({ data }) {
+export function ContentCard({
+  data,
+  fullsereenfill,
+}: {
+  data: any;
+  fullsereenfill?: boolean;
+}) {
   const datas = data;
   return (
     <>
@@ -60,8 +74,17 @@ export function ContentCard({ data }) {
               </div>
               <Platform datas={datas} />
             </div>
-
-            {/* <ContentSummary summary={contentdatas.summary} /> */}
+            {fullsereenfill && (
+              <Button
+                as={Link}
+                href={`/${datas.vnid}`}
+                variant="light"
+                isIconOnly
+                className="flex mr-0 ml-auto"
+              >
+                <RiFullscreenFill />
+              </Button>
+            )}
           </CardBody>
         </Card>
       </motion.div>
