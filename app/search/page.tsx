@@ -19,7 +19,7 @@ type Props = {
 
 export async function searchpage({ searchParams }: Props) {
   const { query, pages } = await searchParams;
-  metadata.title = `Search ${searchParams.query}`;
+  metadata.title = `Search ${query}`;
   const qoutput: any = await search(query || "", pages || "1");
   const data = { data: qoutput.hits };
   return (
