@@ -75,14 +75,12 @@ function Modalfun({
   data,
   dlink,
   gfpath,
-  pathtmp,
 }: {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   data: any;
   dlink: string;
   gfpath: string;
-  pathtmp?: string;
 }) {
   if (!data) return null;
 
@@ -116,7 +114,7 @@ function Modalfun({
             <Button asChild>
               <Link
                 target="_blank"
-                href={`${dlink}/${gfpath}/${pathtmp}/${data.name}?sign=${data.sign}`}
+                href={`${dlink}/${gfpath}/${data.pathname}?sign=${data.sign}`}
               >
                 下载
               </Link>
@@ -222,7 +220,6 @@ const FileMap = ({
         data={selectedFile}
         dlink={dlink}
         gfpath={gfpath}
-        pathtmp={pathtmp}
       />
     </>
   );
