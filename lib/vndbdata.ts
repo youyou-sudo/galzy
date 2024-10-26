@@ -60,8 +60,16 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
       },
       { $unwind: "$vndbdatas" },
       { $replaceRoot: { newRoot: "$vndbdatas" } },
+      {
+        $group: {
+          _id: "$vnid", // 按照 vndb ID 去重（Files 中 可能存在多个相同 VNDB ID 的不同文件夹）
+          doc: { $first: "$$ROOT" }, // 保留第一条记录
+        },
+      },
+      { $replaceRoot: { newRoot: "$doc" } },
       { $count: "total" },
     ];
+
     const totalDocumentsResult = await prisma.filesiddatas.aggregateRaw({
       pipeline: totalDocumentsPipeline,
     });
@@ -99,7 +107,7 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
       { $replaceRoot: { newRoot: "$vndbdatas" } },
       {
         $group: {
-          _id: "$vnid", // 按照 vndb ID 去重
+          _id: "$vnid", // 按照 vndb ID 去重（Files 中 可能存在多个相同 VNDB ID 的不同文件夹）
           doc: { $first: "$$ROOT" }, // 保留第一条记录
         },
       },
