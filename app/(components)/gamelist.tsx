@@ -165,7 +165,6 @@ export function Gamelsit({ datas }: { datas: any }) {
         scrollBehavior="inside"
         placement="center"
         size="4xl"
-        backdrop="blur"
       >
         <ModalContent>
           {(onClose) => (
