@@ -193,17 +193,30 @@ export const vndbidExists = async (ref: any) => {
 // 数据状态
 export const datadbup = async () => {
   try {
-    const result = await prisma.duptimes.findMany({
-      include: {
-        _count: {
-          select: {
-            filess: true, // 统计关联的 filess（filesiddatas）数量
-            vndb: true, // 统计关联的 vndbdatas（vndbdatas）数量
+    const duptimes = await prisma.duptimes.findMany();
+
+    // 针对每个 `duptime` 单独查询所需的计数
+    const counts = await Promise.all(
+      duptimes.map(async (duptime) => {
+        const [filessCount, vndbCount, tagsCount, tagsVndatasCount] =
+          await Promise.all([
+            prisma.filesiddatas.count(),
+            prisma.vndbdatas.count(),
+            prisma.tags.count(),
+            prisma.tags_vndatas.count(),
+          ]);
+        return {
+          ...duptime,
+          counts: {
+            filessCount,
+            vndbCount,
+            tagsCount,
+            tagsVndatasCount,
           },
-        },
-      },
-    });
-    return result;
+        };
+      })
+    );
+    return counts;
   } catch (error) {
     return {
       mmsess: "数据库姐姐被掏空了 o(*////▽////*)q: " + error,

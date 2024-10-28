@@ -106,7 +106,7 @@ export default function DataTable({ rows }) {
     };
 
     // 初次页面加载时，检查 rowsdata
-    if (rowsdata.some((row) => row.state === true)) {
+    if (rowsdata?.some((row) => row.state === true)) {
       shouldStartPolling = true; // 第一次检测发现 true 状态，开始循环检测
     }
 
@@ -194,6 +194,8 @@ export default function DataTable({ rows }) {
     option: [
       { key: "vndb", label: "vndb" },
       { key: "alist", label: "alist" },
+      { key: "vndb_tags", label: "vndb_tags" },
+      { key: "tags-gid-vid", label: "tags-gid-vid" },
     ],
   };
 
@@ -229,7 +231,7 @@ export default function DataTable({ rows }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rowsdata.map((row) => (
+            {rowsdata?.map((row) => (
               <TableRow key={row.id}>
                 <TableCell className="text-center">{row.name}</TableCell>
                 <TableCell className="truncate max-w-24">
@@ -239,7 +241,13 @@ export default function DataTable({ rows }) {
                   <Tooltip content={row.timeVersion}>{row.timeVersion}</Tooltip>
                 </TableCell>
                 <TableCell className="text-center">
-                  {row.type === "alist" ? row._count.filess : row._count.vndb}
+                  {row.type === "alist"
+                    ? row.counts.filessCount
+                    : row.type === "vndb"
+                      ? row.counts.vndbCount
+                      : row.type === "tags-gid-vid"
+                        ? row.counts.tagsVndatasCount
+                        : row.counts.tagsCount}
                 </TableCell>
                 <TableCell className="text-center">
                   {dayjs(row.updatetime).format("YYYY-MM-DD HH:mm:ss")}

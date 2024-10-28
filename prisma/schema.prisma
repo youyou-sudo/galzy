@@ -46,6 +46,8 @@ model duptimes {
   updatetime        DateTime           @default(now()) @db.Date
   filess            filesiddatas[]
   vndb              vndbdatas[]
+  tags              tags[]
+  tags_vndatas      tags_vndatas[]
   meilisearch_id    String[]           @db.ObjectId
   relationalIndex   meilisearchdatas[] @relation(fields: [meilisearch_id], references: [id])
 
@@ -96,6 +98,43 @@ model vndbdatas {
   olang    String
   releases VndbdatasReleases[]
   titles   VndbdatasTitles[]
+  tags     tags_vndatas[]
+}
+
+model tags {
+  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  gid          String         @unique
+  cloud_id     String         @db.ObjectId
+  cloud        duptimes       @relation(fields: [cloud_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  cat          String
+  defaultspoil String
+  searchable   String
+  applicable   String
+  name         String
+  alias        String
+  description  String
+  vndbdatas    tags_vndatas[]
+
+  @@index([name], map: "name_1")
+  @@index([alias], map: "alias_1")
+}
+
+model tags_vndatas {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  unid            String    @unique
+  tag             String
+  uid             String
+  vid             String
+  average_rating  Float?
+  average_spoiler Float?
+  lie             String?
+  cloud_id        String    @db.ObjectId
+  cloud           duptimes  @relation(fields: [cloud_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  vndbdata        vndbdatas @relation(fields: [vid], references: [vnid])
+  tags            tags      @relation(fields: [tag], references: [gid])
+
+  @@index([tag], map: "tag_1")
+  @@index([vid], map: "vid_1")
 }
 
 model users {
