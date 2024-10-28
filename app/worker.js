@@ -1,67 +1,66 @@
 const { parentPort, workerData } = require("worker_threads");
-
 const { ref } = workerData;
 
 async function aHeavyTask() {
+  const allBulkOps = [];
+  const chunkSize = 1000;
+
   try {
-    // Fetch the data
     const response = await fetch(ref.jsonorl, { cache: "no-store" });
-    if (!response.ok)
+    if (!response.ok) {
       throw new Error(`Failed to fetch update data: ${response.statusText}`);
-
-    const data = await response.json();
-
-    // Ensure the data property exists and is an array
-    if (!data.data || !Array.isArray(data.data)) {
-      throw new Error(
-        "Invalid data format: 'data' property is missing or not an array"
-      );
     }
 
-    const newData = data.data;
-    const chunkSize = 1000; // Example chunk size
-    const allBulkOpsPromises = [];
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
 
-    for (let i = 0; i < newData.length; i += chunkSize) {
-      const chunk = newData.slice(i, i + chunkSize);
-      const bulkOps = chunk.map(({ id, ...rest }) => ({
-        ...rest, // 解构剩余的属性
-        vnid: id, // 将 id 变为 vnid
-        cloud_id: ref.id,
-      }));
-      allBulkOpsPromises.push(bulkOps); // Add bulk ops directly
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value || new Uint8Array(), { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop(); // 保存未处理的最后一行
+
+      for (const line of lines) {
+        if (line) {
+          try {
+            const item = JSON.parse(line);
+            if (!item.id) continue;
+
+            const vnid = item.id;
+            delete item.id;
+
+            allBulkOps.push({
+              ...item,
+              vnid,
+              cloud_id: ref.id,
+            });
+
+            // 一旦积累达到 chunkSize，发送并清空数组
+            if (allBulkOps.length >= chunkSize) {
+              parentPort.postMessage(allBulkOps);
+              allBulkOps.length = 0; // 清空数组
+            }
+          } catch (error) {
+            console.error("JSON parsing error:", error, line);
+          }
+        }
+      }
     }
 
-    // Execute all bulk operations
-    const allBulkOps = await Promise.allSettled(allBulkOpsPromises);
-
-    // Handle results and potential errors
-    const successfulOps = allBulkOps.flatMap((result) =>
-      result.status === "fulfilled" ? result.value : []
-    );
-    const errors = allBulkOps.filter((result) => result.status === "rejected");
-
-    // Optionally log errors for debugging
-    if (errors.length > 0) {
-      console.error(
-        `Errors during bulk operations:`,
-        errors.map((e) => e.reason)
-      );
+    // 发送剩余的操作
+    if (allBulkOps.length > 0) {
+      parentPort.postMessage(allBulkOps);
     }
-
-    return successfulOps; // Return all successful bulk operations
   } catch (error) {
-    throw new Error(`Error during heavy task: ${error.message}`);
+    parentPort.postMessage({
+      error: `Error during heavy task: ${error.message}`,
+    });
   }
 }
 
-// Call the aHeavyTask function and send the result back to the main thread
 aHeavyTask()
-  .then((results) => {
-    parentPort.postMessage(results); // Send the results back to the main thread
-    process.exit(0);
-  })
-  .catch((error) => {
-    parentPort.postMessage({ error: error.message }); // Send error back to the main thread
-    process.exit(1);
-  });
+  .then(() => console.log("Task completed"))
+  .catch((error) => console.error("Task failed:", error.message));

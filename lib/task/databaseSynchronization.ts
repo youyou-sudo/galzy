@@ -12,6 +12,7 @@ interface Ref {
 
 // Helper function to handle the fetching and comparison of update time
 const fetchAndCompareUpdateTime = async (ref: Ref) => {
+  // 获取数据库更新时间
   const databaseUpdateTime = await prisma.duptimes.findUnique({
     where: { id: ref.id },
   });
@@ -28,11 +29,24 @@ const fetchAndCompareUpdateTime = async (ref: Ref) => {
       },
     });
   }
-  const jsonData = await response.json();
-  const uptime = new Date(jsonData.timeVersion).toISOString("sv-SE", {
-    timeZoneName: "short",
-  });
+  const text = await response.text();
+  const lines = text.trim().split("\n"); // 按行分割
 
+  // 假设每一行都是独立的 JSON 对象
+  const timeVersions = lines
+    .map((line) => {
+      try {
+        const json = JSON.parse(line); // 解析每一行
+        return json.timeVersion; // 返回 timeVersion 值
+      } catch {
+        return null; // 解析失败时返回 null
+      }
+    })
+    .filter((timeVersion) => timeVersion !== null); // 过滤掉 null 值
+
+  // const uptime = new Date(timeVersions[0]).toLocaleString("sv-SE");
+
+  const uptime = new Date(timeVersions[0]).toISOString();
   return { updatetime, uptime };
 };
 
@@ -41,7 +55,7 @@ const processInWorker = (ref: Ref, uptime: string) => {
   return new Promise((resolve, reject) => {
     const worker = new Worker("./app/worker.js", { workerData: { ref } });
 
-    const processInBatches = async (data) => {
+    const processInBatches = async (data: any) => {
       const batchSize = 100;
       const batchedData = [];
 
@@ -57,7 +71,7 @@ const processInWorker = (ref: Ref, uptime: string) => {
           .slice(i, i + MAX_CONCURRENT_BATCHES)
           .map((batch) =>
             prisma.$transaction(
-              batch.map((item) =>
+              batch.map((item: any) =>
                 prisma.vndbdatas.upsert({
                   where: { vnid: item.vnid },
                   update: item,
@@ -66,19 +80,7 @@ const processInWorker = (ref: Ref, uptime: string) => {
               )
             )
           );
-
-        // 打印当前批次处理的时间
-        const startTime = Date.now();
         await Promise.all(batchPromises);
-        const endTime = Date.now();
-        prisma.duptimes.update({
-          where: { id: ref.id },
-          data: {
-            Statusdescription: `Batch ${i / MAX_CONCURRENT_BATCHES + 1} processed in ${
-              endTime - startTime
-            }ms`,
-          },
-        });
 
         // 内存清理
         batchedData.slice(i, i + MAX_CONCURRENT_BATCHES).forEach(() => {
@@ -90,26 +92,50 @@ const processInWorker = (ref: Ref, uptime: string) => {
       }
     };
 
-    worker.on("message", async (result) => {
+    const messageQueue: any[] = [];
+    let isProcessing = false;
+
+    worker.on("message", (result) => {
+      messageQueue.push(result); // 将新消息放入队列
+      processQueue(); // 尝试处理队列
+    });
+
+    async function processQueue() {
+      if (isProcessing || messageQueue.length === 0) return;
+
+      isProcessing = true; // 设置为正在处理
+
+      const result = messageQueue.shift(); // 取出队列中的第一条消息
+
       try {
-        setImmediate(async () => {
-          if (Array.isArray(result) && result.length > 0) {
-            await processInBatches(result);
-            // 更新数据库中的 updatetime 和 state
-            await prisma.duptimes.update({
-              where: { id: ref.id },
-              data: {
-                updatetime: uptime,
-                state: false,
-                Statusdescription: "数据更新成功",
-              },
-            });
-          }
-        });
+        await processInBatches(result);
+        // 更新数据库中的 updatetime 和 state
       } catch (error) {
         reject(error);
+      } finally {
+        isProcessing = false; // 处理完毕后重置标志位
+        processQueue(); // 继续处理下一个消息
       }
-    });
+      if (messageQueue.length !== 0) {
+        await prisma.duptimes.update({
+          where: { id: ref.id },
+          data: {
+            updatetime: uptime,
+            state: true,
+            Statusdescription: `剩余任务数量: ${messageQueue.length}`,
+          },
+        });
+      } else {
+        await prisma.duptimes.update({
+          where: { id: ref.id },
+          data: {
+            updatetime: uptime,
+            state: false,
+            Statusdescription: "数据更新成功",
+          },
+        });
+      }
+    }
 
     worker.on("error", (err) => {
       prisma.duptimes.update({
