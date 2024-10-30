@@ -1,8 +1,6 @@
 "use server";
 import { editupdata, deleteEntryById, datadbup } from "@/lib/vndbdata";
 import { distinguishAndUpdate } from "@/lib/task/databaseSynchronization";
-import { meilisearch } from "../meilisearch/meilisearchSync";
-
 import { stringify, parse } from "flatted";
 
 export const updatas = async (formData) => {
@@ -21,9 +19,6 @@ export const vndbmgetac = async (ref) => {
     type,
   });
   return log;
-};
-export const meilisearchendpoint = async () => {
-  meilisearch();
 };
 
 export const deleteProjectEntry = async (id) => {
