@@ -55,6 +55,14 @@ const aHeavyTask = async () => {
 
   if (resultsjson.code === 200) {
     const processedFiles = processFiles(uuzudata);
+    const dodvdobulkOps = processedFiles.flatMap((result) =>
+      result.fields.vndb.map((vndb) => ({
+        path: result.name,
+        vndb: vndb,
+        cloud_id: ref.id,
+      }))
+    );
+
     const bulkOps = processedFiles.map((result) => ({
       cloudName: ref.name,
       cloud_id: ref.id,
@@ -70,7 +78,7 @@ const aHeavyTask = async () => {
       is_dir: result.is_dir,
     }));
 
-    return bulkOps;
+    return { alistdata: bulkOps, dodvdo: dodvdobulkOps };
   } else {
     return { error: resultsjson.message };
   }
@@ -78,10 +86,11 @@ const aHeavyTask = async () => {
 
 aHeavyTask()
   .then((results) => {
-    parentPort.postMessage(results); // Send the results back to the main thread
+    parentPort.postMessage({ type: "alistdata", data: results.alistdata });
+    parentPort.postMessage({ type: "alistdodvdo", data: results.dodvdo });
     process.exit(0);
   })
   .catch((error) => {
-    parentPort.postMessage({ error: error.message }); // Send error back to the main thread
+    parentPort.postMessage({ error: error.message });
     process.exit(1);
   });

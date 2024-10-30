@@ -84,10 +84,9 @@ export function Gamelsit({ datas }: { datas: any }) {
     const log: any = await getHomeModalData(gamelistdata.vnid); // 获取数据
     setModadldata(log); // 设置 modal 数据
   };
-
   return (
     <>
-      {datas.data.map((gamelistdata, index) => (
+      {datas.map((gamelistdata, index) => (
         <div key={gamelistdata.vnid}>
           <motion.div
             className="box"

@@ -29,7 +29,7 @@ async function Home({ searchParams }: { searchParams: SearchParams }) {
             </div>
           </div>
         </Handmotion>
-        <Gamelsit datas={gamelistdatas} />
+        <Gamelsit datas={gamelistdatas.data} />
       </div>
 
       <Pag

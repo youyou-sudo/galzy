@@ -1,13 +1,21 @@
 import prisma from "@/lib/prisma";
+import redis from "@/lib/redis";
 
 // 返回指定vndbid的数据
 export const vndbmget = async (ref: any) => {
+  const rekey = `vndbid:${ref.vnid}`;
+  const cachedData = await redis.get(rekey);
+
+  if (cachedData) {
+    return JSON.parse(cachedData);
+  }
   try {
     const datase = await prisma.vndbdatas.findUnique({
       where: {
         vnid: ref.vnid,
       },
     });
+    await redis.set(rekey, JSON.stringify(datase), "EX", 3600);
     return datase;
   } catch (error) {
     return {
@@ -44,6 +52,11 @@ export const vndbdatas = async () => {
 
 // Home 页面数据
 export const vndbmgethome = async (pages?: string, limit = 10) => {
+  const rekey = `vndbGetHome:page${pages},limit${limit}`;
+  const cachedData = await redis.get(rekey);
+  if (cachedData) {
+    return JSON.parse(cachedData);
+  }
   try {
     const currentPage = parseInt(pages, 10) || 1;
 
@@ -81,12 +94,7 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
 
     // 如果请求的页码超出总页数，返回空数据
     if (currentPage > totalPages) {
-      return {
-        data: [],
-        currentPage,
-        totalPages,
-        totalDocuments,
-      };
+      return redatas;
     }
 
     // 计算跳过的文档数量
@@ -120,38 +128,15 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
     const datase = await prisma.filesiddatas.aggregateRaw({
       pipeline: dataPipeline,
     });
-    // 返回数据、当前页、总页数等信息
-    return {
+    const redatas = {
       data: datase,
       currentPage,
       totalPages,
       totalDocuments,
     };
-  } catch (error) {
-    return {
-      error: "数据库姐姐被掏空了 o(*////▽////*)q: " + error,
-      status: "error",
-    };
-  }
-};
 
-export const datadbtests = async () => {
-  try {
-    // 使用聚合查询当前页的数据
-    const dataPipeline = [
-      {
-        $lookup: {
-          from: "vndbdatas",
-          localField: "fields.vndb",
-          foreignField: "id",
-          as: "vndbdatas",
-        },
-      },
-    ];
-    const datase = await prisma.filesiddatas.aggregateRaw({
-      pipeline: dataPipeline,
-    });
-    return datase;
+    await redis.set(rekey, JSON.stringify(redatas), "EX", 3600);
+    return redatas;
   } catch (error) {
     return {
       error: "数据库姐姐被掏空了 o(*////▽////*)q: " + error,

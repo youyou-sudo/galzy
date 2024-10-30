@@ -1,8 +1,15 @@
 "use server";
 import prisma from "@/lib/prisma";
 import { parse } from "url";
+import redis from "@/lib/redis";
 
 export const alistListGet = async (ref: any) => {
+  const rekey = `alistListGet:${ref.cloud_id.$oid}/${ref.path}`;
+  const cachedData = await redis.get(rekey);
+  if (cachedData) {
+    return JSON.parse(cachedData);
+  }
+
   const alistdata = await prisma.duptimes.findUnique({
     where: { id: ref.cloud_id.$oid },
   });
@@ -79,12 +86,15 @@ export const alistListGet = async (ref: any) => {
       1,
       ""
     );
-    return {
+    const datas = {
       status: 200,
       message: "请求成功",
       dlink: alistdata.timeVersion,
       data: directoryStructure,
     };
+
+    await redis.set(rekey, JSON.stringify(datas), "EX", 3600);
+    return datas;
   } catch (error) {
     return {
       status: 500,

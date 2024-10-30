@@ -24,41 +24,6 @@ export default function Platform({ datas }) {
           {datas.vnid}
         </Chip>
       </Tooltip>
-      {/* {Array.from(new Set(datas.releases.map((regame) => regame.l_egs)))
-        .filter(Boolean)
-        .map((l_egs, index) => {
-          const game = datas.releases.find((regame) => regame.l_egs === l_egs);
-          return (
-            <Tooltip
-              content={
-                <div className="px-1 py-2">
-                  <div className="text-small font-bold">评批空间</div>
-                  <div className="text-tiny">{game?.title}</div>
-                </div>
-              }
-              key={index}
-            >
-              <Chip
-                {...chopconfig}
-                classNames={{
-                  base: "border border-[#fde68a]",
-                  content: "opacity-70",
-                }}
-                as={Link}
-                href={`https://erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki/game.php?game=${l_egs}`}
-                avatar={
-                  <Avatar
-                    name="评批空间"
-                    src="https://erogamescape.dyndns.org/favicon.ico"
-                  />
-                }
-              >
-                {l_egs}
-              </Chip>
-            </Tooltip>
-          );
-        })} */}
-
       {Array.from(new Set(datas.releases.map((regame) => regame.l_steam)))
         .filter(Boolean)
         .map((l_steam, index) => {

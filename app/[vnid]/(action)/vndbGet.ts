@@ -1,8 +1,14 @@
 "use server";
 import prisma from "@/lib/prisma";
+import redis from "@/lib/redis";
 
 // 返回指定 vndbid tag 的数据
 export const vndbdatagsdata = async (ref: any) => {
+  const rekey = `vndbdatagsdata:${ref.vnid}`;
+  const cachedData = await redis.get(rekey);
+  if (cachedData) {
+    return JSON.parse(cachedData);
+  }
   try {
     const datase = await prisma.vndbdatas.findUnique({
       where: {
@@ -29,6 +35,8 @@ export const vndbdatagsdata = async (ref: any) => {
         },
       },
     });
+
+    await redis.set(rekey, JSON.stringify(datase), "EX", 3600);
     return datase;
   } catch (error) {
     return {

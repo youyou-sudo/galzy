@@ -400,29 +400,59 @@ const alistWorker = async (ref: Ref) => {
 
   const worker = new Worker("./app/alistWorker.js", { workerData: { ref } });
 
-  worker.on("message", async (result) => {
-    setImmediate(async () => {
-      try {
-        await prisma.$transaction([
-          prisma.filesiddatas.deleteMany({ where: { cloud_id: ref.id } }), // 删除所有文件数据
-          prisma.filesiddatas.createMany({ data: result }), // 插入新的文件数据
-          prisma.duptimes.update({
-            where: { id: ref.id },
-            data: {
-              state: false,
-              Statusdescription: "数据更新已完成",
-            },
-          }),
-        ]);
-      } catch (error) {
-        prisma.duptimes.update({
-          where: { id: ref.id },
-          data: {
-            Statusdescription: `Transaction failed, rolled back: ${error}`,
-          },
+  worker.on("message", async (message) => {
+    switch (message.type) {
+      case "alistdata":
+        setImmediate(async () => {
+          try {
+            await prisma.$transaction([
+              prisma.filesiddatas.deleteMany({ where: { cloud_id: ref.id } }),
+              prisma.filesiddatas.createMany({ data: message.data }),
+              prisma.duptimes.update({
+                where: { id: ref.id },
+                data: {
+                  state: false,
+                  Statusdescription: "数据更新已完成1",
+                },
+              }),
+            ]);
+          } catch (error) {
+            prisma.duptimes.update({
+              where: { id: ref.id },
+              data: {
+                Statusdescription: `Transaction failed, rolled back: ${error}`,
+              },
+            });
+          }
         });
-      }
-    });
+        break;
+      case "alistdodvdo":
+        setImmediate(async () => {
+          try {
+            const log = await prisma.$transaction([
+              prisma.files_vndbdatas.deleteMany({
+                where: { cloud_id: ref.id },
+              }),
+              prisma.files_vndbdatas.createMany({ data: message.data }),
+              prisma.duptimes.update({
+                where: { id: ref.id },
+                data: {
+                  state: false,
+                  Statusdescription: "数据更新已完成2",
+                },
+              }),
+            ]);
+          } catch (error) {
+            prisma.duptimes.update({
+              where: { id: ref.id },
+              data: {
+                Statusdescription: `Transaction failed, rolled back: ${error}`,
+              },
+            });
+          }
+        });
+        break;
+    }
   });
 
   worker.on("error", (err) => {

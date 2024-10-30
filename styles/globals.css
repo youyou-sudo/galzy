@@ -118,3 +118,8 @@ body::before {
   z-index: -1;
   pointer-events: none;
 }
+
+/* bbccode 样式 */
+#bbccode a {
+  @apply hover:underline text-sky-400;
+}

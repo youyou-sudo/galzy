@@ -50,6 +50,7 @@ model duptimes {
   tags_vndatas      tags_vndatas[]
   meilisearch_id    String[]           @db.ObjectId
   relationalIndex   meilisearchdatas[] @relation(fields: [meilisearch_id], references: [id])
+  files_vndbdatas   files_vndbdatas[]
 
   @@index([name], map: "name_1")
 }
@@ -79,8 +80,9 @@ model filesiddatas {
   fields    FilesiddatasFields
   filetype  Boolean
   is_dir    Boolean
-  path      String
+  path      String             @unique
   size      Int
+  filevndb  files_vndbdatas[]
 
   @@index([fields.vndb], map: "fields.vndb_1")
   @@index([fields.bgm], map: "fields.bgm_1")
@@ -88,17 +90,32 @@ model filesiddatas {
   @@index([fields.ymgal], map: "fields.ymgal_1")
 }
 
+model files_vndbdatas {
+  id         String       @id @default(auto()) @map("_id") @db.ObjectId
+  path       String
+  vndb       String
+  cloud_id   String
+  file       filesiddatas @relation(fields: [path], references: [path])
+  vndbdatas  vndbdatas    @relation(fields: [vndb], references: [vnid])
+  duptimes   duptimes?    @relation(fields: [duptimesId], references: [id])
+  duptimesId String?      @db.ObjectId
+
+  @@index([path], map: "path_1")
+  @@index([vndb], map: "vndb_1")
+}
+
 model vndbdatas {
-  id       String              @id @default(auto()) @map("_id") @db.ObjectId
-  cloud_id String              @db.ObjectId
-  cloud    duptimes            @relation(fields: [cloud_id], references: [id])
-  vnid     String              @unique
-  alias    String[]
-  image    String
-  olang    String
-  releases VndbdatasReleases[]
-  titles   VndbdatasTitles[]
-  tags     tags_vndatas[]
+  id        String              @id @default(auto()) @map("_id") @db.ObjectId
+  cloud_id  String              @db.ObjectId
+  cloud     duptimes            @relation(fields: [cloud_id], references: [id])
+  vnid      String              @unique
+  alias     String[]
+  image     String
+  olang     String
+  releases  VndbdatasReleases[]
+  titles    VndbdatasTitles[]
+  tags      tags_vndatas[]
+  filesdata files_vndbdatas[]
 }
 
 model tags {
@@ -133,6 +150,7 @@ model tags_vndatas {
   vndbdata        vndbdatas @relation(fields: [vid], references: [vnid])
   tags            tags      @relation(fields: [tag], references: [gid])
 
+  @@unique([tag, vid])
   @@index([tag], map: "tag_1")
   @@index([vid], map: "vid_1")
 }
