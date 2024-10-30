@@ -65,8 +65,8 @@ export async function search(querydata: string, pages: string) {
 
   try {
     const meiliconfig = await prisma.meilisearchdatas.findFirst({});
-    const searchKey = meiliconfig?.searchKey;
-    const meilisearchUrl = `${meiliconfig?.host}/multi-search`;
+    const searchKey = await meiliconfig?.searchKey;
+    const meilisearchUrl = await `${meiliconfig?.host}/multi-search`;
 
     const response = await fetch(meilisearchUrl, {
       cache: "no-store",

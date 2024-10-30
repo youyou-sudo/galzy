@@ -21,7 +21,7 @@ export async function searchpage({ searchParams }: Props) {
   const { query, pages } = await searchParams;
   metadata.title = `Search ${query}`;
   const qoutput: any = await search(query || "", pages || "1");
-  const data = { data: qoutput.hits };
+  const data = qoutput.hits;
   return (
     <div className="max-w-3xl mx-auto my-auto">
       <div
