@@ -28,7 +28,7 @@ async function vndbidpage({
   searchParams: any;
 }) {
   const { vnid } = await params;
-
+  metadata.openGraph ||= {};
   if (vnid.startsWith("v")) {
     try {
       const datas = await vndbmget({ vnid });
@@ -37,7 +37,6 @@ async function vndbidpage({
       l_iddata.push(vnid);
       const filedatas = await vndbidExists(l_iddata);
       const listtest: any = await alistListGet(filedatas);
-      metadata.openGraph ||= {};
 
       // 提取标题
       const titles = [
@@ -92,6 +91,12 @@ async function vndbidpage({
     const data = await tagsvndbInfo({ vnid, pagess });
 
     const result = data.vndbdata.map((item: any) => item.vndbdatas);
+
+    metadata.openGraph.title = data.giddata.name;
+    metadata.title = data.giddata.name;
+    metadata.description = data.giddata.description;
+    metadata.openGraph.description = data.giddata.description;
+    metadata.keywords = data.giddata.alias;
     return (
       <div className="max-w-3xl mx-auto my-auto">
         <TagsContentCard data={data} />
