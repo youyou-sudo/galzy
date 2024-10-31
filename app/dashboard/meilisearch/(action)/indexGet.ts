@@ -154,7 +154,7 @@ async function insertDocumentsToMeilisearch() {
     ];
 
     // 查询分页数据
-    const result = await prisma.filesiddatas.aggregateRaw({
+    const result = await prisma.vndbdatas.aggregateRaw({
       pipeline: totalDocumentsPipeline,
     });
 
@@ -165,7 +165,7 @@ async function insertDocumentsToMeilisearch() {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${adminKey}`, // 如果需要的话，添加API密钥
+            Authorization: `Bearer ${adminKey}`,
           },
           body: JSON.stringify(result),
         });

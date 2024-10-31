@@ -82,6 +82,7 @@ export const meiliconfigGet = async () => {
 export const meilidatasGet = async (ref) => {
   try {
     const key = await fetch(`${ref.host}/keys`, {
+      cache: "no-cache",
       method: "GET",
       headers: {
         "Content-Type": "application/json",
