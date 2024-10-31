@@ -225,8 +225,8 @@ const FileMap = ({
   );
 };
 
-// 主组件
-export default function Datalistview({ filedatas }: { filedatas: any }) {
+// 组件
+export function Stview({ filedatas }: { filedatas: any }) {
   const [listtest, setListtest] = useState();
   useEffect(() => {
     const listac = async () => {
@@ -238,35 +238,44 @@ export default function Datalistview({ filedatas }: { filedatas: any }) {
     listac();
   }, [filedatas]);
   return (
-    <motion.div
-      className="flex flex-col"
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-    >
+    <>
+      <motion.div
+        className="flex flex-col"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        {listtest ? (
+          <FileMap
+            filelist={listtest.data}
+            gfpath={filedatas.path}
+            dlink={listtest.dlink}
+          />
+        ) : (
+          <div className="w-full flex flex-col gap-2 mt-3">
+            <Skeleton className="h-7 w-1/5 rounded-lg" />
+            <Skeleton className="h-6 w-3/5 rounded-lg" />
+          </div>
+        )}
+      </motion.div>
+    </>
+  );
+}
+
+export default function Datalistview({ filedatas }: { filedatas: any }) {
+  return (
+    <>
       <Tabs aria-label="Options" className="mt-3" variant="light">
         <Tab key="download" title="下载">
           <Card>
             <CardBody>
-              <>
-                {listtest ? (
-                  <FileMap
-                    filelist={listtest.data}
-                    gfpath={filedatas.path}
-                    dlink={listtest.dlink}
-                  />
-                ) : (
-                  <div className="w-full flex flex-col gap-2">
-                    <Skeleton className="h-7 w-1/5 rounded-lg" />
-                    <Skeleton className="h-6 w-3/5 rounded-lg" />
-                    <Skeleton className="h-5 w-4/5 rounded-lg" />
-                  </div>
-                )}
-              </>
+              {filedatas.map((item: any, index) => (
+                <Stview key={index} filedatas={item} />
+              ))}
             </CardBody>
           </Card>
         </Tab>
       </Tabs>
-    </motion.div>
+    </>
   );
 }

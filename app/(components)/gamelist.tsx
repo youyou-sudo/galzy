@@ -174,9 +174,7 @@ export function Gamelsit({ datas }: { datas: any }) {
               <ModalBody>
                 <div>
                   <ContentCard fullsereenfill={true} data={modalData} />
-                  {modalData.filesdata.map((item: any, index: number) => (
-                    <Datalistview key={index} filedatas={item} />
-                  ))}
+                  <Datalistview filedatas={modalData.filesdata} />
                 </div>
               </ModalBody>
             </>
