@@ -127,7 +127,7 @@ export function ContentCard({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                 >
-                  <Accordion isCompact defaultExpandedKeys={["1"]}>
+                  <Accordion isCompact>
                     <AccordionItem key="1" aria-label="TAG" title="TAG">
                       <div className="flex">
                         <Switch
