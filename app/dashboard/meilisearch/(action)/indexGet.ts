@@ -140,14 +140,15 @@ async function insertDocumentsToMeilisearch() {
     const totalDocumentsPipeline = [
       {
         $lookup: {
-          from: "vndbdatas",
-          localField: "fields.vndb",
-          foreignField: "vnid",
-          as: "vndbdatas",
+          from: "files_vndbdatas",
+          localField: "vnid",
+          foreignField: "vndb",
+          as: "filesdata",
         },
       },
-      { $unwind: "$vndbdatas" },
-      { $replaceRoot: { newRoot: "$vndbdatas" } },
+      {
+        $match: { "filesdata.0": { $exists: true } },
+      },
       { $skip: currentPage * pageSize }, // 跳过当前页的数据
       { $limit: pageSize }, // 每次限制获取1000条数据
     ];
