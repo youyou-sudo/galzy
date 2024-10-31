@@ -4,14 +4,15 @@ import { parse } from "url";
 import redis from "@/lib/redis";
 
 export const alistListGet = async (ref: any) => {
-  const rekey = `alistListGet:${ref.cloud_id.$oid}/${ref.path}`;
+  const rekey = `alistListGet:${ref.cloud_id}/${ref.path}`;
   const cachedData = await redis.get(rekey);
   if (cachedData) {
     return JSON.parse(cachedData);
   }
-
   const alistdata = await prisma.duptimes.findUnique({
-    where: { id: ref.cloud_id.$oid },
+    where: {
+      id: ref.cloud_id,
+    },
   });
   const parsedUrl = parse(alistdata.jsonorl);
   const { protocol, hostname, pathname, port } = parsedUrl;

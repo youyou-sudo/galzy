@@ -1,10 +1,9 @@
 import React from "react";
-import { vndbmget, vndbidExists } from "@/lib/vndbdata";
+import { vndbmget } from "@/lib/vndbdata";
 import { ContentCard } from "@/app/[vnid]/(components)/ContentCard";
 import { stringify, parse } from "flatted";
 import Datalistview from "@/app/[vnid]/(components)/Datalistview";
 import Errors from "@/components/error";
-import { alistListGet } from "@/app/[vnid]/(action)/alistGet";
 import type { Metadata } from "next";
 import TagsContentCard from "./(components)/TagsContentCard";
 import { tagsvndbInfo } from "./(action)/Tagvndb";
@@ -33,10 +32,6 @@ async function vndbidpage({
     try {
       const datas = await vndbmget({ vnid });
       const contentdatas = await parse(stringify(datas));
-      const l_iddata = extractLinkedIds(contentdatas.releases);
-      l_iddata.push(vnid);
-      const filedatas = await vndbidExists(l_iddata);
-      const listtest: any = await alistListGet(filedatas);
 
       // 提取标题
       const titles = [
@@ -74,7 +69,11 @@ async function vndbidpage({
             ⬅返回
           </Link>
           <ContentCard data={contentdatas} />
-          <Datalistview filedatas={filedatas} dlink={listtest.dlink} />
+          {datas.filesdata.map((item: any, index) => (
+            <div key={index}>
+              <Datalistview filedatas={item} />
+            </div>
+          ))}
         </div>
       );
     } catch (error) {
@@ -113,16 +112,4 @@ async function vndbidpage({
     );
   }
 }
-
-function extractLinkedIds(releases) {
-  return releases
-    .flatMap((release) => [
-      release.l_steam,
-      release.l_egs,
-      release.l_dlsite,
-      release.l_digiket,
-    ])
-    .filter((value) => value !== undefined && value !== "" && value !== null);
-}
-
 export default vndbidpage;

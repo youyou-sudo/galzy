@@ -1,5 +1,5 @@
 import { title } from "@/components/primitives";
-import { vndbmgethome, vndbCount } from "@/lib/vndbdata";
+import { vndbmgethome } from "@/lib/vndbdata";
 import { Gamelsit } from "@/app/(components)/gamelist";
 import { stringify, parse } from "flatted";
 import { Pag } from "@/components/Pag";

@@ -226,13 +226,7 @@ const FileMap = ({
 };
 
 // 主组件
-export default function Datalistview({
-  filedatas,
-  dlink,
-}: {
-  filedatas: any;
-  dlink: string;
-}) {
+export default function Datalistview({ filedatas }: { filedatas: any }) {
   const [listtest, setListtest] = useState();
   useEffect(() => {
     const listac = async () => {
@@ -259,7 +253,7 @@ export default function Datalistview({
                   <FileMap
                     filelist={listtest.data}
                     gfpath={filedatas.path}
-                    dlink={dlink}
+                    dlink={listtest.dlink}
                   />
                 ) : (
                   <div className="w-full flex flex-col gap-2">

@@ -3,7 +3,7 @@ import redis from "@/lib/redis";
 
 // 返回指定vndbid的数据
 export const vndbmget = async (ref: any) => {
-  const rekey = `vndbid:${ref.vnid}`;
+  const rekey = `vndbGetf:${ref.vnid}`;
   const cachedData = await redis.get(rekey);
 
   if (cachedData) {
@@ -14,21 +14,11 @@ export const vndbmget = async (ref: any) => {
       where: {
         vnid: ref.vnid,
       },
+      include: {
+        filesdata: true,
+      },
     });
     await redis.set(rekey, JSON.stringify(datase), "EX", 3600);
-    return datase;
-  } catch (error) {
-    return {
-      error: "数据库姐姐被掏空了 o(*////▽////*)q: " + error,
-      status: "error",
-    };
-  }
-};
-
-// 返回文件条目总数
-export const vndbCount = async () => {
-  try {
-    const datase = await prisma.filesiddatas.count();
     return datase;
   } catch (error) {
     return {
@@ -62,30 +52,26 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
 
     // 聚合查询获取文档总数
     const totalDocumentsPipeline = [
-      { $unwind: "$fields.vndb" },
       {
         $lookup: {
-          from: "vndbdatas",
-          localField: "fields.vndb",
-          foreignField: "vnid",
-          as: "vndbdatas",
+          from: "files_vndbdatas",
+          localField: "vnid",
+          foreignField: "vndb",
+          as: "filesdata",
         },
       },
-      { $unwind: "$vndbdatas" },
-      { $replaceRoot: { newRoot: "$vndbdatas" } },
       {
-        $group: {
-          _id: "$vnid", // 按照 vndb ID 去重（Files 中 可能存在多个相同 VNDB ID 的不同文件夹）
-          doc: { $first: "$$ROOT" }, // 保留第一条记录
-        },
+        $match: { "filesdata.0": { $exists: true } },
       },
-      { $replaceRoot: { newRoot: "$doc" } },
-      { $count: "total" },
+      {
+        $count: "total",
+      },
     ];
 
-    const totalDocumentsResult = await prisma.filesiddatas.aggregateRaw({
+    const totalDocumentsResult = await prisma.vndbdatas.aggregateRaw({
       pipeline: totalDocumentsPipeline,
     });
+
     const totalDocuments =
       totalDocumentsResult.length > 0 ? totalDocumentsResult[0].total : 0;
 
@@ -94,7 +80,7 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
 
     // 如果请求的页码超出总页数，返回空数据
     if (currentPage > totalPages) {
-      return redatas;
+      return { data: [] };
     }
 
     // 计算跳过的文档数量
@@ -102,30 +88,21 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
 
     // 使用聚合查询当前页的数据
     const dataPipeline = [
-      { $unwind: "$fields.vndb" },
       {
         $lookup: {
-          from: "vndbdatas",
-          localField: "fields.vndb",
-          foreignField: "vnid",
-          as: "vndbdatas",
+          from: "files_vndbdatas",
+          localField: "vnid",
+          foreignField: "vndb",
+          as: "filesdata",
         },
       },
-      { $unwind: "$vndbdatas" },
-      { $replaceRoot: { newRoot: "$vndbdatas" } },
       {
-        $group: {
-          _id: "$vnid", // 按照 vndb ID 去重（Files 中 可能存在多个相同 VNDB ID 的不同文件夹）
-          doc: { $first: "$$ROOT" }, // 保留第一条记录
-        },
+        $match: { "filesdata.0": { $exists: true } }, // 过滤掉没有关联文件数据的文档
       },
-      { $replaceRoot: { newRoot: "$doc" } },
-      { $sort: { "releases.released": -1 } },
       { $skip: skip },
       { $limit: limit },
     ];
-
-    const datase = await prisma.filesiddatas.aggregateRaw({
+    const datase = await prisma.vndbdatas.aggregateRaw({
       pipeline: dataPipeline,
     });
     const redatas = {

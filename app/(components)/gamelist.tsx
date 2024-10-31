@@ -13,7 +13,6 @@ import {
 } from "@nextui-org/react";
 import { ContentCard } from "../[vnid]/(components)/ContentCard";
 import Datalistview from "../[vnid]/(components)/Datalistview";
-import { getHomeModalData } from "@/lib/actions/HomeModaldata";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
@@ -21,7 +20,6 @@ export function Gamelsit({ datas }: { datas: any }) {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [modalOpened, setModalOpened] = useState(false); // 标志
   const [manualClose, setManualClose] = useState(false); // 是否是手动关闭
-  const [modadldata, setModadldata] = useState();
   const [modalData, setModalData] = useState();
   // 监听 Modal 状态变化
   useEffect(() => {
@@ -81,12 +79,10 @@ export function Gamelsit({ datas }: { datas: any }) {
       title,
       `/${gamelistdata.vnid}`
     );
-    const log: any = await getHomeModalData(gamelistdata.vnid); // 获取数据
-    setModadldata(log); // 设置 modal 数据
   };
   return (
     <>
-      {datas.map((gamelistdata, index) => (
+      {datas.map((gamelistdata: any, index: number) => (
         <div key={gamelistdata.vnid}>
           <motion.div
             className="box"
@@ -178,10 +174,9 @@ export function Gamelsit({ datas }: { datas: any }) {
               <ModalBody>
                 <div>
                   <ContentCard fullsereenfill={true} data={modalData} />
-                  <Datalistview
-                    filedatas={modadldata?.filedatas}
-                    dlink={modadldata?.listtest.dlink}
-                  />
+                  {modalData.filesdata.map((item: any, index: number) => (
+                    <Datalistview key={index} filedatas={item} />
+                  ))}
                 </div>
               </ModalBody>
             </>
