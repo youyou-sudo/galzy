@@ -1,8 +1,7 @@
 import { auth, signOut } from "@/auth";
 import ItemLink from "./(components)/ItemLink";
 import { siteConfig } from "@/config/site";
-import { Button } from "@nextui-org/button";
-
+import { Button } from "@/components/ui/button";
 export default async function RootLayout({
   children,
 }: {

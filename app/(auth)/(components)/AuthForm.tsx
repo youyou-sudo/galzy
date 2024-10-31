@@ -104,7 +104,7 @@ export default function AuthForm() {
                 )}
                 <p className="text-center text-small">
                   Already have an account?{" "}
-                  <Link size="sm" onPress={() => setSelected("sign-up")}>
+                  <Link size="sm" onClick={() => setSelected("sign-up")}>
                     Login
                   </Link>
                 </p>
@@ -163,7 +163,7 @@ export default function AuthForm() {
 
                 <p className="text-center text-small">
                   已有账户?{" "}
-                  <Link size="sm" onPress={() => setSelected("login")}>
+                  <Link size="sm" onClick={() => setSelected("login")}>
                     Login
                   </Link>
                 </p>

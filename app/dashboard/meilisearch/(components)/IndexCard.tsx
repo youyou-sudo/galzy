@@ -15,7 +15,7 @@ import {
   alistVnIndexStu,
 } from "../(action)/indexGet";
 import { useToast } from "@/components/hooks/use-toast";
-import { Button } from "@nextui-org/button";
+import { Button } from "@/components/ui/button";
 import {
   Chip,
   Modal,
@@ -95,7 +95,7 @@ export default function IndexCard({ meiliindexviwss }) {
             <CardTitle>无预设索引</CardTitle>
           </CardHeader>
           <CardContent>
-            <Button onPress={creatindex}>一键生成</Button>
+            <Button onClick={creatindex}>一键生成</Button>
           </CardContent>
         </Card>
       ) : (
@@ -112,7 +112,7 @@ export default function IndexCard({ meiliindexviwss }) {
                 color="warning"
                 variant="faded"
                 isDisabled
-                onPress={jmliIndex}
+                onClick={jmliIndex}
               >
                 <RiRefreshLine />
               </Button>
@@ -176,7 +176,7 @@ export default function IndexCard({ meiliindexviwss }) {
                 isIconOnly
                 color="default"
                 variant="faded"
-                onPress={jmliIndex}
+                onClick={jmliIndex}
               >
                 <RiEditBoxLine />
               </Button>
@@ -184,12 +184,12 @@ export default function IndexCard({ meiliindexviwss }) {
                 isIconOnly
                 color="warning"
                 variant="faded"
-                onPress={jmliIndex}
+                onClick={jmliIndex}
               >
                 <RiRefreshLine />
               </Button>
               <div>
-                <Button onPress={dataupGet}>刷新页面状态</Button>
+                <Button onClick={dataupGet}>刷新页面状态</Button>
               </div>
             </CardContent>
           </Card>
@@ -229,10 +229,10 @@ export default function IndexCard({ meiliindexviwss }) {
                 </p>
               </ModalBody>
               <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
+                <Button color="danger" variant="light" onClick={onClose}>
                   Close
                 </Button>
-                <Button color="primary" onPress={onClose}>
+                <Button color="primary" onClick={onClose}>
                   Action
                 </Button>
               </ModalFooter>

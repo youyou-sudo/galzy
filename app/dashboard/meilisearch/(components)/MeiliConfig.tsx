@@ -97,7 +97,7 @@ export default function MeiliConfig({ meilisearchconfig }) {
             {meiliConfig ? (
               <Button
                 className="mr-0 ml-auto"
-                onPress={eitconfig}
+                onClick={eitconfig}
                 color="primary"
                 variant="shadow"
               >
@@ -137,7 +137,7 @@ export default function MeiliConfig({ meilisearchconfig }) {
                     )}
                     <Button
                       className="w-full"
-                      onPress={() =>
+                      onClick={() =>
                         KeyPostDB(
                           meiliConfig.id,
                           meiliConfig.host,

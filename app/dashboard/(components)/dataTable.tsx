@@ -209,7 +209,7 @@ export default function DataTable({ rows }) {
             color="primary"
             size="sm"
             variant="shadow"
-            onPress={newOpenForm}
+            onClick={newOpenForm}
           >
             Add New
           </Button>
