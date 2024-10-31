@@ -7,7 +7,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { siteConfig } from "@/config/site";
+// import { siteConfig } from "@/config/site";
 import Search from "./Search";
 import { NavigationCandidates } from "./nav-Linklist";
 
@@ -30,7 +30,12 @@ export const Navbar = () => {
           <NavbarBrand>
             <Link className="font-bold text-inherit" href="/">
               {/* {siteConfig.name} */}
-              <Image alt="LOGO" width={60} src={"/favicon.ico"} />
+              <Image
+                alt="LOGO"
+                className="hidden sm:flex basis-1/5 sm:basis-full"
+                width={60}
+                src={"/favicon.ico"}
+              />
             </Link>
           </NavbarBrand>
         </>
