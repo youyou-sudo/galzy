@@ -7,11 +7,11 @@ export default function Search() {
   const searchParams = useSearchParams();
 
   return (
-    <Form action="/search">
+    <Form action="/search" className="w-full max-w-xl">
       <Input
         type="search"
         name="query"
-        className="w-96"
+        className="flex w-full"
         defaultValue={searchParams.get("query") || ""}
         labelPlacement="outside"
         placeholder="会社、游戏名、作者、单词……  Press enter"
