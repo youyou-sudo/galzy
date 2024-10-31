@@ -156,7 +156,7 @@ export function ContentCard({
                                 fontSize: `${item.average_rating * 5.5 <= 5.5 ? 7 : item.average_rating * 5.5}px`,
                               }}
                               color="primary"
-                              href={`/${item.tags.gid}`}
+                              href={`/tag/${item.tags.gid}`}
                             >
                               {item.tags.name}
                             </Link>

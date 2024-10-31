@@ -4,13 +4,13 @@ import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
 
 export async function tagsvndbInfo({
-  vnid,
+  id,
   pagess,
 }: {
-  vnid: string;
+  id: string;
   pagess: number;
 }) {
-  const rekey = `tagsvndbinfo:${vnid}/${pagess}`;
+  const rekey = `tagsvndbinfo:${id}/${pagess}`;
   const cachedData = await redis.get(rekey);
   if (cachedData) {
     return JSON.parse(cachedData);
@@ -18,10 +18,10 @@ export async function tagsvndbInfo({
   const pageSize = 50;
 
   const giddata = await prisma.tags.findUnique({
-    where: { gid: vnid },
+    where: { gid: id },
   });
   const result = [
-    { $match: { gid: vnid } },
+    { $match: { gid: id } },
     {
       $lookup: {
         from: "tags_vndatas",
@@ -61,7 +61,6 @@ export async function tagsvndbInfo({
         name: 0,
         alias: 0,
         description: 0,
-        filesdata: 0,
         "tags_vndatas._id": 0,
         "tags_vndatas.vid": 0,
         "tags_vndatas.unid": 0,
