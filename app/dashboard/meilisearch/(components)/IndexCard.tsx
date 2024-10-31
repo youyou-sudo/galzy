@@ -15,7 +15,6 @@ import {
   alistVnIndexStu,
 } from "../(action)/indexGet";
 import { useToast } from "@/components/hooks/use-toast";
-import { Button } from "@/components/ui/button";
 import {
   Chip,
   Modal,
@@ -25,6 +24,7 @@ import {
   ModalHeader,
   Tooltip,
   useDisclosure,
+  Button,
 } from "@nextui-org/react";
 
 export default function IndexCard({ meiliindexviwss }) {

@@ -1,8 +1,9 @@
 "use client";
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Accordion, AccordionItem } from "@nextui-org/react";
 import {
+  Accordion,
+  AccordionItem,
   Modal,
   ModalContent,
   ModalHeader,
