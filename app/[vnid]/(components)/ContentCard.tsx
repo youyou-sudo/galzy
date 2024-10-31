@@ -42,6 +42,17 @@ export function ContentCard({
     a();
   }, [datas]);
 
+  useEffect(() => {
+    if (tagsdata?.tags) {
+      const highRatedTagsCount = tagsdata.tags.filter(
+        (item) => item.average_rating > 2.5
+      ).length;
+      if (highRatedTagsCount < 2) {
+        setIsSelected(false);
+      }
+    }
+  }, [tagsdata]);
+
   return (
     <>
       <motion.div

@@ -62,11 +62,7 @@ async function vndbidpage({
           ⬅返回
         </Link>
         <ContentCard data={contentdatas} />
-        {datas.filesdata.map((item: any, index) => (
-          <div key={index}>
-            <Datalistview filedatas={item} />
-          </div>
-        ))}
+        <Datalistview filedatas={datas.filesdata} />
       </div>
     );
   } catch (error) {
