@@ -12,42 +12,45 @@ interface Ref {
 
 // 数据库与数据源 time 获取
 const fetchAndCompareUpdateTime = async (ref: Ref) => {
-  // 获取数据库更新时间
-  const databaseUpdateTime = await prisma.duptimes.findUnique({
-    where: { id: ref.id },
-  });
-  if (!databaseUpdateTime) throw new Error("Database update time not found");
-
-  const { updatetime } = databaseUpdateTime;
-  const response = await fetch(ref.timeVersion, { cache: "no-store" });
-
-  if (!response.ok) {
-    await prisma.duptimes.update({
+  try {
+    const databaseUpdateTime = await prisma.duptimes.findUnique({
       where: { id: ref.id },
-      data: {
-        Statusdescription: `Failed to fetch JSON file: ${response.statusText}`,
-      },
     });
+    if (!databaseUpdateTime) throw new Error("Database update time not found");
+
+    const { updatetime } = databaseUpdateTime;
+    const response = await fetch(ref.timeVersion, { cache: "no-store" });
+
+    if (!response.ok) {
+      await prisma.duptimes.update({
+        where: { id: ref.id },
+        data: {
+          Statusdescription: `Failed to fetch JSON file: ${response.statusText}`,
+        },
+      });
+      throw new Error(`Fetch failed with status: ${response.status}`);
+    }
+
+    const text = await response.text();
+    const timeVersions = text
+      .trim()
+      .split("\n")
+      .map((line) => {
+        try {
+          const json = JSON.parse(line);
+          return json.timeVersion;
+        } catch {
+          return null;
+        }
+      })
+      .filter((timeVersion) => timeVersion !== null);
+
+    const uptime = new Date(timeVersions[0]).toISOString();
+    return { updatetime, uptime };
+  } catch (error) {
+    console.error(`Error in fetchAndCompareUpdateTime: ${error.message}`);
+    throw error;
   }
-  const text = await response.text();
-  const lines = text.trim().split("\n"); // 按行分割
-
-  // 假设每一行都是独立的 JSON 对象
-  const timeVersions = lines
-    .map((line) => {
-      try {
-        const json = JSON.parse(line); // 解析每一行
-        return json.timeVersion; // 返回 timeVersion 值
-      } catch {
-        return null; // 解析失败时返回 null
-      }
-    })
-    .filter((timeVersion) => timeVersion !== null); // 过滤掉 null 值
-
-  // const uptime = new Date(timeVersions[0]).toLocaleString("sv-SE");
-
-  const uptime = new Date(timeVersions[0]).toISOString();
-  return { updatetime, uptime };
 };
 
 // vndb worker
