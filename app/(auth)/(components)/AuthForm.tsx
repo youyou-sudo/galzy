@@ -17,53 +17,66 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function AuthForm() {
   const [selected, setSelected] = React.useState<React.Key>("login");
+  const [error, setError] = useState();
+  const [isLoading, setIsLoading] = useState(false);
 
-  //   登陆部分
   const searchParams = useSearchParams();
   const url = searchParams.get("callbackUrl") || "/";
   const { replace } = useRouter();
-
   const { status } = useSession();
-  const [loingerr, setLoingerr] = useState();
-  const [loadingsu, setLoadingsu] = useState(false);
 
   if (status === "authenticated") {
-    replace(`${url || "/"}`);
+    replace(url);
   }
 
-  const ling = async (formData: FormData) => {
-    setLoadingsu(true);
-    const log = await signInAC(formData);
-    setLoadingsu(false);
-    if (log?.status === "success") {
-      setLoadingsu(false);
-      setLoingerr(log);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      replace(`${url || "/"}`);
-    } else {
-      setLoingerr(log);
-      setLoadingsu(false);
-    }
+  const ErrorAlert = ({ error }: { error: any }) => {
+    if (!error) return null;
+    return (
+      <Alert variant={error?.status === "error" ? "destructive" : undefined}>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          {error.type === "validation" ? (
+            <>
+              {error.message.map((item: any, index: any) => (
+                <div key={index}>{item.message}</div>
+              ))}
+            </>
+          ) : (
+            <div>{error.message}</div>
+          )}
+        </AlertDescription>
+      </Alert>
+    );
   };
 
-  //   注册部分
-  const reg = async (formData: FormData) => {
-    setLoadingsu(true);
-    const log = await registerAC(formData);
-    setLoadingsu(false);
-    if (log?.status === "success") {
-      setLoadingsu(false);
-      setLoingerr(log);
+  const handleAuth = async (
+    formData: FormData,
+    action: "login" | "register"
+  ) => {
+    setIsLoading(true);
+    const response = await (action === "login"
+      ? signInAC(formData)
+      : registerAC(formData));
+    setIsLoading(false);
+
+    if (response?.status === "success") {
+      setError(response);
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      setSelected("login");
+
+      if (action === "login") {
+        replace(url);
+      } else {
+        setSelected("login");
+        setError(undefined);
+      }
     } else {
-      setLoingerr(log);
+      setError(response);
     }
   };
 
   return (
     <div className="flex flex-col justify-center items-center">
-      <Card className="max-md w-[340px] ">
+      <Card className="max-md w-[340px]">
         <CardBody className="overflow-hidden">
           <Tabs
             fullWidth
@@ -72,9 +85,11 @@ export default function AuthForm() {
             selectedKey={selected}
             onSelectionChange={setSelected}
           >
-            {/* 登陆部分 */}
             <Tab key="login" title="登陆">
-              <form action={ling} className="space-y-4">
+              <form
+                action={(formData) => handleAuth(formData, "login")}
+                className="space-y-4"
+              >
                 <Input isRequired label="Email" name="email" />
                 <Input
                   isRequired
@@ -82,34 +97,15 @@ export default function AuthForm() {
                   name="password"
                   type="password"
                 />
-                {loingerr && (
-                  <Alert
-                    variant={
-                      loingerr?.status === "error" ? "destructive" : undefined
-                    }
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      {loingerr.type === "validation" ? (
-                        <>
-                          {loingerr.message.map((item, index) => (
-                            <div key={index}>{item.message}</div>
-                          ))}
-                        </>
-                      ) : (
-                        <div>{loingerr.message}</div>
-                      )}
-                    </AlertDescription>
-                  </Alert>
-                )}
+                <ErrorAlert error={error} />
                 <p className="text-center text-small">
-                  Already have an account?{" "}
+                  没有账户？{" "}
                   <Link size="sm" onClick={() => setSelected("sign-up")}>
-                    Login
+                    注册
                   </Link>
                 </p>
                 <Button
-                  isLoading={loadingsu}
+                  isLoading={isLoading}
                   fullWidth
                   color="primary"
                   type="submit"
@@ -118,9 +114,15 @@ export default function AuthForm() {
                 </Button>
               </form>
             </Tab>
-            {/* 注册部分 */}
+
             <Tab key="sign-up" title="注册">
-              <form action={reg} className="space-y-4">
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  await handleAuth(new FormData(e.currentTarget), "register");
+                }}
+                className="space-y-4"
+              >
                 <Input
                   isRequired
                   name="name"
@@ -140,43 +142,21 @@ export default function AuthForm() {
                   placeholder="Enter your password"
                   type="password"
                 />
-                {loingerr && (
-                  <Alert
-                    variant={
-                      loingerr?.status === "error" ? "destructive" : undefined
-                    }
-                  >
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      {loingerr.type === "validation" ? (
-                        <>
-                          {loingerr.message.map((item, index) => (
-                            <div key={index}>{item.message}</div>
-                          ))}
-                        </>
-                      ) : (
-                        <div>{loingerr.message}</div>
-                      )}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
+                <ErrorAlert error={error} />
                 <p className="text-center text-small">
                   已有账户?{" "}
                   <Link size="sm" onClick={() => setSelected("login")}>
                     Login
                   </Link>
                 </p>
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    isLoading={loadingsu}
-                    type="submit"
-                    fullWidth
-                    color="primary"
-                  >
-                    注册
-                  </Button>
-                </div>
+                <Button
+                  isLoading={isLoading}
+                  type="submit"
+                  fullWidth
+                  color="primary"
+                >
+                  注册
+                </Button>
               </form>
             </Tab>
           </Tabs>

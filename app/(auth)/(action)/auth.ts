@@ -6,28 +6,32 @@ import bcrypt from "bcryptjs";
 import { ZodError, object, string } from "zod";
 
 const signInSchema = object({
-  email: string({ required_error: "邮箱可不能忘了呀！填上吧~" })
-    .min(1, { message: "邮箱可不能忘了呀！填上吧~" })
+  email: string()
+    .min(1, "邮箱可不能忘了呀！填上吧~")
     .email("这不是一个合法的邮箱哦！快检查一下格式！"),
-  password: string({ required_error: "嘿嘿，密码也得有哦！" })
-    .min(8, "密码得长一点，至少 8 个字符！")
-    .max(32, "密码太长啦，最多 32 个字符！"),
+  password: string()
+    .min(8, "至少 8 个字符哦～！")
+    .max(32, "密码不能超过32个字符哦～！"),
 });
 
 // 登陆部分
 export async function signInAC(formData: FormData) {
-  const zodyjvg = {
+  const credentials = {
     email: formData.get("email") as string,
     password: formData.get("password") as string,
   };
   try {
-    const { email, password } = await signInSchema.parseAsync(zodyjvg);
+    const { email, password } = await signInSchema.parseAsync(credentials);
     const result = await signIn("credentials", {
       redirect: false,
       email,
       password,
     });
-    if (result.error) {
+    if (result?.error) {
+      return {
+        status: "error",
+        message: result.error,
+      };
     }
     return {
       status: "success",
@@ -47,6 +51,10 @@ export async function signInAC(formData: FormData) {
         message: error.message,
       };
     }
+    return {
+      status: "error",
+      message: "登录失败了哦～，请稍后再试",
+    };
   }
 }
 
@@ -63,34 +71,37 @@ const registerSchema = object({
 });
 
 export const registerAC = async (formData: FormData) => {
+  const credentials = {
+    email: formData.get("email") as string,
+    password: formData.get("password") as string,
+    name: formData.get("name") as string,
+  };
   try {
-    const zodyjvg = {
-      email: formData.get("email") as string,
-      password: formData.get("password") as string,
-      name: formData.get("name") as string,
-    };
-    const { email, password, name } = await registerSchema.parseAsync(zodyjvg);
-    const result = await prisma.users.findUnique({ where: { email: email } });
-    if (result) {
+    const { email, password, name } =
+      await registerSchema.parseAsync(credentials);
+    const existingUser = await prisma.users.findUnique({ where: { email } });
+
+    if (existingUser) {
       return {
         status: "error",
         message: "邮箱已经注册过了哦～，请使用其他邮箱注册",
       };
-    } else {
-      const pawHash = await bcrypt.hash(password, 10);
-      await prisma.users.create({
-        data: {
-          name: name,
-          email: email,
-          password: pawHash,
-          identity: "user",
-        },
-      });
-      return {
-        status: "success",
-        message: "注册成功啦！欢迎加入我们！",
-      };
     }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await prisma.users.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        identity: "user",
+      },
+    });
+
+    return {
+      status: "success",
+      message: "注册成功啦！欢迎加入我们！",
+    };
   } catch (error) {
     if (error instanceof ZodError) {
       return {
@@ -101,7 +112,7 @@ export const registerAC = async (formData: FormData) => {
     }
     return {
       status: "error",
-      message: "注册失败了哦～，请稍后再试" + error,
+      message: "注册失败了哦～，请稍后再试",
     };
   }
 };
