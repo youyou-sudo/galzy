@@ -120,6 +120,7 @@ export function ContentCard({ data, fullsereenfill }: ContentCardProps) {
             }}
             color="primary"
             href={`/tag/${item.tags.gid}`}
+            prefetch={true}
           >
             {item.tags.name}
           </Link>
@@ -176,6 +177,8 @@ export function ContentCard({ data, fullsereenfill }: ContentCardProps) {
             <Button
               as={Link}
               href={`/${data.vnid}`}
+              prefetch={true}
+              scroll={false}
               variant="light"
               isIconOnly
               className="flex mr-0 ml-auto"

@@ -9,8 +9,8 @@ import {
   ModalHeader,
   ModalBody,
   useDisclosure,
-  Link,
 } from "@nextui-org/react";
+import Link from "next/link";
 import { ContentCard } from "../[vnid]/(components)/ContentCard";
 import Datalistview from "../[vnid]/(components)/Datalistview";
 import { useEffect, useState } from "react";
@@ -98,8 +98,9 @@ export function Gamelsit({ datas }: { datas: any }) {
               onClick={
                 !isMobile ? (e) => openModal(e, gamelistdata) : undefined
               }
+              prefetch={true}
               href={`/${gamelistdata.vnid}`}
-              isPressable={!isMobile} // 仅在桌面端可按压
+              isPressable={!isMobile}
               className="flex mt-2 w-full"
               key={gamelistdata.vnid}
             >
