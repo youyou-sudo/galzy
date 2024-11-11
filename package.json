@@ -38,6 +38,7 @@
     "next-auth": "^5.0.0-beta.25",
     "next-runtime-env": "^3.2.2",
     "next-themes": "^0.2.1",
+    "nuqs": "^2.1.1",
     "pinyin-pro": "^3.25.0",
     "postcss": "8.4.38",
     "prisma": "^5.21.1",

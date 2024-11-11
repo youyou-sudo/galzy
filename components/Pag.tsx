@@ -1,19 +1,19 @@
 "use client";
-import { useSearchParams, useRouter } from "next/navigation";
 import { Pagination } from "@nextui-org/react";
+import { useQueryState } from "nuqs";
+import { useRouter } from "next/navigation";
 // total 为总页数，pages 为当前页码
-export function Pag({ pages, total }) {
-  const searchParams = useSearchParams();
-  const { replace } = useRouter();
+export function Pag({ pages, total }: { pages: number; total: number }) {
+  const [pagess, setPagess] = useQueryState("pages", { defaultValue: "" });
+  const router = useRouter();
 
-  const handleClick = (pages) => {
-    const params = new URLSearchParams(searchParams);
-    if (pages && pages == 1) {
-      params.delete("pages");
+  const handleClick = async (onpage: number) => {
+    if (onpage !== 1) {
+      await setPagess(String(onpage));
     } else {
-      params.set("pages", pages);
+      await setPagess(null);
     }
-    replace(`?${params.toString()}`);
+    router.refresh();
   };
 
   return (
@@ -26,7 +26,7 @@ export function Pag({ pages, total }) {
           color="primary"
           initialPage={pages === 0 ? 1 : pages}
           total={total === 0 ? 1 : total}
-          onChange={(page) => handleClick(page)}
+          onChange={(onpage) => handleClick(onpage)}
         />
       </div>
     </>
