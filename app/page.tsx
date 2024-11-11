@@ -4,12 +4,7 @@ import { Gamelsit } from "@/app/(components)/gamelist";
 import { stringify, parse } from "flatted";
 import { Pag } from "@/components/Pag";
 import Handmotion from "@/components/Handmotion";
-import type { Metadata } from "next";
 
-export const metadata: Metadata = {
-  title: "VNGal",
-  description: "又又又一个 GalGame 资源站",
-};
 interface SearchParams {
   pages?: string;
 }
