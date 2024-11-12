@@ -112,19 +112,16 @@ export function Gamelsit({ datas }: { datas: any }) {
                     shadow="sm"
                     radius="lg"
                     width={100}
-                    className="object-cover h-[140px]"
-                    src={
-                      gamelistdata.image
-                        ? `${
-                            process.env.NEXT_PUBLIC_VNDBIMG_URI
-                          }/${gamelistdata.image.substring(
-                            0,
-                            2
-                          )}/${gamelistdata.image.slice(-2)}/${gamelistdata.image.slice(
-                            2
-                          )}.jpg`
-                        : "https://dummyimage.com/679x481/9e9e9e/fff"
-                    }
+                    height={140}
+                    className="object-cover"
+                    src={`${
+                      process.env.NEXT_PUBLIC_VNDBIMG_URI
+                    }/${gamelistdata.image.substring(
+                      0,
+                      2
+                    )}/${gamelistdata.image.slice(-2)}/${gamelistdata.image.slice(
+                      2
+                    )}.jpg`}
                     fallbackSrc="https://dummyimage.com/679x481/9e9e9e/fff"
                     alt="图片"
                   />
