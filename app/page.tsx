@@ -2,7 +2,7 @@ import { title } from "@/components/primitives";
 import { vndbmgethome } from "@/lib/vndbdata";
 import { Gamelsit } from "@/app/(components)/gamelist";
 import { stringify, parse } from "flatted";
-import { Pag } from "@/components/Pag";
+import { PaginationWithLinks } from "@/components/pagination-with-links";
 import Handmotion from "@/components/Handmotion";
 
 interface SearchParams {
@@ -27,10 +27,10 @@ async function Home({ searchParams }: { searchParams: SearchParams }) {
         <Gamelsit datas={gamelistdatas.data} />
       </div>
 
-      <Pag
-        pages={gamelistdatas.currentPage}
-        total={gamelistdatas.totalPages}
-      ></Pag>
+      <PaginationWithLinks
+        page={gamelistdatas.currentPage}
+        totalCount={gamelistdatas.totalPages}
+      ></PaginationWithLinks>
     </>
   );
 }

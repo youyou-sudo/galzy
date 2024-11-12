@@ -2,9 +2,9 @@ import React, { Suspense } from "react";
 import { title } from "@/components/primitives";
 import { search } from "@/lib/meilisearch/search";
 import { Gamelsit } from "@/app/(components)/gamelist";
-import { Pag } from "@/components/Pag";
 import Nodata from "./(components)/nodata";
 import type { Metadata } from "next";
+import { PaginationWithLinks } from "@/components/pagination-with-links";
 
 export const metadata: Metadata = {
   title: "Search",
@@ -37,7 +37,10 @@ export async function searchpage({ searchParams }: Props) {
 
       <Suspense>
         {qoutput.hits.length > 0 ? <Gamelsit datas={data} /> : <Nodata />}
-        <Pag total={qoutput.totalPages} pages={qoutput.page} />
+        <PaginationWithLinks
+          totalCount={qoutput.totalPages}
+          page={qoutput.page}
+        />
       </Suspense>
     </div>
   );

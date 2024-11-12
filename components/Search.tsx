@@ -14,7 +14,7 @@ export default function Search() {
         className="flex w-full"
         defaultValue={searchParams.get("query") || ""}
         labelPlacement="outside"
-        placeholder="会社、游戏名、作者、单词……  Press enter"
+        placeholder="游戏名、作者、单词……  Press enter"
       />
     </Form>
   );

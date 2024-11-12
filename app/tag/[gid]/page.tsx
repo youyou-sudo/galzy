@@ -4,7 +4,7 @@ import { tagsvndbInfo } from "./(action)/Tagvndb";
 import TagsContentCard from "../../[vnid]/(components)/TagsContentCard";
 import Ttip from "../../[vnid]/(components)/Ttip";
 import { Gamelsit } from "../../(components)/gamelist";
-import { Pag } from "@/components/Pag";
+import { PaginationWithLinks } from "@/components/pagination-with-links";
 
 export const metadata: Metadata = {
   openGraph: {
@@ -43,7 +43,7 @@ export default async function page({
       <TagsContentCard data={data} />
       <Ttip gid={data.giddata?.gid}></Ttip>
       <Gamelsit datas={result} />
-      <Pag pages={data.page} total={data.totalpageCount} />
+      <PaginationWithLinks page={data.page} totalCount={data.totalpageCount} />
     </div>
   );
 }
