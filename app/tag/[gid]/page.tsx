@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { tagsvndbInfo } from "./(action)/Tagvndb";
 import TagsContentCard from "./(components)/TagsContentCard";
 import Ttip from "./(components)/Ttip";
-import { Gamelsit } from "../../(components)/gamelist";
+import { Gamelsit } from "@/app/(components)/gamelist";
 import { PaginationWithLinks } from "@/components/pagination-with-links";
 
 export const metadata: Metadata = {

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import {
   Card,
   CardBody,
@@ -11,12 +13,11 @@ import {
   useDisclosure,
 } from "@nextui-org/react";
 import Link from "next/link";
-import { ContentCard } from "../[vnid]/(components)/ContentCard";
-import Datalistview from "../[vnid]/(components)/Datalistview";
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { ContentCard } from "@/app/[vnid]/(components)/ContentCard";
+import Datalistview from "@/app/[vnid]/(components)/Datalistview";
 
 export function Gamelsit({ datas }: { datas: any }) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [modalOpened, setModalOpened] = useState(false); // 标志
   const [manualClose, setManualClose] = useState(false); // 是否是手动关闭
@@ -27,6 +28,7 @@ export function Gamelsit({ datas }: { datas: any }) {
       window.history.back();
       setModalOpened(false); // 重置标志
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, modalOpened]);
 
   // 监听浏览器的返回事件，用户点击返回时关闭 Modal

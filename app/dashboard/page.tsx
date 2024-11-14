@@ -3,7 +3,7 @@ import { stringify, parse } from "flatted";
 import { Card } from "@/components/ui/card";
 
 import { datadbup } from "@/lib/vndbdata";
-import DataTable from "@/app/dashboard/(components)/dataTable";
+import DataTable from "./(components)/dataTable";
 
 export const dynamic = "force-dynamic";
 

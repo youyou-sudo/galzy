@@ -1,11 +1,11 @@
 import React from "react";
-import { vndbmget } from "@/lib/vndbdata";
-import { ContentCard } from "@/app/[vnid]/(components)/ContentCard";
-import { stringify, parse } from "flatted";
-import Datalistview from "@/app/[vnid]/(components)/Datalistview";
-import Errors from "@/components/error";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { stringify, parse } from "flatted";
+import { vndbmget } from "@/lib/vndbdata";
+import { ContentCard } from "./(components)/ContentCard";
+import Datalistview from "./(components)/Datalistview";
+import Errors from "@/components/error";
 
 export const metadata: Metadata = {
   openGraph: {

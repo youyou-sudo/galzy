@@ -16,7 +16,7 @@ import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function AuthForm() {
-  const [selected, setSelected] = React.useState<React.Key>("login");
+  const [selected, setSelected] = useState<React.Key>("login");
   const [error, setError] = useState();
   const [isLoading, setIsLoading] = useState(false);
 
