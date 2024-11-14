@@ -1,8 +1,8 @@
 import React from "react";
 import type { Metadata } from "next";
 import { tagsvndbInfo } from "./(action)/Tagvndb";
-import TagsContentCard from "../../[vnid]/(components)/TagsContentCard";
-import Ttip from "../../[vnid]/(components)/Ttip";
+import TagsContentCard from "./(components)/TagsContentCard";
+import Ttip from "./(components)/Ttip";
 import { Gamelsit } from "../../(components)/gamelist";
 import { PaginationWithLinks } from "@/components/pagination-with-links";
 
