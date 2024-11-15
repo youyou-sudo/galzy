@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma";
 import IndexCard from "./(components)/IndexCard";
 import { getIndexList } from "./(action)/indexGet";
 
+export const dynamic = "force-dynamic";
+
 export default async function VndbDatasPage() {
   const meilisearchconfig = await prisma.meilisearchdatas.findFirst({});
   const meilisearchconfigstring = parse(stringify(meilisearchconfig));
