@@ -1,5 +1,4 @@
 import NextAuth from "next-auth";
-// import bcrypt from "bcryptjs";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import authConfig from "@/auth.config";
 import prisma from "@/lib/prisma";

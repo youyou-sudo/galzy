@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate &&next build",
+    "build": "prisma generate && next build",
     "build:prismag": "next build",
-    "start": "next start",
+    "start": "prisma db push && next start",
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {

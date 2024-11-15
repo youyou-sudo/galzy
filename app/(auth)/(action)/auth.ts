@@ -2,7 +2,7 @@
 import { signIn } from "@/auth";
 import prisma from "@/lib/prisma";
 import { AuthError } from "next-auth";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "@/lib/auth/authpw";
 import { ZodError, object, string } from "zod";
 
 const signInSchema = object({
@@ -88,7 +88,8 @@ export const registerAC = async (formData: FormData) => {
       };
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hashPassword(password);
+
     await prisma.users.create({
       data: {
         name,

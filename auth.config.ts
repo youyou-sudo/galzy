@@ -2,7 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import prisma from "@/lib/prisma";
 import { AuthError } from "next-auth";
-import bcrypt from "bcryptjs";
+import { comparePassword } from "./lib/auth/authpw";
 
 // 将错误信息抽取为常量
 const AUTH_ERROR_MESSAGES = {
@@ -30,7 +30,7 @@ const validateCredentials = async (
     throw new CustomAuthError(AUTH_ERROR_MESSAGES.USER_NOT_FOUND);
   }
 
-  const passwordMatch = await bcrypt.compare(
+  const passwordMatch = await comparePassword(
     credentials.password,
     user.password
   );
