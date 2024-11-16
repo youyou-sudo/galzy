@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { stringify } from "flatted";
 import { Worker } from "worker_threads";
+import path from "path";
 
 interface Ref {
   id: string;
@@ -48,7 +49,7 @@ const fetchAndCompareUpdateTime = async (ref: Ref) => {
     const uptime = new Date(timeVersions[0]).toISOString();
     return { updatetime, uptime };
   } catch (error) {
-    console.error(`Error in fetchAndCompareUpdateTime: ${error.message}`);
+    console.error(`Error in fetchAndCompareUpdateTime: ${error}`);
     throw error;
   }
 };
@@ -56,7 +57,11 @@ const fetchAndCompareUpdateTime = async (ref: Ref) => {
 // vndb worker
 const processInWorker = (ref: Ref, uptime: string) => {
   return new Promise((resolve, reject) => {
-    const worker = new Worker("./worker/worker.js", { workerData: { ref } });
+    const workerPath = path.resolve(
+      process.cwd(),
+      ".next/server/worker/worker.js"
+    );
+    const worker = new Worker(workerPath, { workerData: { ref } });
 
     const processInBatches = async (data: any) => {
       const batchSize = 100;
@@ -165,9 +170,11 @@ const processInWorker = (ref: Ref, uptime: string) => {
 // tags worker
 const tagsprocessInWorker = (ref: Ref, uptime: string) => {
   return new Promise(() => {
-    const worker = new Worker("./worker/tagsWorker.js", {
-      workerData: { ref },
-    });
+    const workerPath = path.resolve(
+      process.cwd(),
+      ".next/server/worker/tagsWorker.js"
+    );
+    const worker = new Worker(workerPath, { workerData: { ref } });
 
     const tagsprocessInBatches = async (data: any) => {
       const batchSize = 100;
@@ -283,9 +290,11 @@ const tagsprocessInWorker = (ref: Ref, uptime: string) => {
 // gid-vid worker
 const gidvidprocessInWorker = (ref: Ref, uptime: string) => {
   return new Promise(() => {
-    const worker = new Worker("./worker/gidvidWorker.js", {
-      workerData: { ref },
-    });
+    const workerPath = path.resolve(
+      process.cwd(),
+      ".next/server/worker/gidvidWorker.js"
+    );
+    const worker = new Worker(workerPath, { workerData: { ref } });
 
     const tagsprocessInBatches = async (data: any) => {
       const batchSize = 100;
@@ -405,7 +414,11 @@ const alistWorker = async (ref: Ref) => {
     data: { state: true, Statusdescription: "数据任务请求已提交" },
   });
 
-  const worker = new Worker("./worker/alistWorker.js", { workerData: { ref } });
+  const workerPath = path.resolve(
+    process.cwd(),
+    ".next/server/worker/alistWorker.js"
+  );
+  const worker = new Worker(workerPath, { workerData: { ref } });
 
   worker.on("message", async (message) => {
     switch (message.type) {
@@ -436,7 +449,7 @@ const alistWorker = async (ref: Ref) => {
       case "alistdodvdo":
         setImmediate(async () => {
           try {
-            const log = await prisma.$transaction([
+            await prisma.$transaction([
               prisma.files_vndbdatas.deleteMany({
                 where: { cloud_id: ref.id },
               }),
