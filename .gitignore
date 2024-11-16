@@ -4,8 +4,6 @@
 /node_modules
 /.pnp
 .pnp.js
-pnpm-lock.yaml
-bun.lockb
 
 # testing
 /coverage
