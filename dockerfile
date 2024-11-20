@@ -21,7 +21,7 @@ WORKDIR /usr/src/app
 COPY --from=build /usr/src/app/.next/standalone ./
 COPY --from=build /usr/src/app/public ./public
 COPY --from=build /usr/src/app/.next/static ./.next/static
-COPY --from=build /usr/src/app/worker ./server/worker
+COPY --from=build /usr/src/app/worker .next/server/worker
 
 # 设置环境变量和用户
 ENV NODE_ENV=production
