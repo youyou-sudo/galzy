@@ -21,6 +21,7 @@ import { motion } from "framer-motion";
 import { RiFullscreenFill } from "react-icons/ri";
 import { vndbdatagsdata } from "../(action)/vndbGet";
 import Link from "next/link";
+import { env } from "next-runtime-env";
 
 interface Title {
   lang: string;
@@ -85,7 +86,9 @@ export function ContentCard({ data, fullsereenfill }: ContentCardProps) {
 
   const getImageUrl = () => {
     const { image } = data;
-    return `${process.env.NEXT_PUBLIC_VNDBIMG_URI}/${image.substring(0, 2)}/${image.slice(-2)}/${image.slice(2)}.jpg`;
+    return `${env(
+      "NEXT_PUBLIC_VNDBIMG_URI"
+    )}/${image.substring(0, 2)}/${image.slice(-2)}/${image.slice(2)}.jpg`;
   };
 
   const renderTags = () => {

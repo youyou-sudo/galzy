@@ -10,6 +10,7 @@ import { fontSans } from "@/config/fonts";
 import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/toaster";
 import AuthProvider from "./(auth)/(components)/AuthProvider";
+import { PublicEnvScript } from "next-runtime-env";
 
 export const metadata: Metadata = {
   openGraph: {
@@ -44,7 +45,9 @@ export default function RootLayout({
 }) {
   return (
     <html suppressHydrationWarning lang="zh-CN">
-      <head />
+      <head>
+        <PublicEnvScript />
+      </head>
       <body
         className={clsx(
           "min-h-screen bg-background font-sans antialiased",

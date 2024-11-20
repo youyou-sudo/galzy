@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { ContentCard } from "@/app/[vnid]/(components)/ContentCard";
 import Datalistview from "@/app/[vnid]/(components)/Datalistview";
+import { env } from "next-runtime-env";
 
 export function Gamelsit({ datas }: { datas: any }) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -116,9 +117,9 @@ export function Gamelsit({ datas }: { datas: any }) {
                     width={100}
                     height={140}
                     className="object-cover"
-                    src={`${
-                      process.env.NEXT_PUBLIC_VNDBIMG_URI
-                    }/${gamelistdata.image.substring(
+                    src={`${env(
+                      "NEXT_PUBLIC_VNDBIMG_URI"
+                    )}/${gamelistdata.image.substring(
                       0,
                       2
                     )}/${gamelistdata.image.slice(-2)}/${gamelistdata.image.slice(

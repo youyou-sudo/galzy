@@ -6,6 +6,7 @@ import { vndbmget } from "@/lib/vndbdata";
 import { ContentCard } from "./(components)/ContentCard";
 import Datalistview from "./(components)/Datalistview";
 import Errors from "@/components/error";
+import { env } from "next-runtime-env";
 
 export const metadata: Metadata = {
   openGraph: {
@@ -50,7 +51,7 @@ async function vndbidpage({
     metadata.openGraph.description = `${title} 下载`;
     metadata.keywords = allTitles;
     metadata.openGraph.images = contentdatas.image
-      ? `${process.env.NEXT_PUBLIC_VNDBIMG_URI}/${contentdatas.image.substring(
+      ? `${env("NEXT_PUBLIC_VNDBIMG_URI")}/${contentdatas.image.substring(
           0,
           2
         )}/${contentdatas.image.slice(-2)}/${contentdatas.image.slice(2)}.jpg`
