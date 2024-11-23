@@ -22,10 +22,11 @@ COPY --from=build /usr/src/app/.next/standalone ./
 COPY --from=build /usr/src/app/public ./public
 COPY --from=build /usr/src/app/.next/static ./.next/static
 COPY --from=build /usr/src/app/worker ./worker
+COPY --from=build /usr/src/app/prisma ./prisma
 
 # 设置环境变量和用户
 ENV NODE_ENV=production
 USER bun
 
 EXPOSE 3000
-CMD ["bun", "server.js"]
+CMD ["sh", "-c", "bun prisma migrate deploy && bun server.js"]
