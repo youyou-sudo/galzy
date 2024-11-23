@@ -1,3 +1,3 @@
 #!/bin/bash
-bun prisma migrate deploy
+bun x prisma migrate deploy
 bun server.js
