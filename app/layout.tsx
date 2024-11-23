@@ -1,7 +1,6 @@
 import "@/styles/globals.css";
 import type { Metadata, Viewport } from "next";
 import clsx from "clsx";
-import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 import { Providers } from "./providers";
 
@@ -61,7 +60,7 @@ export default function RootLayout({
             <div className="relative flex flex-col h-screen">
               <Navbar />
               <main className="container mx-auto max-w-7xl pt-3 px-6 flex-grow">
-                <NuqsAdapter>{children}</NuqsAdapter>
+                {children}
               </main>
               <Toaster />
               <footer className="w-full flex items-center justify-center py-3"></footer>
