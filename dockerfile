@@ -27,8 +27,8 @@ COPY --from=build /usr/src/app/start.sh ./start.sh
 
 # 设置环境变量和用户
 ENV NODE_ENV=production
+RUN chmod +x start.sh
 USER bun
 
 EXPOSE 3000
-RUN chmod +x start.sh
 CMD ["./start.sh"]
