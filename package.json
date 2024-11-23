@@ -4,9 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "bun prisma generate && next build",
-    "build:prismag": "next build",
-    "start": "bun prisma db push && next start",
+    "build": "prisma generate && prisma migrate deploy && next build",
+    "start": "next start",
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
   "dependencies": {
@@ -32,7 +31,6 @@
     "flatted": "^3.3.1",
     "framer-motion": "^11.11.10",
     "grommet-icons": "^4.12.1",
-    "hangul-js": "^0.2.6",
     "intl-messageformat": "^10.5.0",
     "ioredis": "^5.4.1",
     "lucide-react": "^0.452.0",
@@ -40,7 +38,6 @@
     "next-auth": "^5.0.0-beta.25",
     "next-runtime-env": "^3.2.2",
     "next-themes": "^0.2.1",
-    "nuqs": "^2.1.1",
     "pinyin-pro": "^3.25.0",
     "postcss": "8.4.38",
     "react": "18.3.1",
@@ -56,6 +53,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
+    "@types/bun": "^1.1.13",
     "@types/node": "20.5.7",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",

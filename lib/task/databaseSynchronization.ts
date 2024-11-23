@@ -15,7 +15,7 @@ interface Ref {
 const fetchAndCompareUpdateTime = async (ref: Ref) => {
   try {
     const databaseUpdateTime = await prisma.duptimes.findUnique({
-      where: { id: ref.id },
+      where: { id: Number(ref.id) },
     });
     if (!databaseUpdateTime) throw new Error("Database update time not found");
 
@@ -24,7 +24,7 @@ const fetchAndCompareUpdateTime = async (ref: Ref) => {
 
     if (!response.ok) {
       await prisma.duptimes.update({
-        where: { id: ref.id },
+        where: { id: Number(ref.id) },
         data: {
           Statusdescription: `Failed to fetch JSON file: ${response.statusText}`,
         },
@@ -56,11 +56,14 @@ const fetchAndCompareUpdateTime = async (ref: Ref) => {
 
 // vndb worker
 const processInWorker = (ref: Ref, uptime: string) => {
-  return new Promise((resolve, reject) => {
-    const workerPath = path.resolve(
-      process.cwd(),
-      ".next/server/worker/worker.js"
-    );
+  return new Promise((reject) => {
+    // const workerPath = path.resolve(
+    //   process.cwd(),
+    //   ".next/server/worker/worker.js"
+    // );
+
+    const workerPath = path.resolve(process.cwd(), "worker/worker.js");
+
     const worker = new Worker(workerPath, { workerData: { ref } });
 
     const processInBatches = async (data: any) => {
@@ -126,7 +129,7 @@ const processInWorker = (ref: Ref, uptime: string) => {
       }
       if (messageQueue.length !== 0) {
         await prisma.duptimes.update({
-          where: { id: ref.id },
+          where: { id: Number(ref.id) },
           data: {
             updatetime: uptime,
             state: true,
@@ -135,7 +138,7 @@ const processInWorker = (ref: Ref, uptime: string) => {
         });
       } else {
         await prisma.duptimes.update({
-          where: { id: ref.id },
+          where: { id: Number(ref.id) },
           data: {
             updatetime: uptime,
             state: false,
@@ -147,7 +150,7 @@ const processInWorker = (ref: Ref, uptime: string) => {
 
     worker.on("error", (err) => {
       prisma.duptimes.update({
-        where: { id: ref.id },
+        where: { id: Number(ref.id) },
         data: {
           Statusdescription: `Worker thread encountered an error:${err}`,
         },
@@ -157,7 +160,7 @@ const processInWorker = (ref: Ref, uptime: string) => {
     worker.on("exit", (code) => {
       if (code !== 0) {
         prisma.duptimes.update({
-          where: { id: ref.id },
+          where: { id: Number(ref.id) },
           data: {
             Statusdescription: `Worker stopped with exit code ${code}`,
           },
@@ -170,10 +173,7 @@ const processInWorker = (ref: Ref, uptime: string) => {
 // tags worker
 const tagsprocessInWorker = (ref: Ref, uptime: string) => {
   return new Promise(() => {
-    const workerPath = path.resolve(
-      process.cwd(),
-      ".next/server/worker/tagsWorker.js"
-    );
+    const workerPath = path.resolve(process.cwd(), "worker/tagsWorker.js");
     const worker = new Worker(workerPath, { workerData: { ref } });
 
     const tagsprocessInBatches = async (data: any) => {
@@ -232,7 +232,7 @@ const tagsprocessInWorker = (ref: Ref, uptime: string) => {
         await tagsprocessInBatches(result);
         if (messageQueue.length !== 0) {
           await prisma.duptimes.update({
-            where: { id: ref.id },
+            where: { id: Number(ref.id) },
             data: {
               updatetime: uptime,
               state: true,
@@ -241,7 +241,7 @@ const tagsprocessInWorker = (ref: Ref, uptime: string) => {
           });
         } else {
           await prisma.duptimes.update({
-            where: { id: ref.id },
+            where: { id: Number(ref.id) },
             data: {
               updatetime: uptime,
               state: false,
@@ -252,7 +252,7 @@ const tagsprocessInWorker = (ref: Ref, uptime: string) => {
         // 更新数据库中的 updatetime 和 state
       } catch (error) {
         await prisma.duptimes.update({
-          where: { id: ref.id },
+          where: { id: Number(ref.id) },
           data: {
             updatetime: uptime,
             state: false,
@@ -267,7 +267,7 @@ const tagsprocessInWorker = (ref: Ref, uptime: string) => {
 
     worker.on("error", (err) => {
       prisma.duptimes.update({
-        where: { id: ref.id },
+        where: { id: Number(ref.id) },
         data: {
           Statusdescription: `Worker thread encountered an error:${err}`,
         },
@@ -277,7 +277,7 @@ const tagsprocessInWorker = (ref: Ref, uptime: string) => {
     worker.on("exit", (code) => {
       if (code !== 0) {
         prisma.duptimes.update({
-          where: { id: ref.id },
+          where: { id: Number(ref.id) },
           data: {
             Statusdescription: `Worker stopped with exit code ${code}`,
           },
@@ -290,10 +290,7 @@ const tagsprocessInWorker = (ref: Ref, uptime: string) => {
 // gid-vid worker
 const gidvidprocessInWorker = (ref: Ref, uptime: string) => {
   return new Promise(() => {
-    const workerPath = path.resolve(
-      process.cwd(),
-      ".next/server/worker/gidvidWorker.js"
-    );
+    const workerPath = path.resolve(process.cwd(), "worker/gidvidWorker.js");
     const worker = new Worker(workerPath, { workerData: { ref } });
 
     const tagsprocessInBatches = async (data: any) => {
@@ -311,15 +308,29 @@ const gidvidprocessInWorker = (ref: Ref, uptime: string) => {
         const batchPromises = batchedData
           .slice(i, i + MAX_CONCURRENT_BATCHES)
           .map((batch) =>
-            prisma.$transaction(
-              batch.map((item: any) =>
-                prisma.tags_vndatas.upsert({
-                  where: { unid: item.unid },
-                  update: item,
-                  create: item,
-                })
+            prisma
+              .$transaction((tx) =>
+                Promise.all(
+                  batch.map(async (item: any) => {
+                    const vndbExists = await tx.vndbdatas.findUnique({
+                      where: { vnid: item.vid },
+                    });
+                    const tagExists = await tx.tags.findUnique({
+                      where: { gid: item.tag },
+                    });
+
+                    if (vndbExists && tagExists) {
+                      return tx.tags_vndatas.upsert({
+                        where: { unid: item.unid },
+                        update: item,
+                        create: item,
+                      });
+                    }
+                    return null;
+                  })
+                )
               )
-            )
+              .then((results) => results.filter((result) => result !== null))
           );
         await Promise.all(batchPromises);
 
@@ -352,7 +363,7 @@ const gidvidprocessInWorker = (ref: Ref, uptime: string) => {
         await tagsprocessInBatches(result);
         if (messageQueue.length !== 0) {
           await prisma.duptimes.update({
-            where: { id: ref.id },
+            where: { id: Number(ref.id) },
             data: {
               updatetime: uptime,
               state: true,
@@ -361,7 +372,7 @@ const gidvidprocessInWorker = (ref: Ref, uptime: string) => {
           });
         } else {
           await prisma.duptimes.update({
-            where: { id: ref.id },
+            where: { id: Number(ref.id) },
             data: {
               updatetime: uptime,
               state: false,
@@ -370,15 +381,6 @@ const gidvidprocessInWorker = (ref: Ref, uptime: string) => {
           });
         }
         // 更新数据库中的 updatetime 和 state
-      } catch (error) {
-        await prisma.duptimes.update({
-          where: { id: ref.id },
-          data: {
-            updatetime: uptime,
-            state: false,
-            Statusdescription: `出错${error}`,
-          },
-        });
       } finally {
         isProcessing = false; // 处理完毕后重置标志位
         processQueue(); // 继续处理下一个消息
@@ -387,7 +389,7 @@ const gidvidprocessInWorker = (ref: Ref, uptime: string) => {
 
     worker.on("error", (err) => {
       prisma.duptimes.update({
-        where: { id: ref.id },
+        where: { id: Number(ref.id) },
         data: {
           Statusdescription: `Worker thread encountered an error:${err}`,
         },
@@ -397,7 +399,7 @@ const gidvidprocessInWorker = (ref: Ref, uptime: string) => {
     worker.on("exit", (code) => {
       if (code !== 0) {
         prisma.duptimes.update({
-          where: { id: ref.id },
+          where: { id: Number(ref.id) },
           data: {
             Statusdescription: `Worker stopped with exit code ${code}`,
           },
@@ -410,26 +412,46 @@ const gidvidprocessInWorker = (ref: Ref, uptime: string) => {
 // alist worker
 const alistWorker = async (ref: Ref) => {
   await prisma.duptimes.update({
-    where: { id: ref.id },
+    where: { id: Number(ref.id) },
     data: { state: true, Statusdescription: "数据任务请求已提交" },
   });
-
-  const workerPath = path.resolve(
-    process.cwd(),
-    ".next/server/worker/alistWorker.js"
-  );
+  const workerPath = path.resolve(process.cwd(), "worker/alistWorker.js");
   const worker = new Worker(workerPath, { workerData: { ref } });
-
+  const numid = Number(ref.id);
   worker.on("message", async (message) => {
     switch (message.type) {
       case "alistdata":
         setImmediate(async () => {
           try {
             await prisma.$transaction([
-              prisma.filesiddatas.deleteMany({ where: { cloud_id: ref.id } }),
-              prisma.filesiddatas.createMany({ data: message.data }),
+              // 删除操作，根据 cloud_id 删除文件数据
+              prisma.filesiddatas.deleteMany({
+                where: { cloud_id: Number(ref.id) },
+              }),
+
+              prisma.filesiddatas.createMany({
+                data: await Promise.all(
+                  message.data.map(async (item: any) => {
+                    const vndbData = await prisma.vndbdatas.findUnique({
+                      where: { vnid: item.vid },
+                    });
+
+                    // 如果没有找到对应的 vid 数据，则将 vid 设置为 null
+                    return {
+                      cloudName: item.cloudName,
+                      cloud_id: item.cloud_id,
+                      vid: vndbData ? item.vid : null,
+                      filetype: item.filetype,
+                      is_dir: item.is_dir,
+                      path: item.path,
+                      size: item.size,
+                    };
+                  })
+                ),
+              }),
+
               prisma.duptimes.update({
-                where: { id: ref.id },
+                where: { id: Number(ref.id) },
                 data: {
                   state: false,
                   Statusdescription: "数据更新已完成1",
@@ -438,33 +460,7 @@ const alistWorker = async (ref: Ref) => {
             ]);
           } catch (error) {
             prisma.duptimes.update({
-              where: { id: ref.id },
-              data: {
-                Statusdescription: `Transaction failed, rolled back: ${error}`,
-              },
-            });
-          }
-        });
-        break;
-      case "alistdodvdo":
-        setImmediate(async () => {
-          try {
-            await prisma.$transaction([
-              prisma.files_vndbdatas.deleteMany({
-                where: { cloud_id: ref.id },
-              }),
-              prisma.files_vndbdatas.createMany({ data: message.data }),
-              prisma.duptimes.update({
-                where: { id: ref.id },
-                data: {
-                  state: false,
-                  Statusdescription: "数据更新已完成2",
-                },
-              }),
-            ]);
-          } catch (error) {
-            prisma.duptimes.update({
-              where: { id: ref.id },
+              where: { id: numid },
               data: {
                 Statusdescription: `Transaction failed, rolled back: ${error}`,
               },
@@ -477,7 +473,7 @@ const alistWorker = async (ref: Ref) => {
 
   worker.on("error", (err) => {
     prisma.duptimes.update({
-      where: { id: ref.id },
+      where: { id: Number(ref.id) },
       data: {
         Statusdescription: `Worker thread encountered an error: ${err}`,
       },
@@ -487,7 +483,7 @@ const alistWorker = async (ref: Ref) => {
   worker.on("exit", (code) => {
     if (code !== 0) {
       prisma.duptimes.update({
-        where: { id: ref.id },
+        where: { id: Number(ref.id) },
         data: {
           Statusdescription: `Worker stopped with exit code ${code}`,
         },
@@ -505,12 +501,12 @@ const vndbmget = async (ref: Ref) => {
       // 不阻塞立即返回
       processInWorker(ref, uptime).catch((error) =>
         prisma.duptimes.update({
-          where: { id: ref.id },
+          where: { id: Number(ref.id) },
           data: { state: true, Statusdescription: `出现错误${error}` },
         })
       );
       await prisma.duptimes.update({
-        where: { id: ref.id },
+        where: { id: Number(ref.id) },
         data: { state: true, Statusdescription: "数据更新请求提交成功" },
       });
       return { status: "200", message: "数据更新中" };
@@ -539,12 +535,12 @@ const tagsGet = async (ref: Ref) => {
       // 不阻塞立即返回
       tagsprocessInWorker(ref, uptime).catch((error) =>
         prisma.duptimes.update({
-          where: { id: ref.id },
+          where: { id: Number(ref.id) },
           data: { state: true, Statusdescription: `出现错误${error}` },
         })
       );
       await prisma.duptimes.update({
-        where: { id: ref.id },
+        where: { id: Number(ref.id) },
         data: { state: true, Statusdescription: "数据更新请求提交成功" },
       });
       return { status: "200", message: "数据更新中" };
@@ -564,12 +560,12 @@ const gidvidGet = async (ref: Ref) => {
       // 不阻塞立即返回
       gidvidprocessInWorker(ref, uptime).catch((error) =>
         prisma.duptimes.update({
-          where: { id: ref.id },
+          where: { id: Number(ref.id) },
           data: { state: true, Statusdescription: `出现错误${error}` },
         })
       );
       await prisma.duptimes.update({
-        where: { id: ref.id },
+        where: { id: Number(ref.id) },
         data: { state: true, Statusdescription: "数据更新请求提交成功" },
       });
       return { status: "200", message: "数据更新中" };

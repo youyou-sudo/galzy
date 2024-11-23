@@ -15,7 +15,7 @@ export const vndbmget = async (ref: any) => {
         vnid: ref.vnid,
       },
       include: {
-        filesdata: true,
+        filesiddatas: true,
       },
     });
     await redis.set(rekey, JSON.stringify(datase), "EX", 3600);
@@ -41,7 +41,7 @@ export const vndbdatas = async () => {
 };
 
 // Home 页面数据
-export const vndbmgethome = async (pages?: string, limit = 10) => {
+export const vndbmgethome = async (pages?: string, limit = 20) => {
   const rekey = `vndbGetHome:page${pages},limit${limit}`;
   const cachedData = await redis.get(rekey);
   if (cachedData) {
@@ -50,68 +50,41 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
   try {
     const currentPage = parseInt(pages, 10) || 1;
 
-    // 聚合查询获取文档总数
-    const totalDocumentsPipeline = [
-      {
-        $lookup: {
-          from: "files_vndbdatas",
-          localField: "vnid",
-          foreignField: "vndb",
-          as: "filesdata",
+    const totalCount = await prisma.vndbdatas.count({
+      where: {
+        filesiddatas: {
+          some: {},
         },
       },
-      {
-        $match: { "filesdata.0": { $exists: true } },
-      },
-      {
-        $count: "total",
-      },
-    ];
-
-    const totalDocumentsResult = await prisma.vndbdatas.aggregateRaw({
-      pipeline: totalDocumentsPipeline,
     });
 
-    const totalDocuments =
-      totalDocumentsResult.length > 0 ? totalDocumentsResult[0].total : 0;
-
-    // 计算总页数
-    const totalPages = Math.ceil(totalDocuments / limit);
+    const totalPages = Math.ceil(totalCount / limit);
 
     // 如果请求的页码超出总页数，返回空数据
     if (currentPage > totalPages) {
       return { data: [] };
     }
 
-    // 计算跳过的文档数量
-    const skip = (currentPage - 1) * limit;
-
     // 使用聚合查询当前页的数据
-    const dataPipeline = [
-      {
-        $lookup: {
-          from: "files_vndbdatas",
-          localField: "vnid",
-          foreignField: "vndb",
-          as: "filesdata",
+    const datase = await prisma.vndbdatas.findMany({
+      where: {
+        filesiddatas: {
+          some: {},
         },
       },
-      {
-        $match: { "filesdata.0": { $exists: true } }, // 过滤掉没有关联文件数据的文档
+      include: {
+        filesiddatas: true,
       },
-      { $skip: skip },
-      { $limit: limit },
-    ];
-    const datase = await prisma.vndbdatas.aggregateRaw({
-      pipeline: dataPipeline,
+      skip: (currentPage - 1) * limit,
+      take: limit,
     });
+
     const redatas = {
       data: datase,
       currentPage,
       totalPages,
-      totalDocuments,
+      totalCount,
     };
-
     await redis.set(rekey, JSON.stringify(redatas), "EX", 3600);
     return redatas;
   } catch (error) {
@@ -126,21 +99,16 @@ export const vndbmgethome = async (pages?: string, limit = 10) => {
 export const vndbidExists = async (ref: any) => {
   try {
     if (ref) {
-      const result = await prisma.filesiddatas.aggregateRaw({
-        pipeline: [
-          {
-            $match: {
-              $or: [
-                { "fields.vndb": { $in: ref } },
-                { "fields.bgm": { $in: ref } },
-                { "fields.steam": { $in: ref } },
-              ],
-            },
-          },
-        ],
+      const result = await prisma.vndbdatas.findUnique({
+        where: {
+          vnid: ref,
+        },
+        include: {
+          filesiddatas: true,
+        },
       });
 
-      return result[0]; // 返回查询结果
+      return result; // 返回查询结果
     } else {
       return null; // 如果没有传入 vndbid，返回 null
     }
@@ -155,7 +123,11 @@ export const vndbidExists = async (ref: any) => {
 // 数据状态
 export const datadbup = async () => {
   try {
-    const duptimes = await prisma.duptimes.findMany();
+    const duptimes = await prisma.duptimes.findMany({
+      orderBy: {
+        id: "asc",
+      },
+    });
 
     // 针对每个 `duptime` 单独查询所需的计数
     const counts = await Promise.all(

@@ -137,25 +137,17 @@ async function insertDocumentsToMeilisearch() {
   const meilisearchUrl = `${meiliconfig?.host}/indexes/alistVN/documents`;
 
   while (hasMoreDocuments) {
-    const totalDocumentsPipeline = [
-      {
-        $lookup: {
-          from: "files_vndbdatas",
-          localField: "vnid",
-          foreignField: "vndb",
-          as: "filesdata",
+    const result = await prisma.vndbdatas.findMany({
+      where: {
+        filesiddatas: {
+          some: {},
         },
       },
-      {
-        $match: { "filesdata.0": { $exists: true } },
+      include: {
+        filesiddatas: true,
       },
-      { $skip: currentPage * pageSize }, // 跳过当前页的数据
-      { $limit: pageSize }, // 每次限制获取1000条数据
-    ];
-
-    // 查询分页数据
-    const result = await prisma.vndbdatas.aggregateRaw({
-      pipeline: totalDocumentsPipeline,
+      skip: currentPage * pageSize,
+      take: pageSize,
     });
 
     if (result.length > 0) {

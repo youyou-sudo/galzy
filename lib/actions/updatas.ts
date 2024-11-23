@@ -3,13 +3,19 @@ import { editupdata, deleteEntryById, datadbup } from "@/lib/vndbdata";
 import { distinguishAndUpdate } from "@/lib/task/databaseSynchronization";
 import { stringify, parse } from "flatted";
 
-export const updatas = async (formData) => {
+export const updatas = async (formData: any) => {
   const { id, name, jsonorl, timeVersion, type } = Object.fromEntries(formData);
-  const reff = await editupdata({ id, name, jsonorl, timeVersion, type });
+  const reff = await editupdata({
+    id: Number(id),
+    name,
+    jsonorl,
+    timeVersion,
+    type,
+  });
   return reff;
 };
 
-export const vndbmgetac = async (ref) => {
+export const vndbmgetac = async (ref: any) => {
   const { id, name, jsonorl, timeVersion, type } = ref;
   const log = await distinguishAndUpdate({
     id,

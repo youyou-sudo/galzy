@@ -179,7 +179,7 @@ export default function MeiliConfig({ meilisearchconfig }) {
                 label="host"
                 name="host"
                 defaultValue={formData.host}
-                placeholder="host"
+                placeholder="http://localhost:7700/"
               />
               <Input
                 label="masterKey"

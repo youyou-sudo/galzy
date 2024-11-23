@@ -40,7 +40,7 @@ import {
 } from "@/lib/actions/updatas";
 import { useToast } from "@/components/hooks/use-toast";
 
-export default function DataTable({ rows }) {
+export default function DataTable({ rows }: { rows: any }) {
   const { toast } = useToast();
   const router = useRouter();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -66,16 +66,14 @@ export default function DataTable({ rows }) {
     let frequentCheck = true;
     let toastTriggered = false;
     let wasPreviouslyTrue = false;
-    let shouldStartPolling = false; // 是否应该开始循环检测
+    let shouldStartPolling = false;
 
     const checkForUpdates = async () => {
-      let lastRequestTime = Date.now(); // 记录上一次请求的时间
+      let lastRequestTime = Date.now();
 
       while (!isCancelled) {
-        // 检查上次请求和当前时间差
         const currentTime = Date.now();
         if (currentTime - lastRequestTime < 5000) {
-          // 如果请求间隔小于5秒，跳过当前轮询，等待更长时间
           await new Promise((resolve) =>
             setTimeout(resolve, 5000 - (currentTime - lastRequestTime))
           );
@@ -85,20 +83,17 @@ export default function DataTable({ rows }) {
         const hasTrueState = currentData.some((row) => row.state === true);
 
         if (hasTrueState) {
-          // 有 true 状态
           frequentCheck = true;
           wasPreviouslyTrue = true;
           toastTriggered = false;
         } else if (wasPreviouslyTrue && !toastTriggered) {
-          // 在从 true 状态变为全 false 时触发 toast
           toast({ title: "✨主人，数据库准备就绪哦～" });
           toastTriggered = true;
-          wasPreviouslyTrue = false; // 状态回归 false
+          wasPreviouslyTrue = false;
         }
 
-        lastRequestTime = Date.now(); // 更新上次请求时间
+        lastRequestTime = Date.now();
 
-        // 延长请求间隔（例如，4秒钟）
         await new Promise((resolve) =>
           setTimeout(resolve, frequentCheck ? 2000 : 4000)
         );
@@ -107,7 +102,7 @@ export default function DataTable({ rows }) {
 
     // 初次页面加载时，检查 rowsdata
     if (rowsdata?.some((row) => row.state === true)) {
-      shouldStartPolling = true; // 第一次检测发现 true 状态，开始循环检测
+      shouldStartPolling = true;
     }
 
     if (shouldStartPolling) {
@@ -115,9 +110,9 @@ export default function DataTable({ rows }) {
     }
 
     return () => {
-      isCancelled = true; // 组件卸载时停止轮询
+      isCancelled = true;
     };
-  }, [rowsdata]); // 依赖 rowsdata 的变化
+  }, [rowsdata]);
 
   // Modal form data setup
   const newOpenForm = () => {
@@ -131,13 +126,13 @@ export default function DataTable({ rows }) {
     onOpen();
   };
 
-  const openFrom = (row) => {
+  const openFrom = (row: any) => {
     setFormData(row);
     onOpen();
   };
 
   // Handle actions for project
-  const handleRefresh = async (row) => {
+  const handleRefresh = async (row: any) => {
     const result = await vndbmgetac(row);
     if (result.status === "200") {
       toast({ title: "提交成功", description: JSON.stringify(result) });
@@ -151,7 +146,7 @@ export default function DataTable({ rows }) {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: any) => {
     const result = await deleteProjectEntry(id);
     if (result.status === "200") {
       toast({ title: "删除成功", description: JSON.stringify(result) });
@@ -165,7 +160,7 @@ export default function DataTable({ rows }) {
     }
   };
 
-  const handleSubmit = async (formData) => {
+  const handleSubmit = async (formData: any) => {
     try {
       const result = await updatas(formData);
       if (result.status === "200") {
@@ -231,7 +226,7 @@ export default function DataTable({ rows }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rowsdata?.map((row) => (
+            {rowsdata?.map((row: any) => (
               <TableRow key={row.id}>
                 <TableCell className="text-center">{row.name}</TableCell>
                 <TableCell className="truncate max-w-24">

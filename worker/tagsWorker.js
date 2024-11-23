@@ -27,7 +27,7 @@ async function aHeavyTask() {
         if (line) {
           try {
             const item = JSON.parse(line);
-            gid = item.id;
+            let gid = item.id;
             delete item.id;
             allBulkOps.push({
               ...item,

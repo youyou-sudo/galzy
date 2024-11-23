@@ -37,7 +37,7 @@ export const meilidataupGet = async (formData) => {
     } else {
       // 如果有 id，则更新现有配置
       await prisma.meilisearchdatas.update({
-        where: { id },
+        where: { id: Number(id) },
         data: {
           host: host,
           masterKey: masterKey,

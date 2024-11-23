@@ -1,11 +1,10 @@
 import { pinyin } from "pinyin-pro";
 import * as wanakana from "wanakana";
-import * as Hangul from "hangul-js";
-import { prisma } from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 import redis from "@/lib/redis";
 
 export async function search(querydata: string, pages: string) {
-  const rekey = `searchq:${querydata}`;
+  const rekey = `searchq:${querydata}${pages}`;
   const cachedData = await redis.get(rekey);
   if (cachedData) {
     return JSON.parse(cachedData);
@@ -30,7 +29,7 @@ export async function search(querydata: string, pages: string) {
       case "japanese":
         return wanakana.toRomaji(text);
       case "korean":
-        return Hangul.romanize(text);
+        return text;
       case "english":
       default:
         return text;
@@ -62,7 +61,6 @@ export async function search(querydata: string, pages: string) {
       },
     ],
   };
-
   try {
     const meiliconfig = await prisma.meilisearchdatas.findFirst({});
     const searchKey = await meiliconfig?.searchKey;
@@ -108,7 +106,7 @@ export async function search(querydata: string, pages: string) {
     const datas = {
       hits: hitsArray,
       page: maxHitsPerPage,
-      maxPageNumber: maxPageNumber,
+      PageNumber: maxPageNumber,
       totalPages: maxTotalPages,
     };
 

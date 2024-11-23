@@ -3,40 +3,12 @@ generator client {
 }
 
 datasource db {
-  provider = "mongodb"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-type FilesiddatasFields {
-  bgm   String[]
-  steam String[]
-  vndb  String[]
-  ymgal String[]
-}
-
-type VndbdatasReleases {
-  l_digiket String?
-  l_dlsite  String
-  l_egs     String?
-  l_steam   String?
-  lang      String
-  latin     String?
-  mtl       String
-  released  String?
-  rid       String
-  rtype     String
-  title     String?
-}
-
-type VndbdatasTitles {
-  lang     String
-  latin    String?
-  official String
-  title    String
-}
-
 model duptimes {
-  id                String             @id @default(auto()) @map("_id") @db.ObjectId
+  id                Int                @id @default(autoincrement())
   jsonorl           String
   name              String
   state             Boolean            @default(false)
@@ -48,81 +20,60 @@ model duptimes {
   vndb              vndbdatas[]
   tags              tags[]
   tags_vndatas      tags_vndatas[]
-  meilisearch_id    String[]           @db.ObjectId
-  relationalIndex   meilisearchdatas[] @relation(fields: [meilisearch_id], references: [id])
-  files_vndbdatas   files_vndbdatas[]
+  relationalIndex   meilisearchdatas[]
 
-  @@index([name], map: "name_1")
+  @@index([name], map: "duptimes_name_index")
 }
 
 model meilisearchdatas {
-  id                String     @id @default(auto()) @map("_id") @db.ObjectId
+  id                Int        @id @default(autoincrement())
   host              String?
   indexName         String?    @unique
   masterKey         String?
   adminKey          String?
   searchKey         String?
   type              String
-  primaryKey        String? // 主键
+  primaryKey        String?
   Status            String?
   Statusdescription String?
-  duptimes_id       String[]   @db.ObjectId
-  relatedDataTables duptimes[] @relation(fields: [duptimes_id], references: [id])
+  relatedDataTables duptimes[]
 
-  @@index([host], map: "host_1")
+  @@index([host], map: "meilisearchdatas_host_index")
 }
 
 model filesiddatas {
-  id        String             @id @default(auto()) @map("_id") @db.ObjectId
+  id        Int        @id @default(autoincrement())
   cloudName String?
-  cloud_id  String             @db.ObjectId
-  cloud     duptimes           @relation(fields: [cloud_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  fields    FilesiddatasFields
+  cloud     duptimes   @relation(fields: [cloud_id], references: [id])
+  cloud_id  Int
+  vid       String?
   filetype  Boolean
   is_dir    Boolean
-  path      String             @unique
-  size      Int
-  filevndb  files_vndbdatas[]
+  path      String
+  size      String
+  vndbdatas vndbdatas? @relation(fields: [vid], references: [vnid], onDelete: SetNull)
 
-  @@index([fields.vndb], map: "fields.vndb_1")
-  @@index([fields.bgm], map: "fields.bgm_1")
-  @@index([fields.steam], map: "fields.steam_1")
-  @@index([fields.ymgal], map: "fields.ymgal_1")
-}
-
-model files_vndbdatas {
-  id         String       @id @default(auto()) @map("_id") @db.ObjectId
-  path       String
-  vndb       String
-  cloud_id   String
-  file       filesiddatas @relation(fields: [path], references: [path])
-  vndbdatas  vndbdatas    @relation(fields: [vndb], references: [vnid])
-  duptimes   duptimes?    @relation(fields: [duptimesId], references: [id])
-  duptimesId String?      @db.ObjectId
-
-  @@index([path], map: "path_1")
-  @@index([vndb], map: "vndb_1")
+  @@unique([path, vid])
 }
 
 model vndbdatas {
-  id        String              @id @default(auto()) @map("_id") @db.ObjectId
-  cloud_id  String              @db.ObjectId
-  cloud     duptimes            @relation(fields: [cloud_id], references: [id])
-  vnid      String              @unique
-  alias     String[]
-  image     String
-  olang     String
-  releases  VndbdatasReleases[]
-  titles    VndbdatasTitles[]
-  tags      tags_vndatas[]
-  filesdata files_vndbdatas[]
+  cloud_id     Int
+  cloud        duptimes       @relation(fields: [cloud_id], references: [id])
+  vnid         String         @id
+  alias        String[]
+  image        String
+  olang        String
+  releases     Json
+  titles       Json
+  tags         tags_vndatas[]
+  filesiddatas filesiddatas[]
 }
 
 model tags {
-  id           String         @id @default(auto()) @map("_id") @db.ObjectId
+  id           Int            @id @default(autoincrement())
   gid          String         @unique
-  cloud_id     String         @db.ObjectId
-  cloud        duptimes       @relation(fields: [cloud_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  cloud        duptimes       @relation(fields: [cloud_id], references: [id])
+  cloud_id     Int
   cat          String
   defaultspoil String
   searchable   String
@@ -132,31 +83,26 @@ model tags {
   description  String
   vndbdatas    tags_vndatas[]
 
-  @@index([name], map: "name_1")
-  @@index([alias], map: "alias_1")
+  @@index([name], map: "tags_name_index")
+  @@index([alias], map: "tags_alias_index")
 }
 
 model tags_vndatas {
-  id              String    @id @default(auto()) @map("_id") @db.ObjectId
-  unid            String    @unique
-  tag             String
+  unid            String     @id @unique
+  tag             String?
   uid             String
-  vid             String
+  vid             String?
   average_rating  Float?
   average_spoiler Float?
   lie             String?
-  cloud_id        String    @db.ObjectId
-  cloud           duptimes  @relation(fields: [cloud_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  vndbdata        vndbdatas @relation(fields: [vid], references: [vnid])
-  tags            tags      @relation(fields: [tag], references: [gid])
-
-  @@unique([tag, vid])
-  @@index([tag], map: "tag_1")
-  @@index([vid], map: "vid_1")
+  cloud           duptimes   @relation(fields: [cloud_id], references: [id])
+  cloud_id        Int
+  vndbdata        vndbdatas? @relation(fields: [vid], references: [vnid], onDelete: SetNull)
+  tags            tags?      @relation(fields: [tag], references: [gid], onDelete: SetNull)
 }
 
 model users {
-  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  id        Int     @id @default(autoincrement())
   name      String  @unique
   email     String  @unique
   password  String

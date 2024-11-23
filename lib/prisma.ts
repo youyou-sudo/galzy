@@ -2,15 +2,12 @@ import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
-export const prisma =
+const prisma =
   globalForPrisma.prisma ||
-  (process.env.SKIP_PRISMA_BUILD !== "true" ? new PrismaClient() : null);
+  new PrismaClient({
+    // log: ["query", "info", "warn", "error"], // 可选 log 级别
+  });
 
-if (
-  process.env.NODE_ENV !== "production" &&
-  process.env.SKIP_PRISMA_BUILD !== "true"
-) {
-  globalForPrisma.prisma = prisma;
-}
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 export default prisma;

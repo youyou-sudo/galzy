@@ -1,5 +1,5 @@
 import "@/styles/globals.css";
-import { Metadata, Viewport } from "next";
+import type { Metadata, Viewport } from "next";
 import clsx from "clsx";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 

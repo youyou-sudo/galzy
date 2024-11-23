@@ -104,7 +104,7 @@ function Modalfun({
           <ModalBody>
             <div className="flex flex-col gap-2">
               <p className="text-center text-lg">{data.name}</p>
-              <p className="text-center">{formatBytes(data.size)}</p>
+              <p className="text-center">{formatBytes(Number(data.size))}</p>
             </div>
           </ModalBody>
           <ModalFooter className="flex justify-center gap-4">

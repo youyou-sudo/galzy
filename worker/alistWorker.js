@@ -9,11 +9,11 @@ const aHeavyTask = async () => {
   const path = url.pathname + url.search + url.hash;
   const decodedPath = decodeURIComponent(path);
   const results = await fetch(
-    `${protocol}/${domain}${port ? `:${port}` : ""}/api/fs/list`,
+    `${protocol}//${domain}${port ? `:${port}` : ""}/api/fs/list`,
     {
       method: "POST",
       headers: {
-        "Content-Type": "application/json", // 告诉服务器这是 JSON 格式的数据
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         path: decodedPath,
@@ -25,28 +25,30 @@ const aHeavyTask = async () => {
   );
   const resultsjson = await results.json();
   const uuzudata = await resultsjson.data.content;
+
   // 提取字段的函数
   function extractFields(path) {
-    const regex = /\[(\w+)-([^\]]+?)\]/g; // 匹配 [字段-值] 格式
-    const matches = [...path.matchAll(regex)]; // 获取所有匹配项
+    const regex = /\[(\w+)-([^\]]+?)\]/g;
+    const matches = [...path.matchAll(regex)];
 
     return matches.reduce((acc, match) => {
-      const [, field, value] = match; // 从 match 中提取字段和对应值
+      const [, field, value] = match;
       if (field && value) {
         if (!acc[field]) {
           acc[field] = [];
         }
-        acc[field].push(value); // 将字段和值添加到返回的对象中
+        acc[field].push(value);
       }
       return acc;
     }, {});
   }
+
   function processFiles(files) {
     return files.map((file) => {
       const vndbFields = extractFields(file.name);
       return {
         name: file.name,
-        fields: vndbFields, // 将提取的字段和值存入 fields 中
+        fields: vndbFields,
         size: file.size,
         is_dir: file.is_dir,
       };
@@ -55,30 +57,38 @@ const aHeavyTask = async () => {
 
   if (resultsjson.code === 200) {
     const processedFiles = processFiles(uuzudata);
-    const dodvdobulkOps = processedFiles.flatMap((result) =>
-      result.fields.vndb.map((vndb) => ({
-        path: result.name,
-        vndb: vndb,
-        cloud_id: ref.id,
-      }))
-    );
 
-    const bulkOps = processedFiles.map((result) => ({
-      cloudName: ref.name,
-      cloud_id: ref.id,
-      path: result.name,
-      filetype: result.is_dir,
-      fields: {
-        vndb: result.fields.vndb,
-        bgm: result.fields.bgm || undefined,
-        steam: result.fields.steam || undefined,
-        ymgal: result.fields.ymgal || undefined,
-      },
-      size: result.size,
-      is_dir: result.is_dir,
-    }));
+    const bulkOps = processedFiles.flatMap((result) => {
+      const vndbEntries = result.fields.vndb;
 
-    return { alistdata: bulkOps, dodvdo: dodvdobulkOps };
+      if (vndbEntries.length === 1) {
+        // 只有一个 vndb，创建一个对象
+        return [
+          {
+            cloudName: ref.name,
+            cloud_id: ref.id,
+            path: result.name,
+            filetype: result.is_dir,
+            vid: vndbEntries[0],
+            size: String(result.size),
+            is_dir: result.is_dir,
+          },
+        ];
+      } else {
+        // vndb 数组超过一个，创建多个对象，每个对象使用同一个cloud_id
+        return vndbEntries.map((vid) => ({
+          cloudName: ref.name,
+          cloud_id: ref.id,
+          vid: vid,
+          filetype: result.is_dir,
+          is_dir: result.is_dir,
+          path: result.name,
+          size: String(result.size),
+        }));
+      }
+    });
+
+    return { alistdata: bulkOps };
   } else {
     return { error: resultsjson.message };
   }
@@ -87,7 +97,6 @@ const aHeavyTask = async () => {
 aHeavyTask()
   .then((results) => {
     parentPort.postMessage({ type: "alistdata", data: results.alistdata });
-    parentPort.postMessage({ type: "alistdodvdo", data: results.dodvdo });
     process.exit(0);
   })
   .catch((error) => {

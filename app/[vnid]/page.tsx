@@ -8,6 +8,8 @@ import Datalistview from "./(components)/Datalistview";
 import Errors from "@/components/error";
 import { env } from "next-runtime-env";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   openGraph: {
     title: "VNDB DATA?",
@@ -30,18 +32,18 @@ async function vndbidpage({
     // 提取标题
     const titles = [
       ...contentdatas.titles
-        .filter((item) => item.lang === "zh-Hans" || item.official === "t")
-        .map((item) => item.title),
+        .filter((item: any) => item.lang === "zh-Hans" || item.official === "t")
+        .map((item: any) => item.title),
       ...contentdatas.releases
-        .filter((item) => item.lang === "zh-Hans" || item.official === "t")
-        .map((item) => item.title),
+        .filter((item: any) => item.lang === "zh-Hans" || item.official === "t")
+        .map((item: any) => item.title),
     ];
 
     // 去重并获取标题
     const allTitles = Array.from(new Set(titles));
     const title =
-      contentdatas.titles.find((item) => item.lang === "zh-Hans")?.title ||
-      contentdatas.titles.find((item) => item.official === "t")?.title ||
+      contentdatas.titles.find((item: any) => item.lang === "zh-Hans")?.title ||
+      contentdatas.titles.find((item: any) => item.official === "t")?.title ||
       "默认标题"; // 设置默认标题以防止 undefined
 
     // 更新 metadata
@@ -63,7 +65,7 @@ async function vndbidpage({
           ⬅返回
         </Link>
         <ContentCard data={contentdatas} />
-        <Datalistview filedatas={datas.filesdata} />
+        <Datalistview filedatas={datas.filesiddatas} />
       </div>
     );
   } catch (error) {

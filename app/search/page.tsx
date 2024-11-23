@@ -6,6 +6,8 @@ import Nodata from "./(components)/nodata";
 import type { Metadata } from "next";
 import { PaginationWithLinks } from "@/components/pagination-with-links";
 
+import romaja from "romaja";
+
 export const metadata: Metadata = {
   title: "Search",
   description: "搜索页",
@@ -16,12 +18,14 @@ type Props = {
     pages: string;
   };
 };
+export const dynamic = "force-dynamic";
 
 export async function searchpage({ searchParams }: Props) {
   const { query, pages } = await searchParams;
   metadata.title = `Search ${query}`;
   const qoutput: any = await search(query || "", pages || "1");
   const data = qoutput.hits;
+
   return (
     <div className="max-w-3xl mx-auto my-auto">
       <div
@@ -39,7 +43,7 @@ export async function searchpage({ searchParams }: Props) {
         {qoutput.hits.length > 0 ? <Gamelsit datas={data} /> : <Nodata />}
         <PaginationWithLinks
           totalCount={qoutput.totalPages}
-          page={qoutput.page}
+          page={qoutput.PageNumber}
         />
       </Suspense>
     </div>

@@ -21,13 +21,13 @@ export function Gamelsit({ datas }: { datas: any }) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [modalOpened, setModalOpened] = useState(false); // 标志
-  const [manualClose, setManualClose] = useState(false); // 是否是手动关闭
+  const [manualClose, setManualClose] = useState(false); // 标记是否为用户手动关闭
   const [modalData, setModalData] = useState();
   // 监听 Modal 状态变化
   useEffect(() => {
     if (!isOpen && modalOpened && !manualClose) {
       window.history.back();
-      setModalOpened(false); // 重置标志
+      setModalOpened(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, modalOpened]);
@@ -36,15 +36,15 @@ export function Gamelsit({ datas }: { datas: any }) {
   useEffect(() => {
     const handlePopState = () => {
       if (isOpen) {
-        setManualClose(true); // 标记为手动关闭，避免二次返回
-        onOpenChange(false); // 用户点击浏览器返回按钮时关闭 Modal
+        setManualClose(true);
+        onOpenChange(false);
       }
     };
 
-    window.addEventListener("popstate", handlePopState); // 监听 popstate 事件
+    window.addEventListener("popstate", handlePopState);
 
     return () => {
-      window.removeEventListener("popstate", handlePopState); // 清理监听器
+      window.removeEventListener("popstate", handlePopState);
     };
   }, [isOpen, onOpenChange]);
 
@@ -52,23 +52,23 @@ export function Gamelsit({ datas }: { datas: any }) {
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768); // 判断手机端，768px 是标准的断点
+      setIsMobile(window.innerWidth <= 768);
     };
 
-    handleResize(); // 初次加载时判断一次
-    window.addEventListener("resize", handleResize); // 监听窗口大小变化
+    handleResize();
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      window.removeEventListener("resize", handleResize); // 清理监听器
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
   // 开启 Modal 查看
   const openModal = async (e, gamelistdata: any) => {
-    e.preventDefault(); // 阻止默认的跳转行为
+    e.preventDefault();
     setModalData(gamelistdata);
-    onOpenChange(true); // 打开 modal
-    setModalOpened(true); // 设置 Modal 打开标志
+    onOpenChange(true);
+    setModalOpened(true);
     const title =
       gamelistdata.vnid &&
       gamelistdata.titles.find(
@@ -175,7 +175,7 @@ export function Gamelsit({ datas }: { datas: any }) {
               <ModalBody>
                 <div>
                   <ContentCard fullsereenfill={true} data={modalData} />
-                  <Datalistview filedatas={modalData.filesdata} />
+                  <Datalistview filedatas={modalData.filesiddatas} />
                 </div>
               </ModalBody>
             </>

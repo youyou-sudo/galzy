@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   },
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function page({
   searchParams,
   params,
@@ -26,13 +28,6 @@ export default async function page({
   const pagess = parseInt(pages) || 1;
   const data = await tagsvndbInfo({ id, pagess });
   metadata.openGraph ||= {};
-  const result = data.vndbdata.map((item) => {
-    // 将 filesdata 数组合并到 vndbdatas 对象
-    return {
-      ...item,
-      ...item.vndbdatas,
-    };
-  });
   metadata.openGraph.title = data.giddata.name;
   metadata.title = data.giddata.name;
   metadata.description = data.giddata.description;
@@ -41,8 +36,8 @@ export default async function page({
   return (
     <div className="max-w-3xl mx-auto my-auto">
       <TagsContentCard data={data} />
-      <Ttip gid={data.giddata?.gid}></Ttip>
-      <Gamelsit datas={result} />
+      <Ttip gid={data.giddata.gid}></Ttip>
+      <Gamelsit datas={data.giddata.vndbdatas} />
       <PaginationWithLinks page={data.page} totalCount={data.totalpageCount} />
     </div>
   );

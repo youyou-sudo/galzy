@@ -16,7 +16,7 @@ export const alistListGet = async (ref: any) => {
   });
   const parsedUrl = parse(alistdata.jsonorl);
   const { protocol, hostname, pathname, port } = parsedUrl;
-  const decodedPath = decodeURIComponent(pathname);
+  const decodedPath = decodeURIComponent(pathname || "");
   const url = `${protocol}/${hostname}${port ? `:${port}` : ""}/api/fs/list`;
 
   // 递归获取目录结构的函数
@@ -64,7 +64,7 @@ export const alistListGet = async (ref: any) => {
           fileList.push({
             ...item,
             pathname: currentPath,
-            filelist: subFolderContent.length > 0 ? subFolderContent : [], // 确保即使文件夹为空也返回空数组
+            filelist: subFolderContent.length > 0 ? subFolderContent : [],
           });
         } else {
           // 如果是文件，直接加入结果
