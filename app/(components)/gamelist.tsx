@@ -18,26 +18,24 @@ import Datalistview from "@/app/[vnid]/(components)/Datalistview";
 import { env } from "next-runtime-env";
 
 export function Gamelsit({ datas }: { datas: any }) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { isOpen, onClose, onOpen, onOpenChange } = useDisclosure();
   const [modalOpened, setModalOpened] = useState(false); // 标志
   const [manualClose, setManualClose] = useState(false); // 标记是否为用户手动关闭
-  const [modalData, setModalData] = useState();
+  const [modalData, setModalData] = useState<any>(null);
   // 监听 Modal 状态变化
   useEffect(() => {
     if (!isOpen && modalOpened && !manualClose) {
       window.history.back();
       setModalOpened(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, modalOpened]);
+  }, [isOpen, manualClose, modalOpened]);
 
   // 监听浏览器的返回事件，用户点击返回时关闭 Modal
   useEffect(() => {
     const handlePopState = () => {
       if (isOpen) {
         setManualClose(true);
-        onOpenChange(false);
+        onClose();
       }
     };
 
@@ -46,7 +44,7 @@ export function Gamelsit({ datas }: { datas: any }) {
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [isOpen, onOpenChange]);
+  }, [isOpen, onClose, onOpenChange]);
 
   // 判断是否为手机端，如果为手机端，则进行 /VNID
   const [isMobile, setIsMobile] = useState(false);
@@ -67,7 +65,7 @@ export function Gamelsit({ datas }: { datas: any }) {
   const openModal = async (e, gamelistdata: any) => {
     e.preventDefault();
     setModalData(gamelistdata);
-    onOpenChange(true);
+    onOpen();
     setModalOpened(true);
     const title =
       gamelistdata.vnid &&
@@ -163,7 +161,7 @@ export function Gamelsit({ datas }: { datas: any }) {
         size="4xl"
       >
         <ModalContent>
-          {(onClose) => (
+          {() => (
             <>
               <ModalHeader className="flex flex-col gap-1">
                 {

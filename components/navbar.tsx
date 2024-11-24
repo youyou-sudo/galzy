@@ -18,7 +18,7 @@ import { Image } from "@nextui-org/react";
 
 export const Navbar = () => {
   const routerpath = usePathname();
-  const { status, data: session } = useSession();
+  const { status } = useSession();
   return (
     <NextUINavbar
       className="shadow-sm radius-md"

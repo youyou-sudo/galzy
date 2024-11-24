@@ -12,9 +12,9 @@ export async function tagsvndbInfo({
 }) {
   const rekey = `tagsvndbinfo:${id}/${pagess}`;
   const cachedData = await redis.get(rekey);
-  // if (cachedData) {
-  //   return JSON.parse(cachedData);
-  // }
+  if (cachedData) {
+    return JSON.parse(cachedData);
+  }
   const pageSize = 50;
 
   const totalDocumentsResult = await prisma.tags.findMany({
@@ -28,7 +28,11 @@ export async function tagsvndbInfo({
       description: true,
       vndbdatas: {
         select: {
-          vndbdata: true,
+          vndbdata: {
+            include: {
+              filesiddatas: true,
+            },
+          },
         },
         where: {
           vndbdata: {

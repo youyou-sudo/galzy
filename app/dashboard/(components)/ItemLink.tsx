@@ -3,8 +3,8 @@ import React from "react";
 
 import { usePathname } from "next/navigation";
 import { Button, Link } from "@nextui-org/react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TbLayoutDashboardFilled, TbDatabase } from "react-icons/tb";
+import { Card } from "@/components/ui/card";
+import { TbLayoutDashboardFilled } from "react-icons/tb";
 import { SiMeilisearch } from "react-icons/si";
 
 export default function ItemLink({ pathdata }: any) {

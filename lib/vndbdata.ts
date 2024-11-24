@@ -218,7 +218,7 @@ export const editupdata = async (ref: any) => {
       };
     } else {
       try {
-        const log = await prisma.duptimes.create({
+        await prisma.duptimes.create({
           data: {
             name: ref.name,
             jsonorl: ref.jsonorl,

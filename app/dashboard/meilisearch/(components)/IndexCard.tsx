@@ -27,17 +27,55 @@ import {
   Button,
 } from "@nextui-org/react";
 
-export default function IndexCard({ meiliindexviwss }) {
+interface MeilisearchResponse {
+  status: number;
+  message: string;
+  data?: MeilisearchData | null;
+}
+
+interface MeilisearchData {
+  id: number;
+  host: string | null;
+  indexName: string | null;
+  masterKey: string | null;
+  adminKey: string | null;
+  searchKey: string | null;
+  type: string;
+  primaryKey: string | null;
+  Status: string | null;
+  Statusdescription: string | null;
+}
+
+// 状态 常量对象
+const STATUS_CONFIG = {
+  就绪: {
+    color: "success",
+    icon: RiCheckboxCircleFill,
+    label: "就绪",
+  },
+  执行中: {
+    color: "warning",
+    icon: RiRunLine,
+    label: "执行中",
+  },
+  错误: {
+    color: "danger",
+    icon: RiErrorWarningFill,
+    label: "错误",
+  },
+} as const;
+
+export default function IndexCard({ meiliindexviwss }: any) {
   const { toast } = useToast();
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { isOpen, onOpenChange } = useDisclosure();
 
   const [meiliindexviw, setMeiliindexviw] = useState(meiliindexviwss);
   const [indexstatus, setIndexstatus] = useState(true);
-  const [indexname, setIndexname] = useState("");
+  const [indexname, setIndexname] = useState<MeilisearchResponse | null>(null);
 
   useEffect(() => {
     const alistvnGetAc = async () => {
-      const data: any = await alistVnIndexStu();
+      const data = await alistVnIndexStu();
       setIndexname(data);
     };
     alistvnGetAc();
@@ -51,6 +89,7 @@ export default function IndexCard({ meiliindexviwss }) {
         description: "好像没有检测到索引呢",
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 数据更新
@@ -105,7 +144,7 @@ export default function IndexCard({ meiliindexviwss }) {
               <CardTitle>All VNDB</CardTitle>
             </CardHeader>
             <CardContent>
-              已建立{meiliindexviw?.data.indexes.AllVN.numberOfDocuments}
+              已建立{meiliindexviw?.data?.indexes.AllVN.numberOfDocuments}
               個索引
               <Button
                 isIconOnly
@@ -123,49 +162,27 @@ export default function IndexCard({ meiliindexviwss }) {
               <CardTitle className="flex gap-2">
                 Alist $ VNDB
                 {indexname && (
-                  <>
-                    {(() => {
-                      const status = indexname?.data.Status;
-                      let chipProps = {
-                        startContent: <RiCheckboxCircleFill size={18} />,
-                        variant: "faded",
-                        children: "未知状态", // 默认状态
-                      };
-                      let tooltipProps = {
-                        content: null,
-                      };
-
-                      if (status === "就绪") {
-                        chipProps.color = "success";
-                        chipProps.children = "就绪";
-                        tooltipProps.content =
-                          indexname?.data.Statusdescription;
-                        chipProps.startContent = (
-                          <RiCheckboxCircleFill size={18} />
-                        );
-                      } else if (status === "执行中") {
-                        chipProps.color = "warning";
-                        chipProps.children = "执行中";
-                        tooltipProps.content =
-                          indexname?.data.Statusdescription;
-                        chipProps.startContent = <RiRunLine size={18} />;
-                      } else if (status === "错误") {
-                        chipProps.color = "danger";
-                        tooltipProps.content =
-                          indexname?.data.Statusdescription;
-                        chipProps.children = "错误";
-                        chipProps.startContent = (
-                          <RiErrorWarningFill size={18} />
-                        );
+                  <Tooltip content={indexname.data?.Statusdescription || null}>
+                    <Chip
+                      startContent={(() => {
+                        const Icon =
+                          STATUS_CONFIG[
+                            indexname.data?.Status as keyof typeof STATUS_CONFIG
+                          ]?.icon || RiCheckboxCircleFill;
+                        return <Icon size={18} />;
+                      })()}
+                      color={
+                        STATUS_CONFIG[
+                          indexname.data?.Status as keyof typeof STATUS_CONFIG
+                        ]?.color || "default"
                       }
-
-                      return (
-                        <Tooltip {...tooltipProps}>
-                          <Chip {...chipProps} />
-                        </Tooltip>
-                      );
-                    })()}
-                  </>
+                      variant="faded"
+                    >
+                      {STATUS_CONFIG[
+                        indexname.data?.Status as keyof typeof STATUS_CONFIG
+                      ]?.label || "未知状态"}
+                    </Chip>
+                  </Tooltip>
                 )}
               </CardTitle>
             </CardHeader>

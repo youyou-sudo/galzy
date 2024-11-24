@@ -6,8 +6,6 @@ import Nodata from "./(components)/nodata";
 import type { Metadata } from "next";
 import { PaginationWithLinks } from "@/components/pagination-with-links";
 
-import romaja from "romaja";
-
 export const metadata: Metadata = {
   title: "Search",
   description: "搜索页",

@@ -43,7 +43,7 @@ import { useToast } from "@/components/hooks/use-toast";
 export default function DataTable({ rows }: { rows: any }) {
   const { toast } = useToast();
   const router = useRouter();
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { isOpen, onClose, onOpen, onOpenChange } = useDisclosure();
 
   const [rowsdata, setRowsdata] = useState(rows);
   const [formData, setFormData] = useState({
@@ -80,7 +80,7 @@ export default function DataTable({ rows }: { rows: any }) {
         }
 
         const currentData = await fetchUpdatedData();
-        const hasTrueState = currentData.some((row) => row.state === true);
+        const hasTrueState = currentData.some((row: any) => row.state === true);
 
         if (hasTrueState) {
           frequentCheck = true;
@@ -101,7 +101,7 @@ export default function DataTable({ rows }: { rows: any }) {
     };
 
     // 初次页面加载时，检查 rowsdata
-    if (rowsdata?.some((row) => row.state === true)) {
+    if (rowsdata?.some((row: any) => row.state === true)) {
       shouldStartPolling = true;
     }
 
@@ -112,7 +112,7 @@ export default function DataTable({ rows }: { rows: any }) {
     return () => {
       isCancelled = true;
     };
-  }, [rowsdata]);
+  }, [rowsdata, toast]);
 
   // Modal form data setup
   const newOpenForm = () => {
@@ -134,6 +134,13 @@ export default function DataTable({ rows }: { rows: any }) {
   // Handle actions for project
   const handleRefresh = async (row: any) => {
     const result = await vndbmgetac(row);
+    if (!result)
+      return toast({
+        variant: "destructive",
+        title: "操作失败",
+        description: "未收到响应",
+      });
+
     if (result.status === "200") {
       toast({ title: "提交成功", description: JSON.stringify(result) });
       fetchUpdatedData();
@@ -166,7 +173,7 @@ export default function DataTable({ rows }: { rows: any }) {
       if (result.status === "200") {
         toast({ title: "提交成功", description: JSON.stringify(result) });
         fetchUpdatedData();
-        onOpenChange(false);
+        onClose();
       } else {
         toast({
           variant: "destructive",

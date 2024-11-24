@@ -140,16 +140,16 @@ const FileMap = ({
   dlink?: string;
   gfpath: string;
 }) => {
-  if (!filelist || filelist.length === 0) return null;
-
-  // Modal 控制
   const [selectedFile, setSelectedFile] = useState<any>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  if (!filelist || filelist.length === 0) return null;
 
   const handleFileClick = (file: any) => {
     setSelectedFile(file);
     onOpen();
   };
+
   return (
     <>
       <motion.div
