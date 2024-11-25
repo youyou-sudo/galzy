@@ -16,7 +16,6 @@ type Props = {
     pages: string;
   };
 };
-export const dynamic = "force-dynamic";
 
 export async function searchpage({ searchParams }: Props) {
   const { query, pages } = await searchParams;

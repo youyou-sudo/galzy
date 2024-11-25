@@ -1,18 +1,16 @@
 import { title } from "@/components/primitives";
-import { vndbmgethome } from "@/lib/vndbdata";
-import { Gamelsit } from "@/app/(components)/gamelist";
-import { PaginationWithLinks } from "@/components/pagination-with-links";
 import Handmotion from "@/components/Handmotion";
+import Gamelistdatasync from "./(components)/gamelistdatasync";
+import { getHomeList } from "@/lib/actions/homelist";
 
 interface SearchParams {
   pages?: string;
 }
 
-export const dynamic = "force-dynamic";
-
 async function Home({ searchParams }: { searchParams: SearchParams }) {
   const { pages } = await searchParams;
-  const gamelistdatas = await vndbmgethome(pages || "1");
+  const pagesNumber = Number(pages) || 1;
+  const allPageData = await getHomeList(pagesNumber);
   return (
     <>
       <div className="max-w-3xl mx-auto my-auto">
@@ -20,17 +18,16 @@ async function Home({ searchParams }: { searchParams: SearchParams }) {
           <div className={title()}>
             Home
             <div className="text-base text-gray-500">
-              共收录了 {gamelistdatas.totalCount} 部
+              共收录了 {allPageData.totalCount} 部
             </div>
           </div>
         </Handmotion>
-        <Gamelsit datas={gamelistdatas.data} />
+        {/* <Gamelsit datas={allPageData.data} /> */}
+        <Gamelistdatasync
+          datas={allPageData}
+          totalPages={allPageData.totalPages ?? 0}
+        />
       </div>
-
-      <PaginationWithLinks
-        page={gamelistdatas.currentPage}
-        totalCount={gamelistdatas.totalPages}
-      />
     </>
   );
 }

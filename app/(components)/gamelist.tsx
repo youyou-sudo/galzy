@@ -19,10 +19,10 @@ import { env } from "next-runtime-env";
 
 export function Gamelsit({ datas }: { datas: any }) {
   const { isOpen, onClose, onOpen, onOpenChange } = useDisclosure();
-  const [modalOpened, setModalOpened] = useState(false); // 标志
-  const [manualClose, setManualClose] = useState(false); // 标记是否为用户手动关闭
+  const [modalOpened, setModalOpened] = useState(false);
+  const [manualClose, setManualClose] = useState(false);
   const [modalData, setModalData] = useState<any>(null);
-  // 监听 Modal 状态变化
+
   useEffect(() => {
     if (!isOpen && modalOpened && !manualClose) {
       window.history.back();
@@ -30,7 +30,6 @@ export function Gamelsit({ datas }: { datas: any }) {
     }
   }, [isOpen, manualClose, modalOpened]);
 
-  // 监听浏览器的返回事件，用户点击返回时关闭 Modal
   useEffect(() => {
     const handlePopState = () => {
       if (isOpen) {
@@ -46,7 +45,6 @@ export function Gamelsit({ datas }: { datas: any }) {
     };
   }, [isOpen, onClose, onOpenChange]);
 
-  // 判断是否为手机端，如果为手机端，则进行 /VNID
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const handleResize = () => {
@@ -61,7 +59,6 @@ export function Gamelsit({ datas }: { datas: any }) {
     };
   }, []);
 
-  // 开启 Modal 查看
   const openModal = async (e, gamelistdata: any) => {
     e.preventDefault();
     setModalData(gamelistdata);
@@ -164,17 +161,23 @@ export function Gamelsit({ datas }: { datas: any }) {
           {() => (
             <>
               <ModalHeader className="flex flex-col gap-1">
-                {
-                  modalData.titles.find(
-                    (item: { lang: any }) => item.lang === modalData.olang
-                  )?.title
-                }
+                {modalData && (
+                  <>
+                    {
+                      modalData.titles.find(
+                        (item: { lang: any }) => item.lang === modalData.olang
+                      )?.title
+                    }
+                  </>
+                )}
               </ModalHeader>
               <ModalBody>
-                <div>
-                  <ContentCard fullsereenfill={true} data={modalData} />
-                  <Datalistview filedatas={modalData.filesiddatas} />
-                </div>
+                {modalData && (
+                  <div>
+                    <ContentCard fullsereenfill={true} data={modalData} />
+                    <Datalistview filedatas={modalData.filesiddatas} />
+                  </div>
+                )}
               </ModalBody>
             </>
           )}

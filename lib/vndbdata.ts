@@ -41,7 +41,7 @@ export const vndbdatas = async () => {
 };
 
 // Home 页面数据
-export const vndbmgethome = async (pages?: string, limit = 20) => {
+export const vndbmgethome = async (pages?: number, limit = 20) => {
   const rekey = `vndbGetHome:page${pages},limit${limit}`;
   const cachedData = await redis.get(rekey);
   if (cachedData) {
@@ -89,6 +89,10 @@ export const vndbmgethome = async (pages?: string, limit = 20) => {
     return redatas;
   } catch (error) {
     return {
+      data: [],
+      currentPage: 1,
+      totalPages: 1,
+      totalCount: 0,
       error: "数据库姐姐被掏空了 o(*////▽////*)q: " + error,
       status: "error",
     };
