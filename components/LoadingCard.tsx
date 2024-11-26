@@ -11,7 +11,7 @@ export default function LoadingCard() {
       animate={{ opacity: 1, y: 0 }}
     >
       <div className="flex items-center justify-center">
-        <Image src="/loading.webp" alt="loading" />
+        <Image src="/loading.webp" alt="loading" loading="lazy" />
       </div>
       <h1 className="text-center text-lg font-bold">Loading...</h1>
     </motion.div>

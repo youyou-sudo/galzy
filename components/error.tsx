@@ -22,6 +22,7 @@ export default function Errors({ code }: ErrorsProps) {
         <Image
           alt={`"Request error, error code ${code}"`}
           src={`https://http.toshiki.dev/${code}.png`}
+          loading="lazy"
         />
       </div>
       <h1 className="text-center font-size-4xl text-3xl">Error {code}</h1>

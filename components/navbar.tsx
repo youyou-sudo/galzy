@@ -35,6 +35,7 @@ export const Navbar = () => {
                 className="hidden sm:flex basis-1/5 sm:basis-full"
                 width={60}
                 src={"/favicon.ico"}
+                loading="lazy"
               />
             </Link>
           </NavbarBrand>
@@ -44,7 +45,12 @@ export const Navbar = () => {
           <NavbarBrand>
             <Link className="font-bold text-inherit" href="/">
               {/* {siteConfig.name} */}
-              <Image alt="LOGO" width={130} src={"/favicon.ico"} />
+              <Image
+                alt="LOGO"
+                width={130}
+                src={"/favicon.ico"}
+                loading="lazy"
+              />
             </Link>
             <NavigationCandidates />
           </NavbarBrand>
