@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Card,
   CardBody,
@@ -16,11 +16,12 @@ import { ContentCard } from "@/app/[vnid]/(components)/ContentCard";
 import Datalistview from "@/app/[vnid]/(components)/Datalistview";
 import { env } from "next-runtime-env";
 
-export function Gamelsit({ datas }: { datas: any }) {
+export function Gamelsit({ datas }: { datas: any[] }) {
   const { isOpen, onClose, onOpen, onOpenChange } = useDisclosure();
   const [modalOpened, setModalOpened] = useState(false);
   const [manualClose, setManualClose] = useState(false);
   const [modalData, setModalData] = useState<any>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     if (!isOpen && modalOpened && !manualClose) {
@@ -42,9 +43,8 @@ export function Gamelsit({ datas }: { datas: any }) {
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
-  }, [isOpen, onClose, onOpenChange]);
+  }, [isOpen, onClose]);
 
-  const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -58,28 +58,32 @@ export function Gamelsit({ datas }: { datas: any }) {
     };
   }, []);
 
-  const openModal = async (e, gamelistdata: any) => {
-    e.preventDefault();
-    setModalData(gamelistdata);
-    onOpen();
-    setModalOpened(true);
-    const title =
-      gamelistdata.vnid &&
-      gamelistdata.titles.find(
-        (item: { lang: string }) => item.lang === gamelistdata.olang
-      )?.title;
+  const openModal = useCallback(
+    (e: React.MouseEvent, gamelistdata: any) => {
+      e.preventDefault();
+      setModalData(gamelistdata);
+      onOpen();
+      setModalOpened(true);
+      const title =
+        gamelistdata.vnid &&
+        gamelistdata.titles.find(
+          (item: { lang: string }) => item.lang === gamelistdata.olang
+        )?.title;
 
-    const finalTitle = title ? title : undefined;
+      const finalTitle = title ? title : undefined;
 
-    window.history.pushState(
-      { title: finalTitle, vnid: gamelistdata.vnid },
-      title,
-      `/${gamelistdata.vnid}`
-    );
-  };
-  return (
-    <>
-      {datas.map((gamelistdata: any) => (
+      window.history.pushState(
+        { title: finalTitle, vnid: gamelistdata.vnid },
+        title,
+        `/${gamelistdata.vnid}`
+      );
+    },
+    [onOpen]
+  );
+
+  const renderGameList = useMemo(
+    () =>
+      datas.map((gamelistdata: any) => (
         <div key={gamelistdata.vnid}>
           <Card
             as={Link}
@@ -88,7 +92,6 @@ export function Gamelsit({ datas }: { datas: any }) {
             href={`/${gamelistdata.vnid}`}
             isPressable={!isMobile}
             className="flex mt-2 w-full"
-            key={gamelistdata.vnid}
           >
             <CardBody className="flex p-3 flex-nowrap flex-row">
               <div className="w-[100px] shrink-0">
@@ -135,7 +138,13 @@ export function Gamelsit({ datas }: { datas: any }) {
             </CardBody>
           </Card>
         </div>
-      ))}
+      )),
+    [datas, isMobile, openModal]
+  );
+
+  return (
+    <>
+      {renderGameList}
       <Modal
         isOpen={isOpen}
         onOpenChange={onOpenChange}
@@ -144,7 +153,7 @@ export function Gamelsit({ datas }: { datas: any }) {
         size="4xl"
       >
         <ModalContent>
-          {() => (
+          {(onClose) => (
             <>
               <ModalHeader className="flex flex-col gap-1">
                 {modalData && (

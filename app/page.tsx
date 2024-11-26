@@ -22,10 +22,7 @@ async function Home({ searchParams }: { searchParams: SearchParams }) {
           </div>
         </div>
         <div>
-          <Gamelistdatasync
-            datas={allPageData}
-            totalPages={allPageData.totalPages ?? 0}
-          />
+          <Gamelistdatasync totalPages={allPageData.totalPages ?? 0} />
         </div>
       </div>
     </>
