@@ -150,9 +150,7 @@ export function ContentCard({ data, fullsereenfill }: ContentCardProps) {
               isZoomed
               className="w-full object-cover"
               src={getImageUrl()}
-              fallbackSrc="https://dummyimage.com/679x481/9e9e9e/fff"
               alt="游戏图片"
-              loading="lazy"
             />
           </div>
           <div className="flex flex-col">

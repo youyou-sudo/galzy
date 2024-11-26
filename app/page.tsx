@@ -22,7 +22,6 @@ async function Home({ searchParams }: { searchParams: SearchParams }) {
             </div>
           </div>
         </Handmotion>
-        {/* <Gamelsit datas={allPageData.data} /> */}
         <Gamelistdatasync
           datas={allPageData}
           totalPages={allPageData.totalPages ?? 0}

@@ -120,9 +120,7 @@ export function Gamelsit({ datas }: { datas: any }) {
                     )}/${gamelistdata.image.slice(-2)}/${gamelistdata.image.slice(
                       2
                     )}.jpg`}
-                    fallbackSrc="https://dummyimage.com/679x481/9e9e9e/fff"
                     alt="图片"
-                    loading="lazy"
                   />
                 </div>
                 <div className="ml-3 truncate">

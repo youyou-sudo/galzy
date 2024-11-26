@@ -91,7 +91,6 @@ export default function Gamelistdatasync({
                           item.pagesss >
                             pageData.datas[pageData.datas.length - 2].pagesss
                         ) {
-                          console.log(`Page ${item.pagesss} is visible`);
                           setUsepages(item.pagesss);
                           setPages(String(item.pagesss));
                           upgamelistdataac(item.pagesss + 2);
@@ -122,19 +121,23 @@ export default function Gamelistdatasync({
       )}
 
       <div className="fixed bottom-5 right-4">
-        {pages && Number(pages) > 1 ? (
-          <Button asChild size="icon">
-            <Link href="/">
-              <IoHome />
-            </Link>
-          </Button>
-        ) : (
-          <Button
-            size="icon"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          >
-            <BiArrowToTop />
-          </Button>
+        {typeof window !== "undefined" && window.scrollY > 100 && (
+          <>
+            {pages && Number(pages) > 1 ? (
+              <Button asChild size="icon">
+                <Link href="/">
+                  <IoHome />
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                size="icon"
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              >
+                <BiArrowToTop />
+              </Button>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
-import { FC, useEffect, useState } from "react";
-import { SwitchProps } from "@nextui-org/switch";
+import { type FC, useEffect, useState } from "react";
+import type { SwitchProps } from "@nextui-org/switch";
 import { useTheme } from "next-themes";
 import { TbSunHigh, TbMoonFilled, TbDeviceDesktopCog } from "react-icons/tb";
 

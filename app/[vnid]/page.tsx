@@ -55,7 +55,7 @@ async function vndbidpage({
           0,
           2
         )}/${contentdatas.image.slice(-2)}/${contentdatas.image.slice(2)}.jpg`
-      : "https://dummyimage.com/679x481/9e9e9e/fff";
+      : "/lazye.webp";
 
     return (
       <div className="mx-auto max-w-5xl">
