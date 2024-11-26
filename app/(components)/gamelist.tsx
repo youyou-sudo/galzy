@@ -153,7 +153,7 @@ export function Gamelsit({ datas }: { datas: any[] }) {
         size="4xl"
       >
         <ModalContent>
-          {(onClose) => (
+          {() => (
             <>
               <ModalHeader className="flex flex-col gap-1">
                 {modalData && (

@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Gamelsit } from "./gamelist";
 import { useQueryState } from "nuqs";
 import { getHomeList } from "@/lib/actions/homelist";
@@ -83,24 +83,27 @@ export default function Gamelistdatasync({
     setUsepages(Number(pages) || 1);
   }, [pages]);
 
-  const upgamelistdataac = async (page: number) => {
-    const newData = await getHomeList(page);
-    if (newData.datas.length > 0 && pageData) {
-      setPageData((prevData) => {
-        if (newData.datas[0].pagesss < prevData!.datas[0].pagesss) {
-          return {
-            ...prevData!,
-            datas: [...newData.datas, ...prevData!.datas],
-          };
-        } else {
-          return {
-            ...prevData!,
-            datas: [...prevData!.datas, ...newData.datas],
-          };
-        }
-      });
-    }
-  };
+  const upgamelistdataac = useCallback(
+    async (page: number) => {
+      const newData = await getHomeList(page);
+      if (newData.datas.length > 0 && pageData) {
+        setPageData((prevData) => {
+          if (newData.datas[0].pagesss < prevData!.datas[0].pagesss) {
+            return {
+              ...prevData!,
+              datas: [...newData.datas, ...prevData!.datas],
+            };
+          } else {
+            return {
+              ...prevData!,
+              datas: [...prevData!.datas, ...newData.datas],
+            };
+          }
+        });
+      }
+    },
+    [pageData]
+  );
 
   const memoizedGameList = useMemo(() => {
     if (!pageData) return <GameCardSkeleton />;
@@ -193,7 +196,7 @@ export default function Gamelistdatasync({
 const GameCardSkeleton = () => {
   return (
     <>
-      {[...Array(10)].map((_, index) => (
+      {[...Array(5)].map((_, index) => (
         <Card key={index} className="flex mt-2 w-full">
           <CardBody className="flex p-3 flex-nowrap flex-row">
             <div className="w-[100px] shrink-0">
