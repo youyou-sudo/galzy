@@ -1,5 +1,4 @@
 import { title } from "@/components/primitives";
-import Handmotion from "@/components/Handmotion";
 import Gamelistdatasync from "./(components)/gamelistdatasync";
 import { getHomeList } from "@/lib/actions/homelist";
 
@@ -14,18 +13,20 @@ async function Home({ searchParams }: { searchParams: SearchParams }) {
   return (
     <>
       <div className="max-w-3xl mx-auto my-auto">
-        <Handmotion>
+        <div>
           <div className={title()}>
             Home
             <div className="text-base text-gray-500">
               共收录了 {allPageData.totalCount} 部
             </div>
           </div>
-        </Handmotion>
-        <Gamelistdatasync
-          datas={allPageData}
-          totalPages={allPageData.totalPages ?? 0}
-        />
+        </div>
+        <div>
+          <Gamelistdatasync
+            datas={allPageData}
+            totalPages={allPageData.totalPages ?? 0}
+          />
+        </div>
       </div>
     </>
   );

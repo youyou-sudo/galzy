@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 import {
   Card,
   CardBody,
@@ -80,73 +79,61 @@ export function Gamelsit({ datas }: { datas: any }) {
   };
   return (
     <>
-      {datas.map((gamelistdata: any, index: number) => (
+      {datas.map((gamelistdata: any) => (
         <div key={gamelistdata.vnid}>
-          <motion.div
-            className="box"
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              delay: index * 0.02,
-              duration: 0.3,
-            }}
+          <Card
+            as={Link}
+            onClick={!isMobile ? (e) => openModal(e, gamelistdata) : undefined}
+            prefetch={true}
+            href={`/${gamelistdata.vnid}`}
+            isPressable={!isMobile}
+            className="flex mt-2 w-full"
+            key={gamelistdata.vnid}
           >
-            <Card
-              as={Link}
-              onClick={
-                !isMobile ? (e) => openModal(e, gamelistdata) : undefined
-              }
-              prefetch={true}
-              href={`/${gamelistdata.vnid}`}
-              isPressable={!isMobile}
-              className="flex mt-2 w-full"
-              key={gamelistdata.vnid}
-            >
-              <CardBody className="flex p-3 flex-nowrap flex-row">
-                <div className="w-[100px] shrink-0">
-                  <Image
-                    isBlurred
-                    isZoomed
-                    shadow="sm"
-                    radius="lg"
-                    width={100}
-                    height={140}
-                    className="object-cover"
-                    src={`${env(
-                      "NEXT_PUBLIC_VNDBIMG_URI"
-                    )}/${gamelistdata.image.substring(
-                      0,
-                      2
-                    )}/${gamelistdata.image.slice(-2)}/${gamelistdata.image.slice(
-                      2
-                    )}.jpg`}
-                    alt="图片"
-                  />
-                </div>
-                <div className="ml-3 truncate">
-                  <p className="font-bold truncate">
-                    {
-                      gamelistdata.titles.find(
-                        (item: { lang: any }) =>
-                          item.lang === gamelistdata.olang
-                      )?.title
-                    }
-                  </p>
-                  <div className="italic opacity-70 text-sm truncate">
-                    {gamelistdata.titles.find(
-                      (item: { lang: any }) => item.lang === "zh-Hans"
+            <CardBody className="flex p-3 flex-nowrap flex-row">
+              <div className="w-[100px] shrink-0">
+                <Image
+                  isBlurred
+                  isZoomed
+                  shadow="sm"
+                  radius="lg"
+                  width={100}
+                  height={140}
+                  className="object-cover"
+                  src={`${env(
+                    "NEXT_PUBLIC_VNDBIMG_URI"
+                  )}/${gamelistdata.image.substring(
+                    0,
+                    2
+                  )}/${gamelistdata.image.slice(-2)}/${gamelistdata.image.slice(
+                    2
+                  )}.jpg`}
+                  loading="lazy"
+                  alt="图片"
+                />
+              </div>
+              <div className="ml-3 truncate">
+                <p className="font-bold truncate">
+                  {
+                    gamelistdata.titles.find(
+                      (item: { lang: any }) => item.lang === gamelistdata.olang
+                    )?.title
+                  }
+                </p>
+                <div className="italic opacity-70 text-sm truncate">
+                  {gamelistdata.titles.find(
+                    (item: { lang: any }) => item.lang === "zh-Hans"
+                  )?.title ||
+                    gamelistdata.titles.find(
+                      (item: { official: any }) => item.official === "t"
                     )?.title ||
-                      gamelistdata.titles.find(
-                        (item: { official: any }) => item.official === "t"
-                      )?.title ||
-                      gamelistdata.titles.find(
-                        (item: { lang: any }) => item.lang === "jp"
-                      )?.title}
-                  </div>
+                    gamelistdata.titles.find(
+                      (item: { lang: any }) => item.lang === "jp"
+                    )?.title}
                 </div>
-              </CardBody>
-            </Card>
-          </motion.div>
+              </div>
+            </CardBody>
+          </Card>
         </div>
       ))}
       <Modal

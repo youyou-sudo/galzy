@@ -19,7 +19,7 @@ import {
 import { Gamepad, PersonalComputer, Risk, Android } from "grommet-icons";
 import { useEffect, useState } from "react";
 import { alistListGet } from "../(action)/alistGet";
-import { motion } from "framer-motion";
+import * as motion from "motion/react-client";
 import { MdOutlinePageview } from "react-icons/md";
 import { Button } from "@/components/ui/button";
 

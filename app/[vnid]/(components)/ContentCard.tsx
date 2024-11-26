@@ -17,8 +17,9 @@ import {
 } from "@nextui-org/react";
 import Platform from "./platform";
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import * as motion from "motion/react-client";
 import { RiFullscreenFill } from "react-icons/ri";
+
 import { vndbdatagsdata } from "../(action)/vndbGet";
 import Link from "next/link";
 import { env } from "next-runtime-env";

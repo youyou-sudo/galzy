@@ -1,7 +1,7 @@
 "use client";
-import Image from "next/image";
+import { Image } from "@nextui-org/react";
 import React from "react";
-import { motion } from "framer-motion";
+import * as motion from "motion/react-client";
 
 export default function LoadingCard() {
   return (
@@ -11,7 +11,7 @@ export default function LoadingCard() {
       animate={{ opacity: 1, y: 0 }}
     >
       <div className="flex items-center justify-center">
-        <Image src="/loading.webp" alt="loading" loading="eager" unoptimized />
+        <Image src="/loading.webp" alt="loading" />
       </div>
       <h1 className="text-center text-lg font-bold">Loading...</h1>
     </motion.div>
