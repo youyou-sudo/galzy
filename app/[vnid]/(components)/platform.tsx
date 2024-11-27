@@ -10,7 +10,13 @@ export default function Platform({ datas }) {
   };
   return (
     <div className="mt-auto flex flex-wrap gap-2">
-      <Tooltip content="VNDB">
+      <Tooltip
+        content={
+          <div className="px-1 py-2">
+            <div className="text-small font-bold">VNDB</div>
+          </div>
+        }
+      >
         <Chip
           {...chopconfig}
           classNames={{

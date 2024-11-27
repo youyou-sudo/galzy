@@ -11,6 +11,7 @@ import {
   ModalBody,
   useDisclosure,
 } from "@nextui-org/react";
+import NextImage from "next/image";
 import Link from "next/link";
 import { ContentCard } from "@/app/[vnid]/(components)/ContentCard";
 import Datalistview from "@/app/[vnid]/(components)/Datalistview";
@@ -94,8 +95,9 @@ export function Gamelsit({ datas }: { datas: any[] }) {
             className="flex mt-2 w-full"
           >
             <CardBody className="flex p-3 flex-nowrap flex-row">
-              <div className="w-[100px] shrink-0">
+              <div className="w-[100px] h-[140px] shrink-0">
                 <Image
+                  as={NextImage}
                   isBlurred
                   isZoomed
                   shadow="sm"
@@ -113,6 +115,7 @@ export function Gamelsit({ datas }: { datas: any[] }) {
                   )}.jpg`}
                   loading="lazy"
                   alt="图片"
+                  unoptimized
                 />
               </div>
               <div className="ml-3 truncate">

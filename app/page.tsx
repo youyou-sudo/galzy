@@ -2,14 +2,8 @@ import { title } from "@/components/primitives";
 import Gamelistdatasync from "./(components)/gamelistdatasync";
 import { getHomeList } from "@/lib/actions/homelist";
 
-interface SearchParams {
-  pages?: string;
-}
-
-async function Home({ searchParams }: { searchParams: SearchParams }) {
-  const { pages } = await searchParams;
-  const pagesNumber = Number(pages) || 1;
-  const allPageData = await getHomeList(pagesNumber);
+async function Home() {
+  const allPageData = await getHomeList(2);
   return (
     <>
       <div className="max-w-3xl mx-auto my-auto">
@@ -22,7 +16,10 @@ async function Home({ searchParams }: { searchParams: SearchParams }) {
           </div>
         </div>
         <div>
-          <Gamelistdatasync totalPages={allPageData.totalPages ?? 0} />
+          <Gamelistdatasync
+            datas={allPageData}
+            totalPages={allPageData.totalPages ?? 0}
+          />
         </div>
       </div>
     </>

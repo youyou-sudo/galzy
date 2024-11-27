@@ -22,6 +22,7 @@ import { alistListGet } from "../(action)/alistGet";
 import * as motion from "motion/react-client";
 import { MdOutlinePageview } from "react-icons/md";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 // Path color map to render corresponding icons and labels
 const pathColorMap = {
@@ -84,7 +85,7 @@ function Modalfun({
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   data: any;
-  dlink: string;
+  dlink?: string;
   gfpath: string;
 }) {
   if (!data) return null;
@@ -178,10 +179,13 @@ const FileMap = ({
               <li>
                 {item.is_dir === true ? (
                   <>
-                    {pathColorMap[item.name] ? (
-                      <div className="flex text-2xl font-bold gap-2">
-                        {pathColorMap[item.name]}
-                      </div>
+                    {pathColorMap[item.name as keyof typeof pathColorMap] ? (
+                      <>
+                        <div className="flex text-2xl font-bold gap-1 items-center">
+                          {pathColorMap[item.name as keyof typeof pathColorMap]}
+                        </div>
+                        <Separator />
+                      </>
                     ) : (
                       <>
                         <p>{item.name}</p>
@@ -197,21 +201,23 @@ const FileMap = ({
                     />
                   </>
                 ) : (
-                  <div className="list-disc flex">
-                    <Button
-                      // as={Button}
-                      variant="link"
-                      onClick={() => {
-                        handleFileClick(item);
-                      }}
-                      className="block truncate"
-                    >
-                      {item.name}
-                      <span className="inline-flex items-center">
-                        <MdOutlinePageview />
-                      </span>
-                    </Button>
-                  </div>
+                  <>
+                    <Separator />
+                    <div className="list-disc flex">
+                      <Button
+                        variant="link"
+                        onClick={() => {
+                          handleFileClick(item);
+                        }}
+                        className="block truncate"
+                      >
+                        {item.name}
+                        <span className="inline-flex items-center">
+                          <MdOutlinePageview />
+                        </span>
+                      </Button>
+                    </div>
+                  </>
                 )}
               </li>
             </motion.div>

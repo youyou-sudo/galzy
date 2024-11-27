@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { stringify, parse } from "flatted";
 import { vndbmget } from "@/lib/vndbdata";
+import { FaAnglesLeft } from "react-icons/fa6";
 import { ContentCard } from "./(components)/ContentCard";
 import Datalistview from "./(components)/Datalistview";
 import Errors from "@/components/error";
@@ -59,8 +60,12 @@ async function vndbidpage({
 
     return (
       <div className="mx-auto max-w-5xl">
-        <Link href="/" className="hover:underline">
-          ⬅返回
+        <Link
+          href="/"
+          className="hover:underline flex items-center text-zinc-400"
+        >
+          <FaAnglesLeft />
+          返回 Home
         </Link>
         <ContentCard data={contentdatas} />
         <Datalistview filedatas={datas.filesiddatas} />

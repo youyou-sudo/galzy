@@ -1,12 +1,8 @@
 "use client";
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Gamelsit } from "./gamelist";
-import { useQueryState } from "nuqs";
 import { getHomeList } from "@/lib/actions/homelist";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-
-import { IoHome } from "react-icons/io5";
 import { BiArrowToTop } from "react-icons/bi";
 import { Card, CardBody, Skeleton } from "@nextui-org/react";
 
@@ -38,53 +34,22 @@ interface AllPageData {
 }
 
 export default function Gamelistdatasync({
+  datas,
   totalPages,
 }: {
+  datas: AllPageData;
   totalPages: number;
 }) {
-  const [pageData, setPageData] = useState<AllPageData | null>(null);
-
-  const [pages, setPages] = useQueryState("pages");
-  const [usepages, setUsepages] = useState<number>(Number(pages) || 1);
-
-  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [pageData, setPageData] = useState<AllPageData>(datas);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollButton(window.scrollY > 100);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    handleScroll(); // Check initial position
-
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.scrollTo(0, 0);
   }, []);
-
-  useEffect(() => {
-    if (pages == null) {
-      const datassup = async () => {
-        const newData = await getHomeList(1);
-        setPageData(newData);
-      };
-      datassup();
-    }
-  }, [pages]);
-
-  useEffect(() => {
-    const datassup = async () => {
-      const newData = await getHomeList(usepages + 1);
-      setPageData(newData);
-    };
-    datassup();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    setUsepages(Number(pages) || 1);
-  }, [pages]);
 
   const upgamelistdataac = useCallback(
     async (page: number) => {
+      setIsLoading(true);
       const newData = await getHomeList(page);
       if (newData.datas.length > 0 && pageData) {
         setPageData((prevData) => {
@@ -101,13 +66,12 @@ export default function Gamelistdatasync({
           }
         });
       }
+      setIsLoading(false);
     },
     [pageData]
   );
 
   const memoizedGameList = useMemo(() => {
-    if (!pageData) return <GameCardSkeleton />;
-
     return pageData.datas.map(
       (item) =>
         item.data &&
@@ -122,21 +86,10 @@ export default function Gamelistdatasync({
                       if (
                         entry.isIntersecting &&
                         item.pagesss < totalPages &&
-                        item.pagesss !== usepages &&
                         item.pagesss >
                           pageData.datas[pageData.datas.length - 2].pagesss
                       ) {
-                        setUsepages(item.pagesss);
-                        setPages(String(item.pagesss));
                         upgamelistdataac(item.pagesss + 2);
-                      }
-                      if (
-                        entry.isIntersecting &&
-                        item.pagesss < totalPages &&
-                        item.pagesss !== usepages &&
-                        pages !== null
-                      ) {
-                        setPages(String(item.pagesss));
                       }
                     });
                   },
@@ -155,7 +108,7 @@ export default function Gamelistdatasync({
           </div>
         )
     );
-  }, [pageData, totalPages, usepages, pages, setPages, upgamelistdataac]);
+  }, [pageData, totalPages, upgamelistdataac]);
 
   const test = false;
   if (test) {
@@ -169,25 +122,15 @@ export default function Gamelistdatasync({
   return (
     <div>
       {memoizedGameList}
+      {isLoading && <GameCardSkeleton />}
 
       <div className="fixed bottom-5 right-4 flex flex-col gap-2">
-        {showScrollButton && (
-          <>
-            <Button
-              size="icon"
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            >
-              <BiArrowToTop />
-            </Button>
-          </>
-        )}
-        {pages && Number(pages) > 1 && (
-          <Button asChild size="icon">
-            <Link href="/">
-              <IoHome />
-            </Link>
-          </Button>
-        )}
+        <Button
+          size="icon"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        >
+          <BiArrowToTop />
+        </Button>
       </div>
     </div>
   );
@@ -196,7 +139,7 @@ export default function Gamelistdatasync({
 const GameCardSkeleton = () => {
   return (
     <>
-      {[...Array(5)].map((_, index) => (
+      {[...Array(2)].map((_, index) => (
         <Card key={index} className="flex mt-2 w-full">
           <CardBody className="flex p-3 flex-nowrap flex-row">
             <div className="w-[100px] shrink-0">
