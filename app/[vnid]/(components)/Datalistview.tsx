@@ -275,17 +275,23 @@ export function Stview({ filedatas }: { filedatas: any }) {
 export default function Datalistview({ filedatas }: { filedatas: any }) {
   return (
     <>
-      <Tabs aria-label="Options" className="mt-3" variant="light">
-        <Tab key="download" title="下载">
-          <Card>
-            <CardBody>
-              {filedatas.map((item: any, index) => (
-                <Stview key={index} filedatas={item} />
-              ))}
-            </CardBody>
-          </Card>
-        </Tab>
-      </Tabs>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ damping: 1 }}
+      >
+        <Tabs aria-label="Options" className="mt-3" variant="light">
+          <Tab key="download" title="下载">
+            <Card>
+              <CardBody>
+                {filedatas.map((item: any, index) => (
+                  <Stview key={index} filedatas={item} />
+                ))}
+              </CardBody>
+            </Card>
+          </Tab>
+        </Tabs>
+      </motion.div>
     </>
   );
 }

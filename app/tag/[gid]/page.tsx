@@ -6,6 +6,8 @@ import Ttip from "./(components)/Ttip";
 import { Gamelsit } from "@/app/(components)/gamelist";
 import { PaginationWithLinks } from "@/components/pagination-with-links";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   openGraph: {
     title: "VNDB DATA?",

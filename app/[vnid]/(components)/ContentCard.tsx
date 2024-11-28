@@ -137,7 +137,11 @@ export function ContentCard({ data, fullsereenfill }: ContentCardProps) {
   };
 
   return (
-    <div className="flex flex-col">
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+    >
       <Card radius="sm" shadow="sm">
         <CardBody className="m-0 p-4 flex-row">
           <div className="relative shrink-0 mr-3 w-1/4">
@@ -230,6 +234,6 @@ export function ContentCard({ data, fullsereenfill }: ContentCardProps) {
           )}
         </CardFooter>
       </Card>
-    </div>
+    </motion.div>
   );
 }

@@ -9,6 +9,8 @@ import Datalistview from "./(components)/Datalistview";
 import Errors from "@/components/error";
 import { env } from "next-runtime-env";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   openGraph: {
     title: "VNDB DATA?",
@@ -60,13 +62,6 @@ async function vndbidpage({
 
     return (
       <div className="mx-auto max-w-5xl">
-        <Link
-          href="/"
-          className="hover:underline flex items-center text-zinc-400"
-        >
-          <FaAnglesLeft />
-          返回 Home
-        </Link>
         <ContentCard data={contentdatas} />
         <Datalistview filedatas={datas.filesiddatas} />
       </div>

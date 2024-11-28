@@ -16,6 +16,7 @@ import Link from "next/link";
 import { ContentCard } from "@/app/[vnid]/(components)/ContentCard";
 import Datalistview from "@/app/[vnid]/(components)/Datalistview";
 import { env } from "next-runtime-env";
+import * as motion from "motion/react-client";
 
 export function Gamelsit({ datas }: { datas: any[] }) {
   const { isOpen, onClose, onOpen, onOpenChange } = useDisclosure();
@@ -85,7 +86,12 @@ export function Gamelsit({ datas }: { datas: any[] }) {
   const renderGameList = useMemo(
     () =>
       datas.map((gamelistdata: any) => (
-        <div key={gamelistdata.vnid}>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          key={gamelistdata.vnid}
+        >
           <Card
             as={Link}
             onClick={!isMobile ? (e) => openModal(e, gamelistdata) : undefined}
@@ -137,7 +143,7 @@ export function Gamelsit({ datas }: { datas: any[] }) {
               </div>
             </CardBody>
           </Card>
-        </div>
+        </motion.div>
       )),
     [datas, isMobile, openModal]
   );
