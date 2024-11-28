@@ -8,12 +8,12 @@ import {
   CardBody,
   CardFooter,
   Divider,
-  Image,
   Radio,
   RadioGroup,
   Skeleton,
   Switch,
   Tooltip,
+  Image,
 } from "@nextui-org/react";
 import Platform from "./platform";
 import React, { useEffect, useState } from "react";
@@ -137,21 +137,18 @@ export function ContentCard({ data, fullsereenfill }: ContentCardProps) {
   };
 
   return (
-    <motion.div
-      className="flex flex-col"
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-    >
+    <div className="flex flex-col">
       <Card radius="sm" shadow="sm">
         <CardBody className="m-0 p-4 flex-row">
-          <div className="w-1/4 shrink-0 mr-3">
+          <div className="relative shrink-0 mr-3 w-1/4">
             <Image
               isBlurred
               isZoomed
-              className="w-full object-cover"
+              radius="lg"
+              className="object-cover"
               src={getImageUrl()}
               alt="游戏图片"
+              sizes="(max-width: 640px) 200px, (max-width: 768px) 250px, (max-width: 1024px) 300px, 350px"
             />
           </div>
           <div className="flex flex-col">
@@ -233,6 +230,6 @@ export function ContentCard({ data, fullsereenfill }: ContentCardProps) {
           )}
         </CardFooter>
       </Card>
-    </motion.div>
+    </div>
   );
 }

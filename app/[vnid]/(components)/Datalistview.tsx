@@ -181,10 +181,10 @@ const FileMap = ({
                   <>
                     {pathColorMap[item.name as keyof typeof pathColorMap] ? (
                       <>
-                        <div className="flex text-2xl font-bold gap-1 items-center">
+                        <div className="flex text-2xl font-extrabold gap-1 items-center">
                           {pathColorMap[item.name as keyof typeof pathColorMap]}
                         </div>
-                        <Separator />
+                        <Separator className="my-2" />
                       </>
                     ) : (
                       <>
@@ -202,7 +202,6 @@ const FileMap = ({
                   </>
                 ) : (
                   <>
-                    <Separator />
                     <div className="list-disc flex">
                       <Button
                         variant="link"

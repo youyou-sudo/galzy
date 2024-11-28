@@ -4,12 +4,12 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import {
   Card,
   CardBody,
-  Image,
   Modal,
   ModalContent,
   ModalHeader,
   ModalBody,
   useDisclosure,
+  Image,
 } from "@nextui-org/react";
 import NextImage from "next/image";
 import Link from "next/link";
@@ -95,16 +95,15 @@ export function Gamelsit({ datas }: { datas: any[] }) {
             className="flex mt-2 w-full"
           >
             <CardBody className="flex p-3 flex-nowrap flex-row">
-              <div className="w-[100px] h-[140px] shrink-0">
+              <div className="relative shrink-0">
                 <Image
-                  as={NextImage}
-                  isBlurred
-                  isZoomed
-                  shadow="sm"
-                  radius="lg"
                   width={100}
                   height={140}
+                  isBlurred
+                  isZoomed
+                  as={NextImage}
                   className="object-cover"
+                  sizes="(max-width: 1200px) 100vw, (max-width: 768px) 50vw, 33vw"
                   src={`${env(
                     "NEXT_PUBLIC_VNDBIMG_URI"
                   )}/${gamelistdata.image.substring(
@@ -113,9 +112,7 @@ export function Gamelsit({ datas }: { datas: any[] }) {
                   )}/${gamelistdata.image.slice(-2)}/${gamelistdata.image.slice(
                     2
                   )}.jpg`}
-                  loading="lazy"
                   alt="图片"
-                  unoptimized
                 />
               </div>
               <div className="ml-3 truncate">
