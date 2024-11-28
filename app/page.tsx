@@ -3,8 +3,6 @@ import Gamelistdatasync from "./(components)/gamelistdatasync";
 import { getHomeList } from "@/lib/actions/homelist";
 import * as motion from "motion/react-client";
 
-export const dynamic = "force-dynamic";
-
 async function Home() {
   const allPageData = await getHomeList(2);
   return (
