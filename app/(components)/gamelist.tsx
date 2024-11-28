@@ -91,7 +91,7 @@ export function Gamelsit({ datas }: { datas: any[] }) {
             onClick={!isMobile ? (e) => openModal(e, gamelistdata) : undefined}
             prefetch={true}
             href={`/${gamelistdata.vnid}`}
-            isPressable={!isMobile}
+            isPressable={true}
             className="flex mt-2 w-full"
           >
             <CardBody className="flex p-3 flex-nowrap flex-row">
