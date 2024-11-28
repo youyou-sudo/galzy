@@ -96,6 +96,7 @@ export function Gamelsit({ datas }: { datas: any[] }) {
             as={Link}
             onClick={!isMobile ? (e) => openModal(e, gamelistdata) : undefined}
             prefetch={true}
+            target="_blank"
             href={`/${gamelistdata.vnid}`}
             isPressable={true}
             className="flex mt-2 w-full"
