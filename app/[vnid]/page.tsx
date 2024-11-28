@@ -1,9 +1,7 @@
 import React from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { stringify, parse } from "flatted";
 import { vndbmget } from "@/lib/vndbdata";
-import { FaAnglesLeft } from "react-icons/fa6";
 import { ContentCard } from "./(components)/ContentCard";
 import Datalistview from "./(components)/Datalistview";
 import Errors from "@/components/error";
