@@ -273,3 +273,15 @@ export const deleteEntryById = async (id: string) => {
     };
   }
 };
+
+// 获取 sitemap 数据
+export const getSitemapData = async () => {
+  const datasw = await prisma.vndbdatas.findMany({
+    where: {
+      filesiddatas: {
+        some: {},
+      },
+    },
+  });
+  return datasw;
+};
