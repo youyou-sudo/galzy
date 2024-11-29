@@ -96,8 +96,13 @@ export function Gamelsit({ datas }: { datas: any[] }) {
         >
           <Card
             as={Link}
-            onClick={(e) => openModal(e, gamelistdata)}
-            prefetch={true}
+            replace={true}
+            scroll={false}
+            isPressable
+            onClick={(e) => {
+              e.preventDefault();
+              openModal(e, gamelistdata);
+            }}
             href={`/${gamelistdata.vnid}`}
             className="flex mt-2 w-full"
           >
