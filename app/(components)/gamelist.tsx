@@ -10,6 +10,7 @@ import {
   ModalBody,
   useDisclosure,
   Image,
+  Button,
 } from "@nextui-org/react";
 import NextImage from "next/image";
 import Link from "next/link";
@@ -17,6 +18,7 @@ import { ContentCard } from "@/app/[vnid]/(components)/ContentCard";
 import Datalistview from "@/app/[vnid]/(components)/Datalistview";
 import { env } from "next-runtime-env";
 import * as motion from "motion/react-client";
+import { FaChevronLeft } from "react-icons/fa";
 
 export function Gamelsit({ datas }: { datas: any[] }) {
   const { isOpen, onClose, onOpen, onOpenChange } = useDisclosure();
@@ -94,11 +96,9 @@ export function Gamelsit({ datas }: { datas: any[] }) {
         >
           <Card
             as={Link}
-            onClick={!isMobile ? (e) => openModal(e, gamelistdata) : undefined}
+            onClick={(e) => openModal(e, gamelistdata)}
             prefetch={true}
-            target="_blank"
             href={`/${gamelistdata.vnid}`}
-            isPressable={true}
             className="flex mt-2 w-full"
           >
             <CardBody className="flex p-3 flex-nowrap flex-row">
@@ -146,7 +146,7 @@ export function Gamelsit({ datas }: { datas: any[] }) {
           </Card>
         </motion.div>
       )),
-    [datas, isMobile, openModal]
+    [datas, openModal]
   );
 
   return (
@@ -157,20 +157,55 @@ export function Gamelsit({ datas }: { datas: any[] }) {
         onOpenChange={onOpenChange}
         scrollBehavior="inside"
         placement="center"
-        size="4xl"
+        size={`${isMobile ? "full" : "4xl"}`}
+        backdrop={`${isMobile ? "transparent" : "opaque"}`}
+        radius={`${isMobile ? "none" : "lg"}`}
+        hideCloseButton={isMobile}
+        className={`${isMobile ? "rounded-none" : ""}`}
+        motionProps={
+          isMobile
+            ? {
+                variants: {
+                  enter: {
+                    x: 0,
+                    opacity: 1,
+                    transition: {
+                      duration: 0.3,
+                      ease: "easeOut",
+                    },
+                  },
+                  exit: {
+                    x: 20,
+                    opacity: 0,
+                    transition: {
+                      duration: 0.2,
+                      ease: "easeIn",
+                    },
+                  },
+                },
+              }
+            : undefined
+        }
       >
         <ModalContent>
-          {() => (
+          {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">
+              <ModalHeader
+                className={`flex flex-row items-center gap-2 ${isMobile ? "p-3" : ""}`}
+              >
+                {isMobile && (
+                  <Button isIconOnly variant="light" onPress={() => onClose()}>
+                    <FaChevronLeft />
+                  </Button>
+                )}
                 {modalData && (
-                  <>
+                  <div className="line-clamp-2">
                     {
                       modalData.titles.find(
                         (item: { lang: any }) => item.lang === modalData.olang
                       )?.title
                     }
-                  </>
+                  </div>
                 )}
               </ModalHeader>
               <ModalBody>
