@@ -6,15 +6,6 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  images: {
-    formats: ["image/avif", "image/webp"],
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "t.vndb.org",
-      },
-    ],
-  },
   experimental: {
     optimizePackageImports: [
       "@nextui-org/navbar",
