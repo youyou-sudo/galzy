@@ -27,8 +27,10 @@ COPY --from=build /usr/src/app/start.sh ./start.sh
 
 # 设置环境变量和用户
 ENV NODE_ENV=production
-RUN chmod +x start.sh
+RUN chmod +x start.sh && chown -R bun:bun /usr/src/app
 USER bun
+# 确保 .next 目录存在并设置权限
+RUN mkdir -p /usr/src/app/.next/cache && chown -R bun:bun /usr/src/app/.next
 
 EXPOSE 3000
 CMD ["./start.sh"]
