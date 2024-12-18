@@ -10,8 +10,6 @@ import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/toaster";
 import AuthProvider from "./(auth)/(components)/AuthProvider";
 import { PublicEnvScript } from "next-runtime-env";
-import Script from "next/script";
-import prisma from "@/lib/prisma";
 
 export const metadata: Metadata = {
   openGraph: {
