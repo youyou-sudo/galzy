@@ -24,6 +24,7 @@ export async function tagsvndbInfo({
     select: {
       gid: true,
       name: true,
+      name_zh: true,
       alias: true,
       description: true,
       vndbdatas: {

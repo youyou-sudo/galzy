@@ -126,7 +126,7 @@ export function ContentCard({ data, fullsereenfill }: ContentCardProps) {
             href={`/tag/${item.tags.gid}`}
             prefetch={true}
           >
-            {item.tags.name}
+            {item.tags.name_zh || item.tags.name}
           </Link>
           <span className="ml-1 text-slate-500" style={{ fontSize: "10px" }}>
             {item.average_rating}

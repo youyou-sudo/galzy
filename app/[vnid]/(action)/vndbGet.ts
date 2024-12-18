@@ -27,6 +27,7 @@ export const vndbdatagsdata = async (ref: any) => {
               select: {
                 gid: true,
                 name: true,
+                name_zh: true,
                 applicable: true,
                 defaultspoil: true,
               },

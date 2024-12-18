@@ -79,6 +79,7 @@ model tags {
   searchable   String
   applicable   String
   name         String
+  name_zh      String?
   alias        String
   description  String
   vndbdatas    tags_vndatas[]
@@ -108,4 +109,10 @@ model users {
   password  String
   twoFactor String?
   identity  String
+}
+
+model siteConfig {
+  id    Int    @id @default(autoincrement())
+  type  String
+  value Json?
 }

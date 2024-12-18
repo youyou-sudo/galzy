@@ -12,7 +12,7 @@ export default function TagsContentCard({ data }: { data: any }) {
         <CardBody>
           <div className="text-center">
             <h1 className="text-xl select-all font-bold sm:text-2xl md:text-3xl lg:text-4xl">
-              #{data.giddata.name}
+              #{data.giddata.name_zh || data.giddata.name}
             </h1>
             {data.giddata.alias
               .split("\\n") // 将字符串按 '\n' 分割

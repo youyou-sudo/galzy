@@ -10,6 +10,8 @@ import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/toaster";
 import AuthProvider from "./(auth)/(components)/AuthProvider";
 import { PublicEnvScript } from "next-runtime-env";
+import Script from "next/script";
+import prisma from "@/lib/prisma";
 
 export const metadata: Metadata = {
   openGraph: {
@@ -37,11 +39,16 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const umami = await prisma.siteConfig.findFirst({
+    where: {
+      type: "umami",
+    },
+  });
   return (
     <html suppressHydrationWarning lang="zh-CN">
       <head>
@@ -68,6 +75,10 @@ export default function RootLayout({
           </Providers>
         </AuthProvider>
       </body>
+      <Script
+        src={`https://${umami?.value?.umami_id}/script.js`}
+        strategy="afterInteractive"
+      />
     </html>
   );
 }
