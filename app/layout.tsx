@@ -44,11 +44,6 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const umami = await prisma.siteConfig.findFirst({
-    where: {
-      type: "umami",
-    },
-  });
   return (
     <html suppressHydrationWarning lang="zh-CN">
       <head>
@@ -75,10 +70,6 @@ export default async function RootLayout({
           </Providers>
         </AuthProvider>
       </body>
-      <Script
-        src={`https://${umami?.value?.umami_id}/script.js`}
-        strategy="afterInteractive"
-      />
     </html>
   );
 }
