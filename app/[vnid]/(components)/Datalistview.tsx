@@ -16,6 +16,7 @@ import {
   ModalFooter,
   useDisclosure,
   Spinner,
+  Tooltip,
 } from "@nextui-org/react";
 import { Gamepad, PersonalComputer, Risk, Android } from "grommet-icons";
 import { useEffect, useState } from "react";
@@ -41,13 +42,25 @@ const pathColorMap = {
   ),
   TY: (
     <>
-      <Image src="/tyranor.webp" width={25} alt="tyranor" loading="lazy" />
+      <Image
+        radius="none"
+        src="/tyranor.webp"
+        width={25}
+        alt="tyranor"
+        loading="lazy"
+      />
       Tyranor
     </>
   ),
   KR: (
     <>
-      <Image src="/Kkirikiri.webp" width={25} alt="Kkirikiri" loading="lazy" />
+      <Image
+        radius="none"
+        src="/Kkirikiri.webp"
+        width={25}
+        alt="Kkirikiri"
+        loading="lazy"
+      />
       Kkirikiri
     </>
   ),
@@ -66,6 +79,7 @@ const pathColorMap = {
   ONS: (
     <>
       <Image
+        radius="none"
         src="/ONScripter.webp"
         width={25}
         alt="ONScripter"
@@ -74,6 +88,57 @@ const pathColorMap = {
       ONScripter
     </>
   ),
+};
+
+const pathColorMap2 = {
+  unk: false,
+  win: "Windows",
+  lin: "Linux",
+  mac: "Mac OS",
+  web: "Website",
+  tdo: "3DO",
+  ios: "Apple iProduct",
+  and: "Android",
+  bdp: "Blu-ray Player",
+  dos: "DOS",
+  dvd: "DVD Player",
+  drc: "Dreamcast",
+  nes: "Famicom",
+  sfc: "Super Famicom",
+  fm7: "FM-7",
+  fm8: "FM-8",
+  fmt: "FM Towns",
+  gba: "Game Boy Advance",
+  gbc: "Game Boy Color",
+  msx: "MSX",
+  nds: "Nintendo DS",
+  swi: "Nintendo Switch",
+  wii: "Nintendo Wii",
+  wiu: "Nintendo Wii U",
+  n3d: "Nintendo 3DS",
+  p88: "PC-88",
+  p98: "PC-98",
+  pce: "PC Engine",
+  pcf: "PC-FX",
+  psp: "PlayStation Portable",
+  ps1: "PlayStation 1",
+  ps2: "PlayStation 2",
+  ps3: "PlayStation 3",
+  ps4: "PlayStation 4",
+  ps5: "PlayStation 5",
+  psv: "PlayStation Vita",
+  smd: "Sega Mega Drive",
+  scd: "Sega Mega-CD",
+  sat: "Sega Saturn",
+  vnd: "VNDS",
+  x1s: "Sharp X1",
+  x68: "Sharp X68000",
+  xb1: "Xbox",
+  xb3: "Xbox 360",
+  xbo: "Xbox One",
+  xxs: "Xbox X/S",
+  mob: "mobile",
+  oth: false,
 };
 
 function Modalfun({
@@ -379,55 +444,84 @@ export default function Datalistview({
             </Card>
           </Tab>
           <>
-            <Tab
-              key="phtot"
-              title={
-                <div className="flex gap-1 items-center">
-                  图片
-                  {dltap ? null : <Spinner size="sm" color="default" />}
-                </div>
-              }
-            >
+            <Tab key="phtot" title="图片">
               <Card>
                 <CardBody>
                   <div>
-                    {Object.keys(vndbImagesData).map((rid) => {
-                      const release = vndbImagesData[rid];
-                      const firstItem = release[0]; // 获取当前 releaseId 下的第一项
-                      const { title } = firstItem.release;
-                      return (
-                        <div key={rid}>
-                          <h2>{title}</h2>
-                          {vndbImagesData[rid].map(
-                            (screenshot: Screenshot, index: any) => (
-                              <Card
-                                key={index}
-                                isPressable
-                                shadow="sm"
-                                className="m-2 inline-flex"
-                                onPress={() => {
-                                  setImagemodal({
-                                    turl: screenshot.thumbnail,
-                                    url: screenshot.url,
-                                    urlLoaded: false,
-                                  });
-                                  onOpen();
-                                }}
-                              >
-                                <CardBody className="p-0 inline-block">
+                    {dltap ? (
+                      <>
+                        {Object.keys(vndbImagesData).map((rid) => {
+                          const release = vndbImagesData[rid];
+                          const firstItem = release[0]; // 获取当前 releaseId 下的第一项
+                          console.log(firstItem);
+                          const { title, platforms, languages } =
+                            firstItem.release;
+                          return (
+                            <div key={rid}>
+                              <h2 className="flex items-center gap-1 justify-center">
+                                {languages.map((languages, index: any) => (
                                   <Image
-                                    alt="screenshot"
-                                    className="w-full h-auto"
-                                    width={200}
-                                    src={screenshot.thumbnail}
-                                  />
-                                </CardBody>
-                              </Card>
-                            )
-                          )}
-                        </div>
-                      );
-                    })}
+                                    isBlurred
+                                    radius="none"
+                                    key={index}
+                                    width={20}
+                                    alt={languages}
+                                    src={`/lang/${languages.lang}.png`}
+                                  ></Image>
+                                ))}
+                                {platforms.map((platform, index: any) => (
+                                  <Tooltip
+                                    content={`${pathColorMap2[platform]}`}
+                                    key={index}
+                                  >
+                                    <Image
+                                      isBlurred
+                                      radius="none"
+                                      key={index}
+                                      width={20}
+                                      alt={pathColorMap2[platform]}
+                                      src={`/plat/${platform}.svg`}
+                                    ></Image>
+                                  </Tooltip>
+                                ))}
+                                {title}
+                              </h2>
+                              <div className="flex flex-wrap gap-2 justify-center">
+                                {vndbImagesData[rid].map(
+                                  (screenshot: Screenshot, index: any) => (
+                                    <Card
+                                      key={index}
+                                      isPressable
+                                      shadow="sm"
+                                      className="m-2 inline-flex"
+                                      onPress={() => {
+                                        setImagemodal({
+                                          turl: screenshot.thumbnail,
+                                          url: screenshot.url,
+                                          urlLoaded: false,
+                                        });
+                                        onOpen();
+                                      }}
+                                    >
+                                      <CardBody className="p-0 inline-block">
+                                        <Image
+                                          alt="screenshot"
+                                          className="w-full h-auto"
+                                          width={200}
+                                          src={screenshot.thumbnail}
+                                        />
+                                      </CardBody>
+                                    </Card>
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </>
+                    ) : (
+                      <Spinner size="sm" color="default" />
+                    )}
                   </div>
                 </CardBody>
               </Card>
