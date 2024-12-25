@@ -27,9 +27,9 @@ model duptimes {
 
 model dataunion {
   id         Int         @id @default(autoincrement())
-  vnid       String?     @unique
-  bangumi_id String?
-  ymgal_id   String?
+  vnid       String[]    @unique
+  bangumi_id String[]
+  ymgal_id   String[]
   credible   Int
   vndbdatas  vndbdatas[]
 
