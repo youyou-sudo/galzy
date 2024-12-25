@@ -208,7 +208,10 @@ export function Gamelsit({ datas }: { datas: any[] }) {
                 {modalData && (
                   <div>
                     <ContentCard fullsereenfill={true} data={modalData} />
-                    <Datalistview filedatas={modalData.filesiddatas} />
+                    <Datalistview
+                      filedatas={modalData.filesiddatas}
+                      vid={modalData.vnid}
+                    />
                   </div>
                 )}
               </ModalBody>
