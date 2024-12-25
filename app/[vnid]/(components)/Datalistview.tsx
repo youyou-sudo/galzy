@@ -16,7 +16,6 @@ import {
   ModalFooter,
   useDisclosure,
   Spinner,
-  Chip,
   Tooltip,
 } from "@nextui-org/react";
 import { Gamepad, PersonalComputer, Risk, Android } from "grommet-icons";
