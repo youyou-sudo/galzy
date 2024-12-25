@@ -43,13 +43,25 @@ const pathColorMap = {
   ),
   TY: (
     <>
-      <Image src="/tyranor.webp" width={25} alt="tyranor" loading="lazy" />
+      <Image
+        radius="none"
+        src="/tyranor.webp"
+        width={25}
+        alt="tyranor"
+        loading="lazy"
+      />
       Tyranor
     </>
   ),
   KR: (
     <>
-      <Image src="/Kkirikiri.webp" width={25} alt="Kkirikiri" loading="lazy" />
+      <Image
+        radius="none"
+        src="/Kkirikiri.webp"
+        width={25}
+        alt="Kkirikiri"
+        loading="lazy"
+      />
       Kkirikiri
     </>
   ),
@@ -68,6 +80,7 @@ const pathColorMap = {
   ONS: (
     <>
       <Image
+        radius="none"
         src="/ONScripter.webp"
         width={25}
         alt="ONScripter"
