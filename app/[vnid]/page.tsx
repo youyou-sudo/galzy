@@ -59,7 +59,7 @@ async function vndbidpage({
     return (
       <div className="mx-auto max-w-5xl">
         <ContentCard data={contentdatas} />
-        <Datalistview filedatas={datas.filesiddatas} />
+        <Datalistview filedatas={datas.filesiddatas} vid={vnid} />
       </div>
     );
   } catch (error) {

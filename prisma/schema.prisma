@@ -25,6 +25,19 @@ model duptimes {
   @@index([name], map: "duptimes_name_index")
 }
 
+model dataunion {
+  id         Int         @id @default(autoincrement())
+  vnid       String?     @unique
+  bangumi_id String?
+  ymgal_id   String?
+  credible   Int
+  vndbdatas  vndbdatas[]
+
+  @@index([vnid], map: "vnid_index")
+  @@index([bangumi_id], map: "bangumi_id_index")
+  @@index([ymgal_id], map: "ymgal_id_index")
+}
+
 model meilisearchdatas {
   id                Int        @id @default(autoincrement())
   host              String?
@@ -67,6 +80,7 @@ model vndbdatas {
   titles       Json
   tags         tags_vndatas[]
   filesiddatas filesiddatas[]
+  dataunion    dataunion?     @relation(fields: [vnid], references: [vnid])
 }
 
 model tags {

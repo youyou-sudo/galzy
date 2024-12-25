@@ -15,6 +15,7 @@ import {
   ModalBody,
   ModalFooter,
   useDisclosure,
+  Spinner,
 } from "@nextui-org/react";
 import { Gamepad, PersonalComputer, Risk, Android } from "grommet-icons";
 import { useEffect, useState } from "react";
@@ -272,7 +273,94 @@ export function Stview({ filedatas }: { filedatas: any }) {
   );
 }
 
-export default function Datalistview({ filedatas }: { filedatas: any }) {
+// VNDB 图片数据接口 type
+interface Screenshot {
+  thumbnail: string;
+  url: string;
+  release: {
+    id: string;
+    title: string;
+    platforms: string[];
+    languages: { lang: string }[];
+  };
+}
+
+interface Result {
+  id: string;
+  screenshots: Screenshot[];
+}
+
+interface Data {
+  more: boolean;
+  results: Result[];
+}
+
+export default function Datalistview({
+  filedatas,
+  vid,
+}: {
+  filedatas: any;
+  vid: string;
+}) {
+  const [vndbImagesData, setVndbImagesData] = useState<any>([]);
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [dltap, setDltap] = useState(false);
+  const [imagemodal, setImagemodal] = useState({
+    turl: "",
+    url: "",
+    urlLoaded: false,
+  });
+  useEffect(() => {
+    if (isOpen === false) {
+      setImagemodal({
+        turl: "",
+        url: "",
+        urlLoaded: false,
+      });
+    }
+  }, [isOpen]);
+  useEffect(() => {
+    (async () => {
+      const raw = JSON.stringify({
+        filters: ["id", "=", `${vid}`],
+        fields:
+          "id,screenshots.release.title,screenshots.release.id,screenshots.url,screenshots.thumbnail,screenshots.release.languages.lang,screenshots.release.platforms",
+      });
+      const response = await fetch(`https://api.vndb.org/kana/vn`, {
+        method: `POST`,
+        headers: {
+          "Content-Type": "application/json",
+          Host: "api.vndb.org",
+        },
+        body: raw,
+        next: {
+          revalidate: 21600,
+        },
+      });
+      const datas = await response.json();
+      // 重新组织 VNDB 获取的图片数据
+      function groupByReleaseId(data: Data): Record<string, Screenshot[]> {
+        const grouped: Record<string, Screenshot[]> = {};
+
+        data.results.forEach((result) => {
+          result.screenshots.forEach((screenshot) => {
+            const releaseId = screenshot.release.id;
+
+            if (!grouped[releaseId]) {
+              grouped[releaseId] = [];
+            }
+
+            grouped[releaseId].push(screenshot);
+          });
+        });
+
+        return grouped;
+      }
+      const groupedData = groupByReleaseId(datas);
+      setVndbImagesData(groupedData);
+      setDltap(true);
+    })();
+  }, [vid]);
   return (
     <>
       <motion.div
@@ -284,14 +372,103 @@ export default function Datalistview({ filedatas }: { filedatas: any }) {
           <Tab key="download" title="下载">
             <Card>
               <CardBody>
-                {filedatas.map((item: any, index) => (
+                {filedatas.map((item: any, index: any) => (
                   <Stview key={index} filedatas={item} />
                 ))}
               </CardBody>
             </Card>
           </Tab>
+          <>
+            <Tab
+              key="phtot"
+              title={
+                <div className="flex gap-1 items-center">
+                  图片
+                  {dltap ? null : <Spinner size="sm" color="default" />}
+                </div>
+              }
+            >
+              <Card>
+                <CardBody>
+                  <div>
+                    {Object.keys(vndbImagesData).map((rid) => {
+                      const release = vndbImagesData[rid];
+                      const firstItem = release[0]; // 获取当前 releaseId 下的第一项
+                      const { title } = firstItem.release;
+                      return (
+                        <div key={rid}>
+                          <h2>{title}</h2>
+                          {vndbImagesData[rid].map(
+                            (screenshot: Screenshot, index: any) => (
+                              <Card
+                                key={index}
+                                isPressable
+                                shadow="sm"
+                                className="m-2 inline-flex"
+                                onPress={() => {
+                                  setImagemodal({
+                                    turl: screenshot.thumbnail,
+                                    url: screenshot.url,
+                                    urlLoaded: false,
+                                  });
+                                  onOpen();
+                                }}
+                              >
+                                <CardBody className="p-0 inline-block">
+                                  <Image
+                                    alt="screenshot"
+                                    className="w-full h-auto"
+                                    width={200}
+                                    src={screenshot.thumbnail}
+                                  />
+                                </CardBody>
+                              </Card>
+                            )
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardBody>
+              </Card>
+            </Tab>
+          </>
         </Tabs>
       </motion.div>
+      <Modal
+        isOpen={isOpen}
+        onOpenChange={onOpenChange}
+        size="3xl"
+        placement="center"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalBody
+                className="flex flex-col p-0"
+                onClick={() => onClose()}
+              >
+                <img
+                  src={imagemodal.url}
+                  alt="高清图片浏览中，如要关闭请点击空白处"
+                  className="w-full h-auto"
+                  style={{ display: imagemodal.urlLoaded ? "block" : "none" }}
+                  onLoad={() =>
+                    setImagemodal((prev) => ({ ...prev, urlLoaded: true }))
+                  }
+                />
+                {!imagemodal.urlLoaded && (
+                  <img
+                    src={imagemodal.turl}
+                    alt="加载中"
+                    className="w-full h-auto blur-sm"
+                  />
+                )}
+              </ModalBody>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </>
   );
 }
