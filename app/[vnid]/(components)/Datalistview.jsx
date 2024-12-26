@@ -17,13 +17,13 @@ import {
   useDisclosure,
   Spinner,
   Tooltip,
+  Button,
 } from "@nextui-org/react";
 import { Gamepad, PersonalComputer, Risk, Android } from "grommet-icons";
 import { useEffect, useState } from "react";
 import { alistListGet } from "../(action)/alistGet";
 import * as motion from "motion/react-client";
 import { MdOutlinePageview } from "react-icons/md";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 // Path color map to render corresponding icons and labels
@@ -141,23 +141,11 @@ const pathColorMap2 = {
   oth: false,
 };
 
-function Modalfun({
-  isOpen,
-  onOpenChange,
-  data,
-  dlink,
-  gfpath,
-}: {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  data: any;
-  dlink?: string;
-  gfpath: string;
-}) {
+function Modalfun({ isOpen, onOpenChange, data, dlink, gfpath }) {
   if (!data) return null;
 
   // Size 转换
-  function formatBytes(bytes: number, decimals: number = 2): string {
+  function formatBytes(bytes, decimals = 2) {
     if (bytes === 0) return "0 字节";
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
@@ -180,16 +168,21 @@ function Modalfun({
             </div>
           </ModalBody>
           <ModalFooter className="flex justify-center gap-4">
-            <Button variant="secondary" onClick={() => onOpenChange(false)}>
+            <Button
+              onPress={() => onOpenChange(false)}
+              variant="light"
+              color="danger"
+            >
               关闭
             </Button>
-            <Button asChild>
-              <Link
-                target="_blank"
-                href={`${dlink}/${gfpath}/${data.pathname}?sign=${data.sign}`}
-              >
-                下载
-              </Link>
+            <Button
+              as={Link}
+              target="_blank"
+              href={`${dlink}/${gfpath}/${data.pathname}?sign=${data.sign}`}
+              color="primary"
+              variant="solid"
+            >
+              下载
             </Button>
           </ModalFooter>
         </>
@@ -199,25 +192,13 @@ function Modalfun({
 }
 
 // 文件列递归组件
-const FileMap = ({
-  filelist,
-  level = 0,
-  pathtmp,
-  dlink,
-  gfpath,
-}: {
-  filelist: any[];
-  level?: number;
-  pathtmp?: string;
-  dlink?: string;
-  gfpath: string;
-}) => {
-  const [selectedFile, setSelectedFile] = useState<any>(null);
+const FileMap = ({ filelist, level = 0, pathtmp, dlink, gfpath }) => {
+  const [selectedFile, setSelectedFile] = useState(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
   if (!filelist || filelist.length === 0) return null;
 
-  const handleFileClick = (file: any) => {
+  const handleFileClick = (file) => {
     setSelectedFile(file);
     onOpen();
   };
@@ -245,10 +226,10 @@ const FileMap = ({
               <li>
                 {item.is_dir === true ? (
                   <>
-                    {pathColorMap[item.name as keyof typeof pathColorMap] ? (
+                    {pathColorMap[item.name] ? (
                       <>
                         <div className="flex text-2xl font-extrabold gap-1 items-center">
-                          {pathColorMap[item.name as keyof typeof pathColorMap]}
+                          {pathColorMap[item.name]}
                         </div>
                         <Separator className="my-2" />
                       </>
@@ -269,18 +250,18 @@ const FileMap = ({
                 ) : (
                   <>
                     <div className="list-disc flex">
-                      <Button
-                        variant="link"
-                        onClick={() => {
+                      <Link
+                        underline="hover"
+                        onPress={() => {
                           handleFileClick(item);
                         }}
-                        className="block truncate"
+                        className="block truncate cursor-pointer"
                       >
                         {item.name}
                         <span className="inline-flex items-center">
                           <MdOutlinePageview />
                         </span>
-                      </Button>
+                      </Link>
                     </div>
                   </>
                 )}
@@ -302,7 +283,7 @@ const FileMap = ({
 };
 
 // 组件
-export function Stview({ filedatas }: { filedatas: any }) {
+export function Stview({ filedatas }) {
   const [listtest, setListtest] = useState();
   useEffect(() => {
     const listac = async () => {
@@ -338,36 +319,8 @@ export function Stview({ filedatas }: { filedatas: any }) {
   );
 }
 
-// VNDB 图片数据接口 type
-interface Screenshot {
-  thumbnail: string;
-  url: string;
-  release: {
-    id: string;
-    title: string;
-    platforms: string[];
-    languages: { lang: string }[];
-  };
-}
-
-interface Result {
-  id: string;
-  screenshots: Screenshot[];
-}
-
-interface Data {
-  more: boolean;
-  results: Result[];
-}
-
-export default function Datalistview({
-  filedatas,
-  vid,
-}: {
-  filedatas: any;
-  vid: string;
-}) {
-  const [vndbImagesData, setVndbImagesData] = useState<any>([]);
+export default function Datalistview({ filedatas, vid }) {
+  const [vndbImagesData, setVndbImagesData] = useState([]);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [dltap, setDltap] = useState(false);
   const [imagemodal, setImagemodal] = useState({
@@ -404,8 +357,8 @@ export default function Datalistview({
       });
       const datas = await response.json();
       // 重新组织 VNDB 获取的图片数据
-      function groupByReleaseId(data: Data): Record<string, Screenshot[]> {
-        const grouped: Record<string, Screenshot[]> = {};
+      function groupByReleaseId(data) {
+        const grouped = {};
 
         data.results.forEach((result) => {
           result.screenshots.forEach((screenshot) => {
@@ -437,7 +390,7 @@ export default function Datalistview({
           <Tab key="download" title="下载">
             <Card>
               <CardBody>
-                {filedatas.map((item: any, index: any) => (
+                {filedatas.map((item, index) => (
                   <Stview key={index} filedatas={item} />
                 ))}
               </CardBody>
@@ -453,13 +406,12 @@ export default function Datalistview({
                         {Object.keys(vndbImagesData).map((rid) => {
                           const release = vndbImagesData[rid];
                           const firstItem = release[0]; // 获取当前 releaseId 下的第一项
-                          console.log(firstItem);
                           const { title, platforms, languages } =
                             firstItem.release;
                           return (
                             <div key={rid}>
                               <h2 className="flex items-center gap-1 justify-center">
-                                {languages.map((languages, index: any) => (
+                                {languages.map((languages, index) => (
                                   <Image
                                     isBlurred
                                     radius="none"
@@ -469,7 +421,7 @@ export default function Datalistview({
                                     src={`/lang/${languages.lang}.png`}
                                   ></Image>
                                 ))}
-                                {platforms.map((platform, index: any) => (
+                                {platforms.map((platform, index) => (
                                   <Tooltip
                                     content={`${pathColorMap2[platform]}`}
                                     key={index}
@@ -488,7 +440,7 @@ export default function Datalistview({
                               </h2>
                               <div className="flex flex-wrap gap-2 justify-center">
                                 {vndbImagesData[rid].map(
-                                  (screenshot: Screenshot, index: any) => (
+                                  (screenshot, index) => (
                                     <Card
                                       key={index}
                                       isPressable

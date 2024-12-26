@@ -2,9 +2,8 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Gamelsit } from "./gamelist";
 import { getHomeList } from "@/lib/actions/homelist";
-import { Button } from "@/components/ui/button";
 import { BiArrowToTop } from "react-icons/bi";
-import { Card, CardBody, Skeleton } from "@nextui-org/react";
+import { Button, Card, CardBody, Skeleton } from "@nextui-org/react";
 
 interface FileData {
   cloud_id: number;
@@ -126,8 +125,8 @@ export default function Gamelistdatasync({
 
       <div className="fixed bottom-5 right-4 flex flex-col gap-2">
         <Button
-          size="icon"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          isIconOnly
+          onPress={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
           <BiArrowToTop />
         </Button>

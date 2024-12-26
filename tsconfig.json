@@ -37,6 +37,14 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "components/ProgressBarProvider.jsx",
+    "app/[vnid]/(components)/Datalistview.jsx",
+    "app/[vnid]/(components)/platform.jsx"
+  ],
   "exclude": ["node_modules"]
 }

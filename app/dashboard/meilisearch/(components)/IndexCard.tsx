@@ -151,7 +151,7 @@ export default function IndexCard({ meiliindexviwss }: any) {
                 color="warning"
                 variant="faded"
                 isDisabled
-                onClick={jmliIndex}
+                onPress={jmliIndex}
               >
                 <RiRefreshLine />
               </Button>
@@ -193,7 +193,7 @@ export default function IndexCard({ meiliindexviwss }: any) {
                 isIconOnly
                 color="default"
                 variant="faded"
-                onClick={jmliIndex}
+                onPress={jmliIndex}
               >
                 <RiEditBoxLine />
               </Button>
@@ -201,12 +201,12 @@ export default function IndexCard({ meiliindexviwss }: any) {
                 isIconOnly
                 color="warning"
                 variant="faded"
-                onClick={jmliIndex}
+                onPress={jmliIndex}
               >
                 <RiRefreshLine />
               </Button>
               <div>
-                <Button onClick={dataupGet}>刷新页面状态</Button>
+                <Button onPress={dataupGet}>刷新页面状态</Button>
               </div>
             </CardContent>
           </Card>
@@ -246,10 +246,10 @@ export default function IndexCard({ meiliindexviwss }: any) {
                 </p>
               </ModalBody>
               <ModalFooter>
-                <Button color="danger" variant="light" onClick={onClose}>
+                <Button color="danger" variant="light" onPress={onClose}>
                   Close
                 </Button>
-                <Button color="primary" onClick={onClose}>
+                <Button color="primary" onPress={onClose}>
                   Action
                 </Button>
               </ModalFooter>

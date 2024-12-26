@@ -211,7 +211,7 @@ export default function DataTable({ rows }: { rows: any }) {
             color="primary"
             size="sm"
             variant="shadow"
-            onClick={newOpenForm}
+            onPress={newOpenForm}
           >
             Add New
           </Button>

@@ -19,12 +19,12 @@ export default function ItemLink({ pathdata }: any) {
       <Card className="flex flex-col">
         {pathdata.dashboard.map((item) => (
           <Button
+            as={Link}
+            href={item.path}
             startContent={icons[item.title]}
             className={`rounded`}
             key={item.path}
             variant={routerpath === item.path ? "flat" : "light"}
-            as={Link}
-            href={item.path}
           >
             {item.title}
           </Button>

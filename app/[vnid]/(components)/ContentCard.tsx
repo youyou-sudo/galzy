@@ -39,6 +39,7 @@ interface Tag {
     defaultspoil: number;
     gid: string;
     name: string;
+    name_zh: string;
   };
 }
 
