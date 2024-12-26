@@ -1,4 +1,4 @@
-const { nextui } = require("@nextui-org/theme");
+const { nextui } = require("@nextui-org/react");
 const tailwindcssAnimate = require("tailwindcss-animate");
 
 /** @type {import('tailwindcss').Config} */

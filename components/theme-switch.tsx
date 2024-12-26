@@ -41,14 +41,14 @@ export const ThemeSwitch: FC<ThemeSwitchProps> = () => {
           )}
         </Button>
       </DropdownTrigger>
-      <DropdownMenu aria-label="Static Actions">
-        <DropdownItem key="new" onClick={() => setTheme("system")}>
+      <DropdownMenu aria-label="Theme Actions">
+        <DropdownItem key="system" onPress={() => setTheme("system")}>
           跟随系统
         </DropdownItem>
-        <DropdownItem key="copy" onClick={() => setTheme("light")}>
+        <DropdownItem key="light" onPress={() => setTheme("light")}>
           浅色模式
         </DropdownItem>
-        <DropdownItem key="edit" onClick={() => setTheme("dark")}>
+        <DropdownItem key="dark" onPress={() => setTheme("dark")}>
           深色模式
         </DropdownItem>
       </DropdownMenu>
