@@ -1,3 +1,4 @@
+"use client";
 import { Image, Card, CardBody } from "@nextui-org/react";
 import Link from "next/link";
 import { env } from "next-runtime-env";

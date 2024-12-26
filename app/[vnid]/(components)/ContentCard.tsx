@@ -10,8 +10,8 @@ import {
   Divider,
   Radio,
   RadioGroup,
-  Skeleton,
   Switch,
+  Skeleton,
   Tooltip,
   Image,
 } from "@nextui-org/react";
@@ -203,6 +203,7 @@ export function ContentCard({ data, fullsereenfill }: ContentCardProps) {
               <Accordion isCompact>
                 <AccordionItem key="1" aria-label="TAG" title="TAG">
                   <div className="flex">
+                    {" "}
                     <Switch
                       defaultSelected
                       isSelected={isSelected}
@@ -212,7 +213,7 @@ export function ContentCard({ data, fullsereenfill }: ContentCardProps) {
                       startContent={<div>简</div>}
                       endContent={<div>全</div>}
                     />
-                    <Divider orientation="vertical" />
+                    <Divider className="ml-1" orientation="vertical" />
                     <RadioGroup
                       color="default"
                       orientation="horizontal"

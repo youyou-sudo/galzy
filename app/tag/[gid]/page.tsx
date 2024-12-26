@@ -1,4 +1,3 @@
-import React from "react";
 import type { Metadata } from "next";
 import { tagsvndbInfo } from "./(action)/Tagvndb";
 import TagsContentCard from "./(components)/TagsContentCard";
@@ -21,7 +20,7 @@ export default async function page({
   params: { gid: string };
 }) {
   const { gid } = await params;
-  const id = await gid;
+  const id = gid;
   const { pages } = await searchParams;
   const pagess = parseInt(pages) || 1;
   const data = await tagsvndbInfo({ id, pagess });
