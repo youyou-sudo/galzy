@@ -25,19 +25,6 @@ model duptimes {
   @@index([name], map: "duptimes_name_index")
 }
 
-model dataunion {
-  id         Int         @id @default(autoincrement())
-  vnid       String[]    @unique
-  bangumi_id String[]
-  ymgal_id   String[]
-  credible   Int
-  vndbdatas  vndbdatas[]
-
-  @@index([vnid], map: "vnid_index")
-  @@index([bangumi_id], map: "bangumi_id_index")
-  @@index([ymgal_id], map: "ymgal_id_index")
-}
-
 model meilisearchdatas {
   id                Int        @id @default(autoincrement())
   host              String?
@@ -80,7 +67,6 @@ model vndbdatas {
   titles       Json
   tags         tags_vndatas[]
   filesiddatas filesiddatas[]
-  dataunion    dataunion?     @relation(fields: [vnid], references: [vnid])
 }
 
 model tags {
@@ -110,7 +96,7 @@ model tags_vndatas {
   average_rating  Float?
   average_spoiler Float?
   lie             String?
-  cloud           duptimes   @relation(fields: [cloud_id], references: [id])
+  cloud           duptimes   @relation(fields: [cloud_id], references: [id], onDelete: Cascade)
   cloud_id        Int
   vndbdata        vndbdatas? @relation(fields: [vid], references: [vnid], onDelete: SetNull)
   tags            tags?      @relation(fields: [tag], references: [gid], onDelete: SetNull)

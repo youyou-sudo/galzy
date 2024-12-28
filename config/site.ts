@@ -51,9 +51,5 @@ export const siteConfig = {
       title: "meilisearch",
       path: "/dashboard/meilisearch",
     },
-    {
-      title: "Dataunion",
-      path: "/dashboard/dataunion",
-    },
   ],
 };
