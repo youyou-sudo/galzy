@@ -100,7 +100,7 @@ export default function AuthForm() {
                 <ErrorAlert error={error} />
                 <p className="text-center text-small">
                   没有账户？{" "}
-                  <Link size="sm" onClick={() => setSelected("sign-up")}>
+                  <Link size="sm" onPress={() => setSelected("sign-up")}>
                     注册
                   </Link>
                 </p>
@@ -119,7 +119,11 @@ export default function AuthForm() {
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
-                  await handleAuth(new FormData(e.currentTarget), "register");
+                  const log = await handleAuth(
+                    new FormData(e.currentTarget),
+                    "register"
+                  );
+                  console.log(log);
                 }}
                 className="space-y-4"
               >
@@ -145,7 +149,7 @@ export default function AuthForm() {
                 <ErrorAlert error={error} />
                 <p className="text-center text-small">
                   已有账户?{" "}
-                  <Link size="sm" onClick={() => setSelected("login")}>
+                  <Link size="sm" onPress={() => setSelected("login")}>
                     Login
                   </Link>
                 </p>

@@ -48,7 +48,7 @@ export const vndbmgethome = async (pages?: number, limit = 20) => {
     return JSON.parse(cachedData);
   }
   try {
-    const currentPage = parseInt(pages, 10) || 1;
+    const currentPage = pages || 1;
 
     const totalCount = await prisma.vndbdatas.count({
       where: {
