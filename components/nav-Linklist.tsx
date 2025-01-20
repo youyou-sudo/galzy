@@ -12,12 +12,13 @@ import { usePathname } from "next/navigation";
 import { FormDown } from "grommet-icons";
 
 import { siteConfig } from "@/config/site";
+import Link from "next/link";
 
 export const NavigationCandidates = () => {
   const currentPath = usePathname();
 
   const currentNavItem = siteConfig.navItems.find(
-    (item) => item.href === currentPath,
+    (item) => item.href === currentPath
   );
 
   return (
@@ -34,7 +35,7 @@ export const NavigationCandidates = () => {
       </DropdownTrigger>
       <DropdownMenu aria-label="Link Actions" items={siteConfig.navItems}>
         {(item) => (
-          <DropdownItem key={item.href} href={item.href}>
+          <DropdownItem as={Link} key={item.href} href={item.href}>
             {item.label}
           </DropdownItem>
         )}
