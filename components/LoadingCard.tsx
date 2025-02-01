@@ -1,5 +1,5 @@
 "use client";
-import { Image } from "@nextui-org/react";
+import { Image } from "@heroui/react";
 import React from "react";
 import * as motion from "motion/react-client";
 

@@ -2,7 +2,7 @@
 import React from "react";
 
 import { usePathname } from "next/navigation";
-import { Button, Link } from "@nextui-org/react";
+import { Button, Link } from "@heroui/react";
 import { Card } from "@/components/ui/card";
 import { TbLayoutDashboardFilled } from "react-icons/tb";
 import { SiMeilisearch } from "react-icons/si";

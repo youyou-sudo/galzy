@@ -1,5 +1,5 @@
 "use client";
-import { Link, Tooltip } from "@nextui-org/react";
+import { Link, Tooltip } from "@heroui/react";
 import React from "react";
 
 export default function Ttip({ gid }: { gid?: string }) {

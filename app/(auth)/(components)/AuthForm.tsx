@@ -8,7 +8,7 @@ import {
   Button,
   Card,
   CardBody,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { useSession } from "next-auth/react";
 import { signInAC, registerAC } from "../(action)/auth";
 import { useRouter, useSearchParams } from "next/navigation";

@@ -1,5 +1,5 @@
 "use client";
-import { Image, Card, CardBody } from "@nextui-org/react";
+import { Image, Card, CardBody } from "@heroui/react";
 import Link from "next/link";
 import { env } from "next-runtime-env";
 import * as motion from "motion/react-client";

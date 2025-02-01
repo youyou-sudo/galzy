@@ -7,7 +7,7 @@ import {
   DropdownMenu,
   DropdownItem,
   Chip,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { usePathname } from "next/navigation";
 import { FormDown } from "grommet-icons";
 

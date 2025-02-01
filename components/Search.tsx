@@ -1,6 +1,6 @@
 "use client";
 import { useSearchParams } from "next/navigation";
-import { Input } from "@nextui-org/react";
+import { Input } from "@heroui/react";
 import Form from "next/form";
 
 export default function Search() {

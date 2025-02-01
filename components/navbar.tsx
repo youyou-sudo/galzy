@@ -3,7 +3,7 @@ import {
   Navbar as NextUINavbar,
   NavbarContent,
   NavbarBrand,
-} from "@nextui-org/navbar";
+} from "@heroui/navbar";
 import Link from "next/link";
 
 // import { siteConfig } from "@/config/site";
@@ -14,7 +14,7 @@ import { Suspense } from "react";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { Avatar } from "@nextui-org/react";
+import { Avatar } from "@heroui/react";
 export const Navbar = () => {
   const { status, data: session } = useSession();
   return (

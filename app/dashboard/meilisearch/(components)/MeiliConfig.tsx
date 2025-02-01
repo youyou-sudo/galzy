@@ -13,7 +13,7 @@ import {
   Input,
   Button,
   Code,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import {
   meilidataupGet,
   meiliconfigGet,

@@ -18,7 +18,7 @@ import {
   SelectItem,
   Button,
   Chip,
-} from "@nextui-org/react";
+} from "@heroui/react";
 
 import {
   Table,

@@ -3,7 +3,7 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { Gamelsit } from "./gamelist";
 import { getHomeList } from "@/lib/actions/homelist";
 import { BiArrowToTop } from "react-icons/bi";
-import { Button, Card, CardBody, Skeleton } from "@nextui-org/react";
+import { Button, Card, CardBody, Skeleton } from "@heroui/react";
 
 interface FileData {
   cloud_id: number;

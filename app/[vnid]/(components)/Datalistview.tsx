@@ -18,7 +18,7 @@ import {
   Spinner,
   Tooltip,
   Button,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { Gamepad, PersonalComputer, Risk, Android } from "grommet-icons";
 import { useEffect, useState } from "react";
 import { alistListGet } from "../(action)/alistGet";

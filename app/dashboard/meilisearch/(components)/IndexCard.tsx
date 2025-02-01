@@ -25,7 +25,7 @@ import {
   Tooltip,
   useDisclosure,
   Button,
-} from "@nextui-org/react";
+} from "@heroui/react";
 
 interface MeilisearchResponse {
   status: number;

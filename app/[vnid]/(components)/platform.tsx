@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Avatar, Chip, Tooltip, Link } from "@nextui-org/react";
+import { Avatar, Chip, Tooltip, Link } from "@heroui/react";
 
 export default function Platform({ datas }) {
   const chopconfig = {

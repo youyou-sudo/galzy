@@ -8,10 +8,10 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: [
-      "@nextui-org/navbar",
-      "@nextui-org/react",
-      "@nextui-org/system",
-      "@nextui-org/theme",
+      "@heroui/navbar",
+      "@heroui/react",
+      "@heroui/system",
+      "@heroui/theme",
       "@radix-ui/react-icons",
       "@radix-ui/react-select",
       "@radix-ui/react-slot",

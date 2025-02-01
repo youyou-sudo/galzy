@@ -1,7 +1,7 @@
 "use client";
 
 import { type FC, useEffect, useState } from "react";
-import type { SwitchProps } from "@nextui-org/switch";
+import type { SwitchProps } from "@heroui/switch";
 import { useTheme } from "next-themes";
 import { TbSunHigh, TbMoonFilled, TbDeviceDesktopCog } from "react-icons/tb";
 
@@ -11,7 +11,7 @@ import {
   DropdownMenu,
   DropdownItem,
   Button,
-} from "@nextui-org/react";
+} from "@heroui/react";
 
 export interface ThemeSwitchProps {
   className?: string;
