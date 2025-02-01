@@ -65,6 +65,7 @@ model vndbdatas {
   olang        String
   releases     Json
   titles       Json
+  description  String
   tags         tags_vndatas[]
   filesiddatas filesiddatas[]
 }
@@ -104,7 +105,7 @@ model tags_vndatas {
 
 model users {
   id        Int     @id @default(autoincrement())
-  name      String  @unique
+  name      String
   email     String  @unique
   password  String
   twoFactor String?
