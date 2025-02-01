@@ -14,15 +14,17 @@ import {
   Skeleton,
   Tooltip,
   Image,
-} from "@nextui-org/react";
-import Platform from "./platform";
+  Link,
+} from "@heroui/react";
 import React, { useEffect, useState } from "react";
 import * as motion from "motion/react-client";
 import { RiFullscreenFill } from "react-icons/ri";
 
 import { vndbdatagsdata } from "../(action)/vndbGet";
-import Link from "next/link";
 import { env } from "next-runtime-env";
+import BBCode from "@bbob/react";
+import presetReact from "@bbob/preset-react";
+const plugins = [presetReact()];
 
 interface Title {
   lang: string;
@@ -49,6 +51,7 @@ interface VNData {
   titles: Title[];
   olang: string;
   alias: string[];
+  description: string | null;
 }
 
 interface ContentCardProps {
@@ -125,7 +128,6 @@ export function ContentCard({ data, fullsereenfill }: ContentCardProps) {
             }}
             color="primary"
             href={`/tag/${item.tags.gid}`}
-            prefetch={true}
           >
             {item.tags.name_zh || item.tags.name}
           </Link>
@@ -175,15 +177,33 @@ export function ContentCard({ data, fullsereenfill }: ContentCardProps) {
                   </div>
                 )}
               </Tooltip>
+
+              <div id="bbccode" className="line-clamp-[9]">
+                <BBCode plugins={plugins}>
+                  {data.description
+                    ? data.description
+                        .replace(/\\n\\n/g, "[br]")
+                        .replace(/\\n/g, "[br]")
+                    : ""}
+                </BBCode>
+              </div>
+              <Button
+                onPress={(e) => {
+                  document
+                    .getElementById("bbccode")
+                    ?.classList.remove("line-clamp-[9]");
+                  (e.target as HTMLElement).style.display = "none";
+                }}
+              >
+                更多信息
+              </Button>
             </div>
-            <Platform datas={data} />
+            {/* <Platform datas={data} /> */}
           </div>
           {fullsereenfill && (
             <Button
               as={Link}
               href={`/${data.vnid}`}
-              prefetch={true}
-              scroll={false}
               variant="light"
               isIconOnly
               className="flex mr-0 ml-auto"
