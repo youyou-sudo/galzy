@@ -1,0 +1,50 @@
+generator client {
+    provider = "prisma-client-js"
+    output   = "./DB2Client/alistClient"
+}
+
+datasource db2 {
+    provider = "postgresql"
+    url      = env("DB2_DATABASE_URL")
+}
+
+model galRcAlist_search_nodes {
+    parent String
+    name   String
+    is_dir Boolean
+    size   Int
+
+    @@unique([parent, name])
+    @@index([parent])
+    @@index([name])
+}
+
+model galRcAlist_setting_items {
+    key     String
+    value   String?
+    help    String?
+    type    String?
+    options String?
+    group   Int?
+    flag    Int?
+    index   Int?
+
+    @@unique([key])
+}
+
+model galRcAlist_meta {
+    id         Int     @id @default(autoincrement())
+    path       String
+    password   String
+    p_sub      Boolean
+    write      Boolean
+    w_sub      Boolean
+    hide       String
+    h_sub      Boolean
+    readme     String
+    r_sub      Boolean
+    header     String
+    header_sub Boolean
+
+    @@index([path])
+}

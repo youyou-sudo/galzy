@@ -1,24 +1,24 @@
 "use client";
 import React, { useState } from "react";
-import {
-  Tabs,
-  Tab,
-  Input,
-  Link,
-  Button,
-  Card,
-  CardBody,
-} from "@heroui/react";
 import { useSession } from "next-auth/react";
 import { signInAC, registerAC } from "../(action)/auth";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function AuthForm() {
-  const [selected, setSelected] = useState<React.Key>("login");
+  const [selected, setSelected] = useState("login");
   const [error, setError] = useState();
   const [isLoading, setIsLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState<boolean>(false);
+
+  const toggleVisibility = () => setIsVisible((prevState) => !prevState);
 
   const searchParams = useSearchParams();
   const url = searchParams.get("callbackUrl") || "/";
@@ -60,7 +60,7 @@ export default function AuthForm() {
     setIsLoading(false);
 
     if (response?.status === "success") {
-      setError(response);
+      setError(response as any);
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
       if (action === "login") {
@@ -70,101 +70,129 @@ export default function AuthForm() {
         setError(undefined);
       }
     } else {
-      setError(response);
+      setError(response as any);
     }
   };
 
   return (
     <div className="flex flex-col justify-center items-center">
       <Card className="max-md w-[340px]">
-        <CardBody className="overflow-hidden">
-          <Tabs
-            fullWidth
-            size="md"
-            aria-label="Tabs form"
-            selectedKey={selected}
-            onSelectionChange={setSelected}
-          >
-            <Tab key="login" title="登陆">
+        <CardContent className="overflow-hidden">
+          <Tabs defaultValue={selected} className="max-w-xs w-full mt-3">
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="login">登陆</TabsTrigger>
+              <TabsTrigger value="sign-up">注册</TabsTrigger>
+            </TabsList>
+            <TabsContent value="login">
               <form
                 action={(formData) => handleAuth(formData, "login")}
-                className="space-y-4"
+                className="space-y-2"
               >
-                <Input isRequired label="Email" name="email" />
-                <Input
-                  isRequired
-                  label="Password"
-                  name="password"
-                  type="password"
-                />
+                <div className="*:not-first:mt-2">
+                  <Label>Email</Label>
+                  <Input placeholder="Email" name="email" type="email" />
+                </div>
+                <div className="*:not-first:mt-2">
+                  <Label>Password</Label>
+                  <div className="relative">
+                    <Input
+                      className="pe-9"
+                      name="password"
+                      placeholder="Password"
+                      type={isVisible ? "text" : "password"}
+                    />
+                    <button
+                      className="text-muted-foreground/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-md transition-[color,box-shadow] outline-none focus:z-10 focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                      type="button"
+                      onClick={toggleVisibility}
+                      aria-label={isVisible ? "Hide password" : "Show password"}
+                      aria-pressed={isVisible}
+                      aria-controls="password"
+                    >
+                      {isVisible ? (
+                        <EyeOffIcon size={16} aria-hidden="true" />
+                      ) : (
+                        <EyeIcon size={16} aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
+                </div>
                 <ErrorAlert error={error} />
                 <p className="text-center text-small">
                   没有账户？{" "}
-                  <Link size="sm" onPress={() => setSelected("sign-up")}>
+                  <Button variant="link" onClick={() => setSelected("sign-up")}>
                     注册
-                  </Link>
+                  </Button>
                 </p>
                 <Button
-                  isLoading={isLoading}
-                  fullWidth
-                  color="primary"
+                  className="w-full"
+                  {...(isLoading && { disabled: true })}
                   type="submit"
                 >
-                  登陆
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="animate-spin" />
+                      登陆
+                    </>
+                  ) : (
+                    "登陆"
+                  )}
                 </Button>
               </form>
-            </Tab>
-
-            <Tab key="sign-up" title="注册">
+            </TabsContent>
+            <TabsContent value="sign-up">
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
-                  const log = await handleAuth(
+                  await handleAuth(
                     new FormData(e.currentTarget),
                     "register"
                   );
-                  console.log(log);
                 }}
-                className="space-y-4"
+                className="space-y-2"
               >
-                <Input
-                  isRequired
-                  name="name"
-                  label="Name"
-                  placeholder="Enter your name"
-                />
-                <Input
-                  isRequired
-                  label="Email"
-                  name="email"
-                  placeholder="Enter your email"
-                />
-                <Input
-                  isRequired
-                  label="Password"
-                  name="password"
-                  placeholder="Enter your password"
-                  type="password"
-                />
+                <div className="*:not-first:mt-2">
+                  <Label>Name</Label>
+                  <Input placeholder="Name" name="name" />
+                </div>
+                <div className="*:not-first:mt-2">
+                  <Label>Email</Label>
+                  <Input placeholder="Enter your email" name="email" />
+                </div>
+
+                <div className="*:not-first:mt-2">
+                  <Label>Password</Label>
+                  <Input
+                    placeholder="Enter your password"
+                    name="password"
+                    type="password"
+                  />
+                </div>
                 <ErrorAlert error={error} />
                 <p className="text-center text-small">
                   已有账户?{" "}
-                  <Link size="sm" onPress={() => setSelected("login")}>
+                  <Button variant="link" onClick={() => setSelected("login")}>
                     Login
-                  </Link>
+                  </Button>
                 </p>
                 <Button
-                  isLoading={isLoading}
+                  className="w-full"
+                  {...(isLoading && { disabled: true })}
                   type="submit"
-                  fullWidth
-                  color="primary"
                 >
-                  注册
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="animate-spin" />
+                      注册
+                    </>
+                  ) : (
+                    "注册"
+                  )}
                 </Button>
               </form>
-            </Tab>
+            </TabsContent>
           </Tabs>
-        </CardBody>
+        </CardContent>
       </Card>
     </div>
   );

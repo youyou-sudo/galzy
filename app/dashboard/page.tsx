@@ -1,20 +1,25 @@
-import React from "react";
-import { stringify, parse } from "flatted";
-import { Card } from "@/components/ui/card";
+import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from "@tanstack/react-query";
+import { coutAcQ, dataUpQ } from "./(action)/dataAc";
+import { DataDashboardPage } from "./(components)/dataDashboardPage";
 
-import { datadbup } from "@/lib/vndbdata";
-import DataTable from "./(components)/dataTable";
+export default async function Page() {
+  const queryClient = new QueryClient();
+  await queryClient.prefetchQuery({
+    queryKey: ["dashListData"],
+    queryFn: () => dataUpQ(),
+  });
+  await queryClient.prefetchQuery({
+    queryKey: ["dashListCountData"],
+    queryFn: () => coutAcQ(),
+  });
 
-export const dynamic = "force-dynamic";
-
-export default async function DashboardPage() {
-  const row = await datadbup();
-  const rows = parse(stringify(row));
   return (
-    <div>
-      <Card className="w-full">
-        <DataTable rows={rows} />
-      </Card>
-    </div>
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <DataDashboardPage />
+    </HydrationBoundary>
   );
 }

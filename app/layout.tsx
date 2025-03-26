@@ -2,32 +2,27 @@ import "@/styles/globals.css";
 import type { Metadata, Viewport } from "next";
 import clsx from "clsx";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
-import { Providers } from "./providers";
+import { Provider } from "jotai";
 
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
-import { Navbar } from "@/components/navbar";
+import Navbar from "@/components/navbar";
 import { Toaster } from "@/components/ui/toaster";
 import AuthProvider from "./(auth)/(components)/AuthProvider";
 import { PublicEnvScript } from "next-runtime-env";
-import BarProviders from "@/components/ProgressBarProvider";
+import BarProviders from "@/components/providers";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
-  openGraph: {
-    title: {
-      default: siteConfig.name,
-      template: `%s - ${siteConfig.name}`,
-    },
-    description: siteConfig.description,
-  },
-  title: {
-    default: siteConfig.name,
-    template: `%s - ${siteConfig.name}`,
-  },
+  title: siteConfig.name,
   description: siteConfig.description,
   keywords: siteConfig.keywords,
   icons: {
     icon: "/favicon.ico",
+  },
+  openGraph: {
+    title: siteConfig.name,
+    description: siteConfig.description,
   },
 };
 
@@ -50,25 +45,30 @@ export default async function RootLayout({
       </head>
       <body
         className={clsx(
-          "min-h-screen bg-background font-sans antialiased",
+          "min-h-screen bg-background font-sans antialiased bodybj",
           fontSans.variable
         )}
       >
         <AuthProvider>
-          <Providers
-            themeProps={{ attribute: "class", defaultTheme: "system" }}
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
           >
             <div className="relative flex flex-col h-screen">
               <Navbar />
-              <main className="container mx-auto max-w-7xl pt-3 px-6 flex-grow">
+              <main className="container mx-auto flex-grow">
                 <NuqsAdapter>
-                  <BarProviders>{children}</BarProviders>
+                  <BarProviders>
+                    <Provider>{children}</Provider>
+                  </BarProviders>
                 </NuqsAdapter>
               </main>
               <Toaster />
               <footer className="w-full flex items-center justify-center py-3"></footer>
             </div>
-          </Providers>
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

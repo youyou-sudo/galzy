@@ -1,5 +1,14 @@
 export type SiteConfig = typeof siteConfig;
 
+import {
+  Settings,
+  HelpCircle,
+  Bell,
+  FolderSearch,
+  LayoutTemplate,
+} from "lucide-react";
+import type { MenuItem } from "@/types/dataClass";
+
 export const siteConfig = {
   name: "VNDL",
   description:
@@ -36,20 +45,56 @@ export const siteConfig = {
     "汉化版 Visual Novel",
     "同人 Galgame",
   ],
-  navItems: [
-    {
-      label: "主页",
-      href: "/",
-    },
-  ],
-  dashboard: [
-    {
-      title: "Dashboard",
-      path: "/dashboard",
-    },
-    {
-      title: "meilisearch",
-      path: "/dashboard/meilisearch",
-    },
-  ],
 };
+
+// 主菜单数据
+export const mainMenuItems: MenuItem[] = [
+  {
+    id: "dashboard",
+    title: "仪表盘",
+    icon: LayoutTemplate,
+    path: "/dashboard",
+  },
+  {
+    id: "meilisearch",
+    title: "Meilisearch",
+    icon: FolderSearch,
+    path: "/dashboard/meilisearch",
+  },
+  // {
+  //   id: "documents",
+  //   title: "数据",
+  //   icon: Database,
+  //   path: "#",
+  //   children: [
+  //     {
+  //       id: "vndb",
+  //       title: "VNDB",
+  //       icon: DatabaseBackup,
+  //       path: "/dashboard/vndb",
+  //     },
+  //   ],
+  // },
+  {
+    id: "notifications",
+    title: "通知",
+    icon: Bell,
+    path: "/notifications",
+  },
+];
+
+// 设置菜单数据
+export const settingsMenuItems: MenuItem[] = [
+  {
+    id: "settings",
+    title: "网站设置",
+    icon: Settings,
+    path: "/settings",
+  },
+  {
+    id: "help",
+    title: "帮助",
+    icon: HelpCircle,
+    path: "/help",
+  },
+];

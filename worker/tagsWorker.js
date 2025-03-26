@@ -6,7 +6,7 @@ async function aHeavyTask() {
   const chunkSize = 1000;
 
   try {
-    const response = await fetch(ref.jsonorl, { cache: "no-store" });
+    const response = await fetch(ref.jsonurl, { cache: "no-store" });
     if (!response.ok) {
       throw new Error(`Failed to fetch update data: ${response.statusText}`);
     }
@@ -31,7 +31,6 @@ async function aHeavyTask() {
             delete item.id;
             allBulkOps.push({
               ...item,
-              cloud_id: ref.id,
               gid: gid,
             });
 

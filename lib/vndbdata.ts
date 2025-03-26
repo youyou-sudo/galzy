@@ -1,36 +1,25 @@
 import prisma from "@/lib/prisma";
-import redis from "@/lib/redis";
+import { getKv, setKv } from "@/lib/redis";
+import type { images, vndbdatas } from "@prisma/client";
 
-// 返回指定vndbid的数据
-export const vndbmget = async (ref: any) => {
-  const rekey = `vndbGetf:${ref.vnid}`;
-  const cachedData = await redis.get(rekey);
+export type VndbdImages = vndbdatas & { imagesData: images };
 
-  if (cachedData) {
+export const vndbmget = async ({ vnid }: { vnid: string }) => {
+  const rekey = `vndbGetf:${vnid}`;
+  const cachedData = await getKv(rekey);
+  if (cachedData !== null) {
     return JSON.parse(cachedData);
   }
   try {
     const datase = await prisma.vndbdatas.findUnique({
       where: {
-        vnid: ref.vnid,
+        vnid: vnid,
       },
       include: {
-        filesiddatas: true,
+        imagesData: true,
       },
     });
-    await redis.set(rekey, JSON.stringify(datase), "EX", 3600);
-    return datase;
-  } catch (error) {
-    return {
-      error: "数据库姐姐被掏空了 o(*////▽////*)q: " + error,
-      status: "error",
-    };
-  }
-};
-// 返回一共有 VNDB 条目总数
-export const vndbdatas = async () => {
-  try {
-    const datase = await prisma.vndbdatas.count();
+    await setKv(rekey, JSON.stringify(datase), 3600);
     return datase;
   } catch (error) {
     return {
@@ -40,210 +29,90 @@ export const vndbdatas = async () => {
   }
 };
 
-// Home 页面数据
-export const vndbmgethome = async (pages?: number, limit = 20) => {
-  const rekey = `vndbGetHome:page${pages},limit${limit}`;
-  const cachedData = await redis.get(rekey);
-  if (cachedData) {
-    return JSON.parse(cachedData);
-  }
+export const vndbCount = async () => {
   try {
-    const currentPage = pages || 1;
+    const rekey = `vndbCount:alist_vndb`;
+    const cachedData = await getKv(rekey);
 
+    if (cachedData !== null) {
+      return JSON.parse(cachedData);
+    }
     const totalCount = await prisma.vndbdatas.count({
-      where: {
-        filesiddatas: {
-          some: {},
-        },
-      },
+      where: { resourceCollection: true },
     });
+    const data = {
+      totalCount: totalCount,
+    };
+    await setKv(rekey, JSON.stringify(data), 86400);
+    return { data };
+  } catch {
+    return {
+      totalCount: 0,
+    };
+  }
+};
 
-    const totalPages = Math.ceil(totalCount / limit);
-
+export type VndbmgethomeType = {
+  data: VndbdImages[]; // 这里可以改成具体的数据类型
+  currentPage: number;
+  totalPages: number;
+  msessL?: string;
+  msess?: string;
+  status: string;
+  totalCount?: number;
+};
+// Home 页面数据
+export const vndbmgethome = async (
+  pages?: number,
+  limit = 20
+): Promise<VndbmgethomeType> => {
+  try {
+    const totalCountdata = await vndbCount();
+    const totalCount = totalCountdata.totalCount;
+    const currentPage = pages || 1;
+    const totalPages =
+      totalCount > 0 ? (((totalCount - 1) / limit) | 0) + 1 : 1;
     // 如果请求的页码超出总页数，返回空数据
     if (currentPage > totalPages) {
-      return { data: [] };
+      return {
+        data: [],
+        currentPage: 1,
+        totalPages: 1,
+        totalCount: 0,
+        msess: "数据库姐姐被掏空了 o(*////▽////*)q: 页面超出范围",
+        status: "error",
+      };
     }
 
-    // 使用聚合查询当前页的数据
-    const datase = await prisma.vndbdatas.findMany({
+    const vndbList = await prisma.vndbdatas.findMany({
       where: {
-        filesiddatas: {
-          some: {},
-        },
+        resourceCollection: true,
       },
       include: {
-        filesiddatas: true,
+        imagesData: true,
       },
       skip: (currentPage - 1) * limit,
       take: limit,
+      orderBy: {
+        id: "desc",
+      },
     });
 
     const redatas = {
-      data: datase,
+      data: vndbList,
       currentPage,
       totalPages,
-      totalCount,
+      msessL: "请求成功",
+      status: "200",
     };
-    await redis.set(rekey, JSON.stringify(redatas), "EX", 3600);
-    return redatas;
+    return { ...redatas, totalCount };
   } catch (error) {
     return {
       data: [],
       currentPage: 1,
       totalPages: 1,
       totalCount: 0,
-      error: "数据库姐姐被掏空了 o(*////▽////*)q: " + error,
-      status: "error",
-    };
-  }
-};
-
-// 搜索 filedata 数据库对应 vndbid 的数据
-export const vndbidExists = async (ref: any) => {
-  try {
-    if (ref) {
-      const result = await prisma.vndbdatas.findUnique({
-        where: {
-          vnid: ref,
-        },
-        include: {
-          filesiddatas: true,
-        },
-      });
-
-      return result; // 返回查询结果
-    } else {
-      return null; // 如果没有传入 vndbid，返回 null
-    }
-  } catch (error) {
-    return {
-      mmsess: "数据库姐姐被掏空了 o(*////▽////*)q: " + error,
-      status: "400",
-    };
-  }
-};
-
-// 数据状态
-export const datadbup = async () => {
-  try {
-    const duptimes = await prisma.duptimes.findMany({
-      orderBy: {
-        id: "asc",
-      },
-    });
-
-    // 针对每个 `duptime` 单独查询所需的计数
-    const counts = await Promise.all(
-      duptimes.map(async (duptime) => {
-        const [filessCount, vndbCount, tagsCount, tagsVndatasCount] =
-          await Promise.all([
-            prisma.filesiddatas.count(),
-            prisma.vndbdatas.count(),
-            prisma.tags.count(),
-            prisma.tags_vndatas.count(),
-          ]);
-        return {
-          ...duptime,
-          counts: {
-            filessCount,
-            vndbCount,
-            tagsCount,
-            tagsVndatasCount,
-          },
-        };
-      })
-    );
-    return counts;
-  } catch (error) {
-    return {
-      mmsess: "数据库姐姐被掏空了 o(*////▽////*)q: " + error,
-      status: "400",
-    };
-  }
-};
-
-// 编辑数据条目
-export const editupdata = async (ref: any) => {
-  try {
-    if (ref.type === "vndb" && (!ref.id || ref.id.trim() === "")) {
-      const tfvndb = await prisma.duptimes.findFirst({
-        where: { type: ref.type },
-      });
-      if (tfvndb) {
-        return {
-          msess: "vndb 只可存在一个，请查看条目表",
-          status: "400",
-        };
-      } else {
-        if (ref.id) {
-          await prisma.duptimes.update({
-            where: { id: ref.id },
-            data: {
-              name: ref.name,
-              jsonorl: ref.jsonorl,
-              timeVersion: ref.timeVersion,
-              type: ref.type,
-            },
-          });
-          return {
-            msess: "数据更新成功",
-            status: "200",
-          };
-        } else {
-          await prisma.duptimes.create({
-            data: {
-              name: ref.name,
-              jsonorl: ref.jsonorl,
-              timeVersion: ref.timeVersion,
-              type: ref.type,
-            },
-          });
-          return {
-            msess: "新数据创建成功",
-            status: "200",
-          };
-        }
-      }
-    }
-    if (ref.id) {
-      await prisma.duptimes.update({
-        where: { id: ref.id },
-        data: {
-          name: ref.name,
-          jsonorl: ref.jsonorl,
-          timeVersion: ref.timeVersion,
-          type: ref.type,
-        },
-      });
-      return {
-        msess: "数据更新成功",
-        status: "200",
-      };
-    } else {
-      try {
-        await prisma.duptimes.create({
-          data: {
-            name: ref.name,
-            jsonorl: ref.jsonorl,
-            timeVersion: ref.timeVersion,
-            type: ref.type,
-          },
-        });
-        return {
-          msess: "新数据创建成功",
-          status: "200",
-        };
-      } catch (error) {
-        return {
-          msess: "创建失败，杂鱼～杂鱼～" + error,
-          status: "error",
-        };
-      }
-    }
-  } catch (error) {
-    return {
-      msess: "操作失败，杂鱼～杂鱼～" + error,
+      msess: "数据库姐姐被掏空了 o(*////▽////*)q: " + error,
       status: "error",
     };
   }
@@ -278,9 +147,7 @@ export const deleteEntryById = async (id: string) => {
 export const getSitemapData = async () => {
   const datasw = await prisma.vndbdatas.findMany({
     where: {
-      filesiddatas: {
-        some: {},
-      },
+      resourceCollection: true,
     },
   });
   return datasw;

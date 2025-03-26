@@ -1,33 +1,32 @@
 "use client";
-
-import {
-  Tabs,
-  Tab,
-  Card,
-  CardBody,
-  Link,
-  Divider,
-  Image,
-  Skeleton,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
-  Spinner,
-  Tooltip,
-  Button,
-} from "@heroui/react";
 import { Gamepad, PersonalComputer, Risk, Android } from "grommet-icons";
-import { useEffect, useState } from "react";
-import { alistListGet } from "../(action)/alistGet";
+import { useState } from "react";
+import { Gallery, Item } from "react-photoswipe-gallery";
 import * as motion from "motion/react-client";
-import { MdOutlinePageview } from "react-icons/md";
+import Image from "next/image";
+import "photoswipe/dist/photoswipe.css";
+import { Badge } from "@/components/ui/badge";
+import SpinnerCircle2 from "@/components/spinner";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ImageWithSkeleton } from "@/components/image-with-skeleton";
+import type { duptimes } from "@prisma/client";
+import { useQuery } from "@tanstack/react-query";
+import { FileDownloadDialog } from "./file-download-dialog";
+import type { FormattedNode } from "../(action)/alistFIleGet";
+import type { ScreenshotData } from "@/types/dataClass";
+import { ArrowDownToLine } from "lucide-react";
 
 // Path color map to render corresponding icons and labels
-const pathColorMap = {
+const pathColorMap: Record<string, React.ReactNode> = {
   PC: (
     <>
       <PersonalComputer />
@@ -43,8 +42,8 @@ const pathColorMap = {
   TY: (
     <>
       <Image
-        radius="none"
         src="/tyranor.webp"
+        height={25}
         width={25}
         alt="tyranor"
         loading="lazy"
@@ -55,8 +54,8 @@ const pathColorMap = {
   KR: (
     <>
       <Image
-        radius="none"
         src="/Kkirikiri.webp"
+        height={25}
         width={25}
         alt="Kkirikiri"
         loading="lazy"
@@ -79,8 +78,8 @@ const pathColorMap = {
   ONS: (
     <>
       <Image
-        radius="none"
         src="/ONScripter.webp"
+        height={25}
         width={25}
         alt="ONScripter"
         loading="lazy"
@@ -90,8 +89,8 @@ const pathColorMap = {
   ),
 };
 
-const pathColorMap2 = {
-  unk: false,
+const pathColorMap2: Record<string, string> = {
+  unk: "",
   win: "Windows",
   lin: "Linux",
   mac: "Mac OS",
@@ -138,383 +137,330 @@ const pathColorMap2 = {
   xbo: "Xbox One",
   xxs: "Xbox X/S",
   mob: "mobile",
-  oth: false,
+  oth: "",
 };
 
-function Modalfun({ isOpen, onOpenChange, data, dlink, gfpath }) {
-  if (!data) return null;
-
-  // Size 转换
-  function formatBytes(bytes, decimals = 2) {
-    if (bytes === 0) return "0 字节";
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ["字节", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
-
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
-  }
-
-  return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange} placement="center">
-      <ModalContent>
-        <>
-          <ModalHeader className="flex flex-col gap-1">文件详情</ModalHeader>
-          <ModalBody>
-            <div className="flex flex-col gap-2">
-              <p className="text-center text-lg">{data.name}</p>
-              <p className="text-center">{formatBytes(Number(data.size))}</p>
-            </div>
-          </ModalBody>
-          <ModalFooter className="flex justify-center gap-4">
-            <Button
-              onPress={() => onOpenChange(false)}
-              variant="light"
-              color="danger"
-            >
-              关闭
-            </Button>
-            <Button
-              as={Link}
-              target="_blank"
-              href={`${dlink}/${gfpath}/${data.pathname}?sign=${data.sign}`}
-              color="primary"
-              variant="solid"
-            >
-              下载
-            </Button>
-          </ModalFooter>
-        </>
-      </ModalContent>
-    </Modal>
-  );
-}
-
 // 文件列递归组件
-const FileMap = ({ filelist, level = 0, pathtmp, dlink, gfpath }) => {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+interface FileMapProps {
+  filelist?: FormattedNode[];
+  level?: number;
+  pathtmp?: string;
+  dlink: string;
+  gfpath?: string;
+}
+const FileMap = ({ filelist, level = 0, pathtmp, dlink }: FileMapProps) => {
+  const [selectedFile, setSelectedFile] = useState<
+    FormattedNode[] | FormattedNode | undefined
+  >(undefined);
+  const [onOpen, onOpenChange] = useState(false);
 
   if (!filelist || filelist.length === 0) return null;
 
-  const handleFileClick = (file) => {
+  // 跳过 [vnid-xxx] 层级
+  if (
+    level === 0 &&
+    filelist.length === 1 &&
+    filelist[0].is_dir &&
+    !pathColorMap[filelist[0].name]
+  ) {
+    return (
+      <FileMap
+        filelist={filelist[0].children}
+        level={level}
+        pathtmp={pathtmp}
+        dlink={dlink}
+      />
+    );
+  }
+
+  const handleFileClick = (
+    file: FormattedNode[] | FormattedNode | undefined
+  ) => {
     setSelectedFile(file);
-    onOpen();
+    onOpenChange(true);
   };
 
   return (
-    <>
-      <motion.div
-        className="flex flex-col"
-        initial={{ opacity: 0, y: -5 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <ul style={{ marginLeft: `${level > 0 ? 25 : 0}px` }}>
-          {filelist.map((item, index) => (
-            <motion.div
-              key={index}
-              className="flex flex-col"
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                delay: index * 0.02,
-                duration: 0.1,
-              }}
-            >
-              <li>
-                {item.is_dir === true ? (
-                  <>
-                    {pathColorMap[item.name] ? (
-                      <>
-                        <div className="flex text-2xl font-extrabold gap-1 items-center">
-                          {pathColorMap[item.name]}
-                        </div>
-                        <Separator className="my-2" />
-                      </>
-                    ) : (
-                      <>
-                        <p>{item.name}</p>
-                        <Divider />
-                      </>
-                    )}
-                    <FileMap
-                      filelist={item.filelist}
-                      level={level + 1}
-                      pathtmp={pathtmp || "" + "/" + item.name}
-                      dlink={dlink}
-                      gfpath={gfpath}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <div className="list-disc flex">
-                      <Link
-                        underline="hover"
-                        onPress={() => {
-                          handleFileClick(item);
-                        }}
-                        className="block truncate cursor-pointer"
-                      >
-                        {item.name}
-                        <span className="inline-flex items-center">
-                          <MdOutlinePageview />
-                        </span>
-                      </Link>
-                    </div>
-                  </>
-                )}
-              </li>
-            </motion.div>
-          ))}
-        </ul>
-      </motion.div>
+    <div className="flex flex-col">
+      <ul style={{ marginLeft: `${level > 0 ? 25 : 0}px` }}>
+        {filelist.map((item, index) => (
+          <motion.div
+            key={index}
+            className="flex flex-col"
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              delay: index * 0.02,
+              duration: 0.1,
+            }}
+          >
+            <li>
+              {item.compressedFiles === true ? (
+                <>
+                  <div className="list-disc flex">
+                    <Button
+                      variant="link"
+                      onClick={() => {
+                        handleFileClick(item.children);
+                      }}
+                      className="block truncate cursor-pointer h-6 p-0 underline hover:text-blue-800"
+                    >
+                      <Badge variant="secondary" className="mr-1">
+                        分卷
+                      </Badge>
+                      {item.name}
+                      <span className="inline-flex items-center align-middle">
+                        <ArrowDownToLine className="h-4 w-4" />
+                      </span>
+                    </Button>
+                  </div>
+                </>
+              ) : item.is_dir ? (
+                <>
+                  {pathColorMap[item.name] ? (
+                    <>
+                      <div className="flex text-2xl font-extrabold gap-1 items-center">
+                        {pathColorMap[item.name]}
+                      </div>
+                      <Separator className="mt-0 mb-1" />
+                    </>
+                  ) : (
+                    <>
+                      <p>{item.name}</p>
+                      <Separator />
+                    </>
+                  )}
+                  <FileMap
+                    filelist={item.children}
+                    level={level + 1}
+                    pathtmp={pathtmp || "" + "/" + item.name}
+                    dlink={dlink}
+                  />
+                </>
+              ) : (
+                <>
+                  <div className="list-disc flex">
+                    <Button
+                      variant="link"
+                      onClick={() => {
+                        handleFileClick(item);
+                      }}
+                      className="block truncate cursor-pointer h-6 p-0 underline hover:text-blue-800"
+                    >
+                      {item.name}
+                      <span className="inline-flex items-center align-middle">
+                        <ArrowDownToLine className="h-4 w-4" />
+                      </span>
+                    </Button>
+                  </div>
+                </>
+              )}
+            </li>
+          </motion.div>
+        ))}
+      </ul>
 
-      <Modalfun
-        isOpen={isOpen}
+      <FileDownloadDialog
+        onOpen={onOpen}
         onOpenChange={onOpenChange}
         data={selectedFile}
         dlink={dlink}
-        gfpath={gfpath}
       />
-    </>
+    </div>
   );
 };
 
 // 组件
-export function Stview({ filedatas }) {
-  const [listtest, setListtest] = useState();
-  useEffect(() => {
-    const listac = async () => {
-      if (filedatas) {
-        const listtest = await alistListGet(filedatas);
-        setListtest(listtest);
-      }
-    };
-    listac();
-  }, [filedatas]);
+export function Stview({
+  filedatas,
+  dlink,
+}: {
+  filedatas: any;
+  dlink: string;
+}) {
   return (
-    <>
-      <motion.div
-        className="flex flex-col"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        {listtest ? (
-          <FileMap
-            filelist={listtest.data}
-            gfpath={filedatas.path}
-            dlink={listtest.dlink}
-          />
-        ) : (
-          <div className="w-full flex flex-col gap-2 mt-3">
-            <Skeleton className="h-7 w-1/5 rounded-lg" />
-            <Skeleton className="h-6 w-3/5 rounded-lg" />
-          </div>
-        )}
-      </motion.div>
-    </>
+    <div className="flex flex-col mt-3">
+      <div className="w-full flex flex-col gap-2 mt-3">
+        <FileMap
+          filelist={filedatas.children}
+          gfpath={filedatas.path}
+          dlink={dlink}
+        />
+      </div>
+    </div>
   );
 }
 
-export default function Datalistview({ filedatas, vid }) {
-  const [vndbImagesData, setVndbImagesData] = useState([]);
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const [dltap, setDltap] = useState(false);
-  const [imagemodal, setImagemodal] = useState({
-    turl: "",
-    url: "",
-    urlLoaded: false,
+export default function Datalistview({
+  filedatas,
+  vid,
+  dlink,
+}: {
+  filedatas: FormattedNode[] | undefined;
+  vid: string;
+  dlink: duptimes;
+}) {
+  const fetcher = async ([url, vid]: [string, string]) => {
+    const raw = JSON.stringify({
+      filters: ["id", "=", `${vid}`],
+      fields:
+        "id,screenshots.release.title,screenshots.release.id,screenshots.url,screenshots.dims,screenshots.thumbnail_dims,screenshots.thumbnail,screenshots.release.languages.lang,screenshots.release.platforms",
+    });
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Host: "api.vndb.org",
+      },
+      body: raw,
+      next: {
+        revalidate: 21600,
+      },
+    });
+
+    const datas = await response.json();
+
+    // Group the VNDB image data by release ID
+    const grouped: ScreenshotData = {};
+    datas.results.forEach((result: any) => {
+      result.screenshots.forEach((screenshot: any) => {
+        const releaseId = screenshot.release.id;
+        if (!grouped[releaseId]) {
+          grouped[releaseId] = [];
+        }
+        grouped[releaseId].push(screenshot);
+      });
+    });
+
+    return grouped;
+  };
+
+  const { data: vndbImagesData } = useQuery<ScreenshotData>({
+    queryKey: ["vnImages", vid],
+    queryFn: () => fetcher(["https://api.vndb.org/kana/vn", vid]),
+    staleTime: 1000 * 60 * 60,
   });
-  useEffect(() => {
-    if (isOpen === false) {
-      setImagemodal({
-        turl: "",
-        url: "",
-        urlLoaded: false,
-      });
-    }
-  }, [isOpen]);
-  useEffect(() => {
-    (async () => {
-      const raw = JSON.stringify({
-        filters: ["id", "=", `${vid}`],
-        fields:
-          "id,screenshots.release.title,screenshots.release.id,screenshots.url,screenshots.thumbnail,screenshots.release.languages.lang,screenshots.release.platforms",
-      });
-      const response = await fetch(`https://api.vndb.org/kana/vn`, {
-        method: `POST`,
-        headers: {
-          "Content-Type": "application/json",
-          Host: "api.vndb.org",
-        },
-        body: raw,
-        next: {
-          revalidate: 21600,
-        },
-      });
-      const datas = await response.json();
-      // 重新组织 VNDB 获取的图片数据
-      function groupByReleaseId(data) {
-        const grouped = {};
+  const dltap = !!vndbImagesData;
 
-        data.results.forEach((result) => {
-          result.screenshots.forEach((screenshot) => {
-            const releaseId = screenshot.release.id;
-
-            if (!grouped[releaseId]) {
-              grouped[releaseId] = [];
-            }
-
-            grouped[releaseId].push(screenshot);
-          });
-        });
-
-        return grouped;
-      }
-      const groupedData = groupByReleaseId(datas);
-      setVndbImagesData(groupedData);
-      setDltap(true);
-    })();
-  }, [vid]);
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ damping: 1 }}
-      >
-        <Tabs aria-label="Options" className="mt-3" variant="light">
-          <Tab key="download" title="下载">
-            <Card>
-              <CardBody>
-                {filedatas.map((item, index) => (
-                  <Stview key={index} filedatas={item} />
-                ))}
-              </CardBody>
-            </Card>
-          </Tab>
-          <>
-            <Tab key="phtot" title="图片">
-              <Card>
-                <CardBody>
-                  <div>
-                    {dltap ? (
-                      <>
-                        {Object.keys(vndbImagesData).map((rid) => {
-                          const release = vndbImagesData[rid];
-                          const firstItem = release[0]; // 获取当前 releaseId 下的第一项
-                          const { title, platforms, languages } =
-                            firstItem.release;
-                          return (
-                            <div key={rid}>
-                              <h2 className="flex items-center gap-1 justify-center">
-                                {languages.map((languages, index) => (
-                                  <Image
-                                    isBlurred
-                                    radius="none"
-                                    key={index}
-                                    width={20}
-                                    alt={languages}
-                                    src={`/lang/${languages.lang}.png`}
-                                  ></Image>
-                                ))}
-                                {platforms.map((platform, index) => (
-                                  <Tooltip
-                                    content={`${pathColorMap2[platform]}`}
-                                    key={index}
-                                  >
+      <Tabs className="mt-3" defaultValue="download">
+        <TabsList className="w-full p-0 bg-background justify-start border-b rounded-none">
+          <TabsTrigger
+            className="rounded-none bg-background h-full data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary"
+            value="download"
+          >
+            下载
+          </TabsTrigger>
+          <TabsTrigger
+            className="rounded-none bg-background h-full data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary"
+            value="phtot"
+          >
+            图片
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="download">
+          <Card>
+            <CardContent>
+              {filedatas ? (
+                filedatas.map((item, index) => (
+                  <Stview
+                    key={index}
+                    dlink={dlink.timeVersion}
+                    filedatas={item}
+                  />
+                ))
+              ) : (
+                <>文件找不到啦～</>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="phtot">
+          <Card>
+            <CardContent>
+              <div className="mt-3">
+                {dltap ? (
+                  <>
+                    {Object.keys(vndbImagesData).map((rid) => {
+                      const release = vndbImagesData[rid];
+                      const firstItem = release[0]; // 获取当前 releaseId 下的第一项
+                      const { title, platforms, languages } = firstItem.release;
+                      return (
+                        <div key={rid}>
+                          <h2 className="flex items-center gap-1 justify-center">
+                            {languages.map((languages, index) => (
+                              <Image
+                                unoptimized
+                                key={index}
+                                height={20}
+                                width={20}
+                                alt={languages.lang}
+                                src={`/lang/${languages.lang}.png`}
+                              ></Image>
+                            ))}
+                            {platforms.map((platform, index) => (
+                              <TooltipProvider key={index}>
+                                <Tooltip>
+                                  <TooltipTrigger>
                                     <Image
-                                      isBlurred
-                                      radius="none"
+                                      unoptimized
                                       key={index}
+                                      height={20}
                                       width={20}
                                       alt={pathColorMap2[platform]}
                                       src={`/plat/${platform}.svg`}
-                                    ></Image>
-                                  </Tooltip>
-                                ))}
-                                {title}
-                              </h2>
-                              <div className="flex flex-wrap gap-2 justify-center">
-                                {vndbImagesData[rid].map(
-                                  (screenshot, index) => (
-                                    <Card
-                                      key={index}
-                                      isPressable
-                                      shadow="sm"
-                                      className="m-2 inline-flex"
-                                      onPress={() => {
-                                        setImagemodal({
-                                          turl: screenshot.thumbnail,
-                                          url: screenshot.url,
-                                          urlLoaded: false,
-                                        });
-                                        onOpen();
-                                      }}
-                                    >
-                                      <CardBody className="p-0 inline-block">
-                                        <Image
-                                          alt="screenshot"
-                                          className="w-full h-auto"
-                                          width={200}
-                                          src={screenshot.thumbnail}
-                                        />
-                                      </CardBody>
-                                    </Card>
-                                  )
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </>
-                    ) : (
-                      <Spinner size="sm" color="default" />
-                    )}
-                  </div>
-                </CardBody>
-              </Card>
-            </Tab>
-          </>
-        </Tabs>
-      </motion.div>
-      <Modal
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        size="3xl"
-        placement="center"
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalBody
-                className="flex flex-col p-0"
-                onClick={() => onClose()}
-              >
-                <img
-                  src={imagemodal.url}
-                  alt="高清图片浏览中，如要关闭请点击空白处"
-                  className="w-full h-auto"
-                  style={{ display: imagemodal.urlLoaded ? "block" : "none" }}
-                  onLoad={() =>
-                    setImagemodal((prev) => ({ ...prev, urlLoaded: true }))
-                  }
-                />
-                {!imagemodal.urlLoaded && (
-                  <img
-                    src={imagemodal.turl}
-                    alt="加载中"
-                    className="w-full h-auto blur-sm"
-                  />
+                                    />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{pathColorMap2[platform]}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ))}
+                            {title}
+                          </h2>
+                          <div className="flex flex-wrap gap-2 justify-center">
+                            <Gallery>
+                              {vndbImagesData[rid].map((screenshot, index) => (
+                                <Item
+                                  original={screenshot.url}
+                                  thumbnail={screenshot.thumbnail}
+                                  width={screenshot.dims[0]}
+                                  height={screenshot.dims[1]}
+                                  sourceId={index}
+                                  key={index}
+                                >
+                                  {({ ref, open }) => (
+                                    <div onClick={open}>
+                                      <ImageWithSkeleton
+                                        unoptimized
+                                        src={screenshot.thumbnail}
+                                        alt="thumbnail_dims"
+                                        width={screenshot.thumbnail_dims[0]}
+                                        height={screenshot.thumbnail_dims[1]}
+                                        className="optional-additional-classes"
+                                        ref={ref}
+                                      />
+                                    </div>
+                                  )}
+                                </Item>
+                              ))}
+                            </Gallery>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <SpinnerCircle2 />
                 )}
-              </ModalBody>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </>
   );
 }

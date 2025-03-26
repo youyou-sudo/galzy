@@ -2,59 +2,70 @@ const { parentPort, workerData } = require("worker_threads");
 const { ref } = workerData;
 
 async function aHeavyTask() {
-  const allBulkOps = [];
-  const chunkSize = 1000;
+  const chunkSize = 500; // 降低单次处理量
+  let allBulkOps = []; // 使用 let 便于重置时释放内存
+  const decoder = new TextDecoder("utf-8");
 
   try {
-    const response = await fetch(ref.jsonorl, { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch update data: ${response.statusText}`);
-    }
+    const response = await fetch(ref.jsonurl, { cache: "no-store" });
+    if (!response.ok)
+      throw new Error(`Failed to fetch: ${response.statusText}`);
 
     const reader = response.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-    let buffer = "";
+    let buffer = new Uint8Array(0); // 二进制缓冲区
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
-      buffer += decoder.decode(value || new Uint8Array(), { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop(); // 保存未处理的最后一行
+      // 合并缓冲区并查找换行符
+      buffer = mergeBuffers(buffer, value);
+      let lineEnd;
 
-      for (const line of lines) {
-        if (line) {
-          try {
-            const item = JSON.parse(line);
-            allBulkOps.push({
-              ...item,
-              cloud_id: ref.id,
-            });
+      while ((lineEnd = buffer.indexOf(10)) >= 0) {
+        // 10 = '\n'
+        // 提取单行数据并解析
+        const line = decoder.decode(buffer.subarray(0, lineEnd));
+        buffer = buffer.subarray(lineEnd + 1);
 
-            // 一旦积累达到 chunkSize，发送并清空数组
-            if (allBulkOps.length >= chunkSize) {
-              parentPort.postMessage(allBulkOps);
-              allBulkOps.length = 0; // 清空数组
-            }
-          } catch (error) {
-            console.error("JSON parsing error:", error, line);
+        try {
+          allBulkOps.push({
+            ...JSON.parse(line),
+          });
+
+          // 分块发送并释放内存
+          if (allBulkOps.length >= chunkSize) {
+            const chunk = allBulkOps;
+            allBulkOps = [];
+            parentPort.postMessage(chunk);
+            await yieldEventLoop(); // 事件循环让步
           }
+        } catch (error) {
+          console.error("Parse error:", error.message);
         }
       }
     }
 
-    // 发送剩余的操作
-    if (allBulkOps.length > 0) {
-      parentPort.postMessage(allBulkOps);
-    }
+    // 发送剩余数据
+    if (allBulkOps.length > 0) parentPort.postMessage(allBulkOps);
   } catch (error) {
-    parentPort.postMessage({
-      error: `Error during heavy task: ${error.message}`,
-    });
+    parentPort.postMessage({ error: error.message });
   }
 }
 
+// 合并缓冲区避免内存碎片
+function mergeBuffers(a, b) {
+  const merged = new Uint8Array(a.length + (b?.length || 0));
+  merged.set(a);
+  if (b) merged.set(b, a.length);
+  return merged;
+}
+
+// 每批次处理让出事件循环
+function yieldEventLoop() {
+  return new Promise((resolve) => setImmediate(resolve));
+}
+
 aHeavyTask()
-  .then(() => console.log("Task completed"))
-  .catch((error) => console.error("Task failed:", error.message));
+  .then(() => parentPort.postMessage("done"))
+  .catch((e) => parentPort.postMessage({ error: e.message }));

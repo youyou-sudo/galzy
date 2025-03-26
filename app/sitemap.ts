@@ -1,12 +1,13 @@
 import { getSitemapData } from "@/lib/vndbdata";
+import type { vndbdatas } from "@prisma/client";
 import type { MetadataRoute } from "next";
 import { env } from "next-runtime-env";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = env("NEXTAUTH_URL");
   const datasw = await getSitemapData();
-  const sitemaps = datasw.map((item: any) => {
-    const lastupdate = item.releases?.map(
+  const sitemaps = datasw.map((item: vndbdatas) => {
+    const lastupdate = item.releases.map(
       (release: { released: any }) => release.released
     );
     let latestDate;

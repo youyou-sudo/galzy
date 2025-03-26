@@ -1,18 +1,20 @@
 "use server";
 import prisma from "@/lib/prisma";
-import redis from "@/lib/redis";
+import { getKv, setKv } from "@/lib/redis";
 
 // 返回指定 vndbid tag 的数据
-export const vndbdatagsdata = async (ref: any) => {
-  const rekey = `vndbdatagsdata:${ref.vnid}`;
-  const cachedData = await redis.get(rekey);
+export const vndbdatagsdata = async (vnid: string) => {
+  const rekey = `vnidTagData:${vnid}`;
+  const cachedData = await getKv(rekey);
   if (cachedData) {
     return JSON.parse(cachedData);
   }
+
   try {
-    const datase = await prisma.vndbdatas.findUnique({
+    // 只查询必要字段，并保证字段选择最小化
+    const data = await prisma.vndbdatas.findUnique({
       where: {
-        vnid: ref.vnid,
+        vnid: vnid,
       },
       select: {
         tags: {
@@ -36,9 +38,8 @@ export const vndbdatagsdata = async (ref: any) => {
         },
       },
     });
-
-    await redis.set(rekey, JSON.stringify(datase), "EX", 3600);
-    return datase;
+    setTimeout(() => setKv(rekey, JSON.stringify(data), 3600), 0);
+    return data;
   } catch (error) {
     return {
       error: "数据库姐姐被掏空了 o(*////▽////*)q: " + error,

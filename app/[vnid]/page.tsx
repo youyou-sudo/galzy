@@ -1,71 +1,134 @@
 import React from "react";
 import type { Metadata } from "next";
-import { stringify, parse } from "flatted";
-import { vndbmget } from "@/lib/vndbdata";
+import { vndbmget, type VndbdImages } from "@/lib/vndbdata";
 import { ContentCard } from "./(components)/ContentCard";
 import Datalistview from "./(components)/Datalistview";
-import Errors from "@/components/error";
 import { env } from "next-runtime-env";
+import {
+  HydrationBoundary,
+  dehydrate,
+  QueryClient,
+} from "@tanstack/react-query";
+import {
+  dlinkQuery,
+  fileQuery,
+  type FormattedNode,
+} from "./(action)/alistFIleGet";
+import Errors from "@/components/error";
+import type { duptimes, vndbdatas } from "@prisma/client";
 
-export const metadata: Metadata = {
-  openGraph: {
-    title: "VNDB DATA?",
-    description: "VNDB DATA",
-  },
-};
-
-async function vndbidpage({
+export async function generateMetadata({
   params,
 }: {
   params: { vnid: string };
-  searchParams: any;
-}) {
+}): Promise<Metadata> {
+  // read route params
   const { vnid } = await params;
-  metadata.openGraph ||= {};
+
+  const queryClient = new QueryClient();
+  await queryClient.prefetchQuery({
+    queryKey: ["vnidPageData", vnid],
+    queryFn: () => vndbmget({ vnid }),
+  });
+  const contentdatas = queryClient.getQueryData<VndbdImages>([
+    "vnidPageData",
+    vnid,
+  ]);
+
+  if (!contentdatas) {
+    return {
+      title: "VNDB - Galgame",
+    };
+  }
+
+  // 提取标题
+  const titles = [
+    ...contentdatas.titles
+      .filter((item) => item.lang === "zh-Hans" || item.official === "t")
+      .map((item) => item.title),
+    ...contentdatas.releases
+      .filter((item) => item.lang === "zh-Hans")
+      .map((item) => item.title),
+  ];
+  // 过滤掉 null 后去重
+  const allTitles: string[] = Array.from(
+    new Set(titles.filter((title): title is string => title !== null))
+  );
+
+  const title =
+    contentdatas.titles.find((item) => item.lang === "zh-Hans")?.title ||
+    contentdatas.titles.find((item) => item.official === "t")?.title;
+  return {
+    title: title,
+    description: contentdatas.description,
+    keywords: allTitles,
+    openGraph: {
+      title: title,
+      images: [
+        contentdatas!.image
+          ? `${env("NEXT_PUBLIC_VNDBIMG_URI")}/${contentdatas!.image.substring(
+              0,
+              2
+            )}/${contentdatas!.image.slice(-2)}/${contentdatas!.image.slice(2)}.jpg`
+          : "/lazye.webp",
+      ],
+      description: contentdatas.description,
+    },
+  };
+}
+
+async function vndbidpage({ params }: { params: { vnid: string } }) {
   try {
-    const datas = await vndbmget({ vnid });
-    const contentdatas = await parse(stringify(datas));
+    const { vnid } = await params;
 
-    // 提取标题
-    const titles = [
-      ...contentdatas.titles
-        .filter((item: any) => item.lang === "zh-Hans" || item.official === "t")
-        .map((item: any) => item.title),
-      ...contentdatas.releases
-        .filter((item: any) => item.lang === "zh-Hans" || item.official === "t")
-        .map((item: any) => item.title),
-    ];
+    const queryClient = new QueryClient();
+    await queryClient.prefetchQuery<vndbdatas>({
+      queryKey: ["vnidPageData", vnid],
+      queryFn: () => vndbmget({ vnid }),
+    });
+    const contentdatas = queryClient.getQueryData<VndbdImages>([
+      "vnidPageData",
+      vnid,
+    ]);
 
-    // 去重并获取标题
-    const allTitles = Array.from(new Set(titles));
-    const title =
-      contentdatas.titles.find((item: any) => item.lang === "zh-Hans")?.title ||
-      contentdatas.titles.find((item: any) => item.official === "t")?.title ||
-      "默认标题"; // 设置默认标题以防止 undefined
+    await queryClient.prefetchQuery({
+      queryKey: ["fileListData", vnid],
+      queryFn: () => fileQuery(vnid),
+    });
 
-    // 更新 metadata
-    metadata.openGraph.title = title;
-    metadata.title = title;
-    metadata.description = title;
-    metadata.openGraph.description = `${title} 下载`;
-    metadata.keywords = allTitles;
-    metadata.openGraph.images = contentdatas.image
-      ? `${env("NEXT_PUBLIC_VNDBIMG_URI")}/${contentdatas.image.substring(
-          0,
-          2
-        )}/${contentdatas.image.slice(-2)}/${contentdatas.image.slice(2)}.jpg`
-      : "/lazye.webp";
+    await queryClient.prefetchQuery({
+      queryKey: ["dlinkData"],
+      queryFn: () => dlinkQuery(),
+    });
 
+    const filedata = queryClient.getQueryData<FormattedNode[]>([
+      "fileListData",
+      vnid,
+    ]);
+    const dlink = queryClient.getQueryData<duptimes>(["dlinkData"]);
+
+    if (!contentdatas) {
+      return (
+        <div className="max-w-3xl mx-auto my-auto">
+          <Errors
+            code="404"
+            errormessage={`找不到 ${vnid} 的数据喵～是不是藏起来了？🐱💭✨`}
+          />
+        </div>
+      );
+    }
     return (
       <div className="mx-auto max-w-5xl">
-        <ContentCard data={contentdatas} />
-        <Datalistview filedatas={datas.filesiddatas} vid={vnid} />
+        <HydrationBoundary state={dehydrate(queryClient)}>
+          <ContentCard data={contentdatas} />
+          <Datalistview filedatas={filedata} dlink={dlink!} vid={vnid} />
+        </HydrationBoundary>
       </div>
     );
   } catch (error) {
     return (
       <div className="max-w-3xl mx-auto my-auto">
-        <Errors code="404" />
+        <Errors code="404" errormessage={error} />
       </div>
     );
   }

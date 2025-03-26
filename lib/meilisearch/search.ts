@@ -1,12 +1,13 @@
+"use server"
 import { pinyin } from "pinyin-pro";
 import * as wanakana from "wanakana";
 import prisma from "@/lib/prisma";
-import redis from "@/lib/redis";
+import { getKv, setKv } from "@/lib/redis";
 
 export async function search(querydata: string, pages: string) {
-  const rekey = `searchq:${querydata}${pages}`;
-  const cachedData = await redis.get(rekey);
-  if (cachedData) {
+  const rekey = `search:${querydata}${pages || 1}`;
+  const cachedData = await getKv(rekey);
+  if (cachedData !== null) {
     return JSON.parse(cachedData);
   }
   function detectLanguage(text: string) {
@@ -110,7 +111,8 @@ export async function search(querydata: string, pages: string) {
       totalPages: maxTotalPages,
     };
 
-    await redis.set(rekey, JSON.stringify(datas), "EX", 3600);
+    await setKv(rekey, JSON.stringify(datas), 3600);
+    console.log(datas)
     return datas;
   } catch (error) {
     console.error("Error while searching:", error); // Log error for debugging
