@@ -94,5 +94,5 @@ module.exports = {
     },
   },
   darkMode: ["class", "class"],
-  plugins: [tailwindcssAnimate, require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 };
