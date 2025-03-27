@@ -29,13 +29,27 @@ import { ArrowDownToLine } from "lucide-react";
 const pathColorMap: Record<string, React.ReactNode> = {
   PC: (
     <>
-      <PersonalComputer />
+      <Image
+        src="/plat/win.svg"
+        height={25}
+        width={25}
+        alt="tyranor"
+        loading="lazy"
+        className="rounded-md items-center justify-center"
+      />
       PC
     </>
   ),
   PSP: (
     <>
-      <Gamepad />
+      <Image
+        src="/plat/psp.svg"
+        height={25}
+        width={25}
+        alt="PSP"
+        loading="lazy"
+        className="rounded-md items-center justify-center"
+      />
       PSP
     </>
   ),
@@ -47,6 +61,7 @@ const pathColorMap: Record<string, React.ReactNode> = {
         width={25}
         alt="tyranor"
         loading="lazy"
+        className="rounded-md items-center justify-center"
       />
       Tyranor
     </>
@@ -59,6 +74,7 @@ const pathColorMap: Record<string, React.ReactNode> = {
         width={25}
         alt="Kkirikiri"
         loading="lazy"
+        className="rounded-md items-center justify-center"
       />
       Kkirikiri
     </>
@@ -71,7 +87,14 @@ const pathColorMap: Record<string, React.ReactNode> = {
   ),
   APK: (
     <>
-      <Android />
+      <Image
+        src="/plat/and.svg"
+        height={25}
+        width={25}
+        alt="Android"
+        loading="lazy"
+        className="rounded-md items-center justify-center"
+      />
       APK 安装
     </>
   ),
@@ -83,8 +106,22 @@ const pathColorMap: Record<string, React.ReactNode> = {
         width={25}
         alt="ONScripter"
         loading="lazy"
+        className="rounded-md items-center justify-center"
       />
       ONScripter
+    </>
+  ),
+  NDS: (
+    <>
+      <Image
+        src="/plat/nds.svg"
+        height={25}
+        width={25}
+        alt="NDS"
+        loading="lazy"
+        className="rounded-md items-center justify-center"
+      />
+      NDS
     </>
   ),
 };

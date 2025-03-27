@@ -89,7 +89,7 @@ export const ContentCard = ({ data }: { data: VndbdImages }) => {
   return (
     <Card>
       <CardContent className="m-0 p-4 flex flex-col md:flex-row">
-        <div className="relative shrink-0 mb-4 md:mb-0 md:mr-6 w-full md:w-1/5 flex justify-center md:block">
+        <div className="relative shrink-0 mb-4 md:mb-0 md:mr-6 w-full md:w-1/5 flex justify-center md:flex items-center">
           <Image
             unoptimized
             width={Number(data.imagesData.width)}
