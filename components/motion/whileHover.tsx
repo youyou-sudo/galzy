@@ -8,7 +8,6 @@ export default function MontionWhileHover({
 }) {
   return (
     <div>
-      {" "}
       <motion.div
         whileHover={{
           scale: 1.01,

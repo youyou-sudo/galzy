@@ -11,7 +11,7 @@ export default function TagsContentCard({ data }: { data: TagsvndbInfoType }) {
     <>
       <Card>
         <CardContent>
-          <div className="text-center mt-4">
+          <div className="text-center">
             <h1 className="text-xl select-all font-bold sm:text-2xl md:text-3xl lg:text-4xl">
               #{data.giddata.name_zh || data.giddata.name}
             </h1>

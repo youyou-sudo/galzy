@@ -88,11 +88,11 @@ export default function AuthForm() {
                 action={(formData) => handleAuth(formData, "login")}
                 className="space-y-2"
               >
-                <div className="*:not-first:mt-2">
+                <div className="not-first:*:mt-2">
                   <Label>Email</Label>
                   <Input placeholder="Email" name="email" type="email" />
                 </div>
-                <div className="*:not-first:mt-2">
+                <div className="not-first:*:mt-2">
                   <Label>Password</Label>
                   <div className="relative">
                     <Input
@@ -102,7 +102,7 @@ export default function AuthForm() {
                       type={isVisible ? "text" : "password"}
                     />
                     <button
-                      className="text-muted-foreground/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-md transition-[color,box-shadow] outline-none focus:z-10 focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+                      className="text-muted-foreground/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-md transition-[color,box-shadow] outline-hidden focus:z-10 focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                       type="button"
                       onClick={toggleVisibility}
                       aria-label={isVisible ? "Hide password" : "Show password"}
@@ -151,16 +151,16 @@ export default function AuthForm() {
                 }}
                 className="space-y-2"
               >
-                <div className="*:not-first:mt-2">
+                <div className="not-first:*:mt-2">
                   <Label>Name</Label>
                   <Input placeholder="Name" name="name" />
                 </div>
-                <div className="*:not-first:mt-2">
+                <div className="not-first:*:mt-2">
                   <Label>Email</Label>
                   <Input placeholder="Enter your email" name="email" />
                 </div>
 
-                <div className="*:not-first:mt-2">
+                <div className="not-first:*:mt-2">
                   <Label>Password</Label>
                   <Input
                     placeholder="Enter your password"

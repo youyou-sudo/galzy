@@ -16,6 +16,7 @@ import {
 } from "./(action)/alistFIleGet";
 import Errors from "@/components/error";
 import type { duptimes, vndbdatas } from "@prisma/client";
+import { vndbdatagsdata } from "./(action)/vndbGet";
 
 export async function generateMetadata({
   params,
@@ -85,6 +86,10 @@ async function vndbidpage({ params }: { params: { vnid: string } }) {
     await queryClient.prefetchQuery<vndbdatas>({
       queryKey: ["vnidPageData", vnid],
       queryFn: () => vndbmget({ vnid }),
+    });
+    await queryClient.prefetchQuery<vndbdatas>({
+      queryKey: ["tags", vnid],
+      queryFn: () => vndbdatagsdata(vnid),
     });
     const contentdatas = queryClient.getQueryData<VndbdImages>([
       "vnidPageData",

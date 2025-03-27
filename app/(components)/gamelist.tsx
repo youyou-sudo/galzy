@@ -17,7 +17,7 @@ export function Gamelsit({ datas }: { datas: VndbdImages[] }) {
           <MontionWhileHover>
             <Card
               className={cn(
-                "h-full overflow-hidden transition-all duration-300 flex mt-2 w-full",
+                "h-full overflow-hidden transition-all duration-300 flex mt-2 w-full p-0",
                 "border-2 hover:border-primary/50 hover:shadow-lg"
               )}
             >

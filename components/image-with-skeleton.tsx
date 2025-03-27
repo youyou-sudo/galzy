@@ -42,7 +42,7 @@ export function ImageWithSkeleton({
   const [isLoading, setIsLoading] = useState(true);
 
   return (
-    <div className="relative" style={{ width, height }}>
+    <div className="relative">
       {isLoading && (
         <Skeleton
           className="absolute inset-0 rounded-lg"

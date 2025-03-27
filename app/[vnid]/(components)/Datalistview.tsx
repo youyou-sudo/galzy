@@ -235,12 +235,11 @@ const FileMap = ({ filelist, level = 0, pathtmp, dlink }: FileMapProps) => {
               {item.compressedFiles === true ? (
                 <>
                   <div className="list-disc flex">
-                    <Button
-                      variant="link"
+                    <button
                       onClick={() => {
                         handleFileClick(item.children);
                       }}
-                      className="block truncate cursor-pointer h-6 p-0 underline hover:text-blue-800"
+                      className="block truncate cursor-pointer h-6 p-0 underline hover:text-blue-300"
                     >
                       <Badge variant="secondary" className="mr-1">
                         分卷
@@ -249,7 +248,7 @@ const FileMap = ({ filelist, level = 0, pathtmp, dlink }: FileMapProps) => {
                       <span className="inline-flex items-center align-middle">
                         <ArrowDownToLine className="h-4 w-4" />
                       </span>
-                    </Button>
+                    </button>
                   </div>
                 </>
               ) : item.is_dir ? (
@@ -277,18 +276,17 @@ const FileMap = ({ filelist, level = 0, pathtmp, dlink }: FileMapProps) => {
               ) : (
                 <>
                   <div className="list-disc flex">
-                    <Button
-                      variant="link"
+                    <button
                       onClick={() => {
                         handleFileClick(item);
                       }}
-                      className="block truncate cursor-pointer h-6 p-0 underline hover:text-blue-800"
+                      className="block truncate cursor-pointer h-6 p-0 underline hover:text-blue-300"
                     >
                       {item.name}
-                      <span className="inline-flex items-center align-middle">
-                        <ArrowDownToLine className="h-4 w-4" />
-                      </span>
-                    </Button>
+                    </button>
+                    <span className="inline-flex items-center align-middle">
+                      <ArrowDownToLine className="h-4 w-4" />
+                    </span>
                   </div>
                 </>
               )}
@@ -316,14 +314,12 @@ export function Stview({
   dlink: string;
 }) {
   return (
-    <div className="flex flex-col mt-3">
-      <div className="w-full flex flex-col gap-2 mt-3">
-        <FileMap
-          filelist={filedatas.children}
-          gfpath={filedatas.path}
-          dlink={dlink}
-        />
-      </div>
+    <div className="w-full flex flex-col gap-2">
+      <FileMap
+        filelist={filedatas.children}
+        gfpath={filedatas.path}
+        dlink={dlink}
+      />
     </div>
   );
 }
@@ -383,119 +379,105 @@ export default function Datalistview({
   return (
     <>
       <Tabs className="mt-3" defaultValue="download">
-        <TabsList className="w-full p-0 bg-background justify-start border-b rounded-none">
-          <TabsTrigger
-            className="rounded-none bg-background h-full data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary"
-            value="download"
-          >
-            下载
-          </TabsTrigger>
-          <TabsTrigger
-            className="rounded-none bg-background h-full data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary"
-            value="phtot"
-          >
-            图片
-          </TabsTrigger>
+        <TabsList>
+          <TabsTrigger value="download">下载</TabsTrigger>
+          <TabsTrigger value="phtot">图片</TabsTrigger>
         </TabsList>
         <TabsContent value="download">
-          <Card>
-            <CardContent>
-              {filedatas ? (
-                filedatas.map((item, index) => (
-                  <Stview
-                    key={index}
-                    dlink={dlink.timeVersion}
-                    filedatas={item}
-                  />
-                ))
-              ) : (
-                <>文件找不到啦～</>
-              )}
-            </CardContent>
-          </Card>
+          <div className="flex ml-2 flex-col gap-2">
+            {filedatas ? (
+              filedatas.map((item, index) => (
+                <Stview
+                  key={index}
+                  dlink={dlink.timeVersion}
+                  filedatas={item}
+                />
+              ))
+            ) : (
+              <>文件找不到啦～</>
+            )}
+          </div>
         </TabsContent>
         <TabsContent value="phtot">
-          <Card>
-            <CardContent>
-              <div className="mt-3">
-                {dltap ? (
-                  <>
-                    {Object.keys(vndbImagesData).map((rid) => {
-                      const release = vndbImagesData[rid];
-                      const firstItem = release[0]; // 获取当前 releaseId 下的第一项
-                      const { title, platforms, languages } = firstItem.release;
-                      return (
-                        <div key={rid}>
-                          <h2 className="flex items-center gap-1 justify-center">
-                            {languages.map((languages, index) => (
-                              <Image
-                                unoptimized
-                                key={index}
-                                height={20}
-                                width={20}
-                                alt={languages.lang}
-                                src={`/lang/${languages.lang}.png`}
-                              ></Image>
-                            ))}
-                            {platforms.map((platform, index) => (
-                              <TooltipProvider key={index}>
-                                <Tooltip>
-                                  <TooltipTrigger>
-                                    <Image
-                                      unoptimized
-                                      key={index}
-                                      height={20}
-                                      width={20}
-                                      alt={pathColorMap2[platform]}
-                                      src={`/plat/${platform}.svg`}
-                                    />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{pathColorMap2[platform]}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            ))}
-                            {title}
-                          </h2>
-                          <div className="flex flex-wrap gap-2 justify-center">
-                            <Gallery>
-                              {vndbImagesData[rid].map((screenshot, index) => (
-                                <Item
-                                  original={screenshot.url}
-                                  thumbnail={screenshot.thumbnail}
-                                  width={screenshot.dims[0]}
-                                  height={screenshot.dims[1]}
-                                  sourceId={index}
+          <div>
+            {dltap ? (
+              <div className="flex flex-col gap-2">
+                {Object.keys(vndbImagesData).map((rid) => {
+                  const release = vndbImagesData[rid];
+                  const firstItem = release[0]; // 获取当前 releaseId 下的第一项
+                  const { title, platforms, languages } = firstItem.release;
+                  return (
+                    <div key={rid}>
+                      <h2 className="flex items-center gap-1 justify-center">
+                        {languages.map((languages, index) => (
+                          <Image
+                            unoptimized
+                            key={index}
+                            height={20}
+                            width={20}
+                            alt={languages.lang}
+                            src={`/lang/${languages.lang}.png`}
+                          />
+                        ))}
+                        {platforms.map((platform, index) => (
+                          <TooltipProvider key={index}>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Image
+                                  unoptimized
                                   key={index}
-                                >
-                                  {({ ref, open }) => (
-                                    <div onClick={open}>
-                                      <ImageWithSkeleton
-                                        unoptimized
-                                        src={screenshot.thumbnail}
-                                        alt="thumbnail_dims"
-                                        width={screenshot.thumbnail_dims[0]}
-                                        height={screenshot.thumbnail_dims[1]}
-                                        className="optional-additional-classes"
-                                        ref={ref}
-                                      />
-                                    </div>
-                                  )}
-                                </Item>
-                              ))}
-                            </Gallery>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </>
-                ) : (
-                  <SpinnerCircle2 />
-                )}
+                                  height={20}
+                                  width={20}
+                                  alt={pathColorMap2[platform]}
+                                  src={`/plat/${platform}.svg`}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{pathColorMap2[platform]}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ))}
+                        {title}
+                      </h2>
+
+                      <div className="grid grid-cols-2 gap-2 max-w-5xl mx-auto sm:grid-cols-3 md:grid-cols-4 ">
+                        <Gallery>
+                          {vndbImagesData[rid].map((screenshot, index) => (
+                            <div key={index}>
+                              <Item
+                                original={screenshot.url}
+                                thumbnail={screenshot.thumbnail}
+                                width={screenshot.dims[0]}
+                                height={screenshot.dims[1]}
+                                sourceId={index}
+                                key={index}
+                              >
+                                {({ ref, open }) => (
+                                  <ImageWithSkeleton
+                                    onClick={open}
+                                    unoptimized
+                                    src={screenshot.thumbnail}
+                                    alt="thumbnail_dims"
+                                    width={screenshot.thumbnail_dims[0] * 1.8}
+                                    height={screenshot.thumbnail_dims[1] * 1.8}
+                                    className="rounded-lg object-cover hover:opacity-80 transition-opacity border bg-background/50 shadow"
+                                    ref={ref}
+                                  />
+                                )}
+                              </Item>
+                            </div>
+                          ))}
+                        </Gallery>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </CardContent>
-          </Card>
+            ) : (
+              <SpinnerCircle2 />
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </>

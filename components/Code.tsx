@@ -38,7 +38,7 @@ export function Code({
       {showCopyButton && showCopy && (
         <button
           onClick={copyToClipboard}
-          className="ml-1.5 p-0.5 rounded hover:bg-muted-foreground/10 focus:outline-none focus:ring-1 focus:ring-ring"
+          className="ml-1.5 p-0.5 rounded hover:bg-muted-foreground/10 focus:outline-hidden focus:ring-1 focus:ring-ring"
           aria-label="Copy code"
         >
           {copied ? (

@@ -26,7 +26,7 @@ export default function DashboardUi() {
         {/* Backdrop for mobile sidebar */}
         {sidebarOpen && (
           <div
-            className="fixed inset-0 z-20 bg-black/50 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-20 bg-black/50 backdrop-blur-xs md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}

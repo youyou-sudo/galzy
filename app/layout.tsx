@@ -58,7 +58,7 @@ export default async function RootLayout({
           >
             <div className="relative flex flex-col h-screen">
               <Navbar />
-              <main className="container mx-auto flex-grow">
+              <main className="container mx-auto grow">
                 <NuqsAdapter>
                   <BarProviders>
                     <Provider>{children}</Provider>
