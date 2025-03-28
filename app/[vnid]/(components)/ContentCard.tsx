@@ -11,7 +11,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -147,7 +146,7 @@ export const ContentCard = ({ data }: { data: VndbdImages }) => {
                 value={`item-tags`}
                 className="border rounded-md px-4"
               >
-                <AccordionTrigger>Tag</AccordionTrigger>
+                <AccordionTrigger>标签</AccordionTrigger>
                 <AccordionContent>
                   <div className="flex">
                     <div className="relative inline-grid h-6 w-14 grid-cols-[1fr_1fr] items-center text-sm font-medium">
