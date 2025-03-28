@@ -1,13 +1,8 @@
 "use client";
-import { type ButtonProps } from "@/components/ui/button";
-import Link from "next/link";
+import Link, { type LinkProps } from "next/link";
 import { useRouter } from "@bprogress/next/app";
 
-type PaginationLinkProps = {
-  isActive?: boolean;
-} & Pick<ButtonProps, "size"> &
-  React.ComponentProps<typeof Link>;
-export function LinkBprogress({ ...props }: PaginationLinkProps) {
+export function LinkBprogress({ ...props }: LinkProps) {
   const router = useRouter();
   return (
     <Link
