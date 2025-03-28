@@ -24,6 +24,9 @@ import { FileDownloadDialog } from "./file-download-dialog";
 import type { FormattedNode } from "../(action)/alistFIleGet";
 import type { ScreenshotData } from "@/types/dataClass";
 import { ArrowDownToLine } from "lucide-react";
+import ImageFancybox from "@/components/image-Fancybox";
+import Fancybox from "@/components/image-Fancybox";
+import Link from "next/link";
 
 // Path color map to render corresponding icons and labels
 const pathColorMap: Record<string, React.ReactNode> = {
@@ -378,7 +381,7 @@ export default function Datalistview({
 
   return (
     <>
-      <Tabs className="mt-3" defaultValue="download">
+      <Tabs className="mt-2" defaultValue="download">
         <TabsList>
           <TabsTrigger value="download">下载</TabsTrigger>
           <TabsTrigger value="phtot">图片</TabsTrigger>
@@ -441,8 +444,45 @@ export default function Datalistview({
                         {title}
                       </h2>
 
-                      <div className="grid grid-cols-2 gap-2 max-w-5xl mx-auto sm:grid-cols-3 md:grid-cols-4 ">
-                        <Gallery>
+                      <Fancybox
+                        className="grid grid-cols-2 gap-2 max-w-5xl mx-auto sm:grid-cols-3 md:grid-cols-4 "
+                        options={{
+                          Toolbar: {
+                            display: {
+                              left: ["infobar"],
+                              middle: [],
+                              right: [
+                                "slideshow",
+                                "download",
+                                "thumbs",
+                                "close",
+                              ],
+                            },
+                          },
+                          Thumbs: {
+                            type: "modern",
+                          },
+                        }}
+                      >
+                        {vndbImagesData[rid].map((screenshot, index) => (
+                          <Link
+                            data-fancybox="gallery"
+                            key={index}
+                            href={screenshot.url}
+                            data-download-src={screenshot.url}
+                          >
+                            <Image
+                              unoptimized
+                              src={screenshot.thumbnail}
+                              width={screenshot.thumbnail_dims[0] * 1.8}
+                              height={screenshot.thumbnail_dims[1] * 1.8}
+                              alt={`游戏图片 ${index}`}
+                              className="rounded-lg object-cover hover:opacity-80 transition-opacity border bg-background/50 shadow"
+                            />
+                          </Link>
+                        ))}
+                      </Fancybox>
+                      {/* <Gallery>
                           {vndbImagesData[rid].map((screenshot, index) => (
                             <div key={index}>
                               <Item
@@ -468,8 +508,7 @@ export default function Datalistview({
                               </Item>
                             </div>
                           ))}
-                        </Gallery>
-                      </div>
+                        </Gallery> */}
                     </div>
                   );
                 })}
