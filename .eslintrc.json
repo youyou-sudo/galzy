@@ -8,13 +8,16 @@
     "prettier",
     "next"
   ],
-  "plugins": ["@typescript-eslint", "import"],
+  "plugins": [
+    "@typescript-eslint",
+    "import"
+  ],
   "rules": {
     "@typescript-eslint/no-explicit-any": "off",
-    "react/react-in-jsx-scope": "off",
+    "react/react-in-jsx-scope": "off",  // React 17+ 不再需要引入 React
     "react/display-name": "off",
     "@next/next/no-img-element": "off",
-    "no-console": "off",
+    "no-console": "off",  // 根据项目需要，你可以启用它
     "no-prototype-builtins": "off",
     "import/no-named-as-default": "off",
     "import/namespace": [
@@ -23,10 +26,24 @@
         "allowComputed": true
       }
     ],
-    "import/no-unresolved": "off"
+    "import/no-unresolved": "off",  // 关闭导入未解析错误，可以根据项目需要开启
+    "no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "no-undef": "off", // 如果你在 TypeScript 中使用，这条规则一般不需要开启
+    "prefer-const": "warn", // 推荐使用 const 而非 let
+    "consistent-return": "off", // 视项目需要决定是否启用
+    "eqeqeq": ["error", "always"], // 强制使用 === 和 !==
+    "curly": ["error", "all"] // 强制大括号风格
   },
   "parserOptions": {
-    "project": "tsconfig.json"
+    "project": "./tsconfig.json", // 确保 tsconfig.json 的路径正确
+    "ecmaVersion": 2020,
+    "sourceType": "module"
   },
   "settings": {
     "import/resolver": {
