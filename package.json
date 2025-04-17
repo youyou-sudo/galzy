@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "dev:webpack": "next dev",
-    "build": "prisma generate && prisma generate --schema=./prisma/schema2.prisma && next build --turbopack",
-    "build:webpack": "prisma generate && prisma generate --schema=./prisma/schema2.prisma && next build",
+    "build": "prisma generate && prisma generate --schema=./prisma/schema2.prisma && next build",
+    "build:turbopack": "prisma generate && prisma generate --schema=./prisma/schema2.prisma && next build --turbopack",
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx -c .eslintrc.json --fix"
   },
