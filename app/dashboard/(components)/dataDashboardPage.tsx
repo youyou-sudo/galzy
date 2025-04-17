@@ -7,7 +7,7 @@ import { FloatingButton } from "./floating-button";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 
-import { useToast } from "@/components/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,

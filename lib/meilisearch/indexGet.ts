@@ -207,7 +207,7 @@ export const alistVnIndexStu = async () => {
   } catch (error) {
     return {
       status: 500,
-      message: "内部服务器错误",
+      message: "内部服务器错误" + error,
     };
   }
 };

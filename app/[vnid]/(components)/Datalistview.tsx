@@ -1,7 +1,6 @@
 "use client";
-import { Gamepad, PersonalComputer, Risk, Android } from "grommet-icons";
+import { Risk } from "grommet-icons";
 import { useState } from "react";
-import { Gallery, Item } from "react-photoswipe-gallery";
 import * as motion from "motion/react-client";
 import Image from "next/image";
 import "photoswipe/dist/photoswipe.css";
@@ -9,22 +8,18 @@ import { Badge } from "@/components/ui/badge";
 import SpinnerCircle2 from "@/components/spinner";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ImageWithSkeleton } from "@/components/image-with-skeleton";
 import type { duptimes } from "@prisma/client";
 import { useQuery } from "@tanstack/react-query";
 import { FileDownloadDialog } from "./file-download-dialog";
 import type { FormattedNode } from "../(action)/alistFIleGet";
 import type { ScreenshotData } from "@/types/dataClass";
 import { ArrowDownToLine } from "lucide-react";
-import ImageFancybox from "@/components/image-Fancybox";
 import Fancybox from "@/components/image-Fancybox";
 import Link from "next/link";
 
@@ -445,7 +440,7 @@ export default function Datalistview({
                       </h2>
 
                       <Fancybox
-                        className="grid grid-cols-2 gap-2 max-w-5xl mx-auto sm:grid-cols-3 md:grid-cols-4 "
+                        className="grid grid-cols-2 gap-2 max-w-5xl mx-auto sm:grid-cols-4 md:grid-cols-5"
                         options={{
                           Toolbar: {
                             display: {
@@ -482,33 +477,6 @@ export default function Datalistview({
                           </Link>
                         ))}
                       </Fancybox>
-                      {/* <Gallery>
-                          {vndbImagesData[rid].map((screenshot, index) => (
-                            <div key={index}>
-                              <Item
-                                original={screenshot.url}
-                                thumbnail={screenshot.thumbnail}
-                                width={screenshot.dims[0]}
-                                height={screenshot.dims[1]}
-                                sourceId={index}
-                                key={index}
-                              >
-                                {({ ref, open }) => (
-                                  <ImageWithSkeleton
-                                    onClick={open}
-                                    unoptimized
-                                    src={screenshot.thumbnail}
-                                    alt="thumbnail_dims"
-                                    width={screenshot.thumbnail_dims[0] * 1.8}
-                                    height={screenshot.thumbnail_dims[1] * 1.8}
-                                    className="rounded-lg object-cover hover:opacity-80 transition-opacity border bg-background/50 shadow"
-                                    ref={ref}
-                                  />
-                                )}
-                              </Item>
-                            </div>
-                          ))}
-                        </Gallery> */}
                     </div>
                   );
                 })}

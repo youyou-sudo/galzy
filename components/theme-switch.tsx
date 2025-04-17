@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Moon, Sun } from "lucide-react";
+import { Check, Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
@@ -13,26 +13,46 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function ThemeSwitch() {
-  const { setTheme } = useTheme();
+  const { setTheme, theme } = useTheme();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
+        <Button variant="outline" size="icon" className="rounded-full">
+          {theme === "light" ? (
+            <Sun className="h-[1.2rem] w-[1.2rem] text-amber-500" />
+          ) : theme === "dark" ? (
+            <Moon className="h-[1.2rem] w-[1.2rem] text-blue-400" />
+          ) : (
+            <Monitor className="h-[1.2rem] w-[1.2rem] text-gray-500" />
+          )}
+          <span className="sr-only">主题</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
-          浅色
+      <DropdownMenuContent align="end" className="min-w-[8rem] rounded-xl">
+        <DropdownMenuItem
+          className="flex items-center gap-2 cursor-pointer"
+          onClick={() => setTheme("light")}
+        >
+          <Sun className="h-4 w-4 text-amber-500" />
+          <span>浅色</span>
+          {theme === "light" && <Check className="h-4 w-4 ml-auto" />}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
-          深色
+        <DropdownMenuItem
+          className="flex items-center gap-2 cursor-pointer"
+          onClick={() => setTheme("dark")}
+        >
+          <Moon className="h-4 w-4 text-blue-400" />
+          <span>深色</span>
+          {theme === "dark" && <Check className="h-4 w-4 ml-auto" />}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
-          系统
+        <DropdownMenuItem
+          className="flex items-center gap-2 cursor-pointer"
+          onClick={() => setTheme("system")}
+        >
+          <Monitor className="h-4 w-4 text-gray-500" />
+          <span>系统</span>
+          {theme === "system" && <Check className="h-4 w-4 ml-auto" />}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

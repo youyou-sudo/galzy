@@ -3,12 +3,11 @@ import React, { useState } from "react";
 import { useSession } from "next-auth/react";
 import { signInAC, registerAC } from "../(action)/auth";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, EyeIcon, EyeOffIcon } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -144,10 +143,7 @@ export default function AuthForm() {
               <form
                 onSubmit={async (e) => {
                   e.preventDefault();
-                  await handleAuth(
-                    new FormData(e.currentTarget),
-                    "register"
-                  );
+                  await handleAuth(new FormData(e.currentTarget), "register");
                 }}
                 className="space-y-2"
               >

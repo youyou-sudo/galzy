@@ -1,43 +1,40 @@
 "use client";
-import { ThemeSwitch } from "./theme-switch";
-import SearchInput from "./Search";
+import Link from "next/link";
 import Image from "next/image";
-import { LinkBprogress } from "./link-Bprogress";
+import SearchInput from "./Search";
+import { ThemeSwitch } from "./theme-switch";
 
-interface NavbarProps {
-  children?: React.ReactNode;
-}
-
-export default function Navbar({ children }: NavbarProps) {
+export function Navbar() {
   return (
     <>
-      <nav className="mb-4 sticky top-0 z-50 w-full backdrop-blur-md dark:border-slate-700 border-b shadow-md">
-        <div className="container flex h-16 items-center gap-3 bg-background/50 dark:bg-background/50 justify-between px-4 md:px-6">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-auto">
-              <LinkBprogress href="/">
-                <Image
-                  src="/favicon.ico"
-                  alt="Logo"
-                  width={32}
-                  height={32}
-                  className="h-full w-auto object-contain"
-                />
-              </LinkBprogress>
+      {/* Placeholder div with the same height as navbar */}
+      <div className="h-[88px]" /> {/* 88px = py-4(32px) + h-14(56px) */}
+      <div
+        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+      >
+        <div className="w-full flex justify-center py-2 mx-auto max-w-6xl">
+          <div className="flex h-14 items-center px-6 rounded-full shadow-sm bg-background/50 backdrop-blur-md w-full">
+            {/* Left block */}
+            <div className="flex-none">
+              <Link href="/" className="flex items-center">
+                <Image src="/favicon.ico" alt="logo" width={32} height={32} />
+              </Link>
             </div>
-            <span className="hidden text-lg font-semibold md:inline-block">
-              VNDL
-            </span>
-          </div>
-          {children}
-          <div className="flex-1 max-w-md md:block">
-            <div className="relative">
-              <SearchInput />
+
+            {/* Center block - always centered */}
+            <div className="flex-1 flex justify-center">
+              <div className="w-full max-w-md">
+                <SearchInput />
+              </div>
+            </div>
+
+            {/* Right block */}
+            <div className="flex-none">
+              <ThemeSwitch />
             </div>
           </div>
-          <ThemeSwitch />
         </div>
-      </nav>
+      </div>
     </>
   );
 }

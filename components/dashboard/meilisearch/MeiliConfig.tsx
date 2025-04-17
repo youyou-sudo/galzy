@@ -32,7 +32,7 @@ import {
   meilidatasGet,
 } from "@/lib/meilisearch/upmeili";
 
-import { useToast } from "@/components/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import type { meilisearchdatas } from "@prisma/client";
 import { Code } from "@/components/Code";

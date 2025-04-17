@@ -1,3 +1,4 @@
+"use server";
 import prisma from "@/lib/prisma";
 import { getKv, setKv } from "@/lib/redis";
 import type { images, vndbdatas } from "@prisma/client";
@@ -59,7 +60,7 @@ export type VndbmgethomeType = {
   msessL?: string;
   msess?: string;
   status: string;
-  totalCount?: number;
+  totalCount: number;
 };
 // Home 页面数据
 export const vndbmgethome = async (

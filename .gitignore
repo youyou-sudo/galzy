@@ -3,6 +3,8 @@
 # dependencies
 /node_modules
 node_modules/
+/prisma/DB2Client
+/prisma/DBClient
 /.pnp
 .pnp.js
 

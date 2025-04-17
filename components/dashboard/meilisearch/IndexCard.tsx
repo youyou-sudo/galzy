@@ -12,10 +12,10 @@ import {
   generateIndex,
   createIndex,
 } from "@/lib/meilisearch/indexGet";
-import { useToast } from "@/components/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Pencil, RefreshCcw } from "lucide-react";
+import {  RefreshCcw } from "lucide-react";
 
 export default function IndexCard() {
   const { toast } = useToast();

@@ -6,7 +6,7 @@ import { Provider } from "jotai";
 
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
-import Navbar from "@/components/navbar";
+import { Navbar } from "@/components/navbar";
 import { Toaster } from "@/components/ui/toaster";
 import AuthProvider from "./(auth)/(components)/AuthProvider";
 import { PublicEnvScript } from "next-runtime-env";
@@ -57,7 +57,9 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             <div className="relative flex flex-col h-screen">
-              <Navbar />
+              <div className="container mx-auto grow">
+                <Navbar />
+              </div>
               <main className="container mx-auto grow">
                 <NuqsAdapter>
                   <BarProviders>

@@ -2,7 +2,7 @@ import prisma from "@/lib/prisma";
 import { Worker } from "worker_threads";
 import path from "path";
 import type { Ref } from "@/types/dataClass";
-import { delKv, pushQueue, popQueue } from "@/lib/redis";
+import { pushQueue, popQueue } from "@/lib/redis";
 
 const BATCH_SIZE = 50; // 减小批量大小以避免过大内存消耗
 const PAGE_SIZE = 1000; // 分页查询每次处理的大小
