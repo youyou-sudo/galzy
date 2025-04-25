@@ -15,7 +15,6 @@ FROM base AS install
 RUN mkdir -p /temp/dev
 COPY package.json /temp/dev/
 WORKDIR /temp/dev
-RUN npm ci
 
 # 构建阶段
 FROM base AS build
