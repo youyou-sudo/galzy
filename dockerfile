@@ -1,5 +1,6 @@
-# 使用指定版本的 Bun 镜像作为基础
-FROM oven/bun:slim as base
+# 使用最新 Node 镜像作为基础镜像
+FROM node:current-slim as base
+
 WORKDIR /usr/src/app
 
 # ✅ 安装 OpenSSL 及必要库（支持 Prisma 等原生模块）
@@ -12,34 +13,39 @@ RUN apt-get update -y && apt-get install -y \
 # 安装依赖到临时目录以优化缓存
 FROM base AS install
 RUN mkdir -p /temp/dev
-COPY package.json bun.lock /temp/dev/
-RUN cd /temp/dev && bun install --frozen-lockfile
+COPY package.json package-lock.json /temp/dev/
+WORKDIR /temp/dev
+RUN npm ci
 
 # 构建阶段
 FROM base AS build
-COPY --from=install /temp/dev/node_modules node_modules
+COPY --from=install /temp/dev/node_modules /usr/src/app/node_modules
 COPY . .
-RUN bun run build
+RUN npm run build
 
 # 生产环境镜像
 FROM base AS production
 WORKDIR /usr/src/app
 
-COPY --from=build /usr/src/app/.next/standalone ./  
+COPY --from=build /usr/src/app/.next/standalone ./
 COPY --from=build /usr/src/app/public ./public
 COPY --from=build /usr/src/app/.next/static ./.next/static
 COPY --from=build /usr/src/app/worker ./worker
 COPY --from=build /usr/src/app/prisma ./prisma
 COPY --from=build /usr/src/app/start.sh ./start.sh
 
-# 设置环境变量和用户
+# 设置环境变量
 ENV NODE_ENV=production
-RUN chmod +x start.sh && chown -R bun:bun /usr/src/app
+
+RUN chmod +x start.sh \
+  && adduser --disabled-password --gecos "" appuser \
+  && chown -R appuser:appuser /usr/src/app
 
 # 确保 .next 缓存目录存在并权限正确
-RUN mkdir -p /usr/src/app/.next/cache && chown -R bun:bun /usr/src/app/.next
+RUN mkdir -p /usr/src/app/.next/cache \
+  && chown -R appuser:appuser /usr/src/app/.next
 
-USER bun
+USER appuser
 
 EXPOSE 3000
 CMD ["./start.sh"]

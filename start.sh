@@ -1,3 +1,4 @@
 #!/bin/bash
-bun x prisma migrate deploy
-bun server.js
+npx prisma generate
+npx prisma generate --schema=./prisma/schema2.prisma
+node server.js
