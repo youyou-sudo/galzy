@@ -11,11 +11,13 @@ RUN mkdir -p /temp/dev
 COPY package.json pnpm-lock.yaml /temp/dev/
 WORKDIR /temp/dev
 RUN pnpm install
+RUN pnpm approve-builds
 
 # 构建阶段
 FROM base AS build
 COPY --from=install /temp/dev/node_modules ./node_modules
 COPY . .
+RUN apt-get update -y && apt-get install -y openssl
 RUN pnpm build
 
 # 生产环境镜像
