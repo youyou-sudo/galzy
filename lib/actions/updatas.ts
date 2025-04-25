@@ -2,7 +2,7 @@
 import { deleteEntryById } from "@/lib/vndbdata";
 import { distinguishAndUpdate } from "@/lib/task/workerEntrance";
 import prisma from "../prisma";
-import type { duptimes } from "@prisma/client";
+import type { duptimes } from "@/prisma/DBClient";
 
 // 编辑数据条目
 export const updatas = async (ref: duptimes) => {

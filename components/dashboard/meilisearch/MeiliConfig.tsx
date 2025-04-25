@@ -32,9 +32,9 @@ import {
   meilidatasGet,
 } from "@/lib/meilisearch/upmeili";
 
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
-import type { meilisearchdatas } from "@prisma/client";
+import type { meilisearchdatas } from "@/prisma/DBClient";
 import { Code } from "@/components/Code";
 
 const formSchema = z.object({
@@ -46,7 +46,6 @@ const formSchema = z.object({
 });
 
 export default function MeiliConfig() {
-  const { toast } = useToast();
   const [onOpen, setOnOpen] = useState(false);
 
   const { data: meiliConfig, refetch } = useQuery({
@@ -55,9 +54,7 @@ export default function MeiliConfig() {
   });
 
   if (meiliConfig?.error) {
-    toast({
-      variant: "destructive",
-      title: meiliConfig.message,
+    toast.error(`${meiliConfig.message}`, {
       description: JSON.stringify(meiliConfig.error, null, 2),
     });
   }
@@ -80,15 +77,11 @@ export default function MeiliConfig() {
     });
 
     if (result.statusCode === 200 || result.statusCode === 201) {
-      toast({
-        title: result.message,
-      });
+      toast.success(`${result.message}`);
       setOnOpen(false);
       refetch();
     } else {
-      toast({
-        variant: "destructive",
-        title: result.message,
+      toast.error(`${result.message}`, {
         description: JSON.stringify(result.error, null, 2),
       });
     }
@@ -97,15 +90,12 @@ export default function MeiliConfig() {
   async function keyGetAc(data: meilisearchdatas) {
     const getLog = await meilidatasGet(data);
     if (getLog.status === "200") {
-      toast({
-        title: "(*^▽^*) Key 获取成功",
+      toast.success("(*^▽^*) Key 获取成功", {
         description: getLog.message,
       });
       refetch();
     } else {
-      toast({
-        variant: "destructive",
-        title: "o(TヘTo) 获取失败",
+      toast.error("╮(╯▽╰)╭ Key 获取失败", {
         description: getLog.message,
       });
     }

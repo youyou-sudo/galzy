@@ -6,7 +6,7 @@ export const alistVnImport = async (ref: Ref) => {
   return new Promise((resolve) => {
     setImmediate(async () => {
       try {
-        const data = await prismaDb2.galRcAlist_search_nodes.findMany({
+        const data = await prismaDb2.galrcalist_search_nodes.findMany({
           where: {
             name: {
               contains: "[vndb-",

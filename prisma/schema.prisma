@@ -34,7 +34,7 @@ type VndbdatasTitles {
 model vndbdatas {
   id                 String              @id @default(auto()) @map("_id") @db.ObjectId
   alias              String[]
-  description        String
+  description        String?
   image              String
   olang              String
   releases           VndbdatasReleases[]
@@ -42,7 +42,7 @@ model vndbdatas {
   vnid               String              @unique
   tags               tags_vndatas[]
   resourceCollection Boolean?            @default(false)
-  imagesData         images              @relation(fields: [image], references: [imagesId])
+  imagesData         images?             @relation(fields: [image], references: [imagesId])
 
   @@index([resourceCollection], map: "resourceCollection_index")
   @@index([image], map: "vndbdatas_image_index")
@@ -127,8 +127,59 @@ model tags_vndatas {
   @@index([vid], map: "tags_vndatas_vid_index")
 }
 
-model users {
-  id    String @id @default(auto()) @map("_id") @db.ObjectId
-  /// Field referred in an index, but found no data to define the type.
-  email Json?  @unique
+model User {
+  id            String    @id @default(cuid()) @map("_id")
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  premium       Boolean   @default(false)
+  role          String    @default("user")
+  banned        Boolean   @default(false)
+  banReason     String?
+  banExpires    Int? /// Unix timestamp for ban expiration
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+}
+
+model Session {
+  id             String   @id @default(cuid()) @map("_id")
+  userId         String
+  token          String
+  expiresAt      DateTime
+  ipAddress      String?
+  userAgent      String?
+  impersonatedBy String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                    String    @id @default(cuid()) @map("_id")
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Verification {
+  id         String   @id @default(cuid()) @map("_id")
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }

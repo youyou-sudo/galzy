@@ -1,6 +1,6 @@
 "use client";
 
-import type { images } from "@prisma/client";
+import type { images } from "@/prisma/DBClient";
 import { env } from "next-runtime-env";
 
 /**
@@ -22,10 +22,11 @@ export const getImageUrl = (image: string, imagesData: images): string => {
   return imagesData &&
     parseInt(imagesData.width) > 256 &&
     parseInt(imagesData.height) > 400
-    ? `${env(
-        "NEXT_PUBLIC_VNDBIMG_URI"
-      )}/${image.substring(0, 2)}.t/${image.slice(-2)}/${image.slice(2)}.jpg`
-    : `${env(
-        "NEXT_PUBLIC_VNDBIMG_URI"
-      )}/${image.substring(0, 2)}/${image.slice(-2)}/${image.slice(2)}.jpg`;
+    ? `${env("NEXT_PUBLIC_VNDBIMG_URI")}/${image.substring(
+        0,
+        2
+      )}.t/${image.slice(-2)}/${image.slice(2)}.jpg`
+    : `${env("NEXT_PUBLIC_VNDBIMG_URI")}/${image.substring(0, 2)}/${image.slice(
+        -2
+      )}/${image.slice(2)}.jpg`;
 };

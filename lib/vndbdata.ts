@@ -1,7 +1,7 @@
 "use server";
 import prisma from "@/lib/prisma";
 import { getKv, setKv } from "@/lib/redis";
-import type { images, vndbdatas } from "@prisma/client";
+import type { images, vndbdatas } from "@/prisma/DBClient";
 
 export type VndbdImages = vndbdatas & { imagesData: images };
 

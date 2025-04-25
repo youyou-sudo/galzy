@@ -1,5 +1,4 @@
 @import "tailwindcss";
-
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(class *));
@@ -198,7 +197,7 @@
   }
   * {
     scrollbar-width: thin;
-    
+
     scrollbar-color: hsl(var(--border)) transparent;
   }
 }
@@ -329,5 +328,16 @@
     to {
       height: 0;
     }
+  }
+}
+/*
+  ---break---
+*/
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }

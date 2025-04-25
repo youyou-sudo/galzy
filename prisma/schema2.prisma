@@ -8,7 +8,7 @@ datasource db2 {
     url      = env("DB2_DATABASE_URL")
 }
 
-model galRcAlist_search_nodes {
+model galrcalist_search_nodes {
     parent String
     name   String
     is_dir Boolean
@@ -19,7 +19,7 @@ model galRcAlist_search_nodes {
     @@index([name])
 }
 
-model galRcAlist_setting_items {
+model galrcalist_setting_items {
     key     String
     value   String?
     help    String?
@@ -32,7 +32,7 @@ model galRcAlist_setting_items {
     @@unique([key])
 }
 
-model galRcAlist_meta {
+model galrcalist_meta {
     id         Int     @id @default(autoincrement())
     path       String
     password   String

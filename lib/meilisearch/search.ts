@@ -112,7 +112,6 @@ export async function search(querydata: string, pages: string) {
     };
 
     await setKv(rekey, JSON.stringify(datas), 3600);
-    console.log(datas)
     return datas;
   } catch (error) {
     console.error("Error while searching:", error); // Log error for debugging

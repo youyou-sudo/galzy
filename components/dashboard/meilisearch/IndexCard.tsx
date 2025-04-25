@@ -12,13 +12,12 @@ import {
   generateIndex,
   createIndex,
 } from "@/lib/meilisearch/indexGet";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import {  RefreshCcw } from "lucide-react";
+import { RefreshCcw } from "lucide-react";
 
 export default function IndexCard() {
-  const { toast } = useToast();
   const [indexstatus, setIndexstatus] = useState(true);
 
   const { data: meiliindexviw, refetch } = useQuery({
@@ -32,46 +31,28 @@ export default function IndexCard() {
       setIndexstatus(false);
     } else {
       setIndexstatus(true);
-      toast({
-        variant: "destructive",
-        title: "╥﹏╥... ",
-        description: "好像没有检测到索引呢",
-      });
+      toast.warning("好像没有检测到索引呢 ╥﹏╥...");
     }
-  }, [meiliindexviw, toast]);
+  }, [meiliindexviw]);
 
   // 创建索引
   const creatindex = async () => {
     const log = await generateIndex();
     if (log.status === 200) {
-      toast({
-        title: "o(*////▽////*)q 啊💕！～",
-        description: log.message,
-      });
+      toast.success(`${log.message}`);
       refetch();
     } else {
-      toast({
-        variant: "destructive",
-        title: "╥﹏╥... ",
-        description: log.message,
-      });
+      toast.error(`${log.message}`);
     }
   };
   // 建立索引
   const jmliIndex = async () => {
     const log = await createIndex("alistVN");
     if (log.status === 200) {
-      toast({
-        title: "(*^▽^*)",
-        description: log.message,
-      });
+      toast.success(`${log.message}`);
       await refetch();
     } else {
-      toast({
-        variant: "destructive",
-        title: "╥﹏╥... ",
-        description: log.message,
-      });
+      toast.error(`${log.message}`);
     }
   };
 

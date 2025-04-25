@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import type { meilisearchdatas } from "@prisma/client";
+import type { meilisearchdatas } from "@/prisma/DBClient";
 
 // meili 配置创建或修改
 export const meilidataupGet = async ({

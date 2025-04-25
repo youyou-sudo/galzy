@@ -117,14 +117,14 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
-exports.Prisma.GalRcAlist_search_nodesScalarFieldEnum = {
+exports.Prisma.Galrcalist_search_nodesScalarFieldEnum = {
   parent: 'parent',
   name: 'name',
   is_dir: 'is_dir',
   size: 'size'
 };
 
-exports.Prisma.GalRcAlist_setting_itemsScalarFieldEnum = {
+exports.Prisma.Galrcalist_setting_itemsScalarFieldEnum = {
   key: 'key',
   value: 'value',
   help: 'help',
@@ -135,7 +135,7 @@ exports.Prisma.GalRcAlist_setting_itemsScalarFieldEnum = {
   index: 'index'
 };
 
-exports.Prisma.GalRcAlist_metaScalarFieldEnum = {
+exports.Prisma.Galrcalist_metaScalarFieldEnum = {
   id: 'id',
   path: 'path',
   password: 'password',
@@ -167,9 +167,9 @@ exports.Prisma.NullsOrder = {
 
 
 exports.Prisma.ModelName = {
-  galRcAlist_search_nodes: 'galRcAlist_search_nodes',
-  galRcAlist_setting_items: 'galRcAlist_setting_items',
-  galRcAlist_meta: 'galRcAlist_meta'
+  galrcalist_search_nodes: 'galrcalist_search_nodes',
+  galrcalist_setting_items: 'galrcalist_setting_items',
+  galrcalist_meta: 'galrcalist_meta'
 };
 
 /**

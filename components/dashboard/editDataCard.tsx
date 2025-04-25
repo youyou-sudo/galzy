@@ -25,7 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { z } from "zod";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,9 +34,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { duptimes } from "@prisma/client";
+import type { duptimes } from "@/prisma/DBClient";
 import { distinguishAndUpdate } from "@/lib/task/workerEntrance";
-import { coutAcQ, dataUpQ } from "@/app/dashboard/(action)/dataAc";
+import { coutAcQ, dataUpQ } from "@/app/(dashboard)/(action)/dataAc";
 import { useQuery } from "@tanstack/react-query";
 import EditDataForm from "./editDataForm";
 
@@ -85,7 +85,6 @@ export default function EditDataCard({
     }
   }, [datas.state, lyxy]);
 
-  const { toast } = useToast();
   const [modal, setModal] = useState(false);
 
   async function onSubmit(
@@ -106,10 +105,10 @@ export default function EditDataCard({
     );
     refetch();
     if (log.status === "200") {
-      toast({ title: `${log.msess}` });
+      toast.success(`${log.msess}`);
       setModal(false);
     } else {
-      toast({ variant: "destructive", title: `${log.msess}` });
+      toast.error(`${log.msess}`);
     }
   }
 
@@ -125,9 +124,9 @@ export default function EditDataCard({
     refetch();
 
     if (log.status === "200") {
-      toast({ title: `${log.message}` });
+      toast.success(`${log.message}`);
     } else {
-      toast({ variant: "destructive", title: `${log.message}` });
+      toast.error(`${log.message}`);
     }
   };
 
