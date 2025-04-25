@@ -2,17 +2,21 @@
 FROM node:20-slim as base
 WORKDIR /usr/src/app
 
+# 安装 pnpm
+RUN corepack enable && corepack prepare pnpm@8.15.4 --activate
+
 # 安装依赖到临时目录以优化缓存
 FROM base AS install
 RUN mkdir -p /temp/dev
-COPY package.json package-lock.json /temp/dev/
-RUN cd /temp/dev && npm install
+COPY package.json pnpm-lock.yaml /temp/dev/
+WORKDIR /temp/dev
+RUN pnpm install && pnpm approve-builds
 
 # 构建阶段
 FROM base AS build
 COPY --from=install /temp/dev/node_modules ./node_modules
 COPY . .
-RUN npm run build
+RUN pnpm build
 
 # 生产环境镜像
 FROM base AS production
