@@ -13,7 +13,7 @@ RUN apt-get update -y && apt-get install -y \
 # 安装依赖到临时目录以优化缓存
 FROM base AS install
 RUN mkdir -p /temp/dev
-COPY package.json package-lock.json /temp/dev/
+COPY package.json /temp/dev/
 WORKDIR /temp/dev
 RUN npm ci
 
