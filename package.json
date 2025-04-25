@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.8.0",
+    "@better-fetch/fetch": "^1.1.18",
     "@bprogress/next": "^3.2.12",
     "@fancyapps/ui": "^5.0.36",
     "@hookform/resolvers": "^5.0.1",
@@ -71,17 +72,17 @@
     "zod": "^3.24.3"
   },
   "devDependencies": {
-    "typescript": "^5.8.3",
+    "@eslint/eslintrc": "^3.3.1",
+    "@tailwindcss/postcss": "^4.1.4",
     "@types/bcrypt": "^5.0.2",
     "@types/bun": "^1.2.10",
     "@types/node": "^20.17.30",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
-    "@tailwindcss/postcss": "^4.1.4",
-    "tailwindcss": "^4.1.4",
     "eslint": "^9.24.0",
     "eslint-config-next": "15.3.1",
-    "@eslint/eslintrc": "^3.3.1",
-    "prisma": "^6.6.0"
+    "prisma": "^6.6.0",
+    "tailwindcss": "^4.1.4",
+    "typescript": "^5.8.3"
   }
 }
