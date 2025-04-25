@@ -6,6 +6,8 @@ import {
 import { coutAcQ, dataUpQ } from "@/app/(dashboard)/(action)/dataAc";
 import { DataDashboardPage } from "../(components)/dataDashboardPage";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   const queryClient = new QueryClient();
   await queryClient.prefetchQuery({

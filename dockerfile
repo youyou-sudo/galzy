@@ -1,4 +1,4 @@
-# syntax=docker.io/docker/dockerfile:1
+# syntax=docker/dockerfile:1.5
 
 FROM node:18-alpine AS base
 
@@ -9,7 +9,7 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
+COPY package.json pnpm-workspace.yaml yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
 RUN \
     if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
     elif [ -f package-lock.json ]; then npm ci; \
@@ -54,7 +54,7 @@ COPY --from=builder /app/prisma ./prisma
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./public/static
 
 USER nextjs
 
