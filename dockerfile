@@ -24,6 +24,7 @@ RUN pnpm build
 FROM base AS production
 WORKDIR /usr/src/app
 
+RUN apt-get update -y && apt-get install -y openssl
 COPY --from=build /usr/src/app/.next/standalone ./ 
 COPY --from=build /usr/src/app/public ./public
 COPY --from=build /usr/src/app/.next/static ./.next/static
