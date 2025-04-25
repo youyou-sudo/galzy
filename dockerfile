@@ -3,14 +3,14 @@ FROM node:20-slim as base
 WORKDIR /usr/src/app
 
 # 安装 pnpm
-RUN corepack enable && corepack prepare pnpm@8.15.4 --activate
+RUN npm install --global corepack@latest && corepack enable pnpm
 
 # 安装依赖到临时目录以优化缓存
 FROM base AS install
 RUN mkdir -p /temp/dev
 COPY package.json pnpm-lock.yaml /temp/dev/
 WORKDIR /temp/dev
-RUN pnpm install && pnpm approve-builds
+RUN pnpm install
 
 # 构建阶段
 FROM base AS build
