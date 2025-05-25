@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Button } from "./ui/button";
 import { useRouter } from "@bprogress/next/app";
-import { CodeBlock } from "./code-block";
+import { CodeBlock } from "@/components/code-block";
 
 interface ErrorsProps {
   code: string;

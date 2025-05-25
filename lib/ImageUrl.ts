@@ -1,7 +1,7 @@
 "use client";
 
-import type { images } from "@/prisma/DBClient";
 import { env } from "next-runtime-env";
+import { ImagesTable } from "@/lib/kysely";
 
 /**
  * 根据图片数据规格生成图片 URL
@@ -18,15 +18,17 @@ import { env } from "next-runtime-env";
  * // 返回 `string` : "[NEXT_PUBLIC_VNDBIMG_URI]/cv/39/3839.jpg"
  * ```
  */
-export const getImageUrl = (image: string, imagesData: images): string => {
-  return imagesData &&
-    parseInt(imagesData.width) > 256 &&
-    parseInt(imagesData.height) > 400
-    ? `${env("NEXT_PUBLIC_VNDBIMG_URI")}/${image.substring(
+export const getImageUrl = (imagesData: ImagesTable | null): string => {
+  if (!imagesData) {
+    return "";
+  }
+  return imagesData && imagesData.width > 256 && imagesData.height > 400
+    ? `${env("NEXT_PUBLIC_VNDBIMG_URI")}/${imagesData.id.substring(
         0,
         2
-      )}.t/${image.slice(-2)}/${image.slice(2)}.jpg`
-    : `${env("NEXT_PUBLIC_VNDBIMG_URI")}/${image.substring(0, 2)}/${image.slice(
-        -2
-      )}/${image.slice(2)}.jpg`;
+      )}.t/${imagesData.id.slice(-2)}/${imagesData.id.slice(2)}.jpg`
+    : `${env("NEXT_PUBLIC_VNDBIMG_URI")}/${imagesData.id.substring(
+        0,
+        2
+      )}/${imagesData.id.slice(-2)}/${imagesData.id.slice(2)}.jpg`;
 };

@@ -11,7 +11,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/animate-ui/radix-dropdown-menu";
+} from "@/components/animate-ui/radix/dropdown-menu";
 
 export function ThemeSwitch() {
   const { setTheme, theme } = useTheme();
