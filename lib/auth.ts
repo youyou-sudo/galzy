@@ -1,17 +1,31 @@
 import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
-import { PrismaClient } from "@/prisma/DBClient";
 import { nextCookies } from "better-auth/next-js";
 import { admin } from "better-auth/plugins";
+import { Pool } from "pg";
 
-const prisma = new PrismaClient();
+import { dbConfig } from "@/lib/kysely";
 
 export const auth = betterAuth({
-  database: prismaAdapter(prisma, {
-    provider: "mongodb",
-  }),
+  database: new Pool(dbConfig),
+  user: {
+    modelName: "galrc_user",
+  },
+  session: {
+    modelName: "galrc_session",
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60,
+    },
+  },
+  account: {
+    modelName: "galrc_account",
+  },
+  verification: {
+    modelName: "galrc_verification",
+  },
+  plugins: [nextCookies(), admin()],
+
   emailAndPassword: {
     enabled: true,
   },
-  plugins: [nextCookies(), admin()], // make sure this is the last plugin in the array
 });

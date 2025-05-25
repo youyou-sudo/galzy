@@ -2,9 +2,6 @@
 
 # dependencies
 /node_modules
-node_modules/
-/prisma/DB2Client
-/prisma/DBClient
 /.pnp
 .pnp.js
 
@@ -14,6 +11,7 @@ node_modules/
 # next.js
 /.next/
 /out/
+next-env.d.ts
 
 # production
 /build
@@ -28,12 +26,14 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-.env*.local
 .env
+.env*.local
 
 # vercel
 .vercel
 
+# Turborepo
+.turbo
+
 # typescript
 *.tsbuildinfo
-next-env.d.ts
