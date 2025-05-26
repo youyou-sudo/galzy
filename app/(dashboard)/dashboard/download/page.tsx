@@ -1,5 +1,4 @@
 import LoadBalancerDashboard from "@/components/dashboard/sedebar/download/load-balancer-dashboard";
-import React from "react";
 import {
   dehydrate,
   HydrationBoundary,

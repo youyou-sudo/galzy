@@ -16,8 +16,6 @@ import {
 import {
   MoreHorizontal,
   Edit,
-  Pause,
-  Play,
   Trash2,
   Server,
   Activity,
@@ -230,7 +228,6 @@ export default function LoadBalancerDashboard() {
                               }
                               checked={node.enable}
                               disabled={switchLoading}
-                              
                               onClick={async () => {
                                 await setSwitchLoading(true);
                                 await nodeEnaledAc(node.id, !node.enable);
@@ -253,19 +250,6 @@ export default function LoadBalancerDashboard() {
                                 <DropdownMenuItem>
                                   <Edit className="mr-2 h-4 w-4" />
                                   编辑
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  {node.enable ? (
-                                    <>
-                                      <Pause className="mr-2 h-4 w-4" />
-                                      禁用
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Play className="mr-2 h-4 w-4" />
-                                      启用
-                                    </>
-                                  )}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="text-red-600">
                                   <Trash2 className="mr-2 h-4 w-4" />
