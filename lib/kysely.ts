@@ -70,7 +70,7 @@ export interface AlsitSearchNodes {
 
 export interface AlsitSettingItems {
   key: string;
-  value: string;
+  value: ColumnType<Record<string, any>, string, string>;
   help: string;
   type: string;
   options: string;
@@ -266,15 +266,22 @@ export type otherTitle = {
   title: string;
 };
 
+export type Onthermeidia = {
+  meidiaUrl: string; // 媒体链接
+  type: string; // 媒体类型
+  ThumbHash: string; // ThumbHash 占位图 base64
+  Hash: string; // 文件哈希（唯一性去重）
+  Cover: number; // 1 为封面，0 为否
+};
+
 export interface OtherDataTable {
   id: number; // 主键，自增
   vid: string | null; // VNDB ID
-  c_image: string | null;
-  olang: string;
+  onthermeidia: Onthermeidia[] | null; // 媒体
   title: otherTitle[] | null; // 可为空
-  alias: string | null; // 可为空
-  Introduction: string | null; // 可为空
-  description: string | null; // 可为空
+  alias: string | null; // 别名
+  Introduction: string | null; // 简介
+  description: string | null; // 介绍
 }
 
 export interface SiteConfigTable {

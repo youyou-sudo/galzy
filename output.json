@@ -1,0 +1,2288 @@
+[
+  {
+    "path": "/",
+    "name": ".849C9593-D756-4E56-8D6E-42412F2A707B",
+    "isFolder": false,
+    "size": 63
+  },
+  {
+    "path": "/",
+    "name": "1panel_backups",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/1panel_backups",
+    "name": "database",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/1panel_backups/database",
+    "name": "mysql",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/1panel_backups/database/mysql",
+    "name": "mysql",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql",
+    "name": "fakawh",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/fakawh",
+    "name": "db_fakawh_20240925023000i8ulg.sql.gz",
+    "isFolder": false,
+    "size": 11826
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/fakawh",
+    "name": "db_fakawh_202409260230003bq5d.sql.gz",
+    "isFolder": false,
+    "size": 11826
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/fakawh",
+    "name": "db_fakawh_20240927023000t36my.sql.gz",
+    "isFolder": false,
+    "size": 11826
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql",
+    "name": "Galinfo",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/Galinfo",
+    "name": "db_Galinfo_202411130230003c7uy.sql.gz",
+    "isFolder": false,
+    "size": 24517
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/Galinfo",
+    "name": "db_Galinfo_20241114023000xcxrl.sql.gz",
+    "isFolder": false,
+    "size": 24516
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/Galinfo",
+    "name": "db_Galinfo_20241115023000bb6fs.sql.gz",
+    "isFolder": false,
+    "size": 24517
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql",
+    "name": "galzy_alist",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/galzy_alist",
+    "name": "db_galzy_alist_20241113023000qsxmx.sql.gz",
+    "isFolder": false,
+    "size": 192309
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/galzy_alist",
+    "name": "db_galzy_alist_2024111402300026haf.sql.gz",
+    "isFolder": false,
+    "size": 192243
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/galzy_alist",
+    "name": "db_galzy_alist_20241115023000xc6m3.sql.gz",
+    "isFolder": false,
+    "size": 192315
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql",
+    "name": "gitea_kbziz5",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/gitea_kbziz5",
+    "name": "db_gitea_kbziz5_20240907023000ubwt1.sql.gz",
+    "isFolder": false,
+    "size": 13907
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/gitea_kbziz5",
+    "name": "db_gitea_kbziz5_20240908023000q1bs2.sql.gz",
+    "isFolder": false,
+    "size": 13907
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/gitea_kbziz5",
+    "name": "db_gitea_kbziz5_20240909023000kfz58.sql.gz",
+    "isFolder": false,
+    "size": 13906
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql",
+    "name": "jerry_blog_data",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/jerry_blog_data",
+    "name": "db_jerry_blog_data_20241113023000suvph.sql.gz",
+    "isFolder": false,
+    "size": 94758
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/jerry_blog_data",
+    "name": "db_jerry_blog_data_20241114023000yr62d.sql.gz",
+    "isFolder": false,
+    "size": 94759
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/jerry_blog_data",
+    "name": "db_jerry_blog_data_202411150230001s4g2.sql.gz",
+    "isFolder": false,
+    "size": 94758
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql",
+    "name": "locallsky-pro",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/locallsky-pro",
+    "name": "db_locallsky-pro_20241113023000os4o1.sql.gz",
+    "isFolder": false,
+    "size": 21450
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/locallsky-pro",
+    "name": "db_locallsky-pro_20241114023000ko5az.sql.gz",
+    "isFolder": false,
+    "size": 21449
+  },
+  {
+    "path": "/1panel_backups/database/mysql/mysql/locallsky-pro",
+    "name": "db_locallsky-pro_20241115023000hw10p.sql.gz",
+    "isFolder": false,
+    "size": 21450
+  },
+  {
+    "path": "/1panel_backups",
+    "name": "directory",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/1panel_backups/directory",
+    "name": "MixSpaceBackup目录备份",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/1panel_backups/directory/MixSpaceBackup目录备份",
+    "name": "directory_opt_1panel_docker_compose_mx-space_data_mx-space_backup_20240928013000spya5.tar.gz",
+    "isFolder": false,
+    "size": 3236890
+  },
+  {
+    "path": "/1panel_backups/directory/MixSpaceBackup目录备份",
+    "name": "directory_opt_1panel_docker_compose_mx-space_data_mx-space_backup_20240929013000s4qmv.tar.gz",
+    "isFolder": false,
+    "size": 3308034
+  },
+  {
+    "path": "/1panel_backups/directory/MixSpaceBackup目录备份",
+    "name": "directory_opt_1panel_docker_compose_mx-space_data_mx-space_backup_202409300130001eigr.tar.gz",
+    "isFolder": false,
+    "size": 3379172
+  },
+  {
+    "path": "/1panel_backups/directory",
+    "name": "Vaultwarden数据库backup",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/1panel_backups/directory/Vaultwarden数据库backup",
+    "name": "directory_var_lib_docker_volumes_vault__data_20241113013000o7w65.tar.gz",
+    "isFolder": false,
+    "size": 4335242
+  },
+  {
+    "path": "/1panel_backups/directory/Vaultwarden数据库backup",
+    "name": "directory_var_lib_docker_volumes_vault__data_20241114013000exhwh.tar.gz",
+    "isFolder": false,
+    "size": 4335242
+  },
+  {
+    "path": "/1panel_backups/directory/Vaultwarden数据库backup",
+    "name": "directory_var_lib_docker_volumes_vault__data_202411150130007y2sc.tar.gz",
+    "isFolder": false,
+    "size": 4335269
+  },
+  {
+    "path": "/",
+    "name": "532",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/532",
+    "name": "532团员列表-智慧团建导出.xlsx",
+    "isFolder": false,
+    "size": 10472
+  },
+  {
+    "path": "/532",
+    "name": "532学生名单-表单安排统计.xlsx",
+    "isFolder": false,
+    "size": 279133
+  },
+  {
+    "path": "/532",
+    "name": "532学生名单.xls",
+    "isFolder": false,
+    "size": 39936
+  },
+  {
+    "path": "/532",
+    "name": "532学生名单ys.xls",
+    "isFolder": false,
+    "size": 52224
+  },
+  {
+    "path": "/532",
+    "name": "532班照片",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/532/532班照片",
+    "name": "白底照片",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/532/532班照片/白底照片",
+    "name": "lqpic.jpg",
+    "isFolder": false,
+    "size": 28840
+  },
+  {
+    "path": "/532/532班照片",
+    "name": "蓝底照片",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53202 段理智.jpg",
+    "isFolder": false,
+    "size": 13562
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53203 范东洋.jpg",
+    "isFolder": false,
+    "size": 14439
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53204 范乾林.jpg",
+    "isFolder": false,
+    "size": 13724
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53207 黄星星.jpg",
+    "isFolder": false,
+    "size": 13473
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53208 江夏漓.jpg",
+    "isFolder": false,
+    "size": 13508
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53209 李超.jpg",
+    "isFolder": false,
+    "size": 14038
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53210 李洪权.jpg",
+    "isFolder": false,
+    "size": 14903
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53211 李俊达.jpg",
+    "isFolder": false,
+    "size": 13809
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53215 刘麒源.jpg",
+    "isFolder": false,
+    "size": 14623
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53216 卢霖.jpg",
+    "isFolder": false,
+    "size": 14750
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53217 倪世雄.jpg",
+    "isFolder": false,
+    "size": 14089
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53218 宁智永.jpg",
+    "isFolder": false,
+    "size": 13675
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53219 沈林童.jpg",
+    "isFolder": false,
+    "size": 14472
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53220 苏淳铭.jpg",
+    "isFolder": false,
+    "size": 14095
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53221 王俊.jpg",
+    "isFolder": false,
+    "size": 13752
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53223 杨珈.jpg",
+    "isFolder": false,
+    "size": 11796
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53224 杨宏坤.jpg",
+    "isFolder": false,
+    "size": 14616
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53225 姚国东.jpg",
+    "isFolder": false,
+    "size": 13803
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53226 张金.jpg",
+    "isFolder": false,
+    "size": 14326
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53227 张骏.jpg",
+    "isFolder": false,
+    "size": 14855
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53228 张兴党.jpg",
+    "isFolder": false,
+    "size": 13666
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53229 赵健康.jpg",
+    "isFolder": false,
+    "size": 14300
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53230 赵铭皓.jpg",
+    "isFolder": false,
+    "size": 13893
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53232 朱恩慧.jpg",
+    "isFolder": false,
+    "size": 13998
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53233 字臣君.jpg",
+    "isFolder": false,
+    "size": 13760
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53234 陈思蓉.jpg",
+    "isFolder": false,
+    "size": 16547
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53235 丁洁.jpg",
+    "isFolder": false,
+    "size": 15750
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53236 李红丽.jpg",
+    "isFolder": false,
+    "size": 14975
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53237 李新艳.jpg",
+    "isFolder": false,
+    "size": 15589
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53238 罗欢欢.jpg",
+    "isFolder": false,
+    "size": 16111
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53239 阮丽晶.jpg",
+    "isFolder": false,
+    "size": 14941
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53240 王金艳.jpg",
+    "isFolder": false,
+    "size": 15111
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53242 杨丽敏.jpg",
+    "isFolder": false,
+    "size": 15113
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53243 杨雪淋.jpg",
+    "isFolder": false,
+    "size": 15172
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53244 赵玉娇.jpg",
+    "isFolder": false,
+    "size": 14905
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53245 周若然.jpg",
+    "isFolder": false,
+    "size": 14873
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "53246 祝嘉莉.jpg",
+    "isFolder": false,
+    "size": 15827
+  },
+  {
+    "path": "/532/532班照片/蓝底照片",
+    "name": "宁智永.jpg",
+    "isFolder": false,
+    "size": 31389
+  },
+  {
+    "path": "/532",
+    "name": "新生信息采集表 (532班).xls",
+    "isFolder": false,
+    "size": 1496064
+  },
+  {
+    "path": "/532",
+    "name": "等级认定信息.xls",
+    "isFolder": false,
+    "size": 301568
+  },
+  {
+    "path": "/532",
+    "name": "等级认定信息导入模板.xls",
+    "isFolder": false,
+    "size": 48128
+  },
+  {
+    "path": "/",
+    "name": "desktop.ini",
+    "isFolder": false,
+    "size": 96
+  },
+  {
+    "path": "/",
+    "name": "Documents",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/Documents",
+    "name": "Adobe",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/Documents/Adobe",
+    "name": "After Effects 2020",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/Documents/Adobe/After Effects 2020",
+    "name": "User Libraries",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/Documents/Adobe/After Effects 2020",
+    "name": "User Presets",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/Documents/Adobe/After Effects 2020/User Presets",
+    "name": "(Adobe).lnk",
+    "isFolder": false,
+    "size": 935
+  },
+  {
+    "path": "/Documents/Adobe/After Effects 2020",
+    "name": "Video Libraries",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/Documents/Adobe",
+    "name": "Photoshop 云关联",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/Documents",
+    "name": "oCam",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/Documents",
+    "name": "便签.url",
+    "isFolder": false,
+    "size": 177
+  },
+  {
+    "path": "/Documents",
+    "name": "写作.url",
+    "isFolder": false,
+    "size": 177
+  },
+  {
+    "path": "/Documents",
+    "name": "学校会议.url",
+    "isFolder": false,
+    "size": 177
+  },
+  {
+    "path": "/Documents",
+    "name": "待完成.url",
+    "isFolder": false,
+    "size": 177
+  },
+  {
+    "path": "/Documents",
+    "name": "自定义 Office 模板",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/Documents",
+    "name": "表单安排-扫地.url",
+    "isFolder": false,
+    "size": 177
+  },
+  {
+    "path": "/Documents",
+    "name": "资料笔记.url",
+    "isFolder": false,
+    "size": 177
+  },
+  {
+    "path": "/Documents",
+    "name": "题材.url",
+    "isFolder": false,
+    "size": 177
+  },
+  {
+    "path": "/",
+    "name": "IMG",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/IMG",
+    "name": "卡通图片",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/IMG/卡通图片",
+    "name": "1.jpg",
+    "isFolder": false,
+    "size": 65517
+  },
+  {
+    "path": "/IMG/卡通图片",
+    "name": "img-16055796205950546a8ba2be570f971ee6affd75a4b87.jpg",
+    "isFolder": false,
+    "size": 103250
+  },
+  {
+    "path": "/IMG/卡通图片",
+    "name": "img-1605579630832e7bfdc211f8f00b4a81921c7ec2947c0.jpg",
+    "isFolder": false,
+    "size": 57408
+  },
+  {
+    "path": "/IMG/卡通图片",
+    "name": "img-1605579633167119c9162947c0d7d7f33a70b6bb12138.jpg",
+    "isFolder": false,
+    "size": 75970
+  },
+  {
+    "path": "/IMG/卡通图片",
+    "name": "img-1605579636086d40ea0e13c90ac60a69a70871185b9a1.jpg",
+    "isFolder": false,
+    "size": 59553
+  },
+  {
+    "path": "/IMG/卡通图片",
+    "name": "img-160557963882104de888773001b62aca40a8e5a596015.jpg",
+    "isFolder": false,
+    "size": 106984
+  },
+  {
+    "path": "/IMG/卡通图片",
+    "name": "img-1605579641809f4f942fcdc57000ecdb9d82872f8ad5c.jpg",
+    "isFolder": false,
+    "size": 74457
+  },
+  {
+    "path": "/IMG/卡通图片",
+    "name": "img-16055796466291bd6c1341d4be48f89899944efeb77a3.jpg",
+    "isFolder": false,
+    "size": 104690
+  },
+  {
+    "path": "/IMG",
+    "name": "建筑图",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/IMG/建筑图",
+    "name": "img-16054351424576be17452d47b5d38bcf5ed769c68aa85.jpg",
+    "isFolder": false,
+    "size": 66078
+  },
+  {
+    "path": "/IMG/建筑图",
+    "name": "img-16054351449056389623893747d4bb3b66fe029bb76e4.jpg",
+    "isFolder": false,
+    "size": 64202
+  },
+  {
+    "path": "/IMG/建筑图",
+    "name": "img-1605435147957712d50b1ab6e0b1d1529079f69298aa1.jpg",
+    "isFolder": false,
+    "size": 99043
+  },
+  {
+    "path": "/IMG/建筑图",
+    "name": "img-16054351508415fe56f8434980ae52fa068dc1bea799b.jpg",
+    "isFolder": false,
+    "size": 70671
+  },
+  {
+    "path": "/IMG/建筑图",
+    "name": "img-1605435153661a8191cb7aa74a98158a89385864352df.jpg",
+    "isFolder": false,
+    "size": 70736
+  },
+  {
+    "path": "/IMG/建筑图",
+    "name": "img-1605435156329c65c61e98308de75e4c141d1a92bc001.jpg",
+    "isFolder": false,
+    "size": 64228
+  },
+  {
+    "path": "/IMG/建筑图",
+    "name": "img-1605435158848e707ed640e654e30fb30c7eb14cd7950.jpg",
+    "isFolder": false,
+    "size": 73056
+  },
+  {
+    "path": "/IMG/建筑图",
+    "name": "img-1605435161100a270113a7b337c1697321d5a14eff867.jpg",
+    "isFolder": false,
+    "size": 68874
+  },
+  {
+    "path": "/IMG/建筑图",
+    "name": "img-16054351631020a3621c81e6c660e5315843f81b13e52.jpg",
+    "isFolder": false,
+    "size": 77777
+  },
+  {
+    "path": "/IMG",
+    "name": "波西米亚风图案",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/IMG/波西米亚风图案",
+    "name": "img-1607228069752ce95d51944afe32fef7b7133c11aa2e4.jpg",
+    "isFolder": false,
+    "size": 120956
+  },
+  {
+    "path": "/IMG/波西米亚风图案",
+    "name": "img-160722807172022dec3ab3cb4a6a008de88091b88e8eb.jpg",
+    "isFolder": false,
+    "size": 73119
+  },
+  {
+    "path": "/IMG/波西米亚风图案",
+    "name": "img-160722807352152e7e68c994b0fa0bbe44e2bc8c0ad11.jpg",
+    "isFolder": false,
+    "size": 102639
+  },
+  {
+    "path": "/IMG/波西米亚风图案",
+    "name": "img-16072280761925e9c4e23f182faa89663420c80a20916.jpg",
+    "isFolder": false,
+    "size": 126819
+  },
+  {
+    "path": "/IMG/波西米亚风图案",
+    "name": "img-16072280782749dd64b49654426c22cc1c8ea90a87e87.jpg",
+    "isFolder": false,
+    "size": 123200
+  },
+  {
+    "path": "/IMG/波西米亚风图案",
+    "name": "img-1607228080362feb3e35ef4562102e7c699944354adaa.jpg",
+    "isFolder": false,
+    "size": 114241
+  },
+  {
+    "path": "/IMG/波西米亚风图案",
+    "name": "img-16072280826126bf9e4c84919c0cc3f99130f3703fb2c.jpg",
+    "isFolder": false,
+    "size": 109120
+  },
+  {
+    "path": "/IMG/波西米亚风图案",
+    "name": "img-16072280849317c6b0a924138cd9410c7c42d31330999.jpg",
+    "isFolder": false,
+    "size": 116920
+  },
+  {
+    "path": "/IMG/波西米亚风图案",
+    "name": "img-16072280868664822d3138d15ba78beba9641961581d7.jpg",
+    "isFolder": false,
+    "size": 118444
+  },
+  {
+    "path": "/IMG",
+    "name": "花纹",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/IMG/花纹",
+    "name": "中国传统",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/IMG/花纹/中国传统",
+    "name": "img-160543522113020db929a2ccac4f17397640018d3cda8.jpg",
+    "isFolder": false,
+    "size": 308149
+  },
+  {
+    "path": "/IMG/花纹/中国传统",
+    "name": "img-16054352241804d0cae11be1f2ef26180d26e05c2dbb6.jpg",
+    "isFolder": false,
+    "size": 292981
+  },
+  {
+    "path": "/IMG/花纹/中国传统",
+    "name": "img-1605435226465f50870a12df3ba14b44f7118e6189201.jpg",
+    "isFolder": false,
+    "size": 334134
+  },
+  {
+    "path": "/IMG/花纹/中国传统",
+    "name": "img-1605435230801d4b710a4e32a6f8778e17b1352bf6676.jpg",
+    "isFolder": false,
+    "size": 323555
+  },
+  {
+    "path": "/IMG/花纹/中国传统",
+    "name": "img-1605435233439cace41dbdbe3a5efc8982446ad29c9e9.jpg",
+    "isFolder": false,
+    "size": 262254
+  },
+  {
+    "path": "/IMG/花纹/中国传统",
+    "name": "img-1605435236908a20a11a44c48edec5bd011c486c5b782.jpg",
+    "isFolder": false,
+    "size": 311186
+  },
+  {
+    "path": "/IMG/花纹/中国传统",
+    "name": "img-1605435240059cd6f80e7ada8f50bb09ffb6b2d416baf.jpg",
+    "isFolder": false,
+    "size": 332666
+  },
+  {
+    "path": "/IMG/花纹/中国传统",
+    "name": "img-1605435242812c4d677366b081210a58fdcfee16c2d83.jpg",
+    "isFolder": false,
+    "size": 310542
+  },
+  {
+    "path": "/IMG/花纹/中国传统",
+    "name": "img-160543524539878369f6bf8f6c72ec6da7a8f1effb5e7.jpg",
+    "isFolder": false,
+    "size": 308243
+  },
+  {
+    "path": "/IMG/花纹",
+    "name": "图案",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/IMG/花纹/图案",
+    "name": "img-16054353137675810f2b8db16c94a48bed8c40f6ebcf1.jpg",
+    "isFolder": false,
+    "size": 119716
+  },
+  {
+    "path": "/IMG/花纹/图案",
+    "name": "img-160543531646640d1003d0feb7ba41544b2bae043bd86.jpg",
+    "isFolder": false,
+    "size": 120165
+  },
+  {
+    "path": "/IMG/花纹/图案",
+    "name": "img-160543533501449571e9928cd1c458982768505fc595e.jpg",
+    "isFolder": false,
+    "size": 125232
+  },
+  {
+    "path": "/IMG/花纹/图案",
+    "name": "img-16054353390359d9776faf9689b5cc5d1a924017195c0.jpg",
+    "isFolder": false,
+    "size": 122231
+  },
+  {
+    "path": "/IMG/花纹/图案",
+    "name": "img-16054353415202fe731546c4796094e0bc6c8185319af.jpg",
+    "isFolder": false,
+    "size": 129125
+  },
+  {
+    "path": "/IMG/花纹/图案",
+    "name": "img-1605435344508b4fee1a4ab57bfb37132550dd81db8ce.jpg",
+    "isFolder": false,
+    "size": 117185
+  },
+  {
+    "path": "/IMG/花纹/图案",
+    "name": "img-1605435347040d6b72d88636cb5ce8c2981faba1ba171.jpg",
+    "isFolder": false,
+    "size": 117357
+  },
+  {
+    "path": "/IMG/花纹/图案",
+    "name": "img-1605435349341b042228410b655db0e466d12b1a86e78.jpg",
+    "isFolder": false,
+    "size": 117354
+  },
+  {
+    "path": "/IMG/花纹/图案",
+    "name": "img-1605435352629e749108dc62e141635f83c88acacefa9.jpg",
+    "isFolder": false,
+    "size": 114878
+  },
+  {
+    "path": "/IMG/花纹/图案",
+    "name": "img-160543535506440d1003d0feb7ba41544b2bae043bd86.jpg",
+    "isFolder": false,
+    "size": 120165
+  },
+  {
+    "path": "/IMG/花纹",
+    "name": "纹理",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/IMG/花纹/纹理",
+    "name": "img-16072280346822ba39ca31257a44a1af3df6f0c2a3a3d.jpg",
+    "isFolder": false,
+    "size": 183909
+  },
+  {
+    "path": "/IMG/花纹/纹理",
+    "name": "img-1607228036864933388c9c99fa4badc060945edd17e59.jpg",
+    "isFolder": false,
+    "size": 174218
+  },
+  {
+    "path": "/IMG/花纹/纹理",
+    "name": "img-16072280389465eb6d45cbee7c3a7d9037694f8876cd9.jpg",
+    "isFolder": false,
+    "size": 182817
+  },
+  {
+    "path": "/IMG/花纹/纹理",
+    "name": "img-16072280414473b7dc00efe3e03ca8dbf05bbfcb07a40.jpg",
+    "isFolder": false,
+    "size": 178104
+  },
+  {
+    "path": "/IMG/花纹/纹理",
+    "name": "img-16072280433344b4dd0e92e821ce7c29e9fb0433feab6.jpg",
+    "isFolder": false,
+    "size": 170231
+  },
+  {
+    "path": "/IMG/花纹/纹理",
+    "name": "img-1607228045866c10c200ab0d8f52e49fb1351f30a874a.jpg",
+    "isFolder": false,
+    "size": 151855
+  },
+  {
+    "path": "/IMG/花纹/纹理",
+    "name": "img-1607228048102a1f3d9c72e7024de7ba00c13d8335a4c.jpg",
+    "isFolder": false,
+    "size": 143280
+  },
+  {
+    "path": "/IMG/花纹/纹理",
+    "name": "img-16072280510040d61dd1bee7aea5769b63bfbb4fb610c.jpg",
+    "isFolder": false,
+    "size": 137904
+  },
+  {
+    "path": "/IMG/花纹/纹理",
+    "name": "img-1607228053106cc482444154609c0ff68a0c3a04c90f8.jpg",
+    "isFolder": false,
+    "size": 192372
+  },
+  {
+    "path": "/IMG",
+    "name": "配色",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/IMG/配色",
+    "name": "01",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/IMG/配色/01",
+    "name": "img-1605579716714ae2a900ab09e3bb436b3a2fc257299ee.jpg",
+    "isFolder": false,
+    "size": 9566
+  },
+  {
+    "path": "/IMG/配色/01",
+    "name": "img-1605579720299b82aba84ac7eaf1d58bd88871d8b84fc.jpg",
+    "isFolder": false,
+    "size": 16941
+  },
+  {
+    "path": "/IMG/配色/01",
+    "name": "img-160557972233565ed30b5c3ff755cd7d24f6648946f9e.jpg",
+    "isFolder": false,
+    "size": 19375
+  },
+  {
+    "path": "/IMG/配色/01",
+    "name": "img-16055797248867fcddf0d92c4656e7a80936f6f81f1b3.jpg",
+    "isFolder": false,
+    "size": 18679
+  },
+  {
+    "path": "/IMG/配色/01",
+    "name": "img-16055797272074e8baa2361407d8b73954762ecaf2799.jpg",
+    "isFolder": false,
+    "size": 13421
+  },
+  {
+    "path": "/IMG/配色/01",
+    "name": "img-16055797292074925c552ca12088207f859a4149e2c2d.jpg",
+    "isFolder": false,
+    "size": 11006
+  },
+  {
+    "path": "/IMG/配色/01",
+    "name": "img-16055797311588272050c9cf346b8df7db9199b556de8.jpg",
+    "isFolder": false,
+    "size": 28251
+  },
+  {
+    "path": "/IMG/配色/01",
+    "name": "img-16055797334772e98461591c18d3644ef396bc2970870.jpg",
+    "isFolder": false,
+    "size": 18085
+  },
+  {
+    "path": "/IMG/配色/01",
+    "name": "img-160557973539674014a974f444bf0266358630ff508b8.jpg",
+    "isFolder": false,
+    "size": 22961
+  },
+  {
+    "path": "/IMG/配色",
+    "name": "中国配色",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/IMG/配色/中国配色",
+    "name": "img-1605579770554bc3a1cf5063baeeb8f9490cf3ef3b55e.jpg",
+    "isFolder": false,
+    "size": 84412
+  },
+  {
+    "path": "/IMG/配色/中国配色",
+    "name": "img-1605579773088ecae2b82c1fcb9a966288f9ed757af72.jpg",
+    "isFolder": false,
+    "size": 89368
+  },
+  {
+    "path": "/IMG/配色/中国配色",
+    "name": "img-1605579775424fa72edae96c8b8d16e47099fe0d8d381.jpg",
+    "isFolder": false,
+    "size": 85974
+  },
+  {
+    "path": "/IMG/配色/中国配色",
+    "name": "img-1605579778261405624596c42478b77446aa97ab1b8f1.jpg",
+    "isFolder": false,
+    "size": 84362
+  },
+  {
+    "path": "/IMG/配色/中国配色",
+    "name": "img-1605579781029d65143be11fb5432f50a896176cb6368.jpg",
+    "isFolder": false,
+    "size": 82171
+  },
+  {
+    "path": "/IMG/配色/中国配色",
+    "name": "img-1605579783064a90f848f0f5e46ec4d093eeabd0f5790.jpg",
+    "isFolder": false,
+    "size": 83098
+  },
+  {
+    "path": "/IMG/配色/中国配色",
+    "name": "img-160557978516819dca388582c10905903734ee9e60e20.jpg",
+    "isFolder": false,
+    "size": 78413
+  },
+  {
+    "path": "/IMG/配色/中国配色",
+    "name": "img-16055797872190c9d29d945650d96982a46c57576d79c.jpg",
+    "isFolder": false,
+    "size": 83456
+  },
+  {
+    "path": "/IMG/配色/中国配色",
+    "name": "img-16055797893696718f025be412a90503aaeb3cfe7ed26.jpg",
+    "isFolder": false,
+    "size": 85722
+  },
+  {
+    "path": "/IMG/配色",
+    "name": "雪景配色",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/IMG/配色/雪景配色",
+    "name": "img-1607641862779b82aba84ac7eaf1d58bd88871d8b84fc.jpg",
+    "isFolder": false,
+    "size": 16941
+  },
+  {
+    "path": "/IMG/配色/雪景配色",
+    "name": "img-160764186447865ed30b5c3ff755cd7d24f6648946f9e.jpg",
+    "isFolder": false,
+    "size": 19375
+  },
+  {
+    "path": "/IMG/配色/雪景配色",
+    "name": "img-16076418661287fcddf0d92c4656e7a80936f6f81f1b3.jpg",
+    "isFolder": false,
+    "size": 18679
+  },
+  {
+    "path": "/IMG/配色/雪景配色",
+    "name": "img-16076418677774e8baa2361407d8b73954762ecaf2799.jpg",
+    "isFolder": false,
+    "size": 13421
+  },
+  {
+    "path": "/IMG/配色/雪景配色",
+    "name": "img-16076418692634925c552ca12088207f859a4149e2c2d.jpg",
+    "isFolder": false,
+    "size": 11006
+  },
+  {
+    "path": "/IMG/配色/雪景配色",
+    "name": "img-16076418716648272050c9cf346b8df7db9199b556de8.jpg",
+    "isFolder": false,
+    "size": 28251
+  },
+  {
+    "path": "/IMG/配色/雪景配色",
+    "name": "img-16076418732492e98461591c18d3644ef396bc2970870.jpg",
+    "isFolder": false,
+    "size": 18085
+  },
+  {
+    "path": "/IMG/配色/雪景配色",
+    "name": "img-160764187483374014a974f444bf0266358630ff508b8.jpg",
+    "isFolder": false,
+    "size": 22961
+  },
+  {
+    "path": "/IMG/配色/雪景配色",
+    "name": "img-1607641876333ae2a900ab09e3bb436b3a2fc257299ee.jpg",
+    "isFolder": false,
+    "size": 9566
+  },
+  {
+    "path": "/",
+    "name": "Jerry 的笔记本.url",
+    "isFolder": false,
+    "size": 177
+  },
+  {
+    "path": "/",
+    "name": "Microsoft Teams 聊天文件",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/",
+    "name": "office file",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/office file",
+    "name": "Excel",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/office file/Excel",
+    "name": "团费收缴情况一览表.xlsx",
+    "isFolder": false,
+    "size": 16556
+  },
+  {
+    "path": "/office file/Excel",
+    "name": "智慧团建账号统计.xlsx",
+    "isFolder": false,
+    "size": 13472
+  },
+  {
+    "path": "/office file",
+    "name": "Scan 14 7月 22 · 10·57·05",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05",
+    "name": "姚国东",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/姚国东",
+    "name": "姚国东_家长知情同意书_1.jpeg",
+    "isFolder": false,
+    "size": 407524
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/姚国东",
+    "name": "姚国东_家长知情同意书_2.jpeg",
+    "isFolder": false,
+    "size": 214793
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/姚国东",
+    "name": "姚国东_第三方协议_1.jpeg",
+    "isFolder": false,
+    "size": 294833
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/姚国东",
+    "name": "姚国东_第三方协议_2.jpeg",
+    "isFolder": false,
+    "size": 326344
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/姚国东",
+    "name": "姚国东_第三方协议_3.jpeg",
+    "isFolder": false,
+    "size": 229985
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05",
+    "name": "杨宏坤",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/杨宏坤",
+    "name": "杨宏坤_家长知情同意书_1.jpeg",
+    "isFolder": false,
+    "size": 364860
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/杨宏坤",
+    "name": "杨宏坤_家长知情同意书_2.jpeg",
+    "isFolder": false,
+    "size": 192782
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/杨宏坤",
+    "name": "杨宏坤_第三方协议_1.jpeg",
+    "isFolder": false,
+    "size": 277064
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/杨宏坤",
+    "name": "杨宏坤_第三方协议_2.jpeg",
+    "isFolder": false,
+    "size": 325521
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/杨宏坤",
+    "name": "杨宏坤_第三方协议_3.jpeg",
+    "isFolder": false,
+    "size": 209374
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05",
+    "name": "范乾林",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/范乾林",
+    "name": "范乾林_家长知情同意书_1.jpeg",
+    "isFolder": false,
+    "size": 437541
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/范乾林",
+    "name": "范乾林_家长知情同意书_2.jpeg",
+    "isFolder": false,
+    "size": 210772
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/范乾林",
+    "name": "范乾林_第三方协议_1.jpeg",
+    "isFolder": false,
+    "size": 275010
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/范乾林",
+    "name": "范乾林_第三方协议_2.jpeg",
+    "isFolder": false,
+    "size": 321823
+  },
+  {
+    "path": "/office file/Scan 14 7月 22 · 10·57·05/范乾林",
+    "name": "范乾林_第三方协议_3.jpeg",
+    "isFolder": false,
+    "size": 237612
+  },
+  {
+    "path": "/office file",
+    "name": "Word",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/office file/Word",
+    "name": "19月操行成绩测评表空.docx",
+    "isFolder": false,
+    "size": 32011
+  },
+  {
+    "path": "/office file/Word",
+    "name": "咖啡 .docx",
+    "isFolder": false,
+    "size": 44242
+  },
+  {
+    "path": "/office file/Word",
+    "name": "文章.docx",
+    "isFolder": false,
+    "size": 14328
+  },
+  {
+    "path": "/office file/Word",
+    "name": "消防安全心得体会.docx",
+    "isFolder": false,
+    "size": 14285
+  },
+  {
+    "path": "/",
+    "name": "sucd",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/",
+    "name": "个人保管库.lnk",
+    "isFolder": false,
+    "size": 1140
+  },
+  {
+    "path": "/",
+    "name": "图片",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/图片",
+    "name": "屏幕快照",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/",
+    "name": "应用",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用",
+    "name": "Designer",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/Designer",
+    "name": "Files",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/Designer/Files",
+    "name": "小鹤音形输入法广告，文案：以双手均衡性最优、强弱指分布最合理、跨排别扭组合频率最低为追求的双拼设计方案。音形：它是由双拼加双形构成单字全码，字词四码定长的输入方案.design",
+    "isFolder": false,
+    "size": 319741
+  },
+  {
+    "path": "/应用/Designer",
+    "name": "My stuff",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/Designer/My stuff",
+    "name": "26.png",
+    "isFolder": false,
+    "size": 5753941
+  },
+  {
+    "path": "/应用/Designer/My stuff",
+    "name": "『日系』当温柔的风吹过。_109951164460537639.jpg",
+    "isFolder": false,
+    "size": 315379
+  },
+  {
+    "path": "/应用",
+    "name": "remotely-save",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save",
+    "name": "忧忧的临岸之河",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": ".obsidian",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "app.json",
+    "isFolder": false,
+    "size": 147
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "appearance.json",
+    "isFolder": false,
+    "size": 48
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "backlink.json",
+    "isFolder": false,
+    "size": 33
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "bookmarks.json",
+    "isFolder": false,
+    "size": 17
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "community-plugins.json",
+    "isFolder": false,
+    "size": 77
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "core-plugins-migration.json",
+    "isFolder": false,
+    "size": 638
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "core-plugins.json",
+    "isFolder": false,
+    "size": 658
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "daily-notes.json",
+    "isFolder": false,
+    "size": 96
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "graph.json",
+    "isFolder": false,
+    "size": 493
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "hotkeys.json",
+    "isFolder": false,
+    "size": 2
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "note-composer.json",
+    "isFolder": false,
+    "size": 48
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "plugins",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins",
+    "name": "cmdr",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/cmdr",
+    "name": "data.json",
+    "isFolder": false,
+    "size": 522
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins",
+    "name": "obsidian-daily-notes-viewer",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/obsidian-daily-notes-viewer",
+    "name": "data.json",
+    "isFolder": false,
+    "size": 213
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins",
+    "name": "obsidian-excalidraw-plugin",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/obsidian-excalidraw-plugin",
+    "name": "data.json",
+    "isFolder": false,
+    "size": 1294902
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/obsidian-excalidraw-plugin",
+    "name": "main.js",
+    "isFolder": false,
+    "size": 8113028
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/obsidian-excalidraw-plugin",
+    "name": "manifest.json",
+    "isFolder": false,
+    "size": 421
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/obsidian-excalidraw-plugin",
+    "name": "styles.css",
+    "isFolder": false,
+    "size": 155244
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins",
+    "name": "quickadd",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/quickadd",
+    "name": "data.json",
+    "isFolder": false,
+    "size": 2497
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/quickadd",
+    "name": "duplicate.js",
+    "isFolder": false,
+    "size": 3547735
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/quickadd",
+    "name": "lang",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/quickadd/lang",
+    "name": "state.json",
+    "isFolder": false,
+    "size": 86
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/quickadd/lang",
+    "name": "zh-cn.json",
+    "isFolder": false,
+    "size": 48808
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/quickadd",
+    "name": "main.js",
+    "isFolder": false,
+    "size": 3549707
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/quickadd",
+    "name": "manifest.json",
+    "isFolder": false,
+    "size": 370
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/quickadd",
+    "name": "styles.css",
+    "isFolder": false,
+    "size": 3862
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins",
+    "name": "remotely-save",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/remotely-save",
+    "name": ".gitignore",
+    "isFolder": false,
+    "size": 10
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/remotely-save",
+    "name": "data.json",
+    "isFolder": false,
+    "size": 7596
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/remotely-save",
+    "name": "main.js",
+    "isFolder": false,
+    "size": 4249085
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/remotely-save",
+    "name": "manifest.json",
+    "isFolder": false,
+    "size": 374
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/plugins/remotely-save",
+    "name": "styles.css",
+    "isFolder": false,
+    "size": 3125
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "starred.json",
+    "isFolder": false,
+    "size": 17
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "templates.json",
+    "isFolder": false,
+    "size": 25
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "themes",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/themes",
+    "name": "Minimal",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/themes/Minimal",
+    "name": "manifest.json",
+    "isFolder": false,
+    "size": 172
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian/themes/Minimal",
+    "name": "theme.css",
+    "isFolder": false,
+    "size": 276066
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "types.json",
+    "isFolder": false,
+    "size": 1669
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "workspace-mobile-JerryYang.json",
+    "isFolder": false,
+    "size": 4145
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "workspace-mobile.json",
+    "isFolder": false,
+    "size": 6313
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/.obsidian",
+    "name": "workspaces.json",
+    "isFolder": false,
+    "size": 2
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "03.Blog",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/03.Blog",
+    "name": "Creative Commons 及其他协议的解释.md",
+    "isFolder": false,
+    "size": 3317
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/03.Blog",
+    "name": "OST 如何使用 Foobar2000 抓轨.md",
+    "isFolder": false,
+    "size": 1012
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/03.Blog",
+    "name": "Typecho 去掉链接中的 index.php.md",
+    "isFolder": false,
+    "size": 1785
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/03.Blog",
+    "name": "一加 8 系手机刷机教程.md",
+    "isFolder": false,
+    "size": 12215
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/03.Blog",
+    "name": "为 Windows 配置 ADB 和 Fastboot 环境.md",
+    "isFolder": false,
+    "size": 1312
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/03.Blog",
+    "name": "如何预防及补救因错误的XBL导致的死机.md",
+    "isFolder": false,
+    "size": 4825
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/03.Blog",
+    "name": "将 Steam 2FA 添加到 Bitwarden 中.md",
+    "isFolder": false,
+    "size": 2592
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/03.Blog",
+    "name": "局域网共享代理.md",
+    "isFolder": false,
+    "size": 3605
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/03.Blog",
+    "name": "灵魂与意识，但是科学视角.md",
+    "isFolder": false,
+    "size": 2758
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/03.Blog",
+    "name": "让 Windows 只更新补丁，不更新驱动.md",
+    "isFolder": false,
+    "size": 1305
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "20250126_203804.jpg",
+    "isFolder": false,
+    "size": 50043
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "microsoft-fabric-architecture-icons.excalidrawlib",
+    "isFolder": false,
+    "size": 1163556
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "Pasted image 20240717004105.png",
+    "isFolder": false,
+    "size": 10886063
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "Pasted image 20240717004114.png",
+    "isFolder": false,
+    "size": 779908
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "Pasted image 20240718160039.png",
+    "isFolder": false,
+    "size": 54491
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "Pasted image 20240829165804.png",
+    "isFolder": false,
+    "size": 85549
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "Pasted image 20241114184757.png",
+    "isFolder": false,
+    "size": 956560
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "Pasted image 20241114184803.png",
+    "isFolder": false,
+    "size": 1011355
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "Pasted image 20241114184810.png",
+    "isFolder": false,
+    "size": 824477
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "Pasted image 20241114184819.png",
+    "isFolder": false,
+    "size": 318637
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "Pasted image 20250324185157.png",
+    "isFolder": false,
+    "size": 7019182
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "Pasted image 20250324185201.png",
+    "isFolder": false,
+    "size": 7019182
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "_remotely-save-metadata-on-remote.json",
+    "isFolder": false,
+    "size": 6983
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "文件结构字段提取-Json 1.py",
+    "isFolder": false,
+    "size": 2792
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "文件结构字段提取-Json 2.py",
+    "isFolder": false,
+    "size": 2792
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "文件结构字段提取-Json.py",
+    "isFolder": false,
+    "size": 2792
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "🌊 溪流",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🌊 溪流",
+    "name": "随记.md",
+    "isFolder": false,
+    "size": 29917
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🌊 溪流",
+    "name": "🎯Todo List.md",
+    "isFolder": false,
+    "size": 3295
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🌊 溪流",
+    "name": "🗒️Life List.md",
+    "isFolder": false,
+    "size": 2413
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "🏝️ 群岛",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🏝️ 群岛",
+    "name": "🛠️ 工坊",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🏝️ 群岛/🛠️ 工坊",
+    "name": "AppData Tools",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🏝️ 群岛/🛠️ 工坊/AppData Tools",
+    "name": "Windows 磁盘整理工具.md",
+    "isFolder": false,
+    "size": 6022
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🏝️ 群岛/🛠️ 工坊/AppData Tools",
+    "name": "设计",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🏝️ 群岛/🛠️ 工坊/AppData Tools/设计",
+    "name": "文件列出及计算方案.md",
+    "isFolder": false,
+    "size": 3071
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🏝️ 群岛/🛠️ 工坊/AppData Tools/设计",
+    "name": "文件删除.md",
+    "isFolder": false,
+    "size": 34
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🏝️ 群岛/🛠️ 工坊/AppData Tools/设计",
+    "name": "文件备注 OR 标注.md",
+    "isFolder": false,
+    "size": 588
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🏝️ 群岛/🛠️ 工坊",
+    "name": "GalRc",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🏝️ 群岛/🛠️ 工坊/GalRc",
+    "name": "文件结构字段提取-Json.py",
+    "isFolder": false,
+    "size": 2792
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🏝️ 群岛/🛠️ 工坊/GalRc",
+    "name": "设计方案 excalidraw.md",
+    "isFolder": false,
+    "size": 14363
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🏝️ 群岛/🛠️ 工坊/GalRc",
+    "name": "项目笔记 OR 计划.md",
+    "isFolder": false,
+    "size": 569
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🏝️ 群岛/🛠️ 工坊/GalRc",
+    "name": "项目结构.md",
+    "isFolder": false,
+    "size": 17040
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🏝️ 群岛/🛠️ 工坊/GalRc",
+    "name": "项目规划.md",
+    "isFolder": false,
+    "size": 28
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "🐚贝壳",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "C 1 科目一需记忆点.md",
+    "isFolder": false,
+    "size": 1016
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "Mongodb 中的“引用性透明”.md",
+    "isFolder": false,
+    "size": 645
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "MongoDB 开启副本集.md",
+    "isFolder": false,
+    "size": 384
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "SQLAlchemy的Column对象参数.md",
+    "isFolder": false,
+    "size": 1787
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "The Dandelion Girl.md",
+    "isFolder": false,
+    "size": 30945
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "一些“有趣的视觉小说网站”.md",
+    "isFolder": false,
+    "size": 27
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "一些应用ID与key.md",
+    "isFolder": false,
+    "size": 109
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "一些手机与电脑联动工具.md",
+    "isFolder": false,
+    "size": 257
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "关于硬链接.md",
+    "isFolder": false,
+    "size": 40
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "创建一个 fastapi 项目.md",
+    "isFolder": false,
+    "size": 1804
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "半桶水之“有效的项目目录结构组织”.md",
+    "isFolder": false,
+    "size": 975
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "咖喱乌冬面.md",
+    "isFolder": false,
+    "size": 474
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "多 V2ray 节点链路聚合草案.md",
+    "isFolder": false,
+    "size": 8418
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "字幕组相关.md",
+    "isFolder": false,
+    "size": 4460
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "拖延？.md",
+    "isFolder": false,
+    "size": 853
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/🐚贝壳",
+    "name": "最应该问自己的问题.md",
+    "isFolder": false,
+    "size": 163
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河",
+    "name": "📅 日晷刻",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/📅 日晷刻",
+    "name": "2024-04-08.md",
+    "isFolder": false,
+    "size": 6630
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/📅 日晷刻",
+    "name": "2024-04-09.md",
+    "isFolder": false,
+    "size": 7185
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/📅 日晷刻",
+    "name": "2024-04-10.md",
+    "isFolder": false,
+    "size": 7147
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/📅 日晷刻",
+    "name": "2024-04-11.md",
+    "isFolder": false,
+    "size": 6584
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/📅 日晷刻",
+    "name": "2024-04-12.md",
+    "isFolder": false,
+    "size": 3685
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/📅 日晷刻",
+    "name": "2024-04-13.md",
+    "isFolder": false,
+    "size": 2546
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/📅 日晷刻",
+    "name": "2024-04-14.md",
+    "isFolder": false,
+    "size": 5230
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/📅 日晷刻",
+    "name": "2024-04-15.md",
+    "isFolder": false,
+    "size": 3601
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/📅 日晷刻",
+    "name": "2024-04-16.md",
+    "isFolder": false,
+    "size": 3290
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/📅 日晷刻",
+    "name": "2024-04-17.md",
+    "isFolder": false,
+    "size": 8379
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/📅 日晷刻",
+    "name": "2024-04-18.md",
+    "isFolder": false,
+    "size": 2368
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/📅 日晷刻",
+    "name": "2024-04-21.md",
+    "isFolder": false,
+    "size": 162
+  },
+  {
+    "path": "/应用/remotely-save/忧忧的临岸之河/📅 日晷刻",
+    "name": "2024-05-01.md",
+    "isFolder": false,
+    "size": 235
+  },
+  {
+    "path": "/",
+    "name": "微软大会PPT源文件",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/微软大会PPT源文件",
+    "name": "1 Read Me - 资源库使用指南.docx",
+    "isFolder": false,
+    "size": 575428
+  },
+  {
+    "path": "/微软大会PPT源文件",
+    "name": "17年微软Inspire大会PPT源文件.pptx",
+    "isFolder": false,
+    "size": 19152824
+  },
+  {
+    "path": "/微软大会PPT源文件",
+    "name": "18年微软Althoff大会PPT源文件.pptx",
+    "isFolder": false,
+    "size": 29292125
+  },
+  {
+    "path": "/微软大会PPT源文件",
+    "name": "18年微软Ignite大会PPT源文件.pptx",
+    "isFolder": false,
+    "size": 24430699
+  },
+  {
+    "path": "/微软大会PPT源文件",
+    "name": "19年微软Building大会PPT源文件.pptx",
+    "isFolder": false,
+    "size": 51129502
+  },
+  {
+    "path": "/微软大会PPT源文件",
+    "name": "Dynamics 365主题官方模板.pptx",
+    "isFolder": false,
+    "size": 4307829
+  },
+  {
+    "path": "/微软大会PPT源文件",
+    "name": "Microsoft 365主题官方模板.pptx",
+    "isFolder": false,
+    "size": 5883429
+  },
+  {
+    "path": "/微软大会PPT源文件",
+    "name": "Office 365主题官方模板.pptx",
+    "isFolder": false,
+    "size": 12991955
+  },
+  {
+    "path": "/微软大会PPT源文件",
+    "name": "Surface主题官方模板.pptx",
+    "isFolder": false,
+    "size": 4278385
+  },
+  {
+    "path": "/微软大会PPT源文件",
+    "name": "Windows 主题官方模板.pptx",
+    "isFolder": false,
+    "size": 14221407
+  },
+  {
+    "path": "/微软大会PPT源文件",
+    "name": "微软官方文档模板.docx",
+    "isFolder": false,
+    "size": 142831
+  },
+  {
+    "path": "/",
+    "name": "扫描",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/扫描",
+    "name": "Scan 24 9月 22 · 03·34·35",
+    "isFolder": true,
+    "size": 0
+  },
+  {
+    "path": "/扫描/Scan 24 9月 22 · 03·34·35",
+    "name": "1664004875749.jpeg",
+    "isFolder": false,
+    "size": 271525
+  },
+  {
+    "path": "/",
+    "name": "附件",
+    "isFolder": true,
+    "size": 0
+  }
+]

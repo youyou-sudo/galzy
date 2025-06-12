@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/provider/theme-provider";
 import { ViewTransitions } from "next-view-transitions";
 import { PublicEnvScript } from "next-runtime-env";
 import QueryProvider from "@/components/provider/QueryProvider";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -30,7 +31,9 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <Providers>
-              <QueryProvider>{children}</QueryProvider>
+              <QueryProvider>
+                <NuqsAdapter>{children}</NuqsAdapter>
+              </QueryProvider>
             </Providers>
           </ThemeProvider>
         </body>

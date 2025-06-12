@@ -21,11 +21,8 @@ import {
   ArrowDownUp,
   BanknoteX,
   Loader2,
+  Plus,
 } from "lucide-react";
-import { NodeStatusBadge } from "./node-status-badge";
-import { NodeManagementDialog } from "./node-management-dialog";
-import { MobileNodeCard } from "./mobile-node-card";
-import { MobileStatsGrid } from "./mobile-stats-grid";
 import { Switch } from "@/components/animate-ui/radix/switch";
 import {
   DropdownMenu,
@@ -34,10 +31,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
+import { Progress } from "@/components/animate-ui/radix/progress";
+
 import { workerDataGet } from "@/lib/dashboard/download/Cloudflare/workerDataPull";
 import { formatBytes } from "@/lib/formatBytes";
 import { nodeEnaledAc } from "@/lib/dashboard/download/nodeEnabledAc";
-import { Progress } from "@/components/animate-ui/radix/progress";
+import { NodeStatusBadge } from "./node-status-badge";
+import { NodeManagementDialog } from "./node-management-dialog";
+import { MobileNodeCard } from "./mobile-node-card";
+import { MobileStatsGrid } from "./mobile-stats-grid";
+import { downloadStore } from "./stores/download";
+import { configFormDel } from "@/lib/dashboard/download/configForm";
 
 export interface MobileStatsGridProps {
   title: string;
@@ -49,6 +53,7 @@ export interface MobileStatsGridProps {
 export default function LoadBalancerDashboard() {
   const [isMobile, setIsMobile] = useState(false);
   const [switchLoading, setSwitchLoading] = useState(false);
+  const [delLoading, setDelLoading] = useState(false);
 
   const { data: workersItems, refetch } = useQuery({
     queryKey: ["workersItems"],
@@ -59,7 +64,6 @@ export default function LoadBalancerDashboard() {
     refetchInterval: 60000,
   });
 
-  // 检测屏幕尺寸
   React.useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 900);
@@ -115,6 +119,12 @@ export default function LoadBalancerDashboard() {
       color: "text-orange-600",
     },
   ];
+  const open = downloadStore((s) => s.open);
+  const setData = downloadStore((s) => s.setData);
+  const nodeClick = (item?: any) => {
+    setData(item);
+    open();
+  };
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -126,7 +136,16 @@ export default function LoadBalancerDashboard() {
                 <h1 className="text-lg font-bold">负载均衡</h1>
                 <p className="opacity-50">（本日数据）</p>
               </div>
-              <NodeManagementDialog refetch={refetch} />
+
+              <Button
+                onClick={() => {
+                  nodeClick();
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                添加节点
+              </Button>
+              <NodeManagementDialog refetchAction={refetch} />
             </div>
           </div>
         ) : (
@@ -139,7 +158,15 @@ export default function LoadBalancerDashboard() {
               </p>
             </div>
             <div className="flex items-center space-x-4">
-              <NodeManagementDialog refetch={refetch} />
+              <Button
+                onClick={() => {
+                  nodeClick();
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                添加节点
+              </Button>
+              <NodeManagementDialog refetchAction={refetch} />
             </div>
           </div>
         )}
@@ -257,11 +284,26 @@ export default function LoadBalancerDashboard() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    nodeClick(node);
+                                  }}
+                                >
                                   <Edit className="mr-2 h-4 w-4" />
                                   编辑
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">
+                                <DropdownMenuItem
+                                  className="text-red-600"
+                                  onClick={async () => {
+                                    setDelLoading(true);
+                                    try {
+                                      await configFormDel(node.id);
+                                      refetch();
+                                    } finally {
+                                      setDelLoading(false);
+                                    }
+                                  }}
+                                >
                                   <Trash2 className="mr-2 h-4 w-4" />
                                   删除
                                 </DropdownMenuItem>

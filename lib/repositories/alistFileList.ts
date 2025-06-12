@@ -84,10 +84,6 @@ export const getFileList = async (id: string) => {
             : {}),
         };
 
-        if (base.type === "file") {
-          base.sign = await alistSignGet(base.id);
-        }
-
         return base;
       })
     );
@@ -119,58 +115,4 @@ export const getFileList = async (id: string) => {
   };
 
   return await findMatchingSubtree(root, targetKey);
-};
-
-// sign 计算部分
-const hmacSha256Sign = async (path: string, expire: number, token: string) => {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(token),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign", "verify"]
-  );
-  const buf = await crypto.subtle.sign(
-    {
-      name: "HMAC",
-      hash: "SHA-256",
-    },
-    key,
-    new TextEncoder().encode(`${path}:${expire}`)
-  );
-  return (
-    btoa(String.fromCharCode(...new Uint8Array(buf)))
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_") +
-    ":" +
-    expire
-  );
-};
-
-let alistSettingsCache: { token: string; linkExpiration: number } | null = null;
-
-export const alistSignGet = async (path: string) => {
-  if (!alistSettingsCache) {
-    const [tokenData, linkExpirationData] = await Promise.all([
-      db
-        .selectFrom("galrc_setting_items")
-        .selectAll()
-        .where("key", "=", "token")
-        .executeTakeFirst(),
-      db
-        .selectFrom("galrc_setting_items")
-        .selectAll()
-        .where("key", "=", "link_expiration")
-        .executeTakeFirst(),
-    ]);
-    alistSettingsCache = {
-      token: tokenData!.value!,
-      linkExpiration: Number(linkExpirationData?.value || 1),
-    };
-  }
-
-  const timestamp = Math.floor(Date.now() / 1000);
-  const expiration = timestamp + 3600 * alistSettingsCache.linkExpiration;
-  const sign = await hmacSha256Sign(path, expiration, alistSettingsCache.token);
-  return sign;
 };

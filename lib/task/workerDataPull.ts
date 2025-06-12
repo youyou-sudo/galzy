@@ -3,7 +3,7 @@ import { db } from "@/lib/kysely";
 
 const workerDataPull = async () => {
   const data = await db.selectFrom("galrc_cloudflare").selectAll().execute();
-  await Promise.all(
+  await Promise.allSettled(
     data.map(async (item) => {
       try {
         const today = new Date();
@@ -60,6 +60,7 @@ const workerDataPull = async () => {
         const cleanDomain = result2.replace(/\*$/, "").replace(/\/+$/, "");
         const url = `https://${cleanDomain}`;
 
+        // 检查请求是否成功，如果请求的次数大于 100000，则认为成功，否则设为 false
         await db
           .updateTable("galrc_cloudflare")
           .set({
@@ -75,7 +76,16 @@ const workerDataPull = async () => {
           .where("id", "=", item.id)
           .execute();
       } catch (err) {
-        throw new Error(`请求失败: ${item.account_id}, ${err}`);
+        console.error(`请求失败: ${item.account_id}, ${err}`);
+        // 如果请求出错，直接将 state 设置为 false
+        await db
+          .updateTable("galrc_cloudflare")
+          .set({
+            state: false,
+            updateTime: new Date(),
+          })
+          .where("id", "=", item.id)
+          .execute();
       }
     })
   );

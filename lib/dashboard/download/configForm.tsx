@@ -44,3 +44,14 @@ export const configFormPut = async ({
       .executeTakeFirst();
   }
 };
+
+export const configFormDel = async (id: number) => {
+  if (id) {
+    await db
+      .deleteFrom("galrc_cloudflare")
+      .where("id", "=", id)
+      .executeTakeFirst();
+  } else {
+    console.log("未提供 ID");
+  }
+};

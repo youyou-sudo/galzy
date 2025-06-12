@@ -6,6 +6,8 @@ export async function register() {
   connection();
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { workerDataCorn } = await import("./lib/task/workerDataPull");
+    const { alistDataCorn } = await import("./lib/task/alistSync");
     workerDataCorn();
+    alistDataCorn();
   }
 }

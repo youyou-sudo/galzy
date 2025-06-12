@@ -3,7 +3,6 @@ import { useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 // import { useRouter } from "@bprogress/next/app";
 import { useTransitionRouter } from "next-view-transitions";
-
 import { Search } from "lucide-react";
 
 export default function SearchInput(pops: { className?: string }) {

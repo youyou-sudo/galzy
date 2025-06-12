@@ -1,6 +1,24 @@
 import { db } from "@/lib/kysely";
 
-export const GET = async () => {
+export const alistSyncScript = async () => {
+  const [alistUpInfo, alistUpTime] = await Promise.all([
+    db
+      .selectFrom("galrc_setting_items")
+      .selectAll()
+      .where("key", "=", "index_progress")
+      .executeTakeFirst(),
+    db
+      .selectFrom("galrc_siteConfig")
+      .selectAll()
+      .where("key", "=", "alistUpTime")
+      .executeTakeFirst(),
+  ]);
+
+  const parsedValue = JSON.parse(alistUpInfo?.value as unknown as string);
+
+  if (alistUpInfo!.value.is_done === false) return;
+  if (alistUpTime?.config.lastUpdate === parsedValue.last_done_time) return;
+
   const alistData = await db
     .selectFrom("galrc_search_nodes")
     .select(["name"]) // 只选 name 字段
@@ -53,7 +71,36 @@ export const GET = async () => {
   await db.transaction().execute(async (trx) => {
     await trx.deleteFrom("galrc_alistb").execute();
     await trx.insertInto("galrc_alistb").values(dedupedResults).execute();
+    await trx
+      .insertInto("galrc_siteConfig")
+      .values({
+        key: "alistUpTime",
+        config: JSON.stringify({
+          lastUpdate: parsedValue.last_done_time,
+        }),
+      })
+      .onConflict((oc) =>
+        oc.column("key").doUpdateSet({
+          config: JSON.stringify({
+            lastUpdate: parsedValue.last_done_time,
+          }),
+        })
+      )
+      .execute();
   });
-
-  return Response.json(dedupedResults);
+  console.log("已更新");
+  return {
+    success: true,
+    message: "已更新喵",
+  };
 };
+
+export async function alistDataCorn() {
+  try {
+    await alistSyncScript();
+  } catch (err) {
+    console.error("alistSyncScript 任务失败", err);
+  }
+
+  setTimeout(alistDataCorn, 60 * 1000);
+}

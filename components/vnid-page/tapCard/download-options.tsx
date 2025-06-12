@@ -116,7 +116,7 @@ export const DownCardDialog = () => {
             关闭
           </Button>
           <Button asChild>
-            <Link target="_blank" href={`/download?path=${data?.sign}`}>
+            <Link target="_blank" href={`/api/download?path=${data?.id}`}>
               <div className="flex items-center">
                 <Download />
                 下载

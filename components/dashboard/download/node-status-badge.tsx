@@ -9,12 +9,12 @@ export function NodeStatusBadge({ status }: NodeStatusBadgeProps) {
     true: {
       label: "在线",
       variant: "default" as const,
-      className: "bg-green-500 hover:bg-green-600",
+      className: "bg-green-500",
     },
     false: {
       label: "离线",
       variant: "outline" as const,
-      className: "bg-gray-500 hover:bg-red-600 text-white",
+      className: "bg-red-600 text-white",
     },
   };
 

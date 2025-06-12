@@ -6,17 +6,17 @@ import { TapCatd } from "@/components/vnid-page/tapCard";
 
 export const revalidate = 60;
 
-export default async function idPage({ params }: { params: { vnid: string } }) {
-  const { vnid } = await params;
-  if (vnid.startsWith("v")) {
-    const data = await getVnDetails(vnid);
+export default async function idPage({ params }: { params: { id: string } }) {
+  const { id } = await params;
+  if (id.startsWith("v")) {
+    const data = await getVnDetails(id);
     return (
       <div className="space-y-3">
         <ContentCard data={data} />
-        <TapCatd id={vnid} />
+        <TapCatd id={id} />
       </div>
     );
   }
 
-  return <div>{vnid}</div>;
+  return <div>{id}</div>;
 }

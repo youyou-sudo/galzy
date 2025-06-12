@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -24,10 +23,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { configFormPut } from "@/lib/dashboard/download/configForm";
+import { downloadStore } from "./stores/download";
 
 const formSchema = z.object({
-  id: z.string().optional(),
-  a_email: z.string().email().min(1, {
+  a_email: z.string().email("请输入有效邮箱").min(1, {
     message: "请输入邮箱",
   }),
   a_key: z.string().min(1, {
@@ -39,17 +38,26 @@ const formSchema = z.object({
   woker_name: z.string().min(1, {
     message: "请输入 woker 名称",
   }),
-  url_endpoint: z.string().url(),
+  url_endpoint: z.string().url({
+    message: "请输入有效的 URL",
+  }),
 });
 
-export function NodeManagementDialog({ refetch }: { refetch: () => void }) {
-  const [open, setOpen] = useState(false);
+export function NodeManagementDialog({
+  refetchAction,
+}: {
+  refetchAction: () => void;
+}) {
+  const isOpen = downloadStore((s) => s.isOpen);
+  const setOpen = downloadStore((s) => s.setOpen);
+  const data = downloadStore((s) => s.data);
+  const close = downloadStore((s) => s.close);
+
   const [isPending, setIsPending] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      id: "",
       a_email: "",
       a_key: "",
       account_id: "",
@@ -58,31 +66,42 @@ export function NodeManagementDialog({ refetch }: { refetch: () => void }) {
     },
   });
 
+  // 在 data 更新时重置表单
+  useEffect(() => {
+    form.reset(
+      {
+        a_email: data?.a_email || "",
+        a_key: data?.a_key || "",
+        account_id: data?.account_id || "",
+        woker_name: data?.woker_name || "",
+        url_endpoint: data?.url_endpoint || "",
+      },
+      {
+        keepDirtyValues: true,
+      }
+    );
+  }, [data, form]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsPending(true);
     try {
-      await configFormPut({ ...values });
+      await configFormPut({ ...values, id: data?.id });
       setOpen(false);
       form.reset();
-      refetch();
+      refetchAction();
     } catch (error) {
       console.error("提交失败：", error);
     } finally {
       setIsPending(false);
     }
   }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          添加节点
-        </Button>
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>添加新节点</DialogTitle>
-          <DialogDescription>cloudflare Worker</DialogDescription>
+          <DialogTitle>节点信息</DialogTitle>
+          <DialogDescription>Cloudflare Worker 配置</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
@@ -99,6 +118,7 @@ export function NodeManagementDialog({ refetch }: { refetch: () => void }) {
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="a_key"
@@ -112,19 +132,7 @@ export function NodeManagementDialog({ refetch }: { refetch: () => void }) {
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="id"
-              render={({ field }) => (
-                <FormItem className="hidden">
-                  <FormLabel> ID</FormLabel>
-                  <FormControl>
-                    <Input placeholder="account_id" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
             <FormField
               control={form.control}
               name="account_id"
@@ -138,12 +146,13 @@ export function NodeManagementDialog({ refetch }: { refetch: () => void }) {
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="woker_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>woker 名称</FormLabel>
+                  <FormLabel>Worker 名称</FormLabel>
                   <FormControl>
                     <Input placeholder="woker_name" {...field} />
                   </FormControl>
@@ -151,6 +160,7 @@ export function NodeManagementDialog({ refetch }: { refetch: () => void }) {
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="url_endpoint"
@@ -164,14 +174,24 @@ export function NodeManagementDialog({ refetch }: { refetch: () => void }) {
                 </FormItem>
               )}
             />
+
             <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  close();
+                }}
+                type="button"
+              >
                 取消
               </Button>
-              <Button disabled={isPending} type="submit">
-                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {!isPending && <Plus className="mr-2 h-4 w-4" />}
-                添加节点
+              <Button type="submit">
+                {isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Plus className="mr-2 h-4 w-4" />
+                )}
+                提交
               </Button>
             </div>
           </form>

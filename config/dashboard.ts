@@ -1,9 +1,4 @@
-import {
-  Bot,
-  Frame,
-  GalleryVerticalEnd,
-  SquareTerminal,
-} from "lucide-react";
+import { Bot, Frame, GalleryVerticalEnd, SquareTerminal } from "lucide-react";
 
 export const dashboardConfig = {
   section: [
@@ -25,8 +20,8 @@ export const dashboardConfig = {
           url: "/dashboard/config",
         },
         {
-          title: "补充数据",
-          url: "/dashboard/other",
+          title: "数据管理",
+          url: "/dashboard/dataManagement",
         },
       ],
     },

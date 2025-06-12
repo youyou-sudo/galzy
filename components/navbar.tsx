@@ -5,7 +5,7 @@ import { Suspense } from "react";
 
 import SearchInput from "@/components/Search";
 import { ThemeSwitch } from "@/components/theme-switch";
-import { Account } from "@/components/account";
+// import { Account } from "@/components/account";
 
 export function Navbar() {
   return (
@@ -30,7 +30,7 @@ export function Navbar() {
           {/* Right block */}
           <div className="flex items-center gap-2">
             <ThemeSwitch />
-            <Account />
+            {/* <Account /> */}
           </div>
         </div>
       </div>

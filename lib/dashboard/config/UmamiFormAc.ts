@@ -52,7 +52,7 @@ export const umamiConfigGet = async () => {
     };
   }
   return {
-    syccess: true,
+    success: true,
     message: "Umami 配置已找到",
     data: config,
   };
