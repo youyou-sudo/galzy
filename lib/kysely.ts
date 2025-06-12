@@ -269,6 +269,7 @@ export type otherTitle = {
 export type Onthermeidia = {
   meidiaUrl: string; // 媒体链接
   type: string; // 媒体类型
+  Preview: string | null; // 文件预览图（除图片以外的视频或音乐封面）
   ThumbHash: string; // ThumbHash 占位图 base64
   Hash: string; // 文件哈希（唯一性去重）
   Cover: number; // 1 为封面，0 为否
