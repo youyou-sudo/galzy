@@ -262,23 +262,24 @@ export interface ReleasesTitlesTable {
 }
 
 export type otherTitle = {
-  lang: language;
-  title: string;
+  title: string; // 标题
+  lang: language; // 标题语言
 };
 
-export type Onthermeidia = {
+export interface Onthermeidia {
+  id: number;
   meidiaUrl: string; // 媒体链接
   type: string; // 媒体类型
   Preview: string | null; // 文件预览图（除图片以外的视频或音乐封面）
   ThumbHash: string; // ThumbHash 占位图 base64
   Hash: string; // 文件哈希（唯一性去重）
   Cover: number; // 1 为封面，0 为否
-};
+}
 
 export interface OtherDataTable {
   id: number; // 主键，自增
   vid: string | null; // VNDB ID
-  onthermeidia: Onthermeidia[] | null; // 媒体
+  onthermeidia: bigint | null; // 媒体
   title: otherTitle[] | null; // 可为空
   alias: string | null; // 别名
   Introduction: string | null; // 简介
@@ -318,6 +319,7 @@ export interface Database {
   galrc_alistb: AlistB;
   galrc_storages: AlistStorages;
   galrc_other: OtherDataTable;
+  galrc_media: Onthermeidia;
   galrc_cloudflare: CloudflareConfigTable;
   galrc_siteConfig: SiteConfigTable;
 

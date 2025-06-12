@@ -100,11 +100,25 @@ export async function seed() {
   // 创建 Galrc 部分表
 
   await db.schema
+    .createTable("galrc_media")
+    .ifNotExists()
+    .addColumn("id", "bigint", (cb) => cb.primaryKey())
+    .addColumn("meidiaUrl", "text", (cb) => cb.notNull())
+    .addColumn("type", "varchar(255)", (cb) => cb.notNull())
+    .addColumn("Preview", "text")
+    .addColumn("ThumbHash", "text", (cb) => cb.notNull())
+    .addColumn("Hash", "text", (cb) => cb.notNull())
+    .addColumn("Cover", "bigint")
+    .execute();
+
+  await db.schema
     .createTable("galrc_other")
     .ifNotExists()
     .addColumn("id", "bigint", (cb) => cb.primaryKey())
     .addColumn("vid", "varchar(255)", (cb) => cb.references("vn.id"))
-    .addColumn("onthermeidia", "text")
+    .addColumn("onthermeidia", "bigint", (cb) =>
+      cb.references("galrc_media.id")
+    )
     .addColumn("title", "text")
     .addColumn("alias", "text")
     .addColumn("Introduction", "text")
