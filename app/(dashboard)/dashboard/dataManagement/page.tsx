@@ -24,7 +24,7 @@ export default async function page() {
 
   // 数据筛选列表请求
   await queryClient.prefetchQuery({
-    queryKey: ["dataFilteringGet"], 
+    queryKey: ["dataFilteringGet"],
     queryFn: async () => {
       const res = await dataFilteringGet();
       return res;

@@ -1,6 +1,6 @@
 "use server";
 import { db } from "@/lib/kysely";
-import { jsonObjectFrom } from "kysely/helpers/postgres";
+import { jsonArrayFrom, jsonObjectFrom } from "kysely/helpers/postgres";
 
 /**
  * 根据传入的 vid 和 otherId 条件，查询 galrc_alistb 表中对应的数据。
@@ -106,10 +106,10 @@ export const dataFilteringGet = async ({
 };
 
 /**
- * 获取 galrc_alistb 表中 4 类数据的统计信息：  
- *  1. `onlyOther`：只存在 other，vid 为 null  
- *  2. `bothExist`：vid 和 other 都存在  
- *  3. `onlyVid`：只存在 vid，other 为 null  
+ * 获取 galrc_alistb 表中 4 类数据的统计信息：
+ *  1. `onlyOther`：只存在 other，vid 为 null
+ *  2. `bothExist`：vid 和 other 都存在
+ *  3. `onlyVid`：只存在 vid，other 为 null
  *  4. `all`：全部数据数量
  */
 export const dataFilteringStats = async () => {
@@ -147,4 +147,73 @@ export const dataFilteringStats = async () => {
     onlyVid: onlyVid?.count ?? 0,
     all: all?.count ?? 0,
   };
+};
+
+export const vidassociationGet = async (id: string) => {
+  if (!id) {
+    throw new Error("Invalid ID");
+  }
+
+  if (id.startsWith("v")) {
+    const fetchData = async () => {
+      return await db
+        .selectFrom("galrc_alistb")
+        .selectAll()
+        .where("vid", "=", id)
+        .select((eb) => [
+          "galrc_alistb.other",
+          jsonObjectFrom(
+            eb
+              .selectFrom("galrc_other")
+              .selectAll()
+              .select((other) => [
+                "id",
+                jsonArrayFrom(
+                  other
+                    .selectFrom("galrc_other_media")
+                    .select((media) => [
+                      jsonObjectFrom(
+                        media
+                          .selectFrom("galrc_media")
+                          .selectAll()
+                          .whereRef(
+                            "galrc_media.id",
+                            "=",
+                            "galrc_other_media.media_id"
+                          )
+                      ).as("media"),
+                    ])
+                    .whereRef(
+                      "galrc_other_media.other_id",
+                      "=",
+                      "galrc_other.id"
+                    )
+                ).as("onthermeidia"),
+              ])
+              .whereRef("galrc_other.id", "=", "galrc_alistb.other")
+          ).as("other"),
+        ])
+        .executeTakeFirst();
+    };
+
+    let data = await fetchData();
+
+    if (data?.other === null) {
+      const newOtherId = await db
+        .insertInto("galrc_other")
+        .values({ status: "draft" })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+
+      await db
+        .updateTable("galrc_alistb")
+        .set({ other: newOtherId.id })
+        .where("vid", "=", id)
+        .execute();
+
+      data = await fetchData();
+    }
+
+    return data?.other;
+  }
 };

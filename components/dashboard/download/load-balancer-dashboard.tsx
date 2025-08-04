@@ -75,11 +75,11 @@ export default function LoadBalancerDashboard() {
   }, []);
 
   const healthyNodes = (workersItems || []).filter(
-    (node) => node.state === true
+    (node) => node.state === true,
   ).length;
   const totalSize = (workersItems ?? []).reduce(
     (sum, item) => sum + +item.responseBodySize,
-    0
+    0,
   );
 
   const dataList: MobileStatsGridProps[] = [
@@ -98,7 +98,7 @@ export default function LoadBalancerDashboard() {
       title: "请求",
       value: (workersItems ?? []).reduce(
         (sum, item) => sum + +item.requests,
-        0
+        0,
       ),
       subtitle: "活跃连接",
       icon: Activity,
@@ -266,13 +266,13 @@ export default function LoadBalancerDashboard() {
                               checked={node.enable}
                               disabled={switchLoading}
                               onClick={async () => {
-                                await setSwitchLoading(true);
+                                setSwitchLoading(true);
                                 await nodeEnaledAc(node.id, !node.enable);
                                 await refetch();
                                 await new Promise((resolve) =>
-                                  setTimeout(resolve, 500)
+                                  setTimeout(resolve, 500),
                                 );
-                                await setSwitchLoading(false);
+                                setSwitchLoading(false);
                               }}
                             />
                           </TableCell>

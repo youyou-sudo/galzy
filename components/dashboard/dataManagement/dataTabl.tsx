@@ -26,6 +26,7 @@ import { dataFilteringGet } from "@/lib/dashboard/dataManagement/dataGet";
 import { Button } from "@/components/ui/button";
 import { SquarePen } from "lucide-react";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
+import Link from "next/link";
 
 export default function DataTabl() {
   const [filterNusq, setFilterNusq] = useQueryState("filter");
@@ -44,7 +45,7 @@ export default function DataTabl() {
     }
   };
   // 数据请求
-  const { data: dataFilteringData, refetch } = useQuery({
+  const { data: dataFilteringData } = useQuery({
     queryKey: ["dataFilteringGet", filterNusq],
     queryFn: async () => {
       const params = getRequestParams(filterNusq);
@@ -106,15 +107,14 @@ export default function DataTabl() {
                     {item.otherdatas?.title?.[0]?.title || "N/A"}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="secondary"
-                      size="icon"
-                      className="size-8"
-                      onClick={() => {
-                        console.log("测试");
-                      }}
-                    >
-                      <SquarePen />
+                    <Button variant="secondary" size="icon" className="size-8">
+                      <Link
+                        href={`/dashboard/dataManagement/edit/${
+                          item.vid || item.id
+                        }`}
+                      >
+                        <SquarePen />
+                      </Link>
                     </Button>
                     <Button
                       variant="secondary"

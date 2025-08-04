@@ -267,23 +267,47 @@ export type otherTitle = {
 };
 
 export interface Onthermeidia {
-  id: number;
-  meidiaUrl: string; // 媒体链接
+  id: Generated<number>;
+  name: string; // 媒体名称
   type: string; // 媒体类型
-  Preview: string | null; // 文件预览图（除图片以外的视频或音乐封面）
-  ThumbHash: string; // ThumbHash 占位图 base64
-  Hash: string; // 文件哈希（唯一性去重）
-  Cover: number; // 1 为封面，0 为否
+  thumb_hash: string | null; // ThumbHash 占位图 base64
+  hash: string; // 文件哈希（唯一性去重）
+  cover: number; // 1 为封面，0 为否
+  size: bigint; // 文件大小
 }
 
 export interface OtherDataTable {
-  id: number; // 主键，自增
-  vid: string | null; // VNDB ID
-  onthermeidia: bigint | null; // 媒体
+  id: Generated<number>; // 主键，自增
   title: otherTitle[] | null; // 可为空
   alias: string | null; // 别名
   Introduction: string | null; // 简介
   description: string | null; // 介绍
+  status: ColumnType<
+    | "draft"
+    | "editing"
+    | "pending"
+    | "published"
+    | "archived"
+    | "deleted"
+    | "failed",
+    string | undefined,
+    | "draft"
+    | "editing"
+    | "pending"
+    | "published"
+    | "archived"
+    | "deleted"
+    | "failed"
+  > | null; // 状态
+}
+
+export interface OtherDataMediaTable {
+  id: Generated<number>; // 主键，自增
+  other_id: number; // 关联 OtherDataTable 的 id
+  media_id: number; // 关联 Onthermeidia 的 id
+  sort_order: number; // 排序顺序
+  createdAt: ColumnType<Date, string | undefined, never>;
+  updatedAt: ColumnType<Date, string | undefined, never>;
 }
 
 export interface SiteConfigTable {
@@ -319,6 +343,7 @@ export interface Database {
   galrc_alistb: AlistB;
   galrc_storages: AlistStorages;
   galrc_other: OtherDataTable;
+  galrc_other_media: OtherDataMediaTable;
   galrc_media: Onthermeidia;
   galrc_cloudflare: CloudflareConfigTable;
   galrc_siteConfig: SiteConfigTable;

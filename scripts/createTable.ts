@@ -100,29 +100,45 @@ export async function seed() {
   // 创建 Galrc 部分表
 
   await db.schema
-    .createTable("galrc_media")
+    .createTable("galrc_other")
     .ifNotExists()
-    .addColumn("id", "bigint", (cb) => cb.primaryKey())
-    .addColumn("meidiaUrl", "text", (cb) => cb.notNull())
-    .addColumn("type", "varchar(255)", (cb) => cb.notNull())
-    .addColumn("Preview", "text")
-    .addColumn("ThumbHash", "text", (cb) => cb.notNull())
-    .addColumn("Hash", "text", (cb) => cb.notNull())
-    .addColumn("Cover", "bigint")
+    .addColumn("id", "serial", (cb) => cb.primaryKey()) // Changed to serial for auto-increment
+    .addColumn("title", "jsonb") // Changed to jsonb for otherTitle[] array
+    .addColumn("alias", "text")
+    .addColumn("introduction", "text") // Fixed capitalization
+    .addColumn("description", "text")
+    .addColumn("status", "text")
     .execute();
 
   await db.schema
-    .createTable("galrc_other")
+    .createTable("galrc_media")
     .ifNotExists()
-    .addColumn("id", "bigint", (cb) => cb.primaryKey())
-    .addColumn("vid", "varchar(255)", (cb) => cb.references("vn.id"))
-    .addColumn("onthermeidia", "bigint", (cb) =>
-      cb.references("galrc_media.id")
+    .addColumn("id", "serial", (cb) => cb.primaryKey()) // Changed to serial for auto-increment
+    .addColumn("name", "text", (cb) => cb.notNull())
+    .addColumn("size", "bigint", (cb) => cb.notNull())
+    .addColumn("type", "varchar(255)", (cb) => cb.notNull())
+    .addColumn("thumb_hash", "text") // Made nullable
+    .addColumn("hash", "text", (cb) => cb.notNull())
+    .addColumn("cover", "integer", (cb) => cb.defaultTo(0)) // Changed to integer for 0/1
+    .execute();
+
+  await db.schema
+    .createTable("galrc_other_media")
+    .ifNotExists()
+    .addColumn("id", "serial", (cb) => cb.primaryKey())
+    .addColumn("other_id", "integer", (cb) =>
+      cb.notNull().references("galrc_other.id").onDelete("cascade")
     )
-    .addColumn("title", "text")
-    .addColumn("alias", "text")
-    .addColumn("Introduction", "text")
-    .addColumn("description", "text")
+    .addColumn("media_id", "integer", (cb) =>
+      cb.notNull().references("galrc_media.id").onDelete("cascade")
+    )
+    .addColumn("sort_order", "integer", (cb) => cb.notNull())
+    .addColumn("createdAt", sql`timestamp with time zone`, (cb) =>
+      cb.defaultTo(sql`current_timestamp`)
+    )
+    .addColumn("updatedAt", sql`timestamp with time zone`, (cb) =>
+      cb.defaultTo(sql`current_timestamp`)
+    )
     .execute();
 
   await db.schema
