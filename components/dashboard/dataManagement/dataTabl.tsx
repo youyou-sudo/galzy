@@ -28,32 +28,28 @@ import { SquarePen } from "lucide-react";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 import Link from "next/link";
 
-export default function DataTabl() {
-  const [filterNusq, setFilterNusq] = useQueryState("filter");
+import DataManagementPagination from "@/components/dashboard/dataManagement/Pagination";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useFilterStore, usePaginationStore } from "./stores/dataManagement";
 
+export default function DataTabl() {
+  const filterNusq = useFilterStore((state) => state.filterNusq);
+  const setFilterNusq = useFilterStore((state) => state.setFilterNusq);
+  const getRequestParams = useFilterStore((state) => state.getRequestParams);
+  const { datapage, limit, setDatapage, setLimit } = usePaginationStore();
   // 确定请求参数
-  const getRequestParams = (filterNusq: string | undefined | null) => {
-    switch (filterNusq) {
-      case "NoVndb":
-        return { otherId: 1 };
-      case "NotSupplemented":
-        return { vid: 1 };
-      case "Supplemented":
-        return { vid: 1, otherId: 1 };
-      default:
-        return {};
-    }
-  };
   // 数据请求
   const { data: dataFilteringData } = useQuery({
-    queryKey: ["dataFilteringGet", filterNusq],
+    queryKey: ["dataFilteringGet", filterNusq, datapage, limit],
     queryFn: async () => {
-      const params = getRequestParams(filterNusq);
+      const params = { ...getRequestParams(filterNusq), page: datapage, limit };
       const res = await dataFilteringGet(params);
       return res;
     },
     refetchInterval: 60000,
   });
+
+  // [x] 数据翻页功能
   return (
     <div>
       <Card>
@@ -63,9 +59,11 @@ export default function DataTabl() {
               <div>数据管理</div>
               {filterNusq}
               <div className="flex ml-auto space-x-4">
+                {/* [ ]  数据搜索
+                 */}
                 <Input placeholder="ID" />
                 <Select
-                  defaultValue="All"
+                  defaultValue={filterNusq!}
                   onValueChange={(value) => setFilterNusq(value)}
                 >
                   <SelectTrigger>
@@ -128,6 +126,26 @@ export default function DataTabl() {
               ))}
             </TableBody>
           </Table>
+          {dataFilteringData ? (
+            <DataManagementPagination
+              currentPage={dataFilteringData.pagination.page}
+              totalPages={dataFilteringData.pagination.totalPages}
+              setDatapage={(page: number) => setDatapage(page)}
+              setLimit={(newLimit: number) => {
+                setLimit(newLimit);
+                setDatapage(1);
+              }}
+              limit={dataFilteringData.pagination.limit}
+            />
+          ) : (
+            <div className="flex flex-col space-y-2 mt-4">
+              {Array(6)
+                .fill(0)
+                .map((_, i) => (
+                  <Skeleton key={i} className="h-[40px] rounded-xl" />
+                ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
