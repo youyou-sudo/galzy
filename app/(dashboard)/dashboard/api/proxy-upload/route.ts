@@ -7,17 +7,20 @@ export async function PUT(req: NextRequest) {
     return new Response("No file body", { status: 400 });
   }
 
-  const targetUrl = "http://localhost:5244/api/fs/put";
+  const targetUrl = `${process.env.OPENLIST_HOST}/api/fs/put`;
 
   const headers = new Headers();
-  const forwardedHeaders = req.headers;
 
+  // ✅ 从环境变量中注入 Authorization
+  const authToken = process.env.OPENLIST_API_KEY;
+  if (authToken) {
+    headers.set("Authorization", authToken);
+  }
+
+  // ✅ 可选：继续转发其他有用的请求头
+  const forwardedHeaders = req.headers;
   for (const [key, value] of forwardedHeaders.entries()) {
-    if (
-      ["authorization", "file-path", "content-type", "as-task"].includes(
-        key.toLowerCase()
-      )
-    ) {
+    if (["file-path", "content-type", "as-task"].includes(key.toLowerCase())) {
       headers.set(key, value);
     }
   }
@@ -28,7 +31,7 @@ export async function PUT(req: NextRequest) {
     body,
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
-    duplex: "half", // 关键：加上这个选项支持流式请求体
+    duplex: "half",
   });
 
   const resBody = await upstreamRes.arrayBuffer();
