@@ -13,6 +13,8 @@ import { Plus } from "lucide-react";
 export const AddSubDialog = () => {
   return (
     <Dialog>
+       {/* [ ] 添加条目功能
+        */}
       <DialogTrigger asChild>
         <Button>
           <Plus className="w-4 h-4 mr-2" />
