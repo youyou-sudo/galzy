@@ -119,7 +119,6 @@ export async function seed() {
     .addColumn("type", "varchar(255)", (cb) => cb.notNull())
     .addColumn("thumb_hash", "text") // Made nullable
     .addColumn("hash", "text", (cb) => cb.notNull())
-    .addColumn("cover", "integer", (cb) => cb.defaultTo(0)) // Changed to integer for 0/1
     .execute();
 
   await db.schema
@@ -139,6 +138,7 @@ export async function seed() {
     .addColumn("updatedAt", sql`timestamp with time zone`, (cb) =>
       cb.defaultTo(sql`current_timestamp`)
     )
+    .addColumn("cover", "boolean", (cb) => cb.notNull().defaultTo(false)) // 是否为封面
     .execute();
 
   await db.schema
