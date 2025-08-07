@@ -1,7 +1,12 @@
+"use server";
 import { db } from "@/lib/kysely";
 
 // sign 计算部分
-const hmacSha256Sign = async (path: string, expire: number, token: string) => {
+export const hmacSha256Sign = async (
+  path: string,
+  expire: number,
+  token: string
+) => {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(token),
@@ -62,6 +67,7 @@ export const alistDownloadGet = async (path: string) => {
     return {
       success: false,
       message: "！喵～（颤抖～）当前貌似没有可用的节点喵（汗颜）",
+      sign: sign,
     };
   }
 
@@ -70,5 +76,6 @@ export const alistDownloadGet = async (path: string) => {
     success: true,
     message: "哼哼喵（得意），找到啦～",
     raw_url: url,
+    sign: sign,
   };
 };

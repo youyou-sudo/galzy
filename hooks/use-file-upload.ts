@@ -1,6 +1,5 @@
 "use client";
 
-import { base64ToThumbHash, calculateThumbHash } from "@/lib/thumbhash-utils";
 import type React from "react";
 import {
   useCallback,
@@ -12,17 +11,19 @@ import {
 } from "react";
 
 export type FileMetadata = {
+  id: number;
   name: string;
-  size: number;
+  thumb_hash: string | null;
   type: string;
   media_url: string;
-  thumb_hash?: string;
   Hash: string;
+  size: number;
 };
 
 export type FileWithPreview = {
-  file: File | FileMetadata;
   id: string;
+  file: FileMetadata | File;
+  cover: boolean;
   preview?: string;
   uploadProgress?: number;
   uploadStatus?: "pending" | "uploading" | "success" | "error";
@@ -87,7 +88,6 @@ export const useFileUpload = (
     onFilesAdded,
     uploadConfig = {
       apiUrl: "https://azusa-mikan.frp.wo25.net:32000/api/fs/put",
-      authorization: "",
       basePath: "/uploads",
       asTask: false,
     },
@@ -95,9 +95,10 @@ export const useFileUpload = (
 
   const [state, setState] = useState<FileUploadState>({
     files: initialFiles.map((file) => ({
-      file,
       id: file.Hash,
+
       preview: file.media_url,
+      file,
     })),
     isDragging: false,
     errors: [],

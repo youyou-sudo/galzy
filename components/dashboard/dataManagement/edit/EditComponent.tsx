@@ -24,7 +24,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Plus, Trash2 } from "lucide-react";
-import TestUpComp from "../../test/testUP";
+import ImageUpComp from "./imageUp";
+import {
+  vidassociationGet,
+  vidassociationUpdate,
+} from "@/lib/dashboard/dataManagement/dataGet";
 
 // 定义表单验证模式
 const formSchema = z.object({
@@ -46,38 +50,28 @@ const formSchema = z.object({
   description: z.string().min(1, {
     message: "描述不能为空",
   }),
-  onthermeidia: z.array(
-    z.object({
-      id: z.number().nullable(),
-      meidiaUrl: z.string().min(1, {
-        message: "媒体不能为空",
-      }),
-      type: z.string(),
-      Cover: z.boolean(),
-    })
-  ),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-export default function EditComponent() {
+type DataTy = Awaited<ReturnType<typeof vidassociationGet>>;
+
+export default function EditComponent({ data }: { data: DataTy }) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: [{ title: "", lang: "" }],
-      description: "",
-      onthermeidia: [{ id: null, meidiaUrl: "", type: "", Cover: false }],
+      title: data?.title || [{ title: "", lang: "" }],
+      description: data?.description || "",
+      alias: data?.alias || "",
     },
   });
-
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "title",
   });
 
-  const onSubmit = (values: FormValues) => {
-    console.log("表单数据:", values);
-    // 这里可以处理表单提交逻辑
+  const onSubmit = async (values: FormValues) => {
+    await vidassociationUpdate(Number(data!.id), values);
   };
 
   const addTitleItem = () => {
@@ -213,7 +207,8 @@ export default function EditComponent() {
                 />
               </div>
             </div>
-            <TestUpComp />
+            {/* 上传图片组件 */}
+            <ImageUpComp datas={data} />
 
             {form.formState.errors.title && (
               <p className="text-sm text-red-500">

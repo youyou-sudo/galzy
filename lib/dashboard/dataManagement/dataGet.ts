@@ -29,7 +29,7 @@ import { jsonArrayFrom, jsonObjectFrom } from "kysely/helpers/postgres";
  * @param {number | null | undefined} params.vid 可选，视频 ID
  * @param {number | null | undefined} params.otherId 可选，其他关联 ID
  * @param {number | null | undefined} params.limit 可选，每页列出多少数据（默认20）
- * @param {number | null | undefined} params.offset 可选，页码（默认第一页）
+ * @param {number | null | undefined} params.page 可选，页码（默认第一页）
  * @returns {Promise<any[]>} 查询结果数组
  */
 
@@ -37,16 +37,17 @@ export const dataFilteringGet = async ({
   vid,
   otherId,
   limit = 20,
-  offset = 0,
+  page = 1,
 }: {
   vid?: number | null;
   otherId?: number | null;
   limit?: number;
-  offset?: number;
+  page?: number;
 } = {}) => {
+  const offset = (page - 1) * limit;
+
   const baseQuery = db.selectFrom("galrc_alistb");
 
-  // 构造 where 条件
   let whereQuery = baseQuery;
   if (otherId != null && (vid == null || vid === undefined)) {
     whereQuery = whereQuery
@@ -62,14 +63,12 @@ export const dataFilteringGet = async ({
       .where("galrc_alistb.other", "is", null);
   }
 
-  // 总数查询
   const totalResult = await whereQuery
     .select(({ fn }) => [fn.countAll<number>().as("count")])
     .executeTakeFirst();
 
   const total = totalResult?.count ?? 0;
 
-  // 数据查询
   const dataQuery = whereQuery
     .select((qb) => [
       "galrc_alistb.id",
@@ -98,8 +97,7 @@ export const dataFilteringGet = async ({
     pagination: {
       total,
       limit,
-      offset,
-      page: Math.floor(offset / limit) + 1,
+      page,
       totalPages: Math.ceil(total / limit),
     },
   };
@@ -150,10 +148,6 @@ export const dataFilteringStats = async () => {
 };
 
 export const vidassociationGet = async (id: string) => {
-  if (!id) {
-    throw new Error("Invalid ID");
-  }
-
   if (id.startsWith("v")) {
     const fetchData = async () => {
       return await db
@@ -166,12 +160,14 @@ export const vidassociationGet = async (id: string) => {
             eb
               .selectFrom("galrc_other")
               .selectAll()
+              .whereRef("galrc_other.id", "=", "galrc_alistb.other")
               .select((other) => [
                 "id",
                 jsonArrayFrom(
                   other
                     .selectFrom("galrc_other_media")
                     .select((media) => [
+                      "galrc_other_media.cover",
                       jsonObjectFrom(
                         media
                           .selectFrom("galrc_media")
@@ -181,24 +177,18 @@ export const vidassociationGet = async (id: string) => {
                             "=",
                             "galrc_other_media.media_id"
                           )
-                      ).as("media"),
+                      ).as("mediadata"),
                     ])
-                    .whereRef(
-                      "galrc_other_media.other_id",
-                      "=",
-                      "galrc_other.id"
-                    )
-                ).as("onthermeidia"),
+                ).as("othermeidia"),
               ])
-              .whereRef("galrc_other.id", "=", "galrc_alistb.other")
-          ).as("other"),
+          ).as("other_data"),
         ])
         .executeTakeFirst();
     };
 
     let data = await fetchData();
 
-    if (data?.other === null) {
+    if (data?.other_data === null) {
       const newOtherId = await db
         .insertInto("galrc_other")
         .values({ status: "draft" })
@@ -213,7 +203,80 @@ export const vidassociationGet = async (id: string) => {
 
       data = await fetchData();
     }
+    const datas = data!.other_data;
+    return datas;
+  }
+  if (id.match(/^\d+$/)) {
+    const fetchData = async () => {
+      return await db
+        .selectFrom("galrc_other")
+        .selectAll()
+        .where("galrc_other.id", "=", Number(id))
+        .select((other) => [
+          "id",
+          jsonArrayFrom(
+            other
+              .selectFrom("galrc_other_media")
+              .select((media) => [
+                "galrc_other_media.cover",
+                jsonObjectFrom(
+                  media
+                    .selectFrom("galrc_media")
+                    .selectAll()
+                    .whereRef(
+                      "galrc_media.id",
+                      "=",
+                      "galrc_other_media.media_id"
+                    )
+                ).as("mediadata"),
+              ])
+              .whereRef("galrc_other_media.other_id", "=", "galrc_other.id")
+          ).as("othermeidia"),
+        ])
+        .executeTakeFirst();
+    };
+    let data = await fetchData();
+    if (data === null) {
+      const newOtherId = await db
+        .insertInto("galrc_other")
+        .values({ status: "draft" })
+        .returning("id")
+        .executeTakeFirstOrThrow();
 
-    return data?.other;
+      await db
+        .updateTable("galrc_alistb")
+        .set({ other: newOtherId.id })
+        .where("other", "=", Number(id))
+        .execute();
+
+      data = await fetchData();
+    }
+    return data;
+  }
+};
+
+export const vidassociationUpdate = async (id: number, data: any) => {
+  const { title, description, alias } = data;
+  try {
+    const titleObject = Array.isArray(title) ? JSON.stringify(title) : title;
+    await db
+      .updateTable("galrc_other")
+      .where("id", "=", Number(id))
+      .set({
+        title: titleObject,
+        description: description,
+        alias: alias,
+      })
+      .executeTakeFirstOrThrow();
+    return {
+      message: "更新 galrc_other 成功",
+      status: "success",
+    };
+  } catch (error) {
+    return {
+      message: "更新 galrc_other 失败",
+      status: "error",
+      error: String(error),
+    };
   }
 };

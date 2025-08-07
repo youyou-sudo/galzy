@@ -2,6 +2,8 @@ import { create } from "zustand";
 
 let clearTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
+import { persist } from "zustand/middleware";
+
 export const dataManagementModalStores = create<{
   data: any | null;
   isOpen: boolean;
@@ -30,3 +32,55 @@ export const dataManagementModalStores = create<{
   },
   setData: (data) => set({ data }),
 }));
+
+type PaginationState = {
+  datapage: number;
+  limit: number;
+  setDatapage: (page: number) => void;
+  setLimit: (limit: number) => void;
+};
+
+export const usePaginationStore = create<PaginationState>()(
+  persist(
+    (set) => ({
+      datapage: 1,
+      limit: 20,
+      setDatapage: (page) => set({ datapage: page }),
+      setLimit: (limit) => set({ limit }),
+    }),
+    {
+      name: "pagination-storage", // 存到 localStorage 的 key
+    }
+  )
+);
+
+type FilterState = {
+  filterNusq: string | null;
+  setFilterNusq: (filter: string | null) => void;
+  getRequestParams: (filter: string | null) => Record<string, any>;
+};
+
+export const useFilterStore = create<FilterState>()(
+  persist(
+    (set) => ({
+      filterNusq: "All",
+      setFilterNusq: (filter) => set({ filterNusq: filter }),
+      getRequestParams: (filter) => {
+        switch (filter) {
+          case "NoVndb":
+            return { otherId: 1 };
+          case "NotSupplemented":
+            return { vid: 1 };
+          case "Supplemented":
+            return { vid: 1, otherId: 1 };
+          case "All":
+          default:
+            return {};
+        }
+      },
+    }),
+    {
+      name: "filter-storage",
+    }
+  )
+);

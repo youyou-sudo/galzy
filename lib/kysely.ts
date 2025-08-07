@@ -272,7 +272,6 @@ export interface Onthermeidia {
   type: string; // 媒体类型
   thumb_hash: string | null; // ThumbHash 占位图 base64
   hash: string; // 文件哈希（唯一性去重）
-  cover: number; // 1 为封面，0 为否
   size: bigint; // 文件大小
 }
 
@@ -305,6 +304,7 @@ export interface OtherDataMediaTable {
   id: Generated<number>; // 主键，自增
   other_id: number; // 关联 OtherDataTable 的 id
   media_id: number; // 关联 Onthermeidia 的 id
+  cover: boolean | null; // 是否为封面
   sort_order: number; // 排序顺序
   createdAt: ColumnType<Date, string | undefined, never>;
   updatedAt: ColumnType<Date, string | undefined, never>;
