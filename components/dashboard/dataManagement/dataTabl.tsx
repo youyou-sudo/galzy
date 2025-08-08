@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/table";
 import { AddSubDialog } from "@/components/dashboard/dataManagement/addSub";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useQueryState } from "nuqs";
 import {
   Select,
   SelectContent,
@@ -37,12 +36,19 @@ export default function DataTabl() {
   const setFilterNusq = useFilterStore((state) => state.setFilterNusq);
   const getRequestParams = useFilterStore((state) => state.getRequestParams);
   const { datapage, limit, setDatapage, setLimit } = usePaginationStore();
-  // 确定请求参数
+
+  const [query, setQuery] = React.useState("");
+
   // 数据请求
   const { data: dataFilteringData } = useQuery({
-    queryKey: ["dataFilteringGet", filterNusq, datapage, limit],
+    queryKey: ["dataFilteringGet", filterNusq, datapage, limit, query],
     queryFn: async () => {
-      const params = { ...getRequestParams(filterNusq), page: datapage, limit };
+      const params = {
+        ...getRequestParams(filterNusq),
+        page: datapage,
+        limit,
+        query: query,
+      };
       const res = await dataFilteringGet(params);
       return res;
     },
@@ -59,9 +65,15 @@ export default function DataTabl() {
               <div>数据管理</div>
               {filterNusq}
               <div className="flex ml-auto space-x-4">
-                {/* [ ]  数据搜索
+                {/* [x]  数据搜索
                  */}
-                <Input placeholder="ID" />
+                <Input
+                  placeholder="ID"
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                  }}
+                />
                 <Select
                   defaultValue={filterNusq!}
                   onValueChange={(value) => setFilterNusq(value)}

@@ -30,20 +30,31 @@ import { jsonArrayFrom, jsonObjectFrom } from "kysely/helpers/postgres";
  * @param {number | null | undefined} params.otherId 可选，其他关联 ID
  * @param {number | null | undefined} params.limit 可选，每页列出多少数据（默认20）
  * @param {number | null | undefined} params.page 可选，页码（默认第一页）
+ * @param {string | null | undefined} params.query 可选，视频 ID
  * @returns {Promise<any[]>} 查询结果数组
  */
 
 export const dataFilteringGet = async ({
   vid,
   otherId,
+  query,
   limit = 20,
   page = 1,
 }: {
   vid?: number | null;
   otherId?: number | null;
+  query?: any | null;
   limit?: number;
   page?: number;
 } = {}) => {
+  function extractNumber(vi: any) {
+    const digits = vi.match(/\d+/g);
+    if (!digits) {
+      return null;
+    }
+    return Number(digits.join(""));
+  }
+
   const offset = (page - 1) * limit;
 
   const baseQuery = db.selectFrom("galrc_alistb");
@@ -69,7 +80,20 @@ export const dataFilteringGet = async ({
 
   const total = totalResult?.count ?? 0;
 
-  const dataQuery = whereQuery
+  const numQuery = extractNumber(query);
+
+  let dataQuery = whereQuery;
+
+  if (numQuery !== null && numQuery !== undefined) {
+    dataQuery = dataQuery.where((eb) =>
+      eb.or([
+        eb("galrc_alistb.vid", "like", query),
+        eb("galrc_alistb.other", "=", numQuery),
+      ])
+    );
+  }
+
+  dataQuery = dataQuery
     .select((qb) => [
       "galrc_alistb.id",
       "galrc_alistb.vid",
@@ -104,7 +128,7 @@ export const dataFilteringGet = async ({
 };
 
 /**
- * 获取 galrc_alistb 表中 4 类数据的统计信息：
+ * 获取 galrc_alistb 表中 4 类数据的 **统计信息**：
  *  1. `onlyOther`：只存在 other，vid 为 null
  *  2. `bothExist`：vid 和 other 都存在
  *  3. `onlyVid`：只存在 vid，other 为 null
