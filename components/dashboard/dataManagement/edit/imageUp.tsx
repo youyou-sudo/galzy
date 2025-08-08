@@ -106,7 +106,7 @@ export default function Component({ datas }: { datas: DataTy }) {
     }
   });
 
-  // [ ] 是否为封面图片的逻辑
+  // [x] 是否为封面图片的逻辑
   function isFile(obj: any): obj is File {
     return obj && typeof obj === "object" && "Hash" in obj;
   }

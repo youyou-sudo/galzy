@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { dataFilteringStats } from "@/lib/dashboard/dataManagement/dataGet";
 
 export default function StatsCard() {
-  const { data: coutData, refetch } = useQuery({
+  const { data: coutData } = useQuery({
     queryKey: ["dataFilteringStats"],
     queryFn: async () => {
       const res = await dataFilteringStats();
