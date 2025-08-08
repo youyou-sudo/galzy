@@ -1,6 +1,7 @@
 "use server";
 
 import { db, Onthermeidia } from "@/lib/kysely";
+import { jsonObjectFrom } from "kysely/helpers/postgres";
 
 export async function insertMediaToEntry(
   entryId: number,
@@ -40,6 +41,14 @@ export async function insertMediaToEntry(
 
   // 只有在关联不存在时才创建新的关联
   if (!existingRelation) {
+    if (cover) {
+      await db
+        .updateTable("galrc_other_media")
+        .where("cover", "=", true)
+        .set({ cover: false })
+        .returningAll()
+        .executeTakeFirst();
+    }
     await db
       .insertInto("galrc_other_media")
       .values({
@@ -87,14 +96,43 @@ export async function deleMediaByEntryId(
   }
 }
 
-export async function getMediaByCover(other: number, media_id: number) {
-  const media = await db
-    .updateTable("galrc_other_media")
-    .where("media_id", "=", other)
-    .where("other_id", "=", media_id)
-    .set({ cover: true })
-    .returningAll()
-    .executeTakeFirst();
+export async function getMediaByCover(other: number, media_id: string) {
+  const media = await db.transaction().execute(async (trx) => {
+    // 清除当前其他所有封面
+    await trx
+      .updateTable("galrc_other_media")
+      .where("other_id", "=", other)
+      .where("cover", "=", true)
+      .set({ cover: false })
+      .execute();
+
+    // 设置新封面
+    const updated = await trx
+      .updateTable("galrc_other_media")
+      .where("media_id", "=", Number(media_id))
+      .where("other_id", "=", other)
+      .set({ cover: true })
+      .returningAll()
+      .executeTakeFirst();
+
+    return updated;
+  });
 
   return media;
+}
+
+export async function getMedia(other_id: string) {
+  return await db
+    .selectFrom("galrc_other_media")
+    .where("other_id", "=", Number(other_id))
+    .select((media) => [
+      "galrc_other_media.cover",
+      jsonObjectFrom(
+        media
+          .selectFrom("galrc_media")
+          .selectAll()
+          .whereRef("galrc_media.id", "=", "galrc_other_media.media_id")
+      ).as("mediadata"),
+    ])
+    .execute();
 }

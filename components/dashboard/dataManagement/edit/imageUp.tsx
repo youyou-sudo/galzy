@@ -8,6 +8,7 @@ import {
   CheckCircleIcon,
   RefreshCwIcon,
   PlayIcon,
+  Loader2,
 } from "lucide-react";
 
 import {
@@ -19,6 +20,8 @@ import { Button } from "@/components/ui/button";
 import { calculateThumbHash } from "@/lib/thumbhash-utils";
 import {
   deleMediaByEntryId,
+  getMedia,
+  getMediaByCover,
   insertMediaToEntry,
 } from "@/lib/dashboard/images/upimageData";
 import { vidassociationGet } from "@/lib/dashboard/dataManagement/dataGet";
@@ -27,30 +30,33 @@ import {
   RadioGroupItem,
 } from "@/components/animate-ui/radix/radio-group";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 
 type DataTy = Awaited<ReturnType<typeof vidassociationGet>>;
 
 export default function Component({ datas }: { datas: DataTy }) {
-  const [selectedValue, setSelectedValue] = useState<string | null>(null);
-  const maxSizeMB = 500;
-  const maxSize = maxSizeMB * 1024 * 1024; // 5MB default
-  const maxFiles = 6;
+  const coverItem = datas?.othermeidia.find((item) => item.cover === true);
+  const coverId = coverItem ? coverItem.mediadata?.id : null;
+
+  const maxSizeMB = 50000;
+  const maxSize = maxSizeMB * 1024 * 1024;
+  const maxFiles = 9999;
 
   // [x] 图片上传模块的文件预览及使用的签名逻辑完善
 
   const initialFiles = datas?.othermeidia.map((item) => ({
     id: Number(item.mediadata!.id),
+    cover: item.cover!,
     name: item.mediadata!.name,
     thumb_hash: item.mediadata!.thumb_hash,
     type: item.mediadata!.type,
-    media_url: `http://localhost:5244/p/upload/${item.mediadata?.name}`,
+    media_url: `${process.env.NEXT_PUBLIC_OPENIMAG_P_HOST}/p/upload/${item.mediadata?.name}`,
     Hash: item.mediadata!.hash,
     size: Number(item.mediadata!.size),
   }));
 
   const [
-    { files, isDragging, errors },
+    { files, isDragging, errors, hasPendingUploads, isAllUploadsComplete },
     {
       handleDragEnter,
       handleDragLeave,
@@ -64,7 +70,7 @@ export default function Component({ datas }: { datas: DataTy }) {
       retryUpload,
     },
   ] = useFileUpload({
-    accept: "image/svg+xml,image/png,image/jpeg,image/jpg",
+    accept: "image/svg+xml,image/png,image/jpeg,image/jpg,image/webp",
     maxSize,
     multiple: true,
     maxFiles,
@@ -76,12 +82,14 @@ export default function Component({ datas }: { datas: DataTy }) {
     },
   });
 
-  const handleValueChange = async (value: string) => {
-    console.log("选项输出", value);
+  const queryClient = new QueryClient();
+  const addTodoMutation = useMutation({
+    mutationFn: (value: string) => getMediaByCover(Number(datas?.id), value),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["todos"] }),
+  });
 
-    setSelectedValue(value);
-  };
-
+  const { isPending, mutate, isError } = addTodoMutation;
+  console.log(isDragging);
   files.forEach(async (f) => {
     if (f.uploadStatus === "success") {
       if (f.file instanceof File) {
@@ -94,18 +102,13 @@ export default function Component({ datas }: { datas: DataTy }) {
 
         // [x] 图片 ThumbHash 记录逻辑
         const thumbHashResult = await calculateThumbHash(f.file);
-        await insertMediaToEntry(
-          Number(datas!.id),
-          {
-            name: f.file.name,
-            type: f.file.type,
-            thumb_hash: thumbHashResult.base64,
-            hash: shaHex,
-            size: BigInt(f.file.size),
-          },
-          0,
-          f.id === selectedValue // cover 判断
-        );
+        await insertMediaToEntry(Number(datas!.id), {
+          name: f.file.name,
+          type: f.file.type,
+          thumb_hash: thumbHashResult.base64,
+          hash: shaHex,
+          size: BigInt(f.file.size),
+        });
       }
     } else if (f.uploadStatus === "error") {
       console.error("上传失败", f.uploadError);
@@ -160,14 +163,27 @@ export default function Component({ datas }: { datas: DataTy }) {
           <span>{errors[0]}</span>
         </div>
       )}
+      {/* Upload status indicator */}
+      {files.length > 0 && (
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>
+            {hasPendingUploads
+              ? "有文件待上传"
+              : isAllUploadsComplete
+              ? "✅ 所有文件上传完成"
+              : "无待上传文件"}
+          </span>
+          {isAllUploadsComplete && (
+            <span className="text-green-600 font-medium">数据已刷新</span>
+          )}
+        </div>
+      )}
 
       {/* File list */}
       {files.length > 0 && (
         <div className="space-y-2">
           {/* Upload all button */}
-          {files.some(
-            (f) => f.uploadStatus === "pending" || f.uploadStatus === "error"
-          ) && (
+          {hasPendingUploads && (
             <div className="flex justify-end">
               <Button size="sm" onClick={uploadAllFiles}>
                 <PlayIcon className="size-3" />
@@ -175,7 +191,7 @@ export default function Component({ datas }: { datas: DataTy }) {
               </Button>
             </div>
           )}
-          <RadioGroup value={selectedValue} onValueChange={handleValueChange}>
+          <RadioGroup defaultValue={String(coverId)} onValueChange={mutate}>
             {files.map((file) => (
               <div
                 key={file.id}
@@ -217,10 +233,15 @@ export default function Component({ datas }: { datas: DataTy }) {
                       <p className="text-muted-foreground text-xs">
                         {formatBytes(file.file.size)}
                       </p>
-                      <div className="flex items-center">
-                        <RadioGroupItem value={file.id} />
-                        <Label>封面 ?</Label>
-                      </div>
+                      {"thumb_hash" in file.file && (
+                        <div className="flex items-center">
+                          <RadioGroupItem value={String(file.file.id)} />
+                          <Label>封面 ?</Label>
+                          {isPending && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Progress bar */}
@@ -238,6 +259,12 @@ export default function Component({ datas }: { datas: DataTy }) {
                     {file.uploadStatus === "error" && file.uploadError && (
                       <p className="text-red-500 text-xs truncate">
                         {file.uploadError}
+                      </p>
+                    )}
+
+                    {isError && (
+                      <p className="text-red-500 text-xs truncate">
+                        封面设置失败
                       </p>
                     )}
 

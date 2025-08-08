@@ -1,10 +1,12 @@
 "use client";
 
 import type React from "react";
+
 import {
   useCallback,
   useRef,
   useState,
+  useEffect,
   type ChangeEvent,
   type DragEvent,
   type InputHTMLAttributes,
@@ -18,6 +20,7 @@ export type FileMetadata = {
   media_url: string;
   Hash: string;
   size: number;
+  cover: boolean;
 };
 
 export type FileWithPreview = {
@@ -38,6 +41,7 @@ export type FileUploadOptions = {
   initialFiles?: FileMetadata[];
   onFilesChange?: (files: FileWithPreview[]) => void;
   onFilesAdded?: (addedFiles: FileWithPreview[]) => void;
+  onAllUploadsComplete?: () => void;
   // 新增上传配置
   uploadConfig?: {
     apiUrl?: string;
@@ -51,6 +55,9 @@ export type FileUploadState = {
   files: FileWithPreview[];
   isDragging: boolean;
   errors: string[];
+
+  isAllUploadsComplete: boolean; // 新增：是否所有上传都完成
+  hasPendingUploads: boolean; // 新增
 };
 
 export type FileUploadActions = {
@@ -86,8 +93,9 @@ export const useFileUpload = (
     initialFiles = [],
     onFilesChange,
     onFilesAdded,
+    onAllUploadsComplete,
     uploadConfig = {
-      apiUrl: "https://azusa-mikan.frp.wo25.net:32000/api/fs/put",
+      apiUrl: "",
       basePath: "/uploads",
       asTask: false,
     },
@@ -96,15 +104,84 @@ export const useFileUpload = (
   const [state, setState] = useState<FileUploadState>({
     files: initialFiles.map((file) => ({
       id: file.Hash,
-
       preview: file.media_url,
       file,
+      cover: file.cover,
     })),
     isDragging: false,
     errors: [],
+    isAllUploadsComplete: false,
+    hasPendingUploads: false,
   });
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 检查上传状态的辅助函数
+  const checkUploadStatus = useCallback((files: FileWithPreview[]) => {
+    const fileFiles = files.filter((f) => f.file instanceof File);
+
+    if (fileFiles.length === 0) {
+      return {
+        hasPendingUploads: false,
+        isAllUploadsComplete: false,
+      };
+    }
+
+    const pendingFiles = fileFiles.filter(
+      (f) =>
+        !f.uploadStatus ||
+        f.uploadStatus === "pending" ||
+        f.uploadStatus === "error"
+    );
+    const uploadingFiles = fileFiles.filter(
+      (f) => f.uploadStatus === "uploading"
+    );
+    const successFiles = fileFiles.filter((f) => f.uploadStatus === "success");
+
+    const hasPendingUploads =
+      pendingFiles.length > 0 || uploadingFiles.length > 0;
+    const isAllUploadsComplete =
+      fileFiles.length > 0 && successFiles.length === fileFiles.length;
+
+    return {
+      hasPendingUploads,
+      isAllUploadsComplete,
+    };
+  }, []);
+
+  // 监听文件状态变化，检查是否所有上传都完成
+  useEffect(() => {
+    const { hasPendingUploads, isAllUploadsComplete } = checkUploadStatus(
+      state.files
+    );
+
+    // 如果状态发生变化，更新state
+    if (
+      state.hasPendingUploads !== hasPendingUploads ||
+      state.isAllUploadsComplete !== isAllUploadsComplete
+    ) {
+      setState((prev) => ({
+        ...prev,
+        hasPendingUploads,
+        isAllUploadsComplete,
+      }));
+
+      // 如果所有上传都完成了，并且之前不是完成状态，调用回调
+      if (
+        isAllUploadsComplete &&
+        !state.isAllUploadsComplete &&
+        onAllUploadsComplete
+      ) {
+        onAllUploadsComplete();
+      }
+    }
+  }, [
+    state.files,
+    state.hasPendingUploads,
+    state.isAllUploadsComplete,
+    checkUploadStatus,
+    onAllUploadsComplete,
+  ]);
 
   const validateFile = useCallback(
     (file: File | FileMetadata): string | null => {
@@ -198,13 +275,15 @@ export const useFileUpload = (
         ...prev,
         files: [],
         errors: [],
+        hasPendingUploads: false,
+        isAllUploadsComplete: false,
       };
 
       onFilesChange?.(newState.files);
       return newState;
     });
   }, [onFilesChange]);
-
+  
   const addFiles = useCallback(
     (newFiles: FileList | File[]) => {
       if (!newFiles || newFiles.length === 0) return;
@@ -264,6 +343,7 @@ export const useFileUpload = (
         } else {
           validFiles.push({
             file,
+            cover: false,
             id: generateUniqueId(file),
             preview: createPreview(file),
             uploadProgress: 0,
@@ -286,6 +366,7 @@ export const useFileUpload = (
             ...prev,
             files: newFiles,
             errors,
+            isAllUploadsComplete: false,
           };
         });
       } else if (errors.length > 0) {

@@ -53,7 +53,6 @@ export interface MobileStatsGridProps {
 export default function LoadBalancerDashboard() {
   const [isMobile, setIsMobile] = useState(false);
   const [switchLoading, setSwitchLoading] = useState(false);
-  const [delLoading, setDelLoading] = useState(false);
 
   const { data: workersItems, refetch } = useQuery({
     queryKey: ["workersItems"],
@@ -75,11 +74,11 @@ export default function LoadBalancerDashboard() {
   }, []);
 
   const healthyNodes = (workersItems || []).filter(
-    (node) => node.state === true,
+    (node) => node.state === true
   ).length;
   const totalSize = (workersItems ?? []).reduce(
     (sum, item) => sum + +item.responseBodySize,
-    0,
+    0
   );
 
   const dataList: MobileStatsGridProps[] = [
@@ -98,7 +97,7 @@ export default function LoadBalancerDashboard() {
       title: "请求",
       value: (workersItems ?? []).reduce(
         (sum, item) => sum + +item.requests,
-        0,
+        0
       ),
       subtitle: "活跃连接",
       icon: Activity,
@@ -270,7 +269,7 @@ export default function LoadBalancerDashboard() {
                                 await nodeEnaledAc(node.id, !node.enable);
                                 await refetch();
                                 await new Promise((resolve) =>
-                                  setTimeout(resolve, 500),
+                                  setTimeout(resolve, 500)
                                 );
                                 setSwitchLoading(false);
                               }}
@@ -295,12 +294,10 @@ export default function LoadBalancerDashboard() {
                                 <DropdownMenuItem
                                   className="text-red-600"
                                   onClick={async () => {
-                                    setDelLoading(true);
                                     try {
                                       await configFormDel(node.id);
                                       refetch();
                                     } finally {
-                                      setDelLoading(false);
                                     }
                                   }}
                                 >
