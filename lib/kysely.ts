@@ -267,11 +267,10 @@ export type otherTitle = {
 };
 
 export interface Onthermeidia {
-  id: Generated<number>;
+  hash: string; // 文件哈希（唯一性去重）
   name: string; // 媒体名称
   type: string; // 媒体类型
   thumb_hash: string | null; // ThumbHash 占位图 base64
-  hash: string; // 文件哈希（唯一性去重）
   size: bigint; // 文件大小
 }
 
@@ -303,7 +302,7 @@ export interface OtherDataTable {
 export interface OtherDataMediaTable {
   id: Generated<number>; // 主键，自增
   other_id: number; // 关联 OtherDataTable 的 id
-  media_id: number; // 关联 Onthermeidia 的 id
+  media_hash: string; // 关联 Onthermeidia 的 hash
   cover: boolean | null; // 是否为封面
   sort_order: number; // 排序顺序
   createdAt: ColumnType<Date, string | undefined, never>;

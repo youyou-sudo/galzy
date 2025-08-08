@@ -12,23 +12,23 @@ export async function insertMediaToEntry(
   // 首先检查是否存在相同 hash 的记录
   const existingMedia = await db
     .selectFrom("galrc_media")
-    .select("id")
+    .select("hash")
     .where("hash", "=", media.hash)
     .executeTakeFirst();
 
-  let mediaId: number;
+  let mediahash: string;
 
   if (existingMedia) {
     // 如果存在相同 hash 的记录，使用现有记录的 ID
-    mediaId = existingMedia.id;
+    mediahash = existingMedia.hash;
   } else {
     // 如果不存在，则插入新记录
     const insertedMedia = await db
       .insertInto("galrc_media")
       .values(media)
-      .returning(["id"])
+      .returning(["hash"])
       .executeTakeFirstOrThrow();
-    mediaId = insertedMedia.id;
+    mediahash = insertedMedia.hash;
   }
 
   // 检查关联表中是否已存在这个关联
@@ -36,7 +36,7 @@ export async function insertMediaToEntry(
     .selectFrom("galrc_other_media")
     .select("id")
     .where("other_id", "=", entryId)
-    .where("media_id", "=", mediaId)
+    .where("media_hash", "=", mediahash)
     .executeTakeFirst();
 
   // 只有在关联不存在时才创建新的关联
@@ -53,7 +53,7 @@ export async function insertMediaToEntry(
       .insertInto("galrc_other_media")
       .values({
         other_id: entryId,
-        media_id: mediaId,
+        media_hash: mediahash,
         sort_order: sortOrder,
         cover: cover,
       })
@@ -63,23 +63,23 @@ export async function insertMediaToEntry(
 
 export async function deleMediaByEntryId(
   id: number,
-  mediaId: number,
+  mediahash: string,
   name: string
 ) {
   // 删除 galrc_other_media 中的记录
   await db
     .deleteFrom("galrc_other_media")
     .where("other_id", "=", id)
-    .where("media_id", "=", mediaId)
+    .where("media_hash", "=", mediahash)
     .execute();
   const log = await db
     .selectFrom("galrc_other_media")
     .selectAll()
-    .where("media_id", "=", id)
+    .where("media_hash", "=", mediahash)
     .executeTakeFirst();
   if (log === null) {
     // 如果图片没有被其他条目使用，则删除 galrc_media 中的记录
-    await db.deleteFrom("galrc_media").where("id", "=", mediaId).execute();
+    await db.deleteFrom("galrc_media").where("hash", "=", mediahash).execute();
 
     const targetUrl = `${process.env.OPENLIST_HOST}/api/fs/remove`;
     const authToken = process.env.OPENLIST_API_KEY;
@@ -96,7 +96,7 @@ export async function deleMediaByEntryId(
   }
 }
 
-export async function getMediaByCover(other: number, media_id: string) {
+export async function getMediaByCover(other: number, mediahash: string) {
   const media = await db.transaction().execute(async (trx) => {
     // 清除当前其他所有封面
     await trx
@@ -109,7 +109,7 @@ export async function getMediaByCover(other: number, media_id: string) {
     // 设置新封面
     const updated = await trx
       .updateTable("galrc_other_media")
-      .where("media_id", "=", Number(media_id))
+      .where("media_hash", "=", mediahash)
       .where("other_id", "=", other)
       .set({ cover: true })
       .returningAll()
@@ -131,7 +131,7 @@ export async function getMedia(other_id: string) {
         media
           .selectFrom("galrc_media")
           .selectAll()
-          .whereRef("galrc_media.id", "=", "galrc_other_media.media_id")
+          .whereRef("galrc_media.hash", "=", "galrc_other_media.media_hash")
       ).as("mediadata"),
     ])
     .execute();

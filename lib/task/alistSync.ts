@@ -88,7 +88,6 @@ export const alistSyncScript = async () => {
       )
       .execute();
   });
-  console.log("已更新");
   return {
     success: true,
     message: "已更新喵",

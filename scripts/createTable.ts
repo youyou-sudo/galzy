@@ -113,12 +113,11 @@ export async function seed() {
   await db.schema
     .createTable("galrc_media")
     .ifNotExists()
-    .addColumn("id", "serial", (cb) => cb.primaryKey()) // Changed to serial for auto-increment
+    .addColumn("hash", "text", (cb) => cb.primaryKey())
     .addColumn("name", "text", (cb) => cb.notNull())
     .addColumn("size", "bigint", (cb) => cb.notNull())
     .addColumn("type", "varchar(255)", (cb) => cb.notNull())
-    .addColumn("thumb_hash", "text") // Made nullable
-    .addColumn("hash", "text", (cb) => cb.notNull())
+    .addColumn("thumb_hash", "text")
     .execute();
 
   await db.schema
@@ -128,8 +127,8 @@ export async function seed() {
     .addColumn("other_id", "integer", (cb) =>
       cb.notNull().references("galrc_other.id").onDelete("cascade")
     )
-    .addColumn("media_id", "integer", (cb) =>
-      cb.notNull().references("galrc_media.id").onDelete("cascade")
+    .addColumn("media_hash", "text", (cb) =>
+      cb.notNull().references("galrc_media.hash").onDelete("cascade")
     )
     .addColumn("sort_order", "integer", (cb) => cb.notNull())
     .addColumn("createdAt", sql`timestamp with time zone`, (cb) =>

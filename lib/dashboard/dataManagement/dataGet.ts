@@ -173,9 +173,9 @@ export const vidassociationGet = async (id: string) => {
                           .selectFrom("galrc_media")
                           .selectAll()
                           .whereRef(
-                            "galrc_media.id",
+                            "galrc_media.hash",
                             "=",
-                            "galrc_other_media.media_id"
+                            "galrc_other_media.media_hash"
                           )
                       ).as("mediadata"),
                     ])
@@ -224,9 +224,9 @@ export const vidassociationGet = async (id: string) => {
                     .selectFrom("galrc_media")
                     .selectAll()
                     .whereRef(
-                      "galrc_media.id",
+                      "galrc_media.hash",
                       "=",
-                      "galrc_other_media.media_id"
+                      "galrc_other_media.media_hash"
                     )
                 ).as("mediadata"),
               ])

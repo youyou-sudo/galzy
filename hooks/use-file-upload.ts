@@ -42,7 +42,6 @@ export type FileUploadOptions = {
   onFilesChange?: (files: FileWithPreview[]) => void;
   onFilesAdded?: (addedFiles: FileWithPreview[]) => void;
   onAllUploadsComplete?: () => void;
-  // 新增上传配置
   uploadConfig?: {
     apiUrl?: string;
     authorization?: string;
@@ -245,14 +244,27 @@ export const useFileUpload = (
     []
   );
 
-  const generateUniqueId = useCallback((file: File | FileMetadata): string => {
-    if (file instanceof File) {
-      return `${file.name}-${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(2, 9)}`;
-    }
-    return file.Hash;
-  }, []);
+  const generateUniqueId = useCallback(
+    async (file: File | FileMetadata): Promise<string> => {
+      if (file instanceof File) {
+        // 读取文件内容为 ArrayBuffer
+        const buffer = await file.arrayBuffer();
+
+        // 计算 SHA-256 哈希
+        const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+
+        // 转为 16 进制字符串
+        const shaHex = Array.from(new Uint8Array(hashBuffer))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+        return shaHex;
+      }
+
+      // 如果是 FileMetadata 类型，直接返回已有的 Hash
+      return file.Hash;
+    },
+    []
+  );
 
   const clearFiles = useCallback(() => {
     setState((prev) => {
@@ -283,23 +295,19 @@ export const useFileUpload = (
       return newState;
     });
   }, [onFilesChange]);
-  
   const addFiles = useCallback(
-    (newFiles: FileList | File[]) => {
+    async (newFiles: FileList | File[]) => {
       if (!newFiles || newFiles.length === 0) return;
 
       const newFilesArray = Array.from(newFiles);
       const errors: string[] = [];
 
-      // Clear existing errors when new files are uploaded
       setState((prev) => ({ ...prev, errors: [] }));
 
-      // In single file mode, clear existing files first
       if (!multiple) {
         clearFiles();
       }
 
-      // Check if adding these files would exceed maxFiles (only in multiple mode)
       if (
         multiple &&
         maxFiles !== Number.POSITIVE_INFINITY &&
@@ -312,8 +320,7 @@ export const useFileUpload = (
 
       const validFiles: FileWithPreview[] = [];
 
-      newFilesArray.forEach((file) => {
-        // Only check for duplicates if multiple files are allowed
+      for (const file of newFilesArray) {
         if (multiple) {
           const isDuplicate = state.files.some(
             (existingFile) =>
@@ -321,40 +328,40 @@ export const useFileUpload = (
               existingFile.file.size === file.size
           );
 
-          // Skip duplicate files silently
           if (isDuplicate) {
-            return;
+            continue; // 跳过重复文件
           }
         }
 
-        // Check file size
         if (file.size > maxSize) {
           errors.push(
             multiple
               ? `Some files exceed the maximum size of ${formatBytes(maxSize)}.`
               : `File exceeds the maximum size of ${formatBytes(maxSize)}.`
           );
-          return;
+          continue;
         }
 
         const error = validateFile(file);
         if (error) {
           errors.push(error);
-        } else {
-          validFiles.push({
-            file,
-            cover: false,
-            id: generateUniqueId(file),
-            preview: createPreview(file),
-            uploadProgress: 0,
-            uploadStatus: "pending" as const,
-          });
+          continue;
         }
-      });
 
-      // Only update state if we have valid files to add
+        // 这里等待异步生成 id
+        const id = await generateUniqueId(file);
+
+        validFiles.push({
+          file,
+          cover: false,
+          id, // 用刚刚计算好的 id
+          preview: createPreview(file),
+          uploadProgress: 0,
+          uploadStatus: "pending" as const,
+        });
+      }
+
       if (validFiles.length > 0) {
-        // Call the onFilesAdded callback with the newly added valid files
         onFilesAdded?.(validFiles);
 
         setState((prev) => {
@@ -376,7 +383,6 @@ export const useFileUpload = (
         }));
       }
 
-      // Reset input value after handling files
       if (inputRef.current) {
         inputRef.current.value = "";
       }
