@@ -4,7 +4,7 @@ import * as React from 'react';
 import {
   SVGMotionProps,
   useAnimation,
-  type AnimationControls,
+  type LegacyAnimationControls,
   type Variants,
 } from 'motion/react';
 
@@ -41,7 +41,7 @@ type StaticAnimations = keyof typeof staticAnimations;
 type TriggerProp<T = string> = boolean | StaticAnimations | T;
 
 interface AnimateIconContextValue {
-  controls: AnimationControls | undefined;
+  controls: LegacyAnimationControls | undefined;
   animation: StaticAnimations | string;
   loop: boolean;
   loopDelay: number;
@@ -63,7 +63,6 @@ interface DefaultIconProps<T = string> {
 }
 
 interface AnimateIconProps<T = string> extends DefaultIconProps<T> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   children: React.ReactElement<any, any>;
 }
 

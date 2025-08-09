@@ -59,6 +59,8 @@ export const dataFilteringGet = async ({
 
   const baseQuery = db.selectFrom("galrc_alistb");
 
+  // [ ] 标题和别名搜索
+
   let whereQuery = baseQuery;
   if (otherId != null && (vid == null || vid === undefined)) {
     whereQuery = whereQuery

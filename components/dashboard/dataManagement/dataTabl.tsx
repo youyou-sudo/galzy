@@ -109,7 +109,7 @@ export default function DataTabl() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {dataFilteringData?.data.map((item) => (
+              {dataFilteringData?.data.map((item: any) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.other}</TableCell>
                   <TableCell>{item.vid}</TableCell>
