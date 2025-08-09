@@ -12,7 +12,7 @@ export default async function Home() {
   await queryClient.prefetchInfiniteQuery({
     queryKey: ["gamelist"],
     queryFn: async ({ pageParam }) => {
-      return await homeData(20, pageParam);
+      return await homeData(24, pageParam);
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage: {

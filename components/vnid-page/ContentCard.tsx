@@ -30,18 +30,19 @@ export const ContentCard = ({ data }: Props) => {
   };
 
   return (
-    <div className="mt-30 flex flex-col md:flex-row">
-      <div className="flex flex-row items-end md:items-start">
-        <div className="-mt-20 lg:-mt-32 mr-4 mb-4 border rounded-lg bg-muted space-y-2">
+    <div className="mt-10 flex flex-col md:flex-row">
+      <div className="flex flex-row items-center">
+        <div className="mr-4 mb-4 w-[250px] border rounded-lg bg-muted space-y-2 flex items-center">
           <Image
-            unoptimized
             width={data.images?.width}
             height={data.images?.height}
-            className="w-full h-full rounded-lg"
+            className="w-full h-auto rounded-lg"
             src={getImageUrl(data.images)}
             alt="游戏图片"
           />
         </div>
+
+        {/* 小屏标题块 */}
         <div className="md:hidden mb-4 flex flex-col justify-end max-w-3/5">
           <div className="text-sm/7 ">
             {data.titles.find((item) => item.lang === data.olang)?.title !==
@@ -57,12 +58,14 @@ export const ContentCard = ({ data }: Props) => {
                 .split("\n")
                 .map((s) => s.trim())
                 .filter(Boolean)
-                .filter((s) => s !== getTitle()) // 过滤掉与 getTitle() 相同的 alias
+                .filter((s) => s !== getTitle())
                 .join(", ")}
             </div>
           )}
         </div>
       </div>
+
+      {/* 右侧文字内容 */}
       <div className="flex flex-col flex-1 min-w-2/3">
         <div className="hidden md:block">
           <div className="text-sm/7">
@@ -80,7 +83,7 @@ export const ContentCard = ({ data }: Props) => {
                 .split("\n")
                 .map((s) => s.trim())
                 .filter(Boolean)
-                .filter((s) => s !== getTitle()) // 过滤掉与 getTitle() 相同的 alias
+                .filter((s) => s !== getTitle())
                 .join(", ")}
             </div>
           )}

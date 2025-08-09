@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import NextImage, { type ImageProps } from "next/image";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 const GameSkeleton = forwardRef<HTMLDivElement>(function GameSkeleton(_, ref) {
   return (
@@ -17,9 +18,12 @@ const GameSkeleton = forwardRef<HTMLDivElement>(function GameSkeleton(_, ref) {
 
 export function Image(props: ImageProps) {
   return (
-    <div className="relative w-full h-full overflow-hidden rounded-lg border bg-muted shadow">
+    <AspectRatio
+      ratio={9 / 14}
+      className="relative w-full h-full overflow-hidden rounded-lg border bg-muted shadow"
+    >
       <NextImage {...props} className="absolute inset-0 z-10 object-cover" />
-    </div>
+    </AspectRatio>
   );
 }
 

@@ -17,7 +17,7 @@ const HomeGamelistComponent = () => {
   } = useInfiniteQuery({
     queryKey: ["gamelist"],
     queryFn: async ({ pageParam = 0 }) => {
-      return await homeData(20, pageParam);
+      return await homeData(24, pageParam);
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage: {
@@ -47,10 +47,9 @@ const HomeGamelistComponent = () => {
     page.items.map((item) => (
       <Link href={`/${item.id}`} scroll={true} key={item.id}>
         <div className="space-y-2 aspect-[2/3] p-0">
-          {/* [ ] VNDB 来源图片进行缓存以防止滥用 VNDB 服务
+          {/* [x] VNDB 来源图片进行缓存以防止滥用 VNDB 服务
            */}
           <GameCard.Image
-            unoptimized
             fill
             src={getImageUrl(item.images)}
             alt="图片"
