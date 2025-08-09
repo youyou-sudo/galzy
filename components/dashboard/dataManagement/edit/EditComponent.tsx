@@ -30,6 +30,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QueryClient, useMutation } from "@tanstack/react-query";
 import { useEditDialog } from "../stores/useEditDialog";
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useFilterStore, usePaginationStore } from "../stores/dataManagement";
 
 // 定义表单验证模式
 const formSchema = z.object({
@@ -67,11 +69,17 @@ export default function EditComponent() {
   });
 
   const queryClient = new QueryClient();
+  const queryClientc = useQueryClient();
   const { close } = useEditDialog();
+  const { datapage, limit } = usePaginationStore();
+  const filterNusq = useFilterStore((state) => state.filterNusq);
 
   const { mutate: onSubmit, isPending: delllLoading } = useMutation({
     mutationFn: async (values: FormValues) => {
       await vidassociationUpdate(Number(data!.id), values);
+      queryClientc.invalidateQueries({
+        queryKey: ["dataFilteringGet", filterNusq, datapage, limit],
+      });
       close();
     },
     onSettled: () => queryClient.invalidateQueries(),

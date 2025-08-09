@@ -1,9 +1,12 @@
 // store/useEditDialog.ts
+import { vidassociationGet } from "@/lib/dashboard/dataManagement/dataGet";
 import { create } from "zustand";
+
+type DataTy = Awaited<ReturnType<typeof vidassociationGet>>;
 
 interface EditDialogState {
   isOpen: boolean;
-  data: any | null;
+  data: DataTy | null;
   open: () => void;
   close: () => void;
   dataget: (data: any) => void;

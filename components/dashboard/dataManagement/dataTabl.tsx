@@ -45,6 +45,8 @@ export default function DataTabl() {
 
   const [query, setQuery] = React.useState("");
 
+  const { open, dataget } = useEditDialog();
+
   // 数据请求
   const { data: dataFilteringData, refetch } = useQuery({
     queryKey: ["dataFilteringGet", filterNusq, datapage, limit, query],
@@ -61,7 +63,6 @@ export default function DataTabl() {
     refetchInterval: 6000,
   });
 
-  const { open, dataget } = useEditDialog();
   const queryClient = new QueryClient();
   const {
     isPending,
