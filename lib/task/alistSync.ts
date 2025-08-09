@@ -17,7 +17,7 @@ export const alistSyncScript = async () => {
   const parsedValue = JSON.parse(alistUpInfo?.value as unknown as string);
 
   if (alistUpInfo!.value.is_done === false) return;
-  if (alistUpTime?.config.lastUpdate === parsedValue.last_done_time) return;
+  if (alistUpTime?.config?.lastUpdate || 0 === parsedValue.last_done_time) return;
 
   const alistData = await db
     .selectFrom("galrc_search_nodes")
@@ -103,3 +103,5 @@ export async function alistDataCorn() {
 
   setTimeout(alistDataCorn, 60 * 1000);
 }
+
+alistSyncScript()
