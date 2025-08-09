@@ -46,11 +46,7 @@ export default function DataTabl() {
   const [query, setQuery] = React.useState("");
 
   // 数据请求
-  const {
-    isPending: isDataPending,
-    data: dataFilteringData,
-    refetch,
-  } = useQuery({
+  const { data: dataFilteringData, refetch } = useQuery({
     queryKey: ["dataFilteringGet", filterNusq, datapage, limit, query],
     queryFn: async () => {
       const params = {
@@ -92,7 +88,7 @@ export default function DataTabl() {
     onSettled: () => queryClient.invalidateQueries(),
   });
 
-  const { mutate: delll } = useMutation({
+  const { mutate: delll, isPending: delllLoading } = useMutation({
     mutationFn: async (id: string) => {
       await vidassociationDelete(id!);
       refetch();
@@ -200,7 +196,7 @@ export default function DataTabl() {
                         delll(item.vid || item.id);
                       }}
                     >
-                      {isDataPending ? (
+                      {delllLoading ? (
                         <Loader2Icon className="animate-spin" />
                       ) : (
                         <Trash2 animateOnHover />
