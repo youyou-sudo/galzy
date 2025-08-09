@@ -74,20 +74,20 @@ export default function DataTabl() {
   } = useMutation({
     mutationFn: async () => {
       const { id } = await vidassociationCreate();
-      const data = await vidassociationGet(String(id!));
       open();
-      refetch();
+      const data = await vidassociationGet(String(id!));
       dataget(data);
+      refetch();
     },
     onSettled: () => queryClient.invalidateQueries(),
   });
 
   const { mutate: edithave, isPending: edithaveLoading } = useMutation({
     mutationFn: async (id: string) => {
-      const data = await vidassociationGet(String(id!));
       open();
-      refetch();
+      const data = await vidassociationGet(String(id!));
       dataget(data);
+      refetch();
     },
     onSettled: () => queryClient.invalidateQueries(),
   });

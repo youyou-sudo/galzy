@@ -33,23 +33,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // 定义表单验证模式
 const formSchema = z.object({
-  title: z
-    .array(
-      z.object({
-        title: z.string().min(1, {
-          message: "标题不能为空",
-        }),
-        lang: z.string().min(1, {
-          message: "请选择语言",
-        }),
-      })
-    )
-    .min(1, {
-      message: "至少需要添加一个项目",
-    }),
+  title: z.array(
+    z.object({
+      title: z.string({
+        message: "标题需为字符串",
+      }),
+      lang: z.string({
+        message: "请选择语言",
+      }),
+    })
+  ),
   alias: z.string().optional().nullable(),
-  description: z.string().min(1, {
-    message: "描述不能为空",
+  description: z.string({
+    message: "非法描述",
   }),
 });
 
