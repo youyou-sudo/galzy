@@ -59,7 +59,7 @@ export const dataFilteringGet = async ({
 
   const baseQuery = db.selectFrom("galrc_alistb");
 
-  // [ ] 标题和别名搜索
+  // [ ] 【搁置】标题和别名搜索
 
   let whereQuery = baseQuery;
   if (otherId != null && (vid == null || vid === undefined)) {
@@ -192,6 +192,11 @@ export const vidassociationGet = async (id: string) => {
                 jsonArrayFrom(
                   other
                     .selectFrom("galrc_other_media")
+                    .whereRef(
+                      "galrc_other_media.other_id",
+                      "=",
+                      "galrc_other.id"
+                    )
                     .select((media) => [
                       "galrc_other_media.cover",
                       jsonObjectFrom(
@@ -205,7 +210,7 @@ export const vidassociationGet = async (id: string) => {
                           )
                       ).as("mediadata"),
                     ])
-                ).as("othermeidia"),
+                ).as("othermedia"),
               ])
           ).as("other_data"),
         ])
@@ -243,6 +248,7 @@ export const vidassociationGet = async (id: string) => {
           jsonArrayFrom(
             other
               .selectFrom("galrc_other_media")
+              .whereRef("galrc_other_media.other_id", "=", "galrc_other.id")
               .select((media) => [
                 "galrc_other_media.cover",
                 jsonObjectFrom(
@@ -257,7 +263,7 @@ export const vidassociationGet = async (id: string) => {
                 ).as("mediadata"),
               ])
               .whereRef("galrc_other_media.other_id", "=", "galrc_other.id")
-          ).as("othermeidia"),
+          ).as("othermedia"),
         ])
         .executeTakeFirst();
     };
