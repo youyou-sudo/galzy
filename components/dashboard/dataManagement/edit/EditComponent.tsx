@@ -258,7 +258,7 @@ export default function EditComponent() {
           <div className="flex gap-4">
             <Button type="submit" className="flex-1">
               {delllLoading && <Loader2Icon className="animate-spin" />}
-              提交表单
+              提交数据
             </Button>
             <Button
               type="button"
@@ -266,7 +266,7 @@ export default function EditComponent() {
               onClick={() => form.reset()}
               className="flex-1"
             >
-              重置表单
+              清空数据
             </Button>
           </div>
 
