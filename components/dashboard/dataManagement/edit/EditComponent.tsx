@@ -23,13 +23,15 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Plus, Trash2 } from "lucide-react";
+import { Loader2Icon, Plus, Trash2 } from "lucide-react";
 import ImageUpComp from "./imageUp";
 import {
   vidassociationGet,
   vidassociationUpdate,
 } from "@/lib/dashboard/dataManagement/dataGet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QueryClient, useMutation } from "@tanstack/react-query";
+import { useEditDialog } from "../stores/useEditDialog";
 
 // 定义表单验证模式
 const formSchema = z.object({
@@ -67,8 +69,20 @@ export default function EditComponent({ data }: { data: DataTy }) {
     name: "title",
   });
 
-  const onSubmit = async (values: FormValues) => {
-    await vidassociationUpdate(Number(data!.id), values);
+  const queryClient = new QueryClient();
+  const { close } = useEditDialog();
+
+  const { mutate: onSubmit, isPending: delllLoading } = useMutation({
+    mutationFn: async (values: FormValues) => {
+      await vidassociationUpdate(Number(data!.id), values);
+      close();
+    },
+    onSettled: () => queryClient.invalidateQueries(),
+  });
+
+  // / 中间函数，符合 handleSubmit 需要的签名
+  const handleFormSubmit = (values: FormValues) => {
+    onSubmit(values);
   };
 
   const addTitleItem = () => {
@@ -89,11 +103,13 @@ export default function EditComponent({ data }: { data: DataTy }) {
       </>
     );
   }
-
   return (
     <div>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form
+          onSubmit={form.handleSubmit(handleFormSubmit)}
+          className="space-y-6"
+        >
           {/* 基本信息 */}
 
           <div className="space-y-4">
@@ -226,6 +242,7 @@ export default function EditComponent({ data }: { data: DataTy }) {
           {/* 提交按钮 */}
           <div className="flex gap-4">
             <Button type="submit" className="flex-1">
+              {delllLoading && <Loader2Icon className="animate-spin" />}
               提交表单
             </Button>
             <Button
@@ -239,12 +256,12 @@ export default function EditComponent({ data }: { data: DataTy }) {
           </div>
 
           {/* 调试信息 */}
-          <div className="mt-6 p-4 rounded-lg">
+          {/* <div className="mt-6 p-4 rounded-lg">
             <Label className="text-sm font-medium">表单数据预览：</Label>
             <pre className="mt-2 text-xs overflow-auto">
               {JSON.stringify(form.watch(), null, 2)}
             </pre>
-          </div>
+          </div> */}
         </form>
       </Form>
     </div>
