@@ -268,7 +268,7 @@ export const vidassociationGet = async (id: string) => {
         .executeTakeFirst();
     };
     let data = await fetchData();
-    if (data === null) {
+    if (data === undefined) {
       const newOtherId = await db
         .insertInto("galrc_other")
         .values({ status: "draft" })
@@ -285,6 +285,25 @@ export const vidassociationGet = async (id: string) => {
     }
     return data;
   }
+};
+
+// 创建新 no vndb 数据
+export const vidassociationCreate = async () => {
+  const otherId = await db
+    .insertInto("galrc_other")
+    .values({ status: "draft" })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+
+  await db
+    .insertInto("galrc_alistb")
+    .values({
+      id: String(otherId.id),
+      other: otherId.id,
+    })
+    .execute();
+
+  return otherId;
 };
 
 export const vidassociationUpdate = async (id: number, data: any) => {

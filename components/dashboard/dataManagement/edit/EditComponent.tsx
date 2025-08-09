@@ -29,6 +29,7 @@ import {
   vidassociationGet,
   vidassociationUpdate,
 } from "@/lib/dashboard/dataManagement/dataGet";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // 定义表单验证模式
 const formSchema = z.object({
@@ -83,6 +84,15 @@ export default function EditComponent({ data }: { data: DataTy }) {
       remove(index);
     }
   };
+  if (!data) {
+    return (
+      <>
+        {[...Array(10)].map((_, i) => (
+          <Skeleton key={i} className="w-full h-12 rounded-xl" />
+        ))}
+      </>
+    );
+  }
 
   return (
     <div>

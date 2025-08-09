@@ -8,7 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AddSubDialog } from "@/components/dashboard/dataManagement/addSub";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -20,16 +19,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { useQuery } from "@tanstack/react-query";
-import { dataFilteringGet } from "@/lib/dashboard/dataManagement/dataGet";
+import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import {
+  dataFilteringGet,
+  vidassociationCreate,
+  vidassociationGet,
+} from "@/lib/dashboard/dataManagement/dataGet";
 import { Button } from "@/components/ui/button";
-import { SquarePen } from "lucide-react";
+import { Loader2Icon, Plus, SquarePen } from "lucide-react";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
-import Link from "next/link";
 
 import DataManagementPagination from "@/components/dashboard/dataManagement/Pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFilterStore, usePaginationStore } from "./stores/dataManagement";
+
+import { useEditDialog } from "./stores/useEditDialog";
+import EditDialog from "./edit/EditDialog";
 
 export default function DataTabl() {
   const filterNusq = useFilterStore((state) => state.filterNusq);
@@ -52,7 +57,32 @@ export default function DataTabl() {
       const res = await dataFilteringGet(params);
       return res;
     },
-    refetchInterval: 60000,
+    refetchInterval: 6000,
+  });
+
+  const { open, dataget } = useEditDialog();
+  const queryClient = new QueryClient();
+  const {
+    isPending,
+    mutate: adddatass,
+    isError,
+  } = useMutation({
+    mutationFn: async () => {
+      const { id } = await vidassociationCreate();
+      const data = await vidassociationGet(String(id!));
+      open();
+      dataget(data);
+    },
+    onSettled: () => queryClient.invalidateQueries(),
+  });
+
+  const { mutate: edithave, isPending: edithaveLoading } = useMutation({
+    mutationFn: async (id: string) => {
+      const data = await vidassociationGet(String(id!));
+      open();
+      dataget(data);
+    },
+    onSettled: () => queryClient.invalidateQueries(),
   });
 
   // [x] 数据翻页功能
@@ -76,6 +106,7 @@ export default function DataTabl() {
                 />
                 <Select
                   defaultValue={filterNusq!}
+                  value={filterNusq!}
                   onValueChange={(value) => setFilterNusq(value)}
                 >
                   <SelectTrigger>
@@ -93,7 +124,23 @@ export default function DataTabl() {
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-                <AddSubDialog />
+                {/* [x] 添加条目功能
+                [x] 条目编辑为弹窗
+                 */}
+                <Button
+                  {...(isPending && { disabled: true })}
+                  variant={isError ? "destructive" : "outline"}
+                  onClick={() => {
+                    adddatass();
+                  }}
+                >
+                  {isPending ? (
+                    <Loader2Icon className="animate-spin" />
+                  ) : (
+                    <Plus />
+                  )}
+                  添加条目
+                </Button>
               </div>
             </div>
           </CardTitle>
@@ -117,15 +164,19 @@ export default function DataTabl() {
                     {item.otherdatas?.title?.[0]?.title || "N/A"}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button variant="secondary" size="icon" className="size-8">
-                      <Link
-                        href={`/dashboard/dataManagement/edit/${
-                          item.vid || item.id
-                        }`}
-                      >
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="size-8"
+                      onClick={() => edithave(item.id)}
+                    >
+                      {edithaveLoading ? (
+                        <Loader2Icon className="animate-spin" />
+                      ) : (
                         <SquarePen />
-                      </Link>
+                      )}
                     </Button>
+                    {/* [ ] 数据删除 */}
                     <Button
                       variant="secondary"
                       size="icon"
@@ -160,6 +211,7 @@ export default function DataTabl() {
           )}
         </CardContent>
       </Card>
+      <EditDialog />
     </div>
   );
 }

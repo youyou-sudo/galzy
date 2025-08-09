@@ -35,7 +35,8 @@ import { QueryClient, useMutation } from "@tanstack/react-query";
 type DataTy = Awaited<ReturnType<typeof vidassociationGet>>;
 
 export default function Component({ datas }: { datas: DataTy }) {
-  const coverItem = datas?.othermeidia.find((item) => item.cover === true);
+  console.log(datas);
+  const coverItem = datas?.othermedia.find((item) => item.cover === true);
   const coverId = coverItem ? coverItem.mediadata?.hash : null;
 
   const maxSizeMB = 50000;
@@ -44,8 +45,8 @@ export default function Component({ datas }: { datas: DataTy }) {
 
   // [x] 图片上传模块的文件预览及使用的签名逻辑完善
 
-  const initialFiles = datas?.othermeidia.map((item) => ({
-    id: Number(item.mediadata!.id),
+  const initialFiles = datas?.othermedia.map((item) => ({
+    id: Number(item.mediadata?.id),
     cover: item.cover!,
     name: item.mediadata!.name,
     thumb_hash: item.mediadata!.thumb_hash,
@@ -89,6 +90,7 @@ export default function Component({ datas }: { datas: DataTy }) {
   });
 
   const { isPending, mutate, isError } = addTodoMutation;
+  
   files.forEach(async (f) => {
     if (f.uploadStatus === "success") {
       if (f.file instanceof File) {
