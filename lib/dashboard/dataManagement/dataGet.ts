@@ -331,3 +331,39 @@ export const vidassociationUpdate = async (id: number, data: any) => {
     };
   }
 };
+
+export const vidassociationDelete = async (id: string) => {
+  try {
+    if (id === undefined) {
+      return {
+        message: "删除 galrc_other 失败",
+        status: "error",
+        error: "id 不存在",
+      };
+    }
+
+    if (id.startsWith("v")) {
+      await db
+        .deleteFrom("galrc_alistb")
+        .where("vid", "=", id)
+        .executeTakeFirstOrThrow();
+    }
+
+    if (id.match(/^\d+$/)) {
+      await db
+        .deleteFrom("galrc_alistb")
+        .where("other", "=", Number(id))
+        .executeTakeFirstOrThrow();
+    }
+    return {
+      message: "删除成功",
+      status: "success",
+    };
+  } catch (error) {
+    return {
+      message: "删除 galrc_other 失败",
+      status: "error",
+      error: String(error),
+    };
+  }
+};

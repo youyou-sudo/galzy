@@ -23,6 +23,7 @@ import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import {
   dataFilteringGet,
   vidassociationCreate,
+  vidassociationDelete,
   vidassociationGet,
 } from "@/lib/dashboard/dataManagement/dataGet";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,11 @@ export default function DataTabl() {
   const [query, setQuery] = React.useState("");
 
   // 数据请求
-  const { data: dataFilteringData } = useQuery({
+  const {
+    isPending: isDataPending,
+    data: dataFilteringData,
+    refetch,
+  } = useQuery({
     queryKey: ["dataFilteringGet", filterNusq, datapage, limit, query],
     queryFn: async () => {
       const params = {
@@ -71,6 +76,7 @@ export default function DataTabl() {
       const { id } = await vidassociationCreate();
       const data = await vidassociationGet(String(id!));
       open();
+      refetch();
       dataget(data);
     },
     onSettled: () => queryClient.invalidateQueries(),
@@ -80,7 +86,16 @@ export default function DataTabl() {
     mutationFn: async (id: string) => {
       const data = await vidassociationGet(String(id!));
       open();
+      refetch();
       dataget(data);
+    },
+    onSettled: () => queryClient.invalidateQueries(),
+  });
+
+  const { mutate: delll } = useMutation({
+    mutationFn: async (id: string) => {
+      await vidassociationDelete(id!);
+      refetch();
     },
     onSettled: () => queryClient.invalidateQueries(),
   });
@@ -176,13 +191,20 @@ export default function DataTabl() {
                         <SquarePen />
                       )}
                     </Button>
-                    {/* [ ] 数据删除 */}
+                    {/* [x] 数据删除 */}
                     <Button
                       variant="secondary"
                       size="icon"
                       className="size-8 text-red-500"
+                      onClick={() => {
+                        delll(item.vid || item.id);
+                      }}
                     >
-                      <Trash2 animateOnHover />
+                      {isDataPending ? (
+                        <Loader2Icon className="animate-spin" />
+                      ) : (
+                        <Trash2 animateOnHover />
+                      )}
                     </Button>
                   </TableCell>
                 </TableRow>
