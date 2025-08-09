@@ -35,7 +35,6 @@ import { QueryClient, useMutation } from "@tanstack/react-query";
 type DataTy = Awaited<ReturnType<typeof vidassociationGet>>;
 
 export default function Component({ datas }: { datas: DataTy }) {
-  console.log(datas);
   const coverItem = datas?.othermedia.find((item) => item.cover === true);
   const coverId = coverItem ? coverItem.mediadata?.hash : null;
 
@@ -90,7 +89,7 @@ export default function Component({ datas }: { datas: DataTy }) {
   });
 
   const { isPending, mutate, isError } = addTodoMutation;
-  
+
   files.forEach(async (f) => {
     if (f.uploadStatus === "success") {
       if (f.file instanceof File) {

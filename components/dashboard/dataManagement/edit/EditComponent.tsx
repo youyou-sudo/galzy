@@ -25,13 +25,11 @@ import {
 } from "@/components/ui/form";
 import { Loader2Icon, Plus, Trash2 } from "lucide-react";
 import ImageUpComp from "./imageUp";
-import {
-  vidassociationGet,
-  vidassociationUpdate,
-} from "@/lib/dashboard/dataManagement/dataGet";
+import { vidassociationUpdate } from "@/lib/dashboard/dataManagement/dataGet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QueryClient, useMutation } from "@tanstack/react-query";
 import { useEditDialog } from "../stores/useEditDialog";
+import { useEffect } from "react";
 
 // 定义表单验证模式
 const formSchema = z.object({
@@ -53,9 +51,8 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-type DataTy = Awaited<ReturnType<typeof vidassociationGet>>;
-
-export default function EditComponent({ data }: { data: DataTy }) {
+export default function EditComponent() {
+  const { data } = useEditDialog();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -94,6 +91,16 @@ export default function EditComponent({ data }: { data: DataTy }) {
       remove(index);
     }
   };
+  useEffect(() => {
+    if (data) {
+      form.reset({
+        title: data.title || [{ title: "", lang: "" }],
+        description: data.description || "",
+        alias: data.alias || "",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
   if (!data) {
     return (
       <>
