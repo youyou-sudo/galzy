@@ -10,7 +10,7 @@ import { useEditDialog } from "../stores/useEditDialog";
 import EditComponent from "./EditComponent";
 
 export default function EditDialog() {
-  const { isOpen, close, data } = useEditDialog();
+  const { isOpen, close } = useEditDialog();
 
   return (
     <Dialog open={isOpen} onOpenChange={close}>
@@ -18,7 +18,7 @@ export default function EditDialog() {
         <DialogHeader>
           <DialogTitle>编辑内容</DialogTitle>
         </DialogHeader>
-        <EditComponent data={data} />
+        <EditComponent />
       </DialogContent>
     </Dialog>
   );
