@@ -1,9 +1,9 @@
-import MeiliSearchClient from "@/lib/meilisearch";
+import MeiliSearchServer from "@/lib/meilisearch";
 import { env } from "next-runtime-env";
 import React from "react";
 
 const MeilisearchCard = async ({}) => {
-  const search = await MeiliSearchClient.index(
+  const search = await MeiliSearchServer.index(
     env("MEILISEARCH_INDEXNAME")!
   ).search("");
   return (
