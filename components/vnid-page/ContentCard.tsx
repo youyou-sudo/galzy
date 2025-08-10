@@ -58,6 +58,7 @@ export const ContentCard = ({ data }: Props) => {
   const filteredImage = imageFilter();
   const titlesData = getTitles();
   const aliasData = aliasFilter();
+
   const imageUrl =
     filteredImage &&
     typeof filteredImage === "object" &&
@@ -68,7 +69,7 @@ export const ContentCard = ({ data }: Props) => {
           width: filteredImage!.width,
           height: filteredImage!.height,
         });
-  console.log(imageUrl);
+
   return (
     <div className="mt-10 flex flex-col md:flex-row">
       <div className="flex flex-row items-center">
