@@ -31,6 +31,7 @@ import {
 } from "@/components/animate-ui/radix/radio-group";
 import { Label } from "@/components/ui/label";
 import { QueryClient, useMutation } from "@tanstack/react-query";
+import { imageAcc } from "@/lib/ImageUrl";
 
 type DataTy = Awaited<ReturnType<typeof vidassociationGet>>;
 
@@ -50,7 +51,7 @@ export default function Component({ datas }: { datas: DataTy }) {
     name: item.mediadata!.name,
     thumb_hash: item.mediadata!.thumb_hash,
     type: item.mediadata!.type,
-    media_url: `${process.env.NEXT_PUBLIC_OPENIMAG_P_HOST}/p/upload/${item.mediadata?.name}`,
+    media_url: imageAcc(item.mediadata!.name),
     Hash: item.mediadata!.hash,
     size: Number(item.mediadata!.size),
   }));
@@ -99,6 +100,8 @@ export default function Component({ datas }: { datas: DataTy }) {
           name: f.file.name,
           type: f.file.type,
           thumb_hash: thumbHashResult.base64,
+          width: thumbHashResult.width,
+          height: thumbHashResult.height,
           hash: f.id,
           size: BigInt(f.file.size),
         });

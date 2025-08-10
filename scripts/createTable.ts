@@ -116,6 +116,8 @@ export async function seed() {
     .addColumn("hash", "text", (cb) => cb.primaryKey())
     .addColumn("name", "text", (cb) => cb.notNull())
     .addColumn("size", "bigint", (cb) => cb.notNull())
+    .addColumn("width", "integer", (cb) => cb.notNull())
+    .addColumn("height", "integer", (cb) => cb.notNull())
     .addColumn("type", "varchar(255)", (cb) => cb.notNull())
     .addColumn("thumb_hash", "text")
     .execute();

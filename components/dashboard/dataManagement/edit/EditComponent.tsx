@@ -215,8 +215,8 @@ export default function EditComponent() {
                     <FormItem>
                       <FormLabel>别名</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="请输入姓名"
+                        <Textarea
+                          placeholder="请输入alias，一行一个"
                           {...field}
                           value={field.value ?? ""}
                         />

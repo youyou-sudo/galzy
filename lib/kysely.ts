@@ -170,9 +170,7 @@ type language =
   | "uk"
   | "ur"
   | "vi"
-  | "zh"
-  | "zh-Hans"
-  | "zh-Hant";
+  | "zh";
 
 export interface VnTitlesTable {
   id: string;
@@ -269,7 +267,9 @@ export type otherTitle = {
 export interface Onthermeidia {
   hash: string; // 文件哈希（唯一性去重）
   name: string; // 媒体名称
-  type: string; // 媒体类型
+  type: string; // 媒体类型、
+  width: number;
+  height: number;
   thumb_hash: string | null; // ThumbHash 占位图 base64
   size: bigint; // 文件大小
 }

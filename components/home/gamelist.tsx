@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect } from "react";
-import { getImageUrl } from "@/lib/ImageUrl";
+import { getImageUrl, imageAcc } from "@/lib/ImageUrl";
 import { Link } from "next-view-transitions";
 import { useInView } from "react-intersection-observer";
 import { GameCard } from "@/components/game-card";
@@ -44,25 +44,44 @@ const HomeGamelistComponent = () => {
   }, [inView, isLoading, fetchNextPage]);
 
   const gameList = gameListData?.pages.flatMap((page) =>
-    page.items.map((item) => (
-      <Link href={`/${item.id}`} scroll={true} key={item.id}>
-        <div className="space-y-2 aspect-[2/3] p-0">
-          {/* [x] VNDB 来源图片进行缓存以防止滥用 VNDB 服务
-           */}
-          <GameCard.Image
-            fill
-            src={getImageUrl(item.images)}
-            alt="图片"
-          />
-        </div>
-        <p className="text-sm truncate w-full text-center pl-2 pr-2 pt-2">
-          {
-            item.titles.find((it: { lang: string }) => it.lang === item.olang)
-              ?.title
-          }
-        </p>
-      </Link>
-    ))
+    page.items.map((item) => {
+      const imageFilter = () => {
+        const images =
+          item.other &&
+          item.other_datas?.other_media.some((item) => item.cover === true)
+            ? item.other_datas.other_media.find((item) => item.cover === true)
+                ?.media
+            : item.images;
+        return images;
+      };
+      const imagesData = imageFilter();
+      const imagess =
+        imagesData && typeof imagesData === "object" && "hash" in imagesData
+          ? imageAcc(imagesData.name)
+          : getImageUrl({
+              imageId: imagesData!.id,
+              width: imagesData!.width,
+              height: imagesData!.height,
+            });
+      return (
+        <Link href={`/${item.id}`} scroll={true} key={item.id}>
+          <div className="space-y-2 aspect-[2/3] p-0">
+            {/* [x] VNDB 来源图片进行缓存以防止滥用 VNDB 服务
+             */}
+            <GameCard.Image fill src={imagess} alt="图片" />
+          </div>
+          <p className="text-sm truncate w-full text-center pl-2 pr-2 pt-2">
+            {item.other_datas?.title?.length
+              ? item.other_datas.title.find(
+                  (it: { lang: string }) => it.lang === "zh-Hans"
+                )?.title ?? item.other_datas.title[0]?.title
+              : item.titles.find(
+                  (it: { lang: string }) => it.lang === item.olang
+                )?.title}
+          </p>
+        </Link>
+      );
+    })
   );
   return (
     <div className="grid grid-cols-3 gap-4 md:grid-cols-6">

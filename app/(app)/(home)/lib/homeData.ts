@@ -24,11 +24,43 @@ export const homeData = async (pageSize: number, pageIndex: number) => {
           .whereRef("images.id", "=", "vn.c_image")
       ).as("images"),
     ])
+    .select((other) => [
+      "galrc_alistb.other",
+      jsonObjectFrom(
+        other
+          .selectFrom("galrc_other")
+          .selectAll()
+          .whereRef("id", "=", "galrc_alistb.other")
+          .select((other) => [
+            "galrc_alistb.other",
+            jsonArrayFrom(
+              other
+                .selectFrom("galrc_other_media")
+                .selectAll()
+                .whereRef("galrc_other_media.other_id", "=", "galrc_other.id")
+                .select((om) => [
+                  jsonObjectFrom(
+                    om
+                      .selectFrom("galrc_media")
+                      .selectAll()
+                      .whereRef(
+                        "galrc_media.hash",
+                        "=",
+                        "galrc_other_media.media_hash"
+                      )
+                  ).as("media"),
+                ])
+            ).as("other_media"),
+          ])
+      ).as("other_datas"),
+    ])
     .selectAll()
     .orderBy("vn.id", "desc")
+    .orderBy("galrc_alistb.other", "desc")
     .limit(pageSize)
     .offset(offset)
     .execute();
+
 
   const totalCountResult = await db
     .selectFrom("galrc_alistb")

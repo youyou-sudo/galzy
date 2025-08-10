@@ -8,15 +8,11 @@ export const revalidate = 60;
 
 export default async function idPage({ params }: { params: { id: string } }) {
   const { id } = await params;
-  if (id.startsWith("v")) {
-    const data = await getVnDetails(id);
-    return (
-      <div className="space-y-3">
-        <ContentCard data={data} />
-        <TapCatd id={id} />
-      </div>
-    );
-  }
-
-  return <div>{id}</div>;
+  const data = await getVnDetails(id);
+  return (
+    <div className="space-y-3">
+      <ContentCard data={data} />
+      <TapCatd id={id} />
+    </div>
+  );
 }
