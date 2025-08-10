@@ -64,7 +64,7 @@ const HomeGamelistComponent = () => {
               height: imagesData!.height,
             });
       return (
-        <Link href={`/${item.id}`} scroll={true} key={item.id}>
+        <Link href={`/${item.id}`} key={item.id}>
           <div className="space-y-2 aspect-[2/3] p-0">
             {/* [x] VNDB 来源图片进行缓存以防止滥用 VNDB 服务
              */}

@@ -6,7 +6,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 const IdGameCardSkeleton = forwardRef<HTMLDivElement>(function GameSkeleton() {
   return (
     <>
-      <div className="flex space-x-4">
+      <div className="flex space-x-4 mt-10">
         <Skeleton className="h-[200px] w-[270px] w-min-[270px]" />
         <div className="space-y-4 w-full">
           <Skeleton className="h-10 max-w-[200px]" />

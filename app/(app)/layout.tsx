@@ -16,9 +16,8 @@ export default async function RootLayout({
   const umamiConfig = await umamiConfigGet();
   return (
     <>
-      <Navbar />
-
       <main className="w-full min-h-screen">
+        <Navbar />
         <div className="mx-auto max-w-6xl space-y-4 px-4 py-4 lg:px-0">
           {children}
         </div>
