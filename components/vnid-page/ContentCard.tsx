@@ -13,6 +13,8 @@ type Props = {
   data: VnData;
 };
 export const ContentCard = ({ data }: Props) => {
+  console.log(data);
+
   if (!data) {
     return (
       <div>
@@ -127,9 +129,13 @@ export const ContentCard = ({ data }: Props) => {
           id="bbccode"
           className="line-clamp-3 text-sm/7 text-muted-foreground mt-2"
         >
-          {data.other_datas?.description && data.vn_datas?.description && (
+          {(data.other_datas?.description || data.vn_datas?.description) && (
             <BBCodeRenderer
-              text={data.other_datas?.description || data.vn_datas?.description}
+              text={
+                data.other_datas?.description ||
+                data.vn_datas?.description ||
+                ""
+              }
             />
           )}
         </div>
