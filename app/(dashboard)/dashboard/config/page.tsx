@@ -1,4 +1,4 @@
-import { UmamiCard } from "@/components/dashboard/config";
+import { UmamiCard, MeiliSearch } from "@/components/dashboard/config";
 import { umamiConfigGet } from "@/lib/dashboard/config/UmamiFormAc";
 
 import {
@@ -17,9 +17,10 @@ export default function page() {
     },
   });
   return (
-    <div>
+    <div className="space-y-3">
       <HydrationBoundary state={dehydrate(queryClient)}>
         <UmamiCard />
+        <MeiliSearch />
       </HydrationBoundary>
     </div>
   );

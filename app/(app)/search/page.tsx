@@ -1,8 +1,13 @@
 import { GameCard } from "@/components/game-card";
+import MeilisearchCard from "@/components/Search/meilisearch";
 import React, { Suspense } from "react";
 
 export function Pages() {
-  return <div>pages</div>;
+  return (
+    <div>
+      <MeilisearchCard />
+    </div>
+  );
 }
 
 const DfPage = () => {

@@ -10,7 +10,7 @@ export default function SearchInput(pops: { className?: string }) {
   const router = useTransitionRouter();
 
   return (
-    // [ ] 用户端搜索功能
+    // [ ] 用户 Meilisearch 端搜索功能
     <div className="*:not-first:mt-2">
       <div className="flex rounded-md shadow-xs">
         <Input
