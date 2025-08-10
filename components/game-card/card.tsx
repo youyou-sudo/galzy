@@ -3,6 +3,33 @@ import { Skeleton } from "@/components/ui/skeleton";
 import NextImage, { type ImageProps } from "next/image";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
+const IdGameCardSkeleton = forwardRef<HTMLDivElement>(function GameSkeleton() {
+  return (
+    <>
+      <div className="flex space-x-4">
+        <Skeleton className="h-[200px] w-[270px] w-min-[270px]" />
+        <div className="space-y-4 w-full">
+          <Skeleton className="h-10 max-w-[200px]" />
+          <Skeleton className="h-4 max-w-[200px]" />
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton className="h-4 w-full" key={index} />
+          ))}
+        </div>
+      </div>
+      <div className="space-y-4">
+        <div className="flex space-x-2">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton className="h-7 w-[50px]" key={index} />
+          ))}
+        </div>
+        {Array.from({ length: 3 }).map((_, index) => (
+          <Skeleton className="h-4 w-3/5" key={index} />
+        ))}
+      </div>
+    </>
+  );
+});
+
 const GameSkeleton = forwardRef<HTMLDivElement>(function GameSkeleton(_, ref) {
   return (
     <div className="space-y-2 aspect-[2/3] p-0">
@@ -30,4 +57,5 @@ export function Image(props: ImageProps) {
 export const GameCard = {
   ListSkeleton: GameSkeleton,
   Image,
+  IdGameCardSkeleton,
 };

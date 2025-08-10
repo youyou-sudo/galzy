@@ -6,8 +6,10 @@ import {
   HydrationBoundary,
   QueryClient,
 } from "@tanstack/react-query";
+import { Suspense } from "react";
+import { GameCard } from "@/components/game-card";
 
-export default async function Home() {
+export async function Home() {
   const queryClient = new QueryClient();
   await queryClient.prefetchInfiniteQuery({
     queryKey: ["gamelist"],
@@ -26,13 +28,31 @@ export default async function Home() {
   });
 
   return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <HomeGamelist />
+    </HydrationBoundary>
+  );
+}
+
+const DfPage = () => {
+  return (
     <>
       <div className="max-w-3xl justify-center mx-auto">
         <SearchInput />
       </div>
-      <HydrationBoundary state={dehydrate(queryClient)}>
-        <HomeGamelist />
-      </HydrationBoundary>
+      <Suspense
+        fallback={
+          <div className="grid grid-cols-3 gap-4 md:grid-cols-6">
+            {Array.from({ length: 20 }).map((_, index) => (
+              <GameCard.ListSkeleton key={index} />
+            ))}
+          </div>
+        }
+      >
+        <Home />
+      </Suspense>
     </>
   );
-}
+};
+
+export default DfPage;
