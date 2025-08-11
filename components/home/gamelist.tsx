@@ -76,13 +76,16 @@ const HomeGamelistComponent = () => {
             />
           </div>
           <p className="text-sm truncate w-full text-center pl-2 pr-2 pt-2">
-            {item.other_datas?.title?.length
+            {(item.other_datas && item.other_datas.title?.length
               ? item.other_datas.title.find(
-                  (it: { lang: string }) => it.lang === "zh-Hans"
-                )?.title ?? item.other_datas.title[0]?.title
-              : item.titles.find(
-                  (it: { lang: string }) => it.lang === item.olang
-                )?.title}
+                  (it: { lang: string; title: string }) =>
+                    it.lang === "zh-Hans" && it.title.trim() !== ""
+                )?.title
+              : undefined) ||
+              item.titles.find(
+                (it: { lang: string; title: string }) =>
+                  it.lang === item.olang && it.title.trim() !== ""
+              )?.title}
           </p>
         </Link>
       );
