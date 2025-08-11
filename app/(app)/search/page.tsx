@@ -1,23 +1,37 @@
-import { GameCard } from "@/components/game-card";
-import MeilisearchCard from "@/components/Search/meilisearch";
-import React, { Suspense } from "react";
+import React from "react";
+import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from "@tanstack/react-query";
 
-export function Pages() {
+import SearchlistComponent from "@/components/home/Search/meilisearch";
+import { getSearch } from "@/lib/search/meilisearch";
+
+// [x] 用户端搜索
+export default async function Pages({
+  searchParams,
+}: {
+  searchParams: { q: string; ai: string };
+}) {
+  const { q, ai } = await searchParams;
+  const queryClient = new QueryClient();
+  await queryClient.prefetchQuery({
+    queryKey: ["search", q, ai],
+    queryFn: async () => {
+      const response = await getSearch({
+        q: q || "",
+        ai: ai === "true" ? true : false,
+        limit: 100,
+      });
+      return response;
+    },
+  });
   return (
     <div>
-      <MeilisearchCard />
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <SearchlistComponent />
+      </HydrationBoundary>
     </div>
   );
 }
-
-const DfPage = () => {
-  return (
-    <div className="space-y-3">
-      <Suspense fallback={<GameCard.IdGameCardSkeleton />}>
-        <Pages />
-      </Suspense>
-    </div>
-  );
-};
-
-export default DfPage;

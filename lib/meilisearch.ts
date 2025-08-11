@@ -1,9 +1,16 @@
+"use server";
+
 import { MeiliSearch } from "meilisearch";
 import { env } from "next-runtime-env";
 
-const MeiliSearchServer = new MeiliSearch({
-  host: env("MEILISEARCH_HOST")!,
-  apiKey: env("MEILISEARCH_MASTER"),
-});
+let meiliClient: MeiliSearch | null = null;
 
-export default MeiliSearchServer;
+export async function getMeiliSearchClient() {
+  if (!meiliClient) {
+    meiliClient = new MeiliSearch({
+      host: env("MEILISEARCH_HOST")!,
+      apiKey: env("MEILISEARCH_MASTER"),
+    });
+  }
+  return meiliClient;
+}

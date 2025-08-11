@@ -20,9 +20,34 @@ export const homeData = async (pageSize: number, pageIndex: number) => {
       jsonObjectFrom(
         vneb
           .selectFrom("images")
-          .selectAll()
+          .select(["height", "id", "width"])
           .whereRef("images.id", "=", "vn.c_image")
       ).as("images"),
+      jsonArrayFrom(
+        vneb
+          .selectFrom("releases_vn")
+          .innerJoin("releases", "releases.id", "releases_vn.id")
+          .select([
+            "releases.notes",
+            "releases.engine",
+            "releases.olang",
+            "releases.id",
+          ])
+          .whereRef("releases_vn.vid", "=", "vn.id")
+          .select((releaseseVn) => [
+            jsonArrayFrom(
+              releaseseVn
+                .selectFrom("releases_titles")
+                .select(["releases_titles.id"])
+                .selectAll()
+                .whereRef(
+                  "releases_titles.id",
+                  "=",
+                  releaseseVn.ref("releases.id")
+                )
+            ).as("titles"),
+          ])
+      ).as("vn_releases"),
     ])
     .select((other) => [
       "galrc_alistb.other",
@@ -54,13 +79,12 @@ export const homeData = async (pageSize: number, pageIndex: number) => {
           ])
       ).as("other_datas"),
     ])
-    .selectAll()
+    .select(["vn.alias", "vn.description", "vn.id", "vn.olang"])
     .orderBy("vn.id", "desc")
     .orderBy("galrc_alistb.other", "desc")
     .limit(pageSize)
     .offset(offset)
     .execute();
-
 
   const totalCountResult = await db
     .selectFrom("galrc_alistb")

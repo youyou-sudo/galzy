@@ -68,7 +68,12 @@ const HomeGamelistComponent = () => {
           <div className="space-y-2 aspect-[2/3] p-0">
             {/* [x] VNDB 来源图片进行缓存以防止滥用 VNDB 服务
              */}
-            <GameCard.Image fill src={imagess} alt="图片" />
+            <GameCard.Image
+              sizes="(max-width: 768px) 100vw, 600px"
+              fill
+              src={imagess}
+              alt="图片"
+            />
           </div>
           <p className="text-sm truncate w-full text-center pl-2 pr-2 pt-2">
             {item.other_datas?.title?.length

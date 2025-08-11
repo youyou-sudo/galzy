@@ -3,7 +3,7 @@ import { Link } from "next-view-transitions";
 import Image from "next/image";
 import { Suspense } from "react";
 
-import SearchInput from "@/components/Search";
+import SearchInput from "@/components/home/Search/Search";
 import { ThemeSwitch } from "@/components/theme-switch";
 // import { Account } from "@/components/account";
 
