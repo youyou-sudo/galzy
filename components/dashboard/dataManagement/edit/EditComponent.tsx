@@ -27,10 +27,13 @@ import { Loader2Icon, Plus, Trash2 } from "lucide-react";
 import ImageUpComp from "./imageUp";
 import { vidassociationUpdate } from "@/lib/dashboard/dataManagement/dataGet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { QueryClient, useMutation } from "@tanstack/react-query";
+import {
+  QueryClient,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useEditDialog } from "../stores/useEditDialog";
 import { useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useFilterStore, usePaginationStore } from "../stores/dataManagement";
 
 // 定义表单验证模式
