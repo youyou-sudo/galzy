@@ -7,9 +7,9 @@ const workerDataPull = async () => {
     data.map(async (item) => {
       try {
         const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, "0");
-        const dd = String(today.getDate()).padStart(2, "0");
+        const yyyy = today.getUTCFullYear();
+        const mm = String(today.getUTCMonth() + 1).padStart(2, "0");
+        const dd = String(today.getUTCDate()).padStart(2, "0");
         const dateStr = `${yyyy}-${mm}-${dd}`;
 
         const raw = JSON.stringify({
@@ -49,18 +49,15 @@ const workerDataPull = async () => {
             },
           }
         );
-
         const json = await res.json();
         const json2 = await res2.json();
-
         const result =
           json?.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive?.[0]
             ?.sum ?? {};
+
         const result2 = json2.result.script.routes[0].pattern ?? {};
         const cleanDomain = result2.replace(/\*$/, "").replace(/\/+$/, "");
         const url = `https://${cleanDomain}`;
-
-        // 检查请求是否成功，如果请求的次数大于 100000，则认为成功，否则设为 false
         await db
           .updateTable("galrc_cloudflare")
           .set({
@@ -90,7 +87,6 @@ const workerDataPull = async () => {
     })
   );
 };
-
 export async function workerDataCorn() {
   try {
     await workerDataPull();
@@ -100,3 +96,4 @@ export async function workerDataCorn() {
 
   setTimeout(workerDataCorn, 240 * 1000);
 }
+workerDataPull();
