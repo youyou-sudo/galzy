@@ -13,8 +13,6 @@ type Props = {
   data: VnData;
 };
 export const ContentCard = ({ data }: Props) => {
-  console.log(data);
-
   if (!data) {
     return (
       <div>
@@ -27,7 +25,10 @@ export const ContentCard = ({ data }: Props) => {
     const zhHansTitle =
       data.other_datas?.title?.find(
         (it: { lang: string }) => it.lang === "zh-Hans"
-      )?.title ?? null;
+      )?.title ??
+      data.vn_datas?.titles?.find(
+        (it: { lang: string }) => it.lang === "zh-Hans"
+      )?.title;
 
     const olangTitle =
       data.vn_datas?.titles.find(

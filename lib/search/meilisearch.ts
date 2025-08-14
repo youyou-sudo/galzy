@@ -11,7 +11,6 @@ export const getSearch = async ({
   ai: boolean;
   limit?: number;
 }) => {
-  console.log(ai);
   const MeiliClient = await getMeiliSearchClient();
   const index = await MeiliClient.index(env("MEILISEARCH_INDEXNAME")!).search(
     q,
