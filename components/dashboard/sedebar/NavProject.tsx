@@ -20,7 +20,7 @@ import {
 import { dashboardConfig } from "@/config/dashboard";
 import { Folder, Forward, MoreHorizontal, Trash2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import Link from "next/link";
+import { HoverPrefetchLink } from "@/components/ui/hover-prefetch-link";
 
 export default function NavProject() {
   const isMobile = useIsMobile();
@@ -33,10 +33,10 @@ export default function NavProject() {
           {dashboardConfig.projects.map((item) => (
             <SidebarMenuItem key={item.name}>
               <SidebarMenuButton asChild>
-                <Link href={item.url}>
+                <HoverPrefetchLink href={item.url}>
                   <item.icon />
                   <span>{item.name}</span>
-                </Link>
+                </HoverPrefetchLink>
               </SidebarMenuButton>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

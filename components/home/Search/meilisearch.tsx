@@ -1,11 +1,11 @@
 "use client";
 import React from "react";
 import { getImageUrl, imageAcc } from "@/lib/ImageUrl";
-import { Link } from "next-view-transitions";
 import { GameCard } from "@/components/game-card";
 import { useQuery } from "@tanstack/react-query";
 import { getSearch } from "@/lib/search/meilisearch";
 import { useQueryState } from "nuqs";
+import { HoverPrefetchLink } from "@/components/ui/hover-prefetch-link";
 
 const SearchlistComponent = () => {
   const [q] = useQueryState("q");
@@ -52,7 +52,7 @@ const SearchlistComponent = () => {
               height: imagesData!.height,
             });
       return (
-        <Link href={`/${item.id}`} key={item.id}>
+        <HoverPrefetchLink href={`/${item.id}`} key={item.id}>
           <div className="space-y-2 aspect-[2/3] p-0">
             {/* [x] VNDB 来源图片进行缓存以防止滥用 VNDB 服务
              */}
@@ -72,7 +72,7 @@ const SearchlistComponent = () => {
                   (it: { lang: string }) => it.lang === item.olang
                 )?.title}
           </p>
-        </Link>
+        </HoverPrefetchLink>
       );
     });
   };

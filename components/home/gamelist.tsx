@@ -1,11 +1,11 @@
 "use client";
 import React, { useEffect } from "react";
 import { getImageUrl, imageAcc } from "@/lib/ImageUrl";
-import { Link } from "next-view-transitions";
 import { useInView } from "react-intersection-observer";
 import { GameCard } from "@/components/game-card";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { homeData } from "@/app/(app)/(home)/lib/homeData";
+import { HoverPrefetchLink } from "../ui/hover-prefetch-link";
 
 const HomeGamelistComponent = () => {
   const {
@@ -64,7 +64,7 @@ const HomeGamelistComponent = () => {
               height: imagesData!.height,
             });
       return (
-        <Link href={`/${item.id}`} key={item.id}>
+        <HoverPrefetchLink href={`/${item.id}`} key={item.id}>
           <div className="space-y-2 aspect-[2/3] p-0">
             {/* [x] VNDB 来源图片进行缓存以防止滥用 VNDB 服务
              */}
@@ -87,7 +87,7 @@ const HomeGamelistComponent = () => {
                   it.lang === item.olang && it.title.trim() !== ""
               )?.title}
           </p>
-        </Link>
+        </HoverPrefetchLink>
       );
     })
   );
