@@ -59,7 +59,7 @@ export const dataFilteringGet = async ({
 
   const baseQuery = db.selectFrom("galrc_alistb");
 
-  // [ ] 【搁置】标题和别名搜索
+  // [ ] [延后] 数据管理界面标题和别名搜索
 
   let whereQuery = baseQuery;
   if (otherId != null && (vid == null || vid === undefined)) {
