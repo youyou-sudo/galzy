@@ -176,7 +176,68 @@ export async function seed() {
     .addColumn("other", "bigint")
     .execute();
 
+  await db.schema
+    .createTable("galrc_article")
+    .ifNotExists()
+    .addColumn("id", "serial", (cb) => cb.primaryKey())
+    .addColumn("vid", "varchar(255)")
+    .addColumn("otherid", "bigint")
+    .addColumn("title", "varchar(255)")
+    .addColumn("content", "text")
+    .addColumn("type", "varchar(255)")
+    .addColumn("createdAt", sql`timestamp with time zone`, (cb) =>
+      cb.defaultTo(sql`current_timestamp`)
+    )
+    .addColumn("updatedAt", sql`timestamp with time zone`, (cb) =>
+      cb.defaultTo(sql`current_timestamp`)
+    )
+    .execute();
+
   // 索引
+
+  await db.schema
+    .createIndex("galrc_article_vid")
+    .ifNotExists()
+    .on("galrc_article")
+    .column("vid")
+    .execute();
+  await db.schema
+    .createIndex("galrc_article_otherid")
+    .ifNotExists()
+    .on("galrc_article")
+    .column("otherid")
+    .execute();
+  await db.schema
+    .createIndex("galrc_article_type")
+    .ifNotExists()
+    .on("galrc_article")
+    .column("type")
+    .execute();
+  await db.schema
+    .createIndex("galrc_alistb_vid_index")
+    .ifNotExists()
+    .on("galrc_alistb")
+    .column("vid")
+    .execute();
+  await db.schema
+    .createIndex("galrc_alistb_other_index")
+    .ifNotExists()
+    .on("galrc_alistb")
+    .column("other")
+    .execute();
+  await db.schema
+    .createIndex("galrc_media_hash_index")
+    .ifNotExists()
+    .on("galrc_media")
+    .column("hash")
+    .execute();
+  await db.schema
+    .createIndex("galrc_other_status_index")
+    .ifNotExists()
+    .on("galrc_other")
+    .column("status")
+    .execute();
+
   await db.schema
     .createIndex("galrc_user_email_index")
     .ifNotExists()

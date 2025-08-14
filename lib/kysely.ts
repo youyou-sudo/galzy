@@ -331,6 +331,19 @@ export interface CloudflareConfigTable {
   updateTime: ColumnType<Date | null>;
 }
 
+type ArticleType = "article" | "strategy";
+
+export interface ArticlesTable {
+  id: Generated<number>;
+  vid: string | null;
+  otherid: number | null;
+  title: string | null;
+  content: string | null;
+  type: ArticleType;
+  createdAt: ColumnType<Date, string | undefined, never>;
+  updatedAt: ColumnType<Date, string | undefined, never>;
+}
+
 export interface Database {
   // better 部分
   galrc_user: User;
@@ -339,6 +352,7 @@ export interface Database {
   galrc_verification: Verification;
 
   // Galrc 部分
+  galrc_article: ArticlesTable;
   galrc_alistb: AlistB;
   galrc_storages: AlistStorages;
   galrc_other: OtherDataTable;
