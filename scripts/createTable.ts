@@ -184,6 +184,7 @@ export async function seed() {
     .addColumn("otherid", "bigint")
     .addColumn("title", "varchar(255)")
     .addColumn("content", "text")
+    .addColumn("copyright", "text")
     .addColumn("type", "varchar(255)")
     .addColumn("createdAt", sql`timestamp with time zone`, (cb) =>
       cb.defaultTo(sql`current_timestamp`)

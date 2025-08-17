@@ -24,20 +24,11 @@ export const strategyListGet = async (id: string) => {
 };
 
 export const strategyListUpdate = async (id: string, data: ContentData) => {
-  const isVNDB = /^v\d+$/.test(id);
-  if (isVNDB) {
-    await db
-      .updateTable("galrc_article")
-      .where("vid", "=", id)
-      .set({ ...data, type: "strategy" })
-      .execute();
-  } else {
-    await db
-      .updateTable("galrc_article")
-      .where("otherid", "=", Number(id))
-      .set({ ...data, type: "strategy" })
-      .execute();
-  }
+  await db
+    .updateTable("galrc_article")
+    .where("id", "=", Number(id))
+    .set({ ...data })
+    .execute();
 };
 
 export const strategyListCreate = async (id: string, data: ContentData) => {

@@ -1,4 +1,4 @@
-import { Bot, Frame, GalleryVerticalEnd, SquareTerminal } from "lucide-react";
+import { Bot, GalleryVerticalEnd, SquareTerminal } from "lucide-react";
 
 export const dashboardConfig = {
   section: [
@@ -35,13 +35,6 @@ export const dashboardConfig = {
           url: "/dashboard/download",
         },
       ],
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
     },
   ],
   user: {

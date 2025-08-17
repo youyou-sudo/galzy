@@ -27,7 +27,7 @@ import {
   vidassociationGet,
 } from "@/lib/dashboard/dataManagement/dataGet";
 import { Button } from "@/components/ui/button";
-import { Loader2Icon, Plus, SquarePen } from "lucide-react";
+import { Loader2Icon, Plus, SquarePen, Swords } from "lucide-react";
 import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 
 import DataManagementPagination from "@/components/dashboard/dataManagement/Pagination";
@@ -36,6 +36,8 @@ import { useFilterStore, usePaginationStore } from "./stores/dataManagement";
 
 import { useEditDialog } from "./stores/useEditDialog";
 import EditDialog from "./edit/EditDialog";
+import { useStrategyListDialog } from "./stores/strategyListModal";
+import { StrategyListModal } from "./strategy/strategyList";
 
 export default function DataTabl() {
   const filterNusq = useFilterStore((state) => state.filterNusq);
@@ -97,6 +99,8 @@ export default function DataTabl() {
     onSettled: () => queryClient.invalidateQueries(),
   });
 
+  const { open: strategyListDialogOpen, dataget: strategyListDialogDataget } =
+    useStrategyListDialog();
   // [x] 数据翻页功能
   return (
     <div>
@@ -174,8 +178,19 @@ export default function DataTabl() {
                   <TableCell>{item.vid}</TableCell>
                   <TableCell>
                     {item.otherdatas?.title?.[0]?.title || "N/A"}
-                  </TableCell>
+                  </TableCell>  
                   <TableCell className="text-right space-x-2">
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="size-8"
+                      onClick={() => {
+                        strategyListDialogOpen();
+                        strategyListDialogDataget(item.vid || item.id);
+                      }}
+                    >
+                      <Swords />
+                    </Button>
                     <Button
                       variant="secondary"
                       size="icon"
@@ -231,6 +246,7 @@ export default function DataTabl() {
         </CardContent>
       </Card>
       <EditDialog />
+      <StrategyListModal />
     </div>
   );
 }

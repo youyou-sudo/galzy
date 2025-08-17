@@ -340,6 +340,7 @@ export interface ArticlesTable {
   title: string | null;
   content: string | null;
   type: ArticleType;
+  copyright: string | null;
   createdAt: ColumnType<Date, string | undefined, never>;
   updatedAt: ColumnType<Date, string | undefined, never>;
 }

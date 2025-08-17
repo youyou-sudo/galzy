@@ -9,7 +9,6 @@ import {
 } from "@/components/animate-ui/radix/sidebar";
 import Switcher from "@/components/dashboard/sedebar/Switcher";
 import NavMain from "@/components/dashboard/sedebar/NavMain";
-import NavProject from "@/components/dashboard/sedebar/NavProject";
 import NavUser from "@/components/dashboard/sedebar/NavUser";
 import SideContent from "@/components/dashboard/sedebar/sideContent";
 
@@ -30,7 +29,6 @@ export default function RootLayout({
           <SidebarContent>
             <Switcher />
             <NavMain />
-            <NavProject />
           </SidebarContent>
           <SidebarFooter>
             <NavUser />

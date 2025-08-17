@@ -3,15 +3,30 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2Icon, Pencil, Trash } from "lucide-react";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/animate-ui/radix/dialog";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { strategyListDelete, strategyListGet } from "@/lib/strategy/strategyAc";
 import { useLoginModalStore } from "./stores/EditStores";
 import { StrategEdit } from "./strategyEdit";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useStrategyListDialog } from "../stores/strategyListModal";
 // [x] 攻略列表
 // [x] 攻略增删改
 const StrategyList = ({ id }: { id: string }) => {
-  const { data: strategyList, refetch } = useQuery({
+  const {
+    data: strategyList,
+    refetch,
+    isLoading,
+  } = useQuery({
     queryKey: ["strategyList", id],
     queryFn: () => strategyListGet(id),
   });
@@ -30,6 +45,15 @@ const StrategyList = ({ id }: { id: string }) => {
   const { setdata, setcreate, openModal } = useLoginModalStore();
   return (
     <div className="space-y-3">
+      {isLoading && (
+        <>
+          {Array(4)
+            .fill(null)
+            .map((_, index) => (
+              <Skeleton key={index} className="h-[40px] w-full" />
+            ))}
+        </>
+      )}
       {strategyList?.map((item) => (
         <div
           key={item.id}
@@ -53,7 +77,11 @@ const StrategyList = ({ id }: { id: string }) => {
               setcreate(false);
               setdata({
                 id: String(item.id),
-                data: { title: item.title!, content: item.content! },
+                data: {
+                  title: item.title!,
+                  content: item.content!,
+                  copyright: item.copyright,
+                },
               });
               openModal();
             }}
@@ -97,3 +125,17 @@ const StrategyList = ({ id }: { id: string }) => {
 };
 
 export default StrategyList;
+
+export const StrategyListModal = () => {
+  const { isOpen, toggleModal, id } = useStrategyListDialog();
+  return (
+    <Dialog open={isOpen} onOpenChange={toggleModal}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>攻略列表</DialogTitle>
+        </DialogHeader>
+        <StrategyList id={id!} />
+      </DialogContent>
+    </Dialog>
+  );
+};

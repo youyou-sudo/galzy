@@ -3,6 +3,7 @@ import { create } from "zustand";
 export interface ContentData {
   title: string;
   content: string;
+  copyright: string | null;
 }
 
 interface Data {
