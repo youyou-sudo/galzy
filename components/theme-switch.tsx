@@ -5,7 +5,6 @@ import { Check, Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +14,13 @@ import {
 
 export function ThemeSwitch() {
   const { setTheme, theme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null; // SSR 阶段不渲染，避免 hydration mismatch
 
   return (
     <DropdownMenu>
