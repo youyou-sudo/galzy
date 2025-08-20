@@ -18,7 +18,7 @@ export default async function page({
 }: {
   params: { id: string; strategy: string };
 }) {
-  // [ ] 攻略文章阅读
+  // [x] 攻略文章阅读
   const { strategy } = await params;
   const strategyContent = await db
     .selectFrom("galrc_article")
