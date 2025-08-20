@@ -14,7 +14,7 @@ export const homeData = async (pageSize: number, pageIndex: number) => {
       jsonArrayFrom(
         vneb
           .selectFrom("vn_titles")
-          .selectAll()
+          .select(["id", "title", "lang"])
           .whereRef("vn_titles.id", "=", "vn.id")
       ).as("titles"),
       jsonObjectFrom(
@@ -29,7 +29,6 @@ export const homeData = async (pageSize: number, pageIndex: number) => {
       jsonObjectFrom(
         other
           .selectFrom("galrc_other")
-          .selectAll()
           .whereRef("id", "=", "galrc_alistb.other")
           .select((other) => [
             "galrc_alistb.other",
@@ -54,7 +53,7 @@ export const homeData = async (pageSize: number, pageIndex: number) => {
           ])
       ).as("other_datas"),
     ])
-    .select(["vn.alias", "vn.description", "vn.id", "vn.olang"])
+    .select(["vn.id", "vn.olang"])
     .orderBy("vn.id", "desc")
     .orderBy("galrc_alistb.other", "desc")
     .limit(pageSize)
@@ -68,7 +67,6 @@ export const homeData = async (pageSize: number, pageIndex: number) => {
 
   const totalCount = Number(totalCountResult?.count || 0);
   const totalPages = Math.ceil(totalCount / pageSize);
-
   return {
     items,
     currentPage: pageIndex,
