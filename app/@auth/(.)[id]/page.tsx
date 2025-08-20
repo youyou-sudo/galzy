@@ -1,6 +1,6 @@
 import { getVnDetails } from "@/lib/repositories/vnRepository";
 import { Modal } from "../(.)login/modal";
-import { ContentCard } from "@/components/vnid-page/ContentCard";
+import { ContentCard } from "@/app/(app)/[id]/(components)/vnid-page/ContentCard";
 import { TapCatd } from "@/app/(app)/[id]/(components)";
 
 export default async function page({ params }: { params: { id: string } }) {
