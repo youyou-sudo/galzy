@@ -14,9 +14,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+  auth,
+}: {
   children: React.ReactNode;
-}>) {
+  auth: React.ReactNode;
+}) {
   return (
     <ViewTransitions>
       <html lang="en" suppressHydrationWarning>
@@ -32,7 +34,10 @@ export default function RootLayout({
           >
             <Providers>
               <QueryProvider>
-                <NuqsAdapter>{children}</NuqsAdapter>
+                <NuqsAdapter>
+                  {auth}
+                  {children}
+                </NuqsAdapter>
               </QueryProvider>
             </Providers>
           </ThemeProvider>
