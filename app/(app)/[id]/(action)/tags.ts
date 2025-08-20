@@ -2,7 +2,7 @@
 import { db } from "@/lib/kysely";
 import { jsonArrayFrom, jsonObjectFrom } from "kysely/helpers/postgres";
 
-export const meiliSearchData = async (id: string) => {
+export const tagshData = async (id: string) => {
   const idIsNumber = /^\d+$/.test(id);
   const items = await db
     .selectFrom("galrc_alistb")
@@ -22,17 +22,16 @@ export const meiliSearchData = async (id: string) => {
             jsonObjectFrom(
               tagsVn
                 .selectFrom("tags")
-                .selectAll()
                 .whereRef("tags.id", "=", "tags_vn.tag")
+                .innerJoin("galrc_zhtag", "tags.id", "galrc_zhtag.id")
+                .select([
+                  "tags.id",
+                  "tags.name",
+                  "tags.description",
+                  "galrc_zhtag.name as zht_name",
+                  "galrc_zhtag.description as zht_description",
+                ])
             ).as("tag_data"),
-          ])
-          .select((tagsVn) => [
-            jsonObjectFrom(
-              tagsVn
-                .selectFrom("galrc_zhtag")
-                .selectAll()
-                .whereRef("galrc_zhtag.id", "=", "tags_vn.tag")
-            ).as("tag_zh"),
           ])
       ).as("tag"),
     ])

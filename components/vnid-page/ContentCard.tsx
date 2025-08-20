@@ -152,7 +152,7 @@ export const ContentCard = ({ data }: Props) => {
             className="w-full mt-4 border-1 rounded-lg"
           >
             <AccordionItem value="tags" className="px-3">
-              <AccordionTrigger className="opacity-50">
+              <AccordionTrigger className="opacity-50 py-2">
                 游戏标签（包含剧透）
               </AccordionTrigger>
               <AccordionContent className="pb-3">

@@ -2,12 +2,20 @@ import { getImageUrl, imageAcc } from "@/lib/ImageUrl";
 import { HoverPrefetchLink } from "../ui/hover-prefetch-link";
 import { GameCard } from "../game-card";
 import { homeData } from "@/app/(app)/(home)/(action)/homeData";
+import { getVnListByTag } from "@/app/(app)/tags/[tagid]/(acrion)/tagvns";
 
 type HomeData = Awaited<ReturnType<typeof homeData>>;
 type GameItemType = HomeData["items"][number];
 
+type TagData = Awaited<ReturnType<typeof getVnListByTag>>;
+type TagGameItemType = TagData["items"][number];
+
 // 小组件：单个游戏卡片
-export const GameItem = ({ item }: { item: GameItemType }) => {
+export const GameItem = ({
+  item,
+}: {
+  item: GameItemType | TagGameItemType;
+}) => {
   let imagesData;
   if (item.other && item.other_datas?.other_media?.length) {
     imagesData =

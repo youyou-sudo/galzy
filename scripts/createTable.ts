@@ -202,8 +202,27 @@ export async function seed() {
     .addColumn("alias", "text")
     .addColumn("description", "text")
     .execute();
+
   // 索引
 
+  await db.schema
+    .createIndex("tags_vn_tag_index")
+    .ifNotExists()
+    .on("tags_vn")
+    .column("tag")
+    .execute();
+  await db.schema
+    .createIndex("tags_vn_vid_index")
+    .ifNotExists()
+    .on("tags_vn")
+    .column("vid")
+    .execute();
+  await db.schema
+    .createIndex("tags_id_index")
+    .ifNotExists()
+    .on("tags")
+    .column("id")
+    .execute();
   await db.schema
     .createIndex("galrc_article_vid")
     .ifNotExists()

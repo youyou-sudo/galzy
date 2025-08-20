@@ -30,5 +30,12 @@ export const useLoginModalStore = create<LoginModalStore>((set) => ({
   setdata: (data: Data) => set({ data }),
   openModal: () => set({ isOpen: true }),
   closeModal: () => set({ isOpen: false, data: {}, create: false }),
-  toggleModal: () => set((state) => ({ isOpen: !state.isOpen })),
+  toggleModal: () =>
+    set((state) => {
+      if (state.isOpen) {
+        return { isOpen: false, data: {}, create: false };
+      } else {
+        return { isOpen: true };
+      }
+    }),
 }));

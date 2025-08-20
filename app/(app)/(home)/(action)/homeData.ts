@@ -68,7 +68,6 @@ export const homeData = async (pageSize: number, pageIndex: number) => {
 
   const totalCount = Number(totalCountResult?.count || 0);
   const totalPages = Math.ceil(totalCount / pageSize);
-  console.log(items);
   return {
     items,
     currentPage: pageIndex,
