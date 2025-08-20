@@ -171,6 +171,7 @@ type language =
   | "uk"
   | "ur"
   | "vi"
+  | "zh-Hans"
   | "zh";
 
 export interface VnTitlesTable {

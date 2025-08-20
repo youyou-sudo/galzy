@@ -30,6 +30,7 @@ export const homeData = async (pageSize: number, pageIndex: number) => {
         other
           .selectFrom("galrc_other")
           .whereRef("id", "=", "galrc_alistb.other")
+          .selectAll()
           .select((other) => [
             "galrc_alistb.other",
             jsonArrayFrom(
@@ -67,6 +68,7 @@ export const homeData = async (pageSize: number, pageIndex: number) => {
 
   const totalCount = Number(totalCountResult?.count || 0);
   const totalPages = Math.ceil(totalCount / pageSize);
+  console.log(items);
   return {
     items,
     currentPage: pageIndex,
