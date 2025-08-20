@@ -44,12 +44,13 @@ export const GameItem = ({ item }: { item: GameItemType }) => {
     <HoverPrefetchLink href={`/${item.id}`}>
       <div className="space-y-2 aspect-[2/3] p-0">
         <GameCard.Image
-          sizes="(max-width: 768px) 100vw, 600px"
-          fill
+          width={imagesData?.width}
+          height={imagesData?.height}
           priority={false}
+          decoding="async"
           loading="lazy"
           src={imagess}
-          alt={title || "图片"}
+          alt={title || " "}
         />
       </div>
       <p className="text-sm truncate w-full text-center pl-2 pr-2 pt-2">

@@ -49,7 +49,19 @@ export function Image(props: ImageProps) {
       ratio={9 / 14}
       className="relative w-full h-full overflow-hidden rounded-lg border bg-muted shadow"
     >
-      <NextImage {...props} className="absolute inset-0 z-10 object-cover" />
+      <NextImage
+        {...props}
+        className={`absolute inset-0 object-cover w-full h-full ${
+          props.className || ""
+        }`}
+        style={{
+          width: "100% !important",
+          height: "100% !important",
+          position: "absolute",
+          inset: 0,
+          objectFit: "cover",
+        }}
+      />
     </AspectRatio>
   );
 }
