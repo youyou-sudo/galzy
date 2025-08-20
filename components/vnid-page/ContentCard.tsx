@@ -1,12 +1,17 @@
-"use client";
-
 import React from "react";
 import { BBCodeRenderer } from "@/components/bbcode";
 import { getImageUrl, imageAcc } from "@/lib/ImageUrl";
 import Image from "next/image";
 
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/animate-ui/radix/accordion";
 import { getVnDetails } from "@/lib/repositories/vnRepository";
 import Errors from "@/components/error";
+import { TagsCard } from "@/app/(app)/[id]/(components)/tags";
 
 type VnData = Awaited<ReturnType<typeof getVnDetails>>;
 type Props = {
@@ -126,7 +131,6 @@ export const ContentCard = ({ data }: Props) => {
             </div>
           )}
         </div>
-
         <div
           id="bbccode"
           className="line-clamp-3 text-sm/7 text-muted-foreground mt-2"
@@ -141,6 +145,22 @@ export const ContentCard = ({ data }: Props) => {
             />
           )}
         </div>
+        {data.vid && (
+          <Accordion
+            type="single"
+            collapsible
+            className="w-full mt-4 border-1 rounded-lg"
+          >
+            <AccordionItem value="tags" className="px-3">
+              <AccordionTrigger className="opacity-50">
+                游戏标签（包含剧透）
+              </AccordionTrigger>
+              <AccordionContent className="pb-3">
+                <TagsCard id={data.vid} />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        )}
       </div>
     </div>
   );
