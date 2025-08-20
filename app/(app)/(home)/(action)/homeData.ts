@@ -83,6 +83,29 @@ export const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
     .selectFrom("galrc_alistb")
     .innerJoin("vn", "galrc_alistb.vid", "vn.id")
     .select((vneb) => [
+      jsonArrayFrom(
+        vneb
+          .selectFrom("tags_vn")
+          .whereRef("tags_vn.vid", "=", "vn.id")
+          .groupBy(["tags_vn.tag", "tags_vn.vid"])
+          .select((tagsVn) => [
+            jsonObjectFrom(
+              tagsVn
+                .selectFrom("tags")
+                .whereRef("tags.id", "=", "tags_vn.tag")
+                .innerJoin("galrc_zhtag", "tags.id", "galrc_zhtag.id")
+                .select([
+                  "tags.id",
+                  "tags.name",
+                  "tags.description",
+                  "galrc_zhtag.name as zht_name",
+                  "galrc_zhtag.description as zht_description",
+                ])
+            ).as("tag_data"),
+          ])
+      ).as("tag"),
+    ])
+    .select((vneb) => [
       "vn.id",
       jsonArrayFrom(
         vneb
