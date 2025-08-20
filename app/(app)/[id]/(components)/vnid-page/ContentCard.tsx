@@ -79,7 +79,7 @@ export const ContentCard = ({ data }: Props) => {
   return (
     <div className="mt-10 flex flex-col md:flex-row">
       <div className="flex flex-row items-center">
-        <div className="mr-4 mb-4 w-[250px] border rounded-lg bg-muted space-y-2 flex items-center">
+        <div className="mr-4 mb-4 w-1/3 sm:w-1/4 md:w-full lg:w-72 border rounded-lg bg-muted space-y-2 flex items-center">
           <Image
             width={filteredImage?.width}
             height={filteredImage?.height}

@@ -33,12 +33,12 @@ export default async function page({ params }: { params: { tagid: string } }) {
 
   return (
     <div className="space-y-3">
-      <Card>
+      <Card className="">
         <CardHeader>
           <CardTitle className="text-2xl text-center items-center">
             {tag?.zht_name || tag?.name}
           </CardTitle>
-          <CardContent className="mt-2">
+          <CardContent className="p-0">
             <BBCodeRenderer
               text={tag?.zht_description || tag?.description || ""}
             />
