@@ -1,5 +1,6 @@
 import { Pool } from "pg";
 import { ColumnType, Generated, Kysely, PostgresDialect } from "kysely";
+import { env } from "next-runtime-env";
 
 // better 部分
 export interface User {
@@ -386,8 +387,8 @@ export interface Database {
 }
 
 export const dbConfig = {
-  connectionString: process.env.DATABASE_URL!,
-  max: Number(process.env.POSTGRES_POOL)!,
+  connectionString: env("DATABASE_URL")!,
+  max: Number(env("POSTGRES_POOL"))!,
 };
 
 const dialect = new PostgresDialect({

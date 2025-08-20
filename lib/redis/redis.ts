@@ -1,12 +1,12 @@
-
 import Redis from "ioredis";
+import { env } from "next-runtime-env";
 
 let redisClient: Redis | undefined;
 
 export const redisConfig = {
-  host: process.env.REDIS_HOST!,
-  port: parseInt(process.env.REDIS_PORT!),
-  password: process.env.REDIS_PASSWORD!,
+  host: env("REDIS_HOST")!,
+  port: parseInt(env("REDIS_PORT")!),
+  password: env("REDIS_PASSWORD")!,
 };
 
 export function getRedisClient(): Redis {

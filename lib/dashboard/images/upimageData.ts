@@ -2,6 +2,7 @@
 
 import { db, Onthermeidia } from "@/lib/kysely";
 import { jsonObjectFrom } from "kysely/helpers/postgres";
+import { env } from "next-runtime-env";
 
 export async function insertMediaToEntry(
   entryId: number,
@@ -81,8 +82,8 @@ export async function deleMediaByEntryId(
     // 如果图片没有被其他条目使用，则删除 galrc_media 中的记录
     await db.deleteFrom("galrc_media").where("hash", "=", mediahash).execute();
 
-    const targetUrl = `${process.env.OPENLIST_HOST}/api/fs/remove`;
-    const authToken = process.env.OPENLIST_API_KEY;
+    const targetUrl = `${env("OPENLIST_HOST")}/api/fs/remove`;
+    const authToken = env("OPENLIST_API_KEY");
     await fetch(targetUrl, {
       method: "POST",
       headers: {

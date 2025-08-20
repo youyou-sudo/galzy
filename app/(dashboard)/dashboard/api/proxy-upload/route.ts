@@ -1,4 +1,5 @@
 // app/api/proxy-upload/route.ts
+import { env } from "next-runtime-env";
 import { NextRequest } from "next/server";
 
 export async function PUT(req: NextRequest) {
@@ -7,12 +8,12 @@ export async function PUT(req: NextRequest) {
     return new Response("No file body", { status: 400 });
   }
 
-  const targetUrl = `${process.env.OPENLIST_HOST}/api/fs/put`;
+  const targetUrl = `${env("OPENLIST_HOST")}/api/fs/put`;
 
   const headers = new Headers();
 
   // ✅ 从环境变量中注入 Authorization
-  const authToken = process.env.OPENLIST_API_KEY;
+  const authToken = env("OPENLIST_API_KEY");
   if (authToken) {
     headers.set("Authorization", authToken);
   }
