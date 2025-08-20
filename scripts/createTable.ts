@@ -194,6 +194,14 @@ export async function seed() {
     )
     .execute();
 
+  await db.schema
+    .createTable("galrc_zhtag")
+    .ifNotExists()
+    .addColumn("id", "varchar(255)", (cb) => cb.notNull().primaryKey())
+    .addColumn("name", "text")
+    .addColumn("alias", "text")
+    .addColumn("description", "text")
+    .execute();
   // 索引
 
   await db.schema

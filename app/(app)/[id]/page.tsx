@@ -2,7 +2,7 @@ import React from "react";
 
 import { getVnDetails } from "@/lib/repositories/vnRepository";
 import { ContentCard } from "@/components/vnid-page/ContentCard";
-import { TapCatd } from "@/components/vnid-page/tapCard";
+import { TapCatd } from "@/app/(app)/[id]/(components)";
 
 export async function IdPage({ params }: { params: { id: string } }) {
   const { id } = await params;

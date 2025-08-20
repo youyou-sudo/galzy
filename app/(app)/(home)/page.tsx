@@ -1,5 +1,5 @@
 import { HomeGamelist } from "@/components/home";
-import { homeData } from "@/app/(app)/(home)/lib/homeData";
+import { homeData } from "@/app/(app)/(home)/(action)/homeData";
 import {
   dehydrate,
   HydrationBoundary,

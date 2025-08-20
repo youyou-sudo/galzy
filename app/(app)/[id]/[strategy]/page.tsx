@@ -8,10 +8,10 @@ import {
 import { db } from "@/lib/kysely";
 import { User } from "lucide-react";
 import React from "react";
-import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeParse from "rehype-parse";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 
 export default async function page({
   params,
@@ -25,6 +25,7 @@ export default async function page({
     .selectAll()
     .where("id", "=", Number(strategy))
     .executeTakeFirstOrThrow();
+  const Markdown = dynamic(() => import("react-markdown"));
   return (
     <div>
       <Card>

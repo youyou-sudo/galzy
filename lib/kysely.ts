@@ -205,6 +205,13 @@ export interface TagsTable {
   description: string;
 }
 
+export interface TagsZhTable {
+  id: string;
+  name: string;
+  alias: string;
+  description: string;
+}
+
 export interface TagsVnTable {
   updatedAt: ColumnType<Date, string | undefined, never>;
   tag: string;
@@ -353,6 +360,7 @@ export interface Database {
   galrc_verification: Verification;
 
   // Galrc 部分
+  galrc_zhtag: TagsZhTable;
   galrc_article: ArticlesTable;
   galrc_alistb: AlistB;
   galrc_storages: AlistStorages;

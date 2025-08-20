@@ -5,10 +5,11 @@ import {
   TabsContent,
   TabsContents,
 } from "@/components/animate-ui/radix/tabs";
-import { DownloadOptions } from "@/components/vnid-page/tapCard/download-options";
+import { DownloadOptions } from "@/app/(app)/[id]/(components)/download-options";
 import { ArrowDownToLine } from "lucide-react";
 import { getFileList } from "@/lib/repositories/alistFileList";
 import StrategyList from "@/components/dashboard/dataManagement/strategy/strategyList";
+import { TagsCard } from "./tags";
 
 export const TapCatd = async ({ id }: { id: string }) => {
   const fileList = await getFileList(id);
@@ -20,6 +21,7 @@ export const TapCatd = async ({ id }: { id: string }) => {
           下载
         </TabsTrigger>
         <TabsTrigger value="Introduction">攻略</TabsTrigger>
+        <TabsTrigger value="Info">信息</TabsTrigger>
       </TabsList>
 
       <TabsContents className="-mt-2 rounded-sm h-full">
@@ -28,6 +30,9 @@ export const TapCatd = async ({ id }: { id: string }) => {
         </TabsContent>
         <TabsContent value="Introduction" className="space-y-6 pt-2">
           <StrategyList id={id} />
+        </TabsContent>
+        <TabsContent value="Info" className="space-y-6 pt-2">
+          <TagsCard id={id} />
         </TabsContent>
       </TabsContents>
     </Tabs>

@@ -1,6 +1,6 @@
 import { env } from "next-runtime-env";
 
-import { MeiliSearchData } from "@/app/(app)/(home)/lib/homeData";
+import { MeiliSearchData } from "@/app/(app)/(home)/(action)/homeData";
 import { getMeiliSearchClient } from "@/lib/meilisearch";
 
 export const meiliSearchAddIndex = async () => {

@@ -58,6 +58,8 @@ const SearchlistComponent = () => {
              */}
             <GameCard.Image
               sizes="(max-width: 768px) 100vw, 600px"
+              loading="lazy"
+              priority={false}
               fill
               src={imagess}
               alt="图片"

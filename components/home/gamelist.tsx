@@ -5,14 +5,17 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import { getImageUrl, imageAcc } from "@/lib/ImageUrl";
 import { GameCard } from "@/components/game-card";
-import { homeData } from "@/app/(app)/(home)/lib/homeData";
+import { homeData } from "@/app/(app)/(home)/(action)/homeData";
 import { HoverPrefetchLink } from "../ui/hover-prefetch-link";
 
 // 小组件：单个游戏卡片
 const GameItem = ({ item }: { item: any }) => {
   const imagesData = useMemo(() => {
     if (item.other && item.other_datas?.other_media?.length) {
-      return item.other_datas.other_media.find((m: any) => m.cover)?.media ?? item.images;
+      return (
+        item.other_datas.other_media.find((m: any) => m.cover)?.media ??
+        item.images
+      );
     }
     return item.images;
   }, [item]);
@@ -29,17 +32,30 @@ const GameItem = ({ item }: { item: any }) => {
 
   const title = useMemo(() => {
     return (
-      item.other_datas?.title?.find((t: any) => t.lang === "zh-Hans" && t.title.trim() !== "")?.title ||
-      item.titles?.find((t: any) => t.lang === item.olang && t.title.trim() !== "")?.title
+      item.other_datas?.title?.find(
+        (t: any) => t.lang === "zh-Hans" && t.title.trim() !== ""
+      )?.title ||
+      item.titles?.find(
+        (t: any) => t.lang === item.olang && t.title.trim() !== ""
+      )?.title
     );
   }, [item]);
 
   return (
     <HoverPrefetchLink href={`/${item.id}`}>
       <div className="space-y-2 aspect-[2/3] p-0">
-        <GameCard.Image sizes="(max-width: 768px) 100vw, 600px" fill src={imagess} alt={title || "图片"} />
+        <GameCard.Image
+          sizes="(max-width: 768px) 100vw, 600px"
+          fill
+          priority={false}
+          loading="lazy"
+          src={imagess}
+          alt={title || "图片"}
+        />
       </div>
-      <p className="text-sm truncate w-full text-center pl-2 pr-2 pt-2">{title}</p>
+      <p className="text-sm truncate w-full text-center pl-2 pr-2 pt-2">
+        {title}
+      </p>
     </HoverPrefetchLink>
   );
 };
@@ -59,7 +75,9 @@ export const HomeGamelist = () => {
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage: { currentPage: number; totalPages: number }) =>
-      lastPage.currentPage < lastPage.totalPages ? lastPage.currentPage + 1 : null,
+      lastPage.currentPage < lastPage.totalPages
+        ? lastPage.currentPage + 1
+        : null,
   });
 
   // 无限加载触发
@@ -71,13 +89,21 @@ export const HomeGamelist = () => {
 
   // 扁平化游戏列表
   const gameList = useMemo(() => {
-    return gameListData?.pages.flatMap((page) => page.items.map((item) => <GameItem key={item.id} item={item} />));
+    return gameListData?.pages.flatMap((page) =>
+      page.items.map((item) => <GameItem key={item.id} item={item} />)
+    );
   }, [gameListData]);
 
   return (
     <div className="grid grid-cols-3 gap-4 md:grid-cols-6">
       {gameList}
-      {hasNextPage && <GameCard.ListSkeleton ref={ref} />}
+      {hasNextPage && (
+        <>
+          <GameCard.ListSkeleton ref={ref} />
+          <GameCard.ListSkeleton />
+          <GameCard.ListSkeleton />
+        </>
+      )}
     </div>
   );
 };

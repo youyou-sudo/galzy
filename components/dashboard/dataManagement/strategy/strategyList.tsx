@@ -5,12 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Loader2Icon, Pencil, Trash } from "lucide-react";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter,
 } from "@/components/animate-ui/radix/dialog";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { strategyListDelete, strategyListGet } from "@/lib/strategy/strategyAc";

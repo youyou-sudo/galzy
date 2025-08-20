@@ -70,10 +70,10 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
-    "@types/ms": "^2.1.0",
-    "@types/node": "22.15.21",
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.1.11",
+    "@types/ms": "^2.1.0",
+    "@types/node": "22.15.21",
     "@types/pg": "^8.15.5",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
@@ -81,6 +81,7 @@
     "drizzle-kit": "^0.31.4",
     "eslint": "^9.33.0",
     "eslint-config-next": "15.3.2",
+    "next-rspack": "^15.4.7",
     "tsx": "^4.20.3",
     "tw-animate-css": "^1.3.6",
     "typescript": "^5.9.2"
