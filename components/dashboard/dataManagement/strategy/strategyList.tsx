@@ -1,6 +1,5 @@
 "use client";
 import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2Icon, Pencil, Trash } from "lucide-react";
 import {
@@ -16,6 +15,7 @@ import { StrategEdit } from "./strategyEdit";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStrategyListDialog } from "../stores/strategyListModal";
+import { MotionHighlight } from "@/components/animate-ui/effects/motion-highlight";
 // [x] 攻略列表
 // [x] 攻略增删改
 const StrategyList = ({ id }: { id: string }) => {
@@ -44,63 +44,69 @@ const StrategyList = ({ id }: { id: string }) => {
     <div className="space-y-3">
       {isLoading && (
         <>
-          {Array(4)
+          {Array(2)
             .fill(null)
             .map((_, index) => (
               <Skeleton key={index} className="h-[40px] w-full" />
             ))}
         </>
       )}
-      {strategyList?.map((item) => (
-        <div
-          key={item.id}
-          className="flex w-full items-center justify-betwee space-x-2"
-        >
-          <Link
-            className="w-full"
-            href={`${item.vid || item.otherid}/${item.id}`}
-          >
-            <Card className="pt-2 pb-2 w-full">
-              <CardContent>
-                <span>{item.title}</span>
-              </CardContent>
-            </Card>
-          </Link>
-          <Button
-            variant="secondary"
-            size="icon"
-            className="size-8"
-            onClick={() => {
-              setcreate(false);
-              setdata({
-                id: String(item.id),
-                data: {
-                  title: item.title!,
-                  content: item.content!,
-                  copyright: item.copyright,
-                },
-              });
-              openModal();
-            }}
-          >
-            <Pencil />
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            className="size-8"
-            onClick={() => {
-              SubmitAc(String(item.id));
-            }}
-          >
-            {SubmitAcLoading ? (
-              <Loader2Icon className="animate-spin" />
-            ) : (
-              <Trash />
-            )}
-          </Button>
-        </div>
-      ))}
+      {strategyList && (
+        <MotionHighlight hover className="rounded-lg">
+          {strategyList.map((item) => (
+            <div
+              key={item.id}
+              className="flex w-full items-center justify-between space-x-2 border px-3 rounded-lg"
+            >
+              <Link
+                className="w-full"
+                href={`${item.vid || item.otherid}/${item.id}`}
+              >
+                <div className="pt-2 pb-2 w-full border-b">
+                  <span>{item.title}</span>
+                </div>
+              </Link>
+
+              <div className="flex items-center space-x-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="w-8 h-8"
+                  onClick={() => {
+                    setcreate(false);
+                    setdata({
+                      id: String(item.id),
+                      data: {
+                        title: item.title!,
+                        content: item.content!,
+                        copyright: item.copyright,
+                      },
+                    });
+                    openModal();
+                  }}
+                >
+                  <Pencil />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="w-8 h-8"
+                  onClick={() => {
+                    SubmitAc(String(item.id));
+                  }}
+                >
+                  {SubmitAcLoading ? (
+                    <Loader2Icon className="animate-spin" />
+                  ) : (
+                    <Trash />
+                  )}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </MotionHighlight>
+      )}
+
       <div className="pt-2">
         <Button
           className="w-full h-11"

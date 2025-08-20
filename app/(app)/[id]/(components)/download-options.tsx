@@ -46,7 +46,7 @@ function FileExplorer({ items }: { items: fileList }) {
   })();
 
   return (
-    <Files className="border-0 mb-0">
+    <Files className="border-1 mb-2">
       <DownCardDialog />
       <Filessss items={simplifiedItems} />
     </Files>

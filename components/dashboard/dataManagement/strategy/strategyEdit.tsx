@@ -43,7 +43,6 @@ export function StrategEdit() {
   const queryClient = useQueryClient();
   const { isOpen, data, create, toggleModal, closeModal } =
     useLoginModalStore();
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -87,6 +86,16 @@ export function StrategEdit() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      form.reset({
+        title: "",
+        content: "",
+        copyright: "",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSubmitAc(values);
   }
