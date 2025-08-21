@@ -18,7 +18,7 @@ import {
 } from "@/components/animate-ui/radix/collapsible";
 import { dashboardConfig } from "@/config/dashboard";
 import { ChevronRight } from "lucide-react";
-import { HoverPrefetchLink } from "@/components/ui/hover-prefetch-link";
+import Link from "next/link";
 
 export default function NavMain() {
   return (
@@ -47,9 +47,9 @@ export default function NavMain() {
                     {item.items?.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
                         <SidebarMenuSubButton asChild>
-                          <HoverPrefetchLink href={subItem.url}>
+                          <Link prefetch={false} href={subItem.url}>
                             <span>{subItem.title}</span>
-                          </HoverPrefetchLink>
+                          </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}
