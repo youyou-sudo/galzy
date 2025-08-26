@@ -1,6 +1,5 @@
 import React from "react";
 import { BBCodeRenderer } from "@/components/bbcode";
-import { getImageUrl, imageAcc } from "@/lib/ImageUrl";
 import Image from "next/image";
 
 import {
@@ -12,6 +11,13 @@ import {
 import { getVnDetails } from "@/lib/repositories/vnRepository";
 import Errors from "@/components/error";
 import { TagsCard } from "@/app/(app)/[id]/(components)/tags";
+import {
+  aliasFilter,
+  getCoverImageUrl,
+  getTitles,
+  imageFilter,
+} from "../../(lib)/contentDataac";
+import { Card, CardContent } from "@/components/ui/card";
 
 type VnData = Awaited<ReturnType<typeof getVnDetails>>;
 type Props = {
@@ -25,80 +31,52 @@ export const ContentCard = ({ data }: Props) => {
       </div>
     );
   }
-
-  const getTitles = () => {
-    const zhHansTitle =
-      data.other_datas?.title?.find(
-        (it: { lang: string }) => it.lang === "zh-Hans"
-      )?.title ??
-      data.vn_datas?.titles?.find(
-        (it: { lang: string }) => it.lang === "zh-Hans"
-      )?.title;
-
-    const olangTitle =
-      data.vn_datas?.titles.find(
-        (it: { lang: string }) => it.lang === data.vn_datas?.olang
-      )?.title ?? null;
-
-    return {
-      zhHans: zhHansTitle,
-      olang: olangTitle,
-    };
-  };
-
-  const imageFilter = () => {
-    const images =
-      data.other && data.other_datas?.media.some((item) => item.cover === true)
-        ? data.other_datas.media.find((item) => item.cover === true)
-            ?.media_datas
-        : data.vn_datas?.images;
-    return images;
-  };
-
-  const aliasFilter = () => {
-    const alias = data.other_datas?.alias
-      ? data.other_datas.alias
-      : data.vn_datas?.alias;
-    return alias;
-  };
-  const filteredImage = imageFilter();
-  const titlesData = getTitles();
-  const aliasData = aliasFilter();
-
-  const imageUrl =
-    filteredImage &&
-    typeof filteredImage === "object" &&
-    "hash" in filteredImage
-      ? imageAcc(filteredImage.name)
-      : getImageUrl({
-          imageId: filteredImage!.id,
-          width: filteredImage!.width,
-          height: filteredImage!.height,
-        });
+  const filteredImage = imageFilter({ data });
+  const titlesData = getTitles({ data });
+  const aliasData = aliasFilter({ data });
+  const imageUrl = getCoverImageUrl({ data });
 
   return (
-    <div className="mt-10 flex flex-col md:flex-row">
-      <div className="flex flex-row items-center">
-        <div className="mr-4 mb-4 w-1/3 sm:w-1/4 md:w-full lg:w-72 border rounded-lg bg-muted space-y-2 flex items-center">
-          <Image
-            width={filteredImage?.width}
-            height={filteredImage?.height}
-            className="w-full h-auto rounded-lg"
-            src={imageUrl}
-            alt="游戏图片"
-          />
+    <Card className="overflow-hidden break-words shadow-lg pb-0">
+      <CardContent>
+        {/* Cover and basic info section */}
+        <div className="sm:float-right text-center sm:text-right sm:ml-4 pb-4 mb-1 relative">
+          <div className="relative inline-block">
+            <div
+              className={`${
+                filteredImage!.height < filteredImage!.width
+                  ? "min-w-[290px]"
+                  : "min-w-[220px]"
+              } shadow-lg relative overflow-hidden text-left`}
+            >
+              <Image
+                width={filteredImage?.width}
+                height={filteredImage?.height}
+                className="w-full h-full  transition-transform relative z-10 rounded"
+                src={imageUrl || "/placeholder.svg"}
+                alt="游戏图片"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* 小屏标题块 */}
-        <div className="md:hidden mb-4 flex flex-col justify-end max-w-3/5">
+        {/* Main content section */}
+        <div className="overflow-hidden break-words">
+          {/* Title section */}
           {titlesData.olang && (
-            <div className="text-sm/7 ">{titlesData.olang}</div>
+            <div className="text-sm leading-[1.2]">{titlesData.olang}</div>
           )}
-          <h1 className="text-xl select-all font-bold sm:text-2xl">
-            {titlesData.zhHans}
-          </h1>
+
+          <div className="font-bold text-2xl leading-[1.2] mt-2">
+            {titlesData.zhHans || titlesData.olang}
+          </div>
+
+          {/* Aliases */}
           {aliasData && (
-            <div className="opacity-70 text-xs">
+            <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 leading-[1.2]">
+              别名:{" "}
               {aliasData
                 .split("\n")
                 .map((s) => s.trim())
@@ -107,61 +85,45 @@ export const ContentCard = ({ data }: Props) => {
                 .join(", ")}
             </div>
           )}
-        </div>
-      </div>
 
-      {/* 右侧文字内容 */}
-      <div className="flex flex-col flex-1 min-w-2/3">
-        <div className="hidden md:block">
-          {titlesData.olang && (
-            <div className="text-xl ">{titlesData.olang}</div>
-          )}
-          <h1 className="text-lg select-all font-bold sm:text-2xl md:text-4xl">
-            {titlesData.zhHans}
-          </h1>
-
-          {aliasData && (
-            <div className="text-sm/7 ">
-              {aliasData
-                .split("\n")
-                .map((s) => s.trim())
-                .filter(Boolean)
-                .filter((s) => s !== titlesData.zhHans)
-                .join(", ")}
-            </div>
-          )}
-        </div>
-        <div
-          id="bbccode"
-          className="line-clamp-3 text-sm/7 text-muted-foreground mt-2"
-        >
+          {/* Description */}
           {(data.other_datas?.description || data.vn_datas?.description) && (
-            <BBCodeRenderer
-              text={
-                data.other_datas?.description ||
-                data.vn_datas?.description ||
-                ""
-              }
-            />
+            <div className="mt-4">
+              <div className="text-xs text-gray-500 uppercase mb-1">
+                游戏简介
+              </div>
+              <div className="text-sm line-clamp-6  leading-relaxed text-gray-800 dark:text-gray-200">
+                <BBCodeRenderer
+                  text={
+                    data.other_datas?.description ||
+                    data.vn_datas?.description ||
+                    ""
+                  }
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Tags section */}
+          {data.vid && (
+            <div className="mt-4 mb-5">
+              <Accordion type="single" collapsible className="w-full ">
+                <AccordionItem
+                  value="tags"
+                  className="px-3 border-1 rounded-lg"
+                >
+                  <AccordionTrigger className="text-sm opacity-70 hover:opacity-100 py-3">
+                    游戏标签（包含剧透）
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-3">
+                    <TagsCard id={data.vid} />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
           )}
         </div>
-        {data.vid && (
-          <Accordion
-            type="single"
-            collapsible
-            className="w-full mt-4 border-1 rounded-lg"
-          >
-            <AccordionItem value="tags" className="px-3">
-              <AccordionTrigger className="opacity-50 py-2">
-                游戏标签（包含剧透）
-              </AccordionTrigger>
-              <AccordionContent className="pb-3">
-                <TagsCard id={data.vid} />
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };

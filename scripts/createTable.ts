@@ -119,6 +119,7 @@ export async function seed() {
     .addColumn("width", "integer", (cb) => cb.notNull())
     .addColumn("height", "integer", (cb) => cb.notNull())
     .addColumn("type", "varchar(255)", (cb) => cb.notNull())
+    .addColumn("cover", "boolean", (cb) => cb.notNull().defaultTo(false))
     .addColumn("thumb_hash", "text")
     .execute();
 
@@ -201,6 +202,7 @@ export async function seed() {
     .addColumn("name", "text")
     .addColumn("alias", "text")
     .addColumn("description", "text")
+    .addColumn("exhibition", "boolean", (cb) => cb.notNull().defaultTo(true))
     .execute();
 
   // 索引

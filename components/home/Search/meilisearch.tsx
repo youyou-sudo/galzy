@@ -6,17 +6,16 @@ import { useQuery } from "@tanstack/react-query";
 import { getSearch } from "@/lib/search/meilisearch";
 import { useQueryState } from "nuqs";
 import { HoverPrefetchLink } from "@/components/ui/hover-prefetch-link";
+import { TagViewsTrackEvents } from "@/components/umami/track-events";
 
 const SearchlistComponent = () => {
   const [q] = useQueryState("q");
-  const [ai] = useQueryState("ai");
 
   const { data: gameListData, isPending } = useQuery({
-    queryKey: ["search", q, ai],
+    queryKey: ["search", q],
     queryFn: async () => {
       const response = await getSearch({
         q: q || "",
-        ai: ai === "true" ? true : false,
         limit: 100,
       });
       return response;
@@ -57,10 +56,10 @@ const SearchlistComponent = () => {
             {/* [x] VNDB 来源图片进行缓存以防止滥用 VNDB 服务
              */}
             <GameCard.Image
-              sizes="(max-width: 768px) 100vw, 600px"
+              width={imagesData.width}
+              height={imagesData.height}
               loading="lazy"
               priority={false}
-              fill
               src={imagess}
               alt="图片"
             />
@@ -78,8 +77,15 @@ const SearchlistComponent = () => {
       );
     });
   };
+  const tagtitle = `[tag:${gameListData?.topTag?.id}]-[${
+    gameListData?.topTag?.zh_name || gameListData?.topTag?.name
+  }]`;
+
   return (
-    <div className="grid grid-cols-3 gap-4 md:grid-cols-6">{gameList()}</div>
+    <div className="grid grid-cols-3 gap-4 md:grid-cols-6">
+      {gameList()}
+      {gameListData?.topTag && <TagViewsTrackEvents tagtitle={tagtitle} />}
+    </div>
   );
 };
 

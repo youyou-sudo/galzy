@@ -9,8 +9,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BBCodeRenderer } from "@/components/bbcode";
 import { getTagData, getVnListByTag } from "./(acrion)/tagvns";
 import { TagsGamelist } from "./(components)/gamelist";
+import { Metadata } from "next/types";
+import { TagViewsTrackEvents } from "@/components/umami/track-events";
 
-export default async function page({ params }: { params: { tagid: string } }) {
+type Props = {
+  params: Promise<{ tagid: string }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { tagid } = await params;
+  const tag = await getTagData(tagid);
+  return {
+    title: `标签 -  ${tag?.zht_name || tag?.name || "标签"}`,
+    description: `${
+      tag?.zht_name || tag?.name || "标签"
+    } 类型下的游戏列表，类型介绍：${
+      tag?.zht_description || tag?.description || "无"
+    }`,
+  };
+}
+
+export default async function Yoyo({ params }: Props) {
   const { tagid } = await params;
   const tag = await getTagData(tagid);
 
@@ -30,6 +49,8 @@ export default async function page({ params }: { params: { tagid: string } }) {
         : null;
     },
   });
+
+  const tagtitle = `[tag:${tagid}]-[${tag?.zht_name || tag?.name}]`;
 
   return (
     <div className="space-y-3">
@@ -51,6 +72,7 @@ export default async function page({ params }: { params: { tagid: string } }) {
       <HydrationBoundary state={dehydrate(queryClient)}>
         <TagsGamelist tagid={tagid} />
       </HydrationBoundary>
+      <TagViewsTrackEvents tagtitle={tagtitle} />
     </div>
   );
 }

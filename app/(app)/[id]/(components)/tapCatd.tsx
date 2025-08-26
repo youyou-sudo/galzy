@@ -1,35 +1,48 @@
+"use client";
 import {
   Tabs,
   TabsList,
   TabsTrigger,
-  TabsContent,
-  TabsContents,
 } from "@/components/animate-ui/radix/tabs";
-import { DownloadOptions } from "@/app/(app)/[id]/(components)/download-options";
+import { Card, CardContent } from "@/components/ui/card";
 import { ArrowDownToLine } from "lucide-react";
-import { getFileList } from "@/lib/repositories/alistFileList";
-import StrategyList from "@/components/dashboard/dataManagement/strategy/strategyList";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Glgczujm } from "./tips";
 
-export const TapCatd = async ({ id }: { id: string }) => {
-  const fileList = await getFileList(id);
+export const TapCatd = ({
+  id,
+  children,
+}: {
+  id: string;
+  children?: React.ReactNode;
+}) => {
+  const pathname = usePathname();
   return (
-    <Tabs defaultValue="download" className="rounded-lg">
+    <Tabs
+      defaultValue={
+        pathname === `/${id}/introduction` || pathname.match(`${id}/\\d+`)
+          ? "introduction"
+          : "download"
+      }
+    >
       <TabsList>
-        <TabsTrigger value="download">
-          <ArrowDownToLine className="h-4 w-4" />
-          下载
+        <TabsTrigger value="download" asChild>
+          <Link href={`/${id}`}>
+            <ArrowDownToLine className="h-4 w-4" />
+            下载
+          </Link>
         </TabsTrigger>
-        <TabsTrigger value="Introduction">攻略</TabsTrigger>
+        <TabsTrigger value="introduction" asChild>
+          <Link href={`/${id}/introduction`}>攻略</Link>
+        </TabsTrigger>
       </TabsList>
-
-      <TabsContents className="-mt-2 rounded-sm h-full">
-        <TabsContent value="download" className="space-y-6">
-          <DownloadOptions fileList={fileList} />
-        </TabsContent>
-        <TabsContent value="Introduction" className="space-y-6 pt-2">
-          <StrategyList id={id} />
-        </TabsContent>
-      </TabsContents>
+      <Card className="p-0">
+        <CardContent className="p-0">
+          {children}
+          <Glgczujm />
+        </CardContent>
+      </Card>
     </Tabs>
   );
 };

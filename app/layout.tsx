@@ -19,7 +19,7 @@ export default function RootLayout({
         <head>
           <PublicEnvScript />
         </head>
-        <body className={`antialiased`}>
+        <body className={`antialiased flex flex-col min-h-screen`}>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"

@@ -2,10 +2,9 @@
 
 import type React from "react";
 
-import { Download, InfoIcon } from "lucide-react";
+import { Download } from "lucide-react";
 
 import { File, Folder, Files } from "@/components/animate-ui/components/files";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getFileList, TreeNode } from "@/lib/repositories/alistFileList";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +17,7 @@ import {
 } from "@/components/animate-ui/radix/dialog";
 import { downCardDataStore } from "./stores/downCardData";
 import Link from "next/link";
+import { Card } from "@/components/ui/card";
 
 type fileList = Awaited<ReturnType<typeof getFileList>>;
 
@@ -25,10 +25,6 @@ export function DownloadOptions({ fileList }: { fileList: fileList }) {
   return (
     <>
       <FileExplorer items={fileList} />
-      <Alert className="border-cyan-600/50 text-cyan-600 dark:border-cyan-600 [&>svg]:text-cyan-600">
-        <InfoIcon className="h-4 w-4" />
-        <AlertDescription>本站下载已配置负载均衡以保证速度</AlertDescription>
-      </Alert>
     </>
   );
 }
@@ -46,7 +42,11 @@ function FileExplorer({ items }: { items: fileList }) {
   })();
 
   return (
-    <Files className="border-1 mb-2">
+    <Files
+      // defaultOpen={["PC", "KR", "ONS", "TY"]}
+      defaultOpen={["PC", "KR", "ONS", "TY", "CG"]}
+      className="bg-transparent border-0 mb-2"
+    >
       <DownCardDialog />
       <Filessss items={simplifiedItems} />
     </Files>
@@ -69,6 +69,7 @@ const Filessss = ({ items }: { items: fileList }) => {
           </Folder>
         ) : (
           <File
+          className="underline underline-offset-4 hover:decoration-sky-500"
             name={item.name}
             key={item.name}
             onClick={() => {
@@ -98,25 +99,31 @@ export const DownCardDialog = () => {
   }
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="max-h-[85%]">
         <DialogHeader>
           <DialogTitle>文件信息</DialogTitle>
         </DialogHeader>
-        <span className="text-center text-lg">{data?.name}</span>
+        <span className="text-center text-lg break-words">{data?.name}</span>
 
-        <DialogDescription className="flex flex-col gap-2">
-          <span className="text-center">{formatBytes(Number(data?.size))}</span>
+        <DialogDescription className="text-center">
+          <span>{formatBytes(Number(data?.size))}</span>
         </DialogDescription>
         <DialogFooter className="flex gap-2 sm:justify-center">
           <Button
             onClick={() => close()}
             variant="secondary"
-            className="text-red-400"
+            className="text-red-500"
           >
             关闭
           </Button>
           <Button asChild>
-            <Link target="_blank" href={`/api/download?path=${data?.id}`}>
+            <Link
+              data-umami-event="GameDownload"
+              data-umami-event-pathe={data?.id}
+              data-umami-event-size={data?.size}
+              target="_blank"
+              href={`/api/download?path=${data?.id}`}
+            >
               <div className="flex items-center">
                 <Download />
                 下载
@@ -124,6 +131,15 @@ export const DownCardDialog = () => {
             </Link>
           </Button>
         </DialogFooter>
+
+        {/* Card 内部滚动 */}
+        <Card className="max-h-96 overflow-y-auto mt-4 p-2 break-words">
+          {[...Array(60)].map((_, i) => (
+            <div key={i}>
+              1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
+            </div>
+          ))}
+        </Card>
       </DialogContent>
     </Dialog>
   );

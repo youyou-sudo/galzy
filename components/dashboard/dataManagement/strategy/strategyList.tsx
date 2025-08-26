@@ -16,6 +16,8 @@ import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStrategyListDialog } from "../stores/strategyListModal";
 import { MotionHighlight } from "@/components/animate-ui/effects/motion-highlight";
+
+import { usePathname } from "next/navigation";
 // [x] 攻略列表
 // [x] 攻略增删改
 const StrategyList = ({ id }: { id: string }) => {
@@ -40,76 +42,83 @@ const StrategyList = ({ id }: { id: string }) => {
   });
 
   const { setdata, setcreate, openModal } = useLoginModalStore();
+  const pathname = usePathname();
   return (
-    <div className="space-y-3">
-      {isLoading && (
-        <>
-          {Array(2)
-            .fill(null)
-            .map((_, index) => (
-              <Skeleton key={index} className="h-[40px] w-full" />
-            ))}
-        </>
-      )}
-      {strategyList && (
-        <MotionHighlight hover className="rounded-lg">
-          {strategyList.map((item) => (
-            <div
-              key={item.id}
-              className="flex w-full items-center justify-between space-x-2 border px-3 rounded-lg"
-            >
-              <Link
-                className="w-full"
-                href={`${item.vid || item.otherid}/${item.id}`}
+    <div>
+      <div className="flex flex-col p-3">
+        {isLoading && (
+          <>
+            {Array(2)
+              .fill(null)
+              .map((_, index) => (
+                <Skeleton key={index} className="h-[40px] w-full" />
+              ))}
+          </>
+        )}
+        {strategyList && (
+          <MotionHighlight hover className="rounded-lg">
+            {strategyList.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between px-2 space-x-2 rounded-lg"
               >
-                <div className="pt-2 pb-2 w-full border-b">
-                  <span>{item.title}</span>
+                <Link
+                  className="w-full"
+                  href={
+                    pathname === "/dashboard/dataManagement"
+                      ? `/${id}/${item.id}`
+                      : `${item.id}`
+                  }
+                >
+                  <div className="pt-2 pb-2 w-full">
+                    <span>{item.title}</span>
+                  </div>
+                </Link>
+
+                <div className="flex items-center space-x-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-8 h-8"
+                    onClick={() => {
+                      setcreate(false);
+                      setdata({
+                        id: String(item.id),
+                        data: {
+                          title: item.title!,
+                          content: item.content!,
+                          copyright: item.copyright,
+                        },
+                      });
+                      openModal();
+                    }}
+                  >
+                    <Pencil />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="w-8 h-8"
+                    onClick={() => {
+                      SubmitAc(String(item.id));
+                    }}
+                  >
+                    {SubmitAcLoading ? (
+                      <Loader2Icon className="animate-spin" />
+                    ) : (
+                      <Trash />
+                    )}
+                  </Button>
                 </div>
-              </Link>
-
-              <div className="flex items-center space-x-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="w-8 h-8"
-                  onClick={() => {
-                    setcreate(false);
-                    setdata({
-                      id: String(item.id),
-                      data: {
-                        title: item.title!,
-                        content: item.content!,
-                        copyright: item.copyright,
-                      },
-                    });
-                    openModal();
-                  }}
-                >
-                  <Pencil />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="w-8 h-8"
-                  onClick={() => {
-                    SubmitAc(String(item.id));
-                  }}
-                >
-                  {SubmitAcLoading ? (
-                    <Loader2Icon className="animate-spin" />
-                  ) : (
-                    <Trash />
-                  )}
-                </Button>
               </div>
-            </div>
-          ))}
-        </MotionHighlight>
-      )}
+            ))}
+          </MotionHighlight>
+        )}
+      </div>
 
-      <div className="pt-2">
+      <div className="pt-2 items-center justify-center p-3">
         <Button
-          className="w-full h-11"
+          className="h-11 w-full"
           variant="outline"
           size="sm"
           onClick={() => {

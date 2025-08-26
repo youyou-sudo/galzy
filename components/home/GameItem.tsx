@@ -50,13 +50,15 @@ export const GameItem = ({
 
   return (
     <HoverPrefetchLink href={`/${item.id}`}>
-      <div className="space-y-2 aspect-[2/3] p-0">
+      <div
+        className="space-y-2 aspect-[2/3] p-0"
+        style={{ contentVisibility: "auto" }}
+      >
         <GameCard.Image
           width={imagesData?.width}
           height={imagesData?.height}
-          priority={false}
-          decoding="async"
           loading="lazy"
+          decoding="async"
           src={imagess}
           alt={title || " "}
         />

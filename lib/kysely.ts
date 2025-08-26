@@ -209,9 +209,10 @@ export interface TagsTable {
 
 export interface TagsZhTable {
   id: string;
-  name: string;
-  alias: string;
-  description: string;
+  name: string | null;
+  alias: string | null;
+  description: string | null;
+  exhibition: boolean; // 是否展示
 }
 
 export interface TagsVnTable {
@@ -340,7 +341,11 @@ export interface CloudflareConfigTable {
   updateTime: ColumnType<Date | null>;
 }
 
-type ArticleType = "article" | "strategy";
+// 文章类型
+//  strategy  : 策略
+//  blog      : 博客
+//  tutorial  : 教程
+type ArticleType = "strategy" | "blog" | "tutorial";
 
 export interface ArticlesTable {
   id: Generated<number>;

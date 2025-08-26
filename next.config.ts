@@ -23,6 +23,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   experimental: {
     viewTransition: true,
+    useCache: true,
   },
   images: {
     formats: ["image/avif", "image/webp"],

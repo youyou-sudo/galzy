@@ -2,9 +2,10 @@
 import { jsonArrayFrom, jsonObjectFrom } from "kysely/helpers/postgres";
 import { db } from "@/lib/kysely";
 
+// [x] 使用 nextjs cache 来进行缓存以避免重复请求（以解决在 layout.tsx 中每次切换路由都重复请求渲染的问题）
 export const getVnDetails = async (id: string) => {
+  "use cache";
   const idIsNumber = /^\d+$/.test(id);
-
   return db
     .selectFrom("galrc_alistb")
     .where((eb) =>

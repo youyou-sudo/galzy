@@ -23,12 +23,10 @@ import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import {
   dataFilteringGet,
   vidassociationCreate,
-  vidassociationDelete,
   vidassociationGet,
 } from "@/lib/dashboard/dataManagement/dataGet";
 import { Button } from "@/components/ui/button";
 import { Loader2Icon, Plus, SquarePen, Swords } from "lucide-react";
-import { Trash2 } from "@/components/animate-ui/icons/trash-2";
 
 import DataManagementPagination from "@/components/dashboard/dataManagement/Pagination";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -91,13 +89,13 @@ export default function DataTabl() {
     onSettled: () => queryClient.invalidateQueries(),
   });
 
-  const { mutate: delll, isPending: delllLoading } = useMutation({
-    mutationFn: async (id: string) => {
-      await vidassociationDelete(id!);
-      refetch();
-    },
-    onSettled: () => queryClient.invalidateQueries(),
-  });
+  // const { mutate: delll, isPending: delllLoading } = useMutation({
+  //   mutationFn: async (id: string) => {
+  //     await vidassociationDelete(id!);
+  //     refetch();
+  //   },
+  //   onSettled: () => queryClient.invalidateQueries(),
+  // });
 
   const { open: strategyListDialogOpen, dataget: strategyListDialogDataget } =
     useStrategyListDialog();
@@ -204,7 +202,7 @@ export default function DataTabl() {
                       )}
                     </Button>
                     {/* [x] 数据删除 */}
-                    <Button
+                    {/* <Button
                       variant="secondary"
                       size="icon"
                       className="size-8 text-red-500"
@@ -217,7 +215,7 @@ export default function DataTabl() {
                       ) : (
                         <Trash2 animateOnHover />
                       )}
-                    </Button>
+                    </Button> */}
                   </TableCell>
                 </TableRow>
               ))}

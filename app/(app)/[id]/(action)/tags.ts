@@ -22,8 +22,9 @@ export const tagshData = async (id: string) => {
             jsonObjectFrom(
               tagsVn
                 .selectFrom("tags")
-                .whereRef("tags.id", "=", "tags_vn.tag")
                 .innerJoin("galrc_zhtag", "tags.id", "galrc_zhtag.id")
+                .whereRef("tags.id", "=", "tags_vn.tag")
+                .where("galrc_zhtag.exhibition", "=", true)
                 .select([
                   "tags.id",
                   "tags.name",

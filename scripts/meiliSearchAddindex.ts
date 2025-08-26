@@ -6,7 +6,7 @@ import { getMeiliSearchClient } from "@/lib/meilisearch";
 export const meiliSearchAddIndex = async () => {
   const meiliClient = await getMeiliSearchClient();
   const index = await meiliClient.index(env("MEILISEARCH_INDEXNAME")!);
-  // await index.deleteAllDocuments();
+  await index.deleteAllDocuments();
 
   let pageIndex = 0;
   const pageSize = 500; // 每批 500 条，根据数据量调
