@@ -20,17 +20,16 @@ export default async function RankingList({
   return (
     <ul
       className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 truncate 
-             max-h-[8.5rem] overflow-y-auto"
+             max-h-[9rem] overflow-y-auto"
     >
       {datas.map((item, index) => {
         const linkValue = item[linkKey];
-        const href =
-          linkKey === "tag" ? `/tags/${linkValue}` : `/${linkValue}`;
+        const href = linkKey === "tag" ? `/tags/${linkValue}` : `/${linkValue}`;
 
         return (
           <li key={linkValue} className="truncate">
             <Link href={href}>
-              <span className="text-ellipsis overflow-hidden">
+              <span className="text-ellipsis overflow-hidden itenms-center">
                 <span
                   className={`font-bold mr-2 ${
                     index === 0
@@ -55,6 +54,7 @@ export default async function RankingList({
                       : ""
                   }`}
                 >
+                  {linkKey === "tag" ? "#" : ""}
                   {item.title}
                 </span>
               </span>

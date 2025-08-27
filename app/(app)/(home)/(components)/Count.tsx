@@ -1,17 +1,31 @@
 import React from "react";
 import { totalCountGet } from "../(action)/homeData";
 import { SlidingNumber } from "@/components/animate-ui/text/sliding-number";
+import Link from "next/link";
+import { Send } from "lucide-react";
 
 export default async function CountComponent() {
   const coutn = await totalCountGet();
   return (
     <>
-      {coutn && (
-        <span className="pl-1 flex opacity-50">
-          共收录了： <SlidingNumber number={coutn} padStart />
-          条目
+      <div className="flex items-center">
+        {coutn && (
+          <span className="pl-1 flex opacity-50">
+            共收录了： <SlidingNumber number={coutn} padStart />
+            条目
+          </span>
+        )}
+        <span className="inline-flex items-center gap-1 ml-2">
+          <Link
+            className="underline text-blue-500 hover:text-blue-300"
+            target="_blank"
+            href="https://t.me/+mKVpQNjxQss1ZDRl"
+          >
+            频道
+          </Link>
+          <Send size={15} className="text-blue-400"/>
         </span>
-      )}
+      </div>
     </>
   );
 }

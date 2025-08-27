@@ -1,5 +1,6 @@
 import type React from "react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface FooterProps {
   className?: string;
@@ -24,15 +25,22 @@ export function Footer({ className, children }: FooterProps) {
             {years > 0 ? `${startYear}-${currentYear}` : `${startYear}`} Galzy
           </p>
           <div className="flex gap-4 justify-center">
-            <a href="#" className="hover:text-foreground transition-colors">
+            <Link href="#" className="hover:text-foreground transition-colors">
               Privacy Policy
-            </a>
-            <a href="#" className="hover:text-foreground transition-colors">
-              Terms of Service
-            </a>
-            <a href="#" className="hover:text-foreground transition-colors">
-              Contact
-            </a>
+            </Link>
+            <Link
+              href="friend-links"
+              className="hover:text-foreground transition-colors"
+            >
+              友情链接
+            </Link>
+            <Link
+              href="https://icp.gov.moe/?keyword=20222332"
+              target="_blank"
+              className="hover:text-foreground transition-colors"
+            >
+              萌ICP备20222332号
+            </Link>
           </div>
         </div>
       )}

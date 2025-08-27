@@ -29,7 +29,7 @@
     "ioredis": "^5.7.0",
     "kysely": "^0.28.5",
     "kysely-postgres-js": "^2.0.0",
-    "lucide-react": "^0.536.0",
+    "lucide-react": "^0.542.0",
     "meilisearch": "^0.51.0",
     "motion": "^12.23.12",
     "ms": "^2.1.3",
@@ -73,7 +73,7 @@
     "eslint-config-next": "15.3.2",
     "next-rspack": "^15.4.7",
     "tsx": "^4.20.3",
-    "tw-animate-css": "^1.3.6",
+    "tw-animate-css": "^1.3.7",
     "typescript": "^5.9.2"
   },
   "trustedDependencies": [

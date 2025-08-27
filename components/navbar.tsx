@@ -48,6 +48,19 @@ const components: { title: string; href: string; description: string }[] = [
   },
 ];
 
+const contactlist: { title: string; href: string; description: string }[] = [
+  {
+    title: "Telegram 群组",
+    href: "https://t.me/+mKVpQNjxQss1ZDRl",
+    description: "紫缘社的 Telegram 群组",
+  },
+  {
+    title: "Email 邮箱 GalzyAdvertising@proton.me",
+    href: "mailto:GalzyAdvertising@proton.me",
+    description: "联系我们的 Email 邮箱，接受问题反馈和合作建议",
+  },
+];
+
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isFriendLinksOpen, setIsFriendLinksOpen] = useState(false);
@@ -79,6 +92,22 @@ export function Navbar() {
                     <NavigationMenuContent>
                       <ul className="grid w-[400px] gap-2 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
                         {components.map((component) => (
+                          <ListItem
+                            key={component.title}
+                            title={component.title}
+                            href={component.href}
+                          >
+                            {component.description}
+                          </ListItem>
+                        ))}
+                      </ul>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger>联系</NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <ul className="grid w-[400px] gap-1 md:w-[200px] lg:w-[300px]">
+                        {contactlist.map((component) => (
                           <ListItem
                             key={component.title}
                             title={component.title}
