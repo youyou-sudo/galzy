@@ -112,7 +112,7 @@ export const ContentCard = ({ data }: Props) => {
                   className="px-3 border-1 rounded-lg"
                 >
                   <AccordionTrigger className="text-sm opacity-70 hover:opacity-100 py-3">
-                    游戏标签（包含剧透）
+                    游戏标签
                   </AccordionTrigger>
                   <AccordionContent className="pb-3">
                     <TagsCard id={data.vid} />
