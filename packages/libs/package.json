@@ -1,0 +1,15 @@
+{
+  "name": "libs",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "lint": "biome check"
+  },
+  "dependencies": {
+    "elysia": "1.3.21"
+  },
+  "devDependencies": {
+    "@elysiajs/eden": "1.3.3",
+    "typescript": "^5"
+  }
+}

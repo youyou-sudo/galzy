@@ -1,5 +1,9 @@
-.git
-.dockerignore
-.env.example
 node_modules
+.next
+coverage
+.storybook
 .gitignore
+Dockerfile
+README.md
+playwright-report
+test-results

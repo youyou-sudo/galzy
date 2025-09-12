@@ -1,0 +1,90 @@
+{
+  "extends": [
+    "config/typescript/next.json"
+  ],
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@web/*": [
+        "*"
+      ],
+      "@web/public/*": [
+        "public/*"
+      ],
+      "@web/components": [
+        "components/index.ts"
+      ],
+      "@web/layouts": [
+        "layouts/index.ts"
+      ],
+      "@web/stores": [
+        "stores/index.ts"
+      ],
+      "@web/libs": [
+        "libs/index.ts"
+      ],
+      "@api": [
+        "../api/src/index.ts"
+      ],
+      "@api/*": [
+        "../api/src/*"
+      ],
+      "@libs": [
+        "../../packages/libs/src/index.ts"
+      ],
+      "@libs/*": [
+        "../../packages/libs/src/*"
+      ],
+      "@ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@ui/*": [
+        "../../packages/ui/src/*"
+      ],
+      "@ui/components": [
+        "../../packages/ui/src/components/index.ts"
+      ],
+      "@ui/layouts": [
+        "../../packages/ui/src/layouts/index.ts"
+      ],
+      "@shadcn/ui/*": [
+        "../../packages/ui/src/*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/standalone/apps/web/types/**/*.ts",
+    "next-env.d.ts",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "coverage",
+    "eslint.config.mjs",
+    "postcss.config.mjs"
+  ]
+}

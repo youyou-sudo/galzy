@@ -1,0 +1,123 @@
+import { db } from '@api/libs'
+import { status } from 'elysia'
+import { t } from 'try'
+
+import type { StrategyModel } from './model'
+import {
+  acquireIdempotentKey,
+  getIdempotentResult,
+  getKv,
+  setKv,
+  storeIdempotentResult,
+} from '@api/libs/redis'
+import XXH from 'xxhashjs'
+
+export const Strategy = {
+  async strategy({ strategyId }: StrategyModel.strategy) {
+    const redisData = await getKv(`strategy-${strategyId}`)
+    if (redisData !== null && redisData !== undefined) {
+      return JSON.parse(redisData) as StrategyContent
+    }
+    const [, error, strategyContent] = t(
+      await db
+        .selectFrom('galrc_article')
+        .selectAll()
+        .where('id', '=', strategyId)
+        .executeTakeFirstOrThrow(),
+    )
+    if (error)
+      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+    void setKv(
+      `strategy-${strategyId}`,
+      JSON.stringify(strategyContent),
+      60 * 60 * 1,
+    )
+    type StrategyContent = typeof strategyContent
+    return strategyContent
+  },
+  async gameStrategys({ gameId }: StrategyModel.gameStrategys) {
+    const redisData = await getKv(`gameStrategys-${gameId}`)
+    if (redisData !== null && redisData !== undefined) {
+      return JSON.parse(redisData) as StrategyContent
+    }
+    const isVNDB = /^v\d+$/.test(gameId)
+    const [, error, data] = t(
+      await db
+        .selectFrom('galrc_article')
+        .selectAll()
+        .where('type', '=', 'strategy')
+        .where(
+          isVNDB ? 'vid' : 'otherid',
+          '=',
+          isVNDB ? gameId : Number(gameId),
+        )
+        .execute(),
+    )
+    if (error)
+      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+    void setKv(`gameStrategys-${gameId}`, JSON.stringify(data), 60 * 60 * 1)
+    type StrategyContent = typeof data
+    return data
+  },
+  async strategyListUpdate({ id, data }: StrategyModel.strategyListUpdate) {
+    const str = JSON.stringify({ id, data })
+    const hash = XXH.h32(str, 0xabcd).toString(16)
+    const cached = await getIdempotentResult(`strategyListUpdate-${hash}`)
+    if (cached) {
+      return cached
+    }
+    const ok = await acquireIdempotentKey(`strategyListUpdate-${hash}`, 10)
+    if (!ok) {
+      throw status(200, '重复请求')
+    }
+    await db
+      .updateTable('galrc_article')
+      .where('id', '=', Number(id))
+      .set({ ...data })
+      .execute()
+    await storeIdempotentResult(`strategyListUpdate-${hash}`, '', 60)
+  },
+  async strategyListCreate({ id, data }: StrategyModel.strategyListUpdate) {
+    const str = JSON.stringify({ id, data })
+    const hash = XXH.h32(str, 0xabcd).toString(16)
+    const cached = await getIdempotentResult(`strategyListCreate-${hash}`)
+    if (cached) {
+      return cached
+    }
+    const ok = await acquireIdempotentKey(`strategyListCreate-${hash}`, 10)
+    if (!ok) {
+      throw status(200, '重复请求')
+    }
+    const isVNDB = /^v\d+$/.test(id)
+    if (isVNDB) {
+      await db
+        .insertInto('galrc_article')
+        .values({ vid: id, ...data, type: 'strategy' })
+        .executeTakeFirstOrThrow()
+    } else {
+      await db
+        .insertInto('galrc_article')
+        .values({ otherid: Number(id), ...data, type: 'strategy' })
+        .executeTakeFirstOrThrow()
+    }
+    await storeIdempotentResult(`strategyListCreate-${hash}`, '', 60)
+  },
+  async strategyListDelete({ id }: StrategyModel.strategyListUpdate) {
+    const str = JSON.stringify({ id })
+    const hash = XXH.h32(str, 0xabcd).toString(16)
+    const cached = await getIdempotentResult(`strategyListDelete-${hash}`)
+    if (cached) {
+      return cached
+    }
+    const ok = await acquireIdempotentKey(`strategyListDelete-${hash}`, 10)
+    if (!ok) {
+      throw status(200, '重复请求')
+    }
+    await db
+      .deleteFrom('galrc_article')
+      .where('id', '=', Number(id))
+      .returningAll()
+      .execute()
+    await storeIdempotentResult(`strategyListDelete-${hash}`, '', 60)
+  },
+}
