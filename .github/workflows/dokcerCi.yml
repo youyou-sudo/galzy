@@ -20,12 +20,15 @@ jobs:
         with:
           node-version: '18'  # 根据你项目实际需要
 
+      # 安装 Bun
       - name: Install Bun
-        run: curl -fsSL https://bun.sh/install | bash
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> $GITHUB_PATH  # Add Bun to path
 
       # 构建 Docker 镜像
       - name: Build Docker image (API)
-        run: bun docker
+        run: bun docker  # Now this should work
 
       # 登录 GHCR
       - name: Log in to GitHub Container Registry
