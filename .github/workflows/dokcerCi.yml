@@ -42,34 +42,23 @@ jobs:
       - name: Tag and Push Docker images
         run: |
           # 获取镜像版本号
-          VERSION_API=api$(docker images mono-api --format "{{.Tag}}")
-          VERSION_WEB=web$(docker images mono-web --format "{{.Tag}}")
+          VERSION_API=$(docker images mono-api --format "{{.Tag}}")
+          VERSION_WEB=$(docker images mono-web --format "{{.Tag}}")
 
           echo "API version: $VERSION_API"
           echo "WEB version: $VERSION_WEB"
 
-          # 自动判断仓库命名空间
-          if [ "${{ github.repository_owner }}" = "${{ github.actor }}" ]; then
-            # 个人仓库
-            GHCR_NAMESPACE=${{ github.actor }}
-          else
-            # 组织仓库
-            GHCR_NAMESPACE=${{ github.repository_owner }}
-          fi
-
-          echo "Using GHCR namespace: $GHCR_NAMESPACE"
-
           # 打标签
-          docker tag mono-api:$VERSION_API ghcr.io/$GHCR_NAMESPACE:$VERSION_API
-          docker tag mono-api:$VERSION_API ghcr.io/$GHCR_NAMESPACE:latest
+          docker tag mono-api:$VERSION_API ghcr.io/${{ github.repository_owner }}/mono-api:$VERSION_API
+          docker tag mono-api:$VERSION_API ghcr.io/${{ github.repository_owner }}/mono-api:latest
 
-          docker tag mono-web:$VERSION_WEB ghcr.io/$GHCR_NAMESPACE:$VERSION_WEB
-          docker tag mono-web:$VERSION_WEB ghcr.io/$GHCR_NAMESPACE:latest
+          docker tag mono-web:$VERSION_WEB ghcr.io/${{ github.repository_owner }}/mono-web:$VERSION_WEB
+          docker tag mono-web:$VERSION_WEB ghcr.io/${{ github.repository_owner }}/mono-web:latest
 
           # 推送镜像
-          docker push ghcr.io/$GHCR_NAMESPACE:$VERSION_API
-          docker push ghcr.io/$GHCR_NAMESPACE:latest
+          docker push ghcr.io/${{ github.repository_owner }}/mono-api:$VERSION_API
+          docker push ghcr.io/${{ github.repository_owner }}/mono-api:latest
 
-          docker push ghcr.io/$GHCR_NAMESPACE:$VERSION_WEB
-          docker push ghcr.io/$GHCR_NAMESPACE:latest
+          docker push ghcr.io/${{ github.repository_owner }}/mono-web:$VERSION_WEB
+          docker push ghcr.io/${{ github.repository_owner }}/mono-web:latest
         shell: bash
