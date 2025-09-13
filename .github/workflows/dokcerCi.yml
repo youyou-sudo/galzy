@@ -1,9 +1,9 @@
-name: Build and Push Docker Image
+name: Build and Push Docker Images
 
 on:
   push:
     branches:
-      - main  # 监听 main 分支提交
+      - main
 
 jobs:
   build:
@@ -38,34 +38,38 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 从本地镜像获取版本号，并给 GHCR 打标签
-      - name: Tag Docker images for GHCR
+      # 获取本地镜像版本号并推送
+      - name: Tag and Push Docker images
         run: |
-          # 获取版本号
+          # 获取镜像版本号
           VERSION_API=$(docker images mono-api --format "{{.Tag}}")
           VERSION_WEB=$(docker images mono-web --format "{{.Tag}}")
 
           echo "API version: $VERSION_API"
           echo "WEB version: $VERSION_WEB"
 
-          # 打 GHCR 标签
-          docker tag mono-api:$VERSION_API ghcr.io/${{ github.repository }}/mono-api:$VERSION_API
-          docker tag mono-web:$VERSION_WEB ghcr.io/${{ github.repository }}/mono-web:$VERSION_WEB
+          # 自动判断仓库命名空间
+          if [ "${{ github.repository_owner }}" = "${{ github.actor }}" ]; then
+            # 个人仓库
+            GHCR_NAMESPACE=${{ github.actor }}
+          else
+            # 组织仓库
+            GHCR_NAMESPACE=${{ github.repository_owner }}
+          fi
 
-          # 打 latest 标签
-          docker tag mono-api:$VERSION_API ghcr.io/${{ github.repository }}/mono-api:latest
-          docker tag mono-web:$VERSION_WEB ghcr.io/${{ github.repository }}/mono-web:latest
-        shell: bash
+          echo "Using GHCR namespace: $GHCR_NAMESPACE"
 
-      # 推送镜像到 GHCR
-      - name: Push Docker images
-        run: |
-          VERSION_API=$(docker images mono-api --format "{{.Tag}}")
-          VERSION_WEB=$(docker images mono-web --format "{{.Tag}}")
+          # 打标签
+          docker tag mono-api:$VERSION_API ghcr.io/$GHCR_NAMESPACE/mono-api:$VERSION_API
+          docker tag mono-api:$VERSION_API ghcr.io/$GHCR_NAMESPACE/mono-api:latest
 
-          docker push ghcr.io/${{ github.repository }}/mono-api:$VERSION_API
-          docker push ghcr.io/${{ github.repository }}/mono-api:latest
+          docker tag mono-web:$VERSION_WEB ghcr.io/$GHCR_NAMESPACE/mono-web:$VERSION_WEB
+          docker tag mono-web:$VERSION_WEB ghcr.io/$GHCR_NAMESPACE/mono-web:latest
 
-          docker push ghcr.io/${{ github.repository }}/mono-web:$VERSION_WEB
-          docker push ghcr.io/${{ github.repository }}/mono-web:latest
+          # 推送镜像
+          docker push ghcr.io/$GHCR_NAMESPACE/mono-api:$VERSION_API
+          docker push ghcr.io/$GHCR_NAMESPACE/mono-api:latest
+
+          docker push ghcr.io/$GHCR_NAMESPACE/mono-web:$VERSION_WEB
+          docker push ghcr.io/$GHCR_NAMESPACE/mono-web:latest
         shell: bash
