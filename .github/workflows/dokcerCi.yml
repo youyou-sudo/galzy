@@ -18,27 +18,19 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'  # 按需调整
+          node-version: '18'
 
+      # 安装 Bun
       - name: Install Bun
         run: |
           curl -fsSL https://bun.sh/install | bash
           echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
-
-      - name: Build Docker image
+      # 构建 Docker 镜像
+      - name: Build Docker images with Bun
         run: bun docker
 
-      - name: Get versions
-        id: get_version
-        run: |
-          VERSION_WEB=$(node -p "require('./apps/web/package.json').version")
-          VERSION_API=$(node -p "require('./apps/api/package.json').version")
-          echo "VERSION_WEB=$VERSION_WEB" >> $GITHUB_ENV
-          echo "VERSION_API=$VERSION_API" >> $GITHUB_ENV
-        shell: bash
-
-      # 登录 GitHub Container Registry (GHCR)
+      # 登录 GHCR
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
@@ -46,20 +38,34 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # 从本地镜像获取版本号，并给 GHCR 打标签
       - name: Tag Docker images for GHCR
         run: |
-          docker tag mono-api:${VERSION} ghcr.io/${{ github.repository }}/mono-api:${VERSION}
-          docker tag mono-web:${VERSION} ghcr.io/${{ github.repository }}/mono-web:${VERSION}
+          # 获取版本号
+          VERSION_API=$(docker images mono-api --format "{{.Tag}}")
+          VERSION_WEB=$(docker images mono-web --format "{{.Tag}}")
 
+          echo "API version: $VERSION_API"
+          echo "WEB version: $VERSION_WEB"
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          # 打 GHCR 标签
+          docker tag mono-api:$VERSION_API ghcr.io/${{ github.repository }}/mono-api:$VERSION_API
+          docker tag mono-web:$VERSION_WEB ghcr.io/${{ github.repository }}/mono-web:$VERSION_WEB
 
+          # 打 latest 标签
+          docker tag mono-api:$VERSION_API ghcr.io/${{ github.repository }}/mono-api:latest
+          docker tag mono-web:$VERSION_WEB ghcr.io/${{ github.repository }}/mono-web:latest
+        shell: bash
+
+      # 推送镜像到 GHCR
       - name: Push Docker images
         run: |
-          docker push ghcr.io/${{ github.repository }}/mono-api:${VERSION_API}
-          docker push ghcr.io/${{ github.repository }}/mono-web:${VERSION_WEB}
+          VERSION_API=$(docker images mono-api --format "{{.Tag}}")
+          VERSION_WEB=$(docker images mono-web --format "{{.Tag}}")
+
+          docker push ghcr.io/${{ github.repository }}/mono-api:$VERSION_API
+          docker push ghcr.io/${{ github.repository }}/mono-api:latest
+
+          docker push ghcr.io/${{ github.repository }}/mono-web:$VERSION_WEB
+          docker push ghcr.io/${{ github.repository }}/mono-web:latest
+        shell: bash
