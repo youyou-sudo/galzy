@@ -1,52 +1,83 @@
-name: Build and Push Docker Image
+name: Docker
 
 on:
   push:
-    branches:
-      - main  # 监听 main 分支提交
+    branches: ["main"]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
 
     steps:
-      # 检出代码
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # 设置 Node.js 和 Bun
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'  # 根据你项目实际需要
-
-      # 安装 Bun
+      # 安装 Bun（仅用于编译项目，不在容器里运行）
       - name: Install Bun
         run: |
           curl -fsSL https://bun.sh/install | bash
-          echo "$HOME/.bun/bin" >> $GITHUB_PATH  # Add Bun to path
+          echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
-      # 构建 Docker 镜像
-      - name: Build Docker image (API)
-        run: bun docker  # Now this should work
+      # 如果需要构建前执行 bun install / bun run build，可以加在这里
+      - name: Install dependencies & build
+        run: |
+          bun install
+          bun run build
 
-      # 登录 GHCR
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
+      # 安装 cosign
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 #v3.5.0
         with:
+          cosign-release: "v2.2.4"
+
+      # Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f95db51fddba0c2d1ec667646a06c2ce06100226 # v3.0.0
+
+      # 登录 GitHub 容器仓库
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 推送 Docker 镜像 (API)
-      - name: Push Docker image (API)
-        run: |
-          VERSION=$(node -e "console.log(require('./apps/api/package.json').version)")
-          docker tag mono-api:$VERSION ghcr.io/${{ github.repository }}/mono-api:$VERSION
-          docker push ghcr.io/${{ github.repository }}/mono-api:$VERSION
+      # 提取 Docker 镜像元数据
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@96383f45573cb7f253c731d3b3ab81c87ef81934 # v5.0.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      # 推送 Docker 镜像 (Web)
-      - name: Push Docker image (Web)
-        run: |
-          VERSION=$(node -e "console.log(require('./apps/web/package.json').version)")
-          docker tag mono-web:$VERSION ghcr.io/${{ github.repository }}/mono-web:$VERSION
-          docker push ghcr.io/${{ github.repository }}/mono-web:$VERSION
+      # 构建并推送 Docker 镜像
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09 # v5.0.0
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # 签名 Docker 镜像
+      - name: Sign the published Docker image
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push.outputs.digest }}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
