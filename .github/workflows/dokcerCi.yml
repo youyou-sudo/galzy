@@ -1,110 +1,45 @@
-name: Docker
+name: Build and Push Docker Image
 
 on:
   push:
-    branches: ["main"]
-    tags: ["v*.*.*"]
-  pull_request:
-    branches: ["main"]
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+    branches:
+      - main  # 监听 main 分支提交
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      # 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      # 安装 Bun（仅用于编译项目，不在容器里运行）
-      - name: Install Bun
-        run: |
-          curl -fsSL https://bun.sh/install | bash
-          echo "$HOME/.bun/bin" >> $GITHUB_PATH
-
-      # 如果需要构建前执行 bun install / bun run build，可以加在这里
-      - name: Install dependencies & build
-        run: bun install
-
-      # 安装 cosign
-      - name: Install cosign
-        if: github.event_name != 'pull_request'
-        uses: sigstore/cosign-installer@v3.5.0
+      # 设置 Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          cosign-release: "v2.2.4"
+          node-version: '18'  # 按需调整
 
-      # Set up Docker Buildx
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      # 登录 GitHub 容器仓库
-      - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
+      # 登录 GitHub Container Registry (GHCR)
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # --------------------------
-      # API 镜像
-      # --------------------------
-      - name: Extract Docker metadata (API)
-        id: meta-api
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-api
+      # 构建并推送 API 镜像
+      - name: Build and Push API Docker image
+        run: |
+          VERSION=$(node -e "console.log(require('./apps/api/package.json').version)")
+          IMAGE=ghcr.io/${{ github.repository }}/mono-api:$VERSION
+          docker build -t $IMAGE ./apps/api
+          docker push $IMAGE
 
-      - name: Build and push Docker image (API)
-        id: build-and-push-api
-        uses: docker/build-push-action@v5
-        with:
-          context: ./apps/api
-          file: ./apps/api/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta-api.outputs.tags }}
-          labels: ${{ steps.meta-api.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Sign the published Docker image (API)
-        if: ${{ github.event_name != 'pull_request' }}
-        env:
-          TAGS: ${{ steps.meta-api.outputs.tags }}
-          DIGEST: ${{ steps.build-and-push-api.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
-
-      # --------------------------
-      # Web 镜像
-      # --------------------------
-      - name: Extract Docker metadata (Web)
-        id: meta-web
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web
-
-      - name: Build and push Docker image (Web)
-        id: build-and-push-web
-        uses: docker/build-push-action@v5
-        with:
-          context: ./apps/web
-          file: ./apps/web/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta-web.outputs.tags }}
-          labels: ${{ steps.meta-web.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Sign the published Docker image (Web)
-        if: ${{ github.event_name != 'pull_request' }}
-        env:
-          TAGS: ${{ steps.meta-web.outputs.tags }}
-          DIGEST: ${{ steps.build-and-push-web.outputs.digest }}
-        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+      # 构建并推送 Web 镜像
+      - name: Build and Push Web Docker image
+        run: |
+          VERSION=$(node -e "console.log(require('./apps/web/package.json').version)")
+          IMAGE=ghcr.io/${{ github.repository }}/mono-web:$VERSION
+          docker build -t $IMAGE ./apps/web
+          docker push $IMAGE
