@@ -29,11 +29,14 @@ jobs:
       - name: Build Docker image
         run: bun docker
 
-      - name: Get web version
+      - name: Get versions
         id: get_version
         run: |
-          echo "VERSION_WEB=$(node -p \"require('./apps/web/package.json').version\")" >> $GITHUB_ENV
-          echo "VERSION_API=$(node -p \"require('./apps/api/package.json').version\")" >> $GITHUB_ENV
+          VERSION_WEB=$(node -p "require('./apps/web/package.json').version")
+          VERSION_API=$(node -p "require('./apps/api/package.json').version")
+          echo "VERSION_WEB=$VERSION_WEB" >> $GITHUB_ENV
+          echo "VERSION_API=$VERSION_API" >> $GITHUB_ENV
+        shell: bash
 
       # 登录 GitHub Container Registry (GHCR)
       - name: Log in to GitHub Container Registry
