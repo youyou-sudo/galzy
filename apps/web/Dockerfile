@@ -19,7 +19,6 @@ RUN bun install
 COPY apps/web apps/web
 COPY apps/api apps/api
 COPY packages/libs packages/libs
-COPY packages/ui packages/ui
 COPY packages/config packages/config
 
 ENV NODE_ENV=production
