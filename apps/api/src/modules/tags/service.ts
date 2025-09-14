@@ -215,6 +215,7 @@ export const Tags = {
         )
         // id 模糊匹配
         .$if(!!id, (qb) => qb.where('tags.id', 'like', `%${id}%`))
+        .orderBy('tags.id', 'asc')
         .limit(pageSize)
         .offset(offset)
         .execute(),
