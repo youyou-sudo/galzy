@@ -282,28 +282,38 @@ export const Tags = {
     if (ok) return true
   },
   async tagFileAdd({ file }: TagsModel.tagFileAdd) {
-    const text = await file.text()
-    const datas = JSON.parse(text)
-    const datass = datas.map((item: any) => {
-      return {
-        id: item.id,
-        name: item.name,
-        exhibition: true,
-        alias: item.alias,
-        description: item.description,
-      }
-    })
-    const [, error] = t(
-      await db
+    const text = await file.text();
+    const datas = JSON.parse(text);
+    const datass = datas.map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      exhibition: item.exhibition,
+      alias: item.alias,
+      description: item.description,
+    }));
+
+    const [, error] = await t(
+      db
         .insertInto('galrc_zhtag')
         .values(datass)
-        .onConflict((oc) => oc.doNothing())
-        .execute(),
-    )
+        .onConflict((oc) =>
+          oc
+            .column('id') // 假设 id 是主键，用于检测冲突
+            .doUpdateSet({
+              name: (eb) => eb.ref('excluded.name'),
+              exhibition: (eb) => eb.ref('excluded.exhibition'),
+              alias: (eb) => eb.ref('excluded.alias'),
+              description: (eb) => eb.ref('excluded.description'),
+            })
+        )
+        .execute()
+    );
+
     if (error) {
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`);
     }
-    return true
+
+    return true;
   },
   async tagAllFileDwn() {
     const datas = await db.selectFrom('galrc_zhtag').selectAll().execute()
