@@ -162,7 +162,7 @@ export async function dbSeed() {
     .createTable('galrc_siteConfig')
     .ifNotExists()
     .addColumn('key', 'varchar(255)', (col) => col.primaryKey())
-    .addColumn(' config', 'jsonb')
+    .addColumn('config', 'jsonb')
     .execute()
 
   await db.schema
