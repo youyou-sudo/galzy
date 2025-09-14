@@ -4,27 +4,22 @@ FROM node:16-alpine AS build
 WORKDIR /app
 
 # 缓存依赖项
-COPY package.json package.json
+COPY package*.json ./
 
-COPY apps/web/package.json apps/web/package.json
-COPY apps/api/package.json apps/api/package.json
-COPY packages/libs/package.json packages/libs/package.json
-COPY packages/config/package.json packages/config/package.json
-
-RUN npm install
+RUN npm install -g pnpm && pnpm install
 
 # 复制项目文件
-COPY apps/web apps/web
-COPY apps/api apps/api
-COPY packages/libs packages/libs
-COPY packages/config packages/config
+COPY apps/web/ .
+COPY apps/api/ .
+COPY packages/libs/ .
+COPY packages/config/ .
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # 构建 Next.js 项目
 WORKDIR /app/apps/web
-RUN npm run build
+RUN pnpm run build
 
 # -----------
 FROM node:16-alpine AS production
@@ -50,3 +45,4 @@ ENV HOSTNAME="0.0.0.0"
 
 EXPOSE 3000
 CMD ["node", "apps/web/server.js"]
+
