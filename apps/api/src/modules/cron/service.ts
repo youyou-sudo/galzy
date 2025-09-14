@@ -216,21 +216,26 @@ export const CronService = {
     }
   },
   async meiliSearchAddIndex() {
-    const index = await MeiliClient.index(process.env.MEILISEARCH_INDEXNAME!)
-    console.log('meiliSearchAddIndex', JSON.stringify(index))
-    let pageIndex = 0
-    const pageSize = 500 // 每批 500 条，根据数据量调
-    let hasMore = true
-    while (hasMore) {
-      const { items, totalPages } = await MeiliSearchData(pageSize, pageIndex)
-      // 格式化数据，MeiliSearch 必须有唯一 id
+    try {
+      const index = await MeiliClient.index(process.env.MEILISEARCH_INDEXNAME!)
+      console.log('meiliSearchAddIndex', JSON.stringify(index))
+      let pageIndex = 0
+      const pageSize = 500 // 每批 500 条，根据数据量调
+      let hasMore = true
+      while (hasMore) {
+        const { items, totalPages } = await MeiliSearchData(pageSize, pageIndex)
+        // 格式化数据，MeiliSearch 必须有唯一 id
 
-      if (items.length > 0) {
-        await index.addDocuments(items)
+        if (items.length > 0) {
+          await index.addDocuments(items)
+        }
+
+        pageIndex++
+        hasMore = pageIndex < totalPages
       }
-
-      pageIndex++
-      hasMore = pageIndex < totalPages
+    }
+    catch (e) {
+      console.error('meiliSearchAddIndex 运行失败喵', e)
     }
   },
   async meiliSearchAddTag() {
