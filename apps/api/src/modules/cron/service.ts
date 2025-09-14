@@ -131,7 +131,7 @@ export const CronService = {
       const parsedValue = JSON.parse(alistUpInfo?.value as unknown as string)
       if (!alistUpInfo) return
       if (alistUpInfo.value.is_done === false) return
-      if (alistUpTime?.config?.lastUpdate || 0 === parsedValue.last_done_time)
+      if (alistUpTime?.config.lastUpdate || 0 === parsedValue.last_done_time)
         return
 
       const [, alistDataError, alistData] = t(
@@ -217,6 +217,7 @@ export const CronService = {
   },
   async meiliSearchAddIndex() {
     const index = await MeiliClient.index(process.env.MEILISEARCH_INDEXNAME!)
+    console.log('meiliSearchAddIndex', JSON.stringify(index))
     let pageIndex = 0
     const pageSize = 500 // 每批 500 条，根据数据量调
     let hasMore = true

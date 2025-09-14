@@ -5,7 +5,7 @@ let meiliClient: MeiliSearch | null = null
 async function getMeiliSearchClient() {
   if (!meiliClient) {
     meiliClient = new MeiliSearch({
-      host: process.env.MEILISEARCH_HOST || 'http://localhost:7700',
+      host: process.env.MEILISEARCH_HOST!,
       apiKey: process.env.MEILISEARCH_MASTER,
     })
   }
