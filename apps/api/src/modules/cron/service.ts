@@ -111,7 +111,7 @@ export const CronService = {
     const lockTimeout = 10000
 
     const lock = await deacquireLocklKv(lockKey, lockValue, lockTimeout)
-    if (lock) return
+    if (lock) return null
     try {
       const [, error, [alistUpInfo, alistUpTime]] = t(
         await Promise.all([

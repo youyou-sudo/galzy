@@ -9,6 +9,7 @@ export const cronServer = new Elysia()
       pattern: Patterns.everyMinutes(1),
       run() {
         CronService.workerDataPull()
+        console.log('workerDataPull')
       },
     }),
   )
@@ -18,6 +19,7 @@ export const cronServer = new Elysia()
       pattern: Patterns.everyMinutes(5),
       run() {
         CronService.alistSyncScript()
+        console.log('alistSyncScript')
       },
     }),
   )
@@ -27,6 +29,7 @@ export const cronServer = new Elysia()
       pattern: Patterns.everyHours(12),
       run() {
         CronService.meiliSearchAddIndex()
+        console.log('meiliSearchAddIndex')
       },
     }),
   )
@@ -36,12 +39,24 @@ export const cronServer = new Elysia()
       pattern: Patterns.everyHours(12),
       run() {
         CronService.meiliSearchAddTag()
+        console.log('meiliSearchAddTag')
       },
     }),
   )
-  .get('/task/meilisearch/game', () => {
+  .get('/task/meiliSearchAddIndex', () => {
+        console.log('meiliSearchAddIndex')
     return CronService.meiliSearchAddIndex()
   })
-  .get('/task/meilisearch/tag', () => {
-    return CronService.meiliSearchAddIndex()
+  .get('/task/meiliSearchAddTag', () => {
+        console.log('meiliSearchAddTag')
+    return CronService.meiliSearchAddTag()
+  })
+
+  .get('/task/alistSyncScript', () => {
+        console.log('alistSyncScript')
+    return CronService.alistSyncScript()
+  })
+  .get('/task/workerDataPull', () => {
+        console.log('workerDataPull')
+    return CronService.workerDataPull()
   })
