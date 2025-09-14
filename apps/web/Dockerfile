@@ -1,48 +1,52 @@
-# 使用官方 Node.js 镜像作为构建环境
-FROM node:16-alpine AS build
+FROM node:22-slim AS build
 
 WORKDIR /app
 
-# 缓存依赖项
-COPY package*.json ./
+# https://pnpm.io/installation#in-a-docker-container
+RUN npm install -g bun
 
-RUN npm install -g pnpm && pnpm install
+# Cache packages
+COPY package.json package.json
 
-# 复制项目文件
-COPY apps/web/ .
-COPY apps/api/ .
-COPY packages/libs/ .
-COPY packages/config/ .
+COPY apps/web/package.json apps/web/package.json
+COPY apps/api/package.json apps/api/package.json
+COPY packages/libs/package.json packages/libs/package.json
+COPY packages/ui/package.json packages/ui/package.json
+COPY packages/config/package.json packages/config/package.json
+
+RUN bun install
+
+COPY apps/web apps/web
+COPY apps/api apps/api
+COPY packages/libs packages/libs
+COPY packages/ui packages/ui
+COPY packages/config packages/config
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# 构建 Next.js 项目
 WORKDIR /app/apps/web
-RUN pnpm run build
+RUN bun run build
 
 # -----------
-FROM node:16-alpine AS production
+FROM node:22-slim AS production
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# 创建一个系统用户来运行应用
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# 自动利用构建时的输出文件，减小镜像体积
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=build --chown=nextjs:nodejs /app/apps/web/.next/standalone .
 
-# 设置正确的权限
-RUN chown nextjs:nodejs /app
+RUN chown nextjs:nodejs apps
 
 USER nextjs
 
 ENV HOSTNAME="0.0.0.0"
 
-EXPOSE 3000
 CMD ["node", "apps/web/server.js"]
-
