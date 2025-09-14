@@ -5,6 +5,7 @@ import {
   SidebarProvider,
   SidebarRail,
 } from '@web/components/animate-ui/radix/sidebar'
+import AuthYjvg from '@web/components/auth/authYjvg'
 import NavMain from '@web/components/dashboard/sedebar/NavMain'
 import NavUser from '@web/components/dashboard/sedebar/NavUser'
 import Switcher from '@web/components/dashboard/sedebar/Switcher'
@@ -22,18 +23,20 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <SidebarProvider>
-      <Sidebar collapsible="icon">
-        <SidebarContent>
-          <Switcher />
-          <NavMain />
-        </SidebarContent>
-        <SidebarFooter>
-          <NavUser />
-        </SidebarFooter>
-        <SidebarRail />
-      </Sidebar>
-      <SideContent>{children}</SideContent>
-    </SidebarProvider>
+    <AuthYjvg>
+      <SidebarProvider>
+        <Sidebar collapsible="icon">
+          <SidebarContent>
+            <Switcher />
+            <NavMain />
+          </SidebarContent>
+          <SidebarFooter>
+            <NavUser />
+          </SidebarFooter>
+          <SidebarRail />
+        </Sidebar>
+        <SideContent>{children}</SideContent>
+      </SidebarProvider>
+    </AuthYjvg>
   )
 }
