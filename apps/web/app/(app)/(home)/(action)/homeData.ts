@@ -2,7 +2,7 @@
 import { api } from '@libs'
 
 export const homeData = async (pageSize: number, pageIndex: number) => {
-  const {data} = await api.games.gamelist.get({
+  const { data } = await api.games.gamelist.get({
     query: {
       pageIndex,
       pageSize,

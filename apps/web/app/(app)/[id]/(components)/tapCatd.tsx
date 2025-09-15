@@ -1,15 +1,15 @@
 'use client'
-import { Card, CardContent } from '@web/components/ui/card'
 import {
   Tabs,
   TabsList,
   TabsTrigger,
 } from '@web/components/animate-ui/radix/tabs'
+import { Card, CardContent } from '@web/components/ui/card'
+import { authClient } from '@web/lib/auth-client'
 import { ArrowDownToLine, Swords } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Glgczujm } from './tips'
-import { authClient } from '@web/lib/auth-client'
 
 export const TapCatd = ({
   id,
@@ -35,7 +35,11 @@ export const TapCatd = ({
           </Link>
         </TabsTrigger>
         <TabsTrigger value="introduction" asChild>
-          <Link href={`/${id}/introduction`}> <Swords />攻略</Link>
+          <Link href={`/${id}/introduction`}>
+            {' '}
+            <Swords />
+            攻略
+          </Link>
         </TabsTrigger>
       </TabsList>
       <Card className="p-0">

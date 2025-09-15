@@ -13,6 +13,5 @@ export default function Error({
     console.error(error)
   }, [error])
 
-  return (<Errors code="500" errormessage={error.message} />
-  )
+  return <Errors code="500" errormessage={error.message} />
 }

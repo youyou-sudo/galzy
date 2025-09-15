@@ -1,8 +1,8 @@
 import { MeiliClient } from '@api/libs'
+import { getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
 import { t } from 'try'
 import type { SearchModel } from './model'
-import { getKv, setKv } from '@api/libs/redis'
 
 export const Search = {
   async get({ q, limit }: SearchModel.search) {
@@ -47,39 +47,39 @@ export const Search = {
     documentTemplateMaxBytes,
     documentTemplate,
   }: SearchModel.meilisearchEmbeddersUpdate) {
-    const indexdata = await MeiliClient
-      .index(process.env.MEILISEARCH_INDEXNAME!)
-      .updateEmbedders({
-        body: {
-          source: 'rest',
-          url: url,
-          headers: { Authorization: embeddingApiKey },
-          request: { model: model, input: ['{{text}}', '{{..}}'] },
-          documentTemplateMaxBytes: documentTemplateMaxBytes,
-          response: {
-            data: [
-              {
-                embedding: '{{embedding}}',
-              },
-              '{{..}}',
-            ],
-          },
-
-          documentTemplate: documentTemplate,
+    const indexdata = await MeiliClient.index(
+      process.env.MEILISEARCH_INDEXNAME!,
+    ).updateEmbedders({
+      body: {
+        source: 'rest',
+        url: url,
+        headers: { Authorization: embeddingApiKey },
+        request: { model: model, input: ['{{text}}', '{{..}}'] },
+        documentTemplateMaxBytes: documentTemplateMaxBytes,
+        response: {
+          data: [
+            {
+              embedding: '{{embedding}}',
+            },
+            '{{..}}',
+          ],
         },
-      })
+
+        documentTemplate: documentTemplate,
+      },
+    })
     return indexdata
   },
   async meilisearchEmbeddersGet() {
-    const indexdata = await MeiliClient
-      .index(process.env.MEILISEARCH_INDEXNAME!)
-      .getEmbedders()
+    const indexdata = await MeiliClient.index(
+      process.env.MEILISEARCH_INDEXNAME!,
+    ).getEmbedders()
     return indexdata
   },
   async meilisearchPropertylist() {
-    const indexdata = await MeiliClient
-      .index(process.env.MEILISEARCH_INDEXNAME!)
-      .getDocuments({ limit: 1 })
+    const indexdata = await MeiliClient.index(
+      process.env.MEILISEARCH_INDEXNAME!,
+    ).getDocuments({ limit: 1 })
     if (indexdata.results && indexdata.results.length > 0) {
       return Object.keys(indexdata.results[0])
     }
@@ -99,7 +99,9 @@ export const Search = {
     }
     return searchable
   },
-  async meilisearcSearchableAttributeshUpdate({ fields }: SearchModel.meilisearcSearchableAttributeshUpdate) {
+  async meilisearcSearchableAttributeshUpdate({
+    fields,
+  }: SearchModel.meilisearcSearchableAttributeshUpdate) {
     const index = MeiliClient.index(process.env.MEILISEARCH_INDEXNAME!)
     await index.updateSearchableAttributes(fields)
   },

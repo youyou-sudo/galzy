@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
   experimental: {
     viewTransition: true,
     useCache: true,
-    serverActions: { bodySizeLimit: '10mb', }
+    serverActions: { bodySizeLimit: '10mb' },
   },
   images: {
     formats: ['image/avif', 'image/webp'],

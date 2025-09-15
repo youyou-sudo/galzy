@@ -1,5 +1,6 @@
 'use client'
 
+import { Switch } from '@web/components/animate-ui/radix/switch'
 import { Button } from '@web/components/ui/button'
 import { Card, CardContent, CardHeader } from '@web/components/ui/card'
 import {
@@ -8,7 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@web/components/ui/dropdown-menu'
-import { Switch } from '@web/components/animate-ui/radix/switch'
 import type { workerDataGet } from '@web/lib/dashboard/download/Cloudflare/workerDataPull'
 import { nodeEnaledAc } from '@web/lib/dashboard/download/nodeEnabledAc'
 import { formatBytes } from '@web/lib/formatBytes'

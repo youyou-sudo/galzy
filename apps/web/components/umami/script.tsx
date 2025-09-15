@@ -1,5 +1,5 @@
 import Script from 'next/script'
-import "@web/lib/env"
+import '@web/lib/env'
 
 export default async function UmamiScript() {
   return (

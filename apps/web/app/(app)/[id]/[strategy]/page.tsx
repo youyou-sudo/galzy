@@ -66,8 +66,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
   const { data: strategyContent } = await api.strategy.strategy.get({
     query: {
-      strategyId: +strategy
-    }
+      strategyId: +strategy,
+    },
   })
   const raw = strategyContent?.content || strategyContent?.title
 
@@ -83,8 +83,8 @@ export default async function page({ params }: Props) {
   const { strategy } = await params
   const { data: strategyContent } = await api.strategy.strategy.get({
     query: {
-      strategyId: +strategy
-    }
+      strategyId: +strategy,
+    },
   })
   const Markdown = dynamic(() => import('react-markdown'))
   return (
@@ -104,7 +104,8 @@ export default async function page({ params }: Props) {
           <CardDescription>
             <div className="flex items-center justify-center gap-2">
               <span className="inline-flex items-center gap-1">
-                <User className="w-4 h-4" />喵喵喵？
+                <User className="w-4 h-4" />
+                喵喵喵？
               </span>
               <span>|</span>
               <span># 攻略</span>

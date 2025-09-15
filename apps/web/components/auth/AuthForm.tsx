@@ -2,6 +2,13 @@
 
 import { useRouter } from '@bprogress/next/app'
 import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  Tabs,
+  TabsContent,
+  TabsContents,
+  TabsList,
+  TabsTrigger,
+} from '@web/components/animate-ui/radix/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@web/components/ui/alert'
 import { Button } from '@web/components/ui/button'
 import {
@@ -13,13 +20,6 @@ import {
   FormMessage,
 } from '@web/components/ui/form'
 import { Input } from '@web/components/ui/input'
-import {
-  Tabs,
-  TabsContent,
-  TabsContents,
-  TabsList,
-  TabsTrigger,
-} from '@web/components/animate-ui/radix/tabs'
 import { authClient } from '@web/lib/auth-client'
 import { AlertCircle, EyeIcon, EyeOffIcon, Loader2 } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'

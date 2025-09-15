@@ -31,7 +31,6 @@ export namespace GameModel {
     children?: TreeNode[]
     sign?: string
     redame?: string
-
   }
   export type OpenListFiles = typeof openListFiles.static
   export type infoId = typeof infoId.static

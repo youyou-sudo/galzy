@@ -1,8 +1,8 @@
 'use client'
 
 import { useRouter } from '@bprogress/next/app'
-import { Button } from '@web/components/ui/button'
 import { CodeBlock } from '@web/components/code-block'
+import { Button } from '@web/components/ui/button'
 import Image from 'next/image'
 
 interface ErrorsProps {

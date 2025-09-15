@@ -1,5 +1,4 @@
 'use client'
-import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@web/components/animate-ui/components/radix/dropdown-menu'
+import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
 
 import { authClient } from '@web/lib/auth-client'
 

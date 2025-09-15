@@ -44,19 +44,19 @@ export const cronServer = new Elysia()
     }),
   )
   .get('/task/meiliSearchAddIndex', () => {
-        console.log('meiliSearchAddIndex')
+    console.log('meiliSearchAddIndex')
     return CronService.meiliSearchAddIndex()
   })
   .get('/task/meiliSearchAddTag', () => {
-        console.log('meiliSearchAddTag')
+    console.log('meiliSearchAddTag')
     return CronService.meiliSearchAddTag()
   })
 
   .get('/task/alistSyncScript', () => {
-        console.log('alistSyncScript')
+    console.log('alistSyncScript')
     return CronService.alistSyncScript()
   })
   .get('/task/workerDataPull', () => {
-        console.log('workerDataPull')
+    console.log('workerDataPull')
     return CronService.workerDataPull()
   })

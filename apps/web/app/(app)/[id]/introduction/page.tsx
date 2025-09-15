@@ -1,10 +1,14 @@
+import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from '@tanstack/react-query'
 import StrategyList from '@web/components/dashboard/dataManagement/strategy/strategyList'
 import { getVnDetails } from '@web/lib/repositories/vnRepository'
+import { strategyListGet } from '@web/lib/strategy/strategyAc'
 import type { Metadata } from 'next/types'
 import React from 'react'
 import { aliasFilter, getTitles } from '../(lib)/contentDataac'
-import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query'
-import { strategyListGet } from '@web/lib/strategy/strategyAc'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -19,8 +23,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   ])
   return {
     title: '攻略',
-    description: `${titlesData.zhHans || titlesData.olang || 'Gamgame'
-      } 游戏别名：${aliasData || '无'} 的攻略文章列表，`,
+    description: `${
+      titlesData.zhHans || titlesData.olang || 'Gamgame'
+    } 游戏别名：${aliasData || '无'} 的攻略文章列表，`,
   }
 }
 
@@ -32,7 +37,6 @@ export default async function page({ params }: { params: { id: string } }) {
     queryFn: () => strategyListGet(id),
   })
   return (
-
     <HydrationBoundary state={dehydrate(queryClient)}>
       <StrategyList id={id} />
     </HydrationBoundary>

@@ -40,8 +40,8 @@ export const tagEditAction = async ({
 }
 
 export const gameTagsAction = async (file: FormData) => {
-  const files = file.get("file") as File
-  await api.tags.tagFileUp.post({ file: files });
+  const files = file.get('file') as File
+  await api.tags.tagFileUp.post({ file: files })
 }
 
 export const TagAllFileDwn = async () => {

@@ -1,16 +1,15 @@
-"use client";
-import { Button } from '@web/components/ui/button';
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
+'use client'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation } from '@tanstack/react-query'
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from '@web/components/animate-ui/radix/dialog';
-import { useTagEditDialog } from './stort';
-import { z } from "zod"
+} from '@web/components/animate-ui/radix/dialog'
+import { Button } from '@web/components/ui/button'
+import { Checkbox } from '@web/components/ui/checkbox'
 import {
   Form,
   FormControl,
@@ -18,20 +17,21 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@web/components/ui/form"
-import { Input } from "@web/components/ui/input"
-import { useEffect } from 'react';
-import { Checkbox } from '@web/components/ui/checkbox';
-import { Textarea } from '@web/components/ui/textarea';
-import { tagEditAction } from './(action)/action';
-import { useMutation } from '@tanstack/react-query';
+} from '@web/components/ui/form'
+import { Input } from '@web/components/ui/input'
+import { Textarea } from '@web/components/ui/textarea'
+import { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import { tagEditAction } from './(action)/action'
+import { useTagEditDialog } from './stort'
 
 const formSchema = z.object({
   id: z.string(),
   zh_name: z.string(),
   zh_alias: z.string(),
   zh_description: z.string(),
-  exhibition: z.boolean()
+  exhibition: z.boolean(),
 })
 export const TagDialogEdit = () => {
   const { isOpen, close, data } = useTagEditDialog()
@@ -39,20 +39,20 @@ export const TagDialogEdit = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      id: "",
-      zh_name: "",
+      id: '',
+      zh_name: '',
       exhibition: false,
-      zh_alias: "",
-      zh_description: "",
+      zh_alias: '',
+      zh_description: '',
     },
   })
   useEffect(() => {
     if (data) {
-      form.setValue("id", data.id || "")
-      form.setValue("zh_name", data.zh_name || "")
-      form.setValue("exhibition", data.exhibition)
-      form.setValue("zh_alias", data.zh_alias || "")
-      form.setValue("zh_description", data.zh_description || "")
+      form.setValue('id', data.id || '')
+      form.setValue('zh_name', data.zh_name || '')
+      form.setValue('exhibition', data.exhibition)
+      form.setValue('zh_alias', data.zh_alias || '')
+      form.setValue('zh_description', data.zh_description || '')
     }
   }, [data])
   const { mutate, isPending } = useMutation({
@@ -70,7 +70,7 @@ export const TagDialogEdit = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={close}>
-      <DialogContent >
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{data?.zh_name}</DialogTitle>
         </DialogHeader>
@@ -79,10 +79,7 @@ export const TagDialogEdit = () => {
             <FormField
               control={form.control}
               name="id"
-              render={() => (
-                <FormItem className='hidden'>
-                </FormItem>
-              )}
+              render={() => <FormItem className="hidden"></FormItem>}
             />
             <FormField
               control={form.control}
@@ -104,7 +101,10 @@ export const TagDialogEdit = () => {
                 <FormItem>
                   <FormLabel>是否显示</FormLabel>
                   <FormControl>
-                    <Checkbox onCheckedChange={field.onChange} checked={field.value} />
+                    <Checkbox
+                      onCheckedChange={field.onChange}
+                      checked={field.value}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -136,13 +136,12 @@ export const TagDialogEdit = () => {
                 </FormItem>
               )}
             />
-            <Button type="submit"
-              disabled={isPending}>
+            <Button type="submit" disabled={isPending}>
               提交
             </Button>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
-  );
-};
+  )
+}

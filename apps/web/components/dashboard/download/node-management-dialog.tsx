@@ -1,6 +1,13 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@web/components/animate-ui/radix/dialog'
 import { Button } from '@web/components/ui/button'
 import {
   Form,
@@ -11,13 +18,6 @@ import {
   FormMessage,
 } from '@web/components/ui/form'
 import { Input } from '@web/components/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@web/components/animate-ui/radix/dialog'
 import { configFormPut } from '@web/lib/dashboard/download/configForm'
 import { Loader2, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'

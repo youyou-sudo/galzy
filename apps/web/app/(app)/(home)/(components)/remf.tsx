@@ -1,4 +1,4 @@
-import Link from "next/link"
+import Link from 'next/link'
 
 interface Item {
   id?: string
@@ -29,26 +29,28 @@ export default async function RankingList<T extends Item>({
             <Link href={href} className="block w-full">
               <span className="flex items-center overflow-hidden whitespace-nowrap">
                 <span
-                  className={`font-bold mr-2 flex-shrink-0 ${index === 0
-                    ? 'text-red-500'
-                    : index === 1
-                      ? 'text-yellow-500'
-                      : index === 2
-                        ? 'text-blue-500'
-                        : ''
-                    }`}
+                  className={`font-bold mr-2 flex-shrink-0 ${
+                    index === 0
+                      ? 'text-red-500'
+                      : index === 1
+                        ? 'text-yellow-500'
+                        : index === 2
+                          ? 'text-blue-500'
+                          : ''
+                  }`}
                 >
                   {index + 1}.
                 </span>
                 <span
-                  className={`font-bold text-sm flex-1 overflow-hidden text-ellipsis ${index === 0
-                    ? 'underline decoration-red-500 underline-offset-4'
-                    : index === 1
-                      ? 'underline decoration-yellow-500 underline-offset-4'
-                      : index === 2
-                        ? 'underline decoration-blue-500 underline-offset-4'
-                        : ''
-                    }`}
+                  className={`font-bold text-sm flex-1 overflow-hidden text-ellipsis ${
+                    index === 0
+                      ? 'underline decoration-red-500 underline-offset-4'
+                      : index === 1
+                        ? 'underline decoration-yellow-500 underline-offset-4'
+                        : index === 2
+                          ? 'underline decoration-blue-500 underline-offset-4'
+                          : ''
+                  }`}
                 >
                   {linkKey === 'tag' ? '#' : ''}
                   {item.title}

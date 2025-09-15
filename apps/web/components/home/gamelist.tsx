@@ -7,7 +7,6 @@ import React, { useEffect } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { GameItem } from './GameItem'
 
-
 type HomeDataResult = Awaited<ReturnType<typeof homeData>>
 
 export const HomeGamelist = () => {

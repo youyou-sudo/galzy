@@ -11,25 +11,25 @@ export const Download = {
       token: string,
     ) => {
       const key = await crypto.subtle.importKey(
-        "raw",
+        'raw',
         new TextEncoder().encode(token),
-        { name: "HMAC", hash: "SHA-256" },
+        { name: 'HMAC', hash: 'SHA-256' },
         false,
-        ["sign", "verify"]
-      );
+        ['sign', 'verify'],
+      )
       const buf = await crypto.subtle.sign(
         {
-          name: "HMAC",
-          hash: "SHA-256",
+          name: 'HMAC',
+          hash: 'SHA-256',
         },
         key,
-        new TextEncoder().encode(`/${path}:${expire}`)
-      );
+        new TextEncoder().encode(`/${path}:${expire}`),
+      )
       return (
         btoa(String.fromCharCode(...new Uint8Array(buf)))
-          .replace(/\+/g, "-")
-          .replace(/\//g, "_") +
-        ":" +
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_') +
+        ':' +
         expire
       )
     }

@@ -1,5 +1,6 @@
 'use client'
 import { QueryClient, useMutation, useQuery } from '@tanstack/react-query'
+import DataManagementPagination from '@web/components/dashboard/dataManagement/Pagination'
 import { Button } from '@web/components/ui/button'
 import {
   Card,
@@ -26,7 +27,6 @@ import {
   TableHeader,
   TableRow,
 } from '@web/components/ui/table'
-import DataManagementPagination from '@web/components/dashboard/dataManagement/Pagination'
 import {
   dataFilteringGet,
   vidassociationCreate,

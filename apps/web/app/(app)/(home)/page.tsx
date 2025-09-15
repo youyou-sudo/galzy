@@ -3,6 +3,9 @@ import {
   HydrationBoundary,
   QueryClient,
 } from '@tanstack/react-query'
+import { homeData } from '@web/app/(app)/(home)/(action)/homeData'
+import { HomeGamelist } from '@web/components/home'
+import SearchInput from '@web/components/home/Search/Search'
 import {
   Card,
   CardContent,
@@ -11,9 +14,6 @@ import {
   CardTitle,
 } from '@web/components/ui/card'
 import { Skeleton } from '@web/components/ui/skeleton'
-import { homeData } from '@web/app/(app)/(home)/(action)/homeData'
-import { HomeGamelist } from '@web/components/home'
-import SearchInput from '@web/components/home/Search/Search'
 import { metadataConfig } from '@web/config/metadata'
 import { Gamepad2, Tags } from 'lucide-react'
 import type { Metadata } from 'next'

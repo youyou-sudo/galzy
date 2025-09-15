@@ -1,6 +1,6 @@
-"use server"
+'use server'
 
-import { api } from "@libs"
+import { api } from '@libs'
 
 export const OpenlistAc = async () => {
   await api.task.alistSyncScript.get()

@@ -1,7 +1,11 @@
 'use client'
 
-import { Button } from '@web/components/ui/button'
-import { File, Files, Folder } from '@web/components/animate-ui/components/files'
+import { useQuery } from '@tanstack/react-query'
+import {
+  File,
+  Files,
+  Folder,
+} from '@web/components/animate-ui/components/files'
 import {
   Dialog,
   DialogContent,
@@ -10,18 +14,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@web/components/animate-ui/radix/dialog'
+import { Button } from '@web/components/ui/button'
+import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
+import { Skeleton } from '@web/components/ui/skeleton'
 import type { getFileList } from '@web/lib/repositories/alistFileList'
 import { Download } from 'lucide-react'
 import Link from 'next/link'
-import { downCardDataStore } from './stores/downCardData'
-import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
 import { useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import Markdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
-import { Skeleton } from '@web/components/ui/skeleton'
+import remarkGfm from 'remark-gfm'
 import { MarkdownComponents } from './markdown-components'
+import { downCardDataStore } from './stores/downCardData'
 
 type fileList = Awaited<ReturnType<typeof getFileList>>
 
@@ -31,7 +35,9 @@ export function DownloadOptions({ fileList }: { fileList: fileList }) {
 
 // ---------- 分卷文件识别处理 ----------
 // ---------- 分卷文件识别处理 + md 同名判定 ----------
-function groupSplitArchives(items: fileList | undefined | null): fileList | undefined {
+function groupSplitArchives(
+  items: fileList | undefined | null,
+): fileList | undefined {
   if (!items || items.length === 0) return items
 
   const archivesMap: Record<string, fileList> = {}
@@ -53,10 +59,13 @@ function groupSplitArchives(items: fileList | undefined | null): fileList | unde
     if (item.type === 'folder') {
       // 避免重复包装分卷文件夹
       if (!item.name.startsWith('(分卷) ')) {
-        item.children = groupSplitArchives(item.children ?? []) as typeof item.children
+        item.children = groupSplitArchives(
+          item.children ?? [],
+        ) as typeof item.children
       }
       others.push(item)
-    } else if (!item.name.endsWith('.md')) { // 忽略 md 文件本身
+    } else if (!item.name.endsWith('.md')) {
+      // 忽略 md 文件本身
       const match = item.name.match(splitRegex)
       if (match) {
         const baseName = match[1]
@@ -81,31 +90,36 @@ function groupSplitArchives(items: fileList | undefined | null): fileList | unde
     }
   })
 
-  const archiveFolders = Object.entries(archivesMap).map(([fullName, files]) => ({
-    id: `archive-${fullName}-${Date.now()}`,
-    type: 'folder' as const,
-    name: `(分卷) ${fullName}`,
-    children: files!,
-  }))
+  const archiveFolders = Object.entries(archivesMap).map(
+    ([fullName, files]) => ({
+      id: `archive-${fullName}-${Date.now()}`,
+      type: 'folder' as const,
+      name: `(分卷) ${fullName}`,
+      children: files!,
+    }),
+  )
 
   return [...others, ...archiveFolders]
 }
 
-
-
-
-
 // ---------- 文件浏览器组件 ----------
 function FileExplorer({ items }: { items: fileList }) {
   const simplifiedItems = (() => {
-    if (items && items[0]?.type === 'folder' && Array.isArray(items[0].children)) {
+    if (
+      items &&
+      items[0]?.type === 'folder' &&
+      Array.isArray(items[0].children)
+    ) {
       return groupSplitArchives(items[0].children)
     }
     return groupSplitArchives(items)
   })()
 
   return (
-    <Files defaultOpen={['PC', 'KR', 'ONS', 'TY', 'CG']} className="bg-transparent border-0 mb-2">
+    <Files
+      defaultOpen={['PC', 'KR', 'ONS', 'TY', 'CG']}
+      className="bg-transparent border-0 mb-2"
+    >
       <DownCardDialog />
       <Filessss items={simplifiedItems} />
     </Files>
@@ -186,7 +200,11 @@ export const DownCardDialog = () => {
         </DialogDescription>
 
         <DialogFooter className="flex gap-2 sm:justify-center">
-          <Button onClick={() => close()} variant="secondary" className="text-red-500">
+          <Button
+            onClick={() => close()}
+            variant="secondary"
+            className="text-red-500"
+          >
             关闭
           </Button>
           <Button asChild>
@@ -208,7 +226,9 @@ export const DownCardDialog = () => {
         <div className="flex text-center justify-center mt-2">
           <div className="flex text-center items-center">解压密码：</div>
           <div className="relative w-19">
-            <pre className="pr-6 text-center items-center rounded-md border-1">玖辞</pre>
+            <pre className="pr-6 text-center items-center rounded-md border-1">
+              玖辞
+            </pre>
             <CopyButton
               size="default"
               variant="secondary"
@@ -222,10 +242,12 @@ export const DownCardDialog = () => {
         {/* Card 内部滚动示例 */}
         {readmedata && (
           <div className="max-h-96 overflow-y-auto p-2 border-2 rounded-2xl break-words">
-            <div className='space-y-2'>
-              {isLoading ? Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-[20px] rounded-full" />
-              )) : null}
+            <div className="space-y-2">
+              {isLoading
+                ? Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-[20px] rounded-full" />
+                  ))
+                : null}
             </div>
             <div>
               <Markdown
@@ -238,7 +260,6 @@ export const DownCardDialog = () => {
             </div>
           </div>
         )}
-
       </DialogContent>
     </Dialog>
   )

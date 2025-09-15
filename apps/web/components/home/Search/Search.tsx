@@ -1,13 +1,13 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
+import { useRouter } from '@bprogress/next/app'
 import { Button } from '@web/components/ui/button'
+import { Card } from '@web/components/ui/card'
 import { Input } from '@web/components/ui/input'
 import { LoaderCircleIcon, Search, SearchIcon } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
 import type React from 'react'
 import { useEffect, useState } from 'react'
-import { useRouter } from '@bprogress/next/app'
-import { Card } from '@web/components/ui/card'
 
 interface SearchInputProps {
   placeholder?: string
@@ -71,6 +71,6 @@ export default function SearchInput({
           搜索
         </Button>
       </div>
-    </Card >
+    </Card>
   )
 }

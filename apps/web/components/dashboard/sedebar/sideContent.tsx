@@ -1,5 +1,9 @@
 'use client'
 import {
+  SidebarInset,
+  SidebarTrigger,
+} from '@web/components/animate-ui/radix/sidebar'
+import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -8,10 +12,6 @@ import {
   BreadcrumbSeparator,
 } from '@web/components/ui/breadcrumb'
 import { Separator } from '@web/components/ui/separator'
-import {
-  SidebarInset,
-  SidebarTrigger,
-} from '@web/components/animate-ui/radix/sidebar'
 import { House } from 'lucide-react'
 import type React from 'react'
 

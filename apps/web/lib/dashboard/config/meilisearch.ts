@@ -14,15 +14,13 @@ export const meilisearchEmbeddersUpdate = async ({
   documentTemplateMaxBytes: number
   documentTemplate: string
 }) => {
-  const { data } = await api.search.meilisearchEmbeddersUpdate.post(
-    {
-      url: url,
-      embeddingApiKey: embeddingApiKey,
-      model: model,
-      documentTemplateMaxBytes: documentTemplateMaxBytes,
-      documentTemplate: documentTemplate
-    }
-  )
+  const { data } = await api.search.meilisearchEmbeddersUpdate.post({
+    url: url,
+    embeddingApiKey: embeddingApiKey,
+    model: model,
+    documentTemplateMaxBytes: documentTemplateMaxBytes,
+    documentTemplate: documentTemplate,
+  })
   return data
 }
 

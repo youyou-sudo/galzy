@@ -1,6 +1,8 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { Progress } from '@web/components/animate-ui/radix/progress'
+import { Switch } from '@web/components/animate-ui/radix/switch'
 import { Button } from '@web/components/ui/button'
 import {
   Card,
@@ -22,8 +24,6 @@ import {
   TableHeader,
   TableRow,
 } from '@web/components/ui/table'
-import { Progress } from '@web/components/animate-ui/radix/progress'
-import { Switch } from '@web/components/animate-ui/radix/switch'
 import { workerDataGet } from '@web/lib/dashboard/download/Cloudflare/workerDataPull'
 import { configFormDel } from '@web/lib/dashboard/download/configForm'
 import { nodeEnaledAc } from '@web/lib/dashboard/download/nodeEnabledAc'

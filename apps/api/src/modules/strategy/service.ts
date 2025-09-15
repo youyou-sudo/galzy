@@ -1,8 +1,4 @@
 import { db } from '@api/libs'
-import { status } from 'elysia'
-import { t } from 'try'
-
-import type { StrategyModel } from './model'
 import {
   acquireIdempotentKey,
   getIdempotentResult,
@@ -10,7 +6,10 @@ import {
   setKv,
   storeIdempotentResult,
 } from '@api/libs/redis'
+import { status } from 'elysia'
+import { t } from 'try'
 import XXH from 'xxhashjs'
+import type { StrategyModel } from './model'
 
 export const Strategy = {
   async strategy({ strategyId }: StrategyModel.strategy) {

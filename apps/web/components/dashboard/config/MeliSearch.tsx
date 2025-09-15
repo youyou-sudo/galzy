@@ -1,3 +1,11 @@
+import { api } from '@libs'
+import {
+  Tabs,
+  TabsContent,
+  TabsContents,
+  TabsList,
+  TabsTrigger,
+} from '@web/components/animate-ui/radix/tabs'
 import {
   Card,
   CardContent,
@@ -6,19 +14,11 @@ import {
   CardTitle,
 } from '@web/components/ui/card'
 import { Skeleton } from '@web/components/ui/skeleton'
-import {
-  Tabs,
-  TabsContent,
-  TabsContents,
-  TabsList,
-  TabsTrigger,
-} from '@web/components/animate-ui/radix/tabs'
+import { formatBytes } from '@web/lib/formatBytes'
+import { env } from 'next-runtime-env'
 import { Suspense } from 'react'
 import { MeiliSearchEmbedding } from './MeiliSearchEmbedding'
 import { MeiliSearchIndex } from './MeilisearchIndex'
-import { api } from '@libs'
-import { env } from 'next-runtime-env'
-import { formatBytes } from '@web/lib/formatBytes'
 
 export const MeiliSearch = () => {
   return (
@@ -61,15 +61,16 @@ export const MeiliSearch = () => {
 }
 
 const DocumentsCounter = async () => {
-
   const { data: indexdata } = await api.search.getStats.get()
 
   return (
     <>
       MeiliSearch
       {indexdata
-        ? ` 大小：${formatBytes(indexdata?.indexes?.[env("MEILISEARCH_INDEXNAME")!].avgDocumentSize)} | ${indexdata?.indexes?.[env("MEILISEARCH_INDEXNAME")!].numberOfDocuments
-        } 条索引`
+        ? ` 大小：${formatBytes(indexdata?.indexes?.[env('MEILISEARCH_INDEXNAME')!].avgDocumentSize)} | ${
+            indexdata?.indexes?.[env('MEILISEARCH_INDEXNAME')!]
+              .numberOfDocuments
+          } 条索引`
         : ''}
     </>
   )

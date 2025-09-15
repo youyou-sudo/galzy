@@ -1,9 +1,5 @@
 'use client'
 
-import { Button } from '@web/components/ui/button'
-import { Input } from '@web/components/ui/input'
-import { Separator } from '@web/components/ui/separator'
-import { Skeleton } from '@web/components/ui/skeleton'
 import {
   MotionHighlight,
   MotionHighlightItem,
@@ -21,6 +17,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@web/components/animate-ui/radix/tooltip'
+import { Button } from '@web/components/ui/button'
+import { Input } from '@web/components/ui/input'
+import { Separator } from '@web/components/ui/separator'
+import { Skeleton } from '@web/components/ui/skeleton'
 import { useIsMobile } from '@web/hooks/use-mobile'
 import { cn } from '@web/lib/utils'
 import { cva, type VariantProps } from 'class-variance-authority'

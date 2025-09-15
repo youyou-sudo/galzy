@@ -11,13 +11,15 @@ export namespace SearchModel {
     embeddingApiKey: t.String(),
     model: t.String(),
     documentTemplateMaxBytes: t.Number(),
-    documentTemplate: t.String()
+    documentTemplate: t.String(),
   })
   export const meilisearcSearchableAttributeshUpdate = t.Object({
     fields: t.Array(t.String()),
   })
   export type tagAllReturn = Awaited<ReturnType<typeof Tags.tagAllGet>>
   export type search = typeof search.static
-  export type meilisearchEmbeddersUpdate = typeof meilisearchEmbeddersUpdate.static
-  export type meilisearcSearchableAttributeshUpdate = typeof meilisearcSearchableAttributeshUpdate.static
+  export type meilisearchEmbeddersUpdate =
+    typeof meilisearchEmbeddersUpdate.static
+  export type meilisearcSearchableAttributeshUpdate =
+    typeof meilisearcSearchableAttributeshUpdate.static
 }

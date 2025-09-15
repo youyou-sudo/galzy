@@ -1,10 +1,4 @@
-import { db } from '@api/libs'
-import XXH from 'xxhashjs'
-import { status } from 'elysia'
-import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
-import { t } from 'try'
-
-import type { GameModel } from './model'
+import { db, vndbDb } from '@api/libs'
 import {
   acquireIdempotentKey,
   getIdempotentResult,
@@ -12,6 +6,11 @@ import {
   setKv,
   storeIdempotentResult,
 } from '@api/libs/redis'
+import { status } from 'elysia'
+import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
+import { t } from 'try'
+import XXH from 'xxhashjs'
+import type { GameModel } from './model'
 
 export const Game = {
   async Count() {
@@ -32,99 +31,108 @@ export const Game = {
     return count
   },
   async List({ pageIndex, pageSize }: GameModel.gameList) {
-    const redisData = await getKv(`gameList-${pageIndex}-${pageSize}`)
-    if (redisData !== null && redisData !== undefined) {
-      return JSON.parse(redisData) as GameList
-    }
     const offset = pageIndex * pageSize
-    const [, error, items] = await t(
-      db
+    try {
+      const redisData = await getKv(`gameList-${pageIndex}-${pageSize}`)
+      if (redisData !== null && redisData !== undefined) {
+        return JSON.parse(redisData) as GameList
+      }
+      const vidMap = await db
         .selectFrom('galrc_alistb')
-        .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
-        .select(['vn.id', 'vn.olang'])
-        .select((v) => [
-          'vn.id',
-          'vn.olang',
-          jsonArrayFrom(
-            v
-              .selectFrom('vn_titles')
-              .selectAll()
-              .whereRef('vn_titles.id', '=', 'vn.id'),
-          ).as('titles'),
-          jsonObjectFrom(
-            v
-              .selectFrom('images')
-              .select(['id', 'height', 'width'])
-              .whereRef('images.id', '=', 'vn.c_image'),
-          ).as('images'),
-        ])
-        .select((o) => [
-          'galrc_alistb.other',
-          jsonObjectFrom(
-            o
-              .selectFrom('galrc_other')
-              .whereRef('id', '=', 'galrc_alistb.other')
-              .selectAll()
-              .select((oc) => [
-                'galrc_alistb.other',
-                jsonArrayFrom(
-                  oc
-                    .selectFrom('galrc_other_media')
-                    .selectAll()
-                    .whereRef(
-                      'galrc_other_media.other_id',
-                      '=',
-                      'galrc_other.id',
-                    )
-                    .select((om) => [
-                      jsonObjectFrom(
-                        om
-                          .selectFrom('galrc_media')
-                          .selectAll()
-                          .whereRef(
-                            'galrc_media.hash',
-                            '=',
-                            'galrc_other_media.media_hash',
-                          ),
-                      ).as('media'),
-                    ]),
-                ).as('other_media'),
-              ]),
-          ).as('other_datas'),
-        ])
-        .orderBy('vn.id', 'desc')
-        .orderBy('galrc_alistb.other', 'desc')
+        .select(['vid', 'other'])
+        .orderBy('vid', 'desc')
         .limit(pageSize)
         .offset(offset)
-        .execute(),
-    )
-    if (error) {
+        .execute()
+
+      const vids = vidMap.map((row) => row.vid)
+      const others = vidMap.map((row) => row.other)
+
+      const otherItems =
+        others.length > 0
+          ? await db
+              .selectFrom('galrc_other')
+              .selectAll()
+              .where('galrc_other.id', 'in', others)
+              .select((eb) => [
+                jsonArrayFrom(
+                  eb
+                    .selectFrom('galrc_media')
+                    .selectAll()
+                    .whereRef('id', '=', 'galrc_other.id'),
+                ).as('images'),
+              ])
+              .execute()
+          : []
+
+      const vndbItems =
+        vids.length > 0
+          ? await vndbDb
+              .selectFrom('vn')
+              .where('vn.id', 'in', vids)
+              .select((vneb) => [
+                'vn.id',
+                'vn.alias',
+                'vn.description',
+                'vn.olang',
+                jsonArrayFrom(
+                  vneb
+                    .selectFrom('vn_titles')
+                    .selectAll()
+                    .whereRef('id', '=', 'vn.id'),
+                ).as('titles'),
+                jsonObjectFrom(
+                  vneb
+                    .selectFrom('images')
+                    .select(['height', 'id', 'width'])
+                    .whereRef('id', '=', 'vn.c_image'),
+                ).as('images'),
+              ])
+              .orderBy('vn.id', 'desc')
+              .execute()
+          : []
+
+      const otherMap = new Map(otherItems.map((item) => [item.id, item]))
+      const vndbMap = new Map(vndbItems.map((item) => [item.id, item]))
+      const result = vidMap.map((row) => {
+        const vid = row.vid || null
+        const other = row.other || null
+
+        return {
+          vid,
+          other,
+          vndb: vid ? vndbMap.get(vid) || null : null,
+          otherData: other ? otherMap.get(other) || null : null,
+        }
+      })
+
+      const [, error1, totalCountResult] = t(
+        await db
+          .selectFrom('galrc_alistb')
+          .select(({ fn }) => [fn.countAll().as('count')])
+          .executeTakeFirst(),
+      )
+      if (error1) {
+        throw status(500, `服务出错了喵~,Error:${JSON.stringify(error1)}`)
+      }
+      const totalCount = Number(totalCountResult?.count || 0)
+      const totalPages = Math.ceil(totalCount / pageSize)
+      const datas = {
+        items: result,
+        currentPage: pageIndex,
+        totalPages,
+        totalCount,
+      }
+      void setKv(
+        `gameList-${pageIndex}-${pageSize}`,
+        JSON.stringify(datas),
+        60 * 60 * 12,
+      )
+      type GameList = typeof datas
+      return datas
+    } catch (error) {
       throw status(500, `服务出错了喵~,Error:${JSON.stringify(error)}`)
     }
-    const [, error1, totalCountResult] = t(
-      await db
-        .selectFrom('galrc_alistb')
-        .select(({ fn }) => [fn.countAll().as('count')])
-        .executeTakeFirst(),
-    )
-    if (error1) {
-      throw status(500, `服务出错了喵~,Error:${JSON.stringify(error)}`)
-    }
-    const totalCount = Number(totalCountResult?.count || 0)
-    const totalPages = Math.ceil(totalCount / pageSize)
-    const datas = {
-      items,
-      currentPage: pageIndex,
-      totalPages,
-      totalCount,
-    }
-    void setKv(
-      `gameList-${pageIndex}-${pageSize}`,
-      JSON.stringify(datas),
-      60 * 60 * 12,
-    )
-    type GameList = typeof datas
-    return datas
   },
   async InfoGet({ id }: GameModel.infoId) {
     const redisData = await getKv(`gameInfo-${id}`)
@@ -132,75 +140,79 @@ export const Game = {
       return JSON.parse(redisData) as GameInfo
     }
     const idIsNumber = /^\d+$/.test(id)
-    const [, error, data] = await t(
-      db
-        .selectFrom('galrc_alistb')
-        .where((eb) =>
-          idIsNumber
-            ? eb.or([eb('vid', '=', id), eb('other', '=', Number(id))])
-            : eb('vid', '=', id),
-        )
-        .selectAll()
-        .select((eb) => [
-          jsonObjectFrom(
-            eb
-              .selectFrom('vn')
-              .whereRef('vn.id', '=', 'galrc_alistb.vid')
-              .selectAll()
-              .select((vneb) => [
-                'vn.id',
-                jsonArrayFrom(
-                  vneb
-                    .selectFrom('vn_titles')
-                    .selectAll()
-                    .whereRef('vn_titles.id', '=', 'vn.id'),
-                ).as('titles'),
-                jsonObjectFrom(
-                  vneb
-                    .selectFrom('images')
-                    .select(['id', 'height', 'width'])
-                    .whereRef('images.id', '=', 'vn.c_image'),
-                ).as('images'),
-              ]),
-          ).as('vn_datas'),
-          jsonObjectFrom(
-            eb
-              .selectFrom('galrc_other')
-              .whereRef('galrc_other.id', '=', 'galrc_alistb.other')
-              .selectAll()
-              .select((other) => [
-                'id',
-                jsonArrayFrom(
-                  other
-                    .selectFrom('galrc_other_media')
-                    .whereRef(
-                      'galrc_other_media.other_id',
-                      '=',
-                      'galrc_other.id',
-                    )
-                    .select((media) => [
-                      'galrc_other_media.cover',
-                      jsonObjectFrom(
-                        media
-                          .selectFrom('galrc_media')
-                          .selectAll()
-                          .whereRef(
-                            'galrc_media.hash',
-                            '=',
-                            'galrc_other_media.media_hash',
-                          ),
-                      ).as('media_datas'),
-                    ]),
-                ).as('media'),
-              ]),
-          ).as('other_datas'),
-        ])
-        .executeTakeFirst(),
-    )
-    if (error) throw status(500, `服务出错了喵~,Error:${JSON.stringify(error)}`)
-    void setKv(`gameInfo-${id}`, JSON.stringify(data), 60 * 60 * 12)
-    type GameInfo = typeof data
-    return data
+
+    const idData = await db
+      .selectFrom('galrc_alistb')
+      .where((eb) =>
+        idIsNumber
+          ? eb.or([eb('vid', '=', id), eb('other', '=', Number(id))])
+          : eb('vid', '=', id),
+      )
+      .select(['vid', 'other'])
+      .executeTakeFirst()
+
+    if (!idData) {
+      throw status(404, '找不到数据喵~')
+    }
+
+    const vndbItems = await vndbDb
+      .selectFrom('vn')
+      .where('vn.id', '=', idData.vid)
+      .selectAll()
+      .select((vneb) => [
+        'vn.id',
+        jsonArrayFrom(
+          vneb
+            .selectFrom('vn_titles')
+            .selectAll()
+            .whereRef('vn_titles.id', '=', 'vn.id'),
+        ).as('titles'),
+        jsonObjectFrom(
+          vneb
+            .selectFrom('images')
+            .select(['id', 'height', 'width'])
+            .whereRef('images.id', '=', 'vn.c_image'),
+        ).as('images'),
+      ])
+      .executeTakeFirst()
+
+    const otherItems = await db
+      .selectFrom('galrc_other')
+      .where('galrc_other.id', '=', idData.other)
+      .selectAll()
+      .select((other) => [
+        'id',
+        jsonArrayFrom(
+          other
+            .selectFrom('galrc_other_media')
+            .whereRef('galrc_other_media.other_id', '=', 'galrc_other.id')
+            .select((media) => [
+              'galrc_other_media.cover',
+              jsonObjectFrom(
+                media
+                  .selectFrom('galrc_media')
+                  .selectAll()
+                  .whereRef(
+                    'galrc_media.hash',
+                    '=',
+                    'galrc_other_media.media_hash',
+                  ),
+              ).as('media_datas'),
+            ]),
+        ).as('media'),
+      ])
+      .executeTakeFirst()
+
+    const result = {
+      vid: idData.vid,
+      other: idData.other,
+      vn_datas: vndbItems,
+      other_datas: otherItems,
+    }
+
+    void setKv(`gameInfo-${id}`, JSON.stringify(result), 60 * 60 * 12)
+    type GameInfo = typeof result
+    return result
   },
   async OpenListFiles({ id }: GameModel.OpenListFiles) {
     const redisData = await getKv(`gameOpenListFiles-${id}`)
@@ -412,32 +424,47 @@ export const Game = {
       )
     }
 
-    dataQuery = dataQuery
-      .select((qb) => [
-        'galrc_alistb.id',
-        'galrc_alistb.vid',
-        'galrc_alistb.other',
-        jsonObjectFrom(
-          qb
+    const [, error, vidMap] = t(
+      await whereQuery.limit(limit).offset(offset).selectAll().execute(),
+    )
+
+    const vids = vidMap.map((row) => row.vid)
+    const others = vidMap.map((row) => row.other)
+    const otherItems =
+      others.length > 0
+        ? await db
+            .selectFrom('galrc_other')
+            .where('galrc_other.id', 'in', others)
+            .selectAll()
+            .execute()
+        : []
+    const vndbItems =
+      vids.length > 0
+        ? await vndbDb
             .selectFrom('vn')
             .selectAll()
-            .whereRef('vn.id', '=', 'galrc_alistb.vid'),
-        ).as('vndatas'),
-        jsonObjectFrom(
-          qb
-            .selectFrom('galrc_other')
-            .selectAll()
-            .whereRef('galrc_other.id', '=', 'galrc_alistb.other'),
-        ).as('otherdatas'),
-      ])
-      .limit(limit)
-      .offset(offset)
+            .where('vn.id', 'in', vids)
+            .execute()
+        : []
 
-    const [, error, data] = t(await dataQuery.execute())
+    const otherMap = new Map(otherItems.map((item) => [item.id, item]))
+    const vndbMap = new Map(vndbItems.map((item) => [item.id, item]))
+
+    const result = vidMap.map((row) => {
+      const vid = row.vid || null
+      const other = row.other || null
+
+      return {
+        vid,
+        other,
+        vndatas: vid ? vndbMap.get(vid) || null : null,
+        otherdatas: other ? otherMap.get(other) || null : null,
+      }
+    })
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     return {
-      data,
+      data: result,
       pagination: {
         total,
         limit,

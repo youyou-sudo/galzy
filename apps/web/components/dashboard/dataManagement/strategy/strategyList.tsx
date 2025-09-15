@@ -1,7 +1,5 @@
 'use client'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Button } from '@web/components/ui/button'
-import { Skeleton } from '@web/components/ui/skeleton'
 import { MotionHighlight } from '@web/components/animate-ui/effects/motion-highlight'
 import {
   Dialog,
@@ -9,6 +7,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@web/components/animate-ui/radix/dialog'
+import { Button } from '@web/components/ui/button'
+import { Skeleton } from '@web/components/ui/skeleton'
+import { authClient } from '@web/lib/auth-client'
 import {
   strategyListDelete,
   strategyListGet,
@@ -20,12 +21,10 @@ import React from 'react'
 import { useStrategyListDialog } from '../stores/strategyListModal'
 import { useLoginModalStore } from './stores/EditStores'
 import { StrategEdit } from './strategyEdit'
-import { authClient } from '@web/lib/auth-client'
 
 // [x] 攻略列表
 // [x] 攻略增删改
 const StrategyList = ({ id }: { id: string }) => {
-
   const { data: user } = useQuery({
     queryKey: ['user'],
     queryFn: () => authClient.getSession(),
@@ -84,7 +83,8 @@ const StrategyList = ({ id }: { id: string }) => {
                   }
                 >
                   <div className="pt-2 flex items-center pb-2 w-full">
-                    <NotepadText className='w-4 h-4' /><span>{item.title}</span>
+                    <NotepadText className="w-4 h-4" />
+                    <span>{item.title}</span>
                   </div>
                 </Link>
                 {user?.data?.user.role === 'admin' && (

@@ -1,6 +1,9 @@
 'use client'
-import { useQuery } from "@tanstack/react-query"
-import { tagAllAction, tagEditAction } from "./(action)/action"
+import { useQuery } from '@tanstack/react-query'
+import { Button } from '@web/components/ui/button'
+import { Checkbox } from '@web/components/ui/checkbox'
+import { Input } from '@web/components/ui/input'
+import { Skeleton } from '@web/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -9,31 +12,31 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@web/components/ui/table"
-import { Checkbox } from "@web/components/ui/checkbox"
-import { Button } from "@web/components/ui/button"
-
-import { useQueryState } from "nuqs";
-import { Pencil } from "lucide-react"
-import TagPagination from "./tagpagination"
-import { Skeleton } from "@web/components/ui/skeleton"
-import { TagDialogEdit } from "./tagEditModal"
-import { useTagEditDialog } from "./stort"
-import { Input } from "@web/components/ui/input"
+} from '@web/components/ui/table'
+import { Pencil } from 'lucide-react'
+import { useQueryState } from 'nuqs'
+import { tagAllAction, tagEditAction } from './(action)/action'
+import { useTagEditDialog } from './stort'
+import { TagDialogEdit } from './tagEditModal'
+import TagPagination from './tagpagination'
 
 export function TagTable() {
-  const [page] = useQueryState("page")
-  const [pageSize] = useQueryState("pagesize")
-  const [keyword, setKeyword] = useQueryState("keyword")
-  const [id, setId] = useQueryState("id")
-  const { data: tagDatas, isLoading, refetch } = useQuery({
+  const [page] = useQueryState('page')
+  const [pageSize] = useQueryState('pagesize')
+  const [keyword, setKeyword] = useQueryState('keyword')
+  const [id, setId] = useQueryState('id')
+  const {
+    data: tagDatas,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ['TagTable', pageSize, Number(page), keyword, id],
     queryFn: async () => {
       const res = await tagAllAction({
         pageSize: Number(pageSize) || 10,
         pageIndex: Number(page) || 1,
         keyword: keyword || undefined,
-        id: id || undefined
+        id: id || undefined,
       })
       return res
     },
@@ -46,8 +49,16 @@ export function TagTable() {
   return (
     <div>
       <div className="grid grid-cols-2 gap-4">
-        <Input value={keyword || ""} onChange={(e) => setKeyword(e.target.value)} placeholder="搜索" />
-        <Input value={id || ""} onChange={(e) => setId(e.target.value)} placeholder="ID" />
+        <Input
+          value={keyword || ''}
+          onChange={(e) => setKeyword(e.target.value)}
+          placeholder="搜索"
+        />
+        <Input
+          value={id || ''}
+          onChange={(e) => setId(e.target.value)}
+          placeholder="ID"
+        />
       </div>
       <Table>
         <TableHeader>
@@ -65,31 +76,33 @@ export function TagTable() {
               <TableCell className="font-medium">{item.id}</TableCell>
               <TableCell>{item.zh_name}</TableCell>
               <TableCell>
-                <div className="truncate max-w-sm">
-                  {item.zh_alias}
-                </div>
+                <div className="truncate max-w-sm">{item.zh_alias}</div>
               </TableCell>
               <TableCell>
-                <div className="truncate max-w-xs">
-                  {item.zh_description}
-                </div>
+                <div className="truncate max-w-xs">{item.zh_description}</div>
               </TableCell>
               <TableCell className="text-right flex items-center gap-2 justify-end">
-                <Checkbox checked={item.exhibition} onCheckedChange={async () => {
-                  await tagEditAction({
-                    id: item.id,
-                    zh_name: item.zh_name || "",
-                    exhibition: !item.exhibition,
-                    zh_alias: item.zh_alias || "",
-                    zh_description: item.zh_description || ""
-
-                  })
-                  await refetch()
-                }} />
-                <Button variant="ghost" size="icon" onClick={() => {
-                  dataget(item)
-                  open()
-                }}>
+                <Checkbox
+                  checked={item.exhibition}
+                  onCheckedChange={async () => {
+                    await tagEditAction({
+                      id: item.id,
+                      zh_name: item.zh_name || '',
+                      exhibition: !item.exhibition,
+                      zh_alias: item.zh_alias || '',
+                      zh_description: item.zh_description || '',
+                    })
+                    await refetch()
+                  }}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    dataget(item)
+                    open()
+                  }}
+                >
                   <Pencil />
                 </Button>
               </TableCell>
@@ -98,20 +111,20 @@ export function TagTable() {
         </TableBody>
       </Table>
 
-      {
-        isLoading && Array.from({ length: 10 }).map((_, i) => (
+      {isLoading &&
+        Array.from({ length: 10 }).map((_, i) => (
           <Skeleton key={i} className="h-[40px] my-2 w-full rounded-full" />
-        ))
-      }
+        ))}
       {/* 分页器 */}
-      {
-        !isLoading && (
-          <div className="flex items-center justify-center">
-            <TagPagination currentPage={Number(page) || 1} totalPages={pageCount} />
-          </div>
-        )
-      }
+      {!isLoading && (
+        <div className="flex items-center justify-center">
+          <TagPagination
+            currentPage={Number(page) || 1}
+            totalPages={pageCount}
+          />
+        </div>
+      )}
       <TagDialogEdit />
-    </div >
+    </div>
   )
 }

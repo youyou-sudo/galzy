@@ -1,12 +1,15 @@
-import { MotionHighlight } from '@web/components/animate-ui/effects/motion-highlight';
-import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar';
-import { LinkIcon } from 'lucide-react';
-import Link from 'next/link';
+import { MotionHighlight } from '@web/components/animate-ui/effects/motion-highlight'
+import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
+import { LinkIcon } from 'lucide-react'
+import Link from 'next/link'
 import React from 'react'
 
-
-
-const linksList: { title: string; avatar: string; href: string; description: string }[] = [
+const linksList: {
+  title: string
+  avatar: string
+  href: string
+  description: string
+}[] = [
   {
     title: '莱茵',
     avatar: '/telegram.png',
@@ -35,24 +38,28 @@ const linksList: { title: string; avatar: string; href: string; description: str
 
 export default function Youyou() {
   return (
-    <div className='p-2'>
-      <div className='mb-6 ml-1 space-y-4'>
-        <h1 className='flex justify-center items-center text-4xl font-bold '>🐾喵の朋友们</h1>
-        <p className='ml-1 text-center'>喵世界再大，有缘的小伙伴也能像在身边一样呢</p>
+    <div className="p-2">
+      <div className="mb-6 ml-1 space-y-4">
+        <h1 className="flex justify-center items-center text-4xl font-bold ">
+          🐾喵の朋友们
+        </h1>
+        <p className="ml-1 text-center">
+          喵世界再大，有缘的小伙伴也能像在身边一样呢
+        </p>
       </div>
-      <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 '>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 ">
         <MotionHighlight hover className="rounded-xl">
           {linksList.map((item, index) => (
             <Link href={item.href} key={index} target="_blank">
-              <div className='h-32 flex flex-col border-1 rounded-md p-4'>
-                <div className='flex space-x-5'>
-                  <Avatar className='flex'>
+              <div className="h-32 flex flex-col border-1 rounded-md p-4">
+                <div className="flex space-x-5">
+                  <Avatar className="flex">
                     <AvatarImage src={item.avatar} />
                     <AvatarFallback>{item.title}</AvatarFallback>
                   </Avatar>
-                  <div className='flex-1 items-center justify-center space-y-2'>
-                    <div className='font-semibold'>{item.title}</div>
-                    <div className='text-sm'>{item.description}</div>
+                  <div className="flex-1 items-center justify-center space-y-2">
+                    <div className="font-semibold">{item.title}</div>
+                    <div className="text-sm">{item.description}</div>
                   </div>
                 </div>
               </div>

@@ -1,5 +1,4 @@
 'use client'
-import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@web/components/animate-ui/radix/sidebar'
+import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
 import { dashboardConfig } from '@web/config/dashboard'
 import { useIsMobile } from '@web/hooks/use-mobile'
 import { authClient } from '@web/lib/auth-client'

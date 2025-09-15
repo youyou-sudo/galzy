@@ -64,10 +64,7 @@ export const tags = new Elysia({ prefix: '/tags' })
     },
   )
 
-  .get(
-    '/tagAllFileDwn',
-    async () => {
-      const datas = await Tags.tagAllFileDwn()
-      return datas
-    }
-  )
+  .get('/tagAllFileDwn', async () => {
+    const datas = await Tags.tagAllFileDwn()
+    return datas
+  })

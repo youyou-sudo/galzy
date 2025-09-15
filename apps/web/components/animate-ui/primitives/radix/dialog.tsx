@@ -1,28 +1,27 @@
-'use client';
+'use client'
 
-import * as React from 'react';
-import { Dialog as DialogPrimitive } from 'radix-ui';
-import { AnimatePresence, motion, type HTMLMotionProps } from 'motion/react';
-
-import { useControlledState } from '@web/hooks/use-controlled-state';
-import { getStrictContext } from '@web/lib/get-strict-context';
+import { useControlledState } from '@web/hooks/use-controlled-state'
+import { getStrictContext } from '@web/lib/get-strict-context'
+import { AnimatePresence, type HTMLMotionProps, motion } from 'motion/react'
+import { Dialog as DialogPrimitive } from 'radix-ui'
+import type * as React from 'react'
 
 type DialogContextType = {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-};
+  isOpen: boolean
+  setIsOpen: (isOpen: boolean) => void
+}
 
 const [DialogProvider, useDialog] =
-  getStrictContext<DialogContextType>('DialogContext');
+  getStrictContext<DialogContextType>('DialogContext')
 
-type DialogProps = React.ComponentProps<typeof DialogPrimitive.Root>;
+type DialogProps = React.ComponentProps<typeof DialogPrimitive.Root>
 
 function Dialog(props: DialogProps) {
   const [isOpen, setIsOpen] = useControlledState({
     value: props?.open,
     defaultValue: props?.defaultOpen,
     onChange: props?.onOpenChange,
-  });
+  })
 
   return (
     <DialogProvider value={{ isOpen, setIsOpen }}>
@@ -32,22 +31,22 @@ function Dialog(props: DialogProps) {
         onOpenChange={setIsOpen}
       />
     </DialogProvider>
-  );
+  )
 }
 
-type DialogTriggerProps = React.ComponentProps<typeof DialogPrimitive.Trigger>;
+type DialogTriggerProps = React.ComponentProps<typeof DialogPrimitive.Trigger>
 
 function DialogTrigger(props: DialogTriggerProps) {
-  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />;
+  return <DialogPrimitive.Trigger data-slot="dialog-trigger" {...props} />
 }
 
 type DialogPortalProps = Omit<
   React.ComponentProps<typeof DialogPrimitive.Portal>,
   'forceMount'
->;
+>
 
 function DialogPortal(props: DialogPortalProps) {
-  const { isOpen } = useDialog();
+  const { isOpen } = useDialog()
 
   return (
     <AnimatePresence>
@@ -59,14 +58,14 @@ function DialogPortal(props: DialogPortalProps) {
         />
       )}
     </AnimatePresence>
-  );
+  )
 }
 
 type DialogOverlayProps = Omit<
   React.ComponentProps<typeof DialogPrimitive.Overlay>,
   'forceMount' | 'asChild'
 > &
-  HTMLMotionProps<'div'>;
+  HTMLMotionProps<'div'>
 
 function DialogOverlay({
   transition = { duration: 0.2, ease: 'easeInOut' },
@@ -83,18 +82,18 @@ function DialogOverlay({
         {...props}
       />
     </DialogPrimitive.Overlay>
-  );
+  )
 }
 
-type DialogFlipDirection = 'top' | 'bottom' | 'left' | 'right';
+type DialogFlipDirection = 'top' | 'bottom' | 'left' | 'right'
 
 type DialogContentProps = Omit<
   React.ComponentProps<typeof DialogPrimitive.Content>,
   'forceMount' | 'asChild'
 > &
   HTMLMotionProps<'div'> & {
-    from?: DialogFlipDirection;
-  };
+    from?: DialogFlipDirection
+  }
 
 function DialogContent({
   from = 'top',
@@ -107,9 +106,9 @@ function DialogContent({
   ...props
 }: DialogContentProps) {
   const initialRotation =
-    from === 'bottom' || from === 'left' ? '20deg' : '-20deg';
-  const isVertical = from === 'top' || from === 'bottom';
-  const rotateAxis = isVertical ? 'rotateX' : 'rotateY';
+    from === 'bottom' || from === 'left' ? '20deg' : '-20deg'
+  const isVertical = from === 'top' || from === 'bottom'
+  const rotateAxis = isVertical ? 'rotateX' : 'rotateY'
 
   return (
     <DialogPrimitive.Content
@@ -143,41 +142,41 @@ function DialogContent({
         {...props}
       />
     </DialogPrimitive.Content>
-  );
+  )
 }
 
-type DialogCloseProps = React.ComponentProps<typeof DialogPrimitive.Close>;
+type DialogCloseProps = React.ComponentProps<typeof DialogPrimitive.Close>
 
 function DialogClose(props: DialogCloseProps) {
-  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />;
+  return <DialogPrimitive.Close data-slot="dialog-close" {...props} />
 }
 
-type DialogHeaderProps = React.ComponentProps<'div'>;
+type DialogHeaderProps = React.ComponentProps<'div'>
 
 function DialogHeader(props: DialogHeaderProps) {
-  return <div data-slot="dialog-header" {...props} />;
+  return <div data-slot="dialog-header" {...props} />
 }
 
-type DialogFooterProps = React.ComponentProps<'div'>;
+type DialogFooterProps = React.ComponentProps<'div'>
 
 function DialogFooter(props: DialogFooterProps) {
-  return <div data-slot="dialog-footer" {...props} />;
+  return <div data-slot="dialog-footer" {...props} />
 }
 
-type DialogTitleProps = React.ComponentProps<typeof DialogPrimitive.Title>;
+type DialogTitleProps = React.ComponentProps<typeof DialogPrimitive.Title>
 
 function DialogTitle(props: DialogTitleProps) {
-  return <DialogPrimitive.Title data-slot="dialog-title" {...props} />;
+  return <DialogPrimitive.Title data-slot="dialog-title" {...props} />
 }
 
 type DialogDescriptionProps = React.ComponentProps<
   typeof DialogPrimitive.Description
->;
+>
 
 function DialogDescription(props: DialogDescriptionProps) {
   return (
     <DialogPrimitive.Description data-slot="dialog-description" {...props} />
-  );
+  )
 }
 
 export {
@@ -204,4 +203,4 @@ export {
   type DialogDescriptionProps,
   type DialogContextType,
   type DialogFlipDirection,
-};
+}

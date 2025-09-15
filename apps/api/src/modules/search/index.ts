@@ -12,14 +12,25 @@ export const search = new Elysia({ prefix: '/search' })
       query: SearchModel.search,
     },
   )
-  .post('/meilisearchEmbeddersUpdate', async ({ body: {
-    url,
-    embeddingApiKey,
-    model,
-    documentTemplateMaxBytes,
-    documentTemplate } }) => {
-    return await Search.meilisearchEmbeddersUpdate({ url, embeddingApiKey, model, documentTemplateMaxBytes, documentTemplate })
-  },
+  .post(
+    '/meilisearchEmbeddersUpdate',
+    async ({
+      body: {
+        url,
+        embeddingApiKey,
+        model,
+        documentTemplateMaxBytes,
+        documentTemplate,
+      },
+    }) => {
+      return await Search.meilisearchEmbeddersUpdate({
+        url,
+        embeddingApiKey,
+        model,
+        documentTemplateMaxBytes,
+        documentTemplate,
+      })
+    },
     {
       body: SearchModel.meilisearchEmbeddersUpdate,
     },
@@ -29,18 +40,19 @@ export const search = new Elysia({ prefix: '/search' })
   })
   .get('/meilisearchEmbeddersGet', async () => {
     return await Search.meilisearchEmbeddersGet()
-  }
-  )
+  })
   .get('/meilisearchPropertylist', async () => {
     return await Search.meilisearchPropertylist()
-  }
-  )
+  })
   .get('/meilisearcSearchableAttributeshGet', async () => {
     return await Search.meilisearcSearchableAttributeshGet()
   })
-  .post('/meilisearcSearchableAttributeshUpdate', async ({ body: { fields } }) => {
-    return await Search.meilisearcSearchableAttributeshUpdate({ fields })
-  }
-    , {
+  .post(
+    '/meilisearcSearchableAttributeshUpdate',
+    async ({ body: { fields } }) => {
+      return await Search.meilisearcSearchableAttributeshUpdate({ fields })
+    },
+    {
       body: SearchModel.meilisearcSearchableAttributeshUpdate,
-    })
+    },
+  )

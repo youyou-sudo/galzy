@@ -1,21 +1,20 @@
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
-
-import { usePagination } from "@web/hooks/use-pagination"
 import {
   Pagination,
   PaginationContent,
   PaginationEllipsis,
   PaginationItem,
   PaginationLink,
-} from "@web/components/ui/pagination"
+} from '@web/components/ui/pagination'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@web/components/ui/select"
-import { useQueryState } from "nuqs"
+} from '@web/components/ui/select'
+import { usePagination } from '@web/hooks/use-pagination'
+import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
+import { useQueryState } from 'nuqs'
 
 type PaginationProps = {
   currentPage: number
@@ -33,8 +32,8 @@ export default function TagPagination({
     totalPages,
     paginationItemsToDisplay,
   })
-  const [, setPage] = useQueryState("page")
-  const [PageSize, setPageSize] = useQueryState("pagesize")
+  const [, setPage] = useQueryState('page')
+  const [PageSize, setPageSize] = useQueryState('pagesize')
 
   return (
     <div className="flex items-center justify-between gap-3">
@@ -43,7 +42,7 @@ export default function TagPagination({
         className="text-muted-foreground flex-1 text-sm whitespace-nowrap"
         aria-live="polite"
       >
-        Page <span className="text-foreground">{currentPage}</span> of{" "}
+        Page <span className="text-foreground">{currentPage}</span> of{' '}
         <span className="text-foreground">{totalPages}</span>
       </p>
 
@@ -55,16 +54,14 @@ export default function TagPagination({
             <PaginationItem>
               <PaginationLink
                 className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
-                href={
-                  currentPage === 1 ? "" : `?page=${currentPage - 1}`
-                }
+                href={currentPage === 1 ? '' : `?page=${currentPage - 1}`}
                 onClick={(e) => {
                   e.preventDefault()
                   setPage(String(currentPage - 1))
                 }}
                 aria-label="Go to previous page"
                 aria-disabled={currentPage === 1 ? true : undefined}
-                role={currentPage === 1 ? "link" : undefined}
+                role={currentPage === 1 ? 'link' : undefined}
               >
                 <ChevronLeftIcon size={16} aria-hidden="true" />
               </PaginationLink>
@@ -105,9 +102,7 @@ export default function TagPagination({
               <PaginationLink
                 className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
                 href={
-                  currentPage === totalPages
-                    ? ""
-                    : `?page=${currentPage + 1}`
+                  currentPage === totalPages ? '' : `?page=${currentPage + 1}`
                 }
                 onClick={(e) => {
                   e.preventDefault()
@@ -115,7 +110,7 @@ export default function TagPagination({
                 }}
                 aria-label="Go to next page"
                 aria-disabled={currentPage === totalPages ? true : undefined}
-                role={currentPage === totalPages ? "link" : undefined}
+                role={currentPage === totalPages ? 'link' : undefined}
               >
                 <ChevronRightIcon size={16} aria-hidden="true" />
               </PaginationLink>
@@ -126,10 +121,14 @@ export default function TagPagination({
 
       {/* Results per page */}
       <div className="flex flex-1 justify-end">
-        <Select defaultValue={PageSize || "10"} aria-label="Results per page" onValueChange={(e) => {
-          setPageSize(e)
-          setPage("1")
-        }}>
+        <Select
+          defaultValue={PageSize || '10'}
+          aria-label="Results per page"
+          onValueChange={(e) => {
+            setPageSize(e)
+            setPage('1')
+          }}
+        >
           <SelectTrigger
             id="results-per-page"
             className="w-fit whitespace-nowrap"

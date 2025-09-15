@@ -1,4 +1,3 @@
-import { Card, CardContent } from '@web/components/ui/card'
 import { TagsCard } from '@web/app/(app)/[id]/(components)/tags'
 import {
   Accordion,
@@ -8,6 +7,7 @@ import {
 } from '@web/components/animate-ui/radix/accordion'
 import { BBCodeRenderer } from '@web/components/bbcode'
 import Errors from '@web/components/error'
+import { Card, CardContent } from '@web/components/ui/card'
 import type { getVnDetails } from '@web/lib/repositories/vnRepository'
 import Image from 'next/image'
 import React from 'react'

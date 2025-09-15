@@ -1,7 +1,7 @@
+import { getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
 import { t } from 'try'
 import type { UmamiModel } from './model'
-import { getKv, setKv } from '@api/libs/redis'
 
 export const Umami = {
   // Tag 统计

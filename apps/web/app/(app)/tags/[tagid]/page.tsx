@@ -3,13 +3,13 @@ import {
   HydrationBoundary,
   QueryClient,
 } from '@tanstack/react-query'
+import { BBCodeRenderer } from '@web/components/bbcode'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from '@web/components/ui/card'
-import { BBCodeRenderer } from '@web/components/bbcode'
 import { TagViewsTrackEvents } from '@web/components/umami/track-events'
 import type { Metadata } from 'next/types'
 import React from 'react'

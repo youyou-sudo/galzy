@@ -26,7 +26,15 @@ async function main() {
     },
     {
       from: path.join(baseDir, '.next', 'static'),
-      to: path.join(baseDir, '.next', 'standalone', 'apps', 'web', '.next', 'static'),
+      to: path.join(
+        baseDir,
+        '.next',
+        'standalone',
+        'apps',
+        'web',
+        '.next',
+        'static',
+      ),
     },
     {
       from: path.join(baseDir, 'scripts'),

@@ -2,6 +2,13 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@web/components/animate-ui/radix/dialog'
 import { Button } from '@web/components/ui/button'
 import {
   Form,
@@ -14,13 +21,6 @@ import {
 } from '@web/components/ui/form'
 import { Input } from '@web/components/ui/input'
 import { Textarea } from '@web/components/ui/textarea'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@web/components/animate-ui/radix/dialog'
 import {
   strategyListCreate,
   strategyListUpdate,
