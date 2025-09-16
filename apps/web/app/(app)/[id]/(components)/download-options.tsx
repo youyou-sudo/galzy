@@ -36,8 +36,10 @@ export function DownloadOptions({ fileList }: { fileList: fileList }) {
 // ---------- 分卷文件识别处理 ----------
 // ---------- 分卷文件识别处理 + md 同名判定 ----------
 function groupSplitArchives(
-  items: fileList | undefined | null,
+  items: fileList | undefined,
 ): fileList | undefined {
+
+
   if (!items || items.length === 0) return items
 
   const archivesMap: Record<string, fileList> = {}
@@ -127,7 +129,7 @@ function FileExplorer({ items }: { items: fileList }) {
 }
 
 // ---------- 文件/文件夹递归渲染 ----------
-const Filessss = ({ items }: { items: fileList }) => {
+const Filessss = ({ items }: { items: fileList | undefined }) => {
   const open = downCardDataStore((s) => s.open)
   const setData = downCardDataStore((s) => s.setData)
 
@@ -245,8 +247,8 @@ export const DownCardDialog = () => {
             <div className="space-y-2">
               {isLoading
                 ? Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-[20px] rounded-full" />
-                  ))
+                  <Skeleton key={i} className="h-[20px] rounded-full" />
+                ))
                 : null}
             </div>
             <div>

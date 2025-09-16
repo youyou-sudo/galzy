@@ -7,7 +7,6 @@
     "dev": "bun scripts/run dev",
     "build": "bun scripts/run build",
     "docker": "bun scripts/run docker",
-    "ui": "bun --filter @shadcn/ui ui",
     "add:api": "bun add --cwd apps/api",
     "add:web": "bun add --cwd apps/web"
   },

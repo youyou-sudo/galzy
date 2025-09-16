@@ -22,10 +22,12 @@ export const GameItem = ({
   let imagesData
   if (item.other && item.other_datas?.other_media?.length) {
     imagesData =
-      item.other_datas.other_media.find((m) => m.cover)?.media ?? item.images
+      item.other_datas.other_media.find((item) => item.cover)?.media ?? item.images
   } else {
     imagesData = item.images
   }
+
+
   let imagess
   if (!imagesData) {
     imagess = ''
@@ -40,8 +42,8 @@ export const GameItem = ({
   }
 
   let title
-  if (item.other_datas?.title?.length) {
-    title = item.other_datas.title.find(
+  if (item.other_datas) {
+    title = item.other_datas?.title?.find(
       (t) => t.lang === 'zh-Hans' && t.title.trim() !== '',
     )?.title
   }

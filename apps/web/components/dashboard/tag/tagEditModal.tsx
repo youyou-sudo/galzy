@@ -50,7 +50,7 @@ export const TagDialogEdit = () => {
     if (data) {
       form.setValue('id', data.id || '')
       form.setValue('zh_name', data.zh_name || '')
-      form.setValue('exhibition', data.exhibition)
+      form.setValue('exhibition', data.exhibition || false)
       form.setValue('zh_alias', data.zh_alias || '')
       form.setValue('zh_description', data.zh_description || '')
     }

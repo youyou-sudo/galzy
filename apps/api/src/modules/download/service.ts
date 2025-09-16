@@ -18,10 +18,7 @@ export const Download = {
         ['sign', 'verify'],
       )
       const buf = await crypto.subtle.sign(
-        {
-          name: 'HMAC',
-          hash: 'SHA-256',
-        },
+        { name: 'HMAC', hash: 'SHA-256' },
         key,
         new TextEncoder().encode(`/${path}:${expire}`),
       )
@@ -33,51 +30,60 @@ export const Download = {
         expire
       )
     }
-    let alistSettingsCache: { token: string; linkExpiration: number } | null =
-      null
-    const alistDownloadGet = async (path: string) => {
-      if (!alistSettingsCache) {
-        const [tokenData, linkExpirationData] = await Promise.all([
-          db
-            .selectFrom('galrc_setting_items')
-            .selectAll()
-            .where('key', '=', 'token')
-            .executeTakeFirst(),
-          db
-            .selectFrom('galrc_setting_items')
-            .selectAll()
-            .where('key', '=', 'link_expiration')
-            .executeTakeFirst(),
-        ])
 
-        alistSettingsCache = {
-          token: String(tokenData?.value),
-          linkExpiration: Number(linkExpirationData?.value || 1),
-        }
+    type AlistSettings = {
+      token: string
+      linkExpiration: number // 小时
+    }
+
+    let alistSettingsCache: AlistSettings | null = null
+
+    const loadAlistSettings = async (): Promise<AlistSettings> => {
+      const [tokenRow, expirationRow] = await Promise.all([
+        db.selectFrom('galrc_setting_items')
+          .select('value')
+          .where('key', '=', 'token')
+          .executeTakeFirst(),
+        db.selectFrom('galrc_setting_items')
+          .select('value')
+          .where('key', '=', 'link_expiration')
+          .executeTakeFirst(),
+      ])
+
+      if (!tokenRow?.value) {
+        throw new Error('缺少 Alist token 配置')
       }
-      const timestamp = Math.floor(Date.now() / 1000)
-      const expiration = timestamp + 3600 * alistSettingsCache.linkExpiration
-      const sign = await hmacSha256Sign(
-        path,
-        expiration,
-        alistSettingsCache.token,
-      )
-      const url = `http://localhost:5244/d/${path}?sign=${sign}`
+
       return {
-        success: true,
-        message: '哼哼喵（得意），找到啦～',
-        raw_url: url,
-        sign: sign,
+        token: tokenRow.value as unknown as string,
+        linkExpiration: Number(expirationRow?.value) || 1,
       }
     }
 
-    const [, error, res] = await t(alistDownloadGet(path))
-    if (error)
+    const alistDownloadGet = async (path: string) => {
+      if (!alistSettingsCache) {
+        alistSettingsCache = await loadAlistSettings()
+      }
+
+      const now = Math.floor(Date.now() / 1000)
+      const expiration = now + alistSettingsCache.linkExpiration * 3600
+      const sign = await hmacSha256Sign(path, expiration, alistSettingsCache.token)
+
+      return {
+        success: true,
+        message: '哼哼喵（得意），找到啦～',
+        raw_url: `${process.env.OPENLIST_HOST}/d/${encodeURIComponent(path)}?sign=${sign}`,
+        sign,
+      }
+    }
+    const [, error, res] = t(await alistDownloadGet(path))
+    if (error) {
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+    }
     return res
   },
   async Worker() {
-    const [ok, error, res] = await t(
+    const [, error, res] = t(
       await db
         .selectFrom('galrc_cloudflare')
         .selectAll()
@@ -86,7 +92,7 @@ export const Download = {
     )
     if (error)
       throw status(401, `服务出错了喵~，Error:${JSON.stringify(error)}`)
-    if (ok) return res
+    return res
   },
   async workerConfigFormPut({
     id,

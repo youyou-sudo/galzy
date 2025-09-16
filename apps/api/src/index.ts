@@ -17,19 +17,8 @@ initValidationError()
 dbSeed()
 export const app = new Elysia()
   .onError(({ code, error }) => {
-    if (code === 'VALIDATION') {
-      const errors = Array.from(error.validator.Errors(error.value)).map(
-        (e: any) => ({
-          field: e.path.replace(/^\//, ''),
-          message: e.message,
-        }),
-      )
-
-      return {
-        type: 'validation',
-        errors,
-      }
-    }
+    if (code === 'VALIDATION')
+      return error.message
   })
   .use(YouyouAuth)
   .use(umami)

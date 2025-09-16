@@ -1,8 +1,8 @@
 // store/useEditDialog.ts
-import type { vidassociationGet } from '@web/lib/dashboard/dataManagement/dataGet'
+import type { Game } from '@api/modules/games/service'
 import { create } from 'zustand'
 
-type DataTy = Awaited<ReturnType<typeof vidassociationGet>>
+type DataTy = Awaited<ReturnType<typeof Game.VidassociationGet>>
 
 interface EditDialogState {
   isOpen: boolean

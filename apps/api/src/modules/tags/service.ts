@@ -47,16 +47,16 @@ export const Tags = {
     const zhTag =
       tagIds.length > 0
         ? await db
-            .selectFrom('galrc_zhtag')
-            .where('galrc_zhtag.id', 'in', tagIds)
-            .where('galrc_zhtag.exhibition', '=', true)
-            .select([
-              'galrc_zhtag.id',
-              'galrc_zhtag.name as zh_name',
-              'galrc_zhtag.alias as zh_alias',
-              'galrc_zhtag.description as zh_description',
-            ])
-            .execute()
+          .selectFrom('galrc_zhtag')
+          .where('galrc_zhtag.id', 'in', tagIds)
+          .where('galrc_zhtag.exhibition', '=', true)
+          .select([
+            'galrc_zhtag.id',
+            'galrc_zhtag.name as zh_name',
+            'galrc_zhtag.alias as zh_alias',
+            'galrc_zhtag.description as zh_description',
+          ])
+          .execute()
         : []
     const zhTagMap = new Map(zhTag.map((tag) => [tag.id, tag]))
 
@@ -137,68 +137,69 @@ export const Tags = {
     const vnRows =
       vids.length > 0
         ? await vndbDb
-            .selectFrom('vn')
-            .where('vn.id', 'in', vids)
-            .select((v) => [
-              'vn.id',
-              'vn.olang',
-              jsonArrayFrom(
-                v
-                  .selectFrom('vn_titles')
-                  .selectAll()
-                  .whereRef('vn_titles.id', '=', 'vn.id'),
-              ).as('titles'),
-              jsonObjectFrom(
-                v
-                  .selectFrom('images')
-                  .select(['height', 'id', 'width'])
-                  .whereRef('images.id', '=', 'vn.c_image'),
-              ).as('images'),
-            ])
-            .execute()
+          .selectFrom('vn')
+          .where('vn.id', 'in', vids)
+          .select((v) => [
+            'vn.id',
+            'vn.olang',
+            jsonArrayFrom(
+              v
+                .selectFrom('vn_titles')
+                .selectAll()
+                .whereRef('vn_titles.id', '=', 'vn.id'),
+            ).as('titles'),
+            jsonObjectFrom(
+              v
+                .selectFrom('images')
+                .select(['height', 'id', 'width'])
+                .whereRef('images.id', '=', 'vn.c_image'),
+            ).as('images'),
+          ])
+          .execute()
         : []
 
     // 3. 从 db 拿 galrc_alistb + galrc_other 相关数据
     const alistRows =
       vids.length > 0
         ? await db
-            .selectFrom('galrc_alistb')
-            .where('galrc_alistb.vid', 'in', vids)
-            .select((a) => [
-              'galrc_alistb.vid',
-              'galrc_alistb.other',
-              jsonObjectFrom(
-                a
-                  .selectFrom('galrc_other')
-                  .whereRef('galrc_other.id', '=', 'galrc_alistb.other')
-                  .select((o) => [
-                    'galrc_alistb.other',
-                    jsonArrayFrom(
-                      o
-                        .selectFrom('galrc_other_media')
-                        .selectAll()
-                        .whereRef(
-                          'galrc_other_media.other_id',
-                          '=',
-                          'galrc_other.id',
-                        )
-                        .select((om) => [
-                          jsonObjectFrom(
-                            om
-                              .selectFrom('galrc_media')
-                              .selectAll()
-                              .whereRef(
-                                'galrc_media.hash',
-                                '=',
-                                'galrc_other_media.media_hash',
-                              ),
-                          ).as('media'),
-                        ]),
-                    ).as('other_media'),
-                  ]),
-              ).as('other_datas'),
-            ])
-            .execute()
+          .selectFrom('galrc_alistb')
+          .where('galrc_alistb.vid', 'in', vids)
+          .select((a) => [
+            'galrc_alistb.vid',
+            'galrc_alistb.other',
+            jsonObjectFrom(
+              a
+                .selectFrom('galrc_other')
+                .selectAll()
+                .whereRef('galrc_other.id', '=', 'galrc_alistb.other')
+                .select((o) => [
+                  'galrc_alistb.other',
+                  jsonArrayFrom(
+                    o
+                      .selectFrom('galrc_other_media')
+                      .selectAll()
+                      .whereRef(
+                        'galrc_other_media.other_id',
+                        '=',
+                        'galrc_other.id',
+                      )
+                      .select((om) => [
+                        jsonObjectFrom(
+                          om
+                            .selectFrom('galrc_media')
+                            .selectAll()
+                            .whereRef(
+                              'galrc_media.hash',
+                              '=',
+                              'galrc_other_media.media_hash',
+                            ),
+                        ).as('media'),
+                      ]),
+                  ).as('other_media'),
+                ]),
+            ).as('other_datas'),
+          ])
+          .execute()
         : []
 
     // 4. 在代码中合并
@@ -240,8 +241,6 @@ export const Tags = {
   },
   async tagAllGet({ pageSize, pageIndex, keyword, id }: TagsModel.tagAll) {
     const offset = pageIndex * pageSize
-    // 1. 查询分页数据
-    // 1. 从 vndbDb 查询 tags
     let tagsQuery = vndbDb.selectFrom('tags').select(['id'])
 
     if (id) {
@@ -351,7 +350,7 @@ export const Tags = {
       description: item.description,
     }))
 
-    const [, error] = await t(
+    const [, error] = t(await
       db
         .insertInto('galrc_zhtag')
         .values(datass)

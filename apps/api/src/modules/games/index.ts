@@ -65,9 +65,10 @@ export const game = new Elysia({ prefix: '/games' })
   .get(
     '/vidassociation',
     async ({ query: { id } }) => {
-      return await Game.VidassociationGet({
+      const data = await Game.VidassociationGet({
         id,
       })
+      return data
     },
     {
       query: GameModel.infoId,

@@ -10,7 +10,7 @@ export const Umami = {
     if (redisData !== null && redisData !== undefined) {
       return JSON.parse(redisData) as RemfTag
     }
-    const [, error, token] = await t(umamiTokenGet())
+    const [, error, token] = t(await umamiTokenGet())
     if (error)
       throw status(
         500,
@@ -44,7 +44,7 @@ export const Umami = {
     if (redisData !== null && redisData !== undefined) {
       return JSON.parse(redisData) as RemfGame
     }
-    const [, error, token] = await t(umamiTokenGet())
+    const [, error, token] = t(await umamiTokenGet())
     if (error)
       throw status(
         500,
