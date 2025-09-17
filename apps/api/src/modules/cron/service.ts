@@ -112,8 +112,9 @@ export const CronService = {
 
     const lock = await deacquireLocklKv(lockKey, lockValue, lockTimeout)
     if (lock) return null
+
     try {
-      const [, error, [alistUpInfo, alistUpTime]] = t(
+      const [alistUpInfo, alistUpTime] = (
         await Promise.all([
           db
             .selectFrom('galrc_setting_items')
@@ -125,14 +126,17 @@ export const CronService = {
             .selectAll()
             .where('key', '=', 'alistUpTime')
             .executeTakeFirst(),
-        ]),
+        ])
       )
-      if (error) throw `Error:${JSON.stringify(error)}`
       const parsedValue = JSON.parse(alistUpInfo?.value as unknown as string)
+      console.log(parsedValue)
       if (!alistUpInfo) return
       if (alistUpInfo.value.is_done === false) return
-      if (alistUpTime?.config.lastUpdate || 0 === parsedValue.last_done_time)
-        return
+      const lastUpdate = new Date(alistUpTime?.config.lastUpdate ?? "");
+      const lastDone = new Date(parsedValue.last_done_time ?? "");
+      if (lastUpdate.getTime() === lastDone.getTime()) return
+
+
 
       const [, alistDataError, alistData] = t(
         await db.selectFrom('galrc_search_nodes').select(['name']).execute(),
@@ -275,77 +279,77 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
   const otherItems =
     others.length > 0
       ? await db
-          .selectFrom('galrc_other')
-          .where('galrc_other.id', 'in', others)
-          .selectAll()
-          .select((other) => [
-            'id',
-            jsonArrayFrom(
-              other
-                .selectFrom('galrc_media')
-                .selectAll()
-                .whereRef('id', '=', 'galrc_other.id'),
-            ).as('images'),
-          ])
-          .execute()
+        .selectFrom('galrc_other')
+        .where('galrc_other.id', 'in', others)
+        .selectAll()
+        .select((other) => [
+          'id',
+          jsonArrayFrom(
+            other
+              .selectFrom('galrc_media')
+              .selectAll()
+              .whereRef('id', '=', 'galrc_other.id'),
+          ).as('images'),
+        ])
+        .execute()
       : []
   const vndbItems =
     vids.length > 0
       ? await vndbDb
-          .selectFrom('vn')
-          .where('vn.id', 'in', vids)
-          .select((vneb) => [
-            'vn.id',
-            jsonArrayFrom(
-              vneb
-                .selectFrom('vn_titles')
-                .selectAll()
-                .whereRef('vn_titles.id', '=', 'vn.id'),
-            ).as('titles'),
-            jsonObjectFrom(
-              vneb
-                .selectFrom('images')
-                .select(['height', 'id', 'width'])
-                .whereRef('images.id', '=', 'vn.c_image'),
-            ).as('images'),
-            jsonArrayFrom(
-              vneb
-                .selectFrom('releases_vn')
-                .innerJoin('releases', 'releases.id', 'releases_vn.id')
-                .select([
-                  'releases.notes',
-                  'releases.engine',
-                  'releases.olang',
-                  'releases.id',
-                ])
-                .whereRef('releases_vn.vid', '=', 'vn.id')
-                .select((releaseseVn) => [
-                  jsonArrayFrom(
-                    releaseseVn
-                      .selectFrom('releases_titles')
-                      .select(['releases_titles.id'])
-                      .selectAll()
-                      .whereRef(
-                        'releases_titles.id',
-                        '=',
-                        releaseseVn.ref('releases.id'),
-                      ),
-                  ).as('titles'),
-                ]),
-            ).as('vn_releases'),
-          ])
-          .select((vneb) => [
-            jsonArrayFrom(
-              vneb
-                .selectFrom('tags_vn')
-                .whereRef('tags_vn.vid', '=', 'vn.id')
-                .select('tags_vn.tag as id')
-                .distinct(),
-            ).as('tags'),
-          ])
-          .select(['vn.alias', 'vn.description', 'vn.id', 'vn.olang'])
-          .orderBy('vn.id', 'desc')
-          .execute()
+        .selectFrom('vn')
+        .where('vn.id', 'in', vids)
+        .select((vneb) => [
+          'vn.id',
+          jsonArrayFrom(
+            vneb
+              .selectFrom('vn_titles')
+              .selectAll()
+              .whereRef('vn_titles.id', '=', 'vn.id'),
+          ).as('titles'),
+          jsonObjectFrom(
+            vneb
+              .selectFrom('images')
+              .select(['height', 'id', 'width'])
+              .whereRef('images.id', '=', 'vn.c_image'),
+          ).as('images'),
+          jsonArrayFrom(
+            vneb
+              .selectFrom('releases_vn')
+              .innerJoin('releases', 'releases.id', 'releases_vn.id')
+              .select([
+                'releases.notes',
+                'releases.engine',
+                'releases.olang',
+                'releases.id',
+              ])
+              .whereRef('releases_vn.vid', '=', 'vn.id')
+              .select((releaseseVn) => [
+                jsonArrayFrom(
+                  releaseseVn
+                    .selectFrom('releases_titles')
+                    .select(['releases_titles.id'])
+                    .selectAll()
+                    .whereRef(
+                      'releases_titles.id',
+                      '=',
+                      releaseseVn.ref('releases.id'),
+                    ),
+                ).as('titles'),
+              ]),
+          ).as('vn_releases'),
+        ])
+        .select((vneb) => [
+          jsonArrayFrom(
+            vneb
+              .selectFrom('tags_vn')
+              .whereRef('tags_vn.vid', '=', 'vn.id')
+              .select('tags_vn.tag as id')
+              .distinct(),
+          ).as('tags'),
+        ])
+        .select(['vn.alias', 'vn.description', 'vn.id', 'vn.olang'])
+        .orderBy('vn.id', 'desc')
+        .execute()
       : []
 
   const allTagIds = vndbItems.flatMap((item) => item.tags.map((t) => t.id))
@@ -353,16 +357,16 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
   const zhTag =
     allTagIds.length > 0
       ? await db
-          .selectFrom('galrc_zhtag')
-          .where('galrc_zhtag.id', 'in', allTagIds)
-          .select([
-            'galrc_zhtag.id',
-            'galrc_zhtag.name as zh_name',
-            'galrc_zhtag.alias as alias',
-            'galrc_zhtag.description as zh_description',
-            'galrc_zhtag.exhibition',
-          ])
-          .execute()
+        .selectFrom('galrc_zhtag')
+        .where('galrc_zhtag.id', 'in', allTagIds)
+        .select([
+          'galrc_zhtag.id',
+          'galrc_zhtag.name as zh_name',
+          'galrc_zhtag.alias as alias',
+          'galrc_zhtag.description as zh_description',
+          'galrc_zhtag.exhibition',
+        ])
+        .execute()
       : []
   const tagMap = new Map(zhTag.map((tag) => [tag.id, tag]))
 

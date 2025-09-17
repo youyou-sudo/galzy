@@ -50,13 +50,15 @@ export const game = new Elysia({ prefix: '/games' })
   .get(
     '/datafiltering',
     async ({ query: { vid, otherId, query, limit, page } }) => {
-      return await Game.DataFiltering({
+      const data = await Game.DataFiltering({
         vid,
         otherId,
         query,
         limit,
         page,
       })
+      console.log(data)
+      return data
     },
     {
       query: GameModel.dataFiltering,

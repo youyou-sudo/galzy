@@ -421,7 +421,6 @@ export const Game = {
     const [, error, vidMap] = t(
       await whereQuery.limit(limit).offset(offset).selectAll().execute(),
     )
-
     const vids = vidMap.map((row) => row.vid)
     const others = vidMap.map((row) => row.other)
     const otherItems =
@@ -443,7 +442,6 @@ export const Game = {
 
     const otherMap = new Map(otherItems.map((item) => [item.id, item]))
     const vndbMap = new Map(vndbItems.map((item) => [item.id, item]))
-
     const result = vidMap.map((row) => {
       const vid = row.vid || null
       const other = row.other || null

@@ -46,7 +46,7 @@ export default function DataTabl() {
   const getRequestParams = useFilterStore((state) => state.getRequestParams)
   const { datapage, limit, setDatapage, setLimit } = usePaginationStore()
 
-  const [query, setQuery] = React.useState('')
+  const [query, setQuery] = React.useState("")
 
   const { open, dataget } = useEditDialog()
 
@@ -166,15 +166,15 @@ export default function DataTabl() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[100px]">id</TableHead>
+                <TableHead className="w-[100px]">otherId</TableHead>
                 <TableHead>vid</TableHead>
                 <TableHead>title</TableHead>
                 <TableHead className="text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {dataFilteringData?.data.map((item: any) => (
-                <TableRow key={item.id}>
+              {dataFilteringData?.data.map((item: any,i) => (
+                <TableRow key={i}>
                   <TableCell className="font-medium">{item.other}</TableCell>
                   <TableCell>{item.vid}</TableCell>
                   <TableCell>

@@ -12,8 +12,8 @@ export namespace GameModel {
     id: t.String({ minLength: 1 }),
   })
   export const dataFiltering = t.Object({
-    vid: t.Union([t.Number(), t.Null(), t.Undefined()]),
-    otherId: t.Union([t.Number(), t.Null(), t.Undefined()]),
+    vid: t.Optional(t.Union([t.Number(), t.Null()])),
+    otherId: t.Optional(t.Union([t.Number(), t.Null()])),
     query: t.Any(),
     limit: t.Number({ minimum: 1 }),
     page: t.Number({ minimum: 1 }),
