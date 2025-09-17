@@ -126,6 +126,7 @@ export const Tags = {
       .selectFrom('tags_vn')
       .where('tags_vn.tag', '=', tagId)
       .select(['tags_vn.vid'])
+      .distinct()
       .limit(pageSize)
       .offset(offset)
       .execute()
@@ -203,13 +204,11 @@ export const Tags = {
         : []
 
     // 4. 在代码中合并
-    const combined = vids.map((vid) => {
-      const vnData = vnRows.find((v) => v.id === vid)
-      const alistData = alistRows.find((a) => a.vid === vid)
+    const combined = alistRows.map((vid) => {
+      const vnData = vnRows.find((v) => v.id === vid.vid)
       return {
         vid,
         ...vnData,
-        ...alistData,
       }
     })
     const [, error1, totalCountResult] = t(

@@ -143,17 +143,15 @@ export const Game = {
       return JSON.parse(redisData) as GameInfo
     }
     const idIsNumber = /^\d+$/.test(id)
-
     const idData = await db
       .selectFrom('galrc_alistb')
       .where((eb) =>
         idIsNumber
-          ? eb.or([eb('vid', '=', id), eb('other', '=', Number(id))])
+          ? eb('other', '=', Number(id))
           : eb('vid', '=', id),
       )
       .selectAll()
       .executeTakeFirst()
-
     if (!idData) {
       throw status(404, '找不到数据喵~')
     }
