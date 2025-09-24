@@ -292,3 +292,182 @@ export async function dbSeed() {
     .column('key')
     .execute()
 }
+
+
+// 创建 postgres_fdw 扩展
+await sql`
+  CREATE EXTENSION IF NOT EXISTS postgres_fdw;
+`.execute(db);
+
+// 删除已有的远程服务器（如果存在）
+await sql`
+  DROP SERVER IF EXISTS vndb_server CASCADE;
+`.execute(db);
+
+const host = process.env.VNDB_HOST!;
+const port = process.env.VNDB_PORT!;
+const dbname = process.env.VNDB_DBNAME!;
+const user = process.env.VNDB_USER!;
+const password = process.env.VNDB_PASSWORD!;
+// 创建远程服务器
+await sql`
+  CREATE SERVER vndb_server
+    FOREIGN DATA WRAPPER postgres_fdw
+    OPTIONS (
+      host '${sql.raw(host)}',
+      port '${sql.raw(port)}',
+      dbname '${sql.raw(dbname)}'
+    );
+`.execute(db);
+
+// 创建用户映射
+await sql`
+  CREATE USER MAPPING FOR postgres
+    SERVER vndb_server
+    OPTIONS (
+      user '${sql.raw(user)}',
+      password '${sql.raw(password)}'
+    );
+`.execute(db);
+
+
+// 创建远程表
+await sql`
+  CREATE FOREIGN TABLE IF NOT EXISTS vn (
+    id          text,
+    image       text,       -- 可为空 (deprecated)
+    c_image     text,       -- 可为空
+    olang       text,
+    c_votecount integer,
+    c_rating    smallint,   -- 可为空
+    c_average   smallint,   -- 可为空
+    length      smallint,
+    devstatus   smallint,
+    alias       text,       -- 可为空
+    description text        -- 可为空
+  )
+  SERVER vndb_server
+  OPTIONS (
+    schema_name 'public',
+    table_name  'vn'
+  );
+`.execute(db);
+
+await sql`
+  CREATE FOREIGN TABLE IF NOT EXISTS vn_titles (
+    id       text,
+    lang     text,       -- language 类型，可按需映射
+    official boolean,
+    title    text,
+    latin    text        -- 可为空
+  )
+  SERVER vndb_server
+  OPTIONS (
+    schema_name 'public',
+    table_name  'vn_titles'
+  );
+`.execute(db);
+
+await sql`
+  CREATE FOREIGN TABLE IF NOT EXISTS images (
+    id               text,
+    width            integer,
+    height           integer,
+    c_votecount      integer,
+    c_sexual_avg     real,
+    c_sexual_stddev  real,
+    c_violence_avg   real,
+    c_violence_stddev real,
+    c_weight         real
+  )
+  SERVER vndb_server
+  OPTIONS (
+    schema_name 'public',
+    table_name  'images'
+  );
+`.execute(db);
+
+await sql`
+  CREATE FOREIGN TABLE IF NOT EXISTS tags (
+    id           text,
+    cat          text,       -- tag_category 类型，可按需映射
+    defaultspoil smallint,
+    searchable   boolean,
+    applicable   boolean,
+    name         text,
+    alias        text,
+    description  text
+  )
+  SERVER vndb_server
+  OPTIONS (
+    schema_name 'public',
+    table_name  'tags'
+  );
+`.execute(db);
+
+
+await sql`
+  CREATE FOREIGN TABLE IF NOT EXISTS tags_vn (
+    tag         text,
+    vid         text,
+    uid         text,       -- 可为空
+    vote        integer,
+    spoiler     integer,    -- 可为空
+    ignore      boolean,
+    lie         boolean,    -- 可为空
+    notes       text
+  )
+  SERVER vndb_server
+  OPTIONS (
+    schema_name 'public',
+    table_name  'tags_vn'
+  );
+`.execute(db);
+
+await sql`
+  CREATE FOREIGN TABLE IF NOT EXISTS releases (
+    id             text,
+    gtin           bigint,
+    olang          text,       -- language 类型，可按需映射
+    released       integer,
+    voiced         integer,
+    reso_x         integer,
+    reso_y         integer,
+    minage         smallint,   -- 可为空
+    ani_story      smallint,
+    ani_ero        smallint,
+    ani_story_sp   smallint,   -- 可为空
+    ani_story_cg   smallint,   -- 可为空
+    ani_cutscene   smallint,   -- 可为空
+    ani_ero_sp     smallint,   -- 可为空
+    ani_ero_cg     smallint,   -- 可为空
+    ani_bg         boolean,    -- 可为空
+    ani_face       boolean,    -- 可为空
+    has_ero        boolean,
+    patch          boolean,
+    freeware       boolean,
+    uncensored     boolean,    -- 可为空
+    official       boolean,
+    catalog        text,
+    engine         text,
+    notes          text,
+    title          text        -- 可为空
+  )
+  SERVER vndb_server
+  OPTIONS (
+    schema_name 'public',
+    table_name  'releases'
+  );
+`.execute(db);
+
+await sql`
+  CREATE FOREIGN TABLE IF NOT EXISTS releases_vn (
+    id  text,
+    vid text
+  )
+  SERVER vndb_server
+  OPTIONS (
+    schema_name 'public',
+    table_name  'releases_vn'
+  );
+`.execute(db);

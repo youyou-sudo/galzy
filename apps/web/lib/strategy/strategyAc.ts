@@ -1,4 +1,5 @@
 'use server'
+import type { StrategyModel } from '@api/modules/strategy/model'
 import { api } from '@libs'
 import type { ContentData } from '@web/components/dashboard/dataManagement/strategy/stores/EditStores'
 
@@ -23,8 +24,8 @@ export const strategyListCreate = async (id: string, data: ContentData) => {
   })
 }
 
-export const strategyListDelete = async (gameId: string) => {
+export const strategyListDelete = async ({ strategyId, gameId }: StrategyModel.strategy) => {
   await api.strategy.strategylistdelete.post({
-    gameId,
+    strategyId, gameId
   })
 }

@@ -1,6 +1,7 @@
 import { db } from '@api/libs'
 import {
   acquireIdempotentKey,
+  delKv,
   getIdempotentResult,
   getKv,
   setKv,
@@ -35,7 +36,7 @@ export const Strategy = {
     return strategyContent
   },
   async gameStrategys({ gameId }: StrategyModel.gameStrategys) {
-    const redisData = await getKv(`gameStrategys-${gameId}`)
+    const redisData = await getKv(`gameStrategys:${gameId}`)
     if (redisData !== null && redisData !== undefined) {
       return JSON.parse(redisData) as StrategyContent
     }
@@ -54,7 +55,7 @@ export const Strategy = {
     )
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
-    void setKv(`gameStrategys-${gameId}`, JSON.stringify(data), 60 * 60 * 1)
+    void setKv(`gameStrategys:${gameId}`, JSON.stringify(data), 60 * 60 * 1)
     type StrategyContent = typeof data
     return data
   },
@@ -77,6 +78,8 @@ export const Strategy = {
     await storeIdempotentResult(`strategyListUpdate-${hash}`, '', 60)
   },
   async strategyListCreate({ id, data }: StrategyModel.strategyListUpdate) {
+
+    await delKv(`gameStrategys:${id}`)
     const str = JSON.stringify({ id, data })
     const hash = XXH.h32(str, 0xabcd).toString(16)
     const cached = await getIdempotentResult(`strategyListCreate-${hash}`)
@@ -101,8 +104,9 @@ export const Strategy = {
     }
     await storeIdempotentResult(`strategyListCreate-${hash}`, '', 60)
   },
-  async strategyListDelete({ id }: StrategyModel.strategyListUpdate) {
-    const str = JSON.stringify({ id })
+  async strategyListDelete({ strategyId, gameId }: StrategyModel.strategy) {
+    await delKv(`gameStrategys:${gameId}`)
+    const str = JSON.stringify({ strategyId })
     const hash = XXH.h32(str, 0xabcd).toString(16)
     const cached = await getIdempotentResult(`strategyListDelete-${hash}`)
     if (cached) {
@@ -114,9 +118,10 @@ export const Strategy = {
     }
     await db
       .deleteFrom('galrc_article')
-      .where('id', '=', Number(id))
+      .where('id', '=', Number(strategyId))
       .returningAll()
       .execute()
+
     await storeIdempotentResult(`strategyListDelete-${hash}`, '', 60)
   },
 }

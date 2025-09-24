@@ -42,7 +42,6 @@ export function TagTable() {
     },
     refetchInterval: 60000,
   })
-
   const pageCount = tagDatas?.totalPages ?? 1
 
   const { open, dataget } = useTagEditDialog()

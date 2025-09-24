@@ -57,7 +57,6 @@ export const game = new Elysia({ prefix: '/games' })
         limit,
         page,
       })
-      console.log(data)
       return data
     },
     {

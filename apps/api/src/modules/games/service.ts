@@ -1,16 +1,18 @@
-import { db, vndbDb } from '@api/libs'
+import { db } from '@api/libs'
+import XXH from 'xxhashjs'
+import { status } from 'elysia'
+import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
+import { t } from 'try'
+
+import type { GameModel } from './model'
 import {
   acquireIdempotentKey,
+  delKv,
   getIdempotentResult,
   getKv,
   setKv,
   storeIdempotentResult,
 } from '@api/libs/redis'
-import { status } from 'elysia'
-import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
-import { t } from 'try'
-import XXH from 'xxhashjs'
-import type { GameModel } from './model'
 
 export const Game = {
   async Count() {
@@ -31,216 +33,214 @@ export const Game = {
     return count
   },
   async List({ pageIndex, pageSize }: GameModel.gameList) {
+    const redisData = await getKv(`gameList-${pageIndex}-${pageSize}`)
+    if (redisData !== null && redisData !== undefined) {
+      return JSON.parse(redisData) as GameList
+    }
     const offset = pageIndex * pageSize
-    try {
-      const redisData = await getKv(`gameList-${pageIndex}-${pageSize}`)
-      if (redisData !== null && redisData !== undefined) {
-        return JSON.parse(redisData) as GameList
-      }
-      const [vidMapResult, totalCountResult] = await Promise.all([
-        db
-          .selectFrom('galrc_alistb')
-          .selectAll()
-          .orderBy('vid', 'desc')
-          .limit(pageSize)
-          .offset(offset)
-          .execute(),
-        db
-          .selectFrom('galrc_alistb')
-          .select(({ fn }) => [fn.countAll().as('count')])
-          .executeTakeFirst(),
-      ]);
-
-      if (!totalCountResult) {
-        throw new Error('Failed to fetch total count');
-      }
-
-      const vids = vidMapResult.map((row) => row.vid)
-      const others = vidMapResult.map((row) => row.other)
-
-      const [otherItems, vndbItems] = await Promise.all([
-        others.length > 0
-          ? db
-            .selectFrom('galrc_other')
-            .selectAll()
-            .where('galrc_other.id', 'in', others)
-            .select((eb) =>
-              jsonArrayFrom(
-                eb
-                  .selectFrom('galrc_other_media')
-                  .whereRef('other_id', '=', 'galrc_other.id')
-                  .selectAll()
-                  .select((media) =>
-                    jsonObjectFrom(
-                      media
-                        .selectFrom('galrc_media')
-                        .selectAll()
-                        .whereRef('hash', '=', 'galrc_other_media.media_hash')
-                    ).as('media')
-                  )
-              ).as('other_media')
-            )
-            .execute()
-          : [],
-        vids.length > 0
-          ? vndbDb
-            .selectFrom('vn')
-            .where('vn.id', 'in', vids)
-            .select((vneb) => [
-              'vn.id',
-              'vn.alias',
-              'vn.description',
-              'vn.olang',
-              jsonArrayFrom(
-                vneb
-                  .selectFrom('vn_titles')
-                  .selectAll()
-                  .whereRef('id', '=', 'vn.id')
-              ).as('titles'),
-              jsonObjectFrom(
-                vneb
-                  .selectFrom('images')
-                  .select(['height', 'id', 'width'])
-                  .whereRef('id', '=', 'vn.c_image')
-              ).as('images'),
-            ])
-            .orderBy('vn.id', 'desc')
-            .execute()
-          : [],
-      ]);
-
-      const otherMap = new Map(otherItems.map((item) => [item.id, item]));
-      const vndbMap = new Map(vndbItems.map((item) => [item.id, item]));
-
-      // Combine results
-      const items = vidMapResult.map((row) => ({
-        ...row,
-        ...(row.vid ? vndbMap.get(row.vid) || {} : {}),
-        other_datas: row.other ? otherMap.get(row.other) || null : null,
-      }));
-      const totalCount = Number(totalCountResult?.count || 0)
-      const totalPages = Math.ceil(totalCount / pageSize)
-      const datas = {
-        items,
-        currentPage: pageIndex,
-        totalPages,
-        totalCount,
-      }
-      void setKv(
-        `gameList-${pageIndex}-${pageSize}`,
-        JSON.stringify(datas),
-        60 * 60 * 12,
-      )
-      type GameList = typeof datas
-      return datas
-    } catch (error) {
+    const [, error, items] = await t(
+      db
+        .selectFrom('galrc_alistb')
+        .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
+        .select(['vn.id', 'vn.olang'])
+        .select((v) => [
+          'vn.id',
+          'vn.olang',
+          jsonArrayFrom(
+            v
+              .selectFrom('vn_titles')
+              .selectAll()
+              .whereRef('vn_titles.id', '=', 'vn.id'),
+          ).as('titles'),
+          jsonObjectFrom(
+            v
+              .selectFrom('images')
+              .select(['id', 'height', 'width'])
+              .whereRef('images.id', '=', 'vn.c_image'),
+          ).as('images'),
+        ])
+        .select((o) => [
+          'galrc_alistb.other',
+          jsonObjectFrom(
+            o
+              .selectFrom('galrc_other')
+              .whereRef('id', '=', 'galrc_alistb.other')
+              .selectAll()
+              .select((oc) => [
+                'galrc_alistb.other',
+                jsonArrayFrom(
+                  oc
+                    .selectFrom('galrc_other_media')
+                    .selectAll()
+                    .whereRef(
+                      'galrc_other_media.other_id',
+                      '=',
+                      'galrc_other.id',
+                    )
+                    .select((om) => [
+                      jsonObjectFrom(
+                        om
+                          .selectFrom('galrc_media')
+                          .selectAll()
+                          .whereRef(
+                            'galrc_media.hash',
+                            '=',
+                            'galrc_other_media.media_hash',
+                          ),
+                      ).as('media'),
+                    ]),
+                ).as('other_media'),
+              ]),
+          ).as('other_datas'),
+        ])
+        .orderBy('vn.id', 'desc')
+        .orderBy('galrc_alistb.other', 'desc')
+        .limit(pageSize)
+        .offset(offset)
+        .execute(),
+    )
+    if (error) {
       throw status(500, `服务出错了喵~,Error:${JSON.stringify(error)}`)
     }
+    const [, error1, totalCountResult] = t(
+      await db
+        .selectFrom('galrc_alistb')
+        .select(({ fn }) => [fn.countAll().as('count')])
+        .executeTakeFirst(),
+    )
+    if (error1) {
+      throw status(500, `服务出错了喵~,Error:${JSON.stringify(error)}`)
+    }
+    const totalCount = Number(totalCountResult?.count || 0)
+    const totalPages = Math.ceil(totalCount / pageSize)
+    const datas = {
+      items,
+      currentPage: pageIndex,
+      totalPages,
+      totalCount,
+    }
+    void setKv(
+      `gameList-${pageIndex}-${pageSize}`,
+      JSON.stringify(datas),
+      60 * 60 * 12,
+    )
+    type GameList = typeof datas
+    return datas
   },
   async InfoGet({ id }: GameModel.infoId) {
-    const redisData = await getKv(`gameInfo-${id}`)
-    if (redisData !== null && redisData !== undefined) {
-      return JSON.parse(redisData) as GameInfo
+    const cacheKey = `gameInfo-${id}`
+    const redisData = await getKv(cacheKey)
+
+    if (redisData) {
+      try {
+        return JSON.parse(redisData) as GameInfo
+      } catch {
+        await delKv(cacheKey)
+      }
     }
+
     const idIsNumber = /^\d+$/.test(id)
-    const idData = await db
-      .selectFrom('galrc_alistb')
-      .where((eb) =>
-        idIsNumber
-          ? eb('other', '=', Number(id))
-          : eb('vid', '=', id),
-      )
-      .selectAll()
-      .executeTakeFirst()
-    if (!idData) {
-      throw status(404, '找不到数据喵~')
+
+    const [, error, data] = t(
+      await db
+        .selectFrom('galrc_alistb')
+        .where((eb) =>
+          idIsNumber
+            ? eb('other', '=', Number(id))
+            : eb('vid', '=', id),
+        )
+        .selectAll()
+        .select((eb) => [
+          jsonObjectFrom(
+            eb
+              .selectFrom('vn')
+              .whereRef('vn.id', '=', 'galrc_alistb.vid')
+              .selectAll()
+              .select((vneb) => [
+                'vn.id',
+                jsonArrayFrom(
+                  vneb
+                    .selectFrom('vn_titles')
+                    .selectAll()
+                    .whereRef('vn_titles.id', '=', 'vn.id'),
+                ).as('titles'),
+                jsonObjectFrom(
+                  vneb
+                    .selectFrom('images')
+                    .select(['id', 'height', 'width'])
+                    .whereRef('images.id', '=', 'vn.c_image'),
+                ).as('images'),
+              ]),
+          ).as('vn_datas'),
+
+          jsonObjectFrom(
+            eb
+              .selectFrom('galrc_other')
+              .whereRef('galrc_other.id', '=', 'galrc_alistb.other')
+              .selectAll()
+              .select((other) => [
+                'id',
+                jsonArrayFrom(
+                  other
+                    .selectFrom('galrc_other_media')
+                    .whereRef('galrc_other_media.other_id', '=', 'galrc_other.id')
+                    .select((media) => [
+                      'galrc_other_media.cover',
+                      jsonObjectFrom(
+                        media
+                          .selectFrom('galrc_media')
+                          .selectAll()
+                          .whereRef('galrc_media.hash', '=', 'galrc_other_media.media_hash'),
+                      ).as('media_datas'),
+                    ]),
+                ).as('media'),
+              ]),
+          ).as('other_datas'),
+        ])
+        .executeTakeFirst(),
+    )
+
+    if (error) {
+      throw status(500, `服务出错了喵~ Error: ${JSON.stringify(error)}`)
     }
 
-    const vndbItems = await vndbDb
-      .selectFrom('vn')
-      .where('vn.id', '=', idData.vid)
-      .selectAll()
-      .select((vneb) => [
-        'vn.id',
-        jsonArrayFrom(
-          vneb
-            .selectFrom('vn_titles')
-            .selectAll()
-            .whereRef('vn_titles.id', '=', 'vn.id'),
-        ).as('titles'),
-        jsonObjectFrom(
-          vneb
-            .selectFrom('images')
-            .select(['id', 'height', 'width'])
-            .whereRef('images.id', '=', 'vn.c_image'),
-        ).as('images'),
-      ])
-      .executeTakeFirst()
-
-    const otherItems = await db
-      .selectFrom('galrc_other')
-      .where('galrc_other.id', '=', idData.other)
-      .selectAll()
-      .select((other) => [
-        'id',
-        jsonArrayFrom(
-          other
-            .selectFrom('galrc_other_media')
-            .whereRef('galrc_other_media.other_id', '=', 'galrc_other.id')
-            .select((media) => [
-              'galrc_other_media.cover',
-              jsonObjectFrom(
-                media
-                  .selectFrom('galrc_media')
-                  .selectAll()
-                  .whereRef(
-                    'galrc_media.hash',
-                    '=',
-                    'galrc_other_media.media_hash',
-                  ),
-              ).as('media_datas'),
-            ]),
-        ).as('media'),
-      ])
-      .executeTakeFirst()
-
-    const result = {
-      ...idData,
-      vn_datas: vndbItems,
-      other_datas: otherItems,
+    if (!data) {
+      throw status(404, `未找到 id=${id} 对应的游戏信息`)
     }
 
-    void setKv(`gameInfo-${id}`, JSON.stringify(result), 60 * 60 * 12)
-    type GameInfo = typeof result
-    return result
+    void setKv(cacheKey, JSON.stringify(data), 60 * 60 * 12)
+
+    type GameInfo = typeof data
+    return data as GameInfo
   },
   async OpenListFiles({ id }: GameModel.OpenListFiles) {
     const redisData = await getKv(`gameOpenListFiles-${id}`)
-    if (redisData != null) {
+    if (redisData !== null && redisData !== undefined) {
       return JSON.parse(redisData) as GameOpenListFiles
     }
-
     const isVNDB = /^v\d+$/.test(id)
     const targetKey = `${isVNDB ? 'vndb' : 'other'}-${id}`
     const keyPattern = `%[${targetKey}]%`
 
-    // 从数据库查询
-    const rows = await db
-      .selectFrom('galrc_search_nodes')
-      .selectAll()
-      .where('parent', 'like', keyPattern)
-      .execute()
+    const [, rowsError, rows] = t(
+      await db
+        .selectFrom('galrc_search_nodes')
+        .selectAll()
+        .where('parent', 'like', keyPattern)
+        .execute(),
+    )
+    if (rowsError)
+      throw status(500, `服务出错了喵~，Error:${JSON.stringify(rowsError)}`)
 
-    // 定义树节点构造类型
     type TreeNodeBuilder = Omit<GameModel.TreeNode, 'children'> & {
       children?: Record<string, TreeNodeBuilder>
     }
-
     const root: Record<string, TreeNodeBuilder> = {}
 
-    // 构建树
     for (const row of rows) {
-      const fullPath = `${row.parent.replace(/\/$/, '')}/${row.name}`
+      const fullPath = row.parent.endsWith('/')
+        ? row.parent + row.name
+        : `${row.parent}/${row.name}`
       const parts = fullPath.split('/').filter(Boolean)
       let currentLevel = root
       let parentId = ''
@@ -257,7 +257,7 @@ export const Game = {
             type: isLast && !row.is_dir ? 'file' : 'folder',
             ...(isLast && !row.is_dir
               ? {
-                size: row.size != null ? String(row.size) : undefined,
+                size: row.size !== undefined ? String(row.size) : undefined,
                 format: part.includes('.')
                   ? part.substring(part.lastIndexOf('.') + 1).toUpperCase()
                   : undefined,
@@ -266,32 +266,44 @@ export const Game = {
           }
         }
 
+        if (!currentLevel[part].children && (!isLast || row.is_dir)) {
+          currentLevel[part].children = {}
+        }
         if (!isLast) {
-          if (!currentLevel[part].children) {
-            currentLevel[part].children = {}
-          }
-          currentLevel = currentLevel[part].children!
+          if (!currentLevel[part].children) return
+          currentLevel = currentLevel[part].children
           parentId = nodeId
         }
       }
     }
 
-    // 转换为最终类型
-    function convert(node: Record<string, TreeNodeBuilder>): GameModel.TreeNode[] {
-      return Object.values(node).map((n) => {
-        const { children, ...rest } = n
-        return {
-          ...rest,
-          ...(children ? { children: convert(children) } : {}),
-        }
-      })
+    async function convert(
+      node: Record<string, TreeNodeBuilder>,
+    ): Promise<GameModel.TreeNode[]> {
+      const nodes = await Promise.all(
+        Object.values(node).map(async (n) => {
+          const { children, ...rest } = n
+          const base: GameModel.TreeNode = {
+            ...rest,
+            ...(children
+              ? {
+                children: await convert(
+                  children as Record<string, TreeNodeBuilder>,
+                ),
+              }
+              : {}),
+          }
+
+          return base
+        }),
+      )
+      return nodes
     }
 
-    // 查找子树
-    function findMatchingSubtree(
+    const findMatchingSubtree = async (
       tree: Record<string, TreeNodeBuilder>,
       matchKey: string,
-    ): GameModel.TreeNode[] {
+    ): Promise<GameModel.TreeNode[]> => {
       const result: GameModel.TreeNode[] = []
 
       for (const node of Object.values(tree)) {
@@ -299,10 +311,10 @@ export const Game = {
           const { children, ...rest } = node
           result.push({
             ...rest,
-            ...(children ? { children: convert(children) } : {}),
+            ...(children ? { children: await convert(children) } : {}),
           })
         } else if (node.children) {
-          const childMatch = findMatchingSubtree(node.children, matchKey)
+          const childMatch = await findMatchingSubtree(node.children, matchKey)
           if (childMatch.length > 0) {
             result.push(...childMatch)
           }
@@ -311,15 +323,10 @@ export const Game = {
 
       return result
     }
-
-    const data = findMatchingSubtree(root, targetKey)
-
-    // 缓存一小时
+    const data = await findMatchingSubtree(root, targetKey)
     void setKv(`gameOpenListFiles-${id}`, JSON.stringify(data), 60 * 60)
-
     type GameOpenListFiles = typeof data
     return data
-
   },
   async DataFilteringStats() {
     const [, error, [onlyOther, bothExist, onlyVid, all]] = t(
@@ -416,45 +423,32 @@ export const Game = {
       )
     }
 
-    const [, error, vidMap] = t(
-      await whereQuery.limit(limit).offset(offset).selectAll().execute(),
-    )
-    const vids = vidMap.map((row) => row.vid)
-    const others = vidMap.map((row) => row.other)
-    const otherItems =
-      others.length > 0
-        ? await db
-          .selectFrom('galrc_other')
-          .where('galrc_other.id', 'in', others)
-          .selectAll()
-          .execute()
-        : []
-    const vndbItems =
-      vids.length > 0
-        ? await vndbDb
-          .selectFrom('vn')
-          .selectAll()
-          .where('vn.id', 'in', vids)
-          .execute()
-        : []
+    dataQuery = dataQuery
+      .select((qb) => [
+        'galrc_alistb.id',
+        'galrc_alistb.vid',
+        'galrc_alistb.other',
+        jsonObjectFrom(
+          qb
+            .selectFrom('vn')
+            .selectAll()
+            .whereRef('vn.id', '=', 'galrc_alistb.vid'),
+        ).as('vndatas'),
+        jsonObjectFrom(
+          qb
+            .selectFrom('galrc_other')
+            .selectAll()
+            .whereRef('galrc_other.id', '=', 'galrc_alistb.other'),
+        ).as('otherdatas'),
+      ])
+      .limit(limit)
+      .offset(offset)
 
-    const otherMap = new Map(otherItems.map((item) => [item.id, item]))
-    const vndbMap = new Map(vndbItems.map((item) => [item.id, item]))
-    const result = vidMap.map((row) => {
-      const vid = row.vid || null
-      const other = row.other || null
-
-      return {
-        vid,
-        other,
-        vndatas: vid ? vndbMap.get(vid) || null : null,
-        otherdatas: other ? otherMap.get(other) || null : null,
-      }
-    })
+    const [, error, data] = t(await dataQuery.execute())
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     return {
-      data: result,
+      data,
       pagination: {
         total,
         limit,
@@ -464,68 +458,133 @@ export const Game = {
     }
   },
   async VidassociationGet({ id }: GameModel.infoId) {
-    const fetchData = async (otherId: number) => {
-      return await db
-        .selectFrom('galrc_other')
-        .selectAll()
-        .where('galrc_other.id', '=', otherId)
-        .select((other) => [
-          'id',
-          jsonArrayFrom(
-            other
-              .selectFrom('galrc_other_media')
-              .whereRef('galrc_other_media.other_id', '=', 'galrc_other.id')
-              .select((media) => [
-                'galrc_other_media.cover',
-                jsonObjectFrom(
-                  media
-                    .selectFrom('galrc_media')
-                    .selectAll()
-                    .whereRef('galrc_media.hash', '=', 'galrc_other_media.media_hash')
-                ).as('mediadata'),
-              ])
-          ).as('othermedia'),
-        ])
-        .executeTakeFirst()
-    }
-
-    const isVid = id.startsWith('v')
-    let otherId: number | null | undefined
-
-    if (isVid) {
-      const record = await db
-        .selectFrom('galrc_alistb')
-        .selectAll()
-        .where('vid', '=', id)
-        .executeTakeFirst()
-
-      otherId = record?.other
-    } else if (/^\d+$/.test(id)) {
-      otherId = Number(id)
-    } else {
-      throw new Error(`Invalid id format: ${id}`)
-    }
-
-    if (!otherId) {
-      const newOther = await db
-        .insertInto('galrc_other')
-        .values({ status: 'draft' })
-        .returning('id')
-        .executeTakeFirstOrThrow()
-
-      otherId = newOther.id
-
-      if (isVid) {
-        await db
-          .updateTable('galrc_alistb')
-          .set({ other: otherId })
+    if (id.startsWith('v')) {
+      const fetchData = async () => {
+        return await db
+          .selectFrom('galrc_alistb')
+          .selectAll()
           .where('vid', '=', id)
-          .execute()
+          .select((eb) => [
+            'galrc_alistb.other',
+            jsonObjectFrom(
+              eb
+                .selectFrom('galrc_other')
+                .selectAll()
+                .whereRef('galrc_other.id', '=', 'galrc_alistb.other')
+                .select((other) => [
+                  'id',
+                  jsonArrayFrom(
+                    other
+                      .selectFrom('galrc_other_media')
+                      .whereRef(
+                        'galrc_other_media.other_id',
+                        '=',
+                        'galrc_other.id',
+                      )
+                      .select((media) => [
+                        'galrc_other_media.cover',
+                        jsonObjectFrom(
+                          media
+                            .selectFrom('galrc_media')
+                            .selectAll()
+                            .whereRef(
+                              'galrc_media.hash',
+                              '=',
+                              'galrc_other_media.media_hash',
+                            ),
+                        ).as('mediadata'),
+                      ]),
+                  ).as('othermedia'),
+                ]),
+            ).as('other_data'),
+          ])
+          .executeTakeFirst()
       }
+      let [, error, data] = t(await fetchData())
+      if (error)
+        throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+      if (data?.other_data === null) {
+        const [, error, newOtherId] = t(
+          await db
+            .insertInto('galrc_other')
+            .values({ status: 'draft' })
+            .returning('id')
+            .executeTakeFirstOrThrow(),
+        )
+        if (error)
+          throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+        const [, error1] = t(
+          await db
+            .updateTable('galrc_alistb')
+            .set({ other: newOtherId.id })
+            .where('vid', '=', id)
+            .execute(),
+        )
+        if (error1)
+          throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+        data = await fetchData()
+      }
+      const datas = data!.other_data
+      return datas
     }
+    if (id.match(/^\d+$/)) {
+      const fetchData = async () => {
+        return await db
+          .selectFrom('galrc_other')
+          .selectAll()
+          .where('galrc_other.id', '=', Number(id))
+          .select((other) => [
+            'id',
+            jsonArrayFrom(
+              other
+                .selectFrom('galrc_other_media')
+                .whereRef('galrc_other_media.other_id', '=', 'galrc_other.id')
+                .select((media) => [
+                  'galrc_other_media.cover',
+                  jsonObjectFrom(
+                    media
+                      .selectFrom('galrc_media')
+                      .selectAll()
+                      .whereRef(
+                        'galrc_media.hash',
+                        '=',
+                        'galrc_other_media.media_hash',
+                      ),
+                  ).as('mediadata'),
+                ])
+                .whereRef('galrc_other_media.other_id', '=', 'galrc_other.id'),
+            ).as('othermedia'),
+          ])
+          .executeTakeFirst()
+      }
+      let [, error, data] = t(await fetchData())
+      if (error)
+        throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+      if (data === undefined) {
+        const [, error, newOtherId] = t(
+          await db
+            .insertInto('galrc_other')
+            .values({ status: 'draft' })
+            .returning('id')
+            .executeTakeFirstOrThrow(),
+        )
+        if (error)
+          throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
 
-    const data = await fetchData(otherId)
-    return data
+        const [, error1] = t(
+          await db
+            .updateTable('galrc_alistb')
+            .set({ other: newOtherId.id })
+            .where('other', '=', Number(id))
+            .execute(),
+        )
+        if (error1)
+          throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+
+        data = await fetchData()
+      }
+      return data
+    }
   },
   async vidassociationUpdate({ id, data }: GameModel.vidassociationUpdate) {
     const str = JSON.stringify({ id, data })

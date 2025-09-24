@@ -21,6 +21,7 @@ import React from 'react'
 import { useStrategyListDialog } from '../stores/strategyListModal'
 import { useLoginModalStore } from './stores/EditStores'
 import { StrategEdit } from './strategyEdit'
+import { StrategyModel } from '@api/modules/strategy/model'
 
 // [x] 攻略列表
 // [x] 攻略增删改
@@ -40,11 +41,10 @@ const StrategyList = ({ id }: { id: string }) => {
     queryKey: ['strategyList', id],
     queryFn: () => strategyListGet(id),
   })
-
   const { mutate: SubmitAc, isPending: SubmitAcLoading } = useMutation({
-    mutationFn: async (values: string) => {
+    mutationFn: async ({ gameId, strategyId }: StrategyModel.strategy) => {
       try {
-        await strategyListDelete(values)
+        await strategyListDelete({ gameId, strategyId })
         await refetch()
       } catch (e) {
         console.log(e)
@@ -113,7 +113,10 @@ const StrategyList = ({ id }: { id: string }) => {
                       size="icon"
                       className="w-8 h-8"
                       onClick={() => {
-                        SubmitAc(String(item.id))
+                        SubmitAc({
+                          gameId: id,
+                          strategyId: item.id,
+                        })
                       }}
                     >
                       {SubmitAcLoading ? (

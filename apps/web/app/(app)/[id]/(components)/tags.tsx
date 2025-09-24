@@ -6,12 +6,12 @@ export async function TagsCard({ id }: { id: string }) {
   const tags = await tagshData(id)
   return (
     <div className="flex flex-wrap gap-2">
-      {tags?.tag.map(
+      {tags?.tags.map(
         (item, i) =>
-          item && (
+          item.tag_data && (
             <Badge variant="secondary" key={i}>
-              <Link href={`/tags/${item.id}`}>
-                {item.zh_name || item.name}
+              <Link href={`/tags/${item.tag_data?.id}`}>
+                {item.tag_data?.zht_name || item.tag_data?.name}
               </Link>
             </Badge>
           ),

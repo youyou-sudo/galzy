@@ -41,10 +41,10 @@ export const strategy = new Elysia({ prefix: '/strategy' })
   )
   .post(
     '/strategylistdelete',
-    async ({ body: { gameId } }) => {
-      return await Strategy.gameStrategys({ gameId })
+    async ({ body: { strategyId, gameId } }) => {
+      return await Strategy.strategyListDelete({ strategyId, gameId })
     },
     {
-      body: StrategyModel.gameStrategys,
+      body: StrategyModel.strategy,
     },
   )

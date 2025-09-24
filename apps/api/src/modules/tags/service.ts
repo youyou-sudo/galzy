@@ -1,314 +1,287 @@
-import { db, vndbDb } from '@api/libs'
-import { getKv, setKv } from '@api/libs/redis'
+import { db } from '@api/libs'
 import { status } from 'elysia'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import { t } from 'try'
 import type { TagsModel } from './model'
+import { delKv, getKv, setKv } from '@api/libs/redis'
 
 export const Tags = {
   async gameTags({ id }: TagsModel.gameTags) {
-    const redisdata = await getKv(`gameTags-${id}`)
-    if (redisdata !== null && redisdata !== undefined) {
-      return JSON.parse(redisdata) as Tag
+    const cacheKey = `gameTags-${id}`
+    const redisData = await getKv(cacheKey)
+
+    // 1. 优先使用缓存
+    if (redisData) {
+      try {
+        return JSON.parse(redisData) as Tag
+      } catch {
+        // 缓存损坏 → 删除
+        await delKv(cacheKey)
+      }
     }
+
+    // 2. 判断 id 是否为数字
     const idIsNumber = /^\d+$/.test(id)
-    const [_, error, gameId] = t(
+
+    // 3. 查询数据库
+    const [, error, items] = t(
       await db
         .selectFrom('galrc_alistb')
+        .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
         .where((eb) =>
           idIsNumber
-            ? eb.or([eb('vid', '=', id), eb('other', '=', Number(id))])
-            : eb('vid', '=', id),
+            ? eb.or([
+              eb('galrc_alistb.vid', '=', id),
+              eb('galrc_alistb.other', '=', Number(id)),
+            ])
+            : eb('vn.id', '=', id),
         )
-        .selectAll()
+        .select((vneb) => [
+          jsonArrayFrom(
+            vneb
+              .selectFrom('tags_vn')
+              .whereRef('tags_vn.vid', '=', 'vn.id')
+              .groupBy(['tags_vn.tag', 'tags_vn.vid'])
+              .select((tagsVn) => [
+                jsonObjectFrom(
+                  tagsVn
+                    .selectFrom('tags')
+                    .innerJoin('galrc_zhtag', 'tags.id', 'galrc_zhtag.id')
+                    .whereRef('tags.id', '=', 'tags_vn.tag')
+                    .where('galrc_zhtag.exhibition', '=', true)
+                    .select([
+                      'tags.id',
+                      'tags.name',
+                      'tags.description',
+                      'galrc_zhtag.name as zht_name',
+                      'galrc_zhtag.description as zht_description',
+                    ]),
+                ).as('tag_data'),
+              ]),
+          ).as('tags'),
+        ])
         .executeTakeFirst(),
     )
-    if (!gameId) {
-      throw status(404, '找不到数据喵~')
-    }
-    const tag = await vndbDb
-      .selectFrom('tags_vn')
-      .where('tags_vn.vid', '=', gameId.vid)
-      .groupBy(['tags_vn.tag', 'tags_vn.vid'])
-      .select((tagsVn) => [
-        jsonObjectFrom(
-          tagsVn
-            .selectFrom('tags')
-            .whereRef('tags.id', '=', 'tags_vn.tag')
-            .select(['tags.id', 'tags.name', 'tags.description']),
-        ).as('tag_data'),
-      ])
-      .execute()
-    const items = tag.map((item) => item.tag_data)
-    const tagIds = items
-      .map((item) => item?.id)
-      .filter((id): id is string => id !== undefined)
-
-    const zhTag =
-      tagIds.length > 0
-        ? await db
-          .selectFrom('galrc_zhtag')
-          .where('galrc_zhtag.id', 'in', tagIds)
-          .where('galrc_zhtag.exhibition', '=', true)
-          .select([
-            'galrc_zhtag.id',
-            'galrc_zhtag.name as zh_name',
-            'galrc_zhtag.alias as zh_alias',
-            'galrc_zhtag.description as zh_description',
-          ])
-          .execute()
-        : []
-    const zhTagMap = new Map(zhTag.map((tag) => [tag.id, tag]))
-
-    const tagMap = new Map(
-      tag
-        .map((t) => t.tag_data)
-        .filter((data): data is NonNullable<typeof data> => data !== undefined)
-        .map((data) => [data.id, data]),
-    )
-
-    const combinedArray = Array.from(tagMap.entries()).map(([id, tagData]) => {
-      const zhTag = zhTagMap.get(id)
-      return {
-        id: tagData.id,
-        name: tagData.name,
-        description: tagData.description,
-        zh_name: zhTag?.zh_name ?? null,
-        zh_alias: zhTag?.zh_alias ?? null,
-        zh_description: zhTag?.zh_description ?? null,
-      }
-    })
-
-    const datas = {
-      tag: combinedArray,
-    }
 
     if (error) {
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+      throw status(500, `服务出错了喵~ Error:${JSON.stringify(error)}`)
     }
-    void setKv(`gameTags-${id}`, JSON.stringify(datas), 60 * 60 * 1)
-    type Tag = typeof datas
-    return datas
+
+    if (!items) {
+      // 没有结果 → 不缓存，直接返回 null
+      return null
+    }
+
+    type Tag = typeof items
+
+    // 4. 缓存结果（1小时）
+    void setKv(cacheKey, JSON.stringify(items), 60 * 60 * 1)
+
+    return items as Tag
   },
   async tag({ tagId }: TagsModel.tagId) {
     const redisdata = await getKv(`tag-${tagId}`)
     if (redisdata !== null && redisdata !== undefined) {
       return JSON.parse(redisdata) as Tag
     }
-    const tag = await vndbDb
-      .selectFrom('tags')
-      .where('id', '=', tagId)
-      .select(['id', 'name', 'description'])
-      .executeTakeFirst()
-
-    const zhtag = await db
-      .selectFrom('galrc_zhtag')
-      .where('id', '=', tagId)
-      .select(['id', 'name as zht_name', 'description as zht_description'])
-      .executeTakeFirst()
-
-    const combined = {
-      ...tag,
-      ...zhtag,
+    const [, error, items] = t(
+      await db
+        .selectFrom('tags')
+        .innerJoin('galrc_zhtag', 'tags.id', 'galrc_zhtag.id')
+        .where('tags.id', '=', tagId)
+        .select([
+          'tags.id',
+          'tags.name',
+          'tags.description',
+          'galrc_zhtag.name as zht_name',
+          'galrc_zhtag.description as zht_description',
+        ])
+        .executeTakeFirst(),
+    )
+    if (error) {
+      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     }
-    void setKv(`tag-${tagId}`, JSON.stringify(combined), 60 * 60 * 1)
-    type Tag = typeof combined
-    return combined
+    void setKv(`tag-${tagId}`, JSON.stringify(items), 60 * 60 * 1)
+    type Tag = typeof items
+    return items
   },
   async tagGames({ tagId, pageSize, pageIndex }: TagsModel.tagGames) {
-    const redisdata = await getKv(`tagGames-${tagId}-${pageSize}-${pageIndex}`)
-    if (redisdata !== null && redisdata !== undefined) {
-      return JSON.parse(redisdata) as TagGames
-    }
-    const offset = pageIndex * pageSize
-    // 1. 从 vndbDb 拿 tags_vn 和 vn 相关数据
-    const tagsVnRows = await vndbDb
-      .selectFrom('tags_vn')
-      .where('tags_vn.tag', '=', tagId)
-      .select(['tags_vn.vid'])
-      .distinct()
-      .limit(pageSize)
-      .offset(offset)
-      .execute()
+    const cacheKey = `tagGames:${tagId}:${pageSize}:${pageIndex}`
 
-    // 拿到 vid 列表
-    const vids = tagsVnRows.map((row) => row.vid)
-
-    // 2. 拿 vn、vn_titles、images
-    const vnRows =
-      vids.length > 0
-        ? await vndbDb
-          .selectFrom('vn')
-          .where('vn.id', 'in', vids)
-          .select((v) => [
-            'vn.id',
-            'vn.olang',
-            jsonArrayFrom(
-              v
-                .selectFrom('vn_titles')
-                .selectAll()
-                .whereRef('vn_titles.id', '=', 'vn.id'),
-            ).as('titles'),
-            jsonObjectFrom(
-              v
-                .selectFrom('images')
-                .select(['height', 'id', 'width'])
-                .whereRef('images.id', '=', 'vn.c_image'),
-            ).as('images'),
-          ])
-          .execute()
-        : []
-
-    // 3. 从 db 拿 galrc_alistb + galrc_other 相关数据
-    const alistRows =
-      vids.length > 0
-        ? await db
-          .selectFrom('galrc_alistb')
-          .where('galrc_alistb.vid', 'in', vids)
-          .select((a) => [
-            'galrc_alistb.vid',
-            'galrc_alistb.other',
-            jsonObjectFrom(
-              a
-                .selectFrom('galrc_other')
-                .selectAll()
-                .whereRef('galrc_other.id', '=', 'galrc_alistb.other')
-                .select((o) => [
-                  'galrc_alistb.other',
-                  jsonArrayFrom(
-                    o
-                      .selectFrom('galrc_other_media')
-                      .selectAll()
-                      .whereRef(
-                        'galrc_other_media.other_id',
-                        '=',
-                        'galrc_other.id',
-                      )
-                      .select((om) => [
-                        jsonObjectFrom(
-                          om
-                            .selectFrom('galrc_media')
-                            .selectAll()
-                            .whereRef(
-                              'galrc_media.hash',
-                              '=',
-                              'galrc_other_media.media_hash',
-                            ),
-                        ).as('media'),
-                      ]),
-                  ).as('other_media'),
-                ]),
-            ).as('other_datas'),
-          ])
-          .execute()
-        : []
-
-    // 4. 在代码中合并
-    const combined = alistRows.map((vid) => {
-      const vnData = vnRows.find((v) => v.id === vid.vid)
-      return {
-        vid,
-        ...vnData,
+    // 先查缓存
+    const redisData = await getKv(cacheKey)
+    if (redisData) {
+      try {
+        return JSON.parse(redisData) as TagGames
+      } catch {
+        // 缓存损坏则忽略，走数据库查询
       }
-    })
-    const [, error1, totalCountResult] = t(
-      await vndbDb
+    }
+
+    const offset = pageIndex * pageSize
+
+    // 并行执行 主查询 + 统计查询
+    const [mainResult, countResult] = await Promise.all([
+      db
         .selectFrom('tags_vn')
+        .innerJoin('galrc_alistb', 'galrc_alistb.vid', 'tags_vn.vid')
+        .where('tags_vn.tag', '=', tagId)
+        .groupBy(['tags_vn.tag', 'tags_vn.vid'])
+        .select((tagsVn) => [
+          jsonObjectFrom(
+            tagsVn
+              .selectFrom('galrc_alistb')
+              .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
+              .select(['vn.id', 'vn.olang'])
+              .whereRef('galrc_alistb.vid', '=', 'tags_vn.vid')
+              .select((vneb) => [
+                'vn.id',
+                jsonArrayFrom(
+                  vneb
+                    .selectFrom('vn_titles')
+                    .selectAll()
+                    .whereRef('vn_titles.id', '=', 'vn.id'),
+                ).as('titles'),
+                jsonObjectFrom(
+                  vneb
+                    .selectFrom('images')
+                    .select(['height', 'id', 'width'])
+                    .whereRef('images.id', '=', 'vn.c_image'),
+                ).as('images'),
+              ])
+              .select((other) => [
+                'galrc_alistb.other',
+                jsonObjectFrom(
+                  other
+                    .selectFrom('galrc_other')
+                    .whereRef('id', '=', 'galrc_alistb.other')
+                    .selectAll()
+                    .select((other) => [
+                      'galrc_alistb.other',
+                      jsonArrayFrom(
+                        other
+                          .selectFrom('galrc_other_media')
+                          .selectAll()
+                          .whereRef(
+                            'galrc_other_media.other_id',
+                            '=',
+                            'galrc_other.id',
+                          )
+                          .select((om) => [
+                            jsonObjectFrom(
+                              om
+                                .selectFrom('galrc_media')
+                                .selectAll()
+                                .whereRef(
+                                  'galrc_media.hash',
+                                  '=',
+                                  'galrc_other_media.media_hash',
+                                ),
+                            ).as('media'),
+                          ]),
+                      ).as('other_media'),
+                    ]),
+                ).as('other_datas'),
+              ]),
+          ).as('datas'),
+        ])
+        .orderBy('tags_vn.vid', 'desc')
+        .limit(pageSize)
+        .offset(offset)
+        .execute(),
+
+      db
+        .selectFrom('tags_vn')
+        .innerJoin('galrc_alistb', 'galrc_alistb.vid', 'tags_vn.vid')
         .groupBy(['tags_vn.tag', 'tags_vn.vid'])
         .select(({ fn }) => [fn.countAll().as('count')])
         .where('tags_vn.tag', '=', tagId)
         .executeTakeFirst(),
-    )
-    if (error1) {
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error1)}`)
-    }
-    const totalCount = Number(totalCountResult?.count || 0)
+    ])
+
+    // main query 结果处理
+    const items = mainResult.map((item) => item.datas)
+
+    // count query 结果处理
+    const totalCount = Number(countResult?.count ?? 0)
     const totalPages = Math.ceil(totalCount / pageSize)
+
     const data = {
-      items: combined,
+      items,
       currentPage: pageIndex,
       totalPages,
       totalCount,
     }
-    void setKv(
-      `tagGames-${tagId}-${pageSize}-${pageIndex}`,
-      JSON.stringify(data),
-      60 * 60 * 1,
-    )
+
+    // 设置缓存（异步执行，不阻塞返回）
+    void setKv(cacheKey, JSON.stringify(data), 60 * 60)
+
     type TagGames = typeof data
     return data
   },
   async tagAllGet({ pageSize, pageIndex, keyword, id }: TagsModel.tagAll) {
     const offset = pageIndex * pageSize
-    let tagsQuery = vndbDb.selectFrom('tags').select(['id'])
-
-    if (id) {
-      tagsQuery = tagsQuery.where('id', 'like', `%${id}%`)
+    // 1. 查询分页数据
+    const [, error, data] = t(
+      await db
+        .selectFrom('tags')
+        .innerJoin('galrc_zhtag', 'tags.id', 'galrc_zhtag.id')
+        .select([
+          'tags.id',
+          'galrc_zhtag.name as zh_name',
+          'galrc_zhtag.description as zh_description',
+          'galrc_zhtag.alias as zh_alias',
+          'galrc_zhtag.exhibition',
+        ])
+        // 模糊匹配 keyword
+        .$if(!!keyword, (qb) =>
+          qb.where((eb) =>
+            eb.or([
+              eb('galrc_zhtag.name', 'like', `%${keyword}%`),
+              eb('galrc_zhtag.alias', 'like', `%${keyword}%`),
+              eb('galrc_zhtag.description', 'like', `%${keyword}%`),
+            ]),
+          ),
+        )
+        // id 模糊匹配
+        .$if(!!id, (qb) => qb.where('tags.id', 'like', `%${id}%`))
+        .orderBy('tags.id', 'asc')
+        .limit(pageSize)
+        .offset(offset)
+        .execute(),
+    )
+    if (error) {
+      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     }
 
-    const tagsRows = await tagsQuery
-      .orderBy('id', 'asc')
-      .limit(pageSize)
-      .offset(offset)
-      .execute()
-
-    // 拿到 tags 的 id 列表
-    const tagIds = tagsRows.map((t) => t.id)
-
-    // 2. 从 db 查询 galrc_zhtag
-    let zhtagsQuery = db
-      .selectFrom('galrc_zhtag')
-      .where('id', 'in', tagIds)
-      .select([
-        'id',
-        'name as zh_name',
-        'description as zh_description',
-        'alias as zh_alias',
-        'exhibition',
-      ])
-
-    if (keyword) {
-      zhtagsQuery = zhtagsQuery.where((eb) =>
-        eb.or([
-          eb('name', 'like', `%${keyword}%`),
-          eb('alias', 'like', `%${keyword}%`),
-          eb('description', 'like', `%${keyword}%`),
-        ]),
-      )
+    // 2. 查询总数
+    const [, error1, totalCountResult] = t(
+      await db
+        .selectFrom('tags')
+        .innerJoin('galrc_zhtag', 'tags.id', 'galrc_zhtag.id')
+        .where('galrc_zhtag.exhibition', '=', true)
+        .$if(!!keyword, (qb) =>
+          qb.where((eb) =>
+            eb.or([
+              eb('galrc_zhtag.name', 'like', `%${keyword}%`),
+              eb('galrc_zhtag.alias', 'like', `%${keyword}%`),
+              eb('galrc_zhtag.description', 'like', `%${keyword}%`),
+            ]),
+          ),
+        )
+        .$if(!!id, (qb) => qb.where('tags.id', 'like', `%${id}%`))
+        .select(({ fn }) => [fn.countAll().as('count')])
+        .executeTakeFirst(),
+    )
+    if (error1) {
+      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error1)}`)
     }
 
-    const zhtagsRows = await zhtagsQuery.execute()
-
-    // 3. 合并结果
-    const combined = tagsRows.map((tag) => {
-      const zht = zhtagsRows.find((z) => z.id === tag.id)
-      return {
-        id: tag.id,
-        ...zht,
-      }
-    })
-
-    // 3. 查询总数
-    const totalCountResult = await db
-      .selectFrom('galrc_zhtag')
-      .$if(!!keyword, (qb) =>
-        qb.where((eb) =>
-          eb.or([
-            eb('name', 'like', `%${keyword}%`),
-            eb('alias', 'like', `%${keyword}%`),
-            eb('description', 'like', `%${keyword}%`),
-          ]),
-        ),
-      )
-      .select(({ fn }) => [fn.countAll().as('count')])
-      .executeTakeFirst()
-
-    const totalCount = Number(totalCountResult?.count ?? 0)
-
+    const totalCount = Number(totalCountResult?.count || 0)
     const totalPages = Math.ceil(totalCount / pageSize)
 
     return {
-      items: combined,
+      items: data,
       currentPage: pageIndex,
       totalPages,
       totalCount,
@@ -339,17 +312,17 @@ export const Tags = {
     if (ok) return true
   },
   async tagFileAdd({ file }: TagsModel.tagFileAdd) {
-    const text = await file.text()
-    const datas = JSON.parse(text)
+    const text = await file.text();
+    const datas = JSON.parse(text);
     const datass = datas.map((item: any) => ({
       id: item.id,
       name: item.name,
       exhibition: item.exhibition,
       alias: item.alias,
       description: item.description,
-    }))
+    }));
 
-    const [, error] = t(await
+    const [, error] = await t(
       db
         .insertInto('galrc_zhtag')
         .values(datass)
@@ -361,19 +334,19 @@ export const Tags = {
               exhibition: (eb) => eb.ref('excluded.exhibition'),
               alias: (eb) => eb.ref('excluded.alias'),
               description: (eb) => eb.ref('excluded.description'),
-            }),
+            })
         )
-        .execute(),
-    )
+        .execute()
+    );
 
     if (error) {
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`);
     }
 
-    return true
+    return true;
   },
   async tagAllFileDwn() {
     const datas = await db.selectFrom('galrc_zhtag').selectAll().execute()
     return datas
-  },
+  }
 }

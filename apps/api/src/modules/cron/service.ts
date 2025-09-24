@@ -1,4 +1,4 @@
-import { db, MeiliClient, vndbDb } from '@api/libs'
+import { db, MeiliClient } from '@api/libs'
 import { deacquireLocklKv, releaseLockKv } from '@api/libs/redis'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import { t } from 'try'
@@ -112,9 +112,8 @@ export const CronService = {
 
     const lock = await deacquireLocklKv(lockKey, lockValue, lockTimeout)
     if (lock) return null
-
     try {
-      const [alistUpInfo, alistUpTime] = (
+      const [, error, [alistUpInfo, alistUpTime]] = t(
         await Promise.all([
           db
             .selectFrom('galrc_setting_items')
@@ -126,17 +125,14 @@ export const CronService = {
             .selectAll()
             .where('key', '=', 'alistUpTime')
             .executeTakeFirst(),
-        ])
+        ]),
       )
+      if (error) throw `Error:${JSON.stringify(error)}`
       const parsedValue = JSON.parse(alistUpInfo?.value as unknown as string)
-      console.log(parsedValue)
       if (!alistUpInfo) return
       if (alistUpInfo.value.is_done === false) return
-      const lastUpdate = new Date(alistUpTime?.config.lastUpdate ?? "");
-      const lastDone = new Date(parsedValue.last_done_time ?? "");
-      if (lastUpdate.getTime() === lastDone.getTime()) return
-
-
+      if (alistUpTime?.config.lastUpdate || 0 === parsedValue.last_done_time)
+        return
 
       const [, alistDataError, alistData] = t(
         await db.selectFrom('galrc_search_nodes').select(['name']).execute(),
@@ -237,7 +233,8 @@ export const CronService = {
         pageIndex++
         hasMore = pageIndex < totalPages
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.error('meiliSearchAddIndex 运行失败喵', e)
     }
   },
@@ -267,127 +264,96 @@ export const CronService = {
 const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
   const offset = pageIndex * pageSize
 
-  const vidMap = await db
+  const items = await db
     .selectFrom('galrc_alistb')
-    .select(['vid', 'other'])
-    .orderBy('vid', 'desc')
+    .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
+    .select((vneb) => [
+      'vn.id',
+      jsonArrayFrom(
+        vneb
+          .selectFrom('vn_titles')
+          .selectAll()
+          .whereRef('vn_titles.id', '=', 'vn.id'),
+      ).as('titles'),
+      jsonObjectFrom(
+        vneb
+          .selectFrom('images')
+          .select(['height', 'id', 'width'])
+          .whereRef('images.id', '=', 'vn.c_image'),
+      ).as('images'),
+      jsonArrayFrom(
+        vneb
+          .selectFrom('releases_vn')
+          .innerJoin('releases', 'releases.id', 'releases_vn.id')
+          .select([
+            'releases.notes',
+            'releases.engine',
+            'releases.olang',
+            'releases.id',
+          ])
+          .whereRef('releases_vn.vid', '=', 'vn.id')
+          .select((releaseseVn) => [
+            jsonArrayFrom(
+              releaseseVn
+                .selectFrom('releases_titles')
+                .select(['releases_titles.id'])
+                .selectAll()
+                .whereRef(
+                  'releases_titles.id',
+                  '=',
+                  releaseseVn.ref('releases.id'),
+                ),
+            ).as('titles'),
+          ]),
+      ).as('vn_releases'),
+    ])
+    .select((other) => [
+      'galrc_alistb.other',
+      jsonObjectFrom(
+        other
+          .selectFrom('galrc_other')
+          .selectAll()
+          .whereRef('id', '=', 'galrc_alistb.other')
+          .select((other) => [
+            'galrc_alistb.other',
+            jsonArrayFrom(
+              other
+                .selectFrom('galrc_other_media')
+                .selectAll()
+                .whereRef('galrc_other_media.other_id', '=', 'galrc_other.id')
+                .select((om) => [
+                  jsonObjectFrom(
+                    om
+                      .selectFrom('galrc_media')
+                      .selectAll()
+                      .whereRef(
+                        'galrc_media.hash',
+                        '=',
+                        'galrc_other_media.media_hash',
+                      ),
+                  ).as('media'),
+                ]),
+            ).as('other_media'),
+          ]),
+      ).as('other_datas'),
+    ])
+    .select((vneb) => [
+      jsonArrayFrom(
+        vneb
+          .selectFrom('tags_vn')
+          .whereRef('tags_vn.vid', '=', 'vn.id')
+          .innerJoin('galrc_zhtag', 'tags_vn.tag', 'galrc_zhtag.id')
+          .selectAll()
+          .distinct(),
+      ).as('tags'),
+    ])
+    .select(['vn.alias', 'vn.description', 'vn.id', 'vn.olang'])
+    .orderBy('vn.id', 'desc')
+    .orderBy('galrc_alistb.other', 'desc')
     .limit(pageSize)
     .offset(offset)
     .execute()
-  const vids = vidMap.map((row) => row.vid)
-  const others = vidMap.map((row) => row.other)
-  const otherItems =
-    others.length > 0
-      ? await db
-        .selectFrom('galrc_other')
-        .where('galrc_other.id', 'in', others)
-        .selectAll()
-        .select((other) => [
-          'id',
-          jsonArrayFrom(
-            other
-              .selectFrom('galrc_media')
-              .selectAll()
-              .whereRef('id', '=', 'galrc_other.id'),
-          ).as('images'),
-        ])
-        .execute()
-      : []
-  const vndbItems =
-    vids.length > 0
-      ? await vndbDb
-        .selectFrom('vn')
-        .where('vn.id', 'in', vids)
-        .select((vneb) => [
-          'vn.id',
-          jsonArrayFrom(
-            vneb
-              .selectFrom('vn_titles')
-              .selectAll()
-              .whereRef('vn_titles.id', '=', 'vn.id'),
-          ).as('titles'),
-          jsonObjectFrom(
-            vneb
-              .selectFrom('images')
-              .select(['height', 'id', 'width'])
-              .whereRef('images.id', '=', 'vn.c_image'),
-          ).as('images'),
-          jsonArrayFrom(
-            vneb
-              .selectFrom('releases_vn')
-              .innerJoin('releases', 'releases.id', 'releases_vn.id')
-              .select([
-                'releases.notes',
-                'releases.engine',
-                'releases.olang',
-                'releases.id',
-              ])
-              .whereRef('releases_vn.vid', '=', 'vn.id')
-              .select((releaseseVn) => [
-                jsonArrayFrom(
-                  releaseseVn
-                    .selectFrom('releases_titles')
-                    .select(['releases_titles.id'])
-                    .selectAll()
-                    .whereRef(
-                      'releases_titles.id',
-                      '=',
-                      releaseseVn.ref('releases.id'),
-                    ),
-                ).as('titles'),
-              ]),
-          ).as('vn_releases'),
-        ])
-        .select((vneb) => [
-          jsonArrayFrom(
-            vneb
-              .selectFrom('tags_vn')
-              .whereRef('tags_vn.vid', '=', 'vn.id')
-              .select('tags_vn.tag as id')
-              .distinct(),
-          ).as('tags'),
-        ])
-        .select(['vn.alias', 'vn.description', 'vn.id', 'vn.olang'])
-        .orderBy('vn.id', 'desc')
-        .execute()
-      : []
 
-  const allTagIds = vndbItems.flatMap((item) => item.tags.map((t) => t.id))
-
-  const zhTag =
-    allTagIds.length > 0
-      ? await db
-        .selectFrom('galrc_zhtag')
-        .where('galrc_zhtag.id', 'in', allTagIds)
-        .select([
-          'galrc_zhtag.id',
-          'galrc_zhtag.name as zh_name',
-          'galrc_zhtag.alias as alias',
-          'galrc_zhtag.description as zh_description',
-          'galrc_zhtag.exhibition',
-        ])
-        .execute()
-      : []
-  const tagMap = new Map(zhTag.map((tag) => [tag.id, tag]))
-
-  const mergedVndbItems = vndbItems.map((item) => ({
-    ...item,
-    tags: item.tags.map((t) => tagMap.get(t.id)),
-  }))
-
-  const otherMap = new Map(otherItems.map((item) => [item.id, item]))
-  const vndbMap = new Map(mergedVndbItems.map((item) => [item.id, item]))
-  const result = vidMap.map((row) => {
-    const vid = row.vid || null
-    const other = row.other || null
-
-    return {
-      vid,
-      other,
-      vndb: vid ? vndbMap.get(vid) || null : null,
-      otherData: other ? otherMap.get(other) || null : null,
-    }
-  })
   const totalCountResult = await db
     .selectFrom('galrc_alistb')
     .select(({ fn }) => [fn.countAll().as('count')])
@@ -397,7 +363,7 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
   const totalPages = Math.ceil(totalCount / pageSize)
 
   return {
-    items: result,
+    items,
     currentPage: pageIndex,
     totalPages,
     totalCount,
@@ -405,51 +371,36 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
 }
 
 const tagAllGet = async (pageSize: number, pageIndex: number) => {
-  const offset = pageIndex * pageSize
-  const tagItems = await await vndbDb
-    .selectFrom('tags')
-    .select(['tags.id', 'tags.name', 'tags.description'])
-    .limit(pageSize)
-    .offset(offset)
-    .execute()
-
-  const otherItems = await db
-    .selectFrom('galrc_zhtag')
-    .where(
-      'galrc_zhtag.id',
-      'in',
-      tagItems.map((item) => item.id),
-    )
-    .where('galrc_zhtag.exhibition', '=', true)
+  const offset = pageIndex * pageSize;
+  const items = await await db
+    .selectFrom("tags")
+    .innerJoin("galrc_zhtag", "tags.id", "galrc_zhtag.id")
     .select([
-      'galrc_zhtag.id',
-      'galrc_zhtag.name as zh_name',
-      'galrc_zhtag.alias as zh_alias',
-      'galrc_zhtag.description as zh_description',
-      'galrc_zhtag.exhibition',
+      "tags.id",
+      "tags.name",
+      "tags.description",
+      "galrc_zhtag.name as zh_name",
+      "galrc_zhtag.description as zh_description",
+      "galrc_zhtag.alias",
     ])
+    .where("galrc_zhtag.exhibition", "=", true)
     .limit(pageSize)
     .offset(offset)
-    .execute()
+    .execute();
 
   const totalCountResult = await db
-    .selectFrom('galrc_zhtag')
-    .where('galrc_zhtag.exhibition', '=', true)
-    .where(
-      'galrc_zhtag.id',
-      'in',
-      tagItems.map((item) => item.id),
-    )
-    .select(({ fn }) => [fn.countAll().as('count')])
-    .executeTakeFirst()
+    .selectFrom("tags")
+    .innerJoin("galrc_zhtag", "tags.id", "galrc_zhtag.id")
+    .select(({ fn }) => [fn.countAll().as("count")])
+    .executeTakeFirst();
 
-  const totalCount = Number(totalCountResult?.count || 0)
-  const totalPages = Math.ceil(totalCount / pageSize)
+  const totalCount = Number(totalCountResult?.count || 0);
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   return {
-    items: otherItems,
+    items,
     currentPage: pageIndex,
     totalPages,
     totalCount,
-  }
-}
+  };
+};
