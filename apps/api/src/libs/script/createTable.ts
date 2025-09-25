@@ -325,7 +325,7 @@ await sql`
 
 // 创建用户映射
 await sql`
-  CREATE USER MAPPING FOR postgres
+  CREATE USER MAPPING FOR ${sql.raw(user)}
     SERVER vndb_server
     OPTIONS (
       user '${sql.raw(user)}',
