@@ -474,3 +474,18 @@ await sql`
     table_name  'releases_vn'
   );
 `.execute(db);
+
+await sql`
+  CREATE FOREIGN TABLE IF NOT EXISTS releases_titles (
+    id  text,
+    lang          text,       -- language 类型，可按需映射
+    mtl           boolean,
+    title         text,       -- 可为空
+    latin         text        -- 可为空
+  )
+  SERVER vndb_server
+  OPTIONS (
+    schema_name 'public',
+    table_name  'releases_titles'
+  );
+`.execute(db);
