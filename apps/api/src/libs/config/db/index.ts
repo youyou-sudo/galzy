@@ -4,6 +4,6 @@ export const dbConfig = {
 }
 
 export const vndbDbConfig = {
-  connectionString: process.env.VNDB_DATABASE_URL,
+  connectionString: process.env.DEVVNDB_DATABASE_URL || process.env.VNDB_DATABASE_URL,
   max: Number(process.env.POSTGRES_POOL_MAX),
 }

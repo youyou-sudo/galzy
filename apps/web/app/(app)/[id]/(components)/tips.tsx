@@ -23,7 +23,7 @@ export const Glgczujm = () => {
   ]
   return (
     <div className="space-y-1">
-      <Alert className="border-cyan-600/30 text-cyan-500 border-x-0">
+      <Alert className="border-cyan-600/30 text-cyan-500 border-x-0 border-b-0">
         <Info className="w-4 h-4" />
         <AlertTitle>本站已配置负载均衡保证速度</AlertTitle>
         <AlertDescription>推荐使用 IDM 等工具喵～</AlertDescription>
