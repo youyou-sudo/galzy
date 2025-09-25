@@ -80,7 +80,8 @@ export const Download = {
     if (error) {
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     }
-    return res
+    const result = structuredClone(res)
+    return result
   },
   async Worker() {
     const [, error, res] = t(

@@ -1,9 +1,10 @@
 'use server'
+import type { GameModel } from '@api/modules/games/model'
 import { api } from '@libs'
 
 export const getFileList = async (id: string) => {
   const { data } = await api.games.openlistfiles.get({ query: { id } })
-  return data
+  return data as GameModel.TreeNode[]
 }
 
 

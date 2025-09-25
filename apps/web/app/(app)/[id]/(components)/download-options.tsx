@@ -26,24 +26,24 @@ import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import { MarkdownComponents } from './markdown-components'
 import { downCardDataStore } from './stores/downCardData'
+import type { GameModel } from '@api/modules/games/model'
 
-type fileList = Awaited<ReturnType<typeof getFileList>>
 
-export function DownloadOptions({ fileList }: { fileList: fileList }) {
+export function DownloadOptions({ fileList }: { fileList: GameModel.TreeNode[] }) {
   return <FileExplorer items={fileList} />
 }
 
 // ---------- 分卷文件识别处理 ----------
 // ---------- 分卷文件识别处理 + md 同名判定 ----------
 function groupSplitArchives(
-  items: fileList | undefined,
-): fileList | undefined {
+  items: GameModel.TreeNode[] | undefined,
+): GameModel.TreeNode[] | undefined {
 
 
   if (!items || items.length === 0) return items
 
-  const archivesMap: Record<string, fileList> = {}
-  const others: fileList = []
+  const archivesMap: Record<string, GameModel.TreeNode[]> = {}
+  const others: GameModel.TreeNode[] = []
 
   // 先收集当前目录的所有 md 文件
   const mdMap: Record<string, string> = {} // name -> id
@@ -105,7 +105,7 @@ function groupSplitArchives(
 }
 
 // ---------- 文件浏览器组件 ----------
-function FileExplorer({ items }: { items: fileList }) {
+function FileExplorer({ items }: { items: GameModel.TreeNode[] }) {
   const simplifiedItems = (() => {
     if (
       items &&
@@ -129,7 +129,7 @@ function FileExplorer({ items }: { items: fileList }) {
 }
 
 // ---------- 文件/文件夹递归渲染 ----------
-const Filessss = ({ items }: { items: fileList | undefined }) => {
+const Filessss = ({ items }: { items: GameModel.TreeNode[] | undefined }) => {
   const open = downCardDataStore((s) => s.open)
   const setData = downCardDataStore((s) => s.setData)
 

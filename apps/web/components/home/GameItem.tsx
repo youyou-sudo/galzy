@@ -20,11 +20,11 @@ export const GameItem = ({
   item: GameItemType | TagGameItemType
 }) => {
   let imagesData
-  if (item.other && item.other_datas?.other_media?.length) {
+  if (item?.other && item.other_datas?.other_media?.length) {
     imagesData =
       item.other_datas.other_media.find((item) => item.cover)?.media ?? item.images
   } else {
-    imagesData = item.images
+    imagesData = item?.images
   }
 
 
@@ -42,19 +42,19 @@ export const GameItem = ({
   }
 
   let title
-  if (item.other_datas) {
+  if (item?.other_datas) {
     title = item.other_datas?.title?.find(
       (t) => t.lang === 'zh-Hans' && t.title.trim() !== '',
     )?.title
   }
   if (!title) {
-    title = item.titles?.find(
+    title = item?.titles?.find(
       (t) => t.lang === item.olang && t.title.trim() !== '',
     )?.title
   }
 
   return (
-    <Link href={`/${item.id}`}>
+    <Link href={`/${item?.id}`}>
       <div
         className="hover:shadow-md hover:border-1  rounded-lg"
         style={{ contentVisibility: 'auto' }}

@@ -208,10 +208,11 @@ export const Game = {
       throw status(404, `未找到 id=${id} 对应的游戏信息`)
     }
 
-    void setKv(cacheKey, JSON.stringify(data), 60 * 60 * 12)
+    const result = structuredClone(data)
+    void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 12)
 
-    type GameInfo = typeof data
-    return data as GameInfo
+    type GameInfo = typeof result
+    return result
   },
   async OpenListFiles({ id }: GameModel.OpenListFiles) {
     const redisData = await getKv(`gameOpenListFiles-${id}`)
@@ -236,8 +237,9 @@ export const Game = {
       children?: Record<string, TreeNodeBuilder>
     }
     const root: Record<string, TreeNodeBuilder> = {}
+    const rowscopy = structuredClone(rows)
 
-    for (const row of rows) {
+    for (const row of rowscopy) {
       const fullPath = row.parent.endsWith('/')
         ? row.parent + row.name
         : `${row.parent}/${row.name}`
@@ -324,9 +326,10 @@ export const Game = {
       return result
     }
     const data = await findMatchingSubtree(root, targetKey)
-    void setKv(`gameOpenListFiles-${id}`, JSON.stringify(data), 60 * 60)
-    type GameOpenListFiles = typeof data
-    return data
+    const result = structuredClone(data)
+    void setKv(`gameOpenListFiles-${id}`, JSON.stringify(result), 60 * 60)
+    type GameOpenListFiles = typeof result
+    return result
   },
   async DataFilteringStats() {
     const [, error, [onlyOther, bothExist, onlyVid, all]] = t(

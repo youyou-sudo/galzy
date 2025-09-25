@@ -15,7 +15,7 @@ import { strategy } from './modules/strategy'
 
 initValidationError()
 dbSeed()
-export const app = new Elysia()
+const app = new Elysia()
   .onError(({ code, error }) => {
     if (code === 'VALIDATION')
       return error.message
@@ -31,7 +31,7 @@ export const app = new Elysia()
   .use(cronServer)
   .listen(process.env.API_PORT ?? 3001)
 
-export type app = typeof app
+export type APP = typeof app
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,

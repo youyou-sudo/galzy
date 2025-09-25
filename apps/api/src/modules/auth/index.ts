@@ -1,7 +1,7 @@
 import cors from '@elysiajs/cors'
 import swagger from '@elysiajs/swagger'
 import { Elysia } from 'elysia'
-import { auth, OpenAPI } from './service'
+import { auth } from './service'
 
 const betterAuth = new Elysia({ name: 'better-auth' })
   .use(
@@ -31,12 +31,7 @@ const betterAuth = new Elysia({ name: 'better-auth' })
   })
 
 export const YouyouAuth = new Elysia()
-  .use(
-    swagger({
-      documentation: {
-        components: await OpenAPI.components,
-        paths: await OpenAPI.getPaths(),
-      },
-    }),
-  )
+  // .use(
+  //   swagger(),
+  // )
   .use(betterAuth)

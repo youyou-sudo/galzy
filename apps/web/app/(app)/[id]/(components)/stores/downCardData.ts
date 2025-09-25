@@ -1,17 +1,17 @@
+import type { GameModel } from '@api/modules/games/model'
 import type { getFileList } from '@web/lib/repositories/alistFileList'
 import { create } from 'zustand'
 
 let clearTimeoutId: ReturnType<typeof setTimeout> | null = null
 
-type fileList = NonNullable<Awaited<ReturnType<typeof getFileList>>>
 
 export const downCardDataStore = create<{
-  data: fileList[number] | null
+  data: GameModel.TreeNode | null
   isOpen: boolean
   open: () => void
   close: () => void
   setOpen: (open: boolean) => void
-  setData: (data: fileList[number]) => void
+  setData: (data: GameModel.TreeNode) => void
 }>((set) => ({
   data: null,
   isOpen: false,

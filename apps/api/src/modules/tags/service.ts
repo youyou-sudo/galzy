@@ -8,15 +8,15 @@ import { delKv, getKv, setKv } from '@api/libs/redis'
 export const Tags = {
   async gameTags({ id }: TagsModel.gameTags) {
     const cacheKey = `gameTags-${id}`
-    const redisData = await getKv(cacheKey)
 
-    // 1. 优先使用缓存
+    // 1. 尝试从缓存读取
+    const redisData = await getKv(cacheKey)
     if (redisData) {
       try {
         return JSON.parse(redisData) as Tag
       } catch {
-        // 缓存损坏 → 删除
-        await delKv(cacheKey)
+        // 缓存损坏 → 删除并继续查库
+        await delKv(cacheKey).catch(() => { })
       }
     }
 
@@ -24,8 +24,8 @@ export const Tags = {
     const idIsNumber = /^\d+$/.test(id)
 
     // 3. 查询数据库
-    const [, error, items] = t(
-      await db
+    const [, error, items] = await t(
+      db
         .selectFrom('galrc_alistb')
         .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
         .where((eb) =>
@@ -68,16 +68,20 @@ export const Tags = {
     }
 
     if (!items) {
-      // 没有结果 → 不缓存，直接返回 null
-      return null
+      throw status(404, `没有找到数据: id=${id}`)
     }
 
-    type Tag = typeof items
+    const result = structuredClone(items)
 
-    // 4. 缓存结果（1小时）
-    void setKv(cacheKey, JSON.stringify(items), 60 * 60 * 1)
+    // 写入缓存（失败时只记录，不影响结果返回）
+    setKv(cacheKey, JSON.stringify(result), 60 * 60).catch(() => {
+      console.warn(`缓存写入失败: ${cacheKey}`)
+    })
 
-    return items as Tag
+    // 类型定义：保证 result 不会是 undefined
+    type Tag = NonNullable<typeof result>
+    return result
+
   },
   async tag({ tagId }: TagsModel.tagId) {
     const redisdata = await getKv(`tag-${tagId}`)
@@ -96,14 +100,19 @@ export const Tags = {
           'galrc_zhtag.name as zht_name',
           'galrc_zhtag.description as zht_description',
         ])
-        .executeTakeFirst(),
-    )
+        .executeTakeFirst())
+
+    if (!items) {
+      throw status(404, `Tag ${tagId} 不存在`)
+    }
+
+    const result = structuredClone(items)
     if (error) {
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     }
-    void setKv(`tag-${tagId}`, JSON.stringify(items), 60 * 60 * 1)
-    type Tag = typeof items
-    return items
+    void setKv(`tag-${tagId}`, JSON.stringify(result), 60 * 60 * 1)
+    type Tag = typeof result
+    return result
   },
   async tagGames({ tagId, pageSize, pageIndex }: TagsModel.tagGames) {
     const cacheKey = `tagGames:${tagId}:${pageSize}:${pageIndex}`
