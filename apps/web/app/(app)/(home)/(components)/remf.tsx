@@ -18,16 +18,16 @@ export default async function RankingList<T extends Item>({
   const datas = await fetchData()
 
   return (
-    <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 truncate max-h-[9rem] overflow-y-auto">
+    <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-[9rem] overflow-y-auto">
       {datas.map((item, index) => {
         const linkValue = item[linkKey]
-        if (!linkValue) return null // 避免 key 为 undefined
+        if (!linkValue) return null
         const href = linkKey === 'tag' ? `/tags/${linkValue}` : `/${linkValue}`
 
         return (
-          <li key={linkValue} className="truncate max-w-full">
+          <li key={linkValue} className="w-full">
             <Link href={href} className="block w-full">
-              <span className="flex items-center overflow-hidden whitespace-nowrap">
+              <span className="flex items-center w-full">
                 <span
                   className={`font-bold mr-2 flex-shrink-0 ${
                     index === 0
@@ -42,7 +42,7 @@ export default async function RankingList<T extends Item>({
                   {index + 1}.
                 </span>
                 <span
-                  className={`font-bold text-sm flex-1 overflow-hidden text-ellipsis ${
+                  className={`font-bold text-sm flex-1 min-w-0 truncate ${
                     index === 0
                       ? 'underline decoration-red-500 underline-offset-4'
                       : index === 1
