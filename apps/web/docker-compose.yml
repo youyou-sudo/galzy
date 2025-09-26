@@ -1,0 +1,11 @@
+services:
+  web:
+    image: ghcr.io/youyou-sudo/mono-web:latest
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:3000/api/heartbeat"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "3000"
