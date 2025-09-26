@@ -283,10 +283,6 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
         vneb
           .selectFrom('releases_vn')
           .innerJoin('releases', 'releases.id', 'releases_vn.id')
-          .select([
-            'releases.olang',
-            'releases.id',
-          ])
           .whereRef('releases_vn.vid', '=', 'vn.id')
           .select((releaseseVn) => [
             jsonArrayFrom(
