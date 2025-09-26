@@ -1,6 +1,8 @@
 services:
   web:
     image: ghcr.io/youyou-sudo/mono-web:latest
+    volumes:
+      - nextjsWebImageCache:/app/apps/web/.next/cache
     restart: always
 
 volumes:
