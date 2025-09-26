@@ -218,7 +218,6 @@ export const CronService = {
   async meiliSearchAddIndex() {
     try {
       const index = await MeiliClient.index(process.env.MEILISEARCH_INDEXNAME!)
-      console.log('meiliSearchAddIndex', JSON.stringify(index))
       let pageIndex = 0
       const pageSize = 500 // 每批 500 条，根据数据量调
       let hasMore = true
@@ -272,7 +271,7 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
       jsonArrayFrom(
         vneb
           .selectFrom('vn_titles')
-          .selectAll()
+          .select(['vn_titles.title', 'vn_titles.latin', 'vn_titles.lang'])
           .whereRef('vn_titles.id', '=', 'vn.id'),
       ).as('titles'),
       jsonObjectFrom(
@@ -286,8 +285,6 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
           .selectFrom('releases_vn')
           .innerJoin('releases', 'releases.id', 'releases_vn.id')
           .select([
-            'releases.notes',
-            'releases.engine',
             'releases.olang',
             'releases.id',
           ])
@@ -297,7 +294,7 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
               releaseseVn
                 .selectFrom('releases_titles')
                 .select(['releases_titles.id'])
-                .selectAll()
+                .select(['releases_titles.title', 'releases_titles.latin', 'releases_titles.lang'])
                 .whereRef(
                   'releases_titles.id',
                   '=',
@@ -312,10 +309,9 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
       jsonObjectFrom(
         other
           .selectFrom('galrc_other')
-          .selectAll()
           .whereRef('id', '=', 'galrc_alistb.other')
           .select((other) => [
-            'galrc_alistb.other',
+            'galrc_other.id', 'galrc_alistb.other', 'galrc_other.title', 'galrc_other.alias',
             jsonArrayFrom(
               other
                 .selectFrom('galrc_other_media')
