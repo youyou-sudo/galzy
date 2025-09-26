@@ -27,15 +27,16 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: '10mb' },
   },
   images: {
-    formats: ['image/avif', 'image/webp'],
-    minimumCacheTTL: 2678400,
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 't.vndb.org',
-      },
-      ...(openImageHost ? [openImageHost] : []),
-    ],
+    unoptimized: true,
+    // formats: ['image/avif', 'image/webp'],
+    // minimumCacheTTL: 2678400,
+    // remotePatterns: [
+    //   {
+    //     protocol: 'https',
+    //     hostname: 't.vndb.org',
+    //   },
+    //   ...(openImageHost ? [openImageHost] : []),
+    // ],
   },
 }
 
