@@ -2,10 +2,8 @@ FROM oven/bun:slim AS build
 
 WORKDIR /app
 
-# Cache packages
-COPY package.json package.json
-COPY bun.lock bun.lock
-
+# 安装依赖
+COPY package.json bun.lock ./
 COPY apps/web/package.json apps/web/package.json
 COPY apps/api/package.json apps/api/package.json
 COPY packages/libs/package.json packages/libs/package.json
@@ -13,6 +11,7 @@ COPY packages/config/package.json packages/config/package.json
 
 RUN bun install
 
+# 复制项目代码
 COPY apps/web apps/web
 COPY apps/api apps/api
 COPY packages/libs packages/libs
@@ -24,8 +23,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app/apps/web
 RUN bun run build
 
-# -----------
-FROM node:22-slim AS production
+# 生产阶段也用 bun
+FROM oven/bun:slim AS production
 
 WORKDIR /app
 
@@ -35,14 +34,13 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy the built app from the build stage
+# 复制构建好的文件
 COPY --from=build --chown=nextjs:nodejs /app/apps/web/.next/standalone .
-
-RUN chown nextjs:nodejs apps
 
 USER nextjs
 
 ENV HOSTNAME="0.0.0.0"
-
 EXPOSE 3000
-CMD ["node", "apps/web/server.js"]
+
+# 使用 bun 启动
+CMD ["bun", "run", "apps/web/server.js"]
