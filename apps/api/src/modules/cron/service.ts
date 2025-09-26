@@ -338,8 +338,9 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
           .selectFrom('tags_vn')
           .whereRef('tags_vn.vid', '=', 'vn.id')
           .innerJoin('galrc_zhtag', 'tags_vn.tag', 'galrc_zhtag.id')
-          .selectAll()
-          .distinct(),
+          .where('galrc_zhtag.exhibition', '=', true)
+          .distinct()
+          .select(['galrc_zhtag.alias', 'galrc_zhtag.name', 'galrc_zhtag.id']),
       ).as('tags'),
     ])
     .select(['vn.alias', 'vn.id', 'vn.olang'])
@@ -373,9 +374,7 @@ const tagAllGet = async (pageSize: number, pageIndex: number) => {
     .select([
       "tags.id",
       "tags.name",
-      "tags.description",
       "galrc_zhtag.name as zh_name",
-      "galrc_zhtag.description as zh_description",
       "galrc_zhtag.alias",
     ])
     .where("galrc_zhtag.exhibition", "=", true)
