@@ -267,7 +267,6 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
     .selectFrom('galrc_alistb')
     .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
     .select((vneb) => [
-      'vn.id',
       jsonArrayFrom(
         vneb
           .selectFrom('vn_titles')
@@ -343,7 +342,7 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
           .distinct(),
       ).as('tags'),
     ])
-    .select(['vn.alias', 'vn.description', 'vn.id', 'vn.olang'])
+    .select(['vn.alias', 'vn.id', 'vn.olang'])
     .orderBy('vn.id', 'desc')
     .orderBy('galrc_alistb.other', 'desc')
     .limit(pageSize)
