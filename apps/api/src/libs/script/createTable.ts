@@ -211,6 +211,24 @@ export async function dbSeed() {
     .column('tag')
     .execute()
   await vndbDb.schema
+    .createIndex('vn_c_image_index')
+    .ifNotExists()
+    .on('vn')
+    .column('c_image')
+    .execute()
+  await vndbDb.schema
+    .createIndex('releases_titles_index')
+    .ifNotExists()
+    .on('releases_titles')
+    .column('id')
+    .execute()
+  await vndbDb.schema
+    .createIndex('vn_titles_index')
+    .ifNotExists()
+    .on('vn_titles')
+    .column('id')
+    .execute()
+  await vndbDb.schema
     .createIndex('tags_vn_vid_index')
     .ifNotExists()
     .on('tags_vn')
