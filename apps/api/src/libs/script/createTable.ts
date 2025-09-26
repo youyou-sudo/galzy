@@ -305,14 +305,12 @@ await sql`
 `.execute(db);
 const dbUrl = new URL(process.env.VNDB_DATABASE_URL!);
 
-// 注意：dbUrl.username / dbUrl.password 默认是解码后的字符串
 const host = dbUrl.hostname;
 const port = dbUrl.port;
-const dbname = dbUrl.pathname.replace(/^\//, ''); // 去掉前导斜杠
+const dbname = dbUrl.pathname.replace(/^\//, '');
 const user = dbUrl.username;
 const password = dbUrl.password;
 
-// 创建远程服务器
 await sql`
   CREATE SERVER vndb_server
     FOREIGN DATA WRAPPER postgres_fdw

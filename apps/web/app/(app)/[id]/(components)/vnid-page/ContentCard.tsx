@@ -42,17 +42,16 @@ export const ContentCard = ({ data }: Props) => {
         <div className="sm:float-right text-center sm:text-right sm:ml-4 pb-4 mb-1 relative">
           <div className="relative inline-block">
             <div
-              className={`${
-                filteredImage!.height < filteredImage!.width
-                  ? 'min-w-[290px]'
-                  : 'min-w-[220px]'
-              } shadow-lg relative overflow-hidden text-left`}
+              className={`${filteredImage && filteredImage.height < filteredImage.width
+                  ? "min-w-[290px]"
+                  : "min-w-[220px]"
+                } shadow-lg relative overflow-hidden text-left`}
             >
               <Image
-                width={filteredImage?.width}
-                height={filteredImage?.height}
-                className="w-full h-full  transition-transform relative z-10 rounded"
-                src={imageUrl || '/placeholder.svg'}
+                width={filteredImage?.width ?? 300}   // 默认 300
+                height={filteredImage?.height ?? 200} // 默认 200
+                className="w-full h-full transition-transform relative z-10 rounded"
+                src={imageUrl || "/placeholder.svg"}
                 alt="游戏图片"
                 loading="lazy"
                 decoding="async"
@@ -60,6 +59,7 @@ export const ContentCard = ({ data }: Props) => {
             </div>
           </div>
         </div>
+
 
         {/* Main content section */}
         <div className="overflow-hidden break-words">

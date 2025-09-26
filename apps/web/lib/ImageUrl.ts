@@ -1,17 +1,17 @@
 import { env } from 'next-runtime-env'
-export const getImageUrl = ({
-  imageId,
-  width,
-  height,
-}: {
-  imageId: string
-  width: number
-  height: number
-}) => {
+
+type ImageParams = {
+  imageId?: string | null
+  width?: number | null
+  height?: number | null
+}
+
+export const getImageUrl = ({ imageId, width, height }: ImageParams) => {
   if (!imageId) {
-    return ''
+    return '/No-Image-Placeholder.svg.webp'
   }
-  return width && width > 256 && height > 400
+
+  return width && width > 256 && height && height > 400
     ? `${env('NEXT_PUBLIC_VNDBIMG_URI')}/${imageId.substring(
         0,
         2,
@@ -23,6 +23,5 @@ export const getImageUrl = ({
 }
 
 export function imageAcc(name: string) {
-  const res = `${env('NEXT_PUBLIC_OPENIMAG_P_HOST')}/p/upload/${name}`
-  return res
+  return `${env('NEXT_PUBLIC_OPENIMAG_P_HOST')}/p/upload/${name}`
 }

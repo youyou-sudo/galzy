@@ -38,13 +38,13 @@ export const getCoverImageUrl = ({ data }: Props) => {
   const filteredImage = imageFilter({ data })
   const imageUrl =
     filteredImage &&
-    typeof filteredImage === 'object' &&
-    'hash' in filteredImage
+      typeof filteredImage === 'object' &&
+      'hash' in filteredImage
       ? imageAcc(filteredImage.name)
       : getImageUrl({
-          imageId: filteredImage!.id,
-          width: filteredImage!.width,
-          height: filteredImage!.height,
-        })
+        imageId: filteredImage?.id,
+        width: filteredImage?.width,
+        height: filteredImage?.height,
+      })
   return imageUrl
 }
