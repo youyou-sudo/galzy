@@ -59,7 +59,9 @@ export const Strategy = {
     type StrategyContent = typeof data
     return data
   },
-  async strategyListUpdate({ id, data }: StrategyModel.strategyListUpdate) {
+  async strategyUpdate({ id, data }: StrategyModel.strategyListUpdate) {
+    await delKv(`gameStrategys:${id}`)
+    await delKv(`strategy-${id}`)
     const str = JSON.stringify({ id, data })
     const hash = XXH.h32(str, 0xabcd).toString(16)
     const cached = await getIdempotentResult(`strategyListUpdate-${hash}`)
@@ -77,7 +79,7 @@ export const Strategy = {
       .execute()
     await storeIdempotentResult(`strategyListUpdate-${hash}`, '', 60)
   },
-  async strategyListCreate({ id, data }: StrategyModel.strategyListUpdate) {
+  async strategyCreate({ id, data }: StrategyModel.strategyListUpdate) {
 
     await delKv(`gameStrategys:${id}`)
     const str = JSON.stringify({ id, data })
@@ -104,7 +106,7 @@ export const Strategy = {
     }
     await storeIdempotentResult(`strategyListCreate-${hash}`, '', 60)
   },
-  async strategyListDelete({ strategyId, gameId }: StrategyModel.strategy) {
+  async strategyDelete({ strategyId, gameId }: StrategyModel.strategy) {
     await delKv(`gameStrategys:${gameId}`)
     const str = JSON.stringify({ strategyId })
     const hash = XXH.h32(str, 0xabcd).toString(16)

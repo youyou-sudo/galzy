@@ -24,7 +24,7 @@ export const strategy = new Elysia({ prefix: '/strategy' })
   .post(
     '/strategylistupdate',
     async ({ body: { id, data } }) => {
-      return await Strategy.strategyListUpdate({ id, data })
+      return await Strategy.strategyUpdate({ id, data })
     },
     {
       body: StrategyModel.strategyListUpdate,
@@ -33,7 +33,7 @@ export const strategy = new Elysia({ prefix: '/strategy' })
   .post(
     '/strategylistcreate',
     async ({ body: { id, data } }) => {
-      return await Strategy.strategyListCreate({ id, data })
+      return await Strategy.strategyCreate({ id, data })
     },
     {
       body: StrategyModel.strategyListUpdate,
@@ -42,7 +42,7 @@ export const strategy = new Elysia({ prefix: '/strategy' })
   .post(
     '/strategylistdelete',
     async ({ body: { strategyId, gameId } }) => {
-      return await Strategy.strategyListDelete({ strategyId, gameId })
+      return await Strategy.strategyDelete({ strategyId, gameId })
     },
     {
       body: StrategyModel.strategy,
