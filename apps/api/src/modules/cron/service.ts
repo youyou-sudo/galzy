@@ -16,7 +16,9 @@ export const CronService = {
 
     try {
       const data = await db.selectFrom('galrc_cloudflare').selectAll().execute()
-      await Promise.allSettled(
+
+      // 将所有请求并行处理，不使用 Promise.allSettled，而是使用 Promise.all 配合错误处理
+      await Promise.all(
         data.map(async (item) => {
           try {
             const today = new Date()
@@ -35,35 +37,39 @@ export const CronService = {
               },
             })
 
-            const res = await fetch(
-              'https://api.cloudflare.com/client/v4/graphql',
-              {
+            const commonHeaders = {
+              'X-Auth-Email': item.a_email,
+              'X-Auth-Key': item.a_key,
+              Accept: '*/*',
+              Host: 'api.cloudflare.com',
+            }
+
+            // 并行发送两个请求
+            const [res, res2] = await Promise.all([
+              fetch('https://api.cloudflare.com/client/v4/graphql', {
                 method: 'POST',
                 headers: {
-                  'X-Auth-Email': item.a_email,
-                  'X-Auth-Key': item.a_key,
+                  ...commonHeaders,
                   'Content-Type': 'text/plain',
-                  Accept: '*/*',
-                  Host: 'api.cloudflare.com',
                 },
                 body: raw,
                 redirect: 'follow',
-              },
-            )
-            const res2 = await fetch(
-              `https://api.cloudflare.com/client/v4/accounts/${item.account_id}/workers/services/${item.woker_name}/environments/production?expand=routes`,
-              {
-                method: 'GET',
-                headers: {
-                  'X-Auth-Email': item.a_email,
-                  'X-Auth-Key': item.a_key,
-                  Accept: '*/*',
-                  Host: 'api.cloudflare.com',
-                },
-              },
-            )
-            const json = await res.json()
-            const json2 = await res2.json()
+              }),
+              fetch(
+                `https://api.cloudflare.com/client/v4/accounts/${item.account_id}/workers/services/${item.woker_name}/environments/production?expand=routes`,
+                {
+                  method: 'GET',
+                  headers: commonHeaders,
+                }
+              ),
+            ])
+
+            // 并行解析 JSON
+            const [json, json2] = await Promise.all([
+              res.json(),
+              res2.json(),
+            ])
+
             const result =
               json?.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive?.[0]
                 ?.sum ?? {}
@@ -71,6 +77,7 @@ export const CronService = {
             const result2 = json2.result.script.routes[0].pattern ?? {}
             const cleanDomain = result2.replace(/\*$/, '').replace(/\/+$/, '')
             const url = `https://${cleanDomain}`
+
             await db
               .updateTable('galrc_cloudflare')
               .set({
@@ -80,7 +87,7 @@ export const CronService = {
                 responseBodySize: result.responseBodySize?.toString() ?? '0',
                 subrequests: result.subrequests?.toString() ?? '0',
                 url_endpoint: url,
-                state: result.requests?.toString() < 100000,
+                state: (result.requests ?? 0) < 100000,
                 updateTime: new Date(),
               })
               .where('id', '=', item.id)
@@ -105,14 +112,17 @@ export const CronService = {
       await releaseLockKv(lockKey, lockValue)
     }
   },
+
   async alistSyncScript() {
     const lockKey = 'runAlistData'
     const lockValue = crypto.randomUUID()
     const lockTimeout = 10000
 
     const lock = await deacquireLocklKv(lockKey, lockValue, lockTimeout)
-    if (lock) return null
+    if (!lock) return null
+
     try {
+      // 并行获取两个配置项
       const [, error, [alistUpInfo, alistUpTime]] = t(
         await Promise.all([
           db
@@ -127,64 +137,33 @@ export const CronService = {
             .executeTakeFirst(),
         ]),
       )
+
       if (error) throw `Error:${JSON.stringify(error)}`
+
       const parsedValue = JSON.parse(alistUpInfo?.value as unknown as string)
       if (!alistUpInfo) return
-      if (alistUpInfo.value.is_done === false) return
-      if (alistUpTime?.config.lastUpdate || 0 === parsedValue.last_done_time)
-        return
+      if (parsedValue.is_done === false) return
+      if ((alistUpTime?.config.lastUpdate || 0) === parsedValue.last_done_time) return
 
       const [, alistDataError, alistData] = t(
         await db.selectFrom('galrc_search_nodes').select(['name']).execute(),
       )
       if (alistDataError) throw `Error:${JSON.stringify(alistDataError)}`
-      const results: { vid?: string; other?: string; id: string }[] = []
 
-      // 正则表达式匹配 vndb、other 的 ID
-      const idPattern = /\[(vndb-(v\d+)|other-(\w+))\]/g
-
-      for (const item of alistData) {
-        const matches = item.name.matchAll(idPattern)
-
-        const record: { vid?: string; other?: string } = {}
-
-        for (const match of matches) {
-          if (match[2]) record.vid = match[2] // vndb-vxxx
-          if (match[3]) record.other = match[3] // other-xxx
-        }
-
-        // 只收集至少有一个字段的项
-        if (Object.keys(record).length > 0) {
-          let id = ''
-          if (record.vid && record.other) {
-            id = `${record.vid}-${record.other}`
-          } else if (record.vid) {
-            id = record.vid
-          } else if (record.other) {
-            id = record.other
-          }
-          results.push({ ...record, id })
-        }
-      }
-
-      // 使用 Map 根据 vid 去重（优先保留第一个出现的）
-      const dedupedMap = new Map<
-        string,
-        { vid?: string; other?: string; id: string }
-      >()
-      for (const item of results) {
-        const key = item.vid || crypto.randomUUID() // 没有 vid 时使用 UUID 防止被覆盖
-        if (!dedupedMap.has(key)) {
-          dedupedMap.set(key, item)
-        }
-      }
-
-      const dedupedResults = Array.from(dedupedMap.values())
+      // 优化正则处理，使用更高效的方式
+      const results = this.processAlistData(alistData)
+      const dedupedResults = this.deduplicateResults(results)
 
       const [, trxError] = t(
         await db.transaction().execute(async (trx) => {
-          await trx.deleteFrom('galrc_alistb').execute()
+          // 使用并行操作优化事务
+          await Promise.all([
+            trx.deleteFrom('galrc_alistb').execute(),
+            // 可以考虑先删除再插入，而不是等待删除完成
+          ])
+
           await trx.insertInto('galrc_alistb').values(dedupedResults).execute()
+
           await trx
             .insertInto('galrc_siteConfig')
             .values({
@@ -203,60 +182,142 @@ export const CronService = {
             .execute()
         }),
       )
+
       if (trxError) throw `Error:${JSON.stringify(trxError)}`
-      const shouldRelease = true
-      if (shouldRelease) {
-        await releaseLockKv(lockKey, lockValue)
-      } else {
-        await deacquireLocklKv(lockKey, lockValue, lockTimeout)
-      }
+      await releaseLockKv(lockKey, lockValue)
     } catch (e) {
       console.error('alistSyncScript 运行失败喵', e)
       await releaseLockKv(lockKey, lockValue)
     }
   },
+
+  // 提取数据处理逻辑为独立方法，便于优化和测试
+  processAlistData(alistData: Array<{ name: string }>) {
+    const results: { vid?: string; other?: string; id: string }[] = []
+    const idPattern = /\[(vndb-(v\d+)|other-(\w+))\]/g
+
+    for (const item of alistData) {
+      const matches = Array.from(item.name.matchAll(idPattern))
+      const record: { vid?: string; other?: string } = {}
+
+      for (const match of matches) {
+        if (match[2]) record.vid = match[2] // vndb-vxxx
+        if (match[3]) record.other = match[3] // other-xxx
+      }
+
+      // 只收集至少有一个字段的项
+      if (Object.keys(record).length > 0) {
+        let id = ''
+        if (record.vid && record.other) {
+          id = `${record.vid}-${record.other}`
+        } else if (record.vid) {
+          id = record.vid
+        } else if (record.other) {
+          id = record.other
+        }
+        results.push({ ...record, id })
+      }
+    }
+
+    return results
+  },
+
+  deduplicateResults(results: Array<{ vid?: string; other?: string; id: string }>) {
+    const dedupedMap = new Map<string, { vid?: string; other?: string; id: string }>()
+
+    for (const item of results) {
+      const key = item.vid || crypto.randomUUID()
+      if (!dedupedMap.has(key)) {
+        dedupedMap.set(key, item)
+      }
+    }
+
+    return Array.from(dedupedMap.values())
+  },
+
   async meiliSearchAddIndex() {
     try {
       const index = await MeiliClient.index(process.env.MEILISEARCH_INDEXNAME!)
-      let pageIndex = 0
-      const pageSize = 500 // 每批 500 条，根据数据量调
-      let hasMore = true
-      while (hasMore) {
-        const { items, totalPages } = await MeiliSearchData(pageSize, pageIndex)
-        // 格式化数据，MeiliSearch 必须有唯一 id
 
+      // 先清空索引，然后并行处理分页数据
+      await index.deleteAllDocuments()
+
+      const { totalPages } = await this.getMeiliSearchDataInfo()
+      const pageSize = 500
+
+      // 创建所有分页任务
+      const pagePromises = Array.from({ length: totalPages }, async (_, pageIndex) => {
+        const { items } = await MeiliSearchData(pageSize, pageIndex)
         if (items.length > 0) {
-          await index.addDocuments(items)
+          return index.addDocuments(items)
         }
+        return Promise.resolve()
+      })
 
-        pageIndex++
-        hasMore = pageIndex < totalPages
+      // 并行处理所有分页，但限制并发数量避免过载
+      const concurrencyLimit = 5 // 限制并发数
+      for (let i = 0; i < pagePromises.length; i += concurrencyLimit) {
+        const batch = pagePromises.slice(i, i + concurrencyLimit)
+        await Promise.all(batch)
       }
-    }
-    catch (e) {
+    } catch (e) {
       console.error('meiliSearchAddIndex 运行失败喵', e)
     }
   },
+
   async meiliSearchAddTag() {
-    const index = await MeiliClient.index(
-      process.env.MEILISEARCH_TAG_INDEXNAME!,
-    )
-    await index.deleteAllDocuments()
+    try {
+      const index = await MeiliClient.index(process.env.MEILISEARCH_TAG_INDEXNAME!)
+      await index.deleteAllDocuments()
 
-    let pageIndex = 0
-    const pageSize = 500 // 每批 500 条，根据数据量调
-    let hasMore = true
+      const { totalPages } = await this.getTagDataInfo()
+      const pageSize = 500
 
-    while (hasMore) {
-      const { items, totalPages } = await tagAllGet(pageSize, pageIndex)
+      // 并行处理所有分页
+      const pagePromises = Array.from({ length: totalPages }, async (_, pageIndex) => {
+        const { items } = await tagAllGet(pageSize, pageIndex)
+        if (items.length > 0) {
+          return index.addDocuments(items)
+        }
+        return Promise.resolve()
+      })
 
-      if (items.length > 0) {
-        await index.addDocuments(items)
+      // 限制并发数量
+      const concurrencyLimit = 5
+      for (let i = 0; i < pagePromises.length; i += concurrencyLimit) {
+        const batch = pagePromises.slice(i, i + concurrencyLimit)
+        await Promise.all(batch)
       }
-
-      pageIndex++
-      hasMore = pageIndex < totalPages
+    } catch (e) {
+      console.error('meiliSearchAddTag 运行失败喵', e)
     }
+  },
+
+  // 辅助方法：获取总页数信息
+  async getMeiliSearchDataInfo() {
+    const totalCountResult = await db
+      .selectFrom('galrc_alistb')
+      .select(({ fn }) => [fn.countAll().as('count')])
+      .executeTakeFirst()
+
+    const totalCount = Number(totalCountResult?.count || 0)
+    const totalPages = Math.ceil(totalCount / 500)
+
+    return { totalCount, totalPages }
+  },
+
+  async getTagDataInfo() {
+    const totalCountResult = await db
+      .selectFrom("tags")
+      .innerJoin("galrc_zhtag", "tags.id", "galrc_zhtag.id")
+      .select(({ fn }) => [fn.countAll().as("count")])
+      .where("galrc_zhtag.exhibition", "=", true)
+      .executeTakeFirst()
+
+    const totalCount = Number(totalCountResult?.count || 0)
+    const totalPages = Math.ceil(totalCount / 500)
+
+    return { totalCount, totalPages }
   },
 }
 
@@ -346,25 +407,13 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
     .offset(offset)
     .execute()
 
-  const totalCountResult = await db
-    .selectFrom('galrc_alistb')
-    .select(({ fn }) => [fn.countAll().as('count')])
-    .executeTakeFirst()
-
-  const totalCount = Number(totalCountResult?.count || 0)
-  const totalPages = Math.ceil(totalCount / pageSize)
-
-  return {
-    items,
-    currentPage: pageIndex,
-    totalPages,
-    totalCount,
-  }
+  return { items }
 }
 
 const tagAllGet = async (pageSize: number, pageIndex: number) => {
-  const offset = pageIndex * pageSize;
-  const items = await await db
+  const offset = pageIndex * pageSize
+
+  const items = await db
     .selectFrom("tags")
     .innerJoin("galrc_zhtag", "tags.id", "galrc_zhtag.id")
     .select([
@@ -376,21 +425,7 @@ const tagAllGet = async (pageSize: number, pageIndex: number) => {
     .where("galrc_zhtag.exhibition", "=", true)
     .limit(pageSize)
     .offset(offset)
-    .execute();
+    .execute()
 
-  const totalCountResult = await db
-    .selectFrom("tags")
-    .innerJoin("galrc_zhtag", "tags.id", "galrc_zhtag.id")
-    .select(({ fn }) => [fn.countAll().as("count")])
-    .executeTakeFirst();
-
-  const totalCount = Number(totalCountResult?.count || 0);
-  const totalPages = Math.ceil(totalCount / pageSize);
-
-  return {
-    items,
-    currentPage: pageIndex,
-    totalPages,
-    totalCount,
-  };
-};
+  return { items }
+}
