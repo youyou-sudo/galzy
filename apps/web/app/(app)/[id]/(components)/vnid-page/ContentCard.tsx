@@ -39,22 +39,25 @@ export const ContentCard = ({ data }: Props) => {
     <Card className="overflow-hidden break-words border-0 pb-0 ">
       <CardContent>
         {/* Cover and basic info section */}
-        <div className="sm:float-right text-center sm:text-right sm:ml-4 pb-4">
+        <div className="sm:float-right text-center sm:text-right sm:ml-4 pb-4 relative">
           <div className="relative inline-block">
-          <div
-            className='w-[150px] h-[225px] sm:w-[220px] sm:h-[330px] rounded-lg shadow-lg relative overflow-hidden text-left'
-          >
-            <Image
-              width={filteredImage?.width ?? 300}
-              height={filteredImage?.height ?? 200}
-              className="w-full h-full object-cover transition-transform relative z-10 rounded"
-              src={imageUrl || "/placeholder.svg"}
-              alt="游戏图片"
-              loading="lazy"
-              decoding="async"
-            />
+            <div
+              className={`${filteredImage && filteredImage.height < filteredImage.width
+                ? "min-w-[290px]"
+                : "min-w-[220px]"
+                } relative overflow-hidden text-left`}
+            >
+              <Image
+                width={filteredImage?.width ?? 300}
+                height={filteredImage?.height ?? 200}
+                className="w-full h-full relative z-10 rounded transform shadow-lg"
+                src={imageUrl || "/placeholder.svg"}
+                alt="游戏图片"
+                loading="lazy"
+                decoding="async"
+              />
 
-          </div>
+            </div>
           </div>
         </div>
 
