@@ -7,7 +7,11 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "experimentalScannerIgnores": [".next/*", ".next", ".next/"]
+    "experimentalScannerIgnores": [
+      ".next/*",
+      ".next",
+      ".next/"
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -28,7 +32,8 @@
       "performance": "off",
       "a11y": "off",
       "security": {
-        "noDangerouslySetInnerHtml": "off"
+        "noDangerouslySetInnerHtml": "off",
+        "noBlankTarget": "off"
       },
       "correctness": {
         "useExhaustiveDependencies": "off",

@@ -22,6 +22,7 @@
     "./packages/*"
   ],
   "trustedDependencies": [
+    "@parcel/watcher",
     "@tailwindcss/oxide",
     "bun",
     "protobufjs",

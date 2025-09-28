@@ -32,7 +32,7 @@ const SearchlistComponent = ({ gameListData }: { gameListData: Datas }) => {
               height: imagesData!.height,
             })
       return (
-        <Link href={`/${item.id}`} key={item.id}>
+        <Link href={`/${item.id}`} key={item.id} prefetch={false}>
           <div>
             {/* [x] VNDB 来源图片进行缓存以防止滥用 VNDB 服务
              */}

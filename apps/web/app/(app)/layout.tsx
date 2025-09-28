@@ -25,9 +25,9 @@ export default async function YoyoLayout({
         style={{ backgroundImage: 'url("/background.webp")' }}
       />
 
-      <main className="flex-1 px-3">
+      <main className="flex-1 px-3 pt-2">
         <Navbar />
-        <div className="flex flex-col  mx-auto max-w-7xl  space-y-4 px-4 py-4 lg:px-0">
+        <div className="flex flex-col  mx-auto max-w-7xl space-y-4 py-4 lg:px-0">
           {children}
         </div>
       </main>

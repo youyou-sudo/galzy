@@ -54,7 +54,7 @@ export const GameItem = ({
   }
 
   return (
-    <Link href={`/${item?.id}`}>
+    <Link href={`/${item?.id}`} prefetch={false}>
       <div
         className="hover:shadow-md hover:border-1  rounded-lg"
         style={{ contentVisibility: 'auto' }}

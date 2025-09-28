@@ -10,7 +10,7 @@ export async function TagsCard({ id }: { id: string }) {
         (item, i) =>
           item.tag_data && (
             <Badge variant="secondary" key={i}>
-              <Link href={`/tags/${item.tag_data?.id}`}>
+              <Link prefetch={false} href={`/tags/${item.tag_data?.id}`}>
                 {item.tag_data?.zht_name || item.tag_data?.name}
               </Link>
             </Badge>
