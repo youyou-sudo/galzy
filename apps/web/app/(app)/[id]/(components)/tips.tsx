@@ -22,11 +22,17 @@ export const Glgczujm = () => {
     },
   ]
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 mt-4 p-1">
       <Alert className="border-cyan-600/30 text-cyan-500 border-x-0 border-b-0">
         <Info className="w-4 h-4" />
-        <AlertTitle>本站已配置负载均衡保证速度</AlertTitle>
-        <AlertDescription>推荐使用 IDM 等工具喵～</AlertDescription>
+        <AlertTitle>本站已配置负载均衡保证速度喵～</AlertTitle>
+        <AlertDescription><li>支持断点续传喵～</li>
+          对于大文件，我们建议使用下载管理器以防止中断喵～
+          <br />
+          <li>支持作者喵～</li>
+          <br />
+          ✍️ 如果您喜欢这个并且能够负担得起，请考虑购买原版，或直接支持作者喵～
+        </AlertDescription>
       </Alert>
       <Alert className="border-cyan-600/30 border-x-0 border-b-0">
         <BadgeJapaneseYen className="w-4 h-4" />
