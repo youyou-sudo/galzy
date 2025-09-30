@@ -81,7 +81,7 @@ export const Download = {
       return {
         success: true,
         message: '哼哼喵（得意），找到啦～',
-        raw_url: `${randomWorker.url_endpoint}/d/${encodeURIComponent(path)}?sign=${sign}`,
+        raw_url: `${randomWorker.url_endpoint}/${encodeURIComponent(path)}?sign=${sign}`,
         sign,
       }
     }
