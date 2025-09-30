@@ -69,9 +69,16 @@ export const Download = {
       const expiration = now + alistSettingsCache.linkExpiration * 3600
       const sign = await hmacSha256Sign(path, expiration, alistSettingsCache.token)
 
-      const workerList = await this.Worker()
+      const [, error, workerList] = t(
+        await db
+          .selectFrom('galrc_cloudflare')
+          .where('enable', '=', true)
+          .selectAll()
+          .orderBy('id')
+          .execute(),
+      )
 
-      if (!workerList || workerList.length === 0) {
+      if (error || workerList.length === 0) {
         throw status(500, '没有可用的 Worker 喵~')
       }
 
