@@ -1,6 +1,6 @@
 import { dbConfig } from '@api/libs/config'
 import { betterAuth, BetterAuthOptions } from "better-auth";
-import { admin, openAPI } from 'better-auth/plugins'
+import { admin } from 'better-auth/plugins'
 import { Pool } from 'pg'
 
 const authConfig = {
