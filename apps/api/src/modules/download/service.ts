@@ -79,7 +79,7 @@ export const Download = {
       )
 
       if (error || workerList.length === 0) {
-        throw status(500, '没有可用的 Worker 喵~')
+        throw status(500, '没有可用的下载节点喵~')
       }
 
       // 随机选择一个 worker

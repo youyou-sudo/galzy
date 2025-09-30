@@ -1,4 +1,4 @@
-import { alistDownloadGet } from '@web/lib/dashboard/download/alistFileRaw'
+import { api } from '@libs'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -8,12 +8,16 @@ export async function GET(request: Request) {
       status: 400,
     })
   }
-  const raw = await alistDownloadGet(path)
-  if (!raw?.raw_url) {
-    return new Response(raw?.message, {
+  const data = await api.download.path.get({
+    query: {
+      path,
+    },
+  })
+  if (data.status >= 400) {
+    return new Response(`${data.error?.value.message}`, {
       status: 400,
     })
   }
 
-  return Response.redirect(raw?.raw_url!, 302)
+  return Response.redirect(data.data?.raw_url!, 302)
 }
