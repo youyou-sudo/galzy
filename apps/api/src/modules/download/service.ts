@@ -51,7 +51,7 @@ export const Download = {
       ])
 
       if (!tokenRow?.value) {
-        throw new Error('缺少 Alist token 配置')
+        throw new Error('缺少 openlist token 配置')
       }
 
       return {
@@ -69,10 +69,19 @@ export const Download = {
       const expiration = now + alistSettingsCache.linkExpiration * 3600
       const sign = await hmacSha256Sign(path, expiration, alistSettingsCache.token)
 
+      const workerList = await this.Worker()
+
+      if (!workerList || workerList.length === 0) {
+        throw status(500, '没有可用的 Worker 喵~')
+      }
+
+      // 随机选择一个 worker
+      const randomWorker = workerList[Math.floor(Math.random() * workerList.length)]
+
       return {
         success: true,
         message: '哼哼喵（得意），找到啦～',
-        raw_url: `${process.env.OPENLIST_HOST}/d/${encodeURIComponent(path)}?sign=${sign}`,
+        raw_url: `${randomWorker.url_endpoint}/d/${encodeURIComponent(path)}?sign=${sign}`,
         sign,
       }
     }
