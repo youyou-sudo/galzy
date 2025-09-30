@@ -103,31 +103,44 @@ export const Download = {
     woker_name,
     url_endpoint,
   }: DownloadModel.workerConfigForm) {
-    if (id) {
-      // 修改数据
-      await db
-        .updateTable('galrc_cloudflare')
-        .set({
-          a_email,
-          a_key,
-          account_id,
-          woker_name,
-          url_endpoint,
-        })
-        .where('id', '=', Number(id))
-        .executeTakeFirst()
-    } else {
-      // 创建数据
-      await db
-        .insertInto('galrc_cloudflare')
-        .values({
-          a_email,
-          a_key,
-          account_id,
-          woker_name,
-          url_endpoint,
-        })
-        .executeTakeFirst()
+    try {
+      if (id) {
+        // 修改数据
+        await db
+          .updateTable('galrc_cloudflare')
+          .set({
+            a_email,
+            a_key,
+            account_id,
+            woker_name,
+            url_endpoint,
+          })
+          .where('id', '=', Number(id))
+          .executeTakeFirst()
+      } else {
+        // 创建数据
+        await db
+          .insertInto('galrc_cloudflare')
+          .values({
+            a_email,
+            a_key,
+            account_id,
+            woker_name,
+            url_endpoint,
+            state: false,
+            enable: false,
+            duration: 0,
+            errors: 0,
+            requests: 0,
+            responseBodySize: 0,
+            subrequests: 0,
+            updateTime: null,
+          })
+          .executeTakeFirst()
+      }
+    } catch (error) {
+      console.log(error)
+      throw status(400, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     }
   },
   async workerConfigFormDel({ id }: DownloadModel.workerConfigFormDel) {

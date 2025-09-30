@@ -86,9 +86,9 @@ export function NodeManagementDialog({
     setIsPending(true)
     try {
       await configFormPut({ ...values, id: data?.id })
-      setOpen(false)
-      form.reset()
-      refetchAction()
+      await setOpen(false)
+      await form.reset()
+      await refetchAction()
     } catch (error) {
       console.error('提交失败：', error)
     } finally {

@@ -10,6 +10,7 @@
     "docker": "cd ../.. && docker build -t mono-api:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/api/Dockerfile ."
   },
   "dependencies": {
+    "@libs/api": "workspace:*",
     "@elysiajs/cors": "^1.4.0",
     "@elysiajs/cron": "^1.4.1",
     "@elysiajs/opentelemetry": "1.3.1",

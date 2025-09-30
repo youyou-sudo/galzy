@@ -8,7 +8,7 @@ export namespace DownloadModel {
     id: t.Number({ minimum: 0 }),
   })
   export const workerConfigForm = t.Object({
-    id: t.Union([t.String(), t.Null(), t.Undefined()]),
+    id: t.Optional(t.String()),
     a_email: t.String({ minLength: 1 }),
     a_key: t.String({ minLength: 1 }),
     account_id: t.String({ minLength: 1 }),

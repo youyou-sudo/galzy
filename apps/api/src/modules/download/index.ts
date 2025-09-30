@@ -20,7 +20,7 @@ export const download = new Elysia({ prefix: '/download' })
     async ({
       body: { id, a_email, a_key, account_id, woker_name, url_endpoint },
     }) => {
-      return Download.workerConfigFormPut({
+      await Download.workerConfigFormPut({
         id,
         a_email,
         a_key,
