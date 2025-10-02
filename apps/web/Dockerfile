@@ -4,7 +4,7 @@ FROM node:20-slim AS build
 WORKDIR /app
 
 # 安装 pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN npm install -g pnpm
 
 # 只复制 package.json 文件（不复制 bun.lock）
 COPY package.json ./
