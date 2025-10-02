@@ -3,10 +3,16 @@ import swagger from '@elysiajs/swagger'
 import { Elysia } from 'elysia'
 import { auth } from './service'
 
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://galzy.eu.org',
+
+]
+
 const betterAuth = new Elysia({ name: 'better-auth' })
   .use(
     cors({
-      origin: 'http://localhost:3000',
+      origin: allowedOrigins,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       credentials: true,
       allowedHeaders: ['Content-Type', 'Authorization'],
