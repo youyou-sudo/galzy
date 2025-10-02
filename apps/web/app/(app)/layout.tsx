@@ -31,16 +31,26 @@ export default async function YoyoLayout({
       <main className="flex-1 px-3 pt-2">
         <Navbar />
         {/* 广告 */}
-        <div className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-80">
-          <Link target='_blank' href="https://www.电子魅魔.com/?rf=876926e5">
+        <div className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-80 relative -z-10">
+          <Link target="_blank" href="https://www.电子魅魔.com/?rf=876926e5">
             <div className="sm:hidden">
               <AspectRatio ratio={80 / 9}>
-                <Image src="/dzmm.webp" fill alt="dzmm 广告图片" className="object-cover rounded-lg" />
+                <Image
+                  src="/dzmm.webp"
+                  fill
+                  alt="dzmm 广告图片"
+                  className="object-cover rounded-lg"
+                />
               </AspectRatio>
             </div>
             <div className="hidden sm:block">
               <AspectRatio ratio={120 / 9}>
-                <Image src="/dzmm.webp" fill alt="dzmm 广告图片" className="object-cover rounded-lg" />
+                <Image
+                  src="/dzmm.webp"
+                  fill
+                  alt="dzmm 广告图片"
+                  className="object-cover rounded-lg"
+                />
               </AspectRatio>
             </div>
           </Link>
