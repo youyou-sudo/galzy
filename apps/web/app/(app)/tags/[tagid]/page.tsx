@@ -69,7 +69,7 @@ export default async function Yoyo({ params }: Props) {
       {/* 广告 */}
       <div className='opacity-80 lg:px-24 px-4 my-4'>
         <AspectRatio ratio={120 / 9}>
-          <Image src="/advertise/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
+          <Image src="/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
         </AspectRatio>
       </div>
 

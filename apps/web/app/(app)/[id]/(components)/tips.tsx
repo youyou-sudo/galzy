@@ -59,12 +59,12 @@ export const Glgczujm = () => {
         <Link target='_blank' href="https://www.电子魅魔.com/?rf=876926e5">
           <div className="sm:hidden">
             <AspectRatio ratio={80 / 9}>
-              <Image src="/advertise/dzmm.webp" fill alt="dzmm 广告图片" className="object-cover rounded-lg" />
+              <Image src="/dzmm.webp" fill alt="dzmm 广告图片" className="object-cover rounded-lg" />
             </AspectRatio>
           </div>
           <div className="hidden sm:block">
             <AspectRatio ratio={120 / 9}>
-              <Image src="/advertise/dzmm.webp" fill alt="dzmm 广告图片" className="object-cover rounded-lg" />
+              <Image src="/dzmm.webp" fill alt="dzmm 广告图片" className="object-cover rounded-lg" />
             </AspectRatio>
           </div>
         </Link>
@@ -80,12 +80,12 @@ export const Glgczujm = () => {
         <Link target='_blank' href="https://chattersate.xyz/zh/explore/apps?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7&ranking=daily_rank">
           <div className="sm:hidden">
             <AspectRatio ratio={80 / 9}>
-              <Image src="/advertise/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
+              <Image src="/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
             </AspectRatio>
           </div>
           <div className="hidden sm:block">
             <AspectRatio ratio={120 / 9}>
-              <Image src="/advertise/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
+              <Image src="/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
             </AspectRatio>
           </div>
         </Link>
