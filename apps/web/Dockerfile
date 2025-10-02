@@ -14,7 +14,7 @@ COPY packages/libs/package.json packages/libs/package.json
 COPY packages/config/package.json packages/config/package.json
 
 # 安装依赖
-RUN pnpm install --frozen-lockfile=false
+RUN pnpm install
 
 # 复制项目代码
 COPY apps/web apps/web
