@@ -5,6 +5,12 @@ import { ThemeProvider } from '@web/components/provider/theme-provider'
 import { PublicEnvScript } from 'next-runtime-env'
 import { ViewTransitions } from 'next-view-transitions'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
+import type { Metadata } from 'next'
+import 'lib/env'
+
+export const metadata: Metadata = {
+  metadataBase: new URL(process.env.BETTER_AUTH_URL!),
+}
 
 export default function RootLayout({
   children,
