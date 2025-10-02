@@ -17,7 +17,7 @@ export default async function CountComponent() {
         <Link
           className="underline text-blue-500 hover:text-blue-300"
           target="_blank"
-          href="https://t.me/+mKVpQNjxQss1ZDRl"
+          href="https://t.me/ziyuanlinyin"
         >
           频道
         </Link>
