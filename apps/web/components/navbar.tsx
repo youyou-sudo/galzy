@@ -26,7 +26,7 @@ import { useState } from 'react'
 const contactlist: { title: string; href: string; description: string }[] = [
   {
     title: 'Telegram 群组',
-    href: 'https://t.me/+mKVpQNjxQss1ZDRl',
+    href: 'https://t.me/ziyuanlinyin',
     description: '紫缘社的 Telegram 群组',
   },
   {
