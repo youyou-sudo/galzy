@@ -38,6 +38,23 @@ const nextConfig: NextConfig = {
     //   ...(openImageHost ? [openImageHost] : []),
     // ],
   },
+  async headers() {
+    return [
+      {
+        source: "/:path*", // 对所有路径生效
+        headers: [
+          {
+            key: "Access-Control-Allow-Origin",
+            value: "*", // 占位符，实际要在中间件里处理
+          },
+          {
+            key: "Access-Control-Allow-Credentials",
+            value: "true",
+          },
+        ],
+      },
+    ];
+  },
 }
 
 export default nextConfig
