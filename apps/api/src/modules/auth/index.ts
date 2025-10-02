@@ -5,7 +5,7 @@ import { auth } from './service'
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://galzy.eu.org',
+  `${process.env.WEB_HOST}`,
 
 ]
 
