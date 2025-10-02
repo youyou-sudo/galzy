@@ -7,7 +7,7 @@ type Session = typeof auth.$Infer.Session
 const allowedOrigins = [
   'https://sg.saop.cc',
   'https://searchgal.homes',
-  'https://galzy.eu.org',
+  `${process.env.BETTER_AUTH_URL}`,
 ]
 
 export async function middleware(request: NextRequest) {
@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
   // ====== 鉴权逻辑  ======
   if (request.nextUrl.pathname.startsWith('/dashboard')) {
     const { data: session } = await betterFetch<Session>(
-      '/api/auth/get-session',
+      `${process.env.BETTER_AUTH_URL}/api/auth/get-session`,
       {
         baseURL: request.nextUrl.origin,
         headers: {
