@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const data = await api.search.get({
     query: {
       q: q,
-      limit: 100,
+      limit: 30,
     },
   })
   if (data.status >= 400) {
