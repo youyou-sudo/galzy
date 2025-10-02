@@ -15,6 +15,8 @@ import type { Metadata } from 'next/types'
 import React from 'react'
 import { getTagData, getVnListByTag } from './(acrion)/tagvns'
 import { TagsGamelist } from './(components)/gamelist'
+import { AspectRatio } from '@web/components/ui/aspect-ratio'
+import Image from 'next/image'
 
 type Props = {
   params: Promise<{ tagid: string }>
@@ -25,11 +27,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const tag = await getTagData(tagid)
   return {
     title: `标签 -  ${tag?.zht_name || tag?.name || '标签'}`,
-    description: `${
-      tag?.zht_name || tag?.name || '标签'
-    } 类型下的游戏列表，类型介绍：${
-      tag?.zht_description || tag?.description || '无'
-    }`,
+    description: `${tag?.zht_name || tag?.name || '标签'
+      } 类型下的游戏列表，类型介绍：${tag?.zht_description || tag?.description || '无'
+      }`,
   }
 }
 type GetVnListByTagResult = Awaited<ReturnType<typeof getVnListByTag>>
@@ -65,6 +65,14 @@ export default async function Yoyo({ params }: Props) {
           </CardContent>
         </CardHeader>
       </Card>
+
+      {/* 广告 */}
+      <div className='opacity-80 lg:px-24 px-4 my-4'>
+        <AspectRatio ratio={120 / 9}>
+          <Image src="/advertise/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
+        </AspectRatio>
+      </div>
+
       <div className="text-sm text-center items-center opacity-30 italic">
         数据过滤，来自 VNDB
       </div>
