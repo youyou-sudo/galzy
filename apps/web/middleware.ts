@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
   // ====== 鉴权逻辑  ======
   if (request.nextUrl.pathname.startsWith('/dashboard')) {
     const { data: session } = await betterFetch<Session>(
-      `https://galzy.eu.org/api/auth/get-session`,
+      '/api/auth/get-session',
       {
         baseURL: request.nextUrl.origin,
         headers: {
