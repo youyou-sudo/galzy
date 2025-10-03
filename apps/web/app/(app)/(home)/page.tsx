@@ -75,12 +75,10 @@ const Home = () => {
           <CountComponent />
         </div>
         {/* 搜索框 */}
-        <div className="min-w-4/5 md:min-w-2/4 mx-auto">
+        <div className='px-5 sm:px-20 lg:px-80 my-4'>
           <SearchInput />
         </div>
 
-      </article>
-      <article>
         {/* 热门标签 + 热门游戏 */}
         <div className="grid grid-cols-2 md:grid-cols-2 gap-2 px-0 md:px-3 mb-0">
           <Card className="gap-3 border-0">
