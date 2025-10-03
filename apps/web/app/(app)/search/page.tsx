@@ -25,7 +25,7 @@ export default async function Youyou({ searchParams }: Props) {
   const { q } = await searchParams
   const gameListData = await getSearch({ q, limit: 50 })
   return (
-    <div className="min-h-screen space-y-8">
+    <article className="min-h-screen space-y-8">
       <div className="flex items-center justify-center gap-2 mb-4">
         <GamepadIcon className="w-5 h-5 text-primary" />
         <h1 className="text-lg font-semibold text-foreground">游戏搜索</h1>
@@ -35,6 +35,6 @@ export default async function Youyou({ searchParams }: Props) {
         <SearchInput />
       </div>
       <SearchlistComponent gameListData={gameListData} />
-    </div>
+    </article>
   )
 }

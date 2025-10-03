@@ -45,76 +45,77 @@ export const Glgczujm = () => {
           ✍️ 如果您喜欢这个并且能够负担得起，请考虑购买原版，或直接支持作者喵～
         </AlertDescription>
       </Alert>
+      <aside id="sidebar-ad">
+        <Alert id="sidebar-ad" className="border-cyan-600/30 border-x-0 border-b-0 pb-0">
+          <BadgeJapaneseYen className="w-4 h-4" />
+          <Link className='text-cyan-500' target='_blank' href="https://www.电子魅魔.com/?rf=876926e5">
+            <AlertTitle>中文 AI 角色扮演平台 - 点击直达</AlertTitle>
+            <AlertDescription>
+              纯爱、NTR、SM、扶她、百合……点此一键解锁你的全部XP！
+            </AlertDescription>
+          </Link>
+        </Alert>
+        <div id="sidebar-ad" className="lg:px-5 lg:w-[80%] px-4 py-0 opacity-80">
+          <Link target='_blank' href="https://www.电子魅魔.com/?rf=876926e5">
+            <div className="sm:hidden">
+              <AspectRatio ratio={80 / 9}>
+                <Image src="/dzmm.webp" fill alt="dzmm 广告图片" className="object-cover rounded-lg" />
+              </AspectRatio>
+            </div>
+            <div className="hidden sm:block">
+              <AspectRatio ratio={120 / 9}>
+                <Image src="/dzmm.webp" fill alt="dzmm 广告图片" className="object-cover rounded-lg" />
+              </AspectRatio>
+            </div>
+          </Link>
+        </div>
 
-      <Alert className="border-cyan-600/30 border-x-0 border-b-0 pb-0">
-        <BadgeJapaneseYen className="w-4 h-4" />
-        <Link className='text-cyan-500' target='_blank' href="https://www.电子魅魔.com/?rf=876926e5">
-          <AlertTitle>中文 AI 角色扮演平台 - 点击直达</AlertTitle>
+        <Alert id="sidebar-ad" className="border-cyan-600/30 border-x-0 border-b-0 pb-0">
+          <BadgeJapaneseYen className="w-4 h-4" />
+          <Link className='text-cyan-500' target='_blank' href="https://chattersate.xyz/zh/explore/apps?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7&ranking=daily_rank">
+            <AlertTitle>风月 | 中文 AI 角色扮演平台</AlertTitle>
+          </Link>
+        </Alert>
+        <div id="sidebar-ad" className="lg:px-5 lg:w-[80%] px-4 py-0 opacity-80">
+          <Link target='_blank' href="https://chattersate.xyz/zh/explore/apps?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7&ranking=daily_rank">
+            <div className="sm:hidden">
+              <AspectRatio ratio={80 / 9}>
+                <Image src="/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
+              </AspectRatio>
+            </div>
+            <div className="hidden sm:block">
+              <AspectRatio ratio={120 / 9}>
+                <Image src="/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
+              </AspectRatio>
+            </div>
+          </Link>
+        </div>
+
+        <Alert id="sidebar-ad" className="border-cyan-600/30 border-x-0 border-b-0">
+          <BadgeJapaneseYen className="w-4 h-4" />
+          <AlertTitle>如无法下载 / 速度慢，这里推荐机场</AlertTitle>
           <AlertDescription>
-            纯爱、NTR、SM、扶她、百合……点此一键解锁你的全部XP！
+            <ul className="list-inside list-disc text-sm space-y-3">
+              {glgc.map((item, index) => {
+                return (
+                  <li key={index}>
+                    <Link
+                      className="underline hover:text-cyan-600"
+                      target="_blank"
+                      href={item.url}
+                    >
+                      {item.name}：{item.desc}
+                    </Link>
+                    {item.info && (
+                      <p className="text-xs ml-4 opacity-55">{item.info}</p>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
           </AlertDescription>
-        </Link>
-      </Alert>
-      <div className="lg:px-5 lg:w-[80%] px-4 py-0 opacity-80">
-        <Link target='_blank' href="https://www.电子魅魔.com/?rf=876926e5">
-          <div className="sm:hidden">
-            <AspectRatio ratio={80 / 9}>
-              <Image src="/dzmm.webp" fill alt="dzmm 广告图片" className="object-cover rounded-lg" />
-            </AspectRatio>
-          </div>
-          <div className="hidden sm:block">
-            <AspectRatio ratio={120 / 9}>
-              <Image src="/dzmm.webp" fill alt="dzmm 广告图片" className="object-cover rounded-lg" />
-            </AspectRatio>
-          </div>
-        </Link>
-      </div>
-
-      <Alert className="border-cyan-600/30 border-x-0 border-b-0 pb-0">
-        <BadgeJapaneseYen className="w-4 h-4" />
-        <Link className='text-cyan-500' target='_blank' href="https://chattersate.xyz/zh/explore/apps?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7&ranking=daily_rank">
-          <AlertTitle>风月 | 中文 AI 角色扮演平台</AlertTitle>
-        </Link>
-      </Alert>
-      <div className="lg:px-5 lg:w-[80%] px-4 py-0 opacity-80">
-        <Link target='_blank' href="https://chattersate.xyz/zh/explore/apps?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7&ranking=daily_rank">
-          <div className="sm:hidden">
-            <AspectRatio ratio={80 / 9}>
-              <Image src="/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
-            </AspectRatio>
-          </div>
-          <div className="hidden sm:block">
-            <AspectRatio ratio={120 / 9}>
-              <Image src="/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
-            </AspectRatio>
-          </div>
-        </Link>
-      </div>
-
-      <Alert className="border-cyan-600/30 border-x-0 border-b-0">
-        <BadgeJapaneseYen className="w-4 h-4" />
-        <AlertTitle>如无法下载 / 速度慢，这里推荐机场</AlertTitle>
-        <AlertDescription>
-          <ul className="list-inside list-disc text-sm space-y-3">
-            {glgc.map((item, index) => {
-              return (
-                <li key={index}>
-                  <Link
-                    className="underline hover:text-cyan-600"
-                    target="_blank"
-                    href={item.url}
-                  >
-                    {item.name}：{item.desc}
-                  </Link>
-                  {item.info && (
-                    <p className="text-xs ml-4 opacity-55">{item.info}</p>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        </AlertDescription>
-      </Alert>
+        </Alert>
+      </aside>
     </div >
   )
 }

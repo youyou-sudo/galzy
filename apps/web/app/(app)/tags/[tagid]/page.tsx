@@ -53,32 +53,36 @@ export default async function Yoyo({ params }: Props) {
   const tagtitle = `[tag:${tagid}]-[${tag?.zht_name || tag?.name}]`
   return (
     <div className="space-y-3">
-      <Card className="border-0">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center items-center">
-            {tag?.zht_name || tag?.name}
-          </CardTitle>
-          <CardContent className="p-0">
-            <BBCodeRenderer
-              text={tag?.zht_description || tag?.description || ''}
-            />
-          </CardContent>
-        </CardHeader>
-      </Card>
-
+      <article>
+        <Card className="border-0">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center items-center">
+              {tag?.zht_name || tag?.name}
+            </CardTitle>
+            <CardContent className="p-0">
+              <BBCodeRenderer
+                text={tag?.zht_description || tag?.description || ''}
+              />
+            </CardContent>
+          </CardHeader>
+        </Card>
+      </article>
       {/* 广告 */}
-      <div className='opacity-80 lg:px-24 px-4 my-4'>
+      <aside id="sidebar-ad" className='opacity-80 lg:px-24 px-4 my-4'>
         <AspectRatio ratio={120 / 9}>
           <Image src="/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
         </AspectRatio>
-      </div>
+      </aside>
 
       <div className="text-sm text-center items-center opacity-30 italic">
         数据过滤，来自 VNDB
       </div>
-      <HydrationBoundary state={dehydrate(queryClient)}>
-        <TagsGamelist tagid={tagid} />
-      </HydrationBoundary>
+
+      <article>
+        <HydrationBoundary state={dehydrate(queryClient)}>
+          <TagsGamelist tagid={tagid} />
+        </HydrationBoundary>
+      </article>
       <TagViewsTrackEvents tagtitle={tagtitle} />
     </div>
   )

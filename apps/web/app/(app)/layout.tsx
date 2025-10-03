@@ -28,12 +28,12 @@ export default async function YoyoLayout({
         style={{ backgroundImage: 'url("/background.webp")' }}
       />
 
-      <main className="flex-1 px-3 pt-2">
+      <div className="flex-1 px-3 pt-2">
         <Navbar />
         {/* 广告 */}
-        <div className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-80 relative -z-10">
+        <aside id="sidebar-ad" className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-80 relative -z-10">
           <Link target="_blank" href="https://www.电子魅魔.com/?rf=876926e5">
-            <div className="sm:hidden">
+            <div id="sidebar-ad" className="sm:hidden">
               <AspectRatio ratio={80 / 9}>
                 <Image
                   src="/dzmm.webp"
@@ -43,7 +43,7 @@ export default async function YoyoLayout({
                 />
               </AspectRatio>
             </div>
-            <div className="hidden sm:block">
+            <div id="sidebar-ad" className="hidden sm:block">
               <AspectRatio ratio={120 / 9}>
                 <Image
                   src="/dzmm.webp"
@@ -54,11 +54,13 @@ export default async function YoyoLayout({
               </AspectRatio>
             </div>
           </Link>
-        </div>
+        </aside>
         <div className="flex flex-col mx-auto max-w-7xl space-y-4 py-4 lg:px-0">
-          {children}
+          <main>
+            {children}
+          </main>
         </div>
-      </main>
+      </div>
 
       <Footer />
       <UmamiScript />

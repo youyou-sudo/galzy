@@ -96,53 +96,55 @@ export default async function page({ params }: Props) {
         <ArrowLeft className="w-4 h-4" />
         返回
       </Link>
-      <Card className="border-0 pt-0">
-        <CardHeader>
-          <CardTitle className="text-2xl items-center text-center">
-            {strategyContent?.title}
-          </CardTitle>
-          <CardDescription>
-            <div className="flex items-center justify-center gap-2">
-              <span className="inline-flex items-center gap-1">
-                <User className="w-4 h-4" />
-                喵喵喵？
-              </span>
-              <span>|</span>
-              <span># 攻略</span>
-              <span>|</span>
-              <span>
-                {strategyContent?.createdAt.toISOString().split('T')[0]}
-              </span>
+      <article>
+        <Card className="border-0 pt-0">
+          <CardHeader>
+            <CardTitle className="text-2xl items-center text-center">
+              {strategyContent?.title}
+            </CardTitle>
+            <CardDescription>
+              <div className="flex items-center justify-center gap-2">
+                <span className="inline-flex items-center gap-1">
+                  <User className="w-4 h-4" />
+                  喵喵喵？
+                </span>
+                <span>|</span>
+                <span># 攻略</span>
+                <span>|</span>
+                <span>
+                  {strategyContent?.createdAt.toISOString().split('T')[0]}
+                </span>
+              </div>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Markdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw, rehypeRemoveBlackWhiteStyles]}
+            >
+              {strategyContent?.content}
+            </Markdown>
+            <div className="text-right">
+              {strategyContent?.copyright && (
+                <p className="text-sm items-center">
+                  来源：
+                  <Link
+                    href={strategyContent.copyright}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline"
+                  >
+                    {new URL(strategyContent.copyright).hostname.replace(
+                      /\.\w+$/,
+                      '',
+                    )}
+                  </Link>
+                </p>
+              )}
             </div>
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Markdown
-            remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw, rehypeRemoveBlackWhiteStyles]}
-          >
-            {strategyContent?.content}
-          </Markdown>
-          <div className="text-right">
-            {strategyContent?.copyright && (
-              <p className="text-sm items-center">
-                来源：
-                <Link
-                  href={strategyContent.copyright}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline"
-                >
-                  {new URL(strategyContent.copyright).hostname.replace(
-                    /\.\w+$/,
-                    '',
-                  )}
-                </Link>
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </article>
     </>
   )
 }

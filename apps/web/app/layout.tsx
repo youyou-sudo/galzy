@@ -19,11 +19,26 @@ export default function RootLayout({
   children: React.ReactNode
   auth: React.ReactNode
 }) {
+
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "relatedLink": {
+      "@type": "WebPageElement",
+      "name": "广告",
+      "cssSelector": "#sidebar-ad",
+      "webPageElementType": "Advertisement"
+    }
+  };
   return (
     <ViewTransitions>
       <html lang="zh-CN" suppressHydrationWarning>
         <head>
           <PublicEnvScript />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          />
         </head>
         <body className={`antialiased flex flex-col min-h-screen`}>
           <ThemeProvider

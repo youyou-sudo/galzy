@@ -20,34 +20,36 @@ export const TapCatd = ({
 }) => {
   const pathname = usePathname()
   return (
-    <Tabs
-      defaultValue={
-        pathname === `/${id}/introduction` || pathname.match(`${id}/\\d+`)
-          ? 'introduction'
-          : 'download'
-      }
-    >
-      <TabsList>
-        <TabsTrigger value="download" asChild>
-          <Link href={`/${id}`}>
-            <ArrowDownToLine className="h-4 w-4" />
-            下载
-          </Link>
-        </TabsTrigger>
-        <TabsTrigger value="introduction" asChild>
-          <Link href={`/${id}/introduction`}>
-            {' '}
-            <Swords />
-            攻略
-          </Link>
-        </TabsTrigger>
-      </TabsList>
-      <Card className="p-0">
-        <CardContent className="p-0">
-          {children}
-          <Glgczujm />
-        </CardContent>
-      </Card>
-    </Tabs>
+    <article>
+      <Tabs
+        defaultValue={
+          pathname === `/${id}/introduction` || pathname.match(`${id}/\\d+`)
+            ? 'introduction'
+            : 'download'
+        }
+      >
+        <TabsList>
+          <TabsTrigger value="download" asChild>
+            <Link href={`/${id}`}>
+              <ArrowDownToLine className="h-4 w-4" />
+              下载
+            </Link>
+          </TabsTrigger>
+          <TabsTrigger value="introduction" asChild>
+            <Link href={`/${id}/introduction`}>
+              {' '}
+              <Swords />
+              攻略
+            </Link>
+          </TabsTrigger>
+        </TabsList>
+        <Card className="p-0">
+          <CardContent className="p-0">
+            {children}
+            <Glgczujm />
+          </CardContent>
+        </Card>
+      </Tabs>
+    </article>
   )
 }

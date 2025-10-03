@@ -9,8 +9,7 @@ export default async function CountComponent() {
     <div className="flex items-center">
       {coutn && (
         <span className="pl-1 flex opacity-50">
-          共收录了： <SlidingNumber number={coutn} padStart />
-          条目
+          共收录了： coutn 条目
         </span>
       )}
       <span className="inline-flex items-center gap-1 ml-2">

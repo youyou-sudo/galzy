@@ -69,56 +69,59 @@ const HomePage = async () => {
 const Home = () => {
   return (
     <>
-      <h1 className="text-4xl font-bold text-center mt-10">紫缘社</h1>
-      <div className="mx-auto">
-        <CountComponent />
-      </div>
-      {/* 搜索框 */}
-      <div className="min-w-4/5 md:min-w-2/4 mx-auto">
-        <SearchInput />
-      </div>
+      <article>
+        <h1 className="text-4xl font-bold text-center mt-10">紫缘社</h1>
+        <div className="mx-auto">
+          <CountComponent />
+        </div>
+        {/* 搜索框 */}
+        <div className="min-w-4/5 md:min-w-2/4 mx-auto">
+          <SearchInput />
+        </div>
 
-      {/* 热门标签 + 热门游戏 */}
-      <div className="grid grid-cols-2 md:grid-cols-2 gap-2 px-0 md:px-3 mb-0">
-        <Card className="gap-3 border-0">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              热门标签 <Tags className="w-4 h-4 ml-1 text-red-300" />
-            </CardTitle>
-            <CardDescription>每周检索最多标签</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Suspense fallback={<SkeletonList />}>
-              <RankingList fetchData={remfTagGet} linkKey="tag" />
-            </Suspense>
-          </CardContent>
-        </Card>
+      </article>
+      <article>
+        {/* 热门标签 + 热门游戏 */}
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-2 px-0 md:px-3 mb-0">
+          <Card className="gap-3 border-0">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                热门标签 <Tags className="w-4 h-4 ml-1 text-red-300" />
+              </CardTitle>
+              <CardDescription>每周检索最多标签</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Suspense fallback={<SkeletonList />}>
+                <RankingList fetchData={remfTagGet} linkKey="tag" />
+              </Suspense>
+            </CardContent>
+          </Card>
 
-        <Card className="gap-3 border-0">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              热门游戏 <Gamepad2 className="w-4 h-4 ml-1 text-red-300" />
-            </CardTitle>
-            <CardDescription>每周浏览最多游戏</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Suspense fallback={<SkeletonList />}>
-              <RankingList fetchData={remfGameGet} linkKey="id" />
-            </Suspense>
-          </CardContent>
-        </Card>
-      </div>
-
+          <Card className="gap-3 border-0">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                热门游戏 <Gamepad2 className="w-4 h-4 ml-1 text-red-300" />
+              </CardTitle>
+              <CardDescription>每周浏览最多游戏</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Suspense fallback={<SkeletonList />}>
+                <RankingList fetchData={remfGameGet} linkKey="id" />
+              </Suspense>
+            </CardContent>
+          </Card>
+        </div>
+      </article >
       {/* 广告 */}
-      <div className='opacity-80 lg:px-24 px-4 my-4'>
+      <aside id="sidebar-ad" className='opacity-80 lg:px-24 px-4 my-4' >
         <AspectRatio ratio={120 / 9}>
           <Image src="/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
         </AspectRatio>
-      </div>
+      </aside >
       {/* 游戏列表 */}
-      <div>
+      <article>
         <HomePage />
-      </div>
+      </article>
     </>
   )
 }

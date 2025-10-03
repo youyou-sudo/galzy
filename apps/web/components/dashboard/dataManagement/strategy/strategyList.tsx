@@ -55,7 +55,7 @@ const StrategyList = ({ id }: { id: string }) => {
   const { setdata, setcreate, openModal } = useLoginModalStore()
   const pathname = usePathname()
   return (
-    <div>
+    <article>
       <div className="flex flex-col p-3">
         {isLoading &&
           Array(2)
@@ -151,7 +151,7 @@ const StrategyList = ({ id }: { id: string }) => {
         </div>
       )}
       <StrategEdit />
-    </div>
+    </article>
   )
 }
 
