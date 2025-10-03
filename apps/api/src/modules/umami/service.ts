@@ -3,6 +3,9 @@ import { status } from 'elysia'
 import { t } from 'try'
 import type { UmamiModel } from './model'
 
+const now = Date.now()
+const endAt = now
+const startAt = now - 7 * 24 * 60 * 60 * 1000
 export const Umami = {
   // Tag 统计
   async remfTagGet() {
@@ -16,7 +19,9 @@ export const Umami = {
         500,
         `Umami 服务出错了喵~，Error:${JSON.stringify(error, null, 2)}`,
       )
-    const url = `${process.env.UMAMI_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=1756051200000&endAt=1756655999999&unit=day&timezone=Asia/Shanghai&eventName=TagViews&propertyName=tagtitle`
+
+    const url = `${process.env.UMAMI_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=${startAt}&endAt=${endAt}&unit=day&timezone=Asia/Shanghai&eventName=TagViews&propertyName=tagtitle`
+
     const [, error1, res] = t(
       await fetch(url, {
         method: 'GET',
@@ -50,7 +55,7 @@ export const Umami = {
         500,
         `Umami 服务出错了喵~，Error:${JSON.stringify(error, null, 2)}`,
       )
-    const url = `${process.env.UMAMI_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=1756051200000&endAt=1756655999999&unit=day&timezone=Asia/Shanghai&eventName=GameViews&propertyName=idtitlee`
+    const url = `${process.env.UMAMI_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=${startAt}&endAt=${endAt}&unit=day&timezone=Asia/Shanghai&eventName=GameViews&propertyName=idtitlee`
     const [, error1, res] = t(
       await fetch(url, {
         method: 'GET',
