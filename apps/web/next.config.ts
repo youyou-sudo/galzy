@@ -2,23 +2,6 @@ import type { NextConfig } from 'next'
 import type { RemotePattern } from 'next/dist/shared/lib/image-config'
 import { env } from 'next-runtime-env'
 
-const openImageHost: RemotePattern | null = (() => {
-  const envValue = env('NEXT_PUBLIC_OPENIMAG_P_HOST')
-  if (!envValue) return null
-  try {
-    const url = new URL(envValue)
-    const protocol = url.protocol.replace(':', '') as 'http' | 'https'
-    return {
-      protocol,
-      hostname: url.hostname,
-      port: url.port || undefined,
-    }
-  } catch {
-    console.error('❌ NEXT_PUBLIC_OPENIMAG_P_HOST 格式错误')
-    return null
-  }
-})()
-
 const nextConfig: NextConfig = {
   output: 'standalone',
   experimental: {
@@ -28,15 +11,6 @@ const nextConfig: NextConfig = {
   },
   images: {
     unoptimized: true,
-    // formats: ['image/avif', 'image/webp'],
-    // minimumCacheTTL: 2678400,
-    // remotePatterns: [
-    //   {
-    //     protocol: 'https',
-    //     hostname: 't.vndb.org',
-    //   },
-    //   ...(openImageHost ? [openImageHost] : []),
-    // ],
   },
   async headers() {
     return [
