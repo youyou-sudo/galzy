@@ -173,19 +173,27 @@ export const DownCardDialog = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
   }
 
-  useEffect(() => {
-    if (!isOpen) return
-    const handlePopState = () => close()
-    window.history.pushState({ modalOpen: true }, '')
-    window.addEventListener('popstate', handlePopState)
-    return () => {
-      window.removeEventListener('popstate', handlePopState)
-      // 🔥 不用 history.back()，直接清掉 state，避免 Chrome/Edge/Safari 卡顿
-      if (window.history.state?.modalOpen) {
-        window.history.replaceState({}, '')
-      }
+useEffect(() => {
+  if (!isOpen) return
+
+  const handlePopState = (e: PopStateEvent) => {
+    if (e.state?.modalOpen) {
+      close()
+      window.history.replaceState({}, '')
     }
-  }, [isOpen])
+  }
+
+  window.history.pushState({ modalOpen: true }, '')
+
+  window.addEventListener('popstate', handlePopState)
+
+  return () => {
+    window.removeEventListener('popstate', handlePopState)
+    if (window.history.state?.modalOpen) {
+      window.history.replaceState({}, '')
+    }
+  }
+}, [isOpen, close])
 
   const { data: readmedata, isLoading } = useQuery({
     queryKey: ['readme', data?.redame],
