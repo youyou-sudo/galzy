@@ -211,10 +211,12 @@ export const DownCardDialog = () => {
           </Button>
           <Button asChild>
             <Link
+              prefetch={false}
               data-umami-event="GameDownload"
               data-umami-event-pathe={data?.id}
               data-umami-event-size={data?.size}
               target="_blank"
+
               href={`/api/download?path=${data?.id}`}
             >
               <div className="flex items-center">

@@ -8,16 +8,17 @@ export async function GET(request: Request) {
       status: 400,
     })
   }
-  const data = await api.download.path.get({
+  const { data, error, status } = await api.download.path.get({
     query: {
       path,
     },
   })
-  if (data.status >= 400) {
-    return new Response(`${data.error?.value.message}`, {
+  if (status >= 400) {
+    console.log(data)
+    return new Response(`${error?.value.message}`, {
       status: 400,
     })
   }
 
-  return Response.redirect(data.data?.raw_url!, 302)
+  return Response.redirect(data?.raw_url!, 302)
 }
