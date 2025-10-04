@@ -180,9 +180,13 @@ export const DownCardDialog = () => {
     window.addEventListener('popstate', handlePopState)
     return () => {
       window.removeEventListener('popstate', handlePopState)
-      if (window.history.state?.modalOpen) window.history.back()
+      // 🔥 不用 history.back()，直接清掉 state，避免 Chrome/Edge/Safari 卡顿
+      if (window.history.state?.modalOpen) {
+        window.history.replaceState({}, '')
+      }
     }
   }, [isOpen])
+
   const { data: readmedata, isLoading } = useQuery({
     queryKey: ['readme', data?.redame],
     queryFn: () =>
@@ -192,7 +196,11 @@ export const DownCardDialog = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>
-      <DialogContent className="max-h-[85%]">
+      <DialogContent
+        className="max-h-[85%]"
+        // 🔥 阻止 Radix 自动 focus 恢复，避免关闭时卡住
+        onCloseAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>文件信息</DialogTitle>
         </DialogHeader>
@@ -216,7 +224,6 @@ export const DownCardDialog = () => {
               data-umami-event-pathe={data?.id}
               data-umami-event-size={data?.size}
               target="_blank"
-
               href={`/api/download?path=${data?.id}`}
             >
               <div className="flex items-center">
