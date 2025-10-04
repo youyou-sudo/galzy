@@ -13,7 +13,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@web/components/animate-ui/radix/dialog'
+} from "@web/components/ui/dialog"
 import { Button } from '@web/components/ui/button'
 import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
 import { Skeleton } from '@web/components/ui/skeleton'
