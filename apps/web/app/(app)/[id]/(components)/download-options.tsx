@@ -176,21 +176,21 @@ export const DownCardDialog = () => {
 useEffect(() => {
   if (!isOpen) return
 
-  const handlePopState = (e: PopStateEvent) => {
-    if (e.state?.modalOpen) {
+  const handleHashChange = () => {
+    if (!location.hash.includes('modal')) {
       close()
-      window.history.replaceState({}, '')
     }
   }
 
-  window.history.pushState({ modalOpen: true }, '')
+  const prevHash = location.hash
+  location.hash = 'modal'
 
-  window.addEventListener('popstate', handlePopState)
+  window.addEventListener('hashchange', handleHashChange)
 
   return () => {
-    window.removeEventListener('popstate', handlePopState)
-    if (window.history.state?.modalOpen) {
-      window.history.replaceState({}, '')
+    window.removeEventListener('hashchange', handleHashChange)
+    if (location.hash === '#modal') {
+      history.replaceState(null, '', prevHash || ' ')
     }
   }
 }, [isOpen, close])
