@@ -14,7 +14,7 @@ interface SearchInputProps {
 }
 
 export default function SearchInput({
-  placeholder = '标题、标签、回车 Go!🐾',
+  placeholder = '标题、标签、回车，喵喵喵～🐾',
 }: SearchInputProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
