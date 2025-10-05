@@ -114,7 +114,7 @@ const Home = () => {
         </AspectRatio>
       </aside > */}
       {/* 游戏列表 */}
-      <article>
+      <article className='mt-4'>
         <HomePage />
       </article>
     </>
