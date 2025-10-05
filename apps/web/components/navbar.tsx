@@ -77,6 +77,19 @@ export function Navbar() {
                       </ul>
                     </NavigationMenuContent>
                   </NavigationMenuItem>
+                  <NavigationMenuItem>
+                    <NavigationMenuLink
+                      asChild
+                      className={navigationMenuTriggerStyle()}
+                    >
+                      <Link
+                        target='_blank'
+                        data-umami-event="广告点击"
+                        data-umami-event-name="AI 风月"
+                        data-umami-event-position="导航广告-AI 风月"
+                        href="https://chattersate.xyz/zh/explore/apps?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7&ranking=daily_rank">Ai女友💋（在线畅玩）</Link>
+                    </NavigationMenuLink>
+                  </NavigationMenuItem>
                 </NavigationMenuList>
               </NavigationMenu>
             </div>

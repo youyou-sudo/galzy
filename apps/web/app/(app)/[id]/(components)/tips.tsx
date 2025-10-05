@@ -52,7 +52,7 @@ export const Glgczujm = () => {
             target='_blank'
             data-umami-event="广告点击"
             data-umami-event-name="AI 风月"
-            data-umami-event-position="页内广告"
+            data-umami-event-position="页内广告-AI 风月"
             href="https://chattersate.xyz/zh/explore/apps?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7&ranking=daily_rank">
             <AlertTitle>Ai 女友💋（在线畅玩）</AlertTitle>
           </Link>
@@ -63,7 +63,7 @@ export const Glgczujm = () => {
           target='_blank'
           data-umami-event="广告点击"
           data-umami-event-name="AI 风月"
-          data-umami-event-position="页内广告"
+          data-umami-event-position="页内广告-AI 风月"
           href="https://chattersate.xyz/zh/explore/apps?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7&ranking=daily_rank">
           <div className="sm:hidden">
             <AspectRatio ratio={80 / 9}>
@@ -84,7 +84,7 @@ export const Glgczujm = () => {
           <Link
             data-umami-event="广告点击"
             data-umami-event-name="dzmm"
-            data-umami-event-position="页内广告"
+            data-umami-event-position="页内广告-dzmm"
             className='text-cyan-500'
             target='_blank'
             href="https://www.电子魅魔.com/?rf=876926e5">
@@ -99,7 +99,7 @@ export const Glgczujm = () => {
         <Link
           data-umami-event="广告点击"
           data-umami-event-name="dzmm"
-          data-umami-event-position="页内广告"
+          data-umami-event-position="页内广告-dzmm"
           target='_blank'
           href="https://www.电子魅魔.com/?rf=876926e5">
           <div className="sm:hidden">
@@ -129,16 +129,18 @@ export const Glgczujm = () => {
                     <Link
                       data-umami-event="广告点击"
                       data-umami-event-name={item.name}
-                      data-umami-event-position="页内广告"
+                      data-umami-event-position={`页内广告-${item.name}`}
                       className="underline hover:text-cyan-600"
                       target="_blank"
                       href={item.url}
                     >
                       {item.name}：{item.desc}
                     </Link>
-                    {item.info && (
-                      <p className="text-xs ml-4 opacity-55">{item.info}</p>
-                    )}
+                    {
+                      item.info && (
+                        <p className="text-xs ml-4 opacity-55">{item.info}</p>
+                      )
+                    }
                   </li>
                 )
               })}

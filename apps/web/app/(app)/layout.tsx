@@ -35,7 +35,7 @@ export default async function YoyoLayout({
           <Link
             data-umami-event="广告点击"
             data-umami-event-name="dzmm"
-            data-umami-event-position="Banner"
+            data-umami-event-position="Banner-dzmm"
             target="_blank"
             href="https://www.电子魅魔.com/?rf=876926e5">
             <div id="sidebar-ad" className="sm:hidden">
