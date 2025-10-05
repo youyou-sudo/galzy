@@ -23,19 +23,6 @@ import { Link } from 'next-view-transitions'
 import type React from 'react'
 import { useState } from 'react'
 
-const contactlist: { title: string; href: string; description: string }[] = [
-  {
-    title: 'Telegram 群组',
-    href: 'https://t.me/ziyuanlinyin',
-    description: '紫缘社的 Telegram 群组',
-  },
-  {
-    title: 'Email 邮箱 GalzyAdvertising@proton.me',
-    href: 'mailto:GalzyAdvertising@proton.me',
-    description: '联系我们的 Email 邮箱，接受问题反馈和合作赞助',
-  },
-]
-
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
 
@@ -61,21 +48,14 @@ export function Navbar() {
                       <Link href="/">主页</Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
+
                   <NavigationMenuItem>
-                    <NavigationMenuTrigger>联系</NavigationMenuTrigger>
-                    <NavigationMenuContent>
-                      <ul className="grid w-[400px] gap-1 md:w-[200px] lg:w-[300px]">
-                        {contactlist.map((component) => (
-                          <ListItem
-                            key={component.title}
-                            title={component.title}
-                            href={component.href}
-                          >
-                            {component.description}
-                          </ListItem>
-                        ))}
-                      </ul>
-                    </NavigationMenuContent>
+                    <NavigationMenuLink
+                      asChild
+                      className={navigationMenuTriggerStyle()}
+                    >
+                      <Link href="/contact">联系</Link>
+                    </NavigationMenuLink>
                   </NavigationMenuItem>
                   <NavigationMenuItem>
                     <NavigationMenuLink
