@@ -68,11 +68,11 @@ export default async function Yoyo({ params }: Props) {
         </Card>
       </article>
       {/* 广告 */}
-      <aside id="sidebar-ad" className='opacity-80 lg:px-24 px-4 my-4'>
+      {/* <aside id="sidebar-ad" className='opacity-80 lg:px-24 px-4 my-4'>
         <AspectRatio ratio={120 / 9}>
           <Image src="/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
         </AspectRatio>
-      </aside>
+      </aside> */}
 
       <div className="text-sm text-center items-center opacity-30 italic">
         数据过滤，来自 VNDB

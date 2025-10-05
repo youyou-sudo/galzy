@@ -32,7 +32,12 @@ export default async function YoyoLayout({
         <Navbar />
         {/* 广告 */}
         <aside id="sidebar-ad" className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-80 relative -z-10">
-          <Link target="_blank" href="https://www.电子魅魔.com/?rf=876926e5">
+          <Link
+            data-umami-event="广告点击"
+            data-umami-event-name="dzmm"
+            data-umami-event-position="Banner"
+            target="_blank"
+            href="https://www.电子魅魔.com/?rf=876926e5">
             <div id="sidebar-ad" className="sm:hidden">
               <AspectRatio ratio={80 / 9}>
                 <Image

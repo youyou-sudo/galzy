@@ -21,9 +21,6 @@ import { Suspense } from 'react'
 import { remfGameGet, remfTagGet } from './(action)/remf'
 import CountComponent from './(components)/Count'
 import RankingList from './(components)/remf'
-import Link from 'next/link'
-import { AspectRatio } from '@web/components/ui/aspect-ratio'
-import Image from 'next/image'
 
 export const metadata: Metadata = {
   title: '主页',
@@ -111,11 +108,11 @@ const Home = () => {
         </div>
       </article >
       {/* 广告 */}
-      <aside id="sidebar-ad" className='opacity-80 lg:px-24 px-4 my-4' >
+      {/* <aside id="sidebar-ad" className='opacity-80 lg:px-24 px-4 my-4' >
         <AspectRatio ratio={120 / 9}>
           <Image src="/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
         </AspectRatio>
-      </aside >
+      </aside > */}
       {/* 游戏列表 */}
       <article>
         <HomePage />
