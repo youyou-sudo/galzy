@@ -1,5 +1,4 @@
 'use client'
-import { useQuery } from '@tanstack/react-query'
 import { GameCard } from '@web/components/game-card'
 import { TagViewsTrackEvents } from '@web/components/umami/track-events'
 import { getImageUrl, imageAcc } from '@web/lib/ImageUrl'
@@ -15,30 +14,37 @@ const SearchlistComponent = ({ gameListData }: { gameListData: Datas }) => {
       const imageFilter = () => {
         const images =
           item.other &&
-          item.other_datas?.other_media.some((item: any) => item.cover === true)
+            item.other_datas?.other_media.some((item: any) => item.cover === true)
             ? item.other_datas.other_media.find(
-                (item: any) => item.cover === true,
-              )?.media
+              (item: any) => item.cover === true,
+            )?.media
             : item.images
         return images
       }
       const imagesData = imageFilter()
-      const imagess =
-        imagesData && typeof imagesData === 'object' && 'hash' in imagesData
-          ? imageAcc(imagesData.name)
-          : getImageUrl({
-              imageId: imagesData!.id,
-              width: imagesData!.width,
-              height: imagesData!.height,
-            })
+      let imagess = '/No-Image-Placeholder.svg.webp';
+
+      if (imagesData) {
+        if ('hash' in imagesData) {
+          imagess = imageAcc(imagesData.name);
+        } else if (imagesData.id && imagesData.width && imagesData.height) {
+          imagess = getImageUrl({
+            imageId: imagesData.id,
+            width: imagesData.width,
+            height: imagesData.height,
+          });
+        }
+      }
+
+
       return (
         <Link href={`/${item.id}`} key={item.id} prefetch={false}>
           <div>
             {/* [x] VNDB 来源图片进行缓存以防止滥用 VNDB 服务
              */}
             <GameCard.Image
-              width={imagesData.width}
-              height={imagesData.height}
+              width={imagesData?.width ?? 200}
+              height={imagesData?.height ?? 300}
               loading="lazy"
               priority={false}
               src={imagess}
@@ -48,11 +54,11 @@ const SearchlistComponent = ({ gameListData }: { gameListData: Datas }) => {
           <p className="text-sm truncate w-full text-center pl-2 pr-2 pt-2">
             {item.other_datas?.title?.length
               ? (item.other_datas.title.find(
-                  (it: { lang: string }) => it.lang === 'zh-Hans',
-                )?.title ?? item.other_datas.title[0]?.title)
+                (it: { lang: string }) => it.lang === 'zh-Hans',
+              )?.title ?? item.other_datas.title[0]?.title)
               : item.titles.find(
-                  (it: { lang: string }) => it.lang === item.olang,
-                )?.title}
+                (it: { lang: string }) => it.lang === item.olang,
+              )?.title}
           </p>
         </Link>
       )

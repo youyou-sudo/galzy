@@ -24,21 +24,22 @@ export const GameItem = ({
     imagesData =
       item.other_datas.other_media.find((item) => item.cover)?.media ?? item.images
   } else {
-    imagesData = item?.images
+    if (item?.images !== null) imagesData = item?.images
+    else imagesData = {}
   }
 
+  let imagess = '/No-Image-Placeholder.svg.webp';
 
-  let imagess
-  if (!imagesData) {
-    imagess = ''
-  } else if ('hash' in imagesData) {
-    imagess = imageAcc(imagesData.name)
-  } else {
-    imagess = getImageUrl({
-      imageId: imagesData.id,
-      width: imagesData.width,
-      height: imagesData.height,
-    })
+  if (imagesData) {
+    if ('hash' in imagesData) {
+      imagess = imageAcc(imagesData.name);
+    } else if (imagesData.id && imagesData.width && imagesData.height) {
+      imagess = getImageUrl({
+        imageId: imagesData.id,
+        width: imagesData.width,
+        height: imagesData.height,
+      });
+    }
   }
 
   let title
@@ -60,8 +61,8 @@ export const GameItem = ({
         style={{ contentVisibility: 'auto' }}
       >
         <GameCard.Image
-          width={imagesData?.width}
-          height={imagesData?.height}
+          width={imagesData?.width ?? 200}
+          height={imagesData?.height ?? 300}
           loading="lazy"
           decoding="async"
           src={imagess}
