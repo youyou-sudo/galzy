@@ -17,10 +17,9 @@ import {
 import { Button } from '@web/components/ui/button'
 import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
 import { Skeleton } from '@web/components/ui/skeleton'
-import type { getFileList } from '@web/lib/repositories/alistFileList'
-import { Download } from 'lucide-react'
+import { Check, Copy, Download } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Markdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
@@ -28,6 +27,32 @@ import { MarkdownComponents } from './markdown-components'
 import { downCardDataStore } from './stores/downCardData'
 import type { GameModel } from '@api/modules/games/model'
 
+
+
+export function CopyButtons({ id }: { id?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (id) {
+      const url = `${window.location.origin}/api/download?path=${id}`;
+      navigator.clipboard.writeText(url)
+        .then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 3000); // 3秒后恢复图标
+        })
+        .catch(() => {
+          alert("复制失败，请手动复制链接。");
+        });
+    }
+  };
+
+  return (
+    <Button onClick={handleCopy} variant="outline" className="flex items-center space-x-1">
+      {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+      <span>复制链接</span>
+    </Button>
+  );
+}
 
 export function DownloadOptions({ fileList }: { fileList: GameModel.TreeNode[] }) {
   return <FileExplorer items={fileList} />
@@ -173,27 +198,27 @@ export const DownCardDialog = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
   }
 
-useEffect(() => {
-  if (!isOpen) return
+  useEffect(() => {
+    if (!isOpen) return
 
-  const handleHashChange = () => {
-    if (!location.hash.includes('modal')) {
-      close()
+    const handleHashChange = () => {
+      if (!location.hash.includes('modal')) {
+        close()
+      }
     }
-  }
 
-  const prevHash = location.hash
-  location.hash = 'modal'
+    const prevHash = location.hash
+    location.hash = 'modal'
 
-  window.addEventListener('hashchange', handleHashChange)
+    window.addEventListener('hashchange', handleHashChange)
 
-  return () => {
-    window.removeEventListener('hashchange', handleHashChange)
-    if (location.hash === '#modal') {
-      history.replaceState(null, '', prevHash || ' ')
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange)
+      if (location.hash === '#modal') {
+        history.replaceState(null, '', prevHash || ' ')
+      }
     }
-  }
-}, [isOpen, close])
+  }, [isOpen, close])
 
   const { data: readmedata, isLoading } = useQuery({
     queryKey: ['readme', data?.redame],
@@ -225,6 +250,7 @@ useEffect(() => {
           >
             关闭
           </Button>
+          <CopyButtons id={data?.id} />
           <Button asChild>
             <Link
               prefetch={false}
