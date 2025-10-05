@@ -59,11 +59,11 @@ export default async function Yoyo({ params }: Props) {
             <CardTitle className="text-2xl text-center items-center">
               {tag?.zht_name || tag?.name}
             </CardTitle>
-            <CardContent className="p-0">
+            {/* <CardContent className="p-0">
               <BBCodeRenderer
                 text={tag?.zht_description || tag?.description || ''}
               />
-            </CardContent>
+            </CardContent> */}
           </CardHeader>
         </Card>
       </article>
