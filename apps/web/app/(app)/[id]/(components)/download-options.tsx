@@ -25,6 +25,7 @@ import { MarkdownComponents } from './markdown-components'
 import { downCardDataStore } from './stores/downCardData'
 import type { GameModel } from '@api/modules/games/model'
 import { dwAcConst } from '@web/lib/download/ac'
+import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
 
 
 
@@ -299,7 +300,7 @@ export const DownCardDialog = () => {
                     d="M4 12a8 8 0 018-8v8H4z"
                   ></path>
                 </svg>
-                下载请求中...
+                请求中
               </span>
             ) : (
               <div className="flex items-center gap-1">
@@ -316,15 +317,13 @@ export const DownCardDialog = () => {
             <pre className="pr-6 text-center items-center rounded-md border-1">
               玖辞
             </pre>
-            <Button
-              size="sm"
+            <CopyButton
+              size="default"
               variant="secondary"
-              onClick={() => handleCopy('玖辞')}
-              disabled={isCopying}
+              content="玖辞"
+              onCopy={() => console.assert('已复制!')}
               className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-            >
-              📋
-            </Button>
+            />
           </div>
         </div>
 
