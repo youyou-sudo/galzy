@@ -15,10 +15,8 @@ import {
   DialogTitle,
 } from "@web/components/ui/dialog"
 import { Button } from '@web/components/ui/button'
-import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
 import { Skeleton } from '@web/components/ui/skeleton'
 import { Check, Copy, Download } from 'lucide-react'
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import Markdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
@@ -26,6 +24,7 @@ import remarkGfm from 'remark-gfm'
 import { MarkdownComponents } from './markdown-components'
 import { downCardDataStore } from './stores/downCardData'
 import type { GameModel } from '@api/modules/games/model'
+import { dwAcConst } from '@web/lib/download/ac'
 
 
 
@@ -182,13 +181,17 @@ const Filessss = ({ items }: { items: GameModel.TreeNode[] | undefined }) => {
 }
 
 // ---------- 下载弹窗 ----------
+
 export const DownCardDialog = () => {
   const isOpen = downCardDataStore((s) => s.isOpen)
   const setOpen = downCardDataStore((s) => s.setOpen)
   const data = downCardDataStore((s) => s.data)
   const close = downCardDataStore((s) => s.close)
 
-  // Size 转换
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [isCopying, setIsCopying] = useState(false)
+
+  // 文件大小格式化
   function formatBytes(bytes: number, decimals = 2): string {
     if (bytes === 0) return '0 字节'
     const k = 1024
@@ -198,45 +201,55 @@ export const DownCardDialog = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
   }
 
-  useEffect(() => {
-    if (!isOpen) return
-
-    const handleHashChange = () => {
-      if (!location.hash.includes('modal')) {
-        close()
-      }
-    }
-
-    const prevHash = location.hash
-    location.hash = 'modal'
-
-    window.addEventListener('hashchange', handleHashChange)
-
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange)
-      if (location.hash === '#modal') {
-        history.replaceState(null, '', prevHash || ' ')
-      }
-    }
-  }, [isOpen, close])
-
+  // 下载 README
   const { data: readmedata, isLoading } = useQuery({
     queryKey: ['readme', data?.redame],
-    queryFn: () =>
-      fetch(`/api/download?path=${data?.redame}`).then((res) => res.text()),
+    queryFn: async () => {
+      const url = await dwAcConst(data?.redame)
+      return fetch(url.url).then((res) => res.text())
+    },
     enabled: !!data?.redame,
   })
+
+  // 下载处理函数
+  const handleDownload = async () => {
+    if (!data?.id) return
+    setIsDownloading(true)
+    try {
+      const log = await dwAcConst(data.id)
+      if (log?.url) {
+        window.location.href = log.url
+      }
+    } catch (err: any) {
+      alert(err.message)
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  // 复制处理函数
+  const handleCopy = async (text: string) => {
+    setIsCopying(true)
+    try {
+      await navigator.clipboard.writeText(text)
+      alert('已复制！')
+    } catch {
+      alert('复制失败，请手动复制')
+    } finally {
+      setIsCopying(false)
+    }
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>
       <DialogContent
         className="max-h-[85%]"
-        // 🔥 阻止 Radix 自动 focus 恢复，避免关闭时卡住
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle>文件信息</DialogTitle>
         </DialogHeader>
+
         <span className="text-center text-lg break-words">{data?.name}</span>
         <DialogDescription className="text-center">
           <span>{formatBytes(Number(data?.size))}</span>
@@ -250,21 +263,50 @@ export const DownCardDialog = () => {
           >
             关闭
           </Button>
-          <CopyButtons id={data?.id} />
-          <Button asChild>
-            <Link
-              prefetch={false}
-              data-umami-event="GameDownload"
-              data-umami-event-pathe={data?.id}
-              data-umami-event-size={data?.size}
-              target="_blank"
-              href={`/api/download?path=${data?.id}`}
-            >
-              <div className="flex items-center">
+
+          <Button
+            variant="outline"
+            onClick={() => handleCopy(data?.id || '')}
+            disabled={isCopying}
+          >
+            {isCopying ? '请求中...' : '复制链接'}
+          </Button>
+
+          <Button
+            onClick={handleDownload}
+            disabled={isDownloading}
+            data-umami-event="GameDownload"
+            data-umami-event-pathe={data?.id}
+            data-umami-event-size={data?.size}
+          >
+            {isDownloading ? (
+              <span className="flex items-center gap-2">
+                <svg
+                  className="animate-spin h-4 w-4"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8H4z"
+                  ></path>
+                </svg>
+                下载请求中...
+              </span>
+            ) : (
+              <div className="flex items-center gap-1">
                 <Download />
                 下载
               </div>
-            </Link>
+            )}
           </Button>
         </DialogFooter>
 
@@ -274,17 +316,18 @@ export const DownCardDialog = () => {
             <pre className="pr-6 text-center items-center rounded-md border-1">
               玖辞
             </pre>
-            <CopyButton
-              size="default"
+            <Button
+              size="sm"
               variant="secondary"
-              content="玖辞"
-              onCopy={() => console.assert('已复制!')}
+              onClick={() => handleCopy('玖辞')}
+              disabled={isCopying}
               className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-            />
+            >
+              📋
+            </Button>
           </div>
         </div>
 
-        {/* Card 内部滚动示例 */}
         {readmedata && (
           <div className="max-h-96 overflow-y-auto p-2 border-2 rounded-2xl break-words">
             <div className="space-y-2">
@@ -294,15 +337,13 @@ export const DownCardDialog = () => {
                 ))
                 : null}
             </div>
-            <div>
-              <Markdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw]}
-                components={MarkdownComponents}
-              >
-                {readmedata}
-              </Markdown>
-            </div>
+            <Markdown
+              remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw]}
+              components={MarkdownComponents}
+            >
+              {readmedata}
+            </Markdown>
           </div>
         )}
       </DialogContent>
