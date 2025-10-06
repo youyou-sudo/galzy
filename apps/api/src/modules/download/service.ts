@@ -60,18 +60,15 @@ export const Download = {
       }
     }
 
-    const alistDownloadGet = async (rawPath: string) => {
+    const alistDownloadGet = async (path: string) => {
       if (!alistSettingsCache) {
         alistSettingsCache = await loadAlistSettings()
       }
 
-      // 对 path 做统一编码，保证签名和 URL 一致
-      const safePath = encodeURIComponent(rawPath)
-
       const now = Math.floor(Date.now() / 1000)
       const expiration = now + alistSettingsCache.linkExpiration * 3600
 
-      const sign = await hmacSha256Sign(safePath, expiration, alistSettingsCache.token)
+      const sign = await hmacSha256Sign(path, expiration, alistSettingsCache.token)
 
       const [, error, workerList] = t(
         await db
@@ -91,7 +88,7 @@ export const Download = {
       return {
         success: true,
         message: '哼哼喵（得意），找到啦～',
-        raw_url: `${randomWorker.url_endpoint}/${safePath}?sign=${sign}`,
+        raw_url: `${randomWorker.url_endpoint}/${path}?sign=${sign}`,
         sign,
       }
     }
