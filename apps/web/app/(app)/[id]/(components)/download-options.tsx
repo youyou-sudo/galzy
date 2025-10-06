@@ -182,7 +182,6 @@ const Filessss = ({ items }: { items: GameModel.TreeNode[] | undefined }) => {
 }
 
 // ---------- 下载弹窗 ----------
-
 export const DownCardDialog = () => {
   const isOpen = downCardDataStore((s) => s.isOpen)
   const setOpen = downCardDataStore((s) => s.setOpen)
@@ -219,7 +218,7 @@ export const DownCardDialog = () => {
     try {
       const log = await dwAcConst(data.id)
       if (log?.url) {
-        window.location.href = log.url
+        window.open(log.url, '_blank');
       }
     } catch (err: any) {
       alert(err.message)
