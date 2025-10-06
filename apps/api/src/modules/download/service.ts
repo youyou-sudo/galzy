@@ -33,7 +33,7 @@ export const Download = {
 
     type AlistSettings = {
       token: string
-      linkExpiration: number // 小时
+      linkExpiration: number
     }
 
     let alistSettingsCache: AlistSettings | null = null
@@ -60,14 +60,18 @@ export const Download = {
       }
     }
 
-    const alistDownloadGet = async (path: string) => {
+    const alistDownloadGet = async (rawPath: string) => {
       if (!alistSettingsCache) {
         alistSettingsCache = await loadAlistSettings()
       }
 
+      // 对 path 做统一编码，保证签名和 URL 一致
+      const safePath = encodeURIComponent(rawPath)
+
       const now = Math.floor(Date.now() / 1000)
       const expiration = now + alistSettingsCache.linkExpiration * 3600
-      const sign = await hmacSha256Sign(path, expiration, alistSettingsCache.token)
+
+      const sign = await hmacSha256Sign(safePath, expiration, alistSettingsCache.token)
 
       const [, error, workerList] = t(
         await db
@@ -82,22 +86,21 @@ export const Download = {
         throw status(500, '没有可用的下载节点喵~')
       }
 
-      // 随机选择一个 worker
       const randomWorker = workerList[Math.floor(Math.random() * workerList.length)]
 
       return {
         success: true,
         message: '哼哼喵（得意），找到啦～',
-        raw_url: `${randomWorker.url_endpoint}/${encodeURIComponent(path)}?sign=${sign}`,
+        raw_url: `${randomWorker.url_endpoint}/${safePath}?sign=${sign}`,
         sign,
       }
     }
+
     const [, error, res] = t(await alistDownloadGet(path))
     if (error) {
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     }
-    const result = structuredClone(res)
-    return result
+    return structuredClone(res)
   },
   async Worker() {
     const [, error, res] = t(
