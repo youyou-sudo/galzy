@@ -202,10 +202,11 @@ export const Tags = {
       db
         .selectFrom('tags_vn')
         .innerJoin('galrc_alistb', 'galrc_alistb.vid', 'tags_vn.vid')
-        .groupBy(['tags_vn.tag', 'tags_vn.vid'])
-        .select(({ fn }) => [fn.countAll().as('count')])
         .where('tags_vn.tag', '=', tagId)
-        .executeTakeFirst(),
+        .select(({ fn }) => [
+          fn.count('tags_vn.vid').distinct().as('count')
+        ])
+        .executeTakeFirst()
     ])
 
     // main query 结果处理
