@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia'
 
-export const search = new Elysia({ prefix: '/ping' })
+export const ping = new Elysia({ prefix: '/ping' })
   .get(
     '/',
     async () => {

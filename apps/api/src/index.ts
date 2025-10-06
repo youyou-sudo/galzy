@@ -12,6 +12,7 @@ import {
 } from './modules'
 import { media } from './modules/media'
 import { strategy } from './modules/strategy'
+import { ping } from './modules/ping'
 
 initValidationError()
 dbSeed()
@@ -29,6 +30,7 @@ const app = new Elysia()
   .use(strategy)
   .use(media)
   .use(cronServer)
+  .use(ping)
   .listen(process.env.API_PORT ?? 3001)
 
 export type APP = typeof app
