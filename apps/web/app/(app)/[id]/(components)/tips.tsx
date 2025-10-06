@@ -78,7 +78,7 @@ export const Glgczujm = () => {
         </Link>
       </div>
 
-      <aside>
+      {/* <aside>
         <Alert id="sidebar-ad" className="border-cyan-600/30 border-x-0 border-b-0 pb-0">
           <BadgeJapaneseYen className="w-4 h-4" />
           <Link
@@ -113,7 +113,7 @@ export const Glgczujm = () => {
             </AspectRatio>
           </div>
         </Link>
-      </div>
+      </div> */}
 
 
 
