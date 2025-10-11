@@ -7,7 +7,8 @@
     "dev": "bun run --watch src/index.ts",
     "build": "bun build --compile --minify-whitespace --minify-syntax --target bun --outfile server ./src/index.ts",
     "lint": "biome check",
-    "docker": "cd ../.. && docker build -t mono-api:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/api/Dockerfile ."
+    "docker": "cd ../.. && docker build -t mono-api:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/api/Dockerfile .",
+    "docker:api": "cd ../.. && docker build -t mono-api:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/api/Dockerfile ."
   },
   "dependencies": {
     "@elysiajs/cors": "^1.4.0",

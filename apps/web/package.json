@@ -8,7 +8,8 @@
     "build:win": "next build --turbopack && bun scripts/buildFileCopy.ts",
     "start": "next start",
     "lint": "biome check",
-    "docker": "cd ../.. && docker build -t mono-web:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/web/Dockerfile ."
+    "docker": "cd ../.. && docker build -t mono-web:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/web/Dockerfile .",
+    "docker:web": "cd ../.. && docker build -t mono-web:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/web/Dockerfile ."
   },
   "dependencies": {
     "@bprogress/next": "^3.2.12",
