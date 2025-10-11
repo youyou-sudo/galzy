@@ -2,7 +2,7 @@ import { cron, Patterns } from '@elysiajs/cron'
 import { Elysia } from 'elysia'
 import { CronService } from './service'
 
-export const cronServer = new Elysia()
+export const cronServer: any = new Elysia()
   .use(
     cron({
       name: 'workerDataPull',
