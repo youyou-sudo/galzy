@@ -231,7 +231,8 @@ export const DownCardDialog = () => {
   const handleCopy = async (text: string) => {
     setIsCopying(true)
     try {
-      await navigator.clipboard.writeText(text)
+      const url = await dwAcConst(text)
+      await navigator.clipboard.writeText(url.url)
       alert('已复制！')
     } catch {
       alert('复制失败，请手动复制')
