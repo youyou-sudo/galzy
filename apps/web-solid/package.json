@@ -9,15 +9,15 @@
   "dependencies": {
     "@solidjs/router": "^0.15.3",
     "@solidjs/start": "^1.2.0",
-    "daisyui": "^5.2.2",
-    "lucide-solid": "^0.545.0",
-    "solid-js": "^1.9.9",
+    "daisyui": "^5.3.10",
+    "lucide-solid": "^0.548.0",
+    "solid-js": "^1.9.10",
     "theme-change": "^2.5.0",
     "vinxi": "^0.5.8"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.1.14",
-    "tailwindcss": "^4.1.14"
+    "@tailwindcss/vite": "^4.1.16",
+    "tailwindcss": "^4.1.16"
   },
   "engines": {
     "node": ">=22"
