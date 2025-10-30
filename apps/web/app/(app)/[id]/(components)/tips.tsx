@@ -31,7 +31,7 @@ export const Glgczujm = () => {
         <AlertTitle>本站已配置负载均衡保证速度喵～</AlertTitle>
         <AlertDescription>
           <li>支持断点续传喵～</li>
-          对于大文件，我们建议使用 IDM 或 Aria2 以防止中断喵～
+          对于大文件，我们建议使用 IDM 或 Aria2 在一个小时内下载完成以防止中断喵～
           <br />
           <li>解压规范喵～</li>
           PC 端使用 WinRAR | 移动端使用 RAR / ZArchiver 等专业工具喵～; 不要使用非正规解压工具，避免文件损坏喵～

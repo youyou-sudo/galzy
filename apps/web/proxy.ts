@@ -10,7 +10,8 @@ const allowedOrigins = [
   'https://galzy.eu.org',
 ]
 
-export async function middleware(request: NextRequest) {
+
+export async function proxy(request: NextRequest) {
   const origin = request.headers.get('origin') || ''
 
   // ====== 处理 CORS ======
