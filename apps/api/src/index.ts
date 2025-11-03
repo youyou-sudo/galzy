@@ -6,6 +6,7 @@ import {
   download,
   game,
   search,
+  startCronTasks,
   tags,
   umami,
   YouyouAuth,
@@ -16,6 +17,7 @@ import { ping } from './modules/ping'
 
 initValidationError()
 dbSeed()
+startCronTasks()
 const app = new Elysia()
   .onError(({ code, error }) => {
     if (code === 'VALIDATION')

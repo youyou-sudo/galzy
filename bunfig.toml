@@ -1,5 +1,0 @@
-[workspace]
-members = ["apps/*", "packages/*"]
-
-[install]
-linker = "hoisted"
