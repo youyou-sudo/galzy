@@ -7,6 +7,7 @@
     "noEmit": true,
     "baseUrl": ".",
     "strict": true,
+    "preserveSymlinks": true,
     "paths": {
       "@web/*": ["../web/src/*"],
       "@web/public/*": ["../web/public/*"],
