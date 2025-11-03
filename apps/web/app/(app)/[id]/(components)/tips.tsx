@@ -30,17 +30,13 @@ export const Glgczujm = () => {
         <Info className="w-4 h-4" />
         <AlertTitle>本站已配置负载均衡保证速度喵～</AlertTitle>
         <AlertDescription>
-          <li>支持断点续传喵～</li>
-          对于大文件，我们建议使用 IDM 或 Aria2 在一个小时内下载完成以防止中断喵～
+          <li>对于大文件，我们建议使用 IDM 或 Aria2 在一个小时内下载完成以防止中断喵～</li>
           <br />
-          <li>解压规范喵～</li>
-          PC 端使用 WinRAR | 移动端使用 RAR / ZArchiver 等专业工具喵～; 不要使用非正规解压工具，避免文件损坏喵～
+          <li>PC 端使用 WinRAR | 移动端使用 RAR / ZArchiver 等专业工具喵～; 不要使用非正规解压工具，避免文件损坏喵～</li>
           <br />
-          游戏主程序必须存放在全英文路径下喵～
+          游戏主程序建议存放在全英文路径下喵～
           <br />
-          <li>支持作者喵～</li>
-          <br />
-          ✍️ 如果您喜欢这个并且能够负担得起，请考虑购买原版，或直接支持作者喵～
+          <li>如果您喜欢这个并且能够负担得起，请考虑购买原版，或直接支持作者喵～</li>
         </AlertDescription>
       </Alert>
 
@@ -48,7 +44,6 @@ export const Glgczujm = () => {
         <Alert id="sidebar-ad" className="border-cyan-600/30 border-x-0 border-b-0 pb-0">
           <BadgeJapaneseYen className="w-4 h-4" />
           <Link
-            className='text-cyan-500'
             target='_blank'
             data-umami-event="广告点击"
             data-umami-event-name="AI 风月"
