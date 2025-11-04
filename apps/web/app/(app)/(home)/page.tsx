@@ -115,7 +115,7 @@ const Home = () => {
       </aside > */}
       {/* 游戏列表 */}
       <article className='mt-4'>
-        <HomePage />
+          <HomePage />
       </article>
     </>
   )

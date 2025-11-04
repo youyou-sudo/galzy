@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   experimental: {
     viewTransition: true,
-    useCache: true,
     serverActions: { bodySizeLimit: '10mb' },
   },
   images: {
