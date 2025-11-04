@@ -7,7 +7,6 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   experimental: {
     viewTransition: true,
-    serverActions: { bodySizeLimit: '10mb' },
   },
   images: {
     unoptimized: true,
