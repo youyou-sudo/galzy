@@ -37,7 +37,7 @@ export const ContentCard = ({ data }: Props) => {
 
   return (
     <article>
-      <Card className="overflow-hidden break-words border-0 pb-0 ">
+      <Card className="overflow-hidden wrap-break-word border-0 pb-0 ">
         <CardContent>
           {/* Cover and basic info section */}
           <div className="sm:float-right text-center sm:text-right sm:ml-4 pb-4 relative">
@@ -64,7 +64,7 @@ export const ContentCard = ({ data }: Props) => {
 
 
           {/* Main content section */}
-          <div className="overflow-hidden break-words">
+          <div className="overflow-hidden wrap-break-word">
             {/* Title section */}
             {titlesData.olang && (
               <div className="text-sm leading-[1.2]">{titlesData.olang}</div>
@@ -111,7 +111,7 @@ export const ContentCard = ({ data }: Props) => {
                 <Accordion type="single" collapsible className="w-full ">
                   <AccordionItem
                     value="tags"
-                    className="px-3 border-1 rounded-lg"
+                    className="px-3 border rounded-lg"
                   >
                     <AccordionTrigger className="text-sm opacity-70 hover:opacity-100 py-3">
                       游戏标签

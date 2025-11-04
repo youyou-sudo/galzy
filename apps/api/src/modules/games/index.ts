@@ -38,7 +38,8 @@ export const game = new Elysia({ prefix: '/games' })
   .get(
     '/openlistfiles',
     async ({ query: { id } }) => {
-      return await Game.OpenListFiles({ id })
+      const res = await Game.OpenListFiles({ id })
+      return res
     },
     {
       query: GameModel.openListFiles,

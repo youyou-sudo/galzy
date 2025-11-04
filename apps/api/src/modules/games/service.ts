@@ -217,7 +217,8 @@ export const Game = {
   async OpenListFiles({ id }: GameModel.OpenListFiles) {
     const redisData = await getKv(`gameOpenListFiles-${id}`)
     if (redisData !== null && redisData !== undefined) {
-      return JSON.parse(redisData) as GameOpenListFiles
+      const res = JSON.parse(redisData) as GameOpenListFiles
+      return res
     }
     const isVNDB = /^v\d+$/.test(id)
     const targetKey = `${isVNDB ? 'vndb' : 'other'}-${id}`
