@@ -3,7 +3,7 @@ FROM oven/bun:slim AS build
 WORKDIR /app
 
 # 安装依赖
-COPY package.json bun.lock ./
+COPY package.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY apps/api/package.json apps/api/package.json
 COPY packages/libs/package.json packages/libs/package.json
