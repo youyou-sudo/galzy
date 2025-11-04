@@ -26,7 +26,7 @@ export async function proxy(request: NextRequest) {
     // ✅ 根据环境动态确定 baseURL
     const baseURL =
       process.env.NODE_ENV === 'production'
-        ? process.env.NEXT_PUBLIC_APP_URL // 确保这里是 https://sg.saop.cc
+        ? process.env.NEXT_PUBLIC_APP_URL
         : request.nextUrl.origin
 
     const { data: session } = await betterFetch<Session>(
