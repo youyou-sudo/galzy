@@ -1,10 +1,4 @@
 import { TagsCard } from '@web/app/(app)/[id]/(components)/tags'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@web/components/animate-ui/radix/accordion'
 import { BBCodeRenderer } from '@web/components/bbcode'
 import Errors from '@web/components/error'
 import { Card, CardContent } from '@web/components/ui/card'
@@ -107,21 +101,7 @@ export const ContentCard = ({ data }: Props) => {
 
             {/* Tags section */}
             {data.vid && (
-              <div className="mt-4 mb-5">
-                <Accordion type="single" collapsible className="w-full ">
-                  <AccordionItem
-                    value="tags"
-                    className="px-3 border rounded-lg"
-                  >
-                    <AccordionTrigger className="text-sm opacity-70 hover:opacity-100 py-3">
-                      游戏标签
-                    </AccordionTrigger>
-                    <AccordionContent className="pb-3">
-                      <TagsCard id={data.vid} />
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </div>
+              <TagsCard id={data.vid} />
             )}
           </div>
         </CardContent>
