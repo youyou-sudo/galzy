@@ -44,7 +44,7 @@ export const Tags = {
           // 只考虑有正向投票的数据
           .where('tags_vn.vote', '>', 0)
           // 排除 lie 和 ignore
-          .where('tags_vn.ignore', '=', false)
+          .where('tags_vn.lie', '!=', true)
           // 分组统计标签的平均分
           .groupBy(['tags_vn.tag', 'tags_vn.vid'])
           .having((eb) => eb.fn.avg('tags_vn.vote'), '>', 1)
