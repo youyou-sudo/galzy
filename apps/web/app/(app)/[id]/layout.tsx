@@ -3,7 +3,6 @@ import { ContentCard } from '@web/app/(app)/[id]/(components)/vnid-page/ContentC
 import { GameViewsTrackEvents } from '@web/components/umami/track-events'
 import { getVnDetails } from '@web/lib/repositories/vnRepository'
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
 import React from 'react'
 import {
   aliasFilter,
@@ -11,6 +10,7 @@ import {
   getTitles,
   imageFilter,
 } from './(lib)/contentDataac'
+import Errors from '@web/components/error'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -19,9 +19,6 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params
   const data = await getVnDetails(id)
-  if (!data) {
-    notFound() // Next.js 处理方式
-  }
   const [titlesData, aliasData, imageUrl, image] = await Promise.all([
     getTitles({ data }),
     aliasFilter({ data }),
@@ -33,9 +30,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       default: titlesData.zhHans || titlesData.olang || 'Gamgame',
       template: `${titlesData.zhHans || titlesData.olang || 'Gamgame'} - %s`,
     },
-    description: `${
-      titlesData.zhHans || titlesData.olang || 'Gamgame'
-    } 的资源下载，游戏别名：${aliasData || '无'}`,
+    description: `${titlesData.zhHans || titlesData.olang || 'Gamgame'
+      } 的资源下载，游戏别名：${aliasData || '无'}`,
     openGraph: {
       images: [
         {
@@ -56,6 +52,10 @@ export default async function IdLayout({
   const data = await getVnDetails(id)
   const titlesData = getTitles({ data })
   const idtitle = `[id:${id}]-[${titlesData.olang || titlesData.zhHans}]`
+  console.log(data)
+  if (!data) {
+    return <Errors code="404" errormessage={" ｡ﾟヽ(ﾟ´Д`)ﾉﾟ｡ 游戏未收录 / 找不到喵～"} />
+  }
   return (
     <div className="space-y-3">
       <ContentCard data={data} />
