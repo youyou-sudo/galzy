@@ -4,6 +4,7 @@ import { env } from 'next-runtime-env'
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  reactCompiler: true,
   experimental: {
     viewTransition: true,
     serverActions: { bodySizeLimit: '10mb' },
