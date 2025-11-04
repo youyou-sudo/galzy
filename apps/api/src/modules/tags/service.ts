@@ -41,7 +41,11 @@ export const Tags = {
             vneb
               .selectFrom('tags_vn')
               .whereRef('tags_vn.vid', '=', 'vn.id')
+              // 只考虑有正向投票的数据
+              .where('tags_vn.vote', '>', 0)
+              // 分组统计标签的平均分
               .groupBy(['tags_vn.tag', 'tags_vn.vid'])
+              .having((eb) => eb.fn.avg('tags_vn.vote'), '>', 2)
               .select((tagsVn) => [
                 jsonObjectFrom(
                   tagsVn
@@ -62,6 +66,7 @@ export const Tags = {
         ])
         .executeTakeFirst(),
     )
+
 
     if (error) {
       throw status(500, `服务出错了喵~ Error:${JSON.stringify(error)}`)
