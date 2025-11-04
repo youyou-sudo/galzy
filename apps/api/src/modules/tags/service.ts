@@ -24,48 +24,52 @@ export const Tags = {
     const idIsNumber = /^\d+$/.test(id)
 
     // 3. 查询数据库
-    const [, error, items] = await t(
-      db
-        .selectFrom('galrc_alistb')
-        .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
-        .where((eb) =>
-          idIsNumber
-            ? eb.or([
-              eb('galrc_alistb.vid', '=', id),
-              eb('galrc_alistb.other', '=', Number(id)),
-            ])
-            : eb('vn.id', '=', id),
-        )
-        .select((vneb) => [
-          jsonArrayFrom(
-            vneb
-              .selectFrom('tags_vn')
-              .whereRef('tags_vn.vid', '=', 'vn.id')
-              // 只考虑有正向投票的数据
-              .where('tags_vn.vote', '>', 0)
-              // 分组统计标签的平均分
-              .groupBy(['tags_vn.tag', 'tags_vn.vid'])
-              .having((eb) => eb.fn.avg('tags_vn.vote'), '>', 1)
-              .select((tagsVn) => [
-                jsonObjectFrom(
-                  tagsVn
-                    .selectFrom('tags')
-                    .innerJoin('galrc_zhtag', 'tags.id', 'galrc_zhtag.id')
-                    .whereRef('tags.id', '=', 'tags_vn.tag')
-                    .where('galrc_zhtag.exhibition', '=', true)
-                    .select([
-                      'tags.id',
-                      'tags.name',
-                      'tags.description',
-                      'galrc_zhtag.name as zht_name',
-                      'galrc_zhtag.description as zht_description',
-                    ]),
-                ).as('tag_data'),
-              ]),
-          ).as('tags'),
-        ])
-        .executeTakeFirst(),
+   const [, error, items] = await t(
+  db
+    .selectFrom('galrc_alistb')
+    .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
+    .where((eb) =>
+      idIsNumber
+        ? eb.or([
+            eb('galrc_alistb.vid', '=', id),
+            eb('galrc_alistb.other', '=', Number(id)),
+          ])
+        : eb('vn.id', '=', id),
     )
+    .select((vneb) => [
+      jsonArrayFrom(
+        vneb
+          .selectFrom('tags_vn')
+          .whereRef('tags_vn.vid', '=', 'vn.id')
+          // 只考虑有正向投票的数据
+          .where('tags_vn.vote', '>', 0)
+          // 排除 lie 和 ignore
+          .where('tags_vn.lie', '!=', true)
+          .where('tags_vn.ignore', '=', false)
+          // 分组统计标签的平均分
+          .groupBy(['tags_vn.tag', 'tags_vn.vid'])
+          .having((eb) => eb.fn.avg('tags_vn.vote'), '>', 1)
+          .select((tagsVn) => [
+            jsonObjectFrom(
+              tagsVn
+                .selectFrom('tags')
+                .innerJoin('galrc_zhtag', 'tags.id', 'galrc_zhtag.id')
+                .whereRef('tags.id', '=', 'tags_vn.tag')
+                .where('galrc_zhtag.exhibition', '=', true)
+                .select([
+                  'tags.id',
+                  'tags.name',
+                  'tags.description',
+                  'galrc_zhtag.name as zht_name',
+                  'galrc_zhtag.description as zht_description',
+                ]),
+            ).as('tag_data'),
+          ]),
+      ).as('tags'),
+    ])
+    .executeTakeFirst(),
+)
+
 
 
     if (error) {
