@@ -1,0 +1,135 @@
+import { Card, CardContent, CardHeader, CardTitle } from '@web/components/ui/card'
+
+<Card>
+<CardContent className="space-y-6">
+# 游戏条目 API
+
+获取指定游戏的详细信息与文件列表。
+
+---
+
+## 基本信息
+
+- **接口地址**：`/api/game`
+- **请求方法**：`GET`
+- **请求类型**：`application/json`
+- **返回类型**：`application/json`
+
+---
+
+## 请求参数
+**vid**
+-  类型：`string`
+-  必填：✅
+-  说明：游戏的 VNDB ID，例如 `v54`
+
+
+## 成功响应示例
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "vid": "v4",
+    "title": "CLANNAD",
+    "alias": "クラナド, 团子大家族",
+    "description": "Just 200 meters from the school gate, I find myself standing still, sighing as I gaze up at the sky.\n\nBeyond lies the school gate, and I can't help but wonder who in their right mind would choose to place it in such a location. The slope in front of it stretches out like an unending ordeal.\n\nAnother sigh, quieter and shorter than mine, pulls me from my thoughts. I glance over and see a girl standing just as motionless. She's in her third year too, but I don't recognize her. Her short hair catches the breeze, fluttering just above her shoulders.\n\n\"Do you like this school?\" she suddenly asks, not really to me, more like to herself. \n\"I really, really like it. But nothing can stay the same forever. Everything has to change,\" she murmurs, her voice trailing off. \"Can you still like this place, even then?\"\n\n\"You just need to find what you love about it, right?\" I chime in, catching her off guard. \"You haven't really thought about what makes you happy here, have you?\"\n\nBack when we were younger, everything seemed simpler—everyone felt that way at some point.\n\n\"Come on, let's go,\" I say.\n\nAnd together, we begin to climb the long, winding slope.\n\n[Based on [url=https://key.visualarts.gr.jp/product/clannad/story/]the official site[/url]]",
+    "filelist": [
+      {
+        "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/CLANNAD FULL VOICE(汉化)",
+        "name": "CLANNAD FULL VOICE(汉化)",
+        "type": "folder",
+        "children": [
+          {
+            "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/CLANNAD FULL VOICE(汉化)/【PC电脑端中文】.rar",
+            "name": "【PC电脑端中文】.rar",
+            "type": "file",
+            "size": "3852667025",
+            "format": "RAR"
+          },
+          {
+            "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/CLANNAD FULL VOICE(汉化)/【PC电脑端官中】.rar",
+            "name": "【PC电脑端官中】.rar",
+            "type": "file",
+            "size": "2169578633",
+            "format": "RAR"
+          }
+        ]
+      },
+      {
+        "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/CLANNAD 被光守望着的坡道",
+        "name": "CLANNAD 被光守望着的坡道",
+        "type": "folder",
+        "children": [
+          {
+            "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/CLANNAD 被光守望着的坡道/【PC电脑端中文】.rar",
+            "name": "【PC电脑端中文】.rar",
+            "type": "file",
+            "size": "2420979901",
+            "format": "RAR"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## 类型
+
+```typescript
+export interface ApiResponse {
+  code: number
+  message: string
+  data: GameData
+}
+
+export interface GameData {
+  vid: string
+  title: string
+  alias?: string | null
+  description?: string | null
+  filelist: FileItem[]
+}
+
+export interface FileItem {
+  id: string
+  name: string
+  type: 'file' | 'folder'
+  size?: string
+  format?: string
+  children?: FileItem[]
+}
+
+```
+
+## 错误响应示例
+
+- 游戏 ID 缺失或无效
+  ```json
+  {
+    "code": "400",
+    "message": "喵喵什么都不知道喵，请提供正确的游戏 ID 喵～"
+  }
+  ```
+
+- 游戏无文件
+  ```json
+  {
+    "code": "400",
+    "message": "喵喵什么都不知道喵，此游戏暂时未上传文件喵～"
+  }
+  ```
+
+## 状态码说明
+- `200`
+  - 请求成功，返回游戏详情
+- `400`
+  - 请求参数错误或未找到游戏
+
+## 文件直链请求
+- 施工中……
+
+</CardContent>
+</Card>

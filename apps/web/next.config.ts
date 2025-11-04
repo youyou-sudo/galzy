@@ -1,6 +1,5 @@
-import type { NextConfig } from 'next'
-import type { RemotePattern } from 'next/dist/shared/lib/image-config'
-import { env } from 'next-runtime-env'
+import createMDX from '@next/mdx'
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
@@ -10,6 +9,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
   async headers() {
     return [
       {
@@ -28,5 +28,9 @@ const nextConfig: NextConfig = {
     ];
   },
 }
+const withMDX = createMDX({
+  // Add markdown plugins here, as desired
+  extension: /\.(md|mdx)$/,
 
-export default nextConfig
+})
+export default withMDX(nextConfig)

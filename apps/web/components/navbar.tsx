@@ -57,6 +57,16 @@ export function Navbar() {
                       <Link href="/contact">联系</Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
+
+                  <NavigationMenuItem>
+                    <NavigationMenuLink
+                      asChild
+                      className={navigationMenuTriggerStyle()}
+                    >
+                      <Link href="/openapi">OpenApi</Link>
+                    </NavigationMenuLink>
+                  </NavigationMenuItem>
+
                   <NavigationMenuItem>
                     <NavigationMenuLink
                       asChild
@@ -99,13 +109,44 @@ export function Navbar() {
                       菜单
                     </SheetTitle>
                   </SheetHeader>
-                  <div className="mt-6 space-y-4">
+                  <div className="space-y-4">
                     <Link
                       href="/"
                       className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
                       onClick={() => setIsOpen(false)}
                     >
                       主页
+                    </Link>
+                  </div>
+                  <div className="space-y-4">
+                    <Link
+                      href="/contact"
+                      className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      联系
+                    </Link>
+                  </div>
+                  <div className="space-y-4">
+                    <Link
+                      href="/openapi"
+                      className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      OpenApi
+                    </Link>
+                  </div>
+                  <div className="space-y-4">
+                    <Link
+                      target='_blank'
+                      data-umami-event="广告点击"
+                      data-umami-event-name="AI 风月"
+                      data-umami-event-position="导航广告-AI 风月"
+                      href="https://chattersate.xyz/zh/explore/apps?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7&ranking=daily_rank"
+                      className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Ai女友💋（在线畅玩）
                     </Link>
                   </div>
                 </SheetContent>
@@ -116,25 +157,5 @@ export function Navbar() {
         </div>
       </div>
     </>
-  )
-}
-
-function ListItem({
-  title,
-  children,
-  href,
-  ...props
-}: React.ComponentPropsWithoutRef<'li'> & { href: string }) {
-  return (
-    <li {...props}>
-      <NavigationMenuLink asChild>
-        <Link href={href} target="_blank">
-          <div className="text-sm leading-none font-medium">{title}</div>
-          <p className="text-muted-foreground line-clamp-2 text-sm leading-snug">
-            {children}
-          </p>
-        </Link>
-      </NavigationMenuLink>
-    </li>
   )
 }
