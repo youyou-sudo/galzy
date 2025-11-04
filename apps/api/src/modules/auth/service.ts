@@ -1,5 +1,5 @@
 import { dbConfig } from '@api/libs/config'
-import { betterAuth, BetterAuthOptions } from "better-auth";
+import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { admin } from 'better-auth/plugins'
 import { Pool } from 'pg'
 
@@ -22,14 +22,18 @@ const authConfig = {
     modelName: 'galrc_verification',
   },
   plugins: [admin()],
-
   emailAndPassword: {
     enabled: true,
   },
-  trustedOrigins: ['http://localhost:3000', 'http://localhost:3001','https://galzy.eu.org'],
-  basePath: '/auth',
+  trustedOrigins: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://galzy.eu.org',
+  ],
 
-} satisfies BetterAuthOptions;
+  basePath: '/auth',
+} satisfies BetterAuthOptions
 
 export const auth = betterAuth(authConfig) as ReturnType<
-  typeof betterAuth<typeof authConfig>>
+  typeof betterAuth<typeof authConfig>
+>

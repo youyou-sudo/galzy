@@ -10,7 +10,6 @@ const allowedOrigins = [
   'https://galzy.eu.org',
 ]
 
-
 export async function proxy(request: NextRequest) {
   const origin = request.headers.get('origin') || ''
 
@@ -22,12 +21,18 @@ export async function proxy(request: NextRequest) {
     response.headers.set('Access-Control-Allow-Credentials', 'true')
   }
 
-  // ====== 鉴权逻辑  ======
+  // ====== 鉴权逻辑 ======
   if (request.nextUrl.pathname.startsWith('/dashboard')) {
+    // ✅ 根据环境动态确定 baseURL
+    const baseURL =
+      process.env.NODE_ENV === 'production'
+        ? process.env.NEXT_PUBLIC_APP_URL // 确保这里是 https://sg.saop.cc
+        : request.nextUrl.origin
+
     const { data: session } = await betterFetch<Session>(
       '/api/auth/get-session',
       {
-        baseURL: request.nextUrl.origin,
+        baseURL,
         headers: {
           cookie: request.headers.get('cookie') || '',
         },
@@ -43,8 +48,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/dashboard/:path*',
-    '/api/:path*',
-  ],
+  matcher: ['/dashboard/:path*', '/api/:path*'],
 }
