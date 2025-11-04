@@ -45,7 +45,7 @@ export const Tags = {
               .where('tags_vn.vote', '>', 0)
               // 分组统计标签的平均分
               .groupBy(['tags_vn.tag', 'tags_vn.vid'])
-              .having((eb) => eb.fn.avg('tags_vn.vote'), '>', 2)
+              .having((eb) => eb.fn.avg('tags_vn.vote'), '>', 1)
               .select((tagsVn) => [
                 jsonObjectFrom(
                   tagsVn
