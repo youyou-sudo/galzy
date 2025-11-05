@@ -20,7 +20,7 @@ export const Glgczujm = () => {
     },
     {
       name: 'MujikaNetwork',
-      url: 'https://www.mujika.cloud/#/register?code=G0Udwpw2',
+      url: 'https://my.mujika.pro/#/register?code=G0Udwpw2',
       desc: 'IEPL专线接入，超低延迟无惧晚高峰、流媒体/AI全解锁、覆盖主流地区节点、设有机场EMBY服（标准订阅计划及以上可享），跨境快车道，就用母鸡卡！',
     },
   ]
@@ -48,7 +48,7 @@ export const Glgczujm = () => {
             data-umami-event="广告点击"
             data-umami-event-name="AI 风月"
             data-umami-event-position="页内广告-AI 风月"
-            href="https://chattersate.xyz/zh/explore/apps?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7&ranking=daily_rank">
+            href="https://dearestie.xyz?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7">
             <AlertTitle>Ai 女友💋（在线畅玩）</AlertTitle>
           </Link>
         </Alert>
@@ -59,7 +59,7 @@ export const Glgczujm = () => {
           data-umami-event="广告点击"
           data-umami-event-name="AI 风月"
           data-umami-event-position="页内广告-AI 风月"
-          href="https://chattersate.xyz/zh/explore/apps?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7&ranking=daily_rank">
+          href="https://dearestie.xyz?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7">
           <div className="sm:hidden">
             <AspectRatio ratio={80 / 9}>
               <Image src="/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />

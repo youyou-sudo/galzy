@@ -77,7 +77,7 @@ export function Navbar() {
                         data-umami-event="广告点击"
                         data-umami-event-name="AI 风月"
                         data-umami-event-position="导航广告-AI 风月"
-                        href="https://chattersate.xyz/zh/explore/apps?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7&ranking=daily_rank">Ai女友💋（在线畅玩）</Link>
+                        href="https://dearestie.xyz?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7">Ai女友💋（在线畅玩）</Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
                 </NavigationMenuList>
@@ -142,7 +142,7 @@ export function Navbar() {
                       data-umami-event="广告点击"
                       data-umami-event-name="AI 风月"
                       data-umami-event-position="导航广告-AI 风月"
-                      href="https://chattersate.xyz/zh/explore/apps?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7&ranking=daily_rank"
+                      href="https://dearestie.xyz?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7"
                       className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
                       onClick={() => setIsOpen(false)}
                     >
