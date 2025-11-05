@@ -39,7 +39,7 @@ export const Glgczujm = () => {
           <li>如果您喜欢这个并且能够负担得起，请考虑购买原版，或直接支持作者喵～</li>
         </AlertDescription>
       </Alert>
-
+{/*
       <aside>
         <Alert id="sidebar-ad" className="border-cyan-600/30 border-x-0 border-b-0 pb-0">
           <BadgeJapaneseYen className="w-4 h-4" />
@@ -71,7 +71,7 @@ export const Glgczujm = () => {
             </AspectRatio>
           </div>
         </Link>
-      </div>
+      </div> */}
 
       {/* <aside>
         <Alert id="sidebar-ad" className="border-cyan-600/30 border-x-0 border-b-0 pb-0">

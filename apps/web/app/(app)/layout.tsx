@@ -31,20 +31,20 @@ export default async function YoyoLayout({
       <div className="flex-1 px-3 pt-2">
         <Navbar />
         {/* 广告 */}
-        {/* <aside id="sidebar-ad" className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-80 relative">
+        <aside id="sidebar-ad" className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-80 relative">
           <Link
             data-umami-event="广告点击"
-            data-umami-event-name="dzmm"
-            data-umami-event-position="Banner-dzmm"
+            data-umami-event-name="AI 风月"
+            data-umami-event-position="Banner-AI风月"
             target="_blank"
-            href="https://www.电子魅魔.com/?rf=876926e5"
+            href="https://dearestie.xyz?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7"
           >
             <div id="sidebar-ad" className="sm:hidden">
               <AspectRatio ratio={80 / 9}>
                 <Image
-                  src="/dzmm.webp"
+                  src="/aifywebp.webp"
                   fill
-                  alt="dzmm 广告图片"
+                  alt="AI 风月广告图片"
                   className="object-cover rounded-lg"
                 />
               </AspectRatio>
@@ -52,15 +52,15 @@ export default async function YoyoLayout({
             <div id="sidebar-ad" className="hidden sm:block">
               <AspectRatio ratio={120 / 9}>
                 <Image
-                  src="/dzmm.webp"
+                  src="/aifywebp.webp"
                   fill
-                  alt="dzmm 广告图片"
+                  alt="AI 风月广告图片"
                   className="object-cover rounded-lg"
                 />
               </AspectRatio>
             </div>
           </Link>
-        </aside> */}
+        </aside>
         <div className="flex flex-col mx-auto max-w-7xl space-y-4 py-4 lg:px-0">
           <main>
             {children}
