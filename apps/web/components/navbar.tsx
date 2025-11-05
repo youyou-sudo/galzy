@@ -66,7 +66,7 @@ export function Navbar() {
                       <Link href="/openapi">OpenApi</Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
-{/*
+
                   <NavigationMenuItem>
                     <NavigationMenuLink
                       asChild
@@ -79,7 +79,7 @@ export function Navbar() {
                         data-umami-event-position="导航广告-AI 风月"
                         href="https://dearestie.xyz?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7">Ai女友💋（在线畅玩）</Link>
                     </NavigationMenuLink>
-                  </NavigationMenuItem> */}
+                  </NavigationMenuItem>
                 </NavigationMenuList>
               </NavigationMenu>
             </div>
