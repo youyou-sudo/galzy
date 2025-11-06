@@ -6,7 +6,8 @@ import type { SearchModel } from './model'
 
 export const Search = {
   async get({ q, limit }: SearchModel.search) {
-    const redisData = await getKv(`Search-${q}-${limit}`)
+    const safeQ = q.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim()
+    const redisData = await getKv(`Search-${safeQ}-${limit}`)
 
     if (redisData) {
       const parsed = JSON.parse(redisData)
@@ -15,11 +16,11 @@ export const Search = {
 
     const [, error, [index, tagf]] = t(
       await Promise.all([
-        MeiliClient.index(process.env.MEILISEARCH_INDEXNAME || '').search(q, {
+        MeiliClient.index(process.env.MEILISEARCH_INDEXNAME || '').search(safeQ, {
           limit: limit || 50,
         }),
         MeiliClient.index(process.env.MEILISEARCH_TAG_INDEXNAME || '').search(
-          q,
+          safeQ,
           {
             limit: 1,
           },
@@ -36,7 +37,7 @@ export const Search = {
         ? (topTag as SearchModel.tagAllReturn['items'][0])
         : undefined,
     }
-    void setKv(`Search-${q}-${limit}`, JSON.stringify(data), 60 * 60 * 1)
+    void setKv(`Search-${safeQ}-${limit}`, JSON.stringify(data), 60 * 60 * 1)
     type SearchReturn = typeof data
     return data
   },
