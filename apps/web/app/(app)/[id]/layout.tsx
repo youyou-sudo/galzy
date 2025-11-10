@@ -52,7 +52,6 @@ export default async function IdLayout({
   const data = await getVnDetails(id)
   const titlesData = getTitles({ data })
   const idtitle = `[id:${id}]-[${titlesData.olang || titlesData.zhHans}]`
-  console.log(data)
   if (!data) {
     return <Errors code="404" errormessage={" ｡ﾟヽ(ﾟ´Д`)ﾉﾟ｡ 游戏未收录 / 找不到喵～"} />
   }
