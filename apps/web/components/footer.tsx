@@ -25,8 +25,8 @@ export function Footer({ className, children }: FooterProps) {
             {years > 0 ? `${startYear}-${currentYear}` : `${startYear}`} Galzy
           </p>
           <div className="flex gap-4 justify-center">
-            <Link prefetch={false} href="#" className="hover:text-foreground transition-colors">
-              Privacy Policy
+            <Link prefetch={false} href="/openapi" className="hover:text-foreground transition-colors">
+              Open Api
             </Link>
             <Link
               href="friend-links"

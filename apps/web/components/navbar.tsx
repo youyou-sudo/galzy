@@ -58,14 +58,14 @@ export function Navbar() {
                     </NavigationMenuLink>
                   </NavigationMenuItem>
 
-                  <NavigationMenuItem>
+                  {/* <NavigationMenuItem>
                     <NavigationMenuLink
                       asChild
                       className={navigationMenuTriggerStyle()}
                     >
                       <Link href="/openapi">OpenApi</Link>
                     </NavigationMenuLink>
-                  </NavigationMenuItem>
+                  </NavigationMenuItem> */}
 
                   <NavigationMenuItem>
                     <NavigationMenuLink
