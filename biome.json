@@ -6,12 +6,7 @@
     "useIgnoreFile": false
   },
   "files": {
-    "ignoreUnknown": false,
-    "experimentalScannerIgnores": [
-      ".next/*",
-      ".next",
-      ".next/"
-    ]
+    "ignoreUnknown": false
   },
   "formatter": {
     "enabled": true,
