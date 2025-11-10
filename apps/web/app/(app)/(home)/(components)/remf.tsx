@@ -26,7 +26,7 @@ export default async function RankingList<T extends Item>({
 
         return (
           <li key={linkValue} className="w-full">
-            <Link href={href} prefetch={false}  className="block w-full">
+            <Link href={href}  className="block w-full">
               <span className="flex items-center w-full">
                 <span
                   className={`font-bold mr-2 shrink-0 ${

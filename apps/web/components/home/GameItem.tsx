@@ -55,9 +55,9 @@ export const GameItem = ({
   }
 
   return (
-    <Link href={`/${item?.id}`} prefetch={false}>
+    <Link href={`/${item?.id}`}>
       <div
-        className="hover:shadow-md hover:border-1  rounded-lg"
+        className="hover:shadow-md hover:border rounded-lg"
         style={{ contentVisibility: 'auto' }}
       >
         <GameCard.Image
