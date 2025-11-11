@@ -1,5 +1,6 @@
 import { api } from '@libs'
 import HoverPrefetchLink from '@web/components/HoverPLink'
+import { MarkdownAsyncStrategy } from '@web/components/markdownAync'
 import {
   Card,
   CardContent,
@@ -15,38 +16,7 @@ import React from 'react'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 
-import { visit } from 'unist-util-visit'
 
-export function rehypeRemoveBlackWhiteStyles() {
-  return (tree: any) => {
-    visit(tree, 'element', (node) => {
-      if (node.properties?.style) {
-        const style = node.properties.style as string
-
-        const newStyle = style
-          .split(';')
-          .filter((s) => {
-            const lower = s.toLowerCase()
-            return !(
-              lower.includes('color:#000') ||
-              lower.includes('color:#000000') ||
-              lower.includes('color:#fff') ||
-              lower.includes('color:#ffffff') ||
-              lower.includes('color:black') ||
-              lower.includes('color:white')
-            )
-          })
-          .join(';')
-
-        if (newStyle.trim()) {
-          node.properties.style = newStyle
-        } else {
-          delete node.properties.style
-        }
-      }
-    })
-  }
-}
 
 type Props = {
   params: Promise<{ id: string; strategy: string }>
@@ -119,12 +89,7 @@ export default async function page({ params }: Props) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Markdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw, rehypeRemoveBlackWhiteStyles]}
-            >
-              {strategyContent?.content}
-            </Markdown>
+            <MarkdownAsyncStrategy readmedata={strategyContent?.content || ''} />
             <div className="text-right">
               {strategyContent?.copyright && (
                 <p className="text-sm items-center">

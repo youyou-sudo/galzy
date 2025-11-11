@@ -17,15 +17,13 @@ import {
 import { Button } from '@web/components/ui/button'
 import { Skeleton } from '@web/components/ui/skeleton'
 import { Check, Copy, Download } from 'lucide-react'
-import { useEffect, useState } from 'react'
-import Markdown from 'react-markdown'
-import rehypeRaw from 'rehype-raw'
-import remarkGfm from 'remark-gfm'
-import { MarkdownComponents } from './markdown-components'
+import { useState } from 'react'
 import { downCardDataStore } from './stores/downCardData'
 import type { GameModel } from '@api/modules/games/model'
 import { dwAcConst } from '@web/lib/download/ac'
 import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
+import { MarkdownAsync } from '@web/components/markdownAync'
+import dynamic from 'next/dynamic'
 
 
 
@@ -142,6 +140,7 @@ function FileExplorer({ items }: { items: GameModel.TreeNode[] }) {
     return groupSplitArchives(items)
   })()
 
+
   return (
     <Files
       defaultOpen={['PC', 'KR', 'ONS', 'TY', 'CG']}
@@ -155,6 +154,7 @@ function FileExplorer({ items }: { items: GameModel.TreeNode[] }) {
 
 // ---------- 文件/文件夹递归渲染 ----------
 const Filessss = ({ items }: { items: GameModel.TreeNode[] | undefined }) => {
+
   const open = downCardDataStore((s) => s.open)
   const setData = downCardDataStore((s) => s.setData)
 
@@ -336,16 +336,11 @@ export const DownCardDialog = () => {
                 ))
                 : null}
             </div>
-            <Markdown
-              remarkPlugins={[remarkGfm]}
-              rehypePlugins={[rehypeRaw]}
-              components={MarkdownComponents}
-            >
-              {readmedata}
-            </Markdown>
+            <MarkdownAsync readmedata={readmedata} />
           </div>
         )}
       </DialogContent>
     </Dialog>
   )
 }
+

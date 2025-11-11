@@ -12,7 +12,6 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-  auth,
 }: {
   children: React.ReactNode
   auth: React.ReactNode
@@ -47,7 +46,6 @@ export default function RootLayout({
           <Providers>
             <QueryProvider>
               <NuqsAdapter>
-                {auth}
                 {children}
               </NuqsAdapter>
             </QueryProvider>

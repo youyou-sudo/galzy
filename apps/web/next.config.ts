@@ -1,7 +1,16 @@
 import createMDX from '@next/mdx'
-import type { NextConfig } from 'next';
+import type { NextConfig } from 'next'
+import withBundleAnalyzer from '@next/bundle-analyzer'
+
+// 配置分析器
+const withAnalyzer = withBundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+})
 
 const nextConfig: NextConfig = {
+  experimental: {
+    webpackMemoryOptimizations: true,
+  },
   output: 'standalone',
   reactCompiler: true,
   images: {
@@ -11,24 +20,26 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: "/:path*", // 对所有路径生效
+        source: '/:path*',
         headers: [
           {
-            key: "Access-Control-Allow-Origin",
-            value: "*", // 占位符，实际要在中间件里处理
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
           },
           {
-            key: "Access-Control-Allow-Credentials",
-            value: "true",
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true',
           },
         ],
       },
-    ];
+    ]
   },
 }
-const withMDX = createMDX({
-  // Add markdown plugins here, as desired
-  extension: /\.(md|mdx)$/,
 
+// 配置 MDX
+const withMDX = createMDX({
+  extension: /\.(md|mdx)$/,
 })
-export default withMDX(nextConfig)
+
+// 按顺序组合插件
+export default withAnalyzer(withMDX(nextConfig))
