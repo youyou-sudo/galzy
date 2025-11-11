@@ -1,4 +1,5 @@
 import { api } from '@libs'
+import HoverPrefetchLink from '@web/components/HoverPLink'
 import {
   Card,
   CardContent,
@@ -89,13 +90,13 @@ export default async function page({ params }: Props) {
   const Markdown = dynamic(() => import('react-markdown'))
   return (
     <>
-      <Link
+      <HoverPrefetchLink
         href={`./introduction`}
         className="flex items-center pt-3 pl-3 gap-1 underline opacity-50 hover:opacity-100"
       >
         <ArrowLeft className="w-4 h-4" />
         返回
-      </Link>
+      </HoverPrefetchLink>
       <article>
         <Card className="border-0 pt-0">
           <CardHeader>

@@ -1,5 +1,6 @@
 'use client'
 import { GameCard } from '@web/components/game-card'
+import HoverPrefetchLink from '@web/components/HoverPLink'
 import { TagViewsTrackEvents } from '@web/components/umami/track-events'
 import { getImageUrl, imageAcc } from '@web/lib/ImageUrl'
 import type { getSearch } from '@web/lib/search/meilisearch'
@@ -38,7 +39,7 @@ const SearchlistComponent = ({ gameListData }: { gameListData: Datas }) => {
 
 
       return (
-        <Link href={`/${item.id}`} key={item.id} prefetch={false}>
+        <HoverPrefetchLink href={`/${item.id}`} key={item.id}>
           <div>
             {/* [x] VNDB 来源图片进行缓存以防止滥用 VNDB 服务
              */}
@@ -46,7 +47,6 @@ const SearchlistComponent = ({ gameListData }: { gameListData: Datas }) => {
               width={imagesData?.width ?? 200}
               height={imagesData?.height ?? 300}
               loading="lazy"
-              priority={false}
               src={imagess}
               alt="图片"
             />
@@ -60,7 +60,7 @@ const SearchlistComponent = ({ gameListData }: { gameListData: Datas }) => {
                 (it: { lang: string }) => it.lang === item.olang,
               )?.title}
           </p>
-        </Link>
+        </HoverPrefetchLink>
       )
     })
   }

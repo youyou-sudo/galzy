@@ -15,13 +15,13 @@ import {
   strategyListGet,
 } from '@web/lib/strategy/strategyAc'
 import { Loader2Icon, NotepadText, Pencil, Trash } from 'lucide-react'
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React from 'react'
 import { useStrategyListDialog } from '../stores/strategyListModal'
 import { useLoginModalStore } from './stores/EditStores'
 import { StrategEdit } from './strategyEdit'
 import { StrategyModel } from '@api/modules/strategy/model'
+import HoverPrefetchLink from '@web/components/HoverPLink'
 
 // [x] 攻略列表
 // [x] 攻略增删改
@@ -74,7 +74,7 @@ const StrategyList = ({ id }: { id: string }) => {
                 key={item.id}
                 className="flex items-center justify-between px-2 space-x-2 rounded-lg"
               >
-                <Link
+                <HoverPrefetchLink
                   className="w-full"
                   href={
                     pathname === '/dashboard/dataManagement'
@@ -86,7 +86,7 @@ const StrategyList = ({ id }: { id: string }) => {
                     <NotepadText className="w-4 h-4" />
                     <span>{item.title}</span>
                   </div>
-                </Link>
+                </HoverPrefetchLink>
                 {user?.data?.user.role === 'admin' && (
                   <div className="flex items-center space-x-1">
                     <Button

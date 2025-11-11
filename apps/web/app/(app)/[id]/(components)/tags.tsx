@@ -1,5 +1,4 @@
 import { Badge } from '@web/components/ui/badge'
-import Link from 'next/link'
 import { tagshData } from '../(action)/tags'
 import {
   Accordion,
@@ -7,6 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@web/components/animate-ui/radix/accordion'
+import HoverPrefetchLink from '@web/components/HoverPLink'
 
 export async function TagsCard({ id }: { id: string }) {
   const tags = await tagshData(id)
@@ -27,9 +27,9 @@ export async function TagsCard({ id }: { id: string }) {
                   (item, i) =>
                     item.tag_data && (
                       <Badge variant="secondary" key={i}>
-                        <Link prefetch={true} href={`/tags/${item.tag_data?.id}`}>
+                        <HoverPrefetchLink prefetch={true} href={`/tags/${item.tag_data?.id}`}>
                           {item.tag_data?.zht_name || item.tag_data?.name}
-                        </Link>
+                        </HoverPrefetchLink>
                       </Badge>
                     ),
                 )}

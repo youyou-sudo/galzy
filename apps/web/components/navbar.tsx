@@ -3,11 +3,9 @@ import { ThemeSwitch } from '@web/components/theme-switch'
 import { Button } from '@web/components/ui/button'
 import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from '@web/components/ui/navigation-menu'
 import {
@@ -22,6 +20,7 @@ import Image from 'next/image'
 import { Link } from 'next-view-transitions'
 import type React from 'react'
 import { useState } from 'react'
+import HoverPrefetchLink from './HoverPLink'
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -33,9 +32,9 @@ export function Navbar() {
         <div className="flex items-center justify-between">
           {/* Left block */}
           <div className="flex items-center">
-            <Link href="/" className="flex items-center">
+            <HoverPrefetchLink href="/" className="flex items-center">
               <Image src="/favicon.ico" alt="logo" width={32} height={32} />
-            </Link>
+            </HoverPrefetchLink>
 
             <div className="hidden md:block">
               <NavigationMenu viewport={false}>
@@ -45,7 +44,7 @@ export function Navbar() {
                       asChild
                       className={navigationMenuTriggerStyle()}
                     >
-                      <Link href="/">主页</Link>
+                      <HoverPrefetchLink href="/">主页</HoverPrefetchLink>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
 
@@ -54,7 +53,7 @@ export function Navbar() {
                       asChild
                       className={navigationMenuTriggerStyle()}
                     >
-                      <Link href="/contact">联系</Link>
+                      <HoverPrefetchLink href="contact">联系</HoverPrefetchLink>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
 
@@ -110,31 +109,31 @@ export function Navbar() {
                     </SheetTitle>
                   </SheetHeader>
                   <div className="space-y-4">
-                    <Link
+                    <HoverPrefetchLink
                       href="/"
                       className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
                       onClick={() => setIsOpen(false)}
                     >
                       主页
-                    </Link>
+                    </HoverPrefetchLink>
                   </div>
                   <div className="space-y-4">
-                    <Link
-                      href="/contact"
+                    <HoverPrefetchLink
+                      href="contact"
                       className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
                       onClick={() => setIsOpen(false)}
                     >
                       联系
-                    </Link>
+                    </HoverPrefetchLink>
                   </div>
                   <div className="space-y-4">
-                    <Link
-                      href="/openapi"
+                    <HoverPrefetchLink
+                      href="openapi"
                       className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
                       onClick={() => setIsOpen(false)}
                     >
                       OpenApi
-                    </Link>
+                    </HoverPrefetchLink>
                   </div>
                   <div className="space-y-4">
                     <Link
