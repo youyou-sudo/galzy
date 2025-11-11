@@ -5,36 +5,46 @@ import { visit } from 'unist-util-visit'
 import dynamic from 'next/dynamic'
 
 // 只动态加载 ReactMarkdown
-const Markdown = dynamic(() => import('react-markdown'))
+const Markdown = dynamic(() => import('react-markdown'), { ssr: false })
 
-interface MarkdownProps {
-  readmedata: string
-}
+let rehypeRawCache: any
+let remarkGfmCache: any
+let componentsCache: any
 
-export const MarkdownAsync = ({ readmedata }: MarkdownProps) => {
-  const [plugins, setPlugins] = useState<{ rehypeRaw?: any; remarkGfm?: any; components?: any }>({})
+
+export const MarkdownAsync = ({ readmedata }: { readmedata: string }) => {
+  const [plugins, setPlugins] = useState<{
+    rehypeRaw?: any
+    remarkGfm?: any
+    components?: any
+  }>({})
 
   useEffect(() => {
-    let mounted = true
-    // 动态加载插件和 components
+    if (rehypeRawCache && remarkGfmCache && componentsCache) {
+      setPlugins({
+        rehypeRaw: rehypeRawCache,
+        remarkGfm: remarkGfmCache,
+        components: componentsCache,
+      })
+      return
+    }
+
     Promise.all([
       import('rehype-raw'),
       import('remark-gfm'),
-      import('@web/app/(app)/[id]/(components)/markdown-components')
+      import('@web/app/(app)/[id]/(components)/markdown-components'),
     ]).then(([rehypeRawMod, remarkGfmMod, componentsMod]) => {
-      if (mounted) {
-        setPlugins({
-          rehypeRaw: rehypeRawMod.default,
-          remarkGfm: remarkGfmMod.default,
-          components: componentsMod.MarkdownComponents
-        })
-      }
+      rehypeRawCache = rehypeRawMod.default
+      remarkGfmCache = remarkGfmMod.default
+      componentsCache = componentsMod.MarkdownComponents
+      setPlugins({
+        rehypeRaw: rehypeRawCache,
+        remarkGfm: remarkGfmCache,
+        components: componentsCache,
+      })
     })
-
-    return () => { mounted = false }
   }, [])
 
-  // SSR 或插件/组件未加载时显示占位
   if (!plugins.rehypeRaw || !plugins.remarkGfm || !plugins.components) {
     return <pre>{readmedata}</pre>
   }
@@ -49,7 +59,6 @@ export const MarkdownAsync = ({ readmedata }: MarkdownProps) => {
     </Markdown>
   )
 }
-
 
 export function rehypeRemoveBlackWhiteStyles() {
   return (tree: any) => {
@@ -82,36 +91,30 @@ export function rehypeRemoveBlackWhiteStyles() {
   }
 }
 
-export const MarkdownAsyncStrategy = ({ readmedata }: MarkdownProps) => {
-  const [plugins, setPlugins] = useState<{ rehypeRaw?: any; remarkGfm?: any; components?: any }>({})
+export const MarkdownAsyncStrategy = ({ readmedata }: { readmedata: string }) => {
+  const [plugins, setPlugins] = useState<{ rehypeRaw?: any; remarkGfm?: any }>({})
 
   useEffect(() => {
-    let mounted = true
-    // 动态加载插件和 components
-    Promise.all([
-      import('rehype-raw'),
-      import('remark-gfm'),
-    ]).then(([rehypeRawMod, remarkGfmMod]) => {
-      if (mounted) {
-        setPlugins({
-          rehypeRaw: rehypeRawMod.default,
-          remarkGfm: remarkGfmMod.default,
-        })
-      }
-    })
+    if (rehypeRawCache && remarkGfmCache) {
+      setPlugins({ rehypeRaw: rehypeRawCache, remarkGfm: remarkGfmCache })
+      return
+    }
 
-    return () => { mounted = false }
+    Promise.all([import('rehype-raw'), import('remark-gfm')]).then(
+      ([rehypeRawMod, remarkGfmMod]) => {
+        rehypeRawCache = rehypeRawMod.default
+        remarkGfmCache = remarkGfmMod.default
+        setPlugins({ rehypeRaw: rehypeRawCache, remarkGfm: remarkGfmCache })
+      },
+    )
   }, [])
 
-  // SSR 或插件/组件未加载时显示占位
-  if (!plugins.rehypeRaw || !plugins.remarkGfm) {
-    return <pre>{readmedata}</pre>
-  }
+  if (!plugins.rehypeRaw || !plugins.remarkGfm) return <p>加载中...</p>
 
   return (
     <Markdown
+      rehypePlugins={[plugins.rehypeRaw]}
       remarkPlugins={[plugins.remarkGfm]}
-      rehypePlugins={[plugins.rehypeRaw, rehypeRemoveBlackWhiteStyles]}
     >
       {readmedata}
     </Markdown>
