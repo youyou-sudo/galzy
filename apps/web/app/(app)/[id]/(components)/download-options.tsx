@@ -23,7 +23,8 @@ import type { GameModel } from '@api/modules/games/model'
 import { dwAcConst } from '@web/lib/download/ac'
 import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
 import { MarkdownAsync } from '@web/components/markdownAync'
-import dynamic from 'next/dynamic'
+import { GlgczujmDl } from './tips'
+import { toast } from 'sonner'
 
 
 
@@ -213,19 +214,26 @@ export const DownCardDialog = () => {
 
   // 下载处理函数
   const handleDownload = async () => {
-    if (!data?.id) return
-    setIsDownloading(true)
+    if (!data?.id) return;
+    setIsDownloading(true);
     try {
-      const log = await dwAcConst(data.id)
+      const log = await dwAcConst(data.id);
       if (log?.url) {
-        window.open(log.url, '_blank');
+        const link = document.createElement('a');
+        link.href = log.url;
+        // 可以指定下载的文件名，如果后端有返回文件名就用它，否则用默认
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("已成功请求下载喵～",)
       }
-    } catch (err: any) {
-      alert(err.message)
+    } catch {
+      toast.error("下载失败喵～")
     } finally {
-      setIsDownloading(false)
+      setIsDownloading(false);
     }
-  }
+  };
+
 
   // 复制处理函数
   const handleCopy = async (text: string) => {
@@ -233,9 +241,9 @@ export const DownCardDialog = () => {
     try {
       const url = await dwAcConst(text)
       await navigator.clipboard.writeText(url.url)
-      alert('已复制！')
+      toast.success("下载链接已复制喵～")
     } catch {
-      alert('复制失败，请手动复制')
+      toast.error("复制失败喵～")
     } finally {
       setIsCopying(false)
     }
@@ -244,19 +252,19 @@ export const DownCardDialog = () => {
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>
       <DialogContent
-        className="max-h-[85%]"
+        className="max-h-[85%] overflow-y-auto"
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle>文件信息</DialogTitle>
         </DialogHeader>
 
-        <span className="text-center text-lg break-words">{data?.name}</span>
+        <span className="text-center text-lg wrap-break-word">{data?.name}</span>
         <DialogDescription className="text-center">
           <span>{formatBytes(Number(data?.size))}</span>
         </DialogDescription>
 
-        <DialogFooter className="flex gap-2 sm:justify-center">
+        <DialogFooter className="gap-2 sm:justify-center">
           <Button
             onClick={() => close()}
             variant="secondary"
@@ -314,7 +322,7 @@ export const DownCardDialog = () => {
         <div className="flex text-center justify-center mt-2">
           <div className="flex text-center items-center">解压密码：</div>
           <div className="relative w-19">
-            <pre className="pr-6 text-center items-center rounded-md border-1">
+            <pre className="pr-6 text-center items-center rounded-md border">
               玖辞
             </pre>
             <CopyButton
@@ -328,17 +336,18 @@ export const DownCardDialog = () => {
         </div>
 
         {readmedata && (
-          <div className="max-h-96 overflow-y-auto p-2 border-2 rounded-2xl break-words">
+          <div className="max-h-96 overflow-y-auto p-2 border-2 rounded-2xl wrap-break-word">
             <div className="space-y-2">
               {isLoading
                 ? Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-[20px] rounded-full" />
+                  <Skeleton key={i} className="h-5 rounded-full" />
                 ))
                 : null}
             </div>
             <MarkdownAsync readmedata={readmedata} />
           </div>
         )}
+        <GlgczujmDl />
       </DialogContent>
     </Dialog>
   )
