@@ -48,11 +48,11 @@ export default function Youyou() {
             喵世界再大，有缘的小伙伴也能像在身边一样呢
           </p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 ">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ">
           <MotionHighlight hover className="rounded-xl">
             {linksList.map((item, index) => (
               <Link href={item.href} key={index} target="_blank">
-                <div className="h-32 flex flex-col border-1 rounded-md p-4">
+                <div className="h-32 flex flex-col border rounded-md p-4">
                   <div className="flex space-x-5">
                     <Avatar className="flex">
                       <AvatarImage src={item.avatar} />
