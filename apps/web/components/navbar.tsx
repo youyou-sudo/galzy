@@ -17,10 +17,10 @@ import {
 } from '@web/components/ui/sheet'
 import { Menu } from 'lucide-react'
 import Image from 'next/image'
-import { Link } from 'next-view-transitions'
 import type React from 'react'
 import { useState } from 'react'
 import HoverPrefetchLink from './HoverPLink'
+import Link from 'next/link'
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
