@@ -1,4 +1,4 @@
-import { Toaster } from '@web/@/components/ui/sonner'
+import { Toaster } from '@web/components/ui/sonner'
 import { Footer } from '@web/components/footer'
 import { Navbar } from '@web/components/navbar'
 import { AspectRatio } from '@web/components/ui/aspect-ratio'
