@@ -5,7 +5,7 @@ import { visit } from 'unist-util-visit'
 import dynamic from 'next/dynamic'
 
 // 只动态加载 ReactMarkdown
-const ReactMarkdown = dynamic(() => import('react-markdown'), { ssr: false })
+const Markdown = dynamic(() => import('react-markdown'))
 
 interface MarkdownProps {
   readmedata: string
@@ -40,13 +40,13 @@ export const MarkdownAsync = ({ readmedata }: MarkdownProps) => {
   }
 
   return (
-    <ReactMarkdown
+    <Markdown
       remarkPlugins={[plugins.remarkGfm]}
       rehypePlugins={[plugins.rehypeRaw]}
       components={plugins.components}
     >
       {readmedata}
-    </ReactMarkdown>
+    </Markdown>
   )
 }
 
@@ -104,16 +104,16 @@ export const MarkdownAsyncStrategy = ({ readmedata }: MarkdownProps) => {
   }, [])
 
   // SSR 或插件/组件未加载时显示占位
-  if (!plugins.rehypeRaw || !plugins.remarkGfm || !plugins.components) {
+  if (!plugins.rehypeRaw || !plugins.remarkGfm) {
     return <pre>{readmedata}</pre>
   }
 
   return (
-    <ReactMarkdown
+    <Markdown
       remarkPlugins={[plugins.remarkGfm]}
       rehypePlugins={[plugins.rehypeRaw, rehypeRemoveBlackWhiteStyles]}
     >
       {readmedata}
-    </ReactMarkdown>
+    </Markdown>
   )
 }

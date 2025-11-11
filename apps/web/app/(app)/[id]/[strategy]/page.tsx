@@ -9,12 +9,9 @@ import {
   CardTitle,
 } from '@web/components/ui/card'
 import { ArrowLeft, User } from 'lucide-react'
-import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import type { Metadata } from 'next/types'
 import React from 'react'
-import rehypeRaw from 'rehype-raw'
-import remarkGfm from 'remark-gfm'
 
 
 
@@ -57,7 +54,6 @@ export default async function page({ params }: Props) {
       strategyId: +strategy,
     },
   })
-  const Markdown = dynamic(() => import('react-markdown'))
   return (
     <>
       <HoverPrefetchLink
