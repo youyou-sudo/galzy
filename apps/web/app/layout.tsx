@@ -14,7 +14,6 @@ export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
-  auth: React.ReactNode
 }) {
 
   const schema = {
