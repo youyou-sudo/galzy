@@ -8,9 +8,6 @@ const withAnalyzer = withBundleAnalyzer({
 })
 
 const nextConfig: NextConfig = {
-  experimental: {
-    webpackMemoryOptimizations: true,
-  },
   output: 'standalone',
   reactCompiler: true,
   images: {
