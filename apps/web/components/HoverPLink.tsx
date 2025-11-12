@@ -12,7 +12,7 @@ interface ForesightLinkProps
   className?: string
 }
 
-export function ForesightLink({
+export default function ForesightLink({
   children,
   className,
   ...props
