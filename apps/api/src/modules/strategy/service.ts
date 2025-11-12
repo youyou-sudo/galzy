@@ -8,10 +8,10 @@ import {
   storeIdempotentResult,
 } from '@api/libs/redis'
 import { status } from 'elysia'
+import { jsonObjectFrom } from 'kysely/helpers/postgres'
 import { t } from 'try'
 import XXH from 'xxhashjs'
 import type { StrategyModel } from './model'
-import { jsonObjectFrom } from 'kysely/helpers/postgres'
 
 export const Strategy = {
   async strategy({ strategyId }: StrategyModel.strategy) {
@@ -52,17 +52,15 @@ export const Strategy = {
           '=',
           isVNDB ? gameId : Number(gameId),
         )
-        .select(
-          (eb) => [
-            jsonObjectFrom(
-              eb
-                .selectFrom('galrc_user')
-                .whereRef('galrc_user.id', '=', 'galrc_article.author')
-                // .select(['id', 'name', 'image']),
-                .selectAll(),
-            ).as('user'),
-          ]
-        )
+        .select((eb) => [
+          jsonObjectFrom(
+            eb
+              .selectFrom('galrc_user')
+              .whereRef('galrc_user.id', '=', 'galrc_article.author')
+              // .select(['id', 'name', 'image']),
+              .selectAll(),
+          ).as('user'),
+        ])
         .execute(),
     )
     if (error)

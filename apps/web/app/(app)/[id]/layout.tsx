@@ -30,8 +30,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       default: titlesData.zhHans || titlesData.olang || 'Gamgame',
       template: `${titlesData.zhHans || titlesData.olang || 'Gamgame'} - %s`,
     },
-    description: `${titlesData.zhHans || titlesData.olang || 'Gamgame'
-      } 的资源下载，游戏别名：${aliasData || '无'}`,
+    description: `${
+      titlesData.zhHans || titlesData.olang || 'Gamgame'
+    } 的资源下载，游戏别名：${aliasData || '无'}`,
     openGraph: {
       images: [
         {
@@ -44,7 +45,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function IdLayout({ children, params }: { children: React.ReactNode, params: { id: string } }) {
+export default async function IdLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode
+  params: { id: string }
+}) {
   const { id } = await params
   const data = await getVnDetails(id)
   const titlesData = getTitles({ data })

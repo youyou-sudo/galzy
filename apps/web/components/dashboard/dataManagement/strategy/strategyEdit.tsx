@@ -21,6 +21,7 @@ import {
 } from '@web/components/ui/form'
 import { Input } from '@web/components/ui/input'
 import { Textarea } from '@web/components/ui/textarea'
+import { authClient } from '@web/lib/auth-client'
 import {
   strategyListCreate,
   strategyListUpdate,
@@ -30,7 +31,6 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { useLoginModalStore } from './stores/EditStores'
-import { authClient } from '@web/lib/auth-client'
 
 const formSchema = z.object({
   title: z.string(),

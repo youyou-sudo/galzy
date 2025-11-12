@@ -30,7 +30,8 @@ export async function GET(request: Request) {
     api.strategy.gamestrategys.get({ query: { gameId: vid } }),
   ])
 
-  if (gameResp.status >= 400) return jsonResponse(vltdma.getMessage('notFound'), vltdma.code)
+  if (gameResp.status >= 400)
+    return jsonResponse(vltdma.getMessage('notFound'), vltdma.code)
 
   const datas = gameResp.data
   const titlesData = getTitles({ data: datas }).olang
@@ -42,7 +43,8 @@ export async function GET(request: Request) {
     .join(', ')
 
   const openlist = fileListResp.data as GameModel.TreeNode[]
-  if (!openlist?.length) return jsonResponse(vltdma.getMessage('noFiles'), vltdma.code)
+  if (!openlist?.length)
+    return jsonResponse(vltdma.getMessage('noFiles'), vltdma.code)
 
   return jsonResponse({
     code: 200,
@@ -59,50 +61,49 @@ export async function GET(request: Request) {
           id: user!.id,
           name: user!.name,
           image: user!.image,
-        }
+        },
       })),
     },
   })
-
 }
 
 export function groupSplitArchives(
   items: GameModel.TreeNode[] | undefined,
 ): GameModel.TreeNode[] | undefined {
-  if (!items || items.length === 0) return items;
+  if (!items || items.length === 0) return items
 
-  const mdMap = new Map<string, string>();
-  const archivesMap = new Map<string, GameModel.TreeNode[]>();
-  const others: GameModel.TreeNode[] = [];
-  const splitRegex = /(.*?)(?:\.part\d+)\.(rar|zip|7z)$/i;
-  const timestamp = Date.now();
+  const mdMap = new Map<string, string>()
+  const archivesMap = new Map<string, GameModel.TreeNode[]>()
+  const others: GameModel.TreeNode[] = []
+  const splitRegex = /(.*?)(?:\.part\d+)\.(rar|zip|7z)$/i
+  const timestamp = Date.now()
 
-  items.forEach(item => {
+  items.forEach((item) => {
     if (item.type === 'folder') {
       if (!item.name.startsWith('(分卷) ')) {
-        item.children = groupSplitArchives(item.children ?? []);
+        item.children = groupSplitArchives(item.children ?? [])
       }
-      others.push(item);
-      return;
+      others.push(item)
+      return
     }
 
     if (item.name.endsWith('.md')) {
-      mdMap.set(item.name.replace(/\.md$/i, ''), item.id);
-      return;
+      mdMap.set(item.name.replace(/\.md$/i, ''), item.id)
+      return
     }
 
-    const match = item.name.match(splitRegex);
-    const nameWithoutExt = item.name.replace(/\.[^/.]+$/, '');
-    if (mdMap.has(nameWithoutExt)) item.redame = mdMap.get(nameWithoutExt);
+    const match = item.name.match(splitRegex)
+    const nameWithoutExt = item.name.replace(/\.[^/.]+$/, '')
+    if (mdMap.has(nameWithoutExt)) item.redame = mdMap.get(nameWithoutExt)
 
     if (match) {
-      const key = `${match[1]}.${match[2]}`;
-      if (!archivesMap.has(key)) archivesMap.set(key, []);
-      archivesMap.get(key)!.push(item);
+      const key = `${match[1]}.${match[2]}`
+      if (!archivesMap.has(key)) archivesMap.set(key, [])
+      archivesMap.get(key)!.push(item)
     } else {
-      others.push(item);
+      others.push(item)
     }
-  });
+  })
 
   const archiveFolders = Array.from(archivesMap.entries()).map(
     ([fullName, files]) => ({
@@ -110,8 +111,8 @@ export function groupSplitArchives(
       type: 'folder' as const,
       name: `(分卷) ${fullName}`,
       children: files,
-    })
-  );
+    }),
+  )
 
-  return [...others, ...archiveFolders];
+  return [...others, ...archiveFolders]
 }
