@@ -127,15 +127,6 @@ export function Navbar() {
                     </HoverPrefetchLink>
                   </div>
                   <div className="space-y-4">
-                    <HoverPrefetchLink
-                      href="openapi"
-                      className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      OpenApi
-                    </HoverPrefetchLink>
-                  </div>
-                  <div className="space-y-4">
                     <Link
                       target='_blank'
                       data-umami-event="广告点击"
