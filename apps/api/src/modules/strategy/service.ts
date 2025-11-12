@@ -11,6 +11,7 @@ import { status } from 'elysia'
 import { t } from 'try'
 import XXH from 'xxhashjs'
 import type { StrategyModel } from './model'
+import { jsonObjectFrom } from 'kysely/helpers/postgres'
 
 export const Strategy = {
   async strategy({ strategyId }: StrategyModel.strategy) {
@@ -50,6 +51,17 @@ export const Strategy = {
           isVNDB ? 'vid' : 'otherid',
           '=',
           isVNDB ? gameId : Number(gameId),
+        )
+        .select(
+          (eb) => [
+            'author',
+            jsonObjectFrom(
+              eb
+                .selectFrom('galrc_user')
+                .whereRef('galrc_user.id', '=', 'galrc_article.author')
+                .selectAll(),
+            ).as('user'),
+          ]
         )
         .execute(),
     )

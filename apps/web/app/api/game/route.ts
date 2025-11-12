@@ -30,9 +30,10 @@ export async function GET(request: Request) {
     })
   }
 
-  const [gameResp, fileListResp] = await Promise.all([
+  const [gameResp, fileListResp, strategyList] = await Promise.all([
     api.games.get({ query: { id: vid } }),
     api.games.openlistfiles.get({ query: { id: vid } }),
+    api.strategy.gamestrategys.get({ query: { gameId: vid } }),
   ])
 
   if (gameResp.status >= 400) {
@@ -69,6 +70,7 @@ export async function GET(request: Request) {
       alias: aliasData,
       description: datas?.vn_datas?.description,
       filelist: groupSplitArchives(openlist[0].children),
+      strategy: strategyList.data,
     },
   }
   return Response.json(res)
