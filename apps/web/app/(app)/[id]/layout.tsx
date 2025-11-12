@@ -4,7 +4,7 @@ import Errors from '@web/components/error'
 import { GameViewsTrackEvents } from '@web/components/umami/track-events'
 import { getVnDetails } from '@web/lib/repositories/vnRepository'
 import type { Metadata } from 'next'
-import React from 'react'
+import type React from 'react'
 import {
   aliasFilter,
   getCoverImageUrl,
@@ -30,9 +30,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       default: titlesData.zhHans || titlesData.olang || 'Gamgame',
       template: `${titlesData.zhHans || titlesData.olang || 'Gamgame'} - %s`,
     },
-    description: `${
-      titlesData.zhHans || titlesData.olang || 'Gamgame'
-    } 的资源下载，游戏别名：${aliasData || '无'}`,
+    description: `${titlesData.zhHans || titlesData.olang || 'Gamgame'
+      } 的资源下载，游戏别名：${aliasData || '无'}`,
     openGraph: {
       images: [
         {
@@ -45,10 +44,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function IdLayout({
-  children,
-  params,
-}: LayoutProps<'/[id]'>) {
+export default async function IdLayout({ children, params }: { children: React.ReactNode, params: { id: string } }) {
   const { id } = await params
   const data = await getVnDetails(id)
   const titlesData = getTitles({ data })

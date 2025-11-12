@@ -1,12 +1,9 @@
 import { Footer } from '@web/components/footer'
 import { Navbar } from '@web/components/navbar'
-import { AspectRatio } from '@web/components/ui/aspect-ratio'
 import { Toaster } from '@web/components/ui/sonner'
 import UmamiScript from '@web/components/umami/script'
 import { metadataConfig } from '@web/config/metadata'
 import type { Metadata } from 'next'
-import Image from 'next/image'
-import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: {
