@@ -32,11 +32,11 @@ export const strategy = new Elysia({ prefix: '/strategy' })
   )
   .post(
     '/strategylistcreate',
-    async ({ body: { id, data } }) => {
-      return await Strategy.strategyCreate({ id, data })
+    async ({ body: { id, data, userid } }) => {
+      return await Strategy.strategyCreate({ id, data, userid })
     },
     {
-      body: StrategyModel.strategyListUpdate,
+      body: StrategyModel.strategyListCreate,
     },
   )
   .post(

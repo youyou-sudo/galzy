@@ -12,7 +12,13 @@ export namespace StrategyModel {
     id: t.String({ minLength: 1 }),
     data: t.Any(),
   })
+  export const strategyListCreate = t.Object({
+    id: t.String({ minLength: 1 }),
+    data: t.Any(),
+    userid: t.String({ minLength: 1 }),
+  })
   export type strategy = typeof strategy.static
   export type gameStrategys = typeof gameStrategys.static
   export type strategyListUpdate = typeof strategyListUpdate.static
+  export type strategyListCreate = typeof strategyListCreate.static
 }

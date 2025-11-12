@@ -17,10 +17,11 @@ export const strategyListUpdate = async (id: string, data: ContentData) => {
   })
 }
 
-export const strategyListCreate = async (id: string, data: ContentData) => {
+export const strategyListCreate = async (id: string, data: ContentData, userid: string) => {
   await api.strategy.strategylistcreate.post({
     id,
     data,
+    userid,
   })
 }
 

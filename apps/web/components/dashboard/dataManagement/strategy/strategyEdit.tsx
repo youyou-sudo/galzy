@@ -30,6 +30,7 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { useLoginModalStore } from './stores/EditStores'
+import { authClient } from '@web/lib/auth-client'
 
 const formSchema = z.object({
   title: z.string(),
@@ -48,12 +49,13 @@ export function StrategEdit() {
       copyright: '',
     },
   })
-
+  const { data: session } = authClient.useSession()
   const { mutate: onSubmitAc, isPending: onSubmitAcLoading } = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       try {
         if (create) {
-          await strategyListCreate(data.id!, values)
+          if (!session?.user?.id) return
+          await strategyListCreate(data.id!, values, session.user.id)
         } else {
           await strategyListUpdate(data.id!, values)
         }
