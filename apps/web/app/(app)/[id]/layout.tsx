@@ -48,10 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function IdLayout({
   children,
   params,
-}: {
-  children: React.ReactNode
-  params: { id: string }
-}) {
+}: LayoutProps<'/[id]'>) {
   const { id } = await params
   const data = await getVnDetails(id)
   const titlesData = getTitles({ data })
