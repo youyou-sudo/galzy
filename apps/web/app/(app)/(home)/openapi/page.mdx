@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@web/components/ui/car
 <CardContent className="space-y-6">
 # 游戏条目 API
 
-获取指定游戏的详细信息与文件列表。
-
+获取指定游戏的游戏信息、文件列表、攻略文章
 ---
 
 ## 基本信息
@@ -34,42 +33,69 @@ import { Card, CardContent, CardHeader, CardTitle } from '@web/components/ui/car
     "vid": "v4",
     "title": "CLANNAD",
     "alias": "クラナド, 团子大家族",
-    "description": "Just 200 meters from the school gate, I find myself standing still, sighing as I gaze up at the sky.\n\nBeyond lies the school gate, and I can't help but wonder who in their right mind would choose to place it in such a location. The slope in front of it stretches out like an unending ordeal.\n\nAnother sigh, quieter and shorter than mine, pulls me from my thoughts. I glance over and see a girl standing just as motionless. She's in her third year too, but I don't recognize her. Her short hair catches the breeze, fluttering just above her shoulders.\n\n\"Do you like this school?\" she suddenly asks, not really to me, more like to herself. \n\"I really, really like it. But nothing can stay the same forever. Everything has to change,\" she murmurs, her voice trailing off. \"Can you still like this place, even then?\"\n\n\"You just need to find what you love about it, right?\" I chime in, catching her off guard. \"You haven't really thought about what makes you happy here, have you?\"\n\nBack when we were younger, everything seemed simpler—everyone felt that way at some point.\n\n\"Come on, let's go,\" I say.\n\nAnd together, we begin to climb the long, winding slope.\n\n[Based on [url=https://key.visualarts.gr.jp/product/clannad/story/]the official site[/url]]",
+    "description": "Just 200 meters from the school gate……",
     "filelist": [
       {
-        "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/CLANNAD FULL VOICE(汉化)",
-        "name": "CLANNAD FULL VOICE(汉化)",
+        "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/【图集】蓝光原盘扫图以及背景音乐.rar",
+        "name": "【图集】蓝光原盘扫图以及背景音乐.rar",
+        "type": "file",
+        "size": "752407331",
+        "format": "RAR"
+      },
+      {
+        "id": "archive-【PC电脑端官中】HD重置.rar-1762971143876",
         "type": "folder",
+        "name": "(分卷) 【PC电脑端官中】HD重置.rar",
         "children": [
           {
-            "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/CLANNAD FULL VOICE(汉化)/【PC电脑端中文】.rar",
-            "name": "【PC电脑端中文】.rar",
+            "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/【PC电脑端官中】HD重置.part1.rar",
+            "name": "【PC电脑端官中】HD重置.part1.rar",
             "type": "file",
-            "size": "3852667025",
+            "size": "4294967296",
             "format": "RAR"
           },
           {
-            "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/CLANNAD FULL VOICE(汉化)/【PC电脑端官中】.rar",
-            "name": "【PC电脑端官中】.rar",
+            "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/【PC电脑端官中】HD重置.part2.rar",
+            "name": "【PC电脑端官中】HD重置.part2.rar",
             "type": "file",
-            "size": "2169578633",
+            "size": "225899814",
             "format": "RAR"
           }
         ]
+      }
+    ],
+    "strategy": [
+      {
+        "id": 44,
+        "vid": "v4",
+        "otherid": null,
+        "title": "智代篇",
+        "content":"此处为 HTML OR Markdown OR HTML & Mrkdown",
+        "copyright": "",
+        "type": "strategy",
+        "createdAt": "2025-09-27T09:08:26.625Z",
+        "updatedAt": "2025-09-27T09:08:26.625Z",
+        "user": {
+          "id": "pThdiZDRRaaLsjNKIEAtpBGQeaeGs17I",
+          "name": "admin@admin.com",
+          "image": null
+        }
       },
       {
-        "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/CLANNAD 被光守望着的坡道",
-        "name": "CLANNAD 被光守望着的坡道",
-        "type": "folder",
-        "children": [
-          {
-            "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/CLANNAD 被光守望着的坡道/【PC电脑端中文】.rar",
-            "name": "【PC电脑端中文】.rar",
-            "type": "file",
-            "size": "2420979901",
-            "format": "RAR"
-          }
-        ]
+        "id": 45,
+        "vid": "v4",
+        "otherid": null,
+        "title": "clannad攻略",
+        "content":"此处为 HTML OR Markdown OR HTML & Mrkdown",
+        "copyright": "",
+        "type": "strategy",
+        "createdAt": "2025-09-27T09:09:27.376Z",
+        "updatedAt": "2025-09-27T09:09:27.376Z",
+        "user": {
+          "id": "pThdiZDRRaaLsjNKIEAtpBGQeaeGs17I",
+          "name": "admin@admin.com",
+          "image": null
+        }
       }
     ]
   }
@@ -88,9 +114,10 @@ export interface ApiResponse {
 export interface GameData {
   vid: string
   title: string
-  alias?: string | null
+  alias: string | null
   description?: string | null
   filelist: FileItem[]
+  strategy: Strategy[]
 }
 
 export interface FileItem {
@@ -100,6 +127,26 @@ export interface FileItem {
   size?: string
   format?: string
   children?: FileItem[]
+}
+
+export interface Strategy {
+  id: number
+  vid: string
+  otherid: number | null
+  title: string
+  content: string
+  copyright: string
+  type: "strategy"
+  createdAt: string
+  updatedAt: string
+  user:User
+}
+
+
+export interface User {
+  id: string
+  name: string
+  image: string | null
 }
 
 ```
