@@ -13,14 +13,12 @@ import Link from 'next/link'
 import type { Metadata } from 'next/types'
 import React from 'react'
 
-
-
 type Props = {
-  params: Promise<{ id: string; strategy: string }>
+  params: Promise<{ id: string; introduction: string }>
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { strategy } = await params
+  const { introduction } = await params
   function stripHTML(html: string) {
     return html.replace(/<[^>]*>/g, '')
   }
@@ -34,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
   const { data: strategyContent } = await api.strategy.strategy.get({
     query: {
-      strategyId: +strategy,
+      strategyId: +introduction,
     },
   })
   const raw = strategyContent?.content || strategyContent?.title
@@ -48,10 +46,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function page({ params }: Props) {
   // [x] 攻略文章阅读
-  const { strategy } = await params
+  const { introduction } = await params
   const { data: strategyContent } = await api.strategy.strategy.get({
     query: {
-      strategyId: +strategy,
+      strategyId: +introduction,
     },
   })
   return (
