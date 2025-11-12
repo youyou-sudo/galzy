@@ -60,15 +60,12 @@ export const CronService = {
                 {
                   method: 'GET',
                   headers: commonHeaders,
-                }
+                },
               ),
             ])
 
             // 并行解析 JSON
-            const [json, json2] = await Promise.all([
-              res.json(),
-              res2.json(),
-            ])
+            const [json, json2] = await Promise.all([res.json(), res2.json()])
 
             const result =
               json?.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive?.[0]
@@ -143,7 +140,8 @@ export const CronService = {
       const parsedValue = JSON.parse(alistUpInfo?.value as unknown as string)
       if (!alistUpInfo) return
       if (parsedValue.is_done === false) return
-      if ((alistUpTime?.config.lastUpdate || 0) === parsedValue.last_done_time) return
+      if ((alistUpTime?.config.lastUpdate || 0) === parsedValue.last_done_time)
+        return
 
       const [, alistDataError, alistData] = t(
         await db.selectFrom('galrc_search_nodes').select(['name']).execute(),
@@ -158,7 +156,9 @@ export const CronService = {
         await db.transaction().execute(async (trx) => {
           // 使用并行操作优化事务
           await Promise.all([
-            trx.deleteFrom('galrc_alistb').execute(),
+            trx
+              .deleteFrom('galrc_alistb')
+              .execute(),
             // 可以考虑先删除再插入，而不是等待删除完成
           ])
 
@@ -222,8 +222,13 @@ export const CronService = {
     return results
   },
 
-  deduplicateResults(results: Array<{ vid?: string; other?: string; id: string }>) {
-    const dedupedMap = new Map<string, { vid?: string; other?: string; id: string }>()
+  deduplicateResults(
+    results: Array<{ vid?: string; other?: string; id: string }>,
+  ) {
+    const dedupedMap = new Map<
+      string,
+      { vid?: string; other?: string; id: string }
+    >()
 
     for (const item of results) {
       const key = item.vid || crypto.randomUUID()
@@ -246,13 +251,16 @@ export const CronService = {
       const pageSize = 500
 
       // 创建所有分页任务
-      const pagePromises = Array.from({ length: totalPages }, async (_, pageIndex) => {
-        const { items } = await MeiliSearchData(pageSize, pageIndex)
-        if (items.length > 0) {
-          return index.addDocuments(items)
-        }
-        return Promise.resolve()
-      })
+      const pagePromises = Array.from(
+        { length: totalPages },
+        async (_, pageIndex) => {
+          const { items } = await MeiliSearchData(pageSize, pageIndex)
+          if (items.length > 0) {
+            return index.addDocuments(items)
+          }
+          return Promise.resolve()
+        },
+      )
 
       // 并行处理所有分页，但限制并发数量避免过载
       const concurrencyLimit = 5 // 限制并发数
@@ -267,20 +275,25 @@ export const CronService = {
 
   async meiliSearchAddTag() {
     try {
-      const index = await MeiliClient.index(process.env.MEILISEARCH_TAG_INDEXNAME!)
+      const index = await MeiliClient.index(
+        process.env.MEILISEARCH_TAG_INDEXNAME!,
+      )
       await index.deleteAllDocuments()
 
       const { totalPages } = await this.getTagDataInfo()
       const pageSize = 500
 
       // 并行处理所有分页
-      const pagePromises = Array.from({ length: totalPages }, async (_, pageIndex) => {
-        const { items } = await tagAllGet(pageSize, pageIndex)
-        if (items.length > 0) {
-          return index.addDocuments(items)
-        }
-        return Promise.resolve()
-      })
+      const pagePromises = Array.from(
+        { length: totalPages },
+        async (_, pageIndex) => {
+          const { items } = await tagAllGet(pageSize, pageIndex)
+          if (items.length > 0) {
+            return index.addDocuments(items)
+          }
+          return Promise.resolve()
+        },
+      )
 
       // 限制并发数量
       const concurrencyLimit = 5
@@ -308,10 +321,10 @@ export const CronService = {
 
   async getTagDataInfo() {
     const totalCountResult = await db
-      .selectFrom("tags")
-      .innerJoin("galrc_zhtag", "tags.id", "galrc_zhtag.id")
-      .select(({ fn }) => [fn.countAll().as("count")])
-      .where("galrc_zhtag.exhibition", "=", true)
+      .selectFrom('tags')
+      .innerJoin('galrc_zhtag', 'tags.id', 'galrc_zhtag.id')
+      .select(({ fn }) => [fn.countAll().as('count')])
+      .where('galrc_zhtag.exhibition', '=', true)
       .executeTakeFirst()
 
     const totalCount = Number(totalCountResult?.count || 0)
@@ -350,7 +363,11 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
               releaseseVn
                 .selectFrom('releases_titles')
                 .select(['releases_titles.id'])
-                .select(['releases_titles.title', 'releases_titles.latin', 'releases_titles.lang'])
+                .select([
+                  'releases_titles.title',
+                  'releases_titles.latin',
+                  'releases_titles.lang',
+                ])
                 .whereRef(
                   'releases_titles.id',
                   '=',
@@ -367,7 +384,10 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
           .selectFrom('galrc_other')
           .whereRef('id', '=', 'galrc_alistb.other')
           .select((other) => [
-            'galrc_other.id', 'galrc_alistb.other', 'galrc_other.title', 'galrc_other.alias',
+            'galrc_other.id',
+            'galrc_alistb.other',
+            'galrc_other.title',
+            'galrc_other.alias',
             jsonArrayFrom(
               other
                 .selectFrom('galrc_other_media')
@@ -414,15 +434,15 @@ const tagAllGet = async (pageSize: number, pageIndex: number) => {
   const offset = pageIndex * pageSize
 
   const items = await db
-    .selectFrom("tags")
-    .innerJoin("galrc_zhtag", "tags.id", "galrc_zhtag.id")
+    .selectFrom('tags')
+    .innerJoin('galrc_zhtag', 'tags.id', 'galrc_zhtag.id')
     .select([
-      "tags.id",
-      "tags.name",
-      "galrc_zhtag.name as zh_name",
-      "galrc_zhtag.alias",
+      'tags.id',
+      'tags.name',
+      'galrc_zhtag.name as zh_name',
+      'galrc_zhtag.alias',
     ])
-    .where("galrc_zhtag.exhibition", "=", true)
+    .where('galrc_zhtag.exhibition', '=', true)
     .limit(pageSize)
     .offset(offset)
     .execute()

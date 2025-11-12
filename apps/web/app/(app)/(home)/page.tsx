@@ -73,7 +73,7 @@ const Home = () => {
           <CountComponent />
         </div>
         {/* 搜索框 */}
-        <div className='px-5 sm:px-20 lg:px-80 my-4'>
+        <div className="px-5 sm:px-20 lg:px-80 my-4">
           <SearchInput />
         </div>
 
@@ -107,7 +107,7 @@ const Home = () => {
             </CardContent>
           </Card>
         </div>
-      </article >
+      </article>
       {/* 广告 */}
       {/* <aside id="sidebar-ad" className='opacity-80 lg:px-24 px-4 my-4' >
         <AspectRatio ratio={120 / 9}>
@@ -115,8 +115,8 @@ const Home = () => {
         </AspectRatio>
       </aside > */}
       {/* 游戏列表 */}
-      <article className='mt-4'>
-          <HomePage />
+      <article className="mt-4">
+        <HomePage />
       </article>
     </>
   )

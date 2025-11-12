@@ -1,11 +1,14 @@
 'use client'
 
+import type { GameModel } from '@api/modules/games/model'
 import { useQuery } from '@tanstack/react-query'
 import {
   File,
   Files,
   Folder,
 } from '@web/components/animate-ui/components/files'
+import { MarkdownAsync } from '@web/components/markdownAync'
+import { Button } from '@web/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -13,47 +16,55 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@web/components/ui/dialog"
-import { Button } from '@web/components/ui/button'
+} from '@web/components/ui/dialog'
+import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
 import { Skeleton } from '@web/components/ui/skeleton'
+import { dwAcConst } from '@web/lib/download/ac'
 import { Check, Copy, Download } from 'lucide-react'
 import { useState } from 'react'
-import { downCardDataStore } from './stores/downCardData'
-import type { GameModel } from '@api/modules/games/model'
-import { dwAcConst } from '@web/lib/download/ac'
-import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
-import { MarkdownAsync } from '@web/components/markdownAync'
-import { GlgczujmDl } from './tips'
 import { toast } from 'sonner'
-
-
+import { downCardDataStore } from './stores/downCardData'
+import { GlgczujmDl } from './tips'
 
 export function CopyButtons({ id }: { id?: string }) {
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(false)
 
   const handleCopy = () => {
     if (id) {
-      const url = `${window.location.origin}/api/download?path=${id}`;
-      navigator.clipboard.writeText(url)
+      const url = `${window.location.origin}/api/download?path=${id}`
+      navigator.clipboard
+        .writeText(url)
         .then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 3000); // 3秒后恢复图标
+          setCopied(true)
+          setTimeout(() => setCopied(false), 3000) // 3秒后恢复图标
         })
         .catch(() => {
-          alert("复制失败，请手动复制链接。");
-        });
+          alert('复制失败，请手动复制链接。')
+        })
     }
-  };
+  }
 
   return (
-    <Button onClick={handleCopy} variant="outline" className="flex items-center space-x-1">
-      {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+    <Button
+      onClick={handleCopy}
+      variant="outline"
+      className="flex items-center space-x-1"
+    >
+      {copied ? (
+        <Check className="w-4 h-4 text-green-500" />
+      ) : (
+        <Copy className="w-4 h-4" />
+      )}
       <span>复制链接</span>
     </Button>
-  );
+  )
 }
 
-export function DownloadOptions({ fileList }: { fileList: GameModel.TreeNode[] }) {
+export function DownloadOptions({
+  fileList,
+}: {
+  fileList: GameModel.TreeNode[]
+}) {
   return <FileExplorer items={fileList} />
 }
 
@@ -62,8 +73,6 @@ export function DownloadOptions({ fileList }: { fileList: GameModel.TreeNode[] }
 function groupSplitArchives(
   items: GameModel.TreeNode[] | undefined,
 ): GameModel.TreeNode[] | undefined {
-
-
   if (!items || items.length === 0) return items
 
   const archivesMap: Record<string, GameModel.TreeNode[]> = {}
@@ -141,7 +150,6 @@ function FileExplorer({ items }: { items: GameModel.TreeNode[] }) {
     return groupSplitArchives(items)
   })()
 
-
   return (
     <Files
       defaultOpen={['PC', 'KR', 'ONS', 'TY', 'CG']}
@@ -155,7 +163,6 @@ function FileExplorer({ items }: { items: GameModel.TreeNode[] }) {
 
 // ---------- 文件/文件夹递归渲染 ----------
 const Filessss = ({ items }: { items: GameModel.TreeNode[] | undefined }) => {
-
   const open = downCardDataStore((s) => s.open)
   const setData = downCardDataStore((s) => s.setData)
 
@@ -214,26 +221,25 @@ export const DownCardDialog = () => {
 
   // 下载处理函数
   const handleDownload = async () => {
-    if (!data?.id) return;
-    setIsDownloading(true);
+    if (!data?.id) return
+    setIsDownloading(true)
     try {
-      const log = await dwAcConst(data.id);
+      const log = await dwAcConst(data.id)
       if (log?.url) {
-        const link = document.createElement('a');
-        link.href = log.url;
+        const link = document.createElement('a')
+        link.href = log.url
         // 可以指定下载的文件名，如果后端有返回文件名就用它，否则用默认
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        toast.success("已成功请求下载喵～",)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        toast.success('已成功请求下载喵～')
       }
     } catch {
-      toast.error("下载失败喵～")
+      toast.error('下载失败喵～')
     } finally {
-      setIsDownloading(false);
+      setIsDownloading(false)
     }
-  };
-
+  }
 
   // 复制处理函数
   const handleCopy = async (text: string) => {
@@ -241,9 +247,9 @@ export const DownCardDialog = () => {
     try {
       const url = await dwAcConst(text)
       await navigator.clipboard.writeText(url.url)
-      toast.success("下载链接已复制喵～")
+      toast.success('下载链接已复制喵～')
     } catch {
-      toast.error("复制失败喵～")
+      toast.error('复制失败喵～')
     } finally {
       setIsCopying(false)
     }
@@ -259,7 +265,9 @@ export const DownCardDialog = () => {
           <DialogTitle>文件信息</DialogTitle>
         </DialogHeader>
 
-        <span className="text-center text-lg wrap-break-word">{data?.name}</span>
+        <span className="text-center text-lg wrap-break-word">
+          {data?.name}
+        </span>
         <DialogDescription className="text-center">
           <span>{formatBytes(Number(data?.size))}</span>
         </DialogDescription>
@@ -290,10 +298,7 @@ export const DownCardDialog = () => {
           >
             {isDownloading ? (
               <span className="flex items-center gap-2">
-                <svg
-                  className="animate-spin h-4 w-4"
-                  viewBox="0 0 24 24"
-                >
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                   <circle
                     className="opacity-25"
                     cx="12"
@@ -340,8 +345,8 @@ export const DownCardDialog = () => {
             <div className="space-y-2">
               {isLoading
                 ? Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-5 rounded-full" />
-                ))
+                    <Skeleton key={i} className="h-5 rounded-full" />
+                  ))
                 : null}
             </div>
             <MarkdownAsync readmedata={readmedata} />
@@ -352,4 +357,3 @@ export const DownCardDialog = () => {
     </Dialog>
   )
 }
-

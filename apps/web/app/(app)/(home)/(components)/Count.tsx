@@ -8,9 +8,7 @@ export default async function CountComponent() {
   return (
     <div className="flex items-center justify-center text-center my-2">
       {coutn && (
-        <span className="pl-1 flex opacity-50">
-          共收录了： {coutn} 条目
-        </span>
+        <span className="pl-1 flex opacity-50">共收录了： {coutn} 条目</span>
       )}
       <span className="inline-flex items-center gap-1 ml-2">
         <Link

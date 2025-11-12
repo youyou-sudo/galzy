@@ -311,23 +311,22 @@ export async function dbSeed() {
     .execute()
 }
 
-
 // 创建 postgres_fdw 扩展
 await sql`
   CREATE EXTENSION IF NOT EXISTS postgres_fdw;
-`.execute(db);
+`.execute(db)
 
 // 删除已有的远程服务器（如果存在）
 await sql`
   DROP SERVER IF EXISTS vndb_server CASCADE;
-`.execute(db);
-const dbUrl = new URL(process.env.VNDB_DATABASE_URL!);
+`.execute(db)
+const dbUrl = new URL(process.env.VNDB_DATABASE_URL!)
 
-const host = dbUrl.hostname;
-const port = dbUrl.port;
-const dbname = dbUrl.pathname.replace(/^\//, '');
-const user = dbUrl.username;
-const password = dbUrl.password;
+const host = dbUrl.hostname
+const port = dbUrl.port
+const dbname = dbUrl.pathname.replace(/^\//, '')
+const user = dbUrl.username
+const password = dbUrl.password
 
 await sql`
   CREATE SERVER vndb_server
@@ -337,7 +336,7 @@ await sql`
       port '${sql.raw(port)}',
       dbname '${sql.raw(dbname)}'
     );
-`.execute(db);
+`.execute(db)
 
 // 创建用户映射
 await sql`
@@ -347,8 +346,7 @@ await sql`
       user '${sql.raw(user)}',
       password '${sql.raw(password)}'
     );
-`.execute(db);
-
+`.execute(db)
 
 // 创建远程表
 await sql`
@@ -370,7 +368,7 @@ await sql`
     schema_name 'public',
     table_name  'vn'
   );
-`.execute(db);
+`.execute(db)
 
 await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS vn_titles (
@@ -385,7 +383,7 @@ await sql`
     schema_name 'public',
     table_name  'vn_titles'
   );
-`.execute(db);
+`.execute(db)
 
 await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS images (
@@ -404,7 +402,7 @@ await sql`
     schema_name 'public',
     table_name  'images'
   );
-`.execute(db);
+`.execute(db)
 
 await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS tags (
@@ -422,8 +420,7 @@ await sql`
     schema_name 'public',
     table_name  'tags'
   );
-`.execute(db);
-
+`.execute(db)
 
 await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS tags_vn (
@@ -441,7 +438,7 @@ await sql`
     schema_name 'public',
     table_name  'tags_vn'
   );
-`.execute(db);
+`.execute(db)
 
 await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS releases (
@@ -477,7 +474,7 @@ await sql`
     schema_name 'public',
     table_name  'releases'
   );
-`.execute(db);
+`.execute(db)
 
 await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS releases_vn (
@@ -489,7 +486,7 @@ await sql`
     schema_name 'public',
     table_name  'releases_vn'
   );
-`.execute(db);
+`.execute(db)
 
 await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS releases_titles (
@@ -504,4 +501,4 @@ await sql`
     schema_name 'public',
     table_name  'releases_titles'
   );
-`.execute(db);
+`.execute(db)

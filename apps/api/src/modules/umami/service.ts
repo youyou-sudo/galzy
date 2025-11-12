@@ -2,6 +2,7 @@ import { getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
 import { t } from 'try'
 import type { UmamiModel } from './model'
+
 const now = new Date()
 
 const day = now.getDay()
@@ -10,11 +11,13 @@ const startOfWeek = new Date(
   now.getFullYear(),
   now.getMonth(),
   now.getDate() - diff,
-  0, 0, 0, 0
+  0,
+  0,
+  0,
+  0,
 )
 const endAt = now.getTime()
 const startAt = startOfWeek.getTime()
-
 
 export const Umami = {
   // Tag 统计

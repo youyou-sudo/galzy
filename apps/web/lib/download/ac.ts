@@ -1,5 +1,5 @@
-"use server"
-import { api } from "@libs"
+'use server'
+import { api } from '@libs'
 
 export const dwAcConst = async (path?: string) => {
   if (!path) {

@@ -12,16 +12,15 @@ import {
   YouyouAuth,
 } from './modules'
 import { media } from './modules/media'
-import { strategy } from './modules/strategy'
 import { ping } from './modules/ping'
+import { strategy } from './modules/strategy'
 
 initValidationError()
 dbSeed()
 startCronTasks()
 const app = new Elysia()
   .onError(({ code, error }) => {
-    if (code === 'VALIDATION')
-      return error.message
+    if (code === 'VALIDATION') return error.message
   })
   .use(cronServer)
   .use(YouyouAuth)

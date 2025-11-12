@@ -1,9 +1,9 @@
 import { db } from '@api/libs'
+import { delKv, getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import { t } from 'try'
 import type { TagsModel } from './model'
-import { delKv, getKv, setKv } from '@api/libs/redis'
 
 export const Tags = {
   async gameTags({ id }: TagsModel.gameTags) {
@@ -16,7 +16,7 @@ export const Tags = {
         return JSON.parse(redisData) as Tag
       } catch {
         // 缓存损坏 → 删除并继续查库
-        await delKv(cacheKey).catch(() => { })
+        await delKv(cacheKey).catch(() => {})
       }
     }
 
@@ -24,50 +24,48 @@ export const Tags = {
     const idIsNumber = /^\d+$/.test(id)
 
     // 3. 查询数据库
-   const [, error, items] = await t(
-  db
-    .selectFrom('galrc_alistb')
-    .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
-    .where((eb) =>
-      idIsNumber
-        ? eb.or([
-            eb('galrc_alistb.vid', '=', id),
-            eb('galrc_alistb.other', '=', Number(id)),
-          ])
-        : eb('vn.id', '=', id),
+    const [, error, items] = await t(
+      db
+        .selectFrom('galrc_alistb')
+        .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
+        .where((eb) =>
+          idIsNumber
+            ? eb.or([
+                eb('galrc_alistb.vid', '=', id),
+                eb('galrc_alistb.other', '=', Number(id)),
+              ])
+            : eb('vn.id', '=', id),
+        )
+        .select((vneb) => [
+          jsonArrayFrom(
+            vneb
+              .selectFrom('tags_vn')
+              .whereRef('tags_vn.vid', '=', 'vn.id')
+              // 只考虑有正向投票的数据
+              .where('tags_vn.vote', '>', 0)
+              // 分组统计标签的平均分
+              .groupBy(['tags_vn.tag', 'tags_vn.vid'])
+              .having((eb) => eb.fn.avg('tags_vn.vote'), '>', 1)
+              .select((tagsVn) => [
+                jsonObjectFrom(
+                  tagsVn
+                    .selectFrom('tags')
+                    .innerJoin('galrc_zhtag', 'tags.id', 'galrc_zhtag.id')
+                    .whereRef('tags.id', '=', 'tags_vn.tag')
+                    .where('galrc_zhtag.exhibition', '=', true)
+                    .select([
+                      'tags.id',
+                      'tags.name',
+                      'tags.description',
+                      'galrc_zhtag.name as zht_name',
+                      'galrc_zhtag.description as zht_description',
+                    ]),
+                ).as('tag_data'),
+              ]),
+          ).as('tags'),
+        ])
+        .executeTakeFirst(),
     )
-    .select((vneb) => [
-      jsonArrayFrom(
-        vneb
-          .selectFrom('tags_vn')
-          .whereRef('tags_vn.vid', '=', 'vn.id')
-          // 只考虑有正向投票的数据
-          .where('tags_vn.vote', '>', 0)
-          // 分组统计标签的平均分
-          .groupBy(['tags_vn.tag', 'tags_vn.vid'])
-          .having((eb) => eb.fn.avg('tags_vn.vote'), '>', 1)
-          .select((tagsVn) => [
-            jsonObjectFrom(
-              tagsVn
-                .selectFrom('tags')
-                .innerJoin('galrc_zhtag', 'tags.id', 'galrc_zhtag.id')
-                .whereRef('tags.id', '=', 'tags_vn.tag')
-                .where('galrc_zhtag.exhibition', '=', true)
-                .select([
-                  'tags.id',
-                  'tags.name',
-                  'tags.description',
-                  'galrc_zhtag.name as zht_name',
-                  'galrc_zhtag.description as zht_description',
-                ]),
-            ).as('tag_data'),
-          ]),
-      ).as('tags'),
-    ])
-    .executeTakeFirst(),
-)
-
-
 
     if (error) {
       throw status(500, `服务出错了喵~ Error:${JSON.stringify(error)}`)
@@ -87,7 +85,6 @@ export const Tags = {
     // 类型定义：保证 result 不会是 undefined
     type Tag = NonNullable<typeof result>
     return result
-
   },
   async tag({ tagId }: TagsModel.tagId) {
     const redisdata = await getKv(`tag-${tagId}`)
@@ -106,7 +103,8 @@ export const Tags = {
           'galrc_zhtag.name as zht_name',
           'galrc_zhtag.description as zht_description',
         ])
-        .executeTakeFirst())
+        .executeTakeFirst(),
+    )
 
     if (!items) {
       throw status(404, `Tag ${tagId} 不存在`)
@@ -209,10 +207,8 @@ export const Tags = {
         .selectFrom('tags_vn')
         .innerJoin('galrc_alistb', 'galrc_alistb.vid', 'tags_vn.vid')
         .where('tags_vn.tag', '=', tagId)
-        .select(({ fn }) => [
-          fn.count('tags_vn.vid').distinct().as('count')
-        ])
-        .executeTakeFirst()
+        .select(({ fn }) => [fn.count('tags_vn.vid').distinct().as('count')])
+        .executeTakeFirst(),
     ])
 
     // main query 结果处理
@@ -328,15 +324,15 @@ export const Tags = {
     if (ok) return true
   },
   async tagFileAdd({ file }: TagsModel.tagFileAdd) {
-    const text = await file.text();
-    const datas = JSON.parse(text);
+    const text = await file.text()
+    const datas = JSON.parse(text)
     const datass = datas.map((item: any) => ({
       id: item.id,
       name: item.name,
       exhibition: item.exhibition,
       alias: item.alias,
       description: item.description,
-    }));
+    }))
 
     const [, error] = await t(
       db
@@ -350,19 +346,19 @@ export const Tags = {
               exhibition: (eb) => eb.ref('excluded.exhibition'),
               alias: (eb) => eb.ref('excluded.alias'),
               description: (eb) => eb.ref('excluded.description'),
-            })
+            }),
         )
-        .execute()
-    );
+        .execute(),
+    )
 
     if (error) {
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`);
+      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     }
 
-    return true;
+    return true
   },
   async tagAllFileDwn() {
     const datas = await db.selectFrom('galrc_zhtag').selectAll().execute()
     return datas
-  }
+  },
 }

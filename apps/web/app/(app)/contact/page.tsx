@@ -1,4 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@web/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@web/components/ui/card'
 import Link from 'next/link'
 import React from 'react'
 
@@ -14,7 +19,9 @@ export default function Youyou() {
           </CardHeader>
           <CardContent className="space-y-6">
             <section className="text-center space-y-2">
-              <h2 className="text-xl font-semibold opacity-80">喵喵喵通知公告</h2>
+              <h2 className="text-xl font-semibold opacity-80">
+                喵喵喵通知公告
+              </h2>
               <p>
                 频道：{' '}
                 <Link
@@ -28,7 +35,9 @@ export default function Youyou() {
             </section>
 
             <section className="text-center space-y-2">
-              <h2 className="text-xl font-semibold opacity-80">问题反馈和合作赞助</h2>
+              <h2 className="text-xl font-semibold opacity-80">
+                问题反馈和合作赞助
+              </h2>
               <p className="">
                 邮箱：{' '}
                 <Link

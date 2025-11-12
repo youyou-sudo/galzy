@@ -205,7 +205,6 @@ export interface ArticlesTable {
   updatedAt: ColumnType<Date, string | undefined, never>
 }
 
-
 // vndb
 export interface TagsVnTable {
   updatedAt: ColumnType<Date, string | undefined, never>
@@ -218,7 +217,6 @@ export interface TagsVnTable {
   lie?: boolean | null
   notes: string
 }
-
 
 // VNDB data
 export interface VnTable {

@@ -40,7 +40,7 @@ export const HomeGamelist = () => {
     }
   }, [inView, isLoading, hasNextPage, fetchNextPage])
   const gameList = gameListData?.pages.flatMap((page) =>
-    page?.items!.map((item) => <GameItem key={item.id} item={item} />),
+    page?.items?.map((item) => <GameItem key={item.id} item={item} />),
   )
 
   return (

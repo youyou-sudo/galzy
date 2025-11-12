@@ -3,11 +3,7 @@ import swagger from '@elysiajs/swagger'
 import { Elysia } from 'elysia'
 import { auth } from './service'
 
-const allowedOrigins = [
-  'http://localhost:3000',
-  `${process.env.WEB_HOST}`,
-
-]
+const allowedOrigins = ['http://localhost:3000', `${process.env.WEB_HOST}`]
 
 const betterAuth = new Elysia({ name: 'better-auth' })
   .use(

@@ -31,13 +31,21 @@ export const Glgczujm = () => {
         <Info className="w-4 h-4" />
         <AlertTitle>本站已配置负载均衡保证速度喵～</AlertTitle>
         <AlertDescription>
-          <li>对于大文件，我们建议使用 IDM 或 Aria2 在一个小时内下载完成以防止中断喵～</li>
+          <li>
+            对于大文件，我们建议使用 IDM 或 Aria2
+            在一个小时内下载完成以防止中断喵～
+          </li>
           <br />
-          <li>PC 端使用 WinRAR | 移动端使用 RAR / ZArchiver 等专业工具喵～; 不要使用非正规解压工具，避免文件损坏喵～</li>
+          <li>
+            PC 端使用 WinRAR | 移动端使用 RAR / ZArchiver 等专业工具喵～;
+            不要使用非正规解压工具，避免文件损坏喵～
+          </li>
           <br />
           游戏主程序建议存放在全英文路径下喵～
           <br />
-          <li>如果您喜欢这个并且能够负担得起，请考虑购买原版，或直接支持作者喵～</li>
+          <li>
+            如果您喜欢这个并且能够负担得起，请考虑购买原版，或直接支持作者喵～
+          </li>
         </AlertDescription>
       </Alert>
 
@@ -53,7 +61,6 @@ export const Glgczujm = () => {
             🍚
           </span>
 
-
           <Link
             target="_blank"
             data-umami-event="广告点击"
@@ -68,19 +75,30 @@ export const Glgczujm = () => {
 
       <div className="lg:px-5 lg:w-[80%] px-4 py-0 opacity-80">
         <Link
-          target='_blank'
+          target="_blank"
           data-umami-event="广告点击"
           data-umami-event-name="AI 风月"
           data-umami-event-position="页内广告-AI 风月"
-          href="https://dearestie.xyz?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7">
+          href="https://dearestie.xyz?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7"
+        >
           <div className="sm:hidden">
             <AspectRatio ratio={80 / 9}>
-              <Image src="/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
+              <Image
+                src="/aifywebp.webp"
+                fill
+                alt="AI 风月广告图片"
+                className="object-cover rounded-lg"
+              />
             </AspectRatio>
           </div>
           <div className="hidden sm:block">
             <AspectRatio ratio={120 / 9}>
-              <Image src="/aifywebp.webp" fill alt="AI 风月广告图片" className="object-cover rounded-lg" />
+              <Image
+                src="/aifywebp.webp"
+                fill
+                alt="AI 风月广告图片"
+                className="object-cover rounded-lg"
+              />
             </AspectRatio>
           </div>
         </Link>
@@ -123,8 +141,6 @@ export const Glgczujm = () => {
         </Link>
       </div> */}
 
-
-
       <aside>
         <Alert
           id="sidebar-ad"
@@ -163,7 +179,7 @@ export const Glgczujm = () => {
           </div>
         </Alert>
       </aside>
-    </div >
+    </div>
   )
 }
 
@@ -209,4 +225,3 @@ export const GlgczujmDl = () => {
     </aside>
   )
 }
-

@@ -8,7 +8,7 @@
     "build:webpack": "next build --webpack && cp -r .next/static .next/standalone/apps/web/.next/static && cp -r public .next/standalone/apps/web/public",
     "build:win": "next build --turbopack && bun scripts/buildFileCopy.ts",
     "start": "next start",
-    "lint": "biome check",
+    "lint": "biome check --write",
     "docker": "cd ../.. && docker build -t mono-web:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/web/Dockerfile .",
     "docker:web": "cd ../.. && docker build -t mono-web:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/web/Dockerfile ."
   },

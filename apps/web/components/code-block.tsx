@@ -27,7 +27,6 @@ export function CodeBlock({
     setTimeout(() => setCopied(false), 2000)
   }, [code])
 
-
   return (
     <div className="relative group">
       <pre

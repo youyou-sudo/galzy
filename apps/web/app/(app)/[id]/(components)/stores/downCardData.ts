@@ -4,7 +4,6 @@ import { create } from 'zustand'
 
 let clearTimeoutId: ReturnType<typeof setTimeout> | null = null
 
-
 export const downCardDataStore = create<{
   data: GameModel.TreeNode | null
   isOpen: boolean

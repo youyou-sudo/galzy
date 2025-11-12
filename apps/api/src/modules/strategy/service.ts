@@ -80,7 +80,6 @@ export const Strategy = {
     await storeIdempotentResult(`strategyListUpdate-${hash}`, '', 60)
   },
   async strategyCreate({ id, data }: StrategyModel.strategyListUpdate) {
-
     await delKv(`gameStrategys:${id}`)
     const str = JSON.stringify({ id, data })
     const hash = XXH.h32(str, 0xabcd).toString(16)

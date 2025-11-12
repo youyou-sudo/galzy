@@ -22,23 +22,24 @@ export const GameItem = ({
   let imagesData
   if (item?.other && item.other_datas?.other_media?.length) {
     imagesData =
-      item.other_datas.other_media.find((item) => item.cover)?.media ?? item.images
+      item.other_datas.other_media.find((item) => item.cover)?.media ??
+      item.images
   } else {
     if (item?.images !== null) imagesData = item?.images
     else imagesData = {}
   }
 
-  let imagess = '/No-Image-Placeholder.svg.webp';
+  let imagess = '/No-Image-Placeholder.svg.webp'
 
   if (imagesData) {
     if ('hash' in imagesData) {
-      imagess = imageAcc(imagesData.name);
+      imagess = imageAcc(imagesData.name)
     } else if (imagesData.id && imagesData.width && imagesData.height) {
       imagess = getImageUrl({
         imageId: imagesData.id,
         width: imagesData.width,
         height: imagesData.height,
-      });
+      })
     }
   }
 

@@ -3,11 +3,7 @@ import {
   HydrationBoundary,
   QueryClient,
 } from '@tanstack/react-query'
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-} from '@web/components/ui/card'
+import { Card, CardHeader, CardTitle } from '@web/components/ui/card'
 import { TagViewsTrackEvents } from '@web/components/umami/track-events'
 import type { Metadata } from 'next/types'
 import React from 'react'
@@ -23,9 +19,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const tag = await getTagData(tagid)
   return {
     title: `标签 -  ${tag?.zht_name || tag?.name || '标签'}`,
-    description: `${tag?.zht_name || tag?.name || '标签'
-      } 类型下的游戏列表，类型介绍：${tag?.zht_description || tag?.description || '无'
-      }`,
+    description: `${
+      tag?.zht_name || tag?.name || '标签'
+    } 类型下的游戏列表，类型介绍：${
+      tag?.zht_description || tag?.description || '无'
+    }`,
   }
 }
 type GetVnListByTagResult = Awaited<ReturnType<typeof getVnListByTag>>

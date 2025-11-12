@@ -24,8 +24,12 @@ export const strategyListCreate = async (id: string, data: ContentData) => {
   })
 }
 
-export const strategyListDelete = async ({ strategyId, gameId }: StrategyModel.strategy) => {
+export const strategyListDelete = async ({
+  strategyId,
+  gameId,
+}: StrategyModel.strategy) => {
   await api.strategy.strategylistdelete.post({
-    strategyId, gameId
+    strategyId,
+    gameId,
   })
 }

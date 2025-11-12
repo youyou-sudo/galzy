@@ -17,10 +17,10 @@ import {
 } from '@web/components/ui/sheet'
 import { Menu } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 import type React from 'react'
 import { useState } from 'react'
 import HoverPrefetchLink from './HoverPLink'
-import Link from 'next/link'
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -72,11 +72,14 @@ export function Navbar() {
                       className={navigationMenuTriggerStyle()}
                     >
                       <Link
-                        target='_blank'
+                        target="_blank"
                         data-umami-event="广告点击"
                         data-umami-event-name="AI 风月"
                         data-umami-event-position="导航广告-AI 风月"
-                        href="https://dearestie.xyz?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7">Ai女友💋（在线畅玩）</Link>
+                        href="https://dearestie.xyz?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7"
+                      >
+                        Ai女友💋（在线畅玩）
+                      </Link>
                     </NavigationMenuLink>
                   </NavigationMenuItem>
                 </NavigationMenuList>
@@ -128,7 +131,7 @@ export function Navbar() {
                   </div>
                   <div className="space-y-4">
                     <Link
-                      target='_blank'
+                      target="_blank"
                       data-umami-event="广告点击"
                       data-umami-event-name="AI 风月"
                       data-umami-event-position="导航广告-AI 风月"

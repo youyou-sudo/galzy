@@ -16,9 +16,12 @@ export const Search = {
 
     const [, error, [index, tagf]] = t(
       await Promise.all([
-        MeiliClient.index(process.env.MEILISEARCH_INDEXNAME || '').search(safeQ, {
-          limit: limit || 50,
-        }),
+        MeiliClient.index(process.env.MEILISEARCH_INDEXNAME || '').search(
+          safeQ,
+          {
+            limit: limit || 50,
+          },
+        ),
         MeiliClient.index(process.env.MEILISEARCH_TAG_INDEXNAME || '').search(
           safeQ,
           {

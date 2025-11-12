@@ -18,8 +18,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   ])
   return {
     title: '下载',
-    description: `${titlesData.zhHans}|${titlesData.olang
-      } 的资源下载，游戏别名：${aliasData || '无'}`,
+    description: `${titlesData.zhHans}|${
+      titlesData.olang
+    } 的资源下载，游戏别名：${aliasData || '无'}`,
   }
 }
 

@@ -40,11 +40,13 @@ export const Download = {
 
     const loadAlistSettings = async (): Promise<AlistSettings> => {
       const [tokenRow, expirationRow] = await Promise.all([
-        db.selectFrom('galrc_setting_items')
+        db
+          .selectFrom('galrc_setting_items')
           .select('value')
           .where('key', '=', 'token')
           .executeTakeFirst(),
-        db.selectFrom('galrc_setting_items')
+        db
+          .selectFrom('galrc_setting_items')
           .select('value')
           .where('key', '=', 'link_expiration')
           .executeTakeFirst(),
@@ -68,7 +70,11 @@ export const Download = {
       const now = Math.floor(Date.now() / 1000)
       const expiration = now + alistSettingsCache.linkExpiration * 3600
 
-      const sign = await hmacSha256Sign(path, expiration, alistSettingsCache.token)
+      const sign = await hmacSha256Sign(
+        path,
+        expiration,
+        alistSettingsCache.token,
+      )
 
       const [, error, workerList] = t(
         await db
@@ -83,7 +89,8 @@ export const Download = {
         throw status(500, '没有可用的下载节点喵~')
       }
 
-      const randomWorker = workerList[Math.floor(Math.random() * workerList.length)]
+      const randomWorker =
+        workerList[Math.floor(Math.random() * workerList.length)]
 
       return {
         success: true,

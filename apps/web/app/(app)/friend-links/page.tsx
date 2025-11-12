@@ -10,31 +10,31 @@ const linksList: {
   href: string
   description: string
 }[] = [
-    {
-      title: '莱茵',
-      avatar: '/telegram.png',
-      href: 'https://t.me/RhineLibrary',
-      description: '一个 Telegram Galgame 资源频道',
-    },
-    {
-      title: '莉斯坦 ACG',
-      avatar: 'https://www.limulu.moe/favicon.ico',
-      href: 'https://www.limulu.moe',
-      description: '一个简洁美观人性化的 ACG 资源站',
-    },
-    {
-      title: '鲲 Galgame 论坛',
-      avatar: 'https://www.kungal.com/favicon.ico',
-      href: 'https://www.kungal.com',
-      description: '世界上最萌的 Galgame 论坛! ',
-    },
-    {
-      title: 'Hikarinagi',
-      avatar: 'https://www.hikarinagi.org/favicon.ico',
-      href: 'https://www.hikarinagi.org',
-      description: 'Hikarinagi致力于为所有ACG爱好者提供一个交流和分享的平台! ',
-    },
-  ]
+  {
+    title: '莱茵',
+    avatar: '/telegram.png',
+    href: 'https://t.me/RhineLibrary',
+    description: '一个 Telegram Galgame 资源频道',
+  },
+  {
+    title: '莉斯坦 ACG',
+    avatar: 'https://www.limulu.moe/favicon.ico',
+    href: 'https://www.limulu.moe',
+    description: '一个简洁美观人性化的 ACG 资源站',
+  },
+  {
+    title: '鲲 Galgame 论坛',
+    avatar: 'https://www.kungal.com/favicon.ico',
+    href: 'https://www.kungal.com',
+    description: '世界上最萌的 Galgame 论坛! ',
+  },
+  {
+    title: 'Hikarinagi',
+    avatar: 'https://www.hikarinagi.org/favicon.ico',
+    href: 'https://www.hikarinagi.org',
+    description: 'Hikarinagi致力于为所有ACG爱好者提供一个交流和分享的平台! ',
+  },
+]
 
 export default function Youyou() {
   return (

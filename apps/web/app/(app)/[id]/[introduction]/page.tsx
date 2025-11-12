@@ -83,7 +83,9 @@ export default async function page({ params }: Props) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <MarkdownAsyncStrategy readmedata={strategyContent?.content || ''} />
+            <MarkdownAsyncStrategy
+              readmedata={strategyContent?.content || ''}
+            />
             <div className="text-right">
               {strategyContent?.copyright && (
                 <p className="text-sm items-center">

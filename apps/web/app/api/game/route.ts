@@ -13,10 +13,10 @@ const vltdma = {
       noFiles: {
         message: '喵喵什么都不知道喵，请提供正确的游戏 ID 喵～',
         code: '400',
-      }
+      },
     }
     return messages[type]
-  }
+  },
 }
 
 export async function GET(request: Request) {
@@ -26,19 +26,19 @@ export async function GET(request: Request) {
   if (!vid) {
     return new Response(JSON.stringify(vltdma.getMessage('notFound')), {
       status: vltdma.code,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     })
   }
 
   const [gameResp, fileListResp] = await Promise.all([
     api.games.get({ query: { id: vid } }),
-    api.games.openlistfiles.get({ query: { id: vid } })
+    api.games.openlistfiles.get({ query: { id: vid } }),
   ])
 
   if (gameResp.status >= 400) {
     return new Response(JSON.stringify(vltdma.getMessage('notFound')), {
       status: vltdma.code,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     })
   }
 
@@ -56,7 +56,7 @@ export async function GET(request: Request) {
   if (!openlist?.length) {
     return new Response(JSON.stringify(vltdma.getMessage('noFiles')), {
       status: vltdma.code,
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     })
   }
 
@@ -69,7 +69,7 @@ export async function GET(request: Request) {
       alias: aliasData,
       description: datas?.vn_datas?.description,
       filelist: groupSplitArchives(openlist[0].children),
-    }
+    },
   }
   return Response.json(res)
 }
@@ -78,8 +78,6 @@ export async function GET(request: Request) {
 export function groupSplitArchives(
   items: GameModel.TreeNode[] | undefined,
 ): GameModel.TreeNode[] | undefined {
-
-
   if (!items || items.length === 0) return items
 
   const archivesMap: Record<string, GameModel.TreeNode[]> = {}

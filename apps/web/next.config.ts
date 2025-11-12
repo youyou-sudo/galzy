@@ -1,6 +1,6 @@
+import withBundleAnalyzer from '@next/bundle-analyzer'
 import createMDX from '@next/mdx'
 import type { NextConfig } from 'next'
-import withBundleAnalyzer from '@next/bundle-analyzer'
 
 // 配置分析器
 const withAnalyzer = withBundleAnalyzer({

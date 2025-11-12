@@ -1,7 +1,7 @@
-import { Toaster } from '@web/components/ui/sonner'
 import { Footer } from '@web/components/footer'
 import { Navbar } from '@web/components/navbar'
 import { AspectRatio } from '@web/components/ui/aspect-ratio'
+import { Toaster } from '@web/components/ui/sonner'
 import UmamiScript from '@web/components/umami/script'
 import { metadataConfig } from '@web/config/metadata'
 import type { Metadata } from 'next'
@@ -63,10 +63,8 @@ export default async function YoyoLayout({
           </Link>
         </aside> */}
         <div className="flex flex-col mx-auto max-w-7xl space-y-4 py-4 lg:px-0">
-          <main>
-            {children}
-          </main>
-          <Toaster position="top-center"  />
+          <main>{children}</main>
+          <Toaster position="top-center" />
         </div>
       </div>
 

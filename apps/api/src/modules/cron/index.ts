@@ -20,7 +20,6 @@ export const cronServer = new Elysia()
     return CronService.workerDataPull()
   })
 
-
 export function startCronTasks() {
   // 每分钟执行一次
   new Cron('*/1 * * * *', () => {

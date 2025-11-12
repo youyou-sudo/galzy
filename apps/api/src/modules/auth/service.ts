@@ -1,5 +1,5 @@
 import { dbConfig } from '@api/libs/config'
-import { betterAuth, type BetterAuthOptions } from "better-auth";
+import { type BetterAuthOptions, betterAuth } from 'better-auth'
 import { admin } from 'better-auth/plugins'
 import { Pool } from 'pg'
 

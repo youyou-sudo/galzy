@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client'
 
-import { Game } from '@api/modules/games/service'
+import type { Game } from '@api/modules/games/service'
 import { QueryClient, useMutation } from '@tanstack/react-query'
 import {
   RadioGroup,
@@ -233,7 +233,7 @@ export default function Component({ datas }: { datas: DataTy }) {
                         {formatBytes(file.file.size)}
                       </p>
                       {file.uploadStatus === 'success' ||
-                        (!file.uploadStatus && isFile(file.file)) ? (
+                      (!file.uploadStatus && isFile(file.file)) ? (
                         <div className="flex items-center">
                           <RadioGroupItem value={file.id} />
                           <Label>封面</Label>
@@ -279,29 +279,29 @@ export default function Component({ datas }: { datas: DataTy }) {
                   {/* Upload/Retry button */}
                   {(file.uploadStatus === 'pending' ||
                     file.uploadStatus === 'error') && (
-                      <Button
-                        size="icon"
-                        type="button"
-                        variant="ghost"
-                        className="size-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
-                        onClick={() =>
-                          file.uploadStatus === 'error'
-                            ? retryUpload(file.id)
-                            : uploadFile(file.id)
-                        }
-                        aria-label={
-                          file.uploadStatus === 'error'
-                            ? 'Retry upload'
-                            : 'Upload file'
-                        }
-                      >
-                        {file.uploadStatus === 'error' ? (
-                          <RefreshCwIcon className="size-4" />
-                        ) : (
-                          <PlayIcon className="size-4" />
-                        )}
-                      </Button>
-                    )}
+                    <Button
+                      size="icon"
+                      type="button"
+                      variant="ghost"
+                      className="size-8 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                      onClick={() =>
+                        file.uploadStatus === 'error'
+                          ? retryUpload(file.id)
+                          : uploadFile(file.id)
+                      }
+                      aria-label={
+                        file.uploadStatus === 'error'
+                          ? 'Retry upload'
+                          : 'Upload file'
+                      }
+                    >
+                      {file.uploadStatus === 'error' ? (
+                        <RefreshCwIcon className="size-4" />
+                      ) : (
+                        <PlayIcon className="size-4" />
+                      )}
+                    </Button>
+                  )}
 
                   {/* Remove button */}
                   <Button

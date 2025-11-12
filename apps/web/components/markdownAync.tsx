@@ -1,8 +1,8 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
 import { visit } from 'unist-util-visit'
-import dynamic from 'next/dynamic'
 
 // 只动态加载 ReactMarkdown
 const Markdown = dynamic(() => import('react-markdown'), { ssr: false })
@@ -10,7 +10,6 @@ const Markdown = dynamic(() => import('react-markdown'), { ssr: false })
 let rehypeRawCache: any
 let remarkGfmCache: any
 let componentsCache: any
-
 
 export const MarkdownAsync = ({ readmedata }: { readmedata: string }) => {
   const [plugins, setPlugins] = useState<{
@@ -91,8 +90,14 @@ export function rehypeRemoveBlackWhiteStyles() {
   }
 }
 
-export const MarkdownAsyncStrategy = ({ readmedata }: { readmedata: string }) => {
-  const [plugins, setPlugins] = useState<{ rehypeRaw?: any; remarkGfm?: any }>({})
+export const MarkdownAsyncStrategy = ({
+  readmedata,
+}: {
+  readmedata: string
+}) => {
+  const [plugins, setPlugins] = useState<{ rehypeRaw?: any; remarkGfm?: any }>(
+    {},
+  )
 
   useEffect(() => {
     if (rehypeRawCache && remarkGfmCache) {

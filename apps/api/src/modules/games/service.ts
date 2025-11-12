@@ -1,10 +1,4 @@
 import { db } from '@api/libs'
-import XXH from 'xxhashjs'
-import { status } from 'elysia'
-import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
-import { t } from 'try'
-
-import type { GameModel } from './model'
 import {
   acquireIdempotentKey,
   delKv,
@@ -13,6 +7,11 @@ import {
   setKv,
   storeIdempotentResult,
 } from '@api/libs/redis'
+import { status } from 'elysia'
+import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
+import { t } from 'try'
+import XXH from 'xxhashjs'
+import type { GameModel } from './model'
 
 export const Game = {
   async Count() {
@@ -145,9 +144,7 @@ export const Game = {
       await db
         .selectFrom('galrc_alistb')
         .where((eb) =>
-          idIsNumber
-            ? eb('other', '=', Number(id))
-            : eb('vid', '=', id),
+          idIsNumber ? eb('other', '=', Number(id)) : eb('vid', '=', id),
         )
         .selectAll()
         .select((eb) => [
@@ -183,14 +180,22 @@ export const Game = {
                 jsonArrayFrom(
                   other
                     .selectFrom('galrc_other_media')
-                    .whereRef('galrc_other_media.other_id', '=', 'galrc_other.id')
+                    .whereRef(
+                      'galrc_other_media.other_id',
+                      '=',
+                      'galrc_other.id',
+                    )
                     .select((media) => [
                       'galrc_other_media.cover',
                       jsonObjectFrom(
                         media
                           .selectFrom('galrc_media')
                           .selectAll()
-                          .whereRef('galrc_media.hash', '=', 'galrc_other_media.media_hash'),
+                          .whereRef(
+                            'galrc_media.hash',
+                            '=',
+                            'galrc_other_media.media_hash',
+                          ),
                       ).as('media_datas'),
                     ]),
                 ).as('media'),
@@ -260,11 +265,11 @@ export const Game = {
             type: isLast && !row.is_dir ? 'file' : 'folder',
             ...(isLast && !row.is_dir
               ? {
-                size: row.size !== undefined ? String(row.size) : undefined,
-                format: part.includes('.')
-                  ? part.substring(part.lastIndexOf('.') + 1).toUpperCase()
-                  : undefined,
-              }
+                  size: row.size !== undefined ? String(row.size) : undefined,
+                  format: part.includes('.')
+                    ? part.substring(part.lastIndexOf('.') + 1).toUpperCase()
+                    : undefined,
+                }
               : {}),
           }
         }
@@ -290,10 +295,10 @@ export const Game = {
             ...rest,
             ...(children
               ? {
-                children: await convert(
-                  children as Record<string, TreeNodeBuilder>,
-                ),
-              }
+                  children: await convert(
+                    children as Record<string, TreeNodeBuilder>,
+                  ),
+                }
               : {}),
           }
 
