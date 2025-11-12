@@ -53,9 +53,17 @@ export async function GET(request: Request) {
       alias: aliasData,
       description: datas?.vn_datas?.description,
       filelist: groupSplitArchives(openlist[0].children),
-      strategy: strategyList.data,
+      strategy: strategyList.data?.map(({ author, user, ...rest }) => ({
+        ...rest,
+        user: {
+          id: user!.id,
+          name: user!.name,
+          image: user!.image,
+        }
+      })),
     },
   })
+
 }
 
 export function groupSplitArchives(

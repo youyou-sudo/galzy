@@ -58,7 +58,8 @@ export const Strategy = {
               eb
                 .selectFrom('galrc_user')
                 .whereRef('galrc_user.id', '=', 'galrc_article.author')
-                .select(['id', 'name', 'image']),
+                // .select(['id', 'name', 'image']),
+                .selectAll(),
             ).as('user'),
           ]
         )
