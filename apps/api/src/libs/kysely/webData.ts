@@ -197,6 +197,7 @@ export interface ArticlesTable {
   id: Generated<number>
   vid: string | null
   otherid: number | null
+  author: string
   title: string | null
   content: string | null
   type: ArticleType

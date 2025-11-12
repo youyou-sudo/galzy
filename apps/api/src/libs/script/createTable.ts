@@ -179,6 +179,7 @@ export async function dbSeed() {
     .addColumn('id', 'serial', (cb) => cb.primaryKey())
     .addColumn('vid', 'varchar(255)')
     .addColumn('otherid', 'bigint')
+    .addColumn('author', 'varchar(255)', (cb) => cb.defaultTo('pThdiZDRRaaLsjNKIEAtpBGQeaeGs17I'))
     .addColumn('title', 'varchar(255)')
     .addColumn('content', 'text')
     .addColumn('copyright', 'text')
