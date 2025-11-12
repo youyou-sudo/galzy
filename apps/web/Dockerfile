@@ -21,7 +21,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 WORKDIR /app/apps/web
-RUN bun run build
+RUN bun --bun run build
 
 # 生产阶段也用 bun
 FROM oven/bun:slim AS production
