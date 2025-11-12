@@ -15,7 +15,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@web/components/animate-ui/radix/sidebar'
-import HoverPrefetchLink from '@web/components/HoverPLink'
+import ForesightLink from '@web/components/HoverPLink'
 import { dashboardConfig } from '@web/config/dashboard'
 import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
@@ -48,9 +48,9 @@ export default function NavMain() {
                     {item.items?.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
                         <SidebarMenuSubButton asChild>
-                          <HoverPrefetchLink href={subItem.url}>
+                          <ForesightLink href={subItem.url}>
                             <span>{subItem.title}</span>
-                          </HoverPrefetchLink>
+                          </ForesightLink>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
                     ))}

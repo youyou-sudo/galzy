@@ -1,23 +1,35 @@
 'use client'
-
+import useForesight from '@web/hooks/useForesight'
+import type { ForesightRegisterOptions } from 'js.foresight'
+import type { LinkProps } from 'next/link'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
-export function HoverPrefetchLink({
-  href,
-  children,
-}: {
-  href: string
+interface ForesightLinkProps
+  extends Omit<LinkProps, 'prefetch'>,
+    Omit<ForesightRegisterOptions, 'element' | 'callback'> {
   children: React.ReactNode
-}) {
-  const [active, setActive] = useState(false)
+  className?: string
+}
+
+export function ForesightLink({
+  children,
+  className,
+  ...props
+}: ForesightLinkProps) {
+  const router = useRouter() // import from "next/navigation" not "next/router"
+  const { elementRef } = useForesight<HTMLAnchorElement>({
+    callback: () => {
+      router.prefetch(props.href.toString())
+    },
+    hitSlop: props.hitSlop,
+    name: props.name,
+    meta: props.meta,
+    reactivateAfter: props.reactivateAfter,
+  })
 
   return (
-    <Link
-      href={href}
-      prefetch={active ? null : false}
-      onMouseEnter={() => setActive(true)}
-    >
+    <Link {...props} ref={elementRef} className={className}>
       {children}
     </Link>
   )

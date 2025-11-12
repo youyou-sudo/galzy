@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@web/components/animate-ui/radix/dialog'
-import HoverPrefetchLink from '@web/components/HoverPLink'
+import ForesightLink from '@web/components/HoverPLink'
 import { Button } from '@web/components/ui/button'
 import { Skeleton } from '@web/components/ui/skeleton'
 import { authClient } from '@web/lib/auth-client'
@@ -74,7 +74,7 @@ const StrategyList = ({ id }: { id: string }) => {
                 key={item.id}
                 className="flex items-center justify-between px-2 space-x-2 rounded-lg"
               >
-                <HoverPrefetchLink
+                <ForesightLink
                   className="w-full"
                   href={
                     pathname === '/dashboard/dataManagement'
@@ -86,7 +86,7 @@ const StrategyList = ({ id }: { id: string }) => {
                     <NotepadText className="w-4 h-4" />
                     <span>{item.title}</span>
                   </div>
-                </HoverPrefetchLink>
+                </ForesightLink>
                 {user?.data?.user.role === 'admin' && (
                   <div className="flex items-center space-x-1">
                     <Button

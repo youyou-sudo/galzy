@@ -1,4 +1,4 @@
-import HoverPrefetchLink from '@web/components/HoverPLink'
+import ForesightLink from '@web/components/HoverPLink'
 
 interface Item {
   id?: string
@@ -26,7 +26,7 @@ export default async function RankingList<T extends Item>({
 
         return (
           <li key={linkValue} className="w-full">
-            <HoverPrefetchLink href={href} className="block w-full">
+            <ForesightLink href={href} className="block w-full">
               <span className="flex items-center w-full">
                 <span
                   className={`font-bold mr-2 shrink-0 ${
@@ -56,7 +56,7 @@ export default async function RankingList<T extends Item>({
                   {item.title}
                 </span>
               </span>
-            </HoverPrefetchLink>
+            </ForesightLink>
           </li>
         )
       })}

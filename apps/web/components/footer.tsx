@@ -1,7 +1,7 @@
 import { cn } from '@web/lib/utils'
 import Link from 'next/link'
 import type React from 'react'
-import HoverPrefetchLink from './HoverPLink'
+import ForesightLink from './HoverPLink'
 
 interface FooterProps {
   className?: string
@@ -26,18 +26,18 @@ export function Footer({ className, children }: FooterProps) {
             {years > 0 ? `${startYear}-${currentYear}` : `${startYear}`} Galzy
           </p>
           <div className="flex gap-4 justify-center">
-            <HoverPrefetchLink
+            <ForesightLink
               href="/openapi"
               className="hover:text-foreground transition-colors"
             >
               Open Api
-            </HoverPrefetchLink>
-            <HoverPrefetchLink
+            </ForesightLink>
+            <ForesightLink
               href="/friend-links"
               className="hover:text-foreground transition-colors"
             >
               友情链接
-            </HoverPrefetchLink>
+            </ForesightLink>
             <Link
               href="https://icp.gov.moe/?keyword=20222332"
               target="_blank"

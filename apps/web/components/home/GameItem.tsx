@@ -2,7 +2,7 @@ import type { homeData } from '@web/app/(app)/(home)/(action)/homeData'
 import type { getVnListByTag } from '@web/app/(app)/tags/[tagid]/(acrion)/tagvns'
 import { getImageUrl, imageAcc } from '@web/lib/ImageUrl'
 import { GameCard } from '../game-card'
-import HoverPrefetchLink from '../HoverPLink'
+import ForesightLink from '../HoverPLink'
 
 type HomeData = Awaited<ReturnType<typeof homeData>>
 type NoNullHomeData = NonNullable<HomeData>
@@ -56,7 +56,7 @@ export const GameItem = ({
   }
 
   return (
-    <HoverPrefetchLink href={`/${item?.id}`}>
+    <ForesightLink href={`/${item?.id}`}>
       <div
         className="hover:shadow-md hover:border rounded-lg"
         style={{ contentVisibility: 'auto' }}
@@ -71,6 +71,6 @@ export const GameItem = ({
         />
       </div>
       <p className="text-sm truncate w-full text-center px-2 pt-2">{title}</p>
-    </HoverPrefetchLink>
+    </ForesightLink>
   )
 }
