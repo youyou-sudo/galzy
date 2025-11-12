@@ -3,10 +3,8 @@ import {
   HydrationBoundary,
   QueryClient,
 } from '@tanstack/react-query'
-import { BBCodeRenderer } from '@web/components/bbcode'
 import {
   Card,
-  CardContent,
   CardHeader,
   CardTitle,
 } from '@web/components/ui/card'
@@ -15,8 +13,6 @@ import type { Metadata } from 'next/types'
 import React from 'react'
 import { getTagData, getVnListByTag } from './(acrion)/tagvns'
 import { TagsGamelist } from './(components)/gamelist'
-import { AspectRatio } from '@web/components/ui/aspect-ratio'
-import Image from 'next/image'
 
 type Props = {
   params: Promise<{ tagid: string }>
@@ -49,6 +45,7 @@ export default async function Yoyo({ params }: Props) {
         ? lastPage.currentPage + 1
         : null,
   })
+  queryClient.clear()
 
   const tagtitle = `[tag:${tagid}]-[${tag?.zht_name || tag?.name}]`
   return (
