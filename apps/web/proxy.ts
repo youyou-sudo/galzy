@@ -4,47 +4,46 @@ import { type NextRequest, NextResponse } from 'next/server'
 
 type Session = typeof auth.$Infer.Session
 
-const allowedOrigins = [
+const allowedOrigins = new Set([
   'https://sg.saop.cc',
   'https://searchgal.homes',
   'https://galzy.eu.org',
-]
+])
 
 export async function proxy(request: NextRequest) {
-  const origin = request.headers.get('origin') || ''
+  const origin = request.headers.get('origin')
+  const pathname = request.nextUrl.pathname
 
-  // ====== 处理 CORS ======
-  let response: NextResponse | null = null
-  if (allowedOrigins.includes(origin)) {
-    response = NextResponse.next()
-    response.headers.set('Access-Control-Allow-Origin', origin)
-    response.headers.set('Access-Control-Allow-Credentials', 'true')
+  const isAllowedOrigin = origin && allowedOrigins.has(origin)
+  const isDashboardPath = pathname.startsWith('/dashboard')
+
+  const res = NextResponse.next()
+  if (isAllowedOrigin) {
+    res.headers.set('Access-Control-Allow-Origin', origin!)
+    res.headers.set('Access-Control-Allow-Credentials', 'true')
   }
 
-  // ====== 鉴权逻辑 ======
-  if (request.nextUrl.pathname.startsWith('/dashboard')) {
-    // ✅ 根据环境动态确定 baseURL
-    const baseURL =
-      process.env.NODE_ENV === 'production'
-        ? process.env.NEXT_PUBLIC_APP_URL
-        : request.nextUrl.origin
+  if (!isDashboardPath) return res
 
-    const { data: session } = await betterFetch<Session>(
-      '/api/auth/get-session',
-      {
-        baseURL,
-        headers: {
-          cookie: request.headers.get('cookie') || '',
-        },
-      },
-    )
+  const baseURL =
+    process.env.NODE_ENV === 'production'
+      ? process.env.NEXT_PUBLIC_APP_URL
+      : request.nextUrl.origin
 
-    if (!session) {
-      return NextResponse.redirect(new URL('/login', request.url))
-    }
+  const sessionPromise = betterFetch<Session>('/api/auth/get-session', {
+    baseURL,
+    headers: {
+      cookie: request.headers.get('cookie') || '',
+    },
+  })
+
+  const { data: session } = await sessionPromise
+
+  if (!session) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  return response ?? NextResponse.next()
+  return res
 }
 
 export const config = {
