@@ -55,8 +55,6 @@ const HomePage = async () => {
         ? lastPage.currentPage + 1
         : null,
   })
-  queryClient.clear()
-
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <HomeGamelist />

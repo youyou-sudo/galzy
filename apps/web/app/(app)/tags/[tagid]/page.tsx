@@ -43,8 +43,6 @@ export default async function Yoyo({ params }: Props) {
         ? lastPage.currentPage + 1
         : null,
   })
-  queryClient.clear()
-
   const tagtitle = `[tag:${tagid}]-[${tag?.zht_name || tag?.name}]`
   return (
     <div className="space-y-3">
