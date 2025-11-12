@@ -4,31 +4,25 @@ import { getTitles } from '@web/app/(app)/[id]/(lib)/contentDataac'
 
 const vltdma = {
   code: 400,
+  messages: {
+    notFound: '喵喵什么都不知道喵，请提供正确的游戏 ID 喵～',
+    noFiles: '喵喵什么都不知道喵，请提供正确的游戏 ID 喵～',
+  },
   getMessage(type: 'notFound' | 'noFiles') {
-    const messages = {
-      notFound: {
-        message: '喵喵什么都不知道喵，请提供正确的游戏 ID 喵～',
-        code: '400',
-      },
-      noFiles: {
-        message: '喵喵什么都不知道喵，请提供正确的游戏 ID 喵～',
-        code: '400',
-      },
-    }
-    return messages[type]
+    return { code: '400', message: this.messages[type] }
   },
 }
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const vid = searchParams.get('vid')
+function jsonResponse(data: any, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
 
-  if (!vid) {
-    return new Response(JSON.stringify(vltdma.getMessage('notFound')), {
-      status: vltdma.code,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
+export async function GET(request: Request) {
+  const vid = new URL(request.url).searchParams.get('vid')
+  if (!vid) return jsonResponse(vltdma.getMessage('notFound'), vltdma.code)
 
   const [gameResp, fileListResp, strategyList] = await Promise.all([
     api.games.get({ query: { id: vid } }),
@@ -36,12 +30,7 @@ export async function GET(request: Request) {
     api.strategy.gamestrategys.get({ query: { gameId: vid } }),
   ])
 
-  if (gameResp.status >= 400) {
-    return new Response(JSON.stringify(vltdma.getMessage('notFound')), {
-      status: vltdma.code,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
+  if (gameResp.status >= 400) return jsonResponse(vltdma.getMessage('notFound'), vltdma.code)
 
   const datas = gameResp.data
   const titlesData = getTitles({ data: datas }).olang
@@ -49,19 +38,13 @@ export async function GET(request: Request) {
   const aliasData = datas?.vn_datas?.alias
     ?.split('\n')
     .map((s) => s.trim())
-    .filter(Boolean)
-    .filter((s) => s !== titlesData)
+    .filter((s) => s && s !== titlesData)
     .join(', ')
 
   const openlist = fileListResp.data as GameModel.TreeNode[]
-  if (!openlist?.length) {
-    return new Response(JSON.stringify(vltdma.getMessage('noFiles')), {
-      status: vltdma.code,
-      headers: { 'Content-Type': 'application/json' },
-    })
-  }
+  if (!openlist?.length) return jsonResponse(vltdma.getMessage('noFiles'), vltdma.code)
 
-  const res = {
+  return jsonResponse({
     code: 200,
     message: 'success',
     data: {
@@ -72,74 +55,55 @@ export async function GET(request: Request) {
       filelist: groupSplitArchives(openlist[0].children),
       strategy: strategyList.data,
     },
-  }
-  return Response.json(res)
+  })
 }
 
-// ---------- 分卷文件识别处理 + md 同名判定 ----------
 export function groupSplitArchives(
   items: GameModel.TreeNode[] | undefined,
 ): GameModel.TreeNode[] | undefined {
-  if (!items || items.length === 0) return items
+  if (!items || items.length === 0) return items;
 
-  const archivesMap: Record<string, GameModel.TreeNode[]> = {}
-  const others: GameModel.TreeNode[] = []
+  const mdMap = new Map<string, string>();
+  const archivesMap = new Map<string, GameModel.TreeNode[]>();
+  const others: GameModel.TreeNode[] = [];
+  const splitRegex = /(.*?)(?:\.part\d+)\.(rar|zip|7z)$/i;
+  const timestamp = Date.now();
 
-  // 先收集当前目录的所有 md 文件
-  const mdMap: Record<string, string> = {} // name -> id
-  items.forEach((item) => {
-    if (item.type !== 'folder' && item.name.endsWith('.md')) {
-      const nameWithoutExt = item.name.replace(/\.md$/i, '')
-      mdMap[nameWithoutExt] = item.id
-    }
-  })
-
-  // 匹配分卷文件，捕获 baseName 和扩展名
-  const splitRegex = /(.*?)(?:\.part\d+)\.(rar|zip|7z)$/i
-
-  items.forEach((item) => {
+  items.forEach(item => {
     if (item.type === 'folder') {
-      // 避免重复包装分卷文件夹
       if (!item.name.startsWith('(分卷) ')) {
-        item.children = groupSplitArchives(
-          item.children ?? [],
-        ) as typeof item.children
+        item.children = groupSplitArchives(item.children ?? []);
       }
-      others.push(item)
-    } else if (!item.name.endsWith('.md')) {
-      // 忽略 md 文件本身
-      const match = item.name.match(splitRegex)
-      if (match) {
-        const baseName = match[1]
-        const ext = match[2]
-        const key = `${baseName}.${ext}`
-        if (!archivesMap[key]) archivesMap[key] = []
-
-        // 检查同名 md 文件
-        if (mdMap[baseName]) {
-          item.redame = mdMap[baseName]
-        }
-
-        archivesMap[key].push(item)
-      } else {
-        // 普通文件也检查同名 md
-        const nameWithoutExt = item.name.replace(/\.[^/.]+$/, '')
-        if (mdMap[nameWithoutExt]) {
-          item.redame = mdMap[nameWithoutExt]
-        }
-        others.push(item)
-      }
+      others.push(item);
+      return;
     }
-  })
 
-  const archiveFolders = Object.entries(archivesMap).map(
+    if (item.name.endsWith('.md')) {
+      mdMap.set(item.name.replace(/\.md$/i, ''), item.id);
+      return;
+    }
+
+    const match = item.name.match(splitRegex);
+    const nameWithoutExt = item.name.replace(/\.[^/.]+$/, '');
+    if (mdMap.has(nameWithoutExt)) item.redame = mdMap.get(nameWithoutExt);
+
+    if (match) {
+      const key = `${match[1]}.${match[2]}`;
+      if (!archivesMap.has(key)) archivesMap.set(key, []);
+      archivesMap.get(key)!.push(item);
+    } else {
+      others.push(item);
+    }
+  });
+
+  const archiveFolders = Array.from(archivesMap.entries()).map(
     ([fullName, files]) => ({
-      id: `archive-${fullName}-${Date.now()}`,
+      id: `archive-${fullName}-${timestamp}`,
       type: 'folder' as const,
       name: `(分卷) ${fullName}`,
-      children: files!,
-    }),
-  )
+      children: files,
+    })
+  );
 
-  return [...others, ...archiveFolders]
+  return [...others, ...archiveFolders];
 }
