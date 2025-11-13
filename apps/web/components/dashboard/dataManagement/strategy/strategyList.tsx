@@ -61,7 +61,7 @@ const StrategyList = ({ id }: { id: string }) => {
           Array(2)
             .fill(null)
             .map((_, index) => (
-              <Skeleton key={index} className="h-[40px] w-full" />
+              <Skeleton key={index} className="h-10 w-full" />
             ))}
         {!isLoading && (!strategyList || strategyList.length === 0) && (
           <div className="text-center">暂无攻略文章喵～</div>
