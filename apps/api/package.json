@@ -19,7 +19,7 @@
     "@types/xxhashjs": "^0.2.4",
     "ajv": "^8.17.1",
     "croner": "^9.1.0",
-    "elysia": "^1.4.13",
+    "elysia": "^1.4.16",
     "ioredis": "^5.8.2",
     "kysely": "^0.28.8",
     "kysely-postgres-js": "^3.0.0",
