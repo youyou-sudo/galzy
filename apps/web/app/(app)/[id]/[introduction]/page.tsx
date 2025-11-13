@@ -1,6 +1,5 @@
 import { api } from '@libs'
 import ForesightLink from '@web/components/HoverPLink'
-import { MarkdownAsyncStrategy } from '@web/components/markdownAync'
 import {
   Card,
   CardContent,
@@ -12,6 +11,9 @@ import { ArrowLeft, User } from 'lucide-react'
 import Link from 'next/link'
 import type { Metadata } from 'next/types'
 import React from 'react'
+import Markdown from 'react-markdown'
+import rehypeRaw from 'rehype-raw'
+import remarkGfm from 'remark-gfm'
 
 type Props = {
   params: Promise<{ id: string; introduction: string }>
@@ -83,9 +85,12 @@ export default async function page({ params }: Props) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <MarkdownAsyncStrategy
-              readmedata={strategyContent?.content || ''}
-            />
+            <Markdown
+              rehypePlugins={[rehypeRaw]}
+              remarkPlugins={[remarkGfm]}
+            >
+              {strategyContent?.content}
+            </Markdown>
             <div className="text-right">
               {strategyContent?.copyright && (
                 <p className="text-sm items-center">

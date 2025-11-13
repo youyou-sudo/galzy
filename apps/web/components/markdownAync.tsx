@@ -89,39 +89,3 @@ export function rehypeRemoveBlackWhiteStyles() {
     })
   }
 }
-
-export const MarkdownAsyncStrategy = ({
-  readmedata,
-}: {
-  readmedata: string
-}) => {
-  const [plugins, setPlugins] = useState<{ rehypeRaw?: any; remarkGfm?: any }>(
-    {},
-  )
-
-  useEffect(() => {
-    if (rehypeRawCache && remarkGfmCache) {
-      setPlugins({ rehypeRaw: rehypeRawCache, remarkGfm: remarkGfmCache })
-      return
-    }
-
-    Promise.all([import('rehype-raw'), import('remark-gfm')]).then(
-      ([rehypeRawMod, remarkGfmMod]) => {
-        rehypeRawCache = rehypeRawMod.default
-        remarkGfmCache = remarkGfmMod.default
-        setPlugins({ rehypeRaw: rehypeRawCache, remarkGfm: remarkGfmCache })
-      },
-    )
-  }, [])
-
-  if (!plugins.rehypeRaw || !plugins.remarkGfm) return <p>加载中...</p>
-
-  return (
-    <Markdown
-      rehypePlugins={[plugins.rehypeRaw]}
-      remarkPlugins={[plugins.remarkGfm]}
-    >
-      {readmedata}
-    </Markdown>
-  )
-}
