@@ -1,5 +1,5 @@
 # Build stage
-FROM oven/bun:1.2.10 AS build
+FROM oven/bun:slim AS build
 
 WORKDIR /app
 
@@ -27,13 +27,11 @@ RUN bun run build
 RUN ls -al /app/apps/api
 
 # Production stage
-FROM gcr.io/distroless/base
+FROM alpine:latest
+
+RUN apk add --no-cache bash curl
 
 WORKDIR /app
-
-# Copy busybox
-COPY --from=busy /bin/busybox /bin/busybox
-RUN ["/bin/busybox", "--install", "-s", "/bin"]
 
 # Copy server file from build stage (make sure 'server' exists)
 COPY --from=build /app/apps/api/server /app/server
