@@ -110,13 +110,16 @@ export const Umami = {
     )
     if (error1) throw status(res.status, 'Umami 服务出错了喵~')
     const datas = await res.json()
-    const fileMap = new Map<string, number>();
+    const fileMap = new Map<string, number>()
     datas.forEach((item: { value: string; total: number }) => {
-      const key = item.value.replace(/\.part\d+\.rar$/, '.rar');
-      const prev = fileMap.get(key) ?? 0;
-      fileMap.set(key, Math.max(prev, item.total));
-    });
-    const totalDownloads = Array.from(fileMap.values()).reduce((a, b) => a + b, 0);
+      const key = item.value.replace(/\.part\d+\.rar$/, '.rar')
+      const prev = fileMap.get(key) ?? 0
+      fileMap.set(key, Math.max(prev, item.total))
+    })
+    const totalDownloads = Array.from(fileMap.values()).reduce(
+      (a, b) => a + b,
+      0,
+    )
     void setKv(`gameDloadNuber-${vid}`, JSON.stringify(totalDownloads), 60 * 15)
     return totalDownloads
   },

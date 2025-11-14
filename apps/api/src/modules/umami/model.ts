@@ -1,4 +1,4 @@
-import { t } from "elysia";
+import { t } from 'elysia'
 
 export namespace UmamiModel {
   export const gameDloadNuber = t.Object({
