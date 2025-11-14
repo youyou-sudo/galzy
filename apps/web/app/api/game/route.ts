@@ -6,7 +6,7 @@ const vltdma = {
   code: 400,
   messages: {
     notFound: '喵喵什么都不知道喵，请提供正确的游戏 ID 喵～',
-    noFiles: '喵喵什么都不知道喵，请提供正确的游戏 ID 喵～',
+    noFiles: '喵喵什么都不知道喵，此游戏没有文件喵～',
   },
   getMessage(type: 'notFound' | 'noFiles') {
     return { code: '400', message: this.messages[type] }
