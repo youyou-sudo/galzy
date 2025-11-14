@@ -89,6 +89,37 @@ export const Umami = {
     type RemfGame = typeof parsed
     return parsed
   },
+  async gameDloadNuber({ vid }: UmamiModel.gameDloadNuber) {
+    const redisData = await getKv(`gameDloadNuber-${vid}`)
+    if (redisData !== null && redisData !== undefined) {
+      return JSON.parse(redisData) as number
+    }
+    const [, error, token] = t(await umamiTokenGet())
+    if (error)
+      throw status(
+        500,
+        `Umami 服务出错了喵~，Error:${JSON.stringify(error, null, 2)}`,
+      )
+    const url = `${process.env.UMAMI_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=1759334400000&endAt=${endAt}&unit=day&timezone=Asia%2FShanghai&path=eq.%2F${vid}&event=GameDownload&propertyName=pathe`
+
+    const [, error1, res] = t(
+      await fetch(url, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+    )
+    if (error1) throw status(res.status, 'Umami 服务出错了喵~')
+    const datas = await res.json()
+    const fileMap = new Map<string, number>();
+    datas.forEach((item: { value: string; total: number }) => {
+      const key = item.value.replace(/\.part\d+\.rar$/, '.rar');
+      const prev = fileMap.get(key) ?? 0;
+      fileMap.set(key, Math.max(prev, item.total));
+    });
+    const totalDownloads = Array.from(fileMap.values()).reduce((a, b) => a + b, 0);
+    void setKv(`gameDloadNuber-${vid}`, JSON.stringify(totalDownloads), 60 * 15)
+    return totalDownloads
+  },
 }
 
 const umamiTokenGet = async () => {
