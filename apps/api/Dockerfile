@@ -31,6 +31,10 @@ FROM gcr.io/distroless/base
 
 WORKDIR /app
 
+# Copy busybox
+COPY --from=busy /bin/busybox /bin/busybox
+RUN ["/bin/busybox", "--install", "-s", "/bin"]
+
 # Copy server file from build stage (make sure 'server' exists)
 COPY --from=build /app/apps/api/server /app/server
 
