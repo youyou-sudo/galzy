@@ -1,11 +1,6 @@
-import withBundleAnalyzer from '@next/bundle-analyzer'
+// import withBundleAnalyzer from '@next/bundle-analyzer'
 import createMDX from '@next/mdx'
 import type { NextConfig } from 'next'
-
-// 配置分析器
-const withAnalyzer = withBundleAnalyzer({
-  enabled: process.env.ANALYZE === 'true',
-})
 
 const nextConfig: NextConfig = {
   output: 'standalone',
@@ -39,4 +34,4 @@ const withMDX = createMDX({
 })
 
 // 按顺序组合插件
-export default withAnalyzer(withMDX(nextConfig))
+export default withMDX(nextConfig)
