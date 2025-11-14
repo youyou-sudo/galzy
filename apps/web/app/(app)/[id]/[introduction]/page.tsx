@@ -85,10 +85,7 @@ export default async function page({ params }: Props) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Markdown
-              rehypePlugins={[rehypeRaw]}
-              remarkPlugins={[remarkGfm]}
-            >
+            <Markdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
               {strategyContent?.content}
             </Markdown>
             <div className="text-right">

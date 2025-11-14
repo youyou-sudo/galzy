@@ -23,8 +23,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   ])
   return {
     title: '攻略',
-    description: `${titlesData.zhHans || titlesData.olang || 'Gamgame'
-      } 游戏别名：${aliasData || '无'} 的攻略文章列表，`,
+    description: `${
+      titlesData.zhHans || titlesData.olang || 'Gamgame'
+    } 游戏别名：${aliasData || '无'} 的攻略文章列表，`,
   }
 }
 
