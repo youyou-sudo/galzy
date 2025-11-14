@@ -1,5 +1,5 @@
 # Build stage
-FROM oven/bun:slim AS build
+FROM oven/bun:1.2.10 AS build
 
 WORKDIR /app
 
@@ -27,9 +27,7 @@ RUN bun run build
 RUN ls -al /app/apps/api
 
 # Production stage
-FROM alpine:latest
-
-RUN apk add --no-cache bash curl
+FROM gcr.io/distroless/base
 
 WORKDIR /app
 
