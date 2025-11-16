@@ -35,18 +35,18 @@ export default function RootLayout({
         />
       </head>
       <body className={`antialiased flex flex-col min-h-screen`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <Providers>
+        <Providers>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
             <QueryProvider>
               <NuqsAdapter>{children}</NuqsAdapter>
             </QueryProvider>
-          </Providers>
-        </ThemeProvider>
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   )
