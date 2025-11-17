@@ -4,6 +4,7 @@ import { api } from '@libs'
 import type { ContentData } from '@web/components/dashboard/dataManagement/strategy/stores/EditStores'
 
 export const strategyListGet = async (id: string) => {
+  'use cache'
   const { data } = await api.strategy.gamestrategys.get({
     query: { gameId: id },
   })

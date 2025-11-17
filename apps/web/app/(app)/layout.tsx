@@ -4,6 +4,7 @@ import { Toaster } from '@web/components/ui/sonner'
 import UmamiScript from '@web/components/umami/script'
 import { metadataConfig } from '@web/config/metadata'
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 
 export const metadata: Metadata = {
   title: {
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
   description: metadataConfig.description,
 }
 
-export default async function YoyoLayout({
+export default async function Layout({
   children,
 }: Readonly<{
   children: React.ReactNode
@@ -64,8 +65,9 @@ export default async function YoyoLayout({
           <Toaster position="top-center" />
         </div>
       </div>
-
-      <Footer />
+      <Suspense>
+        <Footer />
+      </Suspense>
       <UmamiScript />
     </>
   )

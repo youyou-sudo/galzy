@@ -1,4 +1,3 @@
-import { SlidingNumber } from '@web/components/animate-ui/text/sliding-number'
 import { Send } from 'lucide-react'
 import Link from 'next/link'
 import { totalCountGet } from '../(action)/homeData'

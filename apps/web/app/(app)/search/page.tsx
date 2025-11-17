@@ -30,7 +30,6 @@ export default async function Youyou({ searchParams }: Props) {
         <GamepadIcon className="w-5 h-5 text-primary" />
         <h1 className="text-lg font-semibold text-foreground">游戏搜索</h1>
       </div>
-
       <div className="mx-auto flex md:w-1/2 items-center justify-center">
         <SearchInput />
       </div>

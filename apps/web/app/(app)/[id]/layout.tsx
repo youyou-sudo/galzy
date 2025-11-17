@@ -1,3 +1,4 @@
+"use cache"
 import { TapCatd } from '@web/app/(app)/[id]/(components)'
 import { ContentCard } from '@web/app/(app)/[id]/(components)/vnid-page/ContentCard'
 import Errors from '@web/components/error'
