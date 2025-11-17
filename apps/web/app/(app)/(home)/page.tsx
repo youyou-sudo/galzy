@@ -1,8 +1,3 @@
-import {
-  dehydrate,
-  HydrationBoundary,
-  QueryClient,
-} from '@tanstack/react-query'
 import { homeData } from '@web/app/(app)/(home)/(action)/homeData'
 import { HomeGamelist } from '@web/components/home'
 import SearchInput from '@web/components/home/Search/Search'
@@ -21,13 +16,13 @@ import { Suspense } from 'react'
 import { remfGameGet, remfTagGet } from './(action)/remf'
 import CountComponent from './(components)/Count'
 import RankingList from './(components)/remf'
+import { GameItem } from '@web/components/home/GameItem'
 
 export const metadata: Metadata = {
   title: '主页',
   description: metadataConfig.description,
 }
 
-// 提取 Skeleton 列表，避免重复
 const SkeletonList = ({ count = 4 }: { count?: number }) => (
   <>
     {Array.from({ length: count }).map((_, index) => (
@@ -36,29 +31,16 @@ const SkeletonList = ({ count = 4 }: { count?: number }) => (
   </>
 )
 
-type HomeDataResult = Awaited<ReturnType<typeof homeData>>
 
 const HomePage = async () => {
-  const queryClient = new QueryClient()
-  await queryClient.prefetchInfiniteQuery({
-    queryKey: ['gamelist'],
-    queryFn: async ({ pageParam }) => {
-      const data = await homeData(24, pageParam)
-      if (!data) {
-        return null
-      }
-      return data
-    },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage: HomeDataResult) =>
-      lastPage && lastPage.currentPage < lastPage.totalPages
-        ? lastPage.currentPage + 1
-        : null,
-  })
+  const data = await homeData(24, 0)
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
+    <div className="grid grid-cols-3 gap-4 md:grid-cols-6">
+      {data?.items?.map((item) => (
+        <GameItem key={item.id} item={item} />
+      ))}
       <HomeGamelist />
-    </HydrationBoundary>
+    </div>
   )
 }
 

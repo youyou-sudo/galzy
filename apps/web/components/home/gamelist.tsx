@@ -26,7 +26,7 @@ export const HomeGamelist = () => {
       }
       return data
     },
-    initialPageParam: 0,
+    initialPageParam: 1,
     getNextPageParam: (lastPage: HomeDataResult) =>
       lastPage && lastPage.currentPage < lastPage.totalPages
         ? lastPage.currentPage + 1
@@ -44,7 +44,7 @@ export const HomeGamelist = () => {
   )
 
   return (
-    <div className="grid grid-cols-3 gap-4 md:grid-cols-6">
+    <>
       {gameList}
       {hasNextPage && (
         <>
@@ -53,6 +53,7 @@ export const HomeGamelist = () => {
           <GameCard.ListSkeleton />
         </>
       )}
-    </div>
+
+    </>
   )
 }
