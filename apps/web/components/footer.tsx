@@ -1,5 +1,3 @@
-"use client";
-
 import { cn } from '@web/lib/utils'
 import Link from 'next/link'
 import type React from 'react'
@@ -14,7 +12,6 @@ export function Footer({ className, children }: FooterProps) {
   const startYear = 2022
   const currentYear = new Date().getFullYear()
   const years = currentYear - startYear
-
   return (
     <footer
       className={cn(

@@ -32,7 +32,7 @@ const IdGameCardSkeleton = forwardRef<HTMLDivElement>(function GameSkeleton() {
 
 const GameSkeleton = forwardRef<HTMLDivElement>(function GameSkeleton(_, ref) {
   return (
-    <div className="space-y-2 aspect-2/3 p-0" ref={ref}>
+    <div className="space-y-2 aspect-[2/3] p-0" ref={ref}>
       <Skeleton className="h-full w-full inset-0 rounded-lg border bg-muted shadow" />
       <Skeleton className="flex p-2 w-full shadow" />
     </div>
