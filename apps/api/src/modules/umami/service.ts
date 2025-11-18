@@ -33,7 +33,7 @@ export const Umami = {
         `Umami 服务出错了喵~，Error:${JSON.stringify(error, null, 2)}`,
       )
 
-    const url = `${process.env.UMAMI_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=${startAt}&endAt=${endAt}&unit=day&timezone=Asia/Shanghai&eventName=TagViews&propertyName=tagtitle`
+    const url = `${process.env.UMAMI_LOCAL_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=${startAt}&endAt=${endAt}&unit=day&timezone=Asia/Shanghai&eventName=TagViews&propertyName=tagtitle`
 
     const [, error1, res] = t(
       await fetch(url, {
@@ -68,7 +68,7 @@ export const Umami = {
         500,
         `Umami 服务出错了喵~，Error:${JSON.stringify(error, null, 2)}`,
       )
-    const url = `${process.env.UMAMI_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=${startAt}&endAt=${endAt}&unit=day&timezone=Asia/Shanghai&eventName=GameViews&propertyName=idtitlee`
+    const url = `${process.env.UMAMI_LOCAL_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=${startAt}&endAt=${endAt}&unit=day&timezone=Asia/Shanghai&eventName=GameViews&propertyName=idtitlee`
     const [, error1, res] = t(
       await fetch(url, {
         method: 'GET',
@@ -100,7 +100,7 @@ export const Umami = {
         500,
         `Umami 服务出错了喵~，Error:${JSON.stringify(error, null, 2)}`,
       )
-    const url = `${process.env.UMAMI_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=1759334400000&endAt=${endAt}&unit=day&timezone=Asia%2FShanghai&path=eq.%2F${vid}&event=GameDownload&propertyName=pathe`
+    const url = `${process.env.UMAMI_LOCAL_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=1759334400000&endAt=${endAt}&unit=day&timezone=Asia%2FShanghai&path=eq.%2F${vid}&event=GameDownload&propertyName=pathe`
 
     const [, error1, res] = t(
       await fetch(url, {
@@ -126,7 +126,7 @@ export const Umami = {
 }
 
 const umamiTokenGet = async () => {
-  const res = await fetch(`${process.env.UMAMI_URL}/api/auth/login`, {
+  const res = await fetch(`${process.env.UMAMI_LOCAL_URL}/api/auth/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
