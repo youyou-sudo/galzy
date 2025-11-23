@@ -377,7 +377,7 @@ export interface ReleasesTitlesTable {
 }
 
 export interface GameDownloadStats {
-  id: number
+  id: Generated<number>
   game_id: string // VNDB 游戏 ID
   file_path: string // 下载的文件路径
   created_at: Date // 记录创建时间
