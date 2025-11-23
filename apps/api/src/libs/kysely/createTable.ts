@@ -205,7 +205,7 @@ export async function dbSeed() {
   await db.schema
     .createTable('galrc_gameDownloadStats')
     .ifNotExists()
-    .addColumn('id', 'varchar(255)', (cb) => cb.notNull().primaryKey())
+    .addColumn('id', 'serial', (cb) => cb.notNull().primaryKey())
     .addColumn('game_id', 'varchar(255)', (cb) => cb.notNull())
     .addColumn('file_path', 'text', (cb) => cb.notNull())
     .addColumn('created_at', 'timestamp', (cb) =>
