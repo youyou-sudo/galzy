@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   experimental: {
     webpackMemoryOptimizations: true,
+    serverActions: {
+      bodySizeLimit: '5mb',
+    },
   },
   images: {
     unoptimized: true,
