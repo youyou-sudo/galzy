@@ -202,6 +202,18 @@ export async function dbSeed() {
     .addColumn('exhibition', 'boolean', (cb) => cb.notNull().defaultTo(true))
     .execute()
 
+
+  await db.schema
+    .createTable('galrc_gameDownloadStats')
+    .ifNotExists()
+    .addColumn('id', 'varchar(255)', (cb) => cb.notNull().primaryKey())
+    .addColumn('game_id', 'varchar(255)', (cb) => cb.notNull())
+    .addColumn('file_path', 'text', (cb) => cb.notNull())
+    .addColumn('created_at', 'timestamp', (cb) =>
+      cb.defaultTo(sql`current_timestamp`).notNull(),
+    )
+    .execute()
+
   // 索引
 
   // VNDB
@@ -309,6 +321,18 @@ export async function dbSeed() {
     .ifNotExists()
     .on('galrc_siteConfig')
     .column('key')
+    .execute()
+  await db.schema
+    .createIndex('galrc_gameDownloadStats_game_id_index')
+    .ifNotExists()
+    .on('galrc_gameDownloadStats')
+    .column('game_id')
+    .execute()
+  await db.schema
+    .createIndex('galrc_gameDownloadStats_file_path_index')
+    .ifNotExists()
+    .on('galrc_gameDownloadStats')
+    .column('file_path')
     .execute()
 }
 

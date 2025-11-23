@@ -376,6 +376,13 @@ export interface ReleasesTitlesTable {
   latin: string | null // 可为空
 }
 
+export interface GameDownloadStats {
+  id: number
+  game_id: string // VNDB 游戏 ID
+  file_path: string // 下载的文件路径
+  created_at: Date // 记录创建时间
+}
+
 export interface Database {
   // better 部分
   galrc_user: User
@@ -393,6 +400,7 @@ export interface Database {
   galrc_media: Onthermeidia
   galrc_cloudflare: CloudflareConfigTable
   galrc_siteConfig: SiteConfigTable
+  galrc_gameDownloadStats: GameDownloadStats
 
   // Alist 部分
   galrc_search_nodes: AlsitSearchNodes
