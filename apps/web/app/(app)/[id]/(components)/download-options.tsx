@@ -244,10 +244,10 @@ export const DownCardDialog = () => {
   }
 
   // 复制处理函数
-  const handleCopy = async (text: string) => {
+  const handleCopy = async (text: string, game_id: string) => {
     setIsCopying(true)
     try {
-      const url = await dwAcConst(text)
+      const url = await dwAcConst(text, game_id)
       await navigator.clipboard.writeText(url.url)
       toast.success('下载链接已复制喵～')
     } catch {
@@ -285,7 +285,7 @@ export const DownCardDialog = () => {
 
           <Button
             variant="outline"
-            onClick={() => handleCopy(data?.id || '')}
+            onClick={() => handleCopy(data?.id || '', game_id)}
             disabled={isCopying}
           >
             {isCopying ? '请求中...' : '复制链接'}
@@ -347,8 +347,8 @@ export const DownCardDialog = () => {
             <div className="space-y-2">
               {isLoading
                 ? Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-5 rounded-full" />
-                  ))
+                  <Skeleton key={i} className="h-5 rounded-full" />
+                ))
                 : null}
             </div>
             <MarkdownAsync readmedata={readmedata} />
