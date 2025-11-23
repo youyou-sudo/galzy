@@ -1,13 +1,19 @@
 'use server'
 import { api } from '@libs'
 
-export const dwAcConst = async (path?: string) => {
+export const dwAcConst = async (path?: string, game_id?: string) => {
   if (!path) {
     throw new Error('喵喵什么都不知道喵，请提供下载的资源的路径喵～')
   }
+  if (!path) {
+    throw new Error('喵喵什么都不知道喵，请提供下载的资源的路径喵～')
+  }
+  if (!game_id) {
+    throw new Error('喵喵什么都不知道喵，请提供下载的游戏 ID 喵～')
+  }
 
   const { data, error, status } = await api.download.path.get({
-    query: { path },
+    query: { path, game_id },
   })
 
   if (status >= 400) {

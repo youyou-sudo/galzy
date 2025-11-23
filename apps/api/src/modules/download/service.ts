@@ -4,7 +4,7 @@ import { t } from 'try'
 import type { DownloadModel } from './model'
 
 export const Download = {
-  async DownloadGet({ path }: DownloadModel.path) {
+  async DownloadGet({ path, game_id }: DownloadModel.path) {
     const hmacSha256Sign = async (
       path: string,
       expire: number,
@@ -91,6 +91,14 @@ export const Download = {
 
       const randomWorker =
         workerList[Math.floor(Math.random() * workerList.length)]
+      await db
+        .insertInto('galrc_gameDownloadStats')
+        .values({
+          game_id: game_id,
+          file_path: path,
+          created_at: new Date(),
+        })
+        .executeTakeFirst()
 
       return {
         success: true,

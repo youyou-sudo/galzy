@@ -25,6 +25,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { downCardDataStore } from './stores/downCardData'
 import { GlgczujmDl } from './tips'
+import { usePathname } from 'next/navigation'
 
 export function CopyButtons({ id }: { id?: string }) {
   const [copied, setCopied] = useState(false)
@@ -208,12 +209,13 @@ export const DownCardDialog = () => {
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
   }
-
+  const pathname = usePathname()
+  const game_id = pathname.split('/')[1]
   // 下载 README
   const { data: readmedata, isLoading } = useQuery({
     queryKey: ['readme', data?.redame],
     queryFn: async () => {
-      const url = await dwAcConst(data?.redame)
+      const url = await dwAcConst(data?.redame, game_id)
       return fetch(url.url).then((res) => res.text())
     },
     enabled: !!data?.redame,
@@ -224,7 +226,7 @@ export const DownCardDialog = () => {
     if (!data?.id) return
     setIsDownloading(true)
     try {
-      const log = await dwAcConst(data.id)
+      const log = await dwAcConst(data.id, game_id)
       if (log?.url) {
         const link = document.createElement('a')
         link.href = log.url
@@ -345,8 +347,8 @@ export const DownCardDialog = () => {
             <div className="space-y-2">
               {isLoading
                 ? Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-5 rounded-full" />
-                  ))
+                  <Skeleton key={i} className="h-5 rounded-full" />
+                ))
                 : null}
             </div>
             <MarkdownAsync readmedata={readmedata} />

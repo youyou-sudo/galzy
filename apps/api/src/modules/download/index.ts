@@ -5,8 +5,8 @@ import { Download } from './service'
 export const download = new Elysia({ prefix: '/download' })
   .get(
     '/path',
-    async ({ query: { path } }) => {
-      return Download.DownloadGet({ path })
+    async ({ query: { path, game_id } }) => {
+      return Download.DownloadGet({ path, game_id })
     },
     {
       query: DownloadModel.path,

@@ -3,6 +3,7 @@ import { t } from 'elysia'
 export namespace DownloadModel {
   export const path = t.Object({
     path: t.String({ minLength: 1 }),
+    game_id: t.String({ minLength: 1 }),
   })
   export const workerConfigFormDel = t.Object({
     id: t.Number({ minimum: 0 }),
