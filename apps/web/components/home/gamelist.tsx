@@ -53,7 +53,6 @@ export const HomeGamelist = () => {
           <GameCard.ListSkeleton />
         </>
       )}
-
     </>
   )
 }

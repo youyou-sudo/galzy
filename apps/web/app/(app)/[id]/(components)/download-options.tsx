@@ -21,11 +21,11 @@ import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
 import { Skeleton } from '@web/components/ui/skeleton'
 import { dwAcConst } from '@web/lib/download/ac'
 import { Check, Copy, Download } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { downCardDataStore } from './stores/downCardData'
 import { GlgczujmDl } from './tips'
-import { usePathname } from 'next/navigation'
 
 export function CopyButtons({ id }: { id?: string }) {
   const [copied, setCopied] = useState(false)
@@ -347,8 +347,8 @@ export const DownCardDialog = () => {
             <div className="space-y-2">
               {isLoading
                 ? Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-5 rounded-full" />
-                ))
+                    <Skeleton key={i} className="h-5 rounded-full" />
+                  ))
                 : null}
             </div>
             <MarkdownAsync readmedata={readmedata} />

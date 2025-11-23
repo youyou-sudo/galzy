@@ -202,7 +202,6 @@ export async function dbSeed() {
     .addColumn('exhibition', 'boolean', (cb) => cb.notNull().defaultTo(true))
     .execute()
 
-
   await db.schema
     .createTable('galrc_gameDownloadStats')
     .ifNotExists()

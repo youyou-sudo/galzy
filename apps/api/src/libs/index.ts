@@ -1,6 +1,6 @@
 export * from '../modules/auth'
 export * from './config/db'
 export * from './kysely'
-export * from './meilisearch'
 export * from './kysely/createTable'
+export * from './meilisearch'
 export * from './typeboxChinessError'

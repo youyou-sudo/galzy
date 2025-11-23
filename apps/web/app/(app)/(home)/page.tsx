@@ -1,5 +1,6 @@
 import { homeData } from '@web/app/(app)/(home)/(action)/homeData'
 import { HomeGamelist } from '@web/components/home'
+import { GameItem } from '@web/components/home/GameItem'
 import SearchInput from '@web/components/home/Search/Search'
 import {
   Card,
@@ -16,7 +17,6 @@ import { Suspense } from 'react'
 import { remfGameGet, remfTagGet } from './(action)/remf'
 import CountComponent from './(components)/Count'
 import RankingList from './(components)/remf'
-import { GameItem } from '@web/components/home/GameItem'
 
 export const metadata: Metadata = {
   title: '主页',
@@ -30,7 +30,6 @@ const SkeletonList = ({ count = 4 }: { count?: number }) => (
     ))}
   </>
 )
-
 
 const HomePage = async () => {
   const data = await homeData(24, 0)
