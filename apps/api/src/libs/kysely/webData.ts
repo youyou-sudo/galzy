@@ -383,6 +383,19 @@ export interface GameDownloadStats {
   created_at: Date // 记录创建时间
 }
 
+// 合集系列部分
+export interface Collections {
+  id: Generated<number>
+  title: string
+  alias: string
+  description: string
+}
+export interface CollectionsItems {
+  id: Generated<number>
+  collection_id: number
+  game_id: string
+}
+
 export interface Database {
   // better 部分
   galrc_user: User

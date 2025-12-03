@@ -213,6 +213,24 @@ export async function dbSeed() {
     )
     .execute()
 
+  await db.schema
+    .createTable('galrc_collections')
+    .ifNotExists()
+    .addColumn('id', 'serial', (cb) => cb.notNull().primaryKey())
+    .addColumn('title', 'varchar(255)', (cb) => cb.notNull())
+    .addColumn('alias', 'varchar(255)', (cb) => cb.notNull())
+    .addColumn('description', 'text')
+    .execute()
+
+  await db.schema
+    .createTable('galrc_collectionsItems')
+    .ifNotExists()
+    .addColumn('id', 'serial', (cb) => cb.notNull().primaryKey())
+    .addColumn('collection_id', 'bigint', (cb) => cb.notNull())
+    .addColumn('game_id', 'varchar(255)', (cb) => cb.notNull())
+    .execute()
+
+
   // 索引
 
   // VNDB

@@ -17,7 +17,7 @@ import { strategy } from './modules/strategy'
 
 initValidationError()
 dbSeed()
-startCronTasks()
+if (process.env.NODE_ENV === 'production') startCronTasks()
 const app = new Elysia()
   .onError(({ code, error }) => {
     if (code === 'VALIDATION') return error.message
