@@ -37,7 +37,7 @@
     "install": "^0.13.0",
     "ioredis": "^5.8.2",
     "js.foresight": "^3.3.4",
-    "lucide-react": "^0.554.0",
+    "lucide-react": "^0.555.0",
     "meilisearch": "^0.54.0",
     "motion": "^12.23.25",
     "ms": "^2.1.3",
