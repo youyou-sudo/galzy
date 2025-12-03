@@ -1,5 +1,5 @@
 # Build stage
-FROM oven/bun:1.3.2 AS build
+FROM oven/bun:1.3.3 AS build
 
 WORKDIR /app
 
