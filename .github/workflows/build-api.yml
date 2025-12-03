@@ -52,4 +52,7 @@ jobs:
       - name: Trigger API Webhook Deploy
         if: success()
         run: |
-          curl -X POST "${{ secrets.DEPLOY_WEBHOOK_API }}"
+          curl -X POST "${{ secrets.DEPLOY_WEBHOOK_API }}" \
+            -H "Content-Type: application/json" \
+            -H "x-github-event: registry_package" \
+            -d '{"registry_package": {"package_version": {"package_url": "ghcr.io/youyou-sudo/mono-api:latest"}}}'
