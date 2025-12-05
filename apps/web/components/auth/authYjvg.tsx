@@ -2,6 +2,8 @@ import { authServerClient } from '@web/lib/auth/auth-server'
 import { refresh } from 'next/cache'
 import { Button } from '../ui/button'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AuthYjvg({
   children,
 }: {
