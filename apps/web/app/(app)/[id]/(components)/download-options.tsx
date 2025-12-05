@@ -347,8 +347,8 @@ export const DownCardDialog = () => {
             <div className="space-y-2">
               {isLoading
                 ? Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-5 rounded-full" />
-                ))
+                    <Skeleton key={i} className="h-5 rounded-full" />
+                  ))
                 : null}
             </div>
             <MarkdownAsync readmedata={readmedata} />

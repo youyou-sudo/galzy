@@ -32,7 +32,10 @@ export default async function YoyoLayout({
       <div className="flex-1 px-3 pt-2">
         <Navbar />
         {/* 广告 */}
-        <aside id="sidebar-ad" className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-80 relative">
+        <aside
+          id="sidebar-ad"
+          className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-80 relative"
+        >
           <Link
             data-umami-event="广告点击"
             data-umami-event-name="dzmm"

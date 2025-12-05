@@ -1,7 +1,4 @@
-"use client"
-
-import { TrendingUp } from "lucide-react"
-import { Area, AreaChart, CartesianGrid, LineChart, XAxis } from "recharts"
+'use client'
 
 import {
   Card,
@@ -10,22 +7,30 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@web/components/ui/card"
+} from '@web/components/ui/card'
 import {
   type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from "@web/components/ui/chart"
+} from '@web/components/ui/chart'
+import { TrendingUp } from 'lucide-react'
+import { Area, AreaChart, CartesianGrid, LineChart, XAxis } from 'recharts'
 
 const chartConfig = {
   desktop: {
-    label: "Desktop",
-    color: "var(--chart-1)",
+    label: 'Desktop',
+    color: 'var(--chart-1)',
   },
 } satisfies ChartConfig
 
-export function ChartAreaLinear({ data, countNumber }: { data: any, countNumber: any }) {
+export function ChartAreaLinear({
+  data,
+  countNumber,
+}: {
+  data: any
+  countNumber: any
+}) {
   return (
     <Card>
       <CardHeader>

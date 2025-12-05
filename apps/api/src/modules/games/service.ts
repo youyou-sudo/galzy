@@ -265,11 +265,11 @@ export const Game = {
             type: isLast && !row.is_dir ? 'file' : 'folder',
             ...(isLast && !row.is_dir
               ? {
-                size: row.size !== undefined ? String(row.size) : undefined,
-                format: part.includes('.')
-                  ? part.substring(part.lastIndexOf('.') + 1).toUpperCase()
-                  : undefined,
-              }
+                  size: row.size !== undefined ? String(row.size) : undefined,
+                  format: part.includes('.')
+                    ? part.substring(part.lastIndexOf('.') + 1).toUpperCase()
+                    : undefined,
+                }
               : {}),
           }
         }
@@ -295,10 +295,10 @@ export const Game = {
             ...rest,
             ...(children
               ? {
-                children: await convert(
-                  children as Record<string, TreeNodeBuilder>,
-                ),
-              }
+                  children: await convert(
+                    children as Record<string, TreeNodeBuilder>,
+                  ),
+                }
               : {}),
           }
 
@@ -662,7 +662,8 @@ export const Game = {
     return otherId
   },
   async gameTimeNumberGet({ id, time }: GameModel.gameTimeNumberGet) {
-    const mode = time === 'week' ? 'week' : time === 'month' ? 'month' : 'quarter'
+    const mode =
+      time === 'week' ? 'week' : time === 'month' ? 'month' : 'quarter'
     if (time) {
       return await sql`
 WITH series AS (

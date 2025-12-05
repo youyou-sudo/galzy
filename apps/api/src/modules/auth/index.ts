@@ -31,5 +31,4 @@ const betterAuth = new Elysia({ name: 'better-auth' })
     },
   })
 
-export const YouyouAuth = new Elysia()
-  .use(betterAuth)
+export const YouyouAuth = new Elysia().use(betterAuth)

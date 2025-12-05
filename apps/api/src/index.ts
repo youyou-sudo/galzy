@@ -1,5 +1,5 @@
+import swagger from '@elysiajs/swagger'
 import { Elysia } from 'elysia'
-
 import { dbSeed, initValidationError } from './libs'
 import {
   cronServer,
@@ -14,7 +14,6 @@ import {
 import { media } from './modules/media'
 import { ping } from './modules/ping'
 import { strategy } from './modules/strategy'
-import swagger from '@elysiajs/swagger'
 
 initValidationError()
 dbSeed()

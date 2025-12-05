@@ -24,7 +24,9 @@ export const TapCatd = ({
         defaultValue={
           pathname === `/${id}/introduction` || pathname.match(`${id}/\\d+`)
             ? 'introduction'
-            : pathname === `/${id}/downloads` ? 'downloads' : 'download'
+            : pathname === `/${id}/downloads`
+              ? 'downloads'
+              : 'download'
         }
       >
         <TabsList>

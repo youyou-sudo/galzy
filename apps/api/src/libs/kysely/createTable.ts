@@ -230,7 +230,6 @@ export async function dbSeed() {
     .addColumn('game_id', 'varchar(255)', (cb) => cb.notNull())
     .execute()
 
-
   // 索引
 
   // VNDB
