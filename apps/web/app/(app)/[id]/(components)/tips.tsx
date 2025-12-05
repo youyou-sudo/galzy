@@ -64,9 +64,9 @@ export const Glgczujm = () => {
           <Link
             target="_blank"
             data-umami-event="广告点击"
-            data-umami-event-name="AI 风月"
-            data-umami-event-position="页内广告-AI 风月"
-            href="https://dearestie.xyz?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7"
+            data-umami-event-name="DZMM"
+            data-umami-event-position="页内广告-DZMM"
+            href="https://www.xn--i8s951di30azba.com?rf=876926e5"
           >
             <AlertTitle>Ai 女友💋（在线畅玩）</AlertTitle>
           </Link>
@@ -77,16 +77,16 @@ export const Glgczujm = () => {
         <Link
           target="_blank"
           data-umami-event="广告点击"
-          data-umami-event-name="AI 风月"
-          data-umami-event-position="页内广告-AI 风月"
-          href="https://dearestie.xyz?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7"
+          data-umami-event-name="DZMM"
+          data-umami-event-position="页内广告-DZMM"
+          href="https://www.xn--i8s951di30azba.com?rf=876926e5"
         >
           <div className="sm:hidden">
             <AspectRatio ratio={80 / 9}>
               <Image
-                src="/aifywebp.webp"
+                src="/dzmm.webp"
                 fill
-                alt="AI 风月广告图片"
+                alt="DZMM 广告图片"
                 className="object-cover rounded-lg"
               />
             </AspectRatio>
@@ -94,52 +94,15 @@ export const Glgczujm = () => {
           <div className="hidden sm:block">
             <AspectRatio ratio={120 / 9}>
               <Image
-                src="/aifywebp.webp"
+                src="/dzmm.webp"
                 fill
-                alt="AI 风月广告图片"
+                alt="DZMM 广告图片"
                 className="object-cover rounded-lg"
               />
             </AspectRatio>
           </div>
         </Link>
       </div>
-
-      {/* <aside>
-        <Alert id="sidebar-ad" className="border-cyan-600/30 border-x-0 border-b-0 pb-0">
-          <BadgeJapaneseYen className="w-4 h-4" />
-          <Link
-            data-umami-event="广告点击"
-            data-umami-event-name="dzmm"
-            data-umami-event-position="页内广告-dzmm"
-            className='text-cyan-500'
-            target='_blank'
-            href="https://www.电子魅魔.com/?rf=876926e5">
-            <AlertTitle>中文 AI 角色扮演平台 - 点击直达</AlertTitle>
-            <AlertDescription>
-              纯爱、NTR、SM、扶她、百合……点此一键解锁你的全部XP！
-            </AlertDescription>
-          </Link>
-        </Alert>
-      </aside>
-      <div className="lg:px-5 lg:w-[80%] px-4 py-0 opacity-80">
-        <Link
-          data-umami-event="广告点击"
-          data-umami-event-name="dzmm"
-          data-umami-event-position="页内广告-dzmm"
-          target='_blank'
-          href="https://www.电子魅魔.com/?rf=876926e5">
-          <div className="sm:hidden">
-            <AspectRatio ratio={80 / 9}>
-              <Image src="/dzmm.webp" fill alt="dzmm 广告图片" className="object-cover rounded-lg" />
-            </AspectRatio>
-          </div>
-          <div className="hidden sm:block">
-            <AspectRatio ratio={120 / 9}>
-              <Image src="/dzmm.webp" fill alt="dzmm 广告图片" className="object-cover rounded-lg" />
-            </AspectRatio>
-          </div>
-        </Link>
-      </div> */}
 
       <aside>
         <Alert

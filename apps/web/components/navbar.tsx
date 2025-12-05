@@ -74,9 +74,9 @@ export function Navbar() {
                       <Link
                         target="_blank"
                         data-umami-event="广告点击"
-                        data-umami-event-name="AI 风月"
-                        data-umami-event-position="导航广告-AI 风月"
-                        href="https://dearestie.xyz?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7"
+                        data-umami-event-name="DZMM"
+                        data-umami-event-position="导航广告-DZMM"
+                        href="https://www.xn--i8s951di30azba.com?rf=876926e5"
                       >
                         Ai女友💋（在线畅玩）
                       </Link>
@@ -133,9 +133,9 @@ export function Navbar() {
                     <Link
                       target="_blank"
                       data-umami-event="广告点击"
-                      data-umami-event-name="AI 风月"
-                      data-umami-event-position="导航广告-AI 风月"
-                      href="https://dearestie.xyz?ref_id=240dcd8f-8933-4466-9dcf-a56e82033cf7"
+                      data-umami-event-name="DZMM"
+                      data-umami-event-position="导航广告-DZMM"
+                      href="https://www.xn--i8s951di30azba.com?rf=876926e5"
                       className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
                       onClick={() => setIsOpen(false)}
                     >
