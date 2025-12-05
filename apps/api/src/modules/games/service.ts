@@ -1,4 +1,4 @@
-import { db } from '@api/libs'
+import { db, sql } from '@api/libs'
 import {
   acquireIdempotentKey,
   delKv,
@@ -265,11 +265,11 @@ export const Game = {
             type: isLast && !row.is_dir ? 'file' : 'folder',
             ...(isLast && !row.is_dir
               ? {
-                  size: row.size !== undefined ? String(row.size) : undefined,
-                  format: part.includes('.')
-                    ? part.substring(part.lastIndexOf('.') + 1).toUpperCase()
-                    : undefined,
-                }
+                size: row.size !== undefined ? String(row.size) : undefined,
+                format: part.includes('.')
+                  ? part.substring(part.lastIndexOf('.') + 1).toUpperCase()
+                  : undefined,
+              }
               : {}),
           }
         }
@@ -295,10 +295,10 @@ export const Game = {
             ...rest,
             ...(children
               ? {
-                  children: await convert(
-                    children as Record<string, TreeNodeBuilder>,
-                  ),
-                }
+                children: await convert(
+                  children as Record<string, TreeNodeBuilder>,
+                ),
+              }
               : {}),
           }
 
@@ -660,5 +660,59 @@ export const Game = {
     await storeIdempotentResult(`vidassociationCreate:action`, otherId, 2)
     type OtherId = typeof otherId
     return otherId
+  },
+  async gameTimeNumberGet({ id, time }: GameModel.gameTimeNumberGet) {
+    const mode = time === 'week' ? 'week' : time === 'month' ? 'month' : 'quarter'
+    if (time) {
+      return await sql`
+WITH series AS (
+  SELECT generate_series(
+    CASE
+      WHEN ${mode} = 'week' THEN date_trunc('week', CURRENT_DATE) - interval '6 week'
+      ELSE date_trunc('year', CURRENT_DATE)
+    END,
+    CASE
+      WHEN ${mode} = 'week' THEN date_trunc('week', CURRENT_DATE)
+      WHEN ${mode} = 'month' THEN date_trunc('year', CURRENT_DATE) + interval '11 month'
+      ELSE date_trunc('year', CURRENT_DATE) + interval '9 month'
+    END,
+    CASE
+      WHEN ${mode} = 'week' THEN interval '1 week'
+      WHEN ${mode} = 'month' THEN interval '1 month'
+      ELSE interval '3 month'
+    END
+  ) AS start
+)
+
+SELECT
+  CASE
+    WHEN ${mode} = 'week' THEN to_char(start, 'IW') || '周'
+    WHEN ${mode} = 'month' THEN to_char(start, 'MM') || '月'
+    ELSE '第' || extract(quarter from start) || '季度'
+  END AS label,
+
+  COUNT(d.id) AS total
+
+FROM series
+LEFT JOIN "galrc_gameDownloadStats" d
+  ON date_trunc(${mode}, d.created_at) = start
+  AND d.game_id = ${id}
+
+GROUP BY start
+ORDER BY start ASC;
+  `.execute(db)
+    }
+    if (!time) {
+      const [, error, data] = t(
+        await db
+          .selectFrom('galrc_gameDownloadStats')
+          .select(db.fn.count<number>('game_id').as('total'))
+          .where('game_id', '=', id)
+          .executeTakeFirst(),
+      )
+      if (error)
+        throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+      return data
+    }
   },
 }

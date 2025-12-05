@@ -8,6 +8,10 @@ export namespace GameModel {
   export const infoId = t.Object({
     id: t.String({ minLength: 1 }),
   })
+  export const gameTimeNumberGet = t.Object({
+    id: t.String({ minLength: 1 }),
+    time: t.Optional(t.String()),
+  })
   export const openListFiles = t.Object({
     id: t.String({ minLength: 1 }),
   })
@@ -37,4 +41,5 @@ export namespace GameModel {
   export type gameList = typeof gameList.static
   export type dataFiltering = typeof dataFiltering.static
   export type vidassociationUpdate = typeof vidassociationUpdate.static
+  export type gameTimeNumberGet = typeof gameTimeNumberGet.static
 }

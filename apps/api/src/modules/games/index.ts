@@ -91,3 +91,10 @@ export const game = new Elysia({ prefix: '/games' })
   .post('/vidassociationCreate', async () => {
     return await Game.vidassociationCreate()
   })
+  .get(
+    '/gameTimeNumberGet',
+    async ({ query: { id, time } }) => {
+      return await Game.gameTimeNumberGet({ id, time })
+    },
+    { query: GameModel.gameTimeNumberGet },
+  )
