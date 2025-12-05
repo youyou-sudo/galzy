@@ -13,10 +13,10 @@ import {
  */
 export const authServerClient = createAuthClient({
   plugins: [adminClient()],
-  baseURL: BETTER_AUTH_URL,
+  baseURL: BETTER_AUTH_URL || 'http://localhost:3001',
   basePath: BETTER_AUTH_BASE_PATH,
   fetchOptions: {
-    baseURL: BETTER_AUTH_URL + BETTER_AUTH_BASE_PATH,
+    baseURL: (BETTER_AUTH_URL || 'http://localhost:3001') + BETTER_AUTH_BASE_PATH,
     onRequest: async (context) => {
       const headersList = await headers()
       const cookie = headersList.get('Cookie')
