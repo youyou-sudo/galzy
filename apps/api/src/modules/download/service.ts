@@ -91,14 +91,14 @@ export const Download = {
 
       const randomWorker =
         workerList[Math.floor(Math.random() * workerList.length)]
-      await db
-        .insertInto('galrc_gameDownloadStats')
-        .values({
-          game_id: game_id,
-          file_path: path,
-          created_at: new Date(),
-        })
-        .executeTakeFirst()
+      // await db
+      //   .insertInto('galrc_gameDownloadStats')
+      //   .values({
+      //     game_id: game_id,
+      //     file_path: path,
+      //     created_at: new Date(),
+      //   })
+      //   .executeTakeFirst()
 
       return {
         success: true,
