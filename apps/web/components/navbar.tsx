@@ -66,7 +66,7 @@ export function Navbar() {
                     </NavigationMenuLink>
                   </NavigationMenuItem> */}
 
-                  <NavigationMenuItem>
+                  {/* <NavigationMenuItem>
                     <NavigationMenuLink
                       asChild
                       className={navigationMenuTriggerStyle()}
@@ -81,7 +81,7 @@ export function Navbar() {
                         Ai女友💋（在线畅玩）
                       </Link>
                     </NavigationMenuLink>
-                  </NavigationMenuItem>
+                  </NavigationMenuItem> */}
                 </NavigationMenuList>
               </NavigationMenu>
             </div>
@@ -129,7 +129,7 @@ export function Navbar() {
                       联系
                     </ForesightLink>
                   </div>
-                  <div className="space-y-4">
+                  {/* <div className="space-y-4">
                     <Link
                       target="_blank"
                       data-umami-event="广告点击"
@@ -141,7 +141,7 @@ export function Navbar() {
                     >
                       Ai女友💋（在线畅玩）
                     </Link>
-                  </div>
+                  </div> */}
                 </SheetContent>
               </Sheet>
             </div>
