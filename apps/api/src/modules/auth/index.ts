@@ -1,5 +1,4 @@
 import cors from '@elysiajs/cors'
-import swagger from '@elysiajs/swagger'
 import { Elysia } from 'elysia'
 import { auth } from './service'
 
@@ -33,7 +32,4 @@ const betterAuth = new Elysia({ name: 'better-auth' })
   })
 
 export const YouyouAuth = new Elysia()
-  // .use(
-  //   swagger(),
-  // )
   .use(betterAuth)

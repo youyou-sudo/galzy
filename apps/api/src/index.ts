@@ -14,6 +14,7 @@ import {
 import { media } from './modules/media'
 import { ping } from './modules/ping'
 import { strategy } from './modules/strategy'
+import swagger from '@elysiajs/swagger'
 
 initValidationError()
 dbSeed()
@@ -22,6 +23,7 @@ const app = new Elysia()
   .onError(({ code, error }) => {
     if (code === 'VALIDATION') return error.message
   })
+  .use(process.env.NODE_ENV === 'development' ? swagger() : (app) => app)
   .use(cronServer)
   .use(YouyouAuth)
   .use(umami)
