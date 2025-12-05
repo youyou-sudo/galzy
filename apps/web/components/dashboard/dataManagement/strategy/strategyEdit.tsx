@@ -21,7 +21,7 @@ import {
 } from '@web/components/ui/form'
 import { Input } from '@web/components/ui/input'
 import { Textarea } from '@web/components/ui/textarea'
-import { authClient } from '@web/lib/auth-client'
+import { authClient } from '@web/lib/auth/auth-client'
 import {
   strategyListCreate,
   strategyListUpdate,

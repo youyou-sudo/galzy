@@ -20,7 +20,7 @@ import {
   FormMessage,
 } from '@web/components/ui/form'
 import { Input } from '@web/components/ui/input'
-import { authClient } from '@web/lib/auth-client'
+import { authClient } from '@web/lib/auth/auth-client'
 import { AlertCircle, EyeIcon, EyeOffIcon, Loader2 } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'

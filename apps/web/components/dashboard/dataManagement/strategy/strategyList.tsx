@@ -11,7 +11,7 @@ import {
 import ForesightLink from '@web/components/HoverPLink'
 import { Button } from '@web/components/ui/button'
 import { Skeleton } from '@web/components/ui/skeleton'
-import { authClient } from '@web/lib/auth-client'
+import { authClient } from '@web/lib/auth/auth-client'
 import {
   strategyListDelete,
   strategyListGet,

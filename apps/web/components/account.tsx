@@ -10,7 +10,7 @@ import {
 } from '@web/components/animate-ui/components/radix/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
 
-import { authClient } from '@web/lib/auth-client'
+import { authClient } from '@web/lib/auth/auth-client'
 
 export function Account() {
   const { data: session } = authClient.useSession()

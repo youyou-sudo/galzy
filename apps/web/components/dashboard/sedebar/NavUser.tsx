@@ -16,7 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
 import { dashboardConfig } from '@web/config/dashboard'
 import { useIsMobile } from '@web/hooks/use-mobile'
-import { authClient } from '@web/lib/auth-client'
+import { authClient } from '@web/lib/auth/auth-client'
 import {
   BadgeCheck,
   Bell,

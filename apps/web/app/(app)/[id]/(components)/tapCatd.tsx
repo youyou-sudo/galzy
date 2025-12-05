@@ -5,7 +5,7 @@ import {
   TabsTrigger,
 } from '@web/components/animate-ui/radix/tabs'
 import { Card, CardContent } from '@web/components/ui/card'
-import { authClient } from '@web/lib/auth-client'
+import { authClient } from '@web/lib/auth/auth-client'
 import { ArrowDownToLine, Swords } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'

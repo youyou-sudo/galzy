@@ -1,21 +1,19 @@
-'use client'
-import { authClient } from '@web/lib/auth-client'
-import { useRouter } from 'next/navigation'
 import { Button } from '../ui/button'
+import { authServerClient } from '@web/lib/auth/auth-server'
+import { refresh } from 'next/cache'
 
-export default function AuthYjvg({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const { data: session } = authClient.useSession()
+export default async function AuthYjvg({ children }: { children: React.ReactNode }) {
+  const { data } = await authServerClient.getSession()
 
   const _outlogin = () => {
-    authClient.signOut()
-    router.refresh()
+    authServerClient.signOut()
+    refresh()
   }
-  if (session?.user.role !== 'admin')
+  if (data?.user.role !== 'admin')
     return (
       <div className="text-center">
-        您没有权限喵～<Button onClick={_outlogin}>登出</Button>
-      </div>
+        您没有权限喵～<form action={_outlogin}><Button type="submit">登出</Button></form>
+      </div >
     )
   return <div>{children}</div>
 }
