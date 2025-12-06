@@ -3,8 +3,6 @@
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@web/components/ui/card'
@@ -14,7 +12,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from '@web/components/ui/chart'
-import { TrendingUp } from 'lucide-react'
 import { Area, AreaChart, CartesianGrid, LineChart, XAxis } from 'recharts'
 
 const chartConfig = {

@@ -5,7 +5,7 @@ import {
   TabsTrigger,
 } from '@web/components/animate-ui/radix/tabs'
 import { Card, CardContent } from '@web/components/ui/card'
-import { ArrowDownToLine, Swords } from 'lucide-react'
+import { ArrowDownToLine, Swords, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Glgczujm } from './tips'
@@ -44,7 +44,7 @@ export const TapCatd = ({
           </TabsTrigger>
           <TabsTrigger value="downloads" asChild>
             <Link href={`/${id}/downloads`}>
-              <Swords />
+              <TrendingUp />
               统计
             </Link>
           </TabsTrigger>
