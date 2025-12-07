@@ -9,10 +9,6 @@ export default async function UmamiScript() {
   if (!umami_script_url || !umami_website_id) return null
 
   return (
-    <Script
-      defer
-      src={umami_script_url}
-      data-website-id={umami_website_id}
-    />
+    <Script defer src={umami_script_url} data-website-id={umami_website_id} />
   )
 }

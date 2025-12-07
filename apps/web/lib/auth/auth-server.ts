@@ -4,8 +4,9 @@ import { createAuthClient } from 'better-auth/client'
 import { adminClient } from 'better-auth/client/plugins'
 import { headers } from 'next/headers'
 
-
-export const BETTER_AUTH_URL = process.env.API_HOST ? `${process.env.API_HOST}` : 'http://localhost:3001'
+export const BETTER_AUTH_URL = process.env.API_HOST
+  ? `${process.env.API_HOST}`
+  : 'http://localhost:3001'
 export const BETTER_AUTH_BASE_PATH = '/auth'
 export const BETTER_AUTH_COOKIE_PREFIX = 'better-auth' // <- default prefix
 /**

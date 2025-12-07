@@ -3,9 +3,15 @@ import '@web/app/globals.css'
 import QueryProvider from '@web/components/provider/QueryProvider'
 import { ThemeProvider } from '@web/components/provider/theme-provider'
 import type { Metadata } from 'next'
+import {
+  Cinzel,
+  Noto_Sans,
+  Noto_Sans_JP,
+  Noto_Sans_Mono,
+  Noto_Sans_SC,
+} from 'next/font/google'
 import { PublicEnvScript } from 'next-runtime-env'
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
-import { Cinzel, Noto_Sans, Noto_Sans_JP, Noto_Sans_Mono, Noto_Sans_SC } from 'next/font/google'
 
 const cinzel = Cinzel({
   subsets: ['latin'],

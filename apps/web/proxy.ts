@@ -17,12 +17,15 @@ export async function proxy(request: NextRequest) {
       ? process.env.NEXT_PUBLIC_APP_URL
       : request.nextUrl.origin
 
-  const { data: session } = await betterFetch<Session>('/api/auth/get-session', {
-    baseURL,
-    headers: {
-      cookie: request.headers.get('cookie') || '',
+  const { data: session } = await betterFetch<Session>(
+    '/api/auth/get-session',
+    {
+      baseURL,
+      headers: {
+        cookie: request.headers.get('cookie') || '',
+      },
     },
-  })
+  )
 
   if (!session) {
     return NextResponse.redirect(new URL('/login', request.url))
