@@ -107,7 +107,7 @@ export default function AuthForm() {
 
   const { data: session } = authClient.useSession()
 
-  const redirect = searchParams.get('redirect') || '/'
+  const redirect = searchParams.get('from') || '/'
   useEffect(() => {
     if (session?.user) {
       router.push(redirect)

@@ -1,39 +1,21 @@
-import type { auth } from '@api/modules/auth/service'
-import { betterFetch } from '@better-fetch/fetch'
-import { type NextRequest, NextResponse } from 'next/server'
-
-type Session = typeof auth.$Infer.Session
+import { authServerClient } from "@web/lib/auth/auth-server";
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function proxy(request: NextRequest) {
-  const pathname = request.nextUrl.pathname
-  const isDashboardPath = pathname.startsWith('/dashboard')
+  const session = await authServerClient.getSession()
 
-  if (!isDashboardPath) {
-    return NextResponse.next()
-  }
+  if (!session.data) {
+    const from = request.nextUrl.pathname + request.nextUrl.search
 
-  const baseURL =
-    process.env.NODE_ENV === 'production'
-      ? process.env.NEXT_PUBLIC_APP_URL
-      : request.nextUrl.origin
+    const loginUrl = new URL("/login", request.url)
+    loginUrl.searchParams.set("from", from)
 
-  const { data: session } = await betterFetch<Session>(
-    '/api/auth/get-session',
-    {
-      baseURL,
-      headers: {
-        cookie: request.headers.get('cookie') || '',
-      },
-    },
-  )
-
-  if (!session) {
-    return NextResponse.redirect(new URL('/login', request.url))
+    return NextResponse.redirect(loginUrl)
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*'],
+  matcher: ["/dashboard/:path*"]
 }

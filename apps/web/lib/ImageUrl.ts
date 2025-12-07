@@ -21,3 +21,7 @@ export const getImageUrl = ({ imageId, width, height }: ImageParams) => {
         2,
       )}/${imageId.slice(-2)}/${imageId.slice(2)}.jpg`
 }
+
+export function imageAcc(name: string) {
+  return `${env('NEXT_PUBLIC_OPENIMAG_P_HOST')}/p/upload/${name}`
+}

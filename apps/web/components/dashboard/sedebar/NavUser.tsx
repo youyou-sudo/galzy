@@ -26,10 +26,12 @@ import {
   Sparkles,
 } from 'lucide-react'
 import React from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function NavUser() {
   const isMobile = useIsMobile()
   const { data: session } = authClient.useSession()
+  const router = useRouter()
   return (
     <>
       {/* Nav User */}
@@ -107,19 +109,19 @@ export default function NavUser() {
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <LogOut
-                  onClick={() => {
-                    authClient.signOut()
-                  }}
-                />
+              <DropdownMenuItem
+                onClick={async () => {
+                  await authClient.signOut()
+                  router.refresh()
+                }}
+              >
+                <LogOut />
                 登出
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </SidebarMenuItem>
       </SidebarMenu>
-      {/* Nav User */}
     </>
   )
 }
