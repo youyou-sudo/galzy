@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function page({ params }: { params: { id: string } }) {
   const { id } = await params
   const [monthDwData, count] = await Promise.all([
-    api.games.gameTimeNumberGet.get({ query: { id, time: 'month' } }),
+    api.games.gameTimeNumberGet.get({ query: { id, time: 'week' } }),
     api.games.gameTimeNumberGet.get({ query: { id } }),
   ])
   return <ChartAreaLinear data={monthDwData.data} countNumber={count.data} />
