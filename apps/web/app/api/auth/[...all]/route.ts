@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server'
 import '@web/lib/env'
 
-const API_BASE = `${process.env.API_HOST}:${process.env.API_PORT}`
+const API_BASE = `${process.env.API_HOST}`
 
 async function proxy(req: NextRequest) {
   const { pathname, search } = new URL(req.url)

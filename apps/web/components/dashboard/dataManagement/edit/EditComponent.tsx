@@ -30,7 +30,6 @@ import { useFieldArray, useForm } from 'react-hook-form'
 import * as z from 'zod'
 import { useFilterStore, usePaginationStore } from '../stores/dataManagement'
 import { useEditDialog } from '../stores/useEditDialog'
-import ImageUpComp from './imageUp'
 
 // 定义表单验证模式
 const formSchema = z.object({
@@ -243,8 +242,6 @@ export default function EditComponent() {
                 />
               </div>
             </div>
-            {/* 上传图片组件 */}
-            <ImageUpComp datas={data} />
 
             {form.formState.errors.title && (
               <p className="text-sm text-red-500">
