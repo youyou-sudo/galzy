@@ -32,7 +32,13 @@ const linksList: {
     title: 'Hikarinagi',
     avatar: 'https://www.hikarinagi.org/favicon.ico',
     href: 'https://www.hikarinagi.org',
-    description: 'Hikarinagi致力于为所有ACG爱好者提供一个交流和分享的平台! ',
+    description: 'Hikarinagi 致力于为所有ACG爱好者提供一个交流和分享的平台! ',
+  },
+  {
+    title: 'KisuGal',
+    avatar: 'https://kisugal.icu/wp-content/uploads/2025/11/logo.jpg',
+    href: 'https://kisugal.icu',
+    description: '免费的 GalGame 资源分享平台！',
   },
 ]
 
