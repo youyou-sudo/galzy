@@ -27,7 +27,7 @@ RUN bun run build
 RUN ls -al /app/apps/api
 
 # Production stage
-FROM gcr.io/distroless/base:debug
+FROM gcr.io/distroless/base
 
 WORKDIR /app
 
