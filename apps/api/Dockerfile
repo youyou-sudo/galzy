@@ -30,7 +30,7 @@ FROM alpine:latest AS busybox
 RUN apk add --no-cache busybox-static
 
 # Production stage
-FROM gcr.io/distroless/base
+FROM alpine:3.23.0
 
 WORKDIR /app
 
