@@ -1,28 +1,38 @@
 import swagger from '@elysiajs/swagger'
 import { Elysia } from 'elysia'
-import { dbSeed, initValidationError } from './libs'
+import { dbAction, initValidationError } from './libs'
 import {
   cronServer,
   download,
   game,
+  media,
   search,
   startCronTasks,
+  status,
+  strategy,
   tags,
   umami,
   YouyouAuth,
 } from './modules'
-import { media } from './modules/media'
-import { ping } from './modules/ping'
-import { strategy } from './modules/strategy'
+import { setDeployStatus } from './modules/status/service'
+
+
+setDeployStatus("starting")
+
+console.log(
+  `🦊 Elysia is running loding……`,
+)
 
 initValidationError()
-dbSeed()
+dbAction()
 if (process.env.NODE_ENV === 'production') startCronTasks()
+
 const app = new Elysia()
   .onError(({ code, error }) => {
     if (code === 'VALIDATION') return error.message
   })
   .use(process.env.NODE_ENV === 'development' ? swagger() : (app) => app)
+  .use(status)
   .use(cronServer)
   .use(YouyouAuth)
   .use(umami)
@@ -32,7 +42,6 @@ const app = new Elysia()
   .use(search)
   .use(strategy)
   .use(media)
-  .use(ping)
   .listen(process.env.API_PORT ?? 3001)
 
 export type APP = typeof app

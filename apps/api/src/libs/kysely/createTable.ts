@@ -1,6 +1,56 @@
-import { db, sql, vndbDb } from '@api/libs'
+import { db, sql, vndbDb, redis } from '@api/libs'
+import { setDeployStatus } from '@api/modules/status/service';
 
-export async function dbSeed() {
+export const dbAction = async () => {
+  console.log('⌛ Running database migrations and seeding...')
+  if (await checkDbConnection(db)) {
+    console.log('✅️ Website database connection test successful');
+  } else {
+    setDeployStatus('error')
+    console.error('❌ Website database connection test failed');
+  }
+
+  if (await checkDbConnection(vndbDb)) {
+    console.log('✅️ VNDB database connection test successful');
+  } else {
+    setDeployStatus('error')
+    console.error('❌ VNDB database connection test failed');
+  }
+
+  try {
+    setDeployStatus('migrating')
+    await dbSeed()
+    await dbFdw()
+  } catch (error) {
+    setDeployStatus('error')
+    console.error('❌ Error during database setup:', error)
+  }
+  try {
+    const pong = await redis.ping();
+    if (pong === 'PONG') {
+      console.log('✅️ Redis connection test successful');
+    } else {
+      setDeployStatus('error')
+      console.error('❌ Redis connection test failed');
+    }
+  } catch (error) {
+    setDeployStatus('error')
+    console.error('❌ Error during Redis connection test:', error);
+  }
+  setDeployStatus('ready')
+  console.log('✅️ Database loading complete')
+}
+
+const checkDbConnection = async (db: any) => {
+  try {
+    await sql`SELECT 1`.execute(db);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const dbSeed = async () => {
   await db.schema
     .createTable('galrc_user')
     .ifNotExists()
@@ -352,20 +402,21 @@ export async function dbSeed() {
     .execute()
 }
 
-// 创建 postgres_fdw 扩展
-await sql`
+const dbFdw = async () => {
+  // 创建 postgres_fdw 扩展
+  await sql`
   CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 `.execute(db)
 
-const dbUrl = new URL(process.env.VNDB_DATABASE_URL!)
-const host = dbUrl.hostname
-const port = dbUrl.port
-const dbname = dbUrl.pathname.replace(/^\//, '')
-const user = dbUrl.username
-const password = dbUrl.password
+  const dbUrl = new URL(process.env.VNDB_DATABASE_URL!)
+  const host = dbUrl.hostname
+  const port = dbUrl.port
+  const dbname = dbUrl.pathname.replace(/^\//, '')
+  const user = dbUrl.username
+  const password = dbUrl.password
 
-// 创建 server，如果不存在
-await sql`
+  // 创建 server，如果不存在
+  await sql`
   CREATE SERVER IF NOT EXISTS vndb_server
     FOREIGN DATA WRAPPER postgres_fdw
     OPTIONS (
@@ -375,8 +426,8 @@ await sql`
     );
 `.execute(db)
 
-// 创建用户映射，如果不存在
-await sql`
+  // 创建用户映射，如果不存在
+  await sql`
   CREATE USER MAPPING IF NOT EXISTS FOR ${sql.raw(user)}
     SERVER vndb_server
     OPTIONS (
@@ -385,8 +436,8 @@ await sql`
     );
 `.execute(db)
 
-// 创建远程表，使用 IF NOT EXISTS
-await sql`
+  // 创建远程表，使用 IF NOT EXISTS
+  await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS vn (
     id          text,
     image       text,
@@ -407,7 +458,7 @@ await sql`
   );
 `.execute(db)
 
-await sql`
+  await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS vn_titles (
     id       text,
     lang     text,
@@ -422,7 +473,7 @@ await sql`
   );
 `.execute(db)
 
-await sql`
+  await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS images (
     id               text,
     width            integer,
@@ -441,7 +492,7 @@ await sql`
   );
 `.execute(db)
 
-await sql`
+  await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS tags (
     id           text,
     cat          text,
@@ -459,7 +510,7 @@ await sql`
   );
 `.execute(db)
 
-await sql`
+  await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS tags_vn (
     tag         text,
     vid         text,
@@ -477,7 +528,7 @@ await sql`
   );
 `.execute(db)
 
-await sql`
+  await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS releases (
     id             text,
     gtin           bigint,
@@ -513,7 +564,7 @@ await sql`
   );
 `.execute(db)
 
-await sql`
+  await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS releases_vn (
     id  text,
     vid text
@@ -525,7 +576,7 @@ await sql`
   );
 `.execute(db)
 
-await sql`
+  await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS releases_titles (
     id   text,
     lang text,
@@ -539,3 +590,4 @@ await sql`
     table_name  'releases_titles'
   );
 `.execute(db)
+}

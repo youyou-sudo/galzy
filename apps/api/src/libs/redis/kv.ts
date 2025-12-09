@@ -1,4 +1,4 @@
-import { redis } from './client'
+import { redis } from './index'
 
 export const setKv = async (key: string, value: string, time?: number) => {
   if (!redis) return
