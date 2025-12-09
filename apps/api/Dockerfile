@@ -26,20 +26,27 @@ RUN bun run build
 # Debug step: List files after build to check if 'server' is generated
 RUN ls -al /app/apps/api
 
+FROM alpine:latest AS busybox
+RUN apk add --no-cache busybox-static
+
 # Production stage
 FROM gcr.io/distroless/base
 
 WORKDIR /app
 
-# Copy server file from build stage (make sure 'server' exists)
+# Copy server file from build stage
 COPY --from=build /app/apps/api/server /app/server
 
-# Copy environment variables
+# Copy static busybox from busybox stage
+COPY --from=busybox /bin/busybox /bin/busybox
+RUN chmod +x /bin/busybox
 
+# Environment variables
 ENV NODE_ENV=production
 ENV PORT=3001
 ENV OTEL=false
 
+# Default command
 CMD ["./server"]
 
 EXPOSE 3001
