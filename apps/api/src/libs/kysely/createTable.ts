@@ -357,52 +357,48 @@ await sql`
   CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 `.execute(db)
 
-// 删除已有的远程服务器（如果存在）
-await sql`
-  DROP SERVER IF EXISTS vndb_server CASCADE;
-`.execute(db)
 const dbUrl = new URL(process.env.VNDB_DATABASE_URL!)
-
 const host = dbUrl.hostname
 const port = dbUrl.port
 const dbname = dbUrl.pathname.replace(/^\//, '')
 const user = dbUrl.username
 const password = dbUrl.password
 
+// 创建 server，如果不存在
 await sql`
-  CREATE SERVER vndb_server
+  CREATE SERVER IF NOT EXISTS vndb_server
     FOREIGN DATA WRAPPER postgres_fdw
     OPTIONS (
-      host '${sql.raw(host)}',
-      port '${sql.raw(port)}',
-      dbname '${sql.raw(dbname)}'
+      host ${sql.raw(host)},
+      port ${sql.raw(port)},
+      dbname ${sql.raw(dbname)}
     );
 `.execute(db)
 
-// 创建用户映射
+// 创建用户映射，如果不存在
 await sql`
-  CREATE USER MAPPING FOR ${sql.raw(user)}
+  CREATE USER MAPPING IF NOT EXISTS FOR ${sql.raw(user)}
     SERVER vndb_server
     OPTIONS (
-      user '${sql.raw(user)}',
-      password '${sql.raw(password)}'
+      user ${sql.raw(user)},
+      password ${sql.raw(password)}
     );
 `.execute(db)
 
-// 创建远程表
+// 创建远程表，使用 IF NOT EXISTS
 await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS vn (
     id          text,
-    image       text,       -- 可为空 (deprecated)
-    c_image     text,       -- 可为空
+    image       text,
+    c_image     text,
     olang       text,
     c_votecount integer,
-    c_rating    smallint,   -- 可为空
-    c_average   smallint,   -- 可为空
+    c_rating    smallint,
+    c_average   smallint,
     length      smallint,
     devstatus   smallint,
-    alias       text,       -- 可为空
-    description text        -- 可为空
+    alias       text,
+    description text
   )
   SERVER vndb_server
   OPTIONS (
@@ -414,10 +410,10 @@ await sql`
 await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS vn_titles (
     id       text,
-    lang     text,       -- language 类型，可按需映射
+    lang     text,
     official boolean,
     title    text,
-    latin    text        -- 可为空
+    latin    text
   )
   SERVER vndb_server
   OPTIONS (
@@ -448,7 +444,7 @@ await sql`
 await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS tags (
     id           text,
-    cat          text,       -- tag_category 类型，可按需映射
+    cat          text,
     defaultspoil smallint,
     searchable   boolean,
     applicable   boolean,
@@ -467,11 +463,11 @@ await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS tags_vn (
     tag         text,
     vid         text,
-    uid         text,       -- 可为空
+    uid         text,
     vote        integer,
-    spoiler     integer,    -- 可为空
+    spoiler     integer,
     ignore      boolean,
-    lie         boolean,    -- 可为空
+    lie         boolean,
     notes       text
   )
   SERVER vndb_server
@@ -485,30 +481,30 @@ await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS releases (
     id             text,
     gtin           bigint,
-    olang          text,       -- language 类型，可按需映射
+    olang          text,
     released       integer,
     voiced         integer,
     reso_x         integer,
     reso_y         integer,
-    minage         smallint,   -- 可为空
+    minage         smallint,
     ani_story      smallint,
     ani_ero        smallint,
-    ani_story_sp   smallint,   -- 可为空
-    ani_story_cg   smallint,   -- 可为空
-    ani_cutscene   smallint,   -- 可为空
-    ani_ero_sp     smallint,   -- 可为空
-    ani_ero_cg     smallint,   -- 可为空
-    ani_bg         boolean,    -- 可为空
-    ani_face       boolean,    -- 可为空
+    ani_story_sp   smallint,
+    ani_story_cg   smallint,
+    ani_cutscene   smallint,
+    ani_ero_sp     smallint,
+    ani_ero_cg     smallint,
+    ani_bg         boolean,
+    ani_face       boolean,
     has_ero        boolean,
     patch          boolean,
     freeware       boolean,
-    uncensored     boolean,    -- 可为空
+    uncensored     boolean,
     official       boolean,
     catalog        text,
     engine         text,
     notes          text,
-    title          text        -- 可为空
+    title          text
   )
   SERVER vndb_server
   OPTIONS (
@@ -531,11 +527,11 @@ await sql`
 
 await sql`
   CREATE FOREIGN TABLE IF NOT EXISTS releases_titles (
-    id  text,
-    lang          text,       -- language 类型，可按需映射
-    mtl           boolean,
-    title         text,       -- 可为空
-    latin         text        -- 可为空
+    id   text,
+    lang text,
+    mtl  boolean,
+    title text,
+    latin text
   )
   SERVER vndb_server
   OPTIONS (
