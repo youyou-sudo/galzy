@@ -45,5 +45,5 @@ export function startCronTasks() {
     console.log('[Cron] meiliSearchAddTag 定时执行')
   })
 
-  console.log('Cron tasks started.')
+  console.log('✅️ Cron tasks started.')
 }
