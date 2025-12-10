@@ -37,7 +37,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       strategyId: +introduction,
     },
   })
-  const raw = strategyContent?.content || strategyContent?.title
+  const raw = strategyContent?.content
+    ?? strategyContent?.title
+    ?? ''
 
   const textOnly = stripMarkdown(stripHTML(raw!))
   return {
