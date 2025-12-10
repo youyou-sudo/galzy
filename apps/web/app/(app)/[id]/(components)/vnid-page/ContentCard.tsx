@@ -40,14 +40,14 @@ export const ContentCard = ({ data }: Props) => {
                 className={`${
                   filteredImage && filteredImage.height < filteredImage.width
                     ? 'min-w-[290px]'
-                    : 'min-w-[220px]'
+                    : 'max-w-[220px]'
                 } relative overflow-hidden text-left`}
               >
                 <Image
                   width={filteredImage?.width ?? 300}
                   height={filteredImage?.height ?? 200}
                   className="w-full h-full relative z-10 rounded transform shadow-lg"
-                  src={imageUrl || '/placeholder.svg'}
+                  src={imageUrl}
                   alt="游戏图片"
                   loading="lazy"
                   decoding="async"
