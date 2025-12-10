@@ -552,7 +552,7 @@ const dbFdw = async () => {
     freeware       boolean,
     uncensored     boolean,
     official       boolean,
-    catalog        text,
+    catalog:        text,
     engine         text,
     notes          text,
     title          text
