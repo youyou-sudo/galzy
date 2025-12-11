@@ -20,10 +20,16 @@ export const dbAction = async () => {
   try {
     setDeployStatus('migrating')
     await dbSeed()
-    await dbFdw()
   } catch (error) {
     setDeployStatus('error')
     console.error('❌ Error during database setup:', error)
+  }
+  try {
+    await dbFdw()
+    console.log('✅️ dbFdw connection test successful');
+  } catch (error) {
+    setDeployStatus('error')
+    console.error('❌ Error during FDW setup:', error)
   }
   try {
     const pong = await redis.ping();
@@ -38,7 +44,7 @@ export const dbAction = async () => {
     console.error('❌ Error during Redis connection test:', error);
   }
   setDeployStatus('ready')
-  console.log('✅️ Database loading complete')
+  console.log('🎉 Database loading complete')
 }
 
 const checkDbConnection = async (db: any) => {
@@ -408,12 +414,15 @@ const dbFdw = async () => {
   CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 `.execute(db)
 
-  const dbUrl = new URL(process.env.VNDB_DATABASE_URL!)
-  const host = dbUrl.hostname
-  const port = dbUrl.port
-  const dbname = dbUrl.pathname.replace(/^\//, '')
-  const user = dbUrl.username
-  const password = dbUrl.password
+  const vndbUrl = new URL(process.env.VNDB_DATABASE_URL!)
+  const host = vndbUrl.hostname
+  const port = vndbUrl.port
+  const dbname = vndbUrl.pathname.replace(/^\//, '')
+  const user = vndbUrl.username
+  const password = vndbUrl.password
+
+  const databaseUrl = new URL(process.env.DATABASE_URL!)
+  const databaseUrluser = databaseUrl.username
 
   // 创建 server，如果不存在
   await sql`
@@ -428,7 +437,7 @@ const dbFdw = async () => {
 
   // 创建用户映射，如果不存在
   await sql`
-  CREATE USER MAPPING IF NOT EXISTS FOR ${sql.raw(user)}
+  CREATE USER MAPPING IF NOT EXISTS FOR ${sql.raw(databaseUrluser)}
     SERVER vndb_server
     OPTIONS (
       user '${sql.raw(user)}',
@@ -552,7 +561,7 @@ const dbFdw = async () => {
     freeware       boolean,
     uncensored     boolean,
     official       boolean,
-    catalog:        text,
+    catalog        text,
     engine         text,
     notes          text,
     title          text
