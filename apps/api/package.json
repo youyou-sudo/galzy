@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "bun run --watch src/index.ts",
-    "build": "bun build --compile --minify-whitespace --minify-syntax --target bun --outfile server ./src/index.ts && tsc",
+    "build": "bun build --compile --minify-whitespace --minify-syntax --target bun --outfile server ./src/index.ts",
     "lint": "biome check --write",
     "docker": "cd ../.. && docker build -t mono-api:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/api/Dockerfile .",
     "docker:api": "cd ../.. && docker build -t mono-api:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/api/Dockerfile ."
