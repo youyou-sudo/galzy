@@ -424,9 +424,12 @@ const dbFdw = async () => {
   const databaseUrl = new URL(process.env.DATABASE_URL!)
   const databaseUrluser = databaseUrl.username
 
+  await sql`  DROP SERVER IF EXISTS vndb_server CASCADE;
+`.execute(db)
+
   // 创建 server，如果不存在
   await sql`
-  CREATE SERVER IF NOT EXISTS vndb_server
+  CREATE SERVER vndb_server
     FOREIGN DATA WRAPPER postgres_fdw
     OPTIONS (
       host '${sql.raw(host)}',
