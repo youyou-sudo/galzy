@@ -421,9 +421,6 @@ const dbFdw = async () => {
   const user = vndbUrl.username
   const password = vndbUrl.password
 
-  const databaseUrl = new URL(process.env.DATABASE_URL!)
-  const databaseUrluser = databaseUrl.username
-
   // 创建 server，如果不存在
   await sql`
   CREATE SERVER IF NOT EXISTS vndb_server
@@ -437,7 +434,7 @@ const dbFdw = async () => {
 
   // 创建用户映射，如果不存在
   await sql`
-  CREATE USER MAPPING IF NOT EXISTS FOR ${sql.raw(databaseUrluser)}
+  CREATE USER MAPPING IF NOT EXISTS FOR ${sql.raw(user)}
     SERVER vndb_server
     OPTIONS (
       user '${sql.raw(user)}',
