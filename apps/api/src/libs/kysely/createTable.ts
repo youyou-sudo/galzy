@@ -421,9 +421,8 @@ const dbFdw = async () => {
   const user = vndbUrl.username
   const password = vndbUrl.password
 
-  // 创建 server，如果不存在
   await sql`
-  CREATE SERVER IF NOT EXISTS vndb_server
+  CREATE SERVER vndb_server
     FOREIGN DATA WRAPPER postgres_fdw
     OPTIONS (
       host '${sql.raw(host)}',
@@ -432,9 +431,9 @@ const dbFdw = async () => {
     );
 `.execute(db)
 
-  // 创建用户映射，如果不存在
+  // 创建用户映射
   await sql`
-  CREATE USER MAPPING IF NOT EXISTS FOR ${sql.raw(user)}
+  CREATE USER MAPPING FOR ${sql.raw(user)}
     SERVER vndb_server
     OPTIONS (
       user '${sql.raw(user)}',
