@@ -17,6 +17,12 @@ const linksList: {
     description: '一个 Telegram Galgame 资源频道',
   },
   {
+    title: 'Steam 上的中文 Galgame',
+    avatar: 'https://steamgalgame.com/usr/themes/SteamGalgame/static/img/favicon.png',
+    href: 'https://steamgalgame.com',
+    description: '',
+  },
+  {
     title: '莉斯坦 ACG',
     avatar: 'https://www.limulu.moe/favicon.ico',
     href: 'https://www.limulu.moe',
