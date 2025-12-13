@@ -3,9 +3,9 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@web/components/animate-ui/radix/accordion'
+} from '@shadcn/ui/components/animate-ui/components/radix/accordion'
+import { Badge } from '@shadcn/ui/components/badge'
 import ForesightLink from '@web/components/HoverPLink'
-import { Badge } from '@web/components/ui/badge'
 import { tagshData } from '../(action)/tags'
 
 export async function TagsCard({ id }: { id: string }) {

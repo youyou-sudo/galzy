@@ -1,8 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { Button } from '@web/components/ui/button'
+import { Button } from '@shadcn/ui/components/button'
 import {
   Form,
   FormControl,
@@ -11,10 +10,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@web/components/ui/form'
-import { Input } from '@web/components/ui/input'
-import { Skeleton } from '@web/components/ui/skeleton'
-import { Textarea } from '@web/components/ui/textarea'
+} from '@shadcn/ui/components/form'
+import { Input } from '@shadcn/ui/components/input'
+import { Skeleton } from '@shadcn/ui/components/skeleton'
+import { Textarea } from '@shadcn/ui/components/textarea'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   meilisearchEmbeddersGet,
   meilisearchEmbeddersUpdate,

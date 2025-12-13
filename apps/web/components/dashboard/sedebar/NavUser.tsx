@@ -7,15 +7,19 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@web/components/animate-ui/components/radix/dropdown-menu'
+} from '@shadcn/ui/components/animate-ui/components/radix/dropdown-menu'
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@web/components/animate-ui/radix/sidebar'
-import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
+} from '@shadcn/ui/components/animate-ui/components/radix/sidebar'
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@shadcn/ui/components/avatar'
+import { useIsMobile } from '@shadcn/ui/hooks/use-mobile'
 import { dashboardConfig } from '@web/config/dashboard'
-import { useIsMobile } from '@web/hooks/use-mobile'
 import { authClient } from '@web/lib/auth/auth-client'
 import {
   BadgeCheck,
@@ -25,7 +29,6 @@ import {
   LogOut,
   Sparkles,
 } from 'lucide-react'
-import React from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function NavUser() {

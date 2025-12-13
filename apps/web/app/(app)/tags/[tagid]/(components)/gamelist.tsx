@@ -3,7 +3,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { GameCard } from '@web/components/game-card'
 import { GameItem } from '@web/components/home/GameItem'
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { getVnListByTag } from '../(acrion)/tagvns'
 

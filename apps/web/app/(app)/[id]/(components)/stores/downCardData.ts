@@ -1,5 +1,4 @@
 import type { GameModel } from '@api/modules/games/model'
-import type { getFileList } from '@web/lib/repositories/alistFileList'
 import { create } from 'zustand'
 
 let clearTimeoutId: ReturnType<typeof setTimeout> | null = null

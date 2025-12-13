@@ -1,7 +1,6 @@
 import { api } from '@libs'
 import { getVnDetails } from '@web/lib/repositories/vnRepository'
 import type { Metadata } from 'next/types'
-import React from 'react'
 import { aliasFilter, getTitles } from '../(lib)/contentDataac'
 import { ChartAreaLinear } from './(components)/chart-area-linear'
 

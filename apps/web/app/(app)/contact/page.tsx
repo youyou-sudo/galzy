@@ -3,9 +3,8 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from '@web/components/ui/card'
+} from '@shadcn/ui/components/card'
 import Link from 'next/link'
-import React from 'react'
 
 export default function Youyou() {
   return (

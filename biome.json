@@ -10,7 +10,7 @@
   },
   "formatter": {
     "enabled": true,
-    "formatWithErrors": false,
+    "formatWithErrors": true,
     "indentStyle": "space",
     "indentWidth": 2,
     "lineEnding": "lf",
@@ -32,7 +32,7 @@
       },
       "correctness": {
         "useExhaustiveDependencies": "off",
-        "noUnusedImports": "off"
+        "noUnusedImports": "error"
       },
       "suspicious": {
         "noExplicitAny": "off",

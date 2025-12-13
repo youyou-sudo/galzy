@@ -2,7 +2,7 @@
 import {
   SidebarInset,
   SidebarTrigger,
-} from '@web/components/animate-ui/radix/sidebar'
+} from '@shadcn/ui/components/animate-ui/components/radix/sidebar'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,8 +10,8 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@web/components/ui/breadcrumb'
-import { Separator } from '@web/components/ui/separator'
+} from '@shadcn/ui/components/breadcrumb'
+import { Separator } from '@shadcn/ui/components/separator'
 import { House } from 'lucide-react'
 import type React from 'react'
 

@@ -1,14 +1,14 @@
 'use client'
 
-import { Switch } from '@web/components/animate-ui/radix/switch'
-import { Button } from '@web/components/ui/button'
-import { Card, CardContent, CardHeader } from '@web/components/ui/card'
+import { Switch } from '@shadcn/ui/components/animate-ui/components/radix/switch'
+import { Button } from '@shadcn/ui/components/button'
+import { Card, CardContent, CardHeader } from '@shadcn/ui/components/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@web/components/ui/dropdown-menu'
+} from '@shadcn/ui/components/dropdown-menu'
 import type { workerDataGet } from '@web/lib/dashboard/download/Cloudflare/workerDataPull'
 import { nodeEnaledAc } from '@web/lib/dashboard/download/nodeEnabledAc'
 import { formatBytes } from '@web/lib/formatBytes'
@@ -28,7 +28,7 @@ import { NodeStatusBadge } from './node-status-badge'
 export type WorkerData = Awaited<ReturnType<typeof workerDataGet>>
 type NoNullWorkerData = NonNullable<WorkerData>
 
-import { Progress } from '@web/components/animate-ui/radix/progress'
+import { Progress } from '@shadcn/ui/components/animate-ui/components/radix/progress'
 
 export function MobileNodeCard({
   node,

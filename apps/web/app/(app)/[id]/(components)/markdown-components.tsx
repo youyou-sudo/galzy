@@ -1,4 +1,4 @@
-import { cn } from '@web/lib/utils'
+import { cn } from '@shadcn/ui/lib/utils'
 import type { ComponentProps } from 'react'
 
 // Typography components for react-markdown

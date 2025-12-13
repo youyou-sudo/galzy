@@ -1,14 +1,13 @@
 'use client'
 
 import type { GameModel } from '@api/modules/games/model'
-import { useQuery } from '@tanstack/react-query'
 import {
   File,
   Files,
   Folder,
-} from '@web/components/animate-ui/components/files'
-import { MarkdownAsync } from '@web/components/markdownAync'
-import { Button } from '@web/components/ui/button'
+} from '@shadcn/ui/components/animate-ui/components/files'
+import { Button } from '@shadcn/ui/components/button'
+import { CopyButton } from '@shadcn/ui/components/copy-button'
 import {
   Dialog,
   DialogContent,
@@ -16,9 +15,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@web/components/ui/dialog'
-import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
-import { Skeleton } from '@web/components/ui/skeleton'
+} from '@shadcn/ui/components/dialog'
+import { Skeleton } from '@shadcn/ui/components/skeleton'
+import { useQuery } from '@tanstack/react-query'
+import { MarkdownAsync } from '@web/components/markdownAync'
 import { dwAcConst } from '@web/lib/download/ac'
 import { Check, Copy, Download } from 'lucide-react'
 import { usePathname } from 'next/navigation'

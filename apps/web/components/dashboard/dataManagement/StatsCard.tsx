@@ -1,13 +1,12 @@
 'use client'
-import { useQuery } from '@tanstack/react-query'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '@web/components/ui/card'
+} from '@shadcn/ui/components/card'
+import { useQuery } from '@tanstack/react-query'
 import { dataFilteringStats } from '@web/lib/dashboard/dataManagement/dataGet'
-import React from 'react'
 
 export default function StatsCard() {
   const { data: coutData } = useQuery({

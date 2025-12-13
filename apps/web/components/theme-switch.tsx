@@ -5,8 +5,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@web/components/animate-ui/components/radix/dropdown-menu'
-import { Button } from '@web/components/ui/button'
+} from '@shadcn/ui/components/animate-ui/components/radix/dropdown-menu'
+import { Button } from '@shadcn/ui/components/button'
 import { Check, Monitor, Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import * as React from 'react'

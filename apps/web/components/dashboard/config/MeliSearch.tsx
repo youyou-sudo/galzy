@@ -5,15 +5,15 @@ import {
   TabsContents,
   TabsList,
   TabsTrigger,
-} from '@web/components/animate-ui/radix/tabs'
+} from '@shadcn/ui/components/animate-ui/components/radix/tabs'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@web/components/ui/card'
-import { Skeleton } from '@web/components/ui/skeleton'
+} from '@shadcn/ui/components/card'
+import { Skeleton } from '@shadcn/ui/components/skeleton'
 import { formatBytes } from '@web/lib/formatBytes'
 import { env } from 'next-runtime-env'
 import { Suspense } from 'react'

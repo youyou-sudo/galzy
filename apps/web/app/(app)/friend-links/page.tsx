@@ -1,8 +1,10 @@
-import { MotionHighlight } from '@web/components/animate-ui/effects/motion-highlight'
-import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
-import { LinkIcon } from 'lucide-react'
+import { MotionHighlight } from '@shadcn/ui/components/animate-ui/effects/motion-highlight'
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@shadcn/ui/components/avatar'
 import Link from 'next/link'
-import React from 'react'
 
 const linksList: {
   title: string
@@ -18,7 +20,8 @@ const linksList: {
   },
   {
     title: 'Steam 上的中文 Galgame',
-    avatar: 'https://steamgalgame.com/usr/themes/SteamGalgame/static/img/favicon.png',
+    avatar:
+      'https://steamgalgame.com/usr/themes/SteamGalgame/static/img/favicon.png',
     href: 'https://steamgalgame.com',
     description: '',
   },

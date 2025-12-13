@@ -7,7 +7,6 @@ import StrategyList from '@web/components/dashboard/dataManagement/strategy/stra
 import { getVnDetails } from '@web/lib/repositories/vnRepository'
 import { strategyListGet } from '@web/lib/strategy/strategyAc'
 import type { Metadata } from 'next/types'
-import React from 'react'
 import { aliasFilter, getTitles } from '../(lib)/contentDataac'
 
 type Props = {

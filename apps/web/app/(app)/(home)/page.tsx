@@ -1,15 +1,15 @@
-import { homeData } from '@web/app/(app)/(home)/(action)/homeData'
-import { HomeGamelist } from '@web/components/home'
-import { GameItem } from '@web/components/home/GameItem'
-import SearchInput from '@web/components/home/Search/Search'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@web/components/ui/card'
-import { Skeleton } from '@web/components/ui/skeleton'
+} from '@shadcn/ui/components/card'
+import { Skeleton } from '@shadcn/ui/components/skeleton'
+import { homeData } from '@web/app/(app)/(home)/(action)/homeData'
+import { HomeGamelist } from '@web/components/home'
+import { GameItem } from '@web/components/home/GameItem'
+import SearchInput from '@web/components/home/Search/Search'
 import { metadataConfig } from '@web/config/metadata'
 import { Gamepad2, Tags } from 'lucide-react'
 import type { Metadata } from 'next'

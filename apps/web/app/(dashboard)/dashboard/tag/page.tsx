@@ -1,11 +1,10 @@
-import { TagTable } from '@web/components/dashboard/tag/tabCard'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '@web/components/ui/card'
-import React from 'react'
+} from '@shadcn/ui/components/card'
+import { TagTable } from '@web/components/dashboard/tag/tabCard'
 import { UpComp } from './UpComp'
 
 export default async function page() {

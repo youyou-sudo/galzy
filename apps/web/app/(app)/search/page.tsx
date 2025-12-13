@@ -1,10 +1,8 @@
-import { GameCard } from '@web/components/game-card'
 import SearchlistComponent from '@web/components/home/Search/meilisearch'
 import SearchInput from '@web/components/home/Search/Search'
 import { getSearch } from '@web/lib/search/meilisearch'
 import { GamepadIcon } from 'lucide-react'
 import type { Metadata } from 'next/types'
-import React, { Suspense } from 'react'
 
 type Props = {
   searchParams: Promise<{ q: string }>

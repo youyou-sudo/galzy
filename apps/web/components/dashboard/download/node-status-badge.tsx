@@ -1,4 +1,4 @@
-import { Badge } from '@web/components/ui/badge'
+import { Badge } from '@shadcn/ui/components/badge'
 
 interface NodeStatusBadgeProps {
   status: true | false

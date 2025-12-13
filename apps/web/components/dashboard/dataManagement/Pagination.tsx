@@ -4,15 +4,15 @@ import {
   PaginationEllipsis,
   PaginationItem,
   PaginationLink,
-} from '@web/components/ui/pagination'
+} from '@shadcn/ui/components/pagination'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@web/components/ui/select'
-import { usePagination } from '@web/hooks/use-pagination'
+} from '@shadcn/ui/components/select'
+import { usePagination } from '@shadcn/ui/hooks/use-pagination'
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
 
 type PaginationProps = {

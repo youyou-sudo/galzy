@@ -1,6 +1,10 @@
-import { Alert, AlertDescription, AlertTitle } from '@web/components/ui/alert'
-import { AspectRatio } from '@web/components/ui/aspect-ratio'
-import { BadgeJapaneseYen, Info } from 'lucide-react'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@shadcn/ui/components/alert'
+import { AspectRatio } from '@shadcn/ui/components/aspect-ratio'
+import { Info } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 

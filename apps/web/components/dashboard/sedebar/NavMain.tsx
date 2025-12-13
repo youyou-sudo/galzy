@@ -3,7 +3,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@web/components/animate-ui/radix/collapsible'
+} from '@shadcn/ui/components/animate-ui/components/radix/collapsible'
 
 import {
   SidebarGroup,
@@ -14,12 +14,10 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from '@web/components/animate-ui/radix/sidebar'
+} from '@shadcn/ui/components/animate-ui/components/radix/sidebar'
 import ForesightLink from '@web/components/HoverPLink'
 import { dashboardConfig } from '@web/config/dashboard'
 import { ChevronRight } from 'lucide-react'
-import Link from 'next/link'
-import React from 'react'
 
 export default function NavMain() {
   return (

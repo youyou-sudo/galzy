@@ -1,15 +1,13 @@
 'use client'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation } from '@tanstack/react-query'
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@web/components/animate-ui/radix/dialog'
-import { Button } from '@web/components/ui/button'
-import { Checkbox } from '@web/components/ui/checkbox'
+} from '@shadcn/ui/components/animate-ui/components/radix/dialog'
+import { Button } from '@shadcn/ui/components/button'
+import { Checkbox } from '@shadcn/ui/components/checkbox'
 import {
   Form,
   FormControl,
@@ -17,9 +15,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@web/components/ui/form'
-import { Input } from '@web/components/ui/input'
-import { Textarea } from '@web/components/ui/textarea'
+} from '@shadcn/ui/components/form'
+import { Input } from '@shadcn/ui/components/input'
+import { Textarea } from '@shadcn/ui/components/textarea'
+import { useMutation } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'

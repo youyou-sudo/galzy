@@ -1,10 +1,9 @@
+import { Card, CardContent } from '@shadcn/ui/components/card'
 import { TagsCard } from '@web/app/(app)/[id]/(components)/tags'
 import { BBCodeRenderer } from '@web/components/bbcode'
 import Errors from '@web/components/error'
-import { Card, CardContent } from '@web/components/ui/card'
 import type { getVnDetails } from '@web/lib/repositories/vnRepository'
 import Image from 'next/image'
-import React from 'react'
 import {
   aliasFilter,
   getCoverImageUrl,

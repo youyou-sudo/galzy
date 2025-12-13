@@ -1,9 +1,8 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { QueryClient, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Button } from '@web/components/ui/button'
-import { Card } from '@web/components/ui/card'
+import { Button } from '@shadcn/ui/components/button'
+import { Card } from '@shadcn/ui/components/card'
 import {
   Form,
   FormControl,
@@ -11,18 +10,19 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@web/components/ui/form'
-import { Input } from '@web/components/ui/input'
-import { Label } from '@web/components/ui/label'
+} from '@shadcn/ui/components/form'
+import { Input } from '@shadcn/ui/components/input'
+import { Label } from '@shadcn/ui/components/label'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@web/components/ui/select'
-import { Skeleton } from '@web/components/ui/skeleton'
-import { Textarea } from '@web/components/ui/textarea'
+} from '@shadcn/ui/components/select'
+import { Skeleton } from '@shadcn/ui/components/skeleton'
+import { Textarea } from '@shadcn/ui/components/textarea'
+import { QueryClient, useMutation, useQueryClient } from '@tanstack/react-query'
 import { vidassociationUpdate } from '@web/lib/dashboard/dataManagement/dataGet'
 import { Loader2Icon, Plus, Trash2 } from 'lucide-react'
 import { useEffect } from 'react'

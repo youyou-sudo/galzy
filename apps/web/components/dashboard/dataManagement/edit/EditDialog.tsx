@@ -5,7 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@web/components/animate-ui/radix/dialog'
+} from '@shadcn/ui/components/animate-ui/components/radix/dialog'
 import { useEditDialog } from '../stores/useEditDialog'
 import EditComponent from './EditComponent'
 

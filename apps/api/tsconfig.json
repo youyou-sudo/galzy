@@ -19,9 +19,9 @@
       "@libs": ["../../packages/libs/src/index.ts"],
       "@libs/*": ["../../packages/libs/src/*"],
       "@ui": ["../../packages/ui/src/index.ts"],
-      "@ui/*": ["../../packages/ui/src/*"],
-      "@ui/components": ["../../packages/ui/src/components/index.ts"],
-      "@ui/layouts": ["../../packages/ui/src/layouts/index.ts"]
+      "@shadcn/ui/*": ["../../packages/ui/src/*"],
+      "@shadcn/ui/components": ["../../packages/ui/src/components/index.ts"],
+      "@shadcn/ui/layouts": ["../../packages/ui/src/layouts/index.ts"]
     }
   },
   "include": ["src", "test", "scripts", "eslint.config.mjs"],

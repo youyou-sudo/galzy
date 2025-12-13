@@ -1,2 +1,2 @@
-export * from './kv'
 export * from './client'
+export * from './kv'

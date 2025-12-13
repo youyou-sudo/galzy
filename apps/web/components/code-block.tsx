@@ -1,6 +1,6 @@
 'use client'
 
-import { cn } from '@web/lib/utils'
+import { cn } from '@shadcn/ui/lib/utils'
 import { Check, Copy } from 'lucide-react'
 import * as React from 'react'
 
