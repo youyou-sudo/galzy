@@ -1,6 +1,6 @@
-import { Button } from '@shadcn/ui/components/button'
 import { authServerClient } from '@web/lib/auth/auth-server'
 import { refresh } from 'next/cache'
+import { Button } from '../ui/button'
 
 export const dynamic = 'force-dynamic'
 

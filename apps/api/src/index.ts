@@ -16,9 +16,12 @@ import {
 } from './modules'
 import { setDeployStatus } from './modules/status/service'
 
-setDeployStatus('starting')
 
-console.log(`🦊 Elysia is running loding……`)
+setDeployStatus("starting")
+
+console.log(
+  `🦊 Elysia is running loding……`,
+)
 
 initValidationError()
 dbAction()

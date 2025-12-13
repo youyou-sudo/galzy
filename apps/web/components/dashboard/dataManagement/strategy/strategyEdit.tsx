@@ -1,14 +1,15 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@shadcn/ui/components/animate-ui/components/radix/dialog'
-import { Button } from '@shadcn/ui/components/button'
+} from '@web/components/animate-ui/radix/dialog'
+import { Button } from '@web/components/ui/button'
 import {
   Form,
   FormControl,
@@ -17,10 +18,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@shadcn/ui/components/form'
-import { Input } from '@shadcn/ui/components/input'
-import { Textarea } from '@shadcn/ui/components/textarea'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+} from '@web/components/ui/form'
+import { Input } from '@web/components/ui/input'
+import { Textarea } from '@web/components/ui/textarea'
 import { authClient } from '@web/lib/auth/auth-client'
 import {
   strategyListCreate,

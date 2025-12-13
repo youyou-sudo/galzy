@@ -7,15 +7,15 @@ import {
   DropdownMenuLabel,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from '@shadcn/ui/components/animate-ui/components/radix/dropdown-menu'
+} from '@web/components/animate-ui/components/radix/dropdown-menu'
 import {
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@shadcn/ui/components/animate-ui/components/radix/sidebar'
-import { useIsMobile } from '@shadcn/ui/hooks/use-mobile'
+} from '@web/components/animate-ui/radix/sidebar'
 import { dashboardConfig } from '@web/config/dashboard'
+import { useIsMobile } from '@web/hooks/use-mobile'
 import { ChevronsUpDown } from 'lucide-react'
 import * as React from 'react'
 

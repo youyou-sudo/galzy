@@ -1,20 +1,21 @@
 'use client'
 
-import { Progress } from '@shadcn/ui/components/animate-ui/components/radix/progress'
-import { Switch } from '@shadcn/ui/components/animate-ui/components/radix/switch'
-import { Button } from '@shadcn/ui/components/button'
+import { useQuery } from '@tanstack/react-query'
+import { Progress } from '@web/components/animate-ui/radix/progress'
+import { Switch } from '@web/components/animate-ui/radix/switch'
+import { Button } from '@web/components/ui/button'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '@shadcn/ui/components/card'
+} from '@web/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@shadcn/ui/components/dropdown-menu'
+} from '@web/components/ui/dropdown-menu'
 import {
   Table,
   TableBody,
@@ -22,8 +23,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@shadcn/ui/components/table'
-import { useQuery } from '@tanstack/react-query'
+} from '@web/components/ui/table'
 import { workerDataGet } from '@web/lib/dashboard/download/Cloudflare/workerDataPull'
 import { configFormDel } from '@web/lib/dashboard/download/configForm'
 import { nodeEnaledAc } from '@web/lib/dashboard/download/nodeEnabledAc'

@@ -4,6 +4,7 @@ import Errors from '@web/components/error'
 import { GameViewsTrackEvents } from '@web/components/umami/track-events'
 import { getVnDetails } from '@web/lib/repositories/vnRepository'
 import type { Metadata } from 'next'
+import type React from 'react'
 import {
   aliasFilter,
   getCoverImageUrl,

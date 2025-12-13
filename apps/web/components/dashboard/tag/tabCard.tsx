@@ -1,17 +1,18 @@
 'use client'
-import { Button } from '@shadcn/ui/components/button'
-import { Checkbox } from '@shadcn/ui/components/checkbox'
-import { Input } from '@shadcn/ui/components/input'
-import { Skeleton } from '@shadcn/ui/components/skeleton'
+import { useQuery } from '@tanstack/react-query'
+import { Button } from '@web/components/ui/button'
+import { Checkbox } from '@web/components/ui/checkbox'
+import { Input } from '@web/components/ui/input'
+import { Skeleton } from '@web/components/ui/skeleton'
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
-} from '@shadcn/ui/components/table'
-import { useQuery } from '@tanstack/react-query'
+} from '@web/components/ui/table'
 import { Pencil } from 'lucide-react'
 import { useQueryState } from 'nuqs'
 import { tagAllAction, tagEditAction } from './(action)/action'

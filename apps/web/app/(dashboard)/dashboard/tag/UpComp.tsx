@@ -1,11 +1,11 @@
 'use client'
-import { Button } from '@shadcn/ui/components/button'
-import { Input } from '@shadcn/ui/components/input'
 import { useMutation } from '@tanstack/react-query'
 import {
   gameTagsAction,
   TagAllFileDwn,
 } from '@web/components/dashboard/tag/(action)/action'
+import { Button } from '@web/components/ui/button'
+import { Input } from '@web/components/ui/input'
 import { Loader2Icon } from 'lucide-react'
 
 export function UpComp() {

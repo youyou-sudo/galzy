@@ -1,12 +1,14 @@
 'use client'
-import { Button } from '@shadcn/ui/components/button'
+import { QueryClient, useMutation, useQuery } from '@tanstack/react-query'
+import DataManagementPagination from '@web/components/dashboard/dataManagement/Pagination'
+import { Button } from '@web/components/ui/button'
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from '@shadcn/ui/components/card'
-import { Input } from '@shadcn/ui/components/input'
+} from '@web/components/ui/card'
+import { Input } from '@web/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -15,8 +17,8 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from '@shadcn/ui/components/select'
-import { Skeleton } from '@shadcn/ui/components/skeleton'
+} from '@web/components/ui/select'
+import { Skeleton } from '@web/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -24,9 +26,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@shadcn/ui/components/table'
-import { QueryClient, useMutation, useQuery } from '@tanstack/react-query'
-import DataManagementPagination from '@web/components/dashboard/dataManagement/Pagination'
+} from '@web/components/ui/table'
 import {
   dataFilteringGet,
   vidassociationCreate,

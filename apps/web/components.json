@@ -13,10 +13,10 @@
   "iconLibrary": "lucide",
   "aliases": {
     "components": "@/components",
-    "hooks": "@/hooks",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui",
     "lib": "@/lib",
-    "utils": "@shadcn/ui/lib/utils",
-    "ui": "@shadcn/ui/components"
+    "hooks": "@/hooks"
   },
   "registries": {
     "@animate-ui": "https://animate-ui.com/r/{name}.json"

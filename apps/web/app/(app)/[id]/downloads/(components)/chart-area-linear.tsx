@@ -5,13 +5,13 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from '@shadcn/ui/components/card'
+} from '@web/components/ui/card'
 import {
   type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from '@shadcn/ui/components/chart'
+} from '@web/components/ui/chart'
 import { Area, AreaChart, CartesianGrid, LineChart, XAxis } from 'recharts'
 
 const chartConfig = {

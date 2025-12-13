@@ -1,11 +1,12 @@
 'use client'
-import { Button } from '@shadcn/ui/components/button'
 import {
   meiliSearchAddContenAc,
   meiliSearchAddTagAc,
   OpenlistAc,
   WorkerDataAC,
 } from '@web/app/(dashboard)/dashboard/(action)/action'
+import { Button } from '@web/components/ui/button'
+import React from 'react'
 
 export function ButtonCard() {
   return (

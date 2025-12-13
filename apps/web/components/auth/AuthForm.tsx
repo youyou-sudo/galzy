@@ -3,18 +3,14 @@
 import { useRouter } from '@bprogress/next/app'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from '@shadcn/ui/components/alert'
-import {
   Tabs,
   TabsContent,
   TabsContents,
   TabsList,
   TabsTrigger,
-} from '@shadcn/ui/components/animate-ui/components/radix/tabs'
-import { Button } from '@shadcn/ui/components/button'
+} from '@web/components/animate-ui/radix/tabs'
+import { Alert, AlertDescription, AlertTitle } from '@web/components/ui/alert'
+import { Button } from '@web/components/ui/button'
 import {
   Form,
   FormControl,
@@ -22,8 +18,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@shadcn/ui/components/form'
-import { Input } from '@shadcn/ui/components/input'
+} from '@web/components/ui/form'
+import { Input } from '@web/components/ui/input'
 import { authClient } from '@web/lib/auth/auth-client'
 import { AlertCircle, EyeIcon, EyeOffIcon, Loader2 } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
@@ -32,7 +28,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
 const signInformSchema = z.object({
-  email: z.email({
+  email: z.string().email({
     message: '请输入正确邮箱',
   }),
   password: z.string().min(8, {

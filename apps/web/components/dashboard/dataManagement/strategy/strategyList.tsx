@@ -1,16 +1,16 @@
 'use client'
 import type { StrategyModel } from '@api/modules/strategy/model'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { MotionHighlight } from '@web/components/animate-ui/effects/motion-highlight'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@shadcn/ui/components/animate-ui/components/radix/dialog'
-import { MotionHighlight } from '@shadcn/ui/components/animate-ui/effects/motion-highlight'
-import { Button } from '@shadcn/ui/components/button'
-import { Skeleton } from '@shadcn/ui/components/skeleton'
-import { useMutation, useQuery } from '@tanstack/react-query'
+} from '@web/components/animate-ui/radix/dialog'
 import ForesightLink from '@web/components/HoverPLink'
+import { Button } from '@web/components/ui/button'
+import { Skeleton } from '@web/components/ui/skeleton'
 import { authClient } from '@web/lib/auth/auth-client'
 import {
   strategyListDelete,
@@ -18,6 +18,7 @@ import {
 } from '@web/lib/strategy/strategyAc'
 import { Loader2Icon, NotepadText, Pencil, Trash } from 'lucide-react'
 import { usePathname } from 'next/navigation'
+import React from 'react'
 import { useStrategyListDialog } from '../stores/strategyListModal'
 import { useLoginModalStore } from './stores/EditStores'
 import { StrategEdit } from './strategyEdit'

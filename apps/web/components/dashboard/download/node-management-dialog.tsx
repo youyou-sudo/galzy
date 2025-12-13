@@ -7,8 +7,8 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@shadcn/ui/components/animate-ui/components/radix/dialog'
-import { Button } from '@shadcn/ui/components/button'
+} from '@web/components/animate-ui/radix/dialog'
+import { Button } from '@web/components/ui/button'
 import {
   Form,
   FormControl,
@@ -16,8 +16,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@shadcn/ui/components/form'
-import { Input } from '@shadcn/ui/components/input'
+} from '@web/components/ui/form'
+import { Input } from '@web/components/ui/input'
 import { configFormPut } from '@web/lib/dashboard/download/configForm'
 import { Loader2, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'

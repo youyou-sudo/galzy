@@ -8,7 +8,7 @@ import {
   TypographyP,
   TypographyTableCell,
   TypographyTableHeader,
-} from '@shadcn/ui/components/typography'
+} from '@web/components/ui/typography'
 import type { MDXComponents } from 'mdx/types'
 
 export const mdxComponents: MDXComponents = {

@@ -1,15 +1,16 @@
 import { api } from '@libs'
+import ForesightLink from '@web/components/HoverPLink'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@shadcn/ui/components/card'
-import ForesightLink from '@web/components/HoverPLink'
+} from '@web/components/ui/card'
 import { ArrowLeft, User } from 'lucide-react'
 import Link from 'next/link'
 import type { Metadata } from 'next/types'
+import React from 'react'
 import Markdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
@@ -36,7 +37,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       strategyId: +introduction,
     },
   })
-  const raw = strategyContent?.content ?? strategyContent?.title ?? ''
+  const raw = strategyContent?.content
+    ?? strategyContent?.title
+    ?? ''
 
   const textOnly = stripMarkdown(stripHTML(raw!))
   return {

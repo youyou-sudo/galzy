@@ -3,7 +3,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { homeData } from '@web/app/(app)/(home)/(action)/homeData'
 import { GameCard } from '@web/components/game-card'
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { useInView } from 'react-intersection-observer'
 import { GameItem } from './GameItem'
 

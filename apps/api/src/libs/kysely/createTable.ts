@@ -1,20 +1,20 @@
-import { db, redis, sql, vndbDb } from '@api/libs'
-import { setDeployStatus } from '@api/modules/status/service'
+import { db, sql, vndbDb, redis } from '@api/libs'
+import { setDeployStatus } from '@api/modules/status/service';
 
 export const dbAction = async () => {
   console.log('⌛ Running database migrations and seeding...')
   if (await checkDbConnection(db)) {
-    console.log('✅️ Website database connection test successful')
+    console.log('✅️ Website database connection test successful');
   } else {
     setDeployStatus('error')
-    console.error('❌ Website database connection test failed')
+    console.error('❌ Website database connection test failed');
   }
 
   if (await checkDbConnection(vndbDb)) {
-    console.log('✅️ VNDB database connection test successful')
+    console.log('✅️ VNDB database connection test successful');
   } else {
     setDeployStatus('error')
-    console.error('❌ VNDB database connection test failed')
+    console.error('❌ VNDB database connection test failed');
   }
 
   try {
@@ -26,22 +26,22 @@ export const dbAction = async () => {
   }
   try {
     await dbFdw()
-    console.log('✅️ dbFdw connection test successful')
+    console.log('✅️ dbFdw connection test successful');
   } catch (error) {
     setDeployStatus('error')
     console.error('❌ Error during FDW setup:', error)
   }
   try {
-    const pong = await redis.ping()
+    const pong = await redis.ping();
     if (pong === 'PONG') {
-      console.log('✅️ Redis connection test successful')
+      console.log('✅️ Redis connection test successful');
     } else {
       setDeployStatus('error')
-      console.error('❌ Redis connection test failed')
+      console.error('❌ Redis connection test failed');
     }
   } catch (error) {
     setDeployStatus('error')
-    console.error('❌ Error during Redis connection test:', error)
+    console.error('❌ Error during Redis connection test:', error);
   }
   setDeployStatus('ready')
   console.log('🎉 Database loading complete')
@@ -49,10 +49,10 @@ export const dbAction = async () => {
 
 const checkDbConnection = async (db: any) => {
   try {
-    await sql`SELECT 1`.execute(db)
-    return true
+    await sql`SELECT 1`.execute(db);
+    return true;
   } catch {
-    return false
+    return false;
   }
 }
 
@@ -437,6 +437,7 @@ const dbFdw = async () => {
       dbname '${sql.raw(dbname)}'
     );
 `.execute(db)
+
 
   // 创建用户映射
   await sql`

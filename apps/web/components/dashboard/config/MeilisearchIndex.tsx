@@ -1,13 +1,14 @@
 'use client'
 
-import { Button } from '@shadcn/ui/components/button'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { Button } from '@web/components/ui/button'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@shadcn/ui/components/card'
+} from '@web/components/ui/card'
 import {
   Command,
   CommandEmpty,
@@ -15,20 +16,19 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@shadcn/ui/components/command'
+} from '@web/components/ui/command'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@shadcn/ui/components/popover'
-import { Skeleton } from '@shadcn/ui/components/skeleton'
-import { cn } from '@shadcn/ui/lib/utils'
-import { useMutation, useQuery } from '@tanstack/react-query'
+} from '@web/components/ui/popover'
+import { Skeleton } from '@web/components/ui/skeleton'
 import {
   meilisearchPropertylist,
   meilisearcSearchableAttributeshGet,
   meilisearcSearchableAttributeshUpdate,
 } from '@web/lib/dashboard/config/meilisearch'
+import { cn } from '@web/lib/utils'
 import {
   Check,
   ChevronsUpDown,
@@ -120,7 +120,7 @@ export function MeiliSearchIndex() {
     return (
       <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, index) => (
-          <Skeleton key={index} className="h-10 w-full max-w-112.5" />
+          <Skeleton key={index} className="h-10 w-full max-w-[450px]" />
         ))}
       </div>
     )
@@ -177,7 +177,7 @@ export function MeiliSearchIndex() {
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-50 p-0">
+            <PopoverContent className="w-[200px] p-0">
               <Command>
                 <CommandInput placeholder="搜索字段..." className="h-9" />
                 <CommandList>
@@ -187,7 +187,7 @@ export function MeiliSearchIndex() {
                       <CommandItem
                         key={field}
                         value={field}
-                        onSelect={(currentValue: any) => {
+                        onSelect={(currentValue) => {
                           setSelectedField(
                             currentValue === selectedField ? '' : currentValue,
                           )

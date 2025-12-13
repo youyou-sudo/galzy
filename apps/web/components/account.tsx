@@ -7,12 +7,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@shadcn/ui/components/animate-ui/components/radix/dropdown-menu'
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from '@shadcn/ui/components/avatar'
+} from '@web/components/animate-ui/components/radix/dropdown-menu'
+import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
 
 import { authClient } from '@web/lib/auth/auth-client'
 

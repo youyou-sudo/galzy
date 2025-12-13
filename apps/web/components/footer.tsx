@@ -1,4 +1,4 @@
-import { cn } from '@shadcn/ui/lib/utils'
+import { cn } from '@web/lib/utils'
 import Link from 'next/link'
 import type React from 'react'
 import ForesightLink from './HoverPLink'

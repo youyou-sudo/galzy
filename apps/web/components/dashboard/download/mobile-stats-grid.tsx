@@ -1,4 +1,4 @@
-import { Card } from '@shadcn/ui/components/card'
+import { Card } from '@web/components/ui/card'
 import type { MobileStatsGridProps } from './load-balancer-dashboard'
 
 export function MobileStatsGrid({

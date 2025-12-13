@@ -4,6 +4,8 @@ import ForesightLink from '@web/components/HoverPLink'
 import { TagViewsTrackEvents } from '@web/components/umami/track-events'
 import { getImageUrl, imageAcc } from '@web/lib/ImageUrl'
 import type { getSearch } from '@web/lib/search/meilisearch'
+import Link from 'next/link'
+import React from 'react'
 
 type Datas = Awaited<ReturnType<typeof getSearch>>
 

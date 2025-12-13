@@ -1,11 +1,12 @@
-import { Card, CardHeader, CardTitle } from '@shadcn/ui/components/card'
 import {
   dehydrate,
   HydrationBoundary,
   QueryClient,
 } from '@tanstack/react-query'
+import { Card, CardHeader, CardTitle } from '@web/components/ui/card'
 import { TagViewsTrackEvents } from '@web/components/umami/track-events'
 import type { Metadata } from 'next/types'
+import React from 'react'
 import { getTagData, getVnListByTag } from './(acrion)/tagvns'
 import { TagsGamelist } from './(components)/gamelist'
 
