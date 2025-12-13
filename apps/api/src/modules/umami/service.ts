@@ -2,6 +2,7 @@ import { getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
 import { t } from 'try'
 import type { UmamiModel } from './model'
+import { unique } from 'radash'
 
 const now = new Date()
 
@@ -52,9 +53,12 @@ export const Umami = {
       }
       return dats
     })
-    void setKv('remfTag', JSON.stringify(data), 60 * 15)
-    type RemfTag = typeof data
-    return data
+
+    const uniqueById = unique(data, item => item.tag)
+
+    void setKv('remfTag', JSON.stringify(uniqueById), 60 * 15)
+    type RemfTag = typeof uniqueById
+    return uniqueById
   },
   // Game 统计
   async remfGameGet() {
@@ -85,9 +89,11 @@ export const Umami = {
         total,
       }
     })
-    void setKv('remfGame', JSON.stringify(parsed), 60 * 15)
-    type RemfGame = typeof parsed
-    return parsed
+    const uniqueById = unique(parsed, item => item.id)
+
+    void setKv('remfGame', JSON.stringify(uniqueById), 60 * 15)
+    type RemfGame = typeof uniqueById
+    return uniqueById
   },
   async gameDloadNuber({ vid }: UmamiModel.gameDloadNuber) {
     const redisData = await getKv(`gameDloadNuber-${vid}`)

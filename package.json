@@ -36,6 +36,7 @@
     "@types/mdx": "^2.0.13",
     "better-auth": "^1.4.6",
     "concurrently": "^9.2.1",
+    "radash": "^12.1.1",
     "try": "^1.0.3"
   }
 }
