@@ -12,8 +12,7 @@ RUN bun install
 
 COPY apps/web apps/web
 COPY apps/api apps/api
-COPY packages/libs packages/libs
-COPY packages/config packages/config
+COPY packages packages
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
