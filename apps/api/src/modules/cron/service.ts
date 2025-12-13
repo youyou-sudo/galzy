@@ -1,6 +1,7 @@
 import { db, MeiliClient } from '@api/libs'
 import { deacquireLocklKv, releaseLockKv } from '@api/libs/redis'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
+import { all } from 'radash'
 import { t } from 'try'
 
 export const CronService = {
@@ -17,8 +18,7 @@ export const CronService = {
     try {
       const data = await db.selectFrom('galrc_cloudflare').selectAll().execute()
 
-      // 将所有请求并行处理，不使用 Promise.allSettled，而是使用 Promise.all 配合错误处理
-      await Promise.all(
+      await all(
         data.map(async (item) => {
           try {
             const today = new Date()
