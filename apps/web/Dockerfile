@@ -7,7 +7,6 @@ COPY apps/web/package.json apps/web/package.json
 COPY apps/api/package.json apps/api/package.json
 COPY packages/libs/package.json packages/libs/package.json
 COPY packages/config/package.json packages/config/package.json
-COPY packages/ui/package.json packages/ui/package.json
 
 RUN bun install
 
