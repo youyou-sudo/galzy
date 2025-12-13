@@ -1,8 +1,8 @@
 import { getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
+import { unique } from 'radash'
 import { t } from 'try'
 import type { UmamiModel } from './model'
-import { unique } from 'radash'
 
 const now = new Date()
 
@@ -54,7 +54,7 @@ export const Umami = {
       return dats
     })
 
-    const uniqueById = unique(data, item => item.tag)
+    const uniqueById = unique(data, (item) => item.tag)
 
     void setKv('remfTag', JSON.stringify(uniqueById), 60 * 15)
     type RemfTag = typeof uniqueById
@@ -89,7 +89,7 @@ export const Umami = {
         total,
       }
     })
-    const uniqueById = unique(parsed, item => item.id)
+    const uniqueById = unique(parsed, (item) => item.id)
 
     void setKv('remfGame', JSON.stringify(uniqueById), 60 * 15)
     type RemfGame = typeof uniqueById

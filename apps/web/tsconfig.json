@@ -40,8 +40,9 @@
     "**/*.tsx",
     ".next/standalone/apps/web/types/**/*.ts",
     "next-env.d.ts",
-    ".next/types/**/*.ts"
-, "../../packages/ui/src/lib/get-strict-context.tsx"  ],
+    ".next/types/**/*.ts",
+    "../../packages/ui/src/lib/get-strict-context.tsx"
+  ],
   "exclude": [
     "node_modules",
     "coverage",
