@@ -129,6 +129,7 @@
     "packages/libs": {
       "name": "libs",
       "devDependencies": {
+        "@biomejs/biome": "^2.3.8",
         "@elysiajs/eden": "1.4.5",
         "typescript": "^5.9.3",
       },

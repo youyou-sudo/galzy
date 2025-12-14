@@ -274,6 +274,22 @@ export const DownCardDialog = () => {
           <span>{formatBytes(Number(data?.size))}</span>
         </DialogDescription>
 
+          <div className="flex text-center justify-center mt-2">
+            <div className="flex text-center items-center">解压密码：</div>
+            <div className="relative w-19">
+              <pre className="pr-6 text-center items-center rounded-md border">
+                玖辞
+              </pre>
+              <CopyButton
+                size="default"
+                variant="secondary"
+                content="玖辞"
+                onCopy={() => console.assert('已复制!')}
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+              />
+            </div>
+          </div>
+
         <DialogFooter className="gap-2 sm:justify-center">
           <Button
             onClick={() => close()}
@@ -325,30 +341,13 @@ export const DownCardDialog = () => {
             )}
           </Button>
         </DialogFooter>
-
-        <div className="flex text-center justify-center mt-2">
-          <div className="flex text-center items-center">解压密码：</div>
-          <div className="relative w-19">
-            <pre className="pr-6 text-center items-center rounded-md border">
-              玖辞
-            </pre>
-            <CopyButton
-              size="default"
-              variant="secondary"
-              content="玖辞"
-              onCopy={() => console.assert('已复制!')}
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-            />
-          </div>
-        </div>
-
         {readmedata && (
           <div className="max-h-96 overflow-y-auto p-2 border-2 rounded-2xl wrap-break-word">
             <div className="space-y-2">
               {isLoading
                 ? Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-5 rounded-full" />
-                  ))
+                  <Skeleton key={i} className="h-5 rounded-full" />
+                ))
                 : null}
             </div>
             <MarkdownAsync readmedata={readmedata} />
