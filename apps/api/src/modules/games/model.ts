@@ -32,6 +32,7 @@ export namespace GameModel {
     type: 'folder' | 'file'
     size?: string
     format?: string
+    volumes?: boolean
     children?: TreeNode[]
     sign?: string
     redame?: string

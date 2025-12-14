@@ -26,6 +26,15 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { downCardDataStore } from './stores/downCardData'
 import { GlgczujmDl } from './tips'
+import { BadgeCheckIcon, ChevronRightIcon } from "lucide-react"
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemTitle,
+} from "@web/components/ui/item"
+import { tryit } from 'radash'
 
 export function CopyButtons({ id }: { id?: string }) {
   const [copied, setCopied] = useState(false)
@@ -131,6 +140,7 @@ function groupSplitArchives(
       id: `archive-${fullName}-${Date.now()}`,
       type: 'folder' as const,
       name: `(分卷) ${fullName}`,
+      volumes: true,
       children: files!,
     }),
   )
@@ -170,7 +180,7 @@ const Filessss = ({ items }: { items: GameModel.TreeNode[] | undefined }) => {
   return (
     <>
       {items?.map((item) =>
-        item.type === 'folder' ? (
+        item.type === 'folder' && item.volumes !== true ? (
           <Folder name={item.name} key={item.name}>
             {item.children && <Filessss items={item.children} />}
           </Folder>
@@ -197,8 +207,8 @@ export const DownCardDialog = () => {
   const data = downCardDataStore((s) => s.data)
   const close = downCardDataStore((s) => s.close)
 
-  const [isDownloading, setIsDownloading] = useState(false)
-  const [isCopying, setIsCopying] = useState(false)
+  const [downloadingMap, setDownloadingMap] = useState<Record<string, boolean>>({})
+  const [isCopying, setIsCopying] = useState<Record<string, boolean>>({})
 
   // 文件大小格式化
   function formatBytes(bytes: number, decimals = 2): string {
@@ -222,30 +232,26 @@ export const DownCardDialog = () => {
   })
 
   // 下载处理函数
-  const handleDownload = async () => {
-    if (!data?.id) return
-    setIsDownloading(true)
-    try {
-      const log = await dwAcConst(data.id, game_id)
-      if (log?.url) {
-        const link = document.createElement('a')
-        link.href = log.url
-        // 可以指定下载的文件名，如果后端有返回文件名就用它，否则用默认
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        toast.success('已成功请求下载喵～')
-      }
-    } catch {
-      toast.error('下载失败喵～')
-    } finally {
-      setIsDownloading(false)
+  const handleDownload = async (path: string, game_id: string) => {
+    setDownloadingMap(prev => ({ ...prev, [path]: true }))
+    const [err, log] = await tryit(dwAcConst)(path, game_id)
+    if (err) {
+      toast.error('下载请求失败喵～')
     }
+    if (log?.url) {
+      window.open(log.url, '_blank')
+      toast.success('已成功请求下载喵～')
+    } else {
+      toast.error('下载 URL 找不到喵～')
+    }
+
+    setDownloadingMap(prev => ({ ...prev, [path]: false }))
   }
+
 
   // 复制处理函数
   const handleCopy = async (text: string, game_id: string) => {
-    setIsCopying(true)
+    setIsCopying(prev => ({ ...prev, [text]: true }))
     try {
       const url = await dwAcConst(text, game_id)
       await navigator.clipboard.writeText(url.url)
@@ -253,7 +259,7 @@ export const DownCardDialog = () => {
     } catch {
       toast.error('复制失败喵～')
     } finally {
-      setIsCopying(false)
+      setIsCopying(prev => ({ ...prev, [text]: false }))
     }
   }
 
@@ -264,90 +270,220 @@ export const DownCardDialog = () => {
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>文件信息</DialogTitle>
+          <DialogTitle>{data?.volumes ? `分卷列表` : `文件信息`}</DialogTitle>
         </DialogHeader>
 
-        <span className="flex justify-center wrap-break-word">
-          <FileArchive className='w-20 h-20' strokeWidth={1} />
-        </span>
+        {data?.volumes ? (
+          <div className="flex w-full max-w-md flex-col">
+            {data.children?.map((item) => (
+              <Item key={item.id} variant="outline">
+                <ItemContent>
+                  <ItemTitle>{item.name}</ItemTitle>
+                  <ItemDescription className='ml-2'>
+                    {formatBytes(Number(item.size))}
+                  </ItemDescription>
+                </ItemContent>
+                <ItemActions>
 
+                  <Button
+                    variant="outline"
+                    onClick={() => handleCopy(item?.id || '', game_id)}
+                    size="icon"
+                    disabled={isCopying[item?.id] || false}
+                  >
+                    {isCopying[item?.id] ? (
+                      <svg
+                        className="w-4 h-4 animate-spin"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                        ></path>
+                      </svg>
+                    ) : (
+                      <Copy strokeWidth={1} />
+                    )}
+                  </Button>
 
-        <span className="text-center wrap-break-word">
-          {data?.name}
-        </span>
+                  <Button
+                    onClick={() => handleDownload(item?.id, game_id)}
+                    disabled={downloadingMap[item?.id] || false}
+                    data-umami-event="GameDownload"
+                    data-umami-event-pathe={item?.id}
+                    variant="outline"
+                    data-umami-event-size={item?.size}
+                  >
+                    {downloadingMap[item?.id] ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v8H4z"
+                          ></path>
+                        </svg>
+                        请求中
+                      </span>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <Download />
+                        下载
+                      </div>
+                    )}
+                  </Button>
+                </ItemActions>
+              </Item>
+            ))}
 
-        <DialogDescription className="ml-2 text-center">
-          <span>{formatBytes(Number(data?.size))}</span>
-        </DialogDescription>
+            <DialogDescription className="ml-2 mt-1 text-center">
+              <span>全部下载到一个目录中解压 part1 分卷</span>
+            </DialogDescription>
 
-
-        <div className="flex text-center justify-center mt-2">
-          <div className="flex text-center items-center">解压密码：</div>
-          <div className="relative w-19">
-            <pre className="pr-6 text-center items-center rounded-md border">
-              玖辞
-            </pre>
-            <CopyButton
-              size="default"
-              variant="secondary"
-              content="玖辞"
-              onCopy={() => console.assert('已复制!')}
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-            />
-          </div>
-        </div>
-
-        <DialogFooter className="flex-row justify-center sm:justify-center gap-2">
-
-          <Button
-            variant="secondary"
-            onClick={() => handleCopy(data?.id || '', game_id)}
-            disabled={isCopying}
-          >
-            {isCopying ? '请求中...' : '复制链接'}
-          </Button>
-
-          <Button
-            onClick={handleDownload}
-            disabled={isDownloading}
-            data-umami-event="GameDownload"
-            data-umami-event-pathe={data?.id}
-            data-umami-event-size={data?.size}
-          >
-            {isDownloading ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v8H4z"
-                  ></path>
-                </svg>
-                请求中
-              </span>
-            ) : (
-              <div className="flex items-center gap-1">
-                <Download />
-                下载
+            <div className="flex text-center justify-center mt-2">
+              <div className="flex text-center items-center">解压密码：</div>
+              <div className="relative w-19">
+                <pre className="pr-6 text-center items-center rounded-md border">
+                  玖辞
+                </pre>
+                <CopyButton
+                  size="default"
+                  variant="secondary"
+                  content="玖辞"
+                  onCopy={() => console.assert('已复制!')}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+                />
               </div>
-            )}
-          </Button>
-          <Button
-            onClick={() => close()}
-            variant="outline"
-            className="text-red-500"
-          >
-            关闭
-          </Button>
-        </DialogFooter>
+            </div>
+          </div>
+        ) : (
+          <>
+            <span className="flex justify-center wrap-break-word">
+              <FileArchive className='w-20 h-20' strokeWidth={1} />
+            </span>
+
+
+            <span className="text-center wrap-break-word">
+              {data?.name}
+            </span>
+
+            <DialogDescription className="ml-2 text-center">
+              <span>{formatBytes(Number(data?.size))}</span>
+            </DialogDescription>
+
+            <div className="flex text-center justify-center mt-2">
+              <div className="flex text-center items-center">解压密码：</div>
+              <div className="relative w-19">
+                <pre className="pr-6 text-center items-center rounded-md border">
+                  玖辞
+                </pre>
+                <CopyButton
+                  size="default"
+                  variant="secondary"
+                  content="玖辞"
+                  onCopy={() => console.assert('已复制!')}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="flex-row justify-center sm:justify-center gap-2">
+
+              <Button
+                variant="outline"
+                onClick={() => handleCopy(data?.id || '', game_id)}
+                size="icon"
+                disabled={isCopying[data?.id || ''] || false}
+              >
+                {isCopying[data?.id || ''] ? (
+                  <svg
+                    className="w-4 h-4 animate-spin"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    ></path>
+                  </svg>
+                ) : (
+                  <Copy strokeWidth={1} />
+                )}
+              </Button>
+
+
+              <Button
+                onClick={() => handleDownload(data?.id || '', game_id)}
+                disabled={downloadingMap[data?.id || ''] || false}
+                data-umami-event="GameDownload"
+                data-umami-event-pathe={data?.id}
+                data-umami-event-size={data?.size}
+                variant="outline"
+              >
+                {downloadingMap[data?.id || ''] ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8H4z"
+                      ></path>
+                    </svg>
+                    请求中
+                  </span>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <Download />
+                    下载
+                  </div>
+                )}
+              </Button>
+              <Button
+                onClick={() => close()}
+                variant="outline"
+                className="text-red-500"
+              >
+                关闭
+              </Button>
+            </DialogFooter>
+          </>
+        )
+        }
         {readmedata && (
           <div className="max-h-96 overflow-y-auto p-2 border-2 rounded-2xl wrap-break-word">
             <div className="space-y-2">
