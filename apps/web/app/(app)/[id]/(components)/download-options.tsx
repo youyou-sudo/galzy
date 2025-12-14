@@ -20,7 +20,7 @@ import {
 import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
 import { Skeleton } from '@web/components/ui/skeleton'
 import { dwAcConst } from '@web/lib/download/ac'
-import { Check, Copy, Download } from 'lucide-react'
+import { Check, Copy, Download, FileArchive } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -267,40 +267,40 @@ export const DownCardDialog = () => {
           <DialogTitle>文件信息</DialogTitle>
         </DialogHeader>
 
-        <span className="text-center text-lg wrap-break-word">
+        <span className="flex justify-center wrap-break-word">
+          <FileArchive className='w-20 h-20' strokeWidth={1} />
+        </span>
+
+
+        <span className="text-center wrap-break-word">
           {data?.name}
         </span>
-        <DialogDescription className="text-center">
+
+        <DialogDescription className="ml-2 text-center">
           <span>{formatBytes(Number(data?.size))}</span>
         </DialogDescription>
 
-          <div className="flex text-center justify-center mt-2">
-            <div className="flex text-center items-center">解压密码：</div>
-            <div className="relative w-19">
-              <pre className="pr-6 text-center items-center rounded-md border">
-                玖辞
-              </pre>
-              <CopyButton
-                size="default"
-                variant="secondary"
-                content="玖辞"
-                onCopy={() => console.assert('已复制!')}
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-              />
-            </div>
+
+        <div className="flex text-center justify-center mt-2">
+          <div className="flex text-center items-center">解压密码：</div>
+          <div className="relative w-19">
+            <pre className="pr-6 text-center items-center rounded-md border">
+              玖辞
+            </pre>
+            <CopyButton
+              size="default"
+              variant="secondary"
+              content="玖辞"
+              onCopy={() => console.assert('已复制!')}
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
+            />
           </div>
+        </div>
 
-        <DialogFooter className="gap-2 sm:justify-center">
+        <DialogFooter className="flex-row justify-center sm:justify-center gap-2">
+
           <Button
-            onClick={() => close()}
             variant="secondary"
-            className="text-red-500"
-          >
-            关闭
-          </Button>
-
-          <Button
-            variant="outline"
             onClick={() => handleCopy(data?.id || '', game_id)}
             disabled={isCopying}
           >
@@ -339,6 +339,13 @@ export const DownCardDialog = () => {
                 下载
               </div>
             )}
+          </Button>
+          <Button
+            onClick={() => close()}
+            variant="outline"
+            className="text-red-500"
+          >
+            关闭
           </Button>
         </DialogFooter>
         {readmedata && (
