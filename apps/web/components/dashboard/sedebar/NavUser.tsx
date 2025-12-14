@@ -25,8 +25,8 @@ import {
   LogOut,
   Sparkles,
 } from 'lucide-react'
-import React from 'react'
 import { useRouter } from 'next/navigation'
+import React from 'react'
 
 export default function NavUser() {
   const isMobile = useIsMobile()

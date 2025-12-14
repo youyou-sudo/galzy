@@ -17,24 +17,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@web/components/ui/dialog'
-import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
-import { Skeleton } from '@web/components/ui/skeleton'
-import { dwAcConst } from '@web/lib/download/ac'
-import { Check, Copy, Download, FileArchive } from 'lucide-react'
-import { usePathname } from 'next/navigation'
-import { useState } from 'react'
-import { toast } from 'sonner'
-import { downCardDataStore } from './stores/downCardData'
-import { GlgczujmDl } from './tips'
-import { BadgeCheckIcon, ChevronRightIcon } from "lucide-react"
 import {
   Item,
   ItemActions,
   ItemContent,
   ItemDescription,
   ItemTitle,
-} from "@web/components/ui/item"
+} from '@web/components/ui/item'
+import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
+import { Skeleton } from '@web/components/ui/skeleton'
+import { dwAcConst } from '@web/lib/download/ac'
+import {
+  BadgeCheckIcon,
+  Check,
+  ChevronRightIcon,
+  Copy,
+  Download,
+  FileArchive,
+} from 'lucide-react'
+import { usePathname } from 'next/navigation'
 import { tryit } from 'radash'
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { downCardDataStore } from './stores/downCardData'
+import { GlgczujmDl } from './tips'
 
 export function CopyButtons({ id }: { id?: string }) {
   const [copied, setCopied] = useState(false)
@@ -207,7 +213,9 @@ export const DownCardDialog = () => {
   const data = downCardDataStore((s) => s.data)
   const close = downCardDataStore((s) => s.close)
 
-  const [downloadingMap, setDownloadingMap] = useState<Record<string, boolean>>({})
+  const [downloadingMap, setDownloadingMap] = useState<Record<string, boolean>>(
+    {},
+  )
   const [isCopying, setIsCopying] = useState<Record<string, boolean>>({})
 
   // 文件大小格式化
@@ -233,7 +241,7 @@ export const DownCardDialog = () => {
 
   // 下载处理函数
   const handleDownload = async (path: string, game_id: string) => {
-    setDownloadingMap(prev => ({ ...prev, [path]: true }))
+    setDownloadingMap((prev) => ({ ...prev, [path]: true }))
     const [err, log] = await tryit(dwAcConst)(path, game_id)
     if (err) {
       toast.error('下载请求失败喵～')
@@ -245,13 +253,12 @@ export const DownCardDialog = () => {
       toast.error('下载 URL 找不到喵～')
     }
 
-    setDownloadingMap(prev => ({ ...prev, [path]: false }))
+    setDownloadingMap((prev) => ({ ...prev, [path]: false }))
   }
-
 
   // 复制处理函数
   const handleCopy = async (text: string, game_id: string) => {
-    setIsCopying(prev => ({ ...prev, [text]: true }))
+    setIsCopying((prev) => ({ ...prev, [text]: true }))
     try {
       const url = await dwAcConst(text, game_id)
       await navigator.clipboard.writeText(url.url)
@@ -259,7 +266,7 @@ export const DownCardDialog = () => {
     } catch {
       toast.error('复制失败喵～')
     } finally {
-      setIsCopying(prev => ({ ...prev, [text]: false }))
+      setIsCopying((prev) => ({ ...prev, [text]: false }))
     }
   }
 
@@ -279,12 +286,11 @@ export const DownCardDialog = () => {
               <Item key={item.id} variant="outline">
                 <ItemContent>
                   <ItemTitle>{item.name}</ItemTitle>
-                  <ItemDescription className='ml-2'>
+                  <ItemDescription className="ml-2">
                     {formatBytes(Number(item.size))}
                   </ItemDescription>
                 </ItemContent>
                 <ItemActions>
-
                   <Button
                     variant="outline"
                     onClick={() => handleCopy(item?.id || '', game_id)}
@@ -326,7 +332,10 @@ export const DownCardDialog = () => {
                   >
                     {downloadingMap[item?.id] ? (
                       <span className="flex items-center gap-2">
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <svg
+                          className="animate-spin h-4 w-4"
+                          viewBox="0 0 24 24"
+                        >
                           <circle
                             className="opacity-25"
                             cx="12"
@@ -377,13 +386,10 @@ export const DownCardDialog = () => {
         ) : (
           <>
             <span className="flex justify-center wrap-break-word">
-              <FileArchive className='w-20 h-20' strokeWidth={1} />
+              <FileArchive className="w-20 h-20" strokeWidth={1} />
             </span>
 
-
-            <span className="text-center wrap-break-word">
-              {data?.name}
-            </span>
+            <span className="text-center wrap-break-word">{data?.name}</span>
 
             <DialogDescription className="ml-2 text-center">
               <span>{formatBytes(Number(data?.size))}</span>
@@ -406,7 +412,6 @@ export const DownCardDialog = () => {
             </div>
 
             <DialogFooter className="flex-row justify-center sm:justify-center gap-2">
-
               <Button
                 variant="outline"
                 onClick={() => handleCopy(data?.id || '', game_id)}
@@ -437,7 +442,6 @@ export const DownCardDialog = () => {
                   <Copy strokeWidth={1} />
                 )}
               </Button>
-
 
               <Button
                 onClick={() => handleDownload(data?.id || '', game_id)}
@@ -482,15 +486,14 @@ export const DownCardDialog = () => {
               </Button>
             </DialogFooter>
           </>
-        )
-        }
+        )}
         {readmedata && (
           <div className="max-h-96 overflow-y-auto p-2 border-2 rounded-2xl wrap-break-word">
             <div className="space-y-2">
               {isLoading
                 ? Array.from({ length: 3 }).map((_, i) => (
-                  <Skeleton key={i} className="h-5 rounded-full" />
-                ))
+                    <Skeleton key={i} className="h-5 rounded-full" />
+                  ))
                 : null}
             </div>
             <MarkdownAsync readmedata={readmedata} />

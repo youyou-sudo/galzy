@@ -18,7 +18,8 @@ const linksList: {
   },
   {
     title: 'Steam 上的中文 Galgame',
-    avatar: 'https://steamgalgame.com/usr/themes/SteamGalgame/static/img/favicon.png',
+    avatar:
+      'https://steamgalgame.com/usr/themes/SteamGalgame/static/img/favicon.png',
     href: 'https://steamgalgame.com',
     description: '',
   },
