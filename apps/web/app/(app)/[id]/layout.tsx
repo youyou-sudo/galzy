@@ -30,9 +30,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       default: titlesData.zhHans || titlesData.olang || 'Gamgame',
       template: `${titlesData.zhHans || titlesData.olang || 'Gamgame'} - %s`,
     },
-    description: `${
-      titlesData.zhHans || titlesData.olang || 'Gamgame'
-    } 的资源下载，游戏别名：${aliasData || '无'}`,
+    description: `${titlesData.zhHans || titlesData.olang || 'Gamgame'
+      } 资源下载，游戏别名：${aliasData || '无'}，简介：${data?.vn_datas?.description || '暂无简介'}`,
     openGraph: {
       images: [
         {
