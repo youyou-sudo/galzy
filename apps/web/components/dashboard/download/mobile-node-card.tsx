@@ -11,7 +11,6 @@ import {
 } from '@web/components/ui/dropdown-menu'
 import type { workerDataGet } from '@web/lib/dashboard/download/Cloudflare/workerDataPull'
 import { nodeEnaledAc } from '@web/lib/dashboard/download/nodeEnabledAc'
-import { formatBytes } from '@web/lib/formatBytes'
 import {
   Activity,
   ArrowDownUp,
@@ -29,6 +28,7 @@ export type WorkerData = Awaited<ReturnType<typeof workerDataGet>>
 type NoNullWorkerData = NonNullable<WorkerData>
 
 import { Progress } from '@web/components/animate-ui/radix/progress'
+import { filesize } from 'filesize'
 
 export function MobileNodeCard({
   node,
@@ -94,7 +94,7 @@ export function MobileNodeCard({
               <ArrowDownUp className="h-3 w-3 text-muted-foreground mr-1" />
             </div>
             <div className="text-lg font-semibold whitespace-nowrap">
-              {formatBytes(node.responseBodySize)}
+              {filesize(node.responseBodySize)}
             </div>
             <div className="text-xs text-muted-foreground">流量</div>
           </div>

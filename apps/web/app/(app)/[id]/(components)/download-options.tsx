@@ -28,9 +28,7 @@ import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
 import { Skeleton } from '@web/components/ui/skeleton'
 import { dwAcConst } from '@web/lib/download/ac'
 import {
-  BadgeCheckIcon,
   Check,
-  ChevronRightIcon,
   Copy,
   Download,
   FileArchive,
@@ -41,6 +39,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { downCardDataStore } from './stores/downCardData'
 import { GlgczujmDl } from './tips'
+import { filesize } from 'filesize'
 
 export function CopyButtons({ id }: { id?: string }) {
   const [copied, setCopied] = useState(false)
@@ -218,15 +217,6 @@ export const DownCardDialog = () => {
   )
   const [isCopying, setIsCopying] = useState<Record<string, boolean>>({})
 
-  // 文件大小格式化
-  function formatBytes(bytes: number, decimals = 2): string {
-    if (bytes === 0) return '0 字节'
-    const k = 1024
-    const dm = decimals < 0 ? 0 : decimals
-    const sizes = ['字节', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
-  }
   const pathname = usePathname()
   const game_id = pathname.split('/')[1]
   // 下载 README
@@ -287,7 +277,7 @@ export const DownCardDialog = () => {
                 <ItemContent>
                   <ItemTitle>{item.name}</ItemTitle>
                   <ItemDescription className="ml-2">
-                    {formatBytes(Number(item.size))}
+                    {filesize(Number(item.size))}
                   </ItemDescription>
                 </ItemContent>
                 <ItemActions>
@@ -392,7 +382,7 @@ export const DownCardDialog = () => {
             <span className="text-center wrap-break-word">{data?.name}</span>
 
             <DialogDescription className="ml-2 text-center">
-              <span>{formatBytes(Number(data?.size))}</span>
+              <span>{filesize(Number(data?.size || 0))}</span>
             </DialogDescription>
 
             <div className="flex text-center justify-center mt-2">
@@ -492,8 +482,8 @@ export const DownCardDialog = () => {
             <div className="space-y-2">
               {isLoading
                 ? Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-5 rounded-full" />
-                  ))
+                  <Skeleton key={i} className="h-5 rounded-full" />
+                ))
                 : null}
             </div>
             <MarkdownAsync readmedata={readmedata} />
