@@ -63,9 +63,9 @@ export const ContentCard = ({ data }: Props) => {
               <div className="text-sm leading-[1.2]">{titlesData.olang}</div>
             )}
 
-            <div className="font-bold text-2xl leading-[1.2] mt-2">
+            <h1 className="font-bold text-2xl leading-[1.2] mt-2">
               {titlesData.zhHans || titlesData.olang}
-            </div>
+            </h1>
 
             {/* Aliases */}
             {aliasData && (
