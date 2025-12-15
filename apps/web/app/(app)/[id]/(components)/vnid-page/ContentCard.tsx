@@ -11,6 +11,7 @@ import {
   getTitles,
   imageFilter,
 } from '../../(lib)/contentDataac'
+import { isEqual } from 'radash'
 
 type VnData = Awaited<ReturnType<typeof getVnDetails>>
 type Props = {
@@ -59,7 +60,7 @@ export const ContentCard = ({ data }: Props) => {
           {/* Main content section */}
           <div className="overflow-hidden wrap-break-word">
             {/* Title section */}
-            {titlesData.olang && (
+            {titlesData.olang && titlesData.zhHans && !isEqual(titlesData.olang, titlesData.zhHans) && (
               <div className="text-sm leading-[1.2]">{titlesData.olang}</div>
             )}
 
