@@ -3,10 +3,13 @@
 import type { GameModel } from '@api/modules/games/model'
 import { useQuery } from '@tanstack/react-query'
 import {
-  File,
+  FileItem,
+  FolderItem,
+  FolderTrigger,
+  FolderContent,
   Files,
-  Folder,
-} from '@web/components/animate-ui/components/files'
+  SubFiles,
+} from '@web/components/animate-ui/components/radix/files';
 import { MarkdownAsync } from '@web/components/markdownAync'
 import { Button } from '@web/components/ui/button'
 import {
@@ -29,8 +32,6 @@ import { Skeleton } from '@web/components/ui/skeleton'
 import { dwAcConst } from '@web/lib/download/ac'
 import {
   Check,
-  Copy,
-  Download,
   FileArchive,
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
@@ -40,6 +41,9 @@ import { toast } from 'sonner'
 import { downCardDataStore } from './stores/downCardData'
 import { GlgczujmDl } from './tips'
 import { filesize } from 'filesize'
+import { Copy } from '@web/components/animate-ui/icons/copy';
+import { AnimateIcon } from '@web/components/animate-ui/icons/icon';
+import { Download } from '@web/components/animate-ui/icons/download';
 
 export function CopyButtons({ id }: { id?: string }) {
   const [copied, setCopied] = useState(false)
@@ -167,43 +171,59 @@ function FileExplorer({ items }: { items: GameModel.TreeNode[] }) {
   })()
 
   return (
-    <Files
-      defaultOpen={['PC', 'KR', 'ONS', 'TY', 'CG']}
-      className="bg-transparent border-0 mb-2"
-    >
+    <Files className="bg-transparent border-0 mb-2">
       <DownCardDialog />
-      <Filessss items={simplifiedItems} />
+      <TreeRenderer items={simplifiedItems} />
     </Files>
   )
 }
 
 // ---------- 文件/文件夹递归渲染 ----------
-const Filessss = ({ items }: { items: GameModel.TreeNode[] | undefined }) => {
+const TreeRenderer = ({
+  items,
+}: {
+  items: GameModel.TreeNode[] | undefined
+}) => {
   const open = downCardDataStore((s) => s.open)
   const setData = downCardDataStore((s) => s.setData)
 
+  if (!items?.length) return null
+
   return (
-    <>
-      {items?.map((item) =>
+    <SubFiles>
+      {items.map((item) =>
         item.type === 'folder' && item.volumes !== true ? (
-          <Folder name={item.name} key={item.name}>
-            {item.children && <Filessss items={item.children} />}
-          </Folder>
+          <FolderItem value={item.name} key={item.name}>
+            <FolderTrigger>{item.name}</FolderTrigger>
+
+            {item.children?.length ? (
+              <FolderContent>
+                <TreeRenderer items={item.children} />
+              </FolderContent>
+            ) : null}
+          </FolderItem>
         ) : (
-          <File
-            className="underline underline-offset-4 hover:decoration-sky-500"
-            name={item.name}
+          <div
             key={item.name}
-            onClick={() => {
+            onPointerDown={(e) => {
+              e.stopPropagation()
               setData(item)
               open()
             }}
-          />
+            className="cursor-pointer"
+          >
+            <FileItem
+              className="underline underline-offset-4 hover:decoration-sky-500 cursor-pointer"
+            >
+              {item.name}
+            </FileItem>
+          </div>
         ),
       )}
-    </>
+    </SubFiles >
   )
 }
+
 
 // ---------- 下载弹窗 ----------
 export const DownCardDialog = () => {
@@ -281,74 +301,78 @@ export const DownCardDialog = () => {
                   </ItemDescription>
                 </ItemContent>
                 <ItemActions>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleCopy(item?.id || '', game_id)}
-                    size="icon"
-                    disabled={isCopying[item?.id] || false}
-                  >
-                    {isCopying[item?.id] ? (
-                      <svg
-                        className="w-4 h-4 animate-spin"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                        ></path>
-                      </svg>
-                    ) : (
-                      <Copy strokeWidth={1} />
-                    )}
-                  </Button>
 
-                  <Button
-                    onClick={() => handleDownload(item?.id, game_id)}
-                    disabled={downloadingMap[item?.id] || false}
-                    data-umami-event="GameDownload"
-                    data-umami-event-pathe={item?.id}
-                    variant="outline"
-                    data-umami-event-size={item?.size}
-                  >
-                    {downloadingMap[item?.id] ? (
-                      <span className="flex items-center gap-2">
+                  <AnimateIcon animateOnHover>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleCopy(item?.id || '', game_id)}
+                      size="icon"
+                      disabled={isCopying[item?.id] || false}
+                    >
+                      {isCopying[item?.id] ? (
                         <svg
-                          className="animate-spin h-4 w-4"
+                          className="w-4 h-4 animate-spin"
                           viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
                         >
                           <circle
                             className="opacity-25"
                             cx="12"
                             cy="12"
                             r="10"
-                            stroke="currentColor"
                             strokeWidth="4"
-                          />
+                          ></circle>
                           <path
                             className="opacity-75"
                             fill="currentColor"
-                            d="M4 12a8 8 0 018-8v8H4z"
+                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                           ></path>
                         </svg>
-                        请求中
-                      </span>
-                    ) : (
-                      <div className="flex items-center gap-1">
-                        <Download />
-                        下载
-                      </div>
-                    )}
-                  </Button>
+                      ) : (
+                        <Copy />
+                      )}
+                    </Button>
+                  </AnimateIcon>
+                  <AnimateIcon animateOnHover>
+                    <Button
+                      onClick={() => handleDownload(item?.id, game_id)}
+                      disabled={downloadingMap[item?.id] || false}
+                      data-umami-event="GameDownload"
+                      data-umami-event-pathe={item?.id}
+                      variant="outline"
+                      data-umami-event-size={item?.size}
+                    >
+                      {downloadingMap[item?.id] ? (
+                        <span className="flex items-center gap-2">
+                          <svg
+                            className="animate-spin h-4 w-4"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            />
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v8H4z"
+                            ></path>
+                          </svg>
+                          请求中
+                        </span>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <Download />
+                          下载
+                        </div>
+                      )}
+                    </Button>
+                  </AnimateIcon>
                 </ItemActions>
               </Item>
             ))}
@@ -402,71 +426,74 @@ export const DownCardDialog = () => {
             </div>
 
             <DialogFooter className="flex-row justify-center sm:justify-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => handleCopy(data?.id || '', game_id)}
-                size="icon"
-                disabled={isCopying[data?.id || ''] || false}
-              >
-                {isCopying[data?.id || ''] ? (
-                  <svg
-                    className="w-4 h-4 animate-spin"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    ></path>
-                  </svg>
-                ) : (
-                  <Copy strokeWidth={1} />
-                )}
-              </Button>
-
-              <Button
-                onClick={() => handleDownload(data?.id || '', game_id)}
-                disabled={downloadingMap[data?.id || ''] || false}
-                data-umami-event="GameDownload"
-                data-umami-event-pathe={data?.id}
-                data-umami-event-size={data?.size}
-                variant="outline"
-              >
-                {downloadingMap[data?.id || ''] ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+              <AnimateIcon animateOnHover>
+                <Button
+                  variant="outline"
+                  onClick={() => handleCopy(data?.id || '', game_id)}
+                  size="icon"
+                  disabled={isCopying[data?.id || ''] || false}
+                >
+                  {isCopying[data?.id || ''] ? (
+                    <svg
+                      className="w-4 h-4 animate-spin"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                    >
                       <circle
                         className="opacity-25"
                         cx="12"
                         cy="12"
                         r="10"
-                        stroke="currentColor"
                         strokeWidth="4"
                       ></circle>
                       <path
                         className="opacity-75"
                         fill="currentColor"
-                        d="M4 12a8 8 0 018-8v8H4z"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                       ></path>
                     </svg>
-                    请求中
-                  </span>
-                ) : (
-                  <div className="flex items-center gap-1">
-                    <Download />
-                    下载
-                  </div>
-                )}
-              </Button>
+                  ) : (
+                    <Copy />
+                  )}
+                </Button>
+              </AnimateIcon>
+              <AnimateIcon animateOnHover>
+                <Button
+                  onClick={() => handleDownload(data?.id || '', game_id)}
+                  disabled={downloadingMap[data?.id || ''] || false}
+                  data-umami-event="GameDownload"
+                  data-umami-event-pathe={data?.id}
+                  data-umami-event-size={data?.size}
+                  variant="outline"
+                >
+                  {downloadingMap[data?.id || ''] ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8H4z"
+                        ></path>
+                      </svg>
+                      请求中
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <Download />
+                      下载
+                    </div>
+                  )}
+                </Button>
+              </AnimateIcon>
               <Button
                 onClick={() => close()}
                 variant="outline"
