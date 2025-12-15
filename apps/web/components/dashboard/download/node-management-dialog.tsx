@@ -7,7 +7,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@web/components/animate-ui/radix/dialog'
+} from '@web/components/animate-ui/components/radix/dialog'
 import { Button } from '@web/components/ui/button'
 import {
   Form,

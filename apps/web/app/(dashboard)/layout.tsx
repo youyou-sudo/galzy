@@ -4,7 +4,7 @@ import {
   SidebarFooter,
   SidebarProvider,
   SidebarRail,
-} from '@web/components/animate-ui/radix/sidebar'
+} from '@web/components/animate-ui/components/radix/sidebar'
 import AuthYjvg from '@web/components/auth/authYjvg'
 import NavMain from '@web/components/dashboard/sedebar/NavMain'
 import NavUser from '@web/components/dashboard/sedebar/NavUser'

@@ -13,7 +13,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@web/components/animate-ui/radix/sidebar'
+} from '@web/components/animate-ui/components/radix/sidebar'
 import { dashboardConfig } from '@web/config/dashboard'
 import { useIsMobile } from '@web/hooks/use-mobile'
 import { ChevronsUpDown } from 'lucide-react'

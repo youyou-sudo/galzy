@@ -10,13 +10,13 @@ import {
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from '@web/components/animate-ui/radix/sheet'
+} from '@web/components/animate-ui/components/radix/sheet'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@web/components/animate-ui/radix/tooltip'
+} from '@web/components/animate-ui/components/radix/tooltip'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
 import { Separator } from '@web/components/ui/separator'

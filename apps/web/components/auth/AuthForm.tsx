@@ -8,7 +8,7 @@ import {
   TabsContents,
   TabsList,
   TabsTrigger,
-} from '@web/components/animate-ui/radix/tabs'
+} from '@web/components/animate-ui/components/radix/tabs'
 import { Alert, AlertDescription, AlertTitle } from '@web/components/ui/alert'
 import { Button } from '@web/components/ui/button'
 import {

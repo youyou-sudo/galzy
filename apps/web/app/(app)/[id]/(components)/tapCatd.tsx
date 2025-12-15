@@ -3,7 +3,7 @@ import {
   Tabs,
   TabsList,
   TabsTrigger,
-} from '@web/components/animate-ui/radix/tabs'
+} from '@web/components/animate-ui/components/radix/tabs'
 import { Card, CardContent } from '@web/components/ui/card'
 import { ArrowDownToLine, Swords, TrendingUp } from 'lucide-react'
 import Link from 'next/link'

@@ -1,6 +1,6 @@
 'use client'
 
-import { Switch } from '@web/components/animate-ui/radix/switch'
+import { Switch } from '@web/components/animate-ui/components/radix/switch'
 import { Button } from '@web/components/ui/button'
 import { Card, CardContent, CardHeader } from '@web/components/ui/card'
 import {
@@ -27,7 +27,7 @@ import { NodeStatusBadge } from './node-status-badge'
 export type WorkerData = Awaited<ReturnType<typeof workerDataGet>>
 type NoNullWorkerData = NonNullable<WorkerData>
 
-import { Progress } from '@web/components/animate-ui/radix/progress'
+import { Progress } from '@web/components/animate-ui/components/radix/progress'
 import { filesize } from 'filesize'
 
 export function MobileNodeCard({

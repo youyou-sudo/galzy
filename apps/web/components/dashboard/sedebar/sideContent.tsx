@@ -2,7 +2,7 @@
 import {
   SidebarInset,
   SidebarTrigger,
-} from '@web/components/animate-ui/radix/sidebar'
+} from '@web/components/animate-ui/components/radix/sidebar'
 import {
   Breadcrumb,
   BreadcrumbItem,

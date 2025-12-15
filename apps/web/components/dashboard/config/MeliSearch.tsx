@@ -5,7 +5,7 @@ import {
   TabsContents,
   TabsList,
   TabsTrigger,
-} from '@web/components/animate-ui/radix/tabs'
+} from '@web/components/animate-ui/components/radix/tabs'
 import {
   Card,
   CardContent,

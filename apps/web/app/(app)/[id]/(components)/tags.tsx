@@ -3,7 +3,7 @@ import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from '@web/components/animate-ui/radix/accordion'
+} from '@web/components/animate-ui/components/radix/accordion'
 import ForesightLink from '@web/components/HoverPLink'
 import { Badge } from '@web/components/ui/badge'
 import { tagshData } from '../(action)/tags'

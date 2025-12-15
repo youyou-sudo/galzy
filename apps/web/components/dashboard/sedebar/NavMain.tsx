@@ -3,7 +3,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@web/components/animate-ui/radix/collapsible'
+} from '@web/components/animate-ui/components/radix/collapsible'
 
 import {
   SidebarGroup,
@@ -14,7 +14,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
-} from '@web/components/animate-ui/radix/sidebar'
+} from '@web/components/animate-ui/components/radix/sidebar'
 import ForesightLink from '@web/components/HoverPLink'
 import { dashboardConfig } from '@web/config/dashboard'
 import { ChevronRight } from 'lucide-react'

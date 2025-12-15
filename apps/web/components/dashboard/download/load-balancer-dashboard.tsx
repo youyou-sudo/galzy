@@ -1,8 +1,8 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { Progress } from '@web/components/animate-ui/radix/progress'
-import { Switch } from '@web/components/animate-ui/radix/switch'
+import { Progress } from '@web/components/animate-ui/components/radix/progress'
+import { Switch } from '@web/components/animate-ui/components/radix/switch'
 import { Button } from '@web/components/ui/button'
 import {
   Card,

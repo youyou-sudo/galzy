@@ -12,7 +12,7 @@ import {
   AccordionTrigger,
   type AccordionTriggerProps,
   useAccordionItem,
-} from '@web/components/animate-ui/radix/accordion'
+} from '@web/components/animate-ui/components/radix/accordion'
 import { cn } from '@web/lib/utils'
 import { FileIcon, FolderIcon, FolderOpenIcon } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
