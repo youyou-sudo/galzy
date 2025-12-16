@@ -20,9 +20,9 @@ export async function generateMetadata({
 }
 
 // [x] 用户端搜索
-export default async function Youyou({ searchParams }: Props) {
+export async function Youyou({ searchParams }: Props) {
   const { q } = await searchParams
-  const gameListData = await getSearch({ q, limit: 50 })
+  const gameListData = await getSearch({ q, limit: 100 })
   return (
     <article className="min-h-screen space-y-8">
       <div className="flex items-center justify-center gap-2 mb-4">
@@ -31,11 +31,14 @@ export default async function Youyou({ searchParams }: Props) {
       </div>
 
       <div className="mx-auto flex md:w-1/2 items-center justify-center">
-        <Suspense>
-          <SearchInput />
-        </Suspense>
+        <SearchInput />
       </div>
       <SearchlistComponent gameListData={gameListData} />
     </article>
   )
 }
+
+const page = async ({ searchParams }: Props) => {
+  return <Suspense><Youyou searchParams={searchParams} /></Suspense>
+}
+export default page
