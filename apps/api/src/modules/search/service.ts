@@ -1,5 +1,4 @@
 import { MeiliClient } from '@api/libs'
-import { getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
 import { t } from 'try'
 import type { SearchModel } from './model'
@@ -7,13 +6,6 @@ import type { SearchModel } from './model'
 export const Search = {
   async get({ q, limit }: SearchModel.search) {
     const safeQ = q.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim()
-    const redisData = await getKv(`Search-${safeQ}-${limit}`)
-
-    if (redisData) {
-      const parsed = JSON.parse(redisData)
-      return parsed as SearchReturn
-    }
-
     const [, error, [index, tagf]] = t(
       await Promise.all([
         MeiliClient.index(process.env.MEILISEARCH_INDEXNAME || '').search(
@@ -40,8 +32,6 @@ export const Search = {
         ? (topTag as SearchModel.tagAllReturn['items'][0])
         : undefined,
     }
-    void setKv(`Search-${safeQ}-${limit}`, JSON.stringify(data), 60 * 60 * 1)
-    type SearchReturn = typeof data
     return data
   },
   async meilisearchEmbeddersUpdate({

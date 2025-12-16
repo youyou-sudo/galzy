@@ -1,4 +1,3 @@
-import { GameCard } from '@web/components/game-card'
 import SearchlistComponent from '@web/components/home/Search/meilisearch'
 import SearchInput from '@web/components/home/Search/Search'
 import { getSearch } from '@web/lib/search/meilisearch'
@@ -22,6 +21,7 @@ export async function generateMetadata({
 
 // [x] 用户端搜索
 export default async function Youyou({ searchParams }: Props) {
+  "use cache"
   const { q } = await searchParams
   const gameListData = await getSearch({ q, limit: 50 })
   return (
@@ -32,7 +32,9 @@ export default async function Youyou({ searchParams }: Props) {
       </div>
 
       <div className="mx-auto flex md:w-1/2 items-center justify-center">
-        <SearchInput />
+        <Suspense>
+          <SearchInput />
+        </Suspense>
       </div>
       <SearchlistComponent gameListData={gameListData} />
     </article>

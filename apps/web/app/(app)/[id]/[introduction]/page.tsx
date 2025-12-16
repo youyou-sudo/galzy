@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from '@web/components/ui/card'
 import { ArrowLeft, User } from 'lucide-react'
+import { cacheLife, cacheTag } from 'next/cache'
 import Link from 'next/link'
 import type { Metadata } from 'next/types'
 import React from 'react'
@@ -20,7 +21,10 @@ type Props = {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  "use cache"
   const { introduction } = await params
+  cacheTag(`introduction-content-${introduction}`, `introduction-content-${introduction}-generateMetadata`)
+  cacheLife('days')
   function stripHTML(html: string) {
     return html.replace(/<[^>]*>/g, '')
   }
@@ -47,8 +51,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function page({ params }: Props) {
+  'use cache'
   // [x] 攻略文章阅读
   const { introduction } = await params
+  cacheTag(`introduction-content-${introduction}`, `introduction-content-${introduction}-pages`)
+  cacheLife('days')
   const { data: strategyContent } = await api.strategy.strategy.get({
     query: {
       strategyId: +introduction,

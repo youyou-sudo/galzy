@@ -1,22 +1,21 @@
-import * as React from 'react';
-
 import {
-  Tabs as TabsPrimitive,
-  TabsList as TabsListPrimitive,
-  TabsTrigger as TabsTriggerPrimitive,
   TabsContent as TabsContentPrimitive,
-  TabsContents as TabsContentsPrimitive,
-  TabsHighlight as TabsHighlightPrimitive,
-  TabsHighlightItem as TabsHighlightItemPrimitive,
-  type TabsProps as TabsPrimitiveProps,
-  type TabsListProps as TabsListPrimitiveProps,
-  type TabsTriggerProps as TabsTriggerPrimitiveProps,
   type TabsContentProps as TabsContentPrimitiveProps,
+  TabsContents as TabsContentsPrimitive,
   type TabsContentsProps as TabsContentsPrimitiveProps,
-} from '@web/components/animate-ui/primitives/radix/tabs';
-import { cn } from '@web/lib/utils';
+  TabsHighlightItem as TabsHighlightItemPrimitive,
+  TabsHighlight as TabsHighlightPrimitive,
+  TabsList as TabsListPrimitive,
+  type TabsListProps as TabsListPrimitiveProps,
+  Tabs as TabsPrimitive,
+  type TabsProps as TabsPrimitiveProps,
+  TabsTrigger as TabsTriggerPrimitive,
+  type TabsTriggerProps as TabsTriggerPrimitiveProps,
+} from '@web/components/animate-ui/primitives/radix/tabs'
+import { cn } from '@web/lib/utils'
+import * as React from 'react'
 
-type TabsProps = TabsPrimitiveProps;
+type TabsProps = TabsPrimitiveProps
 
 function Tabs({ className, ...props }: TabsProps) {
   return (
@@ -24,10 +23,10 @@ function Tabs({ className, ...props }: TabsProps) {
       className={cn('flex flex-col gap-2', className)}
       {...props}
     />
-  );
+  )
 }
 
-type TabsListProps = TabsListPrimitiveProps;
+type TabsListProps = TabsListPrimitiveProps
 
 function TabsList({ className, ...props }: TabsListProps) {
   return (
@@ -40,10 +39,10 @@ function TabsList({ className, ...props }: TabsListProps) {
         {...props}
       />
     </TabsHighlightPrimitive>
-  );
+  )
 }
 
-type TabsTriggerProps = TabsTriggerPrimitiveProps;
+type TabsTriggerProps = TabsTriggerPrimitiveProps
 
 function TabsTrigger({ className, ...props }: TabsTriggerProps) {
   return (
@@ -56,16 +55,16 @@ function TabsTrigger({ className, ...props }: TabsTriggerProps) {
         {...props}
       />
     </TabsHighlightItemPrimitive>
-  );
+  )
 }
 
-type TabsContentsProps = TabsContentsPrimitiveProps;
+type TabsContentsProps = TabsContentsPrimitiveProps
 
 function TabsContents(props: TabsContentsProps) {
-  return <TabsContentsPrimitive {...props} />;
+  return <TabsContentsPrimitive {...props} />
 }
 
-type TabsContentProps = TabsContentPrimitiveProps;
+type TabsContentProps = TabsContentPrimitiveProps
 
 function TabsContent({ className, ...props }: TabsContentProps) {
   return (
@@ -73,7 +72,7 @@ function TabsContent({ className, ...props }: TabsContentProps) {
       className={cn('flex-1 outline-none', className)}
       {...props}
     />
-  );
+  )
 }
 
 export {
@@ -87,4 +86,4 @@ export {
   type TabsTriggerProps,
   type TabsContentsProps,
   type TabsContentProps,
-};
+}

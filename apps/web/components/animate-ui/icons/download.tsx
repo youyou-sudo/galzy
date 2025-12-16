@@ -1,16 +1,15 @@
-'use client';
-
-import * as React from 'react';
-import { motion, type Variants } from 'motion/react';
+'use client'
 
 import {
   getVariants,
-  useAnimateIconContext,
-  IconWrapper,
   type IconProps,
-} from '@web/components/animate-ui/icons/icon';
+  IconWrapper,
+  useAnimateIconContext,
+} from '@web/components/animate-ui/icons/icon'
+import { motion, type Variants } from 'motion/react'
+import * as React from 'react'
 
-type DownloadProps = IconProps<keyof typeof animations>;
+type DownloadProps = IconProps<keyof typeof animations>
 
 const animations = {
   default: {
@@ -42,11 +41,11 @@ const animations = {
     path2: {},
     path3: {},
   } satisfies Record<string, Variants>,
-} as const;
+} as const
 
 function IconComponent({ size, ...props }: DownloadProps) {
-  const { controls } = useAnimateIconContext();
-  const variants = getVariants(animations);
+  const { controls } = useAnimateIconContext()
+  const variants = getVariants(animations)
 
   return (
     <motion.svg
@@ -82,11 +81,11 @@ function IconComponent({ size, ...props }: DownloadProps) {
         animate={controls}
       />
     </motion.svg>
-  );
+  )
 }
 
 function Download(props: DownloadProps) {
-  return <IconWrapper icon={IconComponent} {...props} />;
+  return <IconWrapper icon={IconComponent} {...props} />
 }
 
 export {
@@ -95,4 +94,4 @@ export {
   Download as DownloadIcon,
   type DownloadProps,
   type DownloadProps as DownloadIconProps,
-};
+}

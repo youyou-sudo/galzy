@@ -1,10 +1,6 @@
 'use client'
 
 import {
-  MotionHighlight,
-  MotionHighlightItem,
-} from '@web/components/animate-ui/effects/motion-highlight'
-import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -17,6 +13,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@web/components/animate-ui/components/radix/tooltip'
+import {
+  MotionHighlight,
+  MotionHighlightItem,
+} from '@web/components/animate-ui/effects/motion-highlight'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
 import { Separator } from '@web/components/ui/separator'

@@ -1,13 +1,13 @@
 'use client'
 import type { StrategyModel } from '@api/modules/strategy/model'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { MotionHighlight } from '@web/components/animate-ui/effects/motion-highlight'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@web/components/animate-ui/components/radix/dialog'
+import { MotionHighlight } from '@web/components/animate-ui/effects/motion-highlight'
 import ForesightLink from '@web/components/HoverPLink'
 import { Button } from '@web/components/ui/button'
 import { Skeleton } from '@web/components/ui/skeleton'
@@ -42,9 +42,9 @@ const StrategyList = ({ id }: { id: string }) => {
     queryFn: () => strategyListGet(id),
   })
   const { mutate: SubmitAc, isPending: SubmitAcLoading } = useMutation({
-    mutationFn: async ({ gameId, strategyId }: StrategyModel.strategy) => {
+    mutationFn: async ({ strategyId }: StrategyModel.strategy) => {
       try {
-        await strategyListDelete({ gameId, strategyId })
+        await strategyListDelete({ strategyId })
         await refetch()
       } catch (e) {
         console.log(e)
@@ -114,7 +114,6 @@ const StrategyList = ({ id }: { id: string }) => {
                       className="w-8 h-8"
                       onClick={() => {
                         SubmitAc({
-                          gameId: id,
                           strategyId: item.id,
                         })
                       }}

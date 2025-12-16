@@ -1,10 +1,7 @@
 import { db, sql } from '@api/libs'
 import {
   acquireIdempotentKey,
-  delKv,
   getIdempotentResult,
-  getKv,
-  setKv,
   storeIdempotentResult,
 } from '@api/libs/redis'
 import { status } from 'elysia'
@@ -15,10 +12,6 @@ import type { GameModel } from './model'
 
 export const Game = {
   async Count() {
-    const redisData = await getKv('gameCount')
-    if (redisData !== null && redisData !== undefined) {
-      return Number(redisData)
-    }
     const [, error, totalCountResult] = t(
       await db
         .selectFrom('galrc_alistb')
@@ -28,14 +21,9 @@ export const Game = {
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     const count = Number(totalCountResult?.count || 0)
-    void setKv('gameCount', String(count), 60 * 60 * 12)
     return count
   },
   async List({ pageIndex, pageSize }: GameModel.gameList) {
-    const redisData = await getKv(`gameList-${pageIndex}-${pageSize}`)
-    if (redisData !== null && redisData !== undefined) {
-      return JSON.parse(redisData) as GameList
-    }
     const offset = pageIndex * pageSize
     const [, error, items] = await t(
       db
@@ -118,28 +106,10 @@ export const Game = {
       totalPages,
       totalCount,
     }
-    void setKv(
-      `gameList-${pageIndex}-${pageSize}`,
-      JSON.stringify(datas),
-      60 * 60 * 12,
-    )
-    type GameList = typeof datas
     return datas
   },
   async InfoGet({ id }: GameModel.infoId) {
-    const cacheKey = `gameInfo-${id}`
-    const redisData = await getKv(cacheKey)
-
-    if (redisData) {
-      try {
-        return JSON.parse(redisData) as GameInfo
-      } catch {
-        await delKv(cacheKey)
-      }
-    }
-
     const idIsNumber = /^\d+$/.test(id)
-
     const [, error, data] = t(
       await db
         .selectFrom('galrc_alistb')
@@ -214,17 +184,9 @@ export const Game = {
     }
 
     const result = structuredClone(data)
-    void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 12)
-
-    type GameInfo = typeof result
     return result
   },
   async OpenListFiles({ id }: GameModel.OpenListFiles) {
-    const redisData = await getKv(`gameOpenListFiles-${id}`)
-    if (redisData !== null && redisData !== undefined) {
-      const res = JSON.parse(redisData) as GameOpenListFiles
-      return res
-    }
     const isVNDB = /^v\d+$/.test(id)
     const targetKey = `${isVNDB ? 'vndb' : 'other'}-${id}`
     const keyPattern = `%[${targetKey}]%`
@@ -265,11 +227,11 @@ export const Game = {
             type: isLast && !row.is_dir ? 'file' : 'folder',
             ...(isLast && !row.is_dir
               ? {
-                  size: row.size !== undefined ? String(row.size) : undefined,
-                  format: part.includes('.')
-                    ? part.substring(part.lastIndexOf('.') + 1).toUpperCase()
-                    : undefined,
-                }
+                size: row.size !== undefined ? String(row.size) : undefined,
+                format: part.includes('.')
+                  ? part.substring(part.lastIndexOf('.') + 1).toUpperCase()
+                  : undefined,
+              }
               : {}),
           }
         }
@@ -295,10 +257,10 @@ export const Game = {
             ...rest,
             ...(children
               ? {
-                  children: await convert(
-                    children as Record<string, TreeNodeBuilder>,
-                  ),
-                }
+                children: await convert(
+                  children as Record<string, TreeNodeBuilder>,
+                ),
+              }
               : {}),
           }
 
@@ -333,8 +295,6 @@ export const Game = {
     }
     const data = await findMatchingSubtree(root, targetKey)
     const result = structuredClone(data)
-    void setKv(`gameOpenListFiles-${id}`, JSON.stringify(result), 60 * 60)
-    type GameOpenListFiles = typeof result
     return result
   },
   async DataFilteringStats() {
