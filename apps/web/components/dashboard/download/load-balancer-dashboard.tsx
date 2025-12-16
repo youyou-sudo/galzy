@@ -27,6 +27,7 @@ import {
 import { workerDataGet } from '@web/lib/dashboard/download/Cloudflare/workerDataPull'
 import { configFormDel } from '@web/lib/dashboard/download/configForm'
 import { nodeEnaledAc } from '@web/lib/dashboard/download/nodeEnabledAc'
+import { filesize } from 'filesize'
 import {
   Activity,
   ArrowDownUp,
@@ -44,7 +45,6 @@ import { MobileStatsGrid } from './mobile-stats-grid'
 import { NodeManagementDialog } from './node-management-dialog'
 import { NodeStatusBadge } from './node-status-badge'
 import { downloadStore } from './stores/download'
-import { filesize } from 'filesize'
 
 export interface MobileStatsGridProps {
   title: string
@@ -88,10 +88,11 @@ export default function LoadBalancerDashboard() {
     {
       title: '节点',
       value: `${healthyNodes}/${workersItems?.length}`,
-      subtitle: `${workersItems && workersItems.length > 0
+      subtitle: `${
+        workersItems && workersItems.length > 0
           ? Math.round((healthyNodes / workersItems.length) * 100)
           : 0
-        }% 可用性`,
+      }% 可用性`,
       icon: Server,
       color: 'text-green-600',
     },

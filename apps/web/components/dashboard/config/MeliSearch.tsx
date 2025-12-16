@@ -14,11 +14,11 @@ import {
   CardTitle,
 } from '@web/components/ui/card'
 import { Skeleton } from '@web/components/ui/skeleton'
+import { filesize } from 'filesize'
 import { env } from 'next-runtime-env'
 import { Suspense } from 'react'
 import { MeiliSearchEmbedding } from './MeiliSearchEmbedding'
 import { MeiliSearchIndex } from './MeilisearchIndex'
-import { filesize } from 'filesize'
 
 export const MeiliSearch = () => {
   return (
@@ -67,7 +67,7 @@ const DocumentsCounter = async () => {
     <>
       MeiliSearch
       {indexdata
-        ? ` 大小：${filesize(indexdata?.indexes?.[env('MEILISEARCH_INDEXNAME')!].avgDocumentSize, { base: 2, standard: "jedec", precision: 2, locale: "zh" })} | ${
+        ? ` 大小：${filesize(indexdata?.indexes?.[env('MEILISEARCH_INDEXNAME')!].avgDocumentSize, { base: 2, standard: 'jedec', precision: 2, locale: 'zh' })} | ${
             indexdata?.indexes?.[env('MEILISEARCH_INDEXNAME')!]
               .numberOfDocuments
           } 条索引`

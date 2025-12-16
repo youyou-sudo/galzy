@@ -17,6 +17,7 @@ import { Suspense } from 'react'
 import { remfGameGet, remfTagGet } from './(action)/remf'
 import CountComponent from './(components)/Count'
 import RankingList from './(components)/remf'
+import { cacheLife, cacheTag } from 'next/cache'
 
 export const metadata: Metadata = {
   title: '主页',
@@ -32,6 +33,9 @@ const SkeletonList = ({ count = 4 }: { count?: number }) => (
 )
 
 const HomePage = async () => {
+  'use cache'
+  cacheTag('homeData', 'gamelist', '0-0')
+  cacheLife('minutes')
   const data = await homeData(24, 0)
   return (
     <div className="grid grid-cols-3 gap-4 md:grid-cols-6">
@@ -53,7 +57,9 @@ const Home = () => {
         </div>
         {/* 搜索框 */}
         <div className="px-5 sm:px-20 lg:px-80 my-4">
-          <SearchInput />
+          <Suspense>
+            <SearchInput />
+          </Suspense>
         </div>
 
         {/* 热门标签 + 热门游戏 */}

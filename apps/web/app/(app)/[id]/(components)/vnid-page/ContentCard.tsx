@@ -4,6 +4,7 @@ import Errors from '@web/components/error'
 import { Card, CardContent } from '@web/components/ui/card'
 import type { getVnDetails } from '@web/lib/repositories/vnRepository'
 import Image from 'next/image'
+import { isEqual } from 'radash'
 import React from 'react'
 import {
   aliasFilter,
@@ -11,7 +12,6 @@ import {
   getTitles,
   imageFilter,
 } from '../../(lib)/contentDataac'
-import { isEqual } from 'radash'
 
 type VnData = Awaited<ReturnType<typeof getVnDetails>>
 type Props = {
@@ -60,9 +60,11 @@ export const ContentCard = ({ data }: Props) => {
           {/* Main content section */}
           <div className="overflow-hidden wrap-break-word">
             {/* Title section */}
-            {titlesData.olang && titlesData.zhHans && !isEqual(titlesData.olang, titlesData.zhHans) && (
-              <div className="text-sm leading-[1.2]">{titlesData.olang}</div>
-            )}
+            {titlesData.olang &&
+              titlesData.zhHans &&
+              !isEqual(titlesData.olang, titlesData.zhHans) && (
+                <div className="text-sm leading-[1.2]">{titlesData.olang}</div>
+              )}
 
             <h1 className="font-bold text-2xl leading-[1.2] mt-2">
               {titlesData.zhHans || titlesData.olang}

@@ -1,3 +1,4 @@
+"use cache"
 import { api } from '@libs'
 import ForesightLink from '@web/components/HoverPLink'
 import {
