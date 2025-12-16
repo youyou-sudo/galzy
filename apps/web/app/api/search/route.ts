@@ -1,4 +1,5 @@
-import { api } from '@libs'
+import { getSearch } from '@web/lib/search/meilisearch'
+import { tryit } from 'radash'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -8,16 +9,9 @@ export async function GET(request: Request) {
       status: 400,
     })
   }
-  const data = await api.search.get({
-    query: {
-      q: q,
-      limit: 30,
-    },
-  })
-  if (data.status >= 400) {
-    return new Response(`${data.error?.value.message}`, {
-      status: 400,
-    })
+  const [error, datas] = await tryit(getSearch)({ q, limit: 100 })
+  if (error) {
+    return new Response('服务出错了喵~', { status: 500 })
   }
-  return Response.json(data.data)
+  return Response.json(datas)
 }
