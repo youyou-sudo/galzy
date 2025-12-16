@@ -21,7 +21,6 @@ export async function generateMetadata({
 
 // [x] 用户端搜索
 export default async function Youyou({ searchParams }: Props) {
-  "use cache"
   const { q } = await searchParams
   const gameListData = await getSearch({ q, limit: 50 })
   return (
