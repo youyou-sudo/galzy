@@ -1,7 +1,7 @@
 'use server'
 import type { TagsModel } from '@api/modules/tags/model'
 import { api } from '@libs'
-import { updateTag, updateTag } from 'next/cache'
+import { updateTag } from 'next/cache'
 
 export const tagAllAction = async ({
   pageSize,
@@ -14,7 +14,6 @@ export const tagAllAction = async ({
   id?: string
   keyword?: string
 }) => {
-  updateTag
   const { data } = await api.tags.tagall.post({
     id: id || '',
     keyword: keyword || '',
