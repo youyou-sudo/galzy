@@ -15,10 +15,6 @@ import type { StrategyModel } from './model'
 
 export const Strategy = {
   async strategy({ strategyId }: StrategyModel.strategy) {
-    const redisData = await getKv(`strategy-${strategyId}`)
-    if (redisData !== null && redisData !== undefined) {
-      return JSON.parse(redisData) as StrategyContent
-    }
     const [, error, strategyContent] = t(
       await db
         .selectFrom('galrc_article')
@@ -33,14 +29,9 @@ export const Strategy = {
       JSON.stringify(strategyContent),
       60 * 60 * 1,
     )
-    type StrategyContent = typeof strategyContent
     return strategyContent
   },
   async gameStrategys({ gameId }: StrategyModel.gameStrategys) {
-    const redisData = await getKv(`gameStrategys:${gameId}`)
-    if (redisData !== null && redisData !== undefined) {
-      return JSON.parse(redisData) as StrategyContent
-    }
     const isVNDB = /^v\d+$/.test(gameId)
     const [, error, data] = t(
       await db
@@ -65,13 +56,9 @@ export const Strategy = {
     )
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
-    void setKv(`gameStrategys:${gameId}`, JSON.stringify(data), 60 * 60 * 1)
-    type StrategyContent = typeof data
     return data
   },
   async strategyUpdate({ id, data }: StrategyModel.strategyListUpdate) {
-    await delKv(`gameStrategys:${id}`)
-    await delKv(`strategy-${id}`)
     const str = JSON.stringify({ id, data })
     const hash = XXH.h32(str, 0xabcd).toString(16)
     const cached = await getIdempotentResult(`strategyListUpdate-${hash}`)
@@ -90,7 +77,6 @@ export const Strategy = {
     await storeIdempotentResult(`strategyListUpdate-${hash}`, '', 60)
   },
   async strategyCreate({ id, data, userid }: StrategyModel.strategyListCreate) {
-    await delKv(`gameStrategys:${id}`)
     const str = JSON.stringify({ id, data })
     const hash = XXH.h32(str, 0xabcd).toString(16)
     const cached = await getIdempotentResult(`strategyListCreate-${hash}`)
@@ -115,8 +101,7 @@ export const Strategy = {
     }
     await storeIdempotentResult(`strategyListCreate-${hash}`, '', 60)
   },
-  async strategyDelete({ strategyId, gameId }: StrategyModel.strategy) {
-    await delKv(`gameStrategys:${gameId}`)
+  async strategyDelete({ strategyId }: StrategyModel.strategy) {
     const str = JSON.stringify({ strategyId })
     const hash = XXH.h32(str, 0xabcd).toString(16)
     const cached = await getIdempotentResult(`strategyListDelete-${hash}`)
