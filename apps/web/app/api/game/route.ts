@@ -1,6 +1,7 @@
 import type { GameModel } from '@api/modules/games/model'
 import { api } from '@libs'
 import { getTitles } from '@web/app/(app)/[id]/(lib)/contentDataac'
+import { cacheTag } from 'next/cache'
 
 const vltdma = {
   code: 400,
@@ -23,7 +24,14 @@ function jsonResponse(data: any, status = 200) {
 export async function GET(request: Request) {
   const vid = new URL(request.url).searchParams.get('vid')
   if (!vid) return jsonResponse(vltdma.getMessage('notFound'), vltdma.code)
+  const data = await getData(vid)
+  return jsonResponse(data)
+}
 
+
+async function getData(vid: string) {
+  "use cache"
+  cacheTag(`getVnDetails-${vid}`, 'gameData-api')
   const [gameResp, fileListResp, strategyList] = await Promise.all([
     api.games.get({ query: { id: vid } }),
     api.games.openlistfiles.get({ query: { id: vid } }),
@@ -46,7 +54,7 @@ export async function GET(request: Request) {
   if (!openlist?.length)
     return jsonResponse(vltdma.getMessage('noFiles'), vltdma.code)
 
-  return jsonResponse({
+  return {
     code: 200,
     message: 'success',
     data: {
@@ -64,7 +72,7 @@ export async function GET(request: Request) {
         },
       })),
     },
-  })
+  }
 }
 
 export function groupSplitArchives(
