@@ -202,7 +202,7 @@ const TreeRenderer = ({
         ) : (
           <div
             key={item.name}
-            onPointerDown={(e) => {
+            onClick={(e) => {
               e.stopPropagation()
               setData(item)
               open()
