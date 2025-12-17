@@ -4,6 +4,7 @@ import { useRouter } from '@bprogress/next/app'
 import { CodeBlock } from '@web/components/code-block'
 import { Button } from '@web/components/ui/button'
 import Image from 'next/image'
+import Link from 'next/link'
 
 interface ErrorsProps {
   code: string
@@ -50,6 +51,11 @@ export default function Errors({ code, errormessage }: ErrorsProps) {
       </div>
       <h1 className="text-center font-size-4xl text-3xl">Error {code}</h1>
       <div className="flex justify-center space-y-2">
+
+        <Link href={'/'}>
+          <Button>返回首页</Button>
+        </Link>
+
         <Button className="w-28" onClick={() => router.back()}>
           返回上一页
         </Button>
