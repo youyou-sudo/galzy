@@ -50,7 +50,7 @@ export default function Errors({ code, errormessage }: ErrorsProps) {
         />
       </div>
       <h1 className="text-center font-size-4xl text-3xl">Error {code}</h1>
-      <div className="flex justify-center space-y-2">
+      <div className="flex justify-center space-y-2 gap-2">
 
         <Link href={'/'}>
           <Button>返回首页</Button>
