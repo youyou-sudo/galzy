@@ -220,11 +220,6 @@ export const Game = {
     return result
   },
   async OpenListFiles({ id }: GameModel.OpenListFiles) {
-    const redisData = await getKv(`gameOpenListFiles-${id}`)
-    if (redisData !== null && redisData !== undefined) {
-      const res = JSON.parse(redisData) as GameOpenListFiles
-      return res
-    }
     const isVNDB = /^v\d+$/.test(id)
     const targetKey = `${isVNDB ? 'vndb' : 'other'}-${id}`
     const keyPattern = `%[${targetKey}]%`
@@ -333,8 +328,6 @@ export const Game = {
     }
     const data = await findMatchingSubtree(root, targetKey)
     const result = structuredClone(data)
-    void setKv(`gameOpenListFiles-${id}`, JSON.stringify(result), 60 * 60)
-    type GameOpenListFiles = typeof result
     return result
   },
   async DataFilteringStats() {
