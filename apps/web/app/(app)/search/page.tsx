@@ -38,8 +38,3 @@ export default async function Youyou({ searchParams }: Props) {
     </article>
   )
 }
-
-const page = async ({ searchParams }: Props) => {
-  return <Suspense><Youyou searchParams={searchParams} /></Suspense>
-}
-export default page

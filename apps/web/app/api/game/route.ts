@@ -1,7 +1,6 @@
 import type { GameModel } from '@api/modules/games/model'
 import { api } from '@libs'
 import { getTitles } from '@web/app/(app)/[id]/(lib)/contentDataac'
-import { cacheTag } from 'next/cache'
 
 const vltdma = {
   code: 400,
@@ -30,8 +29,6 @@ export async function GET(request: Request) {
 
 
 async function getData(vid: string) {
-  "use cache"
-  cacheTag(`getVnDetails-${vid}`, 'gameData-api')
   const [gameResp, fileListResp, strategyList] = await Promise.all([
     api.games.get({ query: { id: vid } }),
     api.games.openlistfiles.get({ query: { id: vid } }),
