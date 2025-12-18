@@ -36,7 +36,7 @@ import {
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { tryit } from 'radash'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { downCardDataStore } from './stores/downCardData'
 import { GlgczujmDl } from './tips'
@@ -127,10 +127,10 @@ function groupSplitArchives(
         const key = `${baseName}.${ext}`
         if (!archivesMap[key]) archivesMap[key] = []
 
-        // 检查同名 md 文件
-        if (mdMap[baseName]) {
-          item.redame = mdMap[baseName]
-        }
+        // // 检查同名 md 文件
+        // if (mdMap[baseName]) {
+        //   item.redame = mdMap[baseName]
+        // }
 
         archivesMap[key].push(item)
       } else {
@@ -145,13 +145,18 @@ function groupSplitArchives(
   })
 
   const archiveFolders = Object.entries(archivesMap).map(
-    ([fullName, files]) => ({
-      id: `archive-${fullName}-${Date.now()}`,
-      type: 'folder' as const,
-      name: `(分卷) ${fullName}`,
-      volumes: true,
-      children: files!,
-    }),
+    ([fullName, files]) => {
+      const baseName = fullName.replace(/\.(rar|zip|7z)$/i, '')
+
+      return {
+        id: `archive-${fullName}-${Date.now()}`,
+        redame: mdMap[baseName],
+        type: 'folder' as const,
+        name: `(分卷) ${fullName}`,
+        volumes: true,
+        children: files!,
+      }
+    },
   )
 
   return [...others, ...archiveFolders]
@@ -249,6 +254,10 @@ export const DownCardDialog = () => {
     enabled: !!data?.redame,
   })
 
+  const [mdReady, setMdReady] = useState(false)
+  useEffect(() => {
+    setMdReady(false)
+  }, [readmedata])
   // 下载处理函数
   const handleDownload = async (path: string, game_id: string) => {
     setDownloadingMap((prev) => ({ ...prev, [path]: true }))
@@ -504,16 +513,22 @@ export const DownCardDialog = () => {
             </DialogFooter>
           </>
         )}
-        {readmedata && (
+        {data?.redame && (
           <div className="max-h-96 overflow-y-auto p-2 border-2 rounded-2xl wrap-break-word">
-            <div className="space-y-2">
-              {isLoading
-                ? Array.from({ length: 3 }).map((_, i) => (
+            {!mdReady && (
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
                   <Skeleton key={i} className="h-5 rounded-full" />
-                ))
-                : null}
-            </div>
-            <MarkdownAsync readmedata={readmedata} />
+                ))}
+              </div>
+            )}
+
+            {readmedata && (
+              <MarkdownAsync
+                readmedata={readmedata}
+                onReady={() => setMdReady(true)}
+              />
+            )}
           </div>
         )}
         <GlgczujmDl />

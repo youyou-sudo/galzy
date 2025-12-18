@@ -1,22 +1,29 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { visit } from 'unist-util-visit'
 
-// 只动态加载 ReactMarkdown
 const Markdown = dynamic(() => import('react-markdown'), { ssr: false })
 
 let rehypeRawCache: any
 let remarkGfmCache: any
 let componentsCache: any
 
-export const MarkdownAsync = ({ readmedata }: { readmedata: string }) => {
+export const MarkdownAsync = ({
+  readmedata,
+  onReady,
+}: {
+  readmedata: string
+  onReady?: () => void
+}) => {
   const [plugins, setPlugins] = useState<{
     rehypeRaw?: any
     remarkGfm?: any
     components?: any
   }>({})
+
+  const notifiedRef = useRef(false)
 
   useEffect(() => {
     if (rehypeRawCache && remarkGfmCache && componentsCache) {
@@ -36,6 +43,7 @@ export const MarkdownAsync = ({ readmedata }: { readmedata: string }) => {
       rehypeRawCache = rehypeRawMod.default
       remarkGfmCache = remarkGfmMod.default
       componentsCache = componentsMod.MarkdownComponents
+
       setPlugins({
         rehypeRaw: rehypeRawCache,
         remarkGfm: remarkGfmCache,
@@ -44,8 +52,20 @@ export const MarkdownAsync = ({ readmedata }: { readmedata: string }) => {
     })
   }, [])
 
+  useLayoutEffect(() => {
+    if (
+      plugins.rehypeRaw &&
+      plugins.remarkGfm &&
+      plugins.components &&
+      !notifiedRef.current
+    ) {
+      notifiedRef.current = true
+      onReady?.()
+    }
+  }, [plugins, onReady])
+
   if (!plugins.rehypeRaw || !plugins.remarkGfm || !plugins.components) {
-    return <pre>{readmedata}</pre>
+    return null
   }
 
   return (
@@ -58,6 +78,7 @@ export const MarkdownAsync = ({ readmedata }: { readmedata: string }) => {
     </Markdown>
   )
 }
+
 
 export function rehypeRemoveBlackWhiteStyles() {
   return (tree: any) => {
