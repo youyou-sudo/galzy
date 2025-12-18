@@ -1,15 +1,16 @@
-'use client'
+'use client';
+
+import * as React from 'react';
+import { motion, type Variants } from 'motion/react';
 
 import {
   getVariants,
-  type IconProps,
-  IconWrapper,
   useAnimateIconContext,
-} from '@web/components/animate-ui/icons/icon'
-import { motion, type Variants } from 'motion/react'
-import * as React from 'react'
+  IconWrapper,
+  type IconProps,
+} from '@web/components/animate-ui/icons/icon';
 
-type CopyProps = IconProps<keyof typeof animations>
+type CopyProps = IconProps<keyof typeof animations>;
 
 const animations = {
   default: {
@@ -72,11 +73,11 @@ const animations = {
       },
     },
   } satisfies Record<string, Variants>,
-} as const
+} as const;
 
 function IconComponent({ size, ...props }: CopyProps) {
-  const { controls } = useAnimateIconContext()
-  const variants = getVariants(animations)
+  const { controls } = useAnimateIconContext();
+  const variants = getVariants(animations);
 
   return (
     <motion.svg
@@ -109,11 +110,11 @@ function IconComponent({ size, ...props }: CopyProps) {
         animate={controls}
       />
     </motion.svg>
-  )
+  );
 }
 
 function Copy(props: CopyProps) {
-  return <IconWrapper icon={IconComponent} {...props} />
+  return <IconWrapper icon={IconComponent} {...props} />;
 }
 
 export {
@@ -122,4 +123,4 @@ export {
   Copy as CopyIcon,
   type CopyProps,
   type CopyProps as CopyIconProps,
-}
+};

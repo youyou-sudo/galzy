@@ -1,3 +1,4 @@
+import { GameCard } from '@web/components/game-card'
 import SearchlistComponent from '@web/components/home/Search/meilisearch'
 import SearchInput from '@web/components/home/Search/Search'
 import { getSearch } from '@web/lib/search/meilisearch'
@@ -20,7 +21,7 @@ export async function generateMetadata({
 }
 
 // [x] 用户端搜索
-export async function Youyou({ searchParams }: Props) {
+export default async function Youyou({ searchParams }: Props) {
   const { q } = await searchParams
   const gameListData = await getSearch({ q, limit: 100 })
   return (

@@ -1,9 +1,7 @@
 'use server'
 import { api } from '@libs'
-import { updateTag } from 'next/cache'
 
 export const dwAcConst = async (path?: string, game_id?: string) => {
-  updateTag(`dwcount-${game_id}`)
   if (!path) {
     throw new Error('喵喵什么都不知道喵，请提供下载的资源的路径喵～')
   }

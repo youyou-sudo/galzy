@@ -7,6 +7,7 @@ import { Skeleton } from '@web/components/ui/skeleton'
 import {
   Table,
   TableBody,
+  TableCaption,
   TableCell,
   TableHead,
   TableHeader,

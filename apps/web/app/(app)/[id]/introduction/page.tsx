@@ -9,14 +9,12 @@ import { strategyListGet } from '@web/lib/strategy/strategyAc'
 import type { Metadata } from 'next/types'
 import React from 'react'
 import { aliasFilter, getTitles } from '../(lib)/contentDataac'
-import { cacheLife, cacheTag } from 'next/cache'
 
 type Props = {
   params: Promise<{ id: string }>
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  "use cache"
   const { id } = await params
   const data = await getVnDetails(id)
   const [titlesData, aliasData] = await Promise.all([
@@ -25,13 +23,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   ])
   return {
     title: '攻略',
-    description: `${titlesData.zhHans || titlesData.olang || 'Gamgame'
-      } 游戏别名：${aliasData || '无'} 的攻略文章列表，`,
+    description: `${
+      titlesData.zhHans || titlesData.olang || 'Gamgame'
+    } 游戏别名：${aliasData || '无'} 的攻略文章列表，`,
   }
 }
 
 export default async function page({ params }: { params: { id: string } }) {
-  'use cache'
   const { id } = await params
   const queryClient = new QueryClient()
   await queryClient.prefetchQuery({

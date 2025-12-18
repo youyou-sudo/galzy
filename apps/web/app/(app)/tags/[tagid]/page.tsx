@@ -15,7 +15,6 @@ type Props = {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  'use cache'
   const { tagid } = await params
   const tag = await getTagData(tagid)
   return {
@@ -29,7 +28,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 type GetVnListByTagResult = Awaited<ReturnType<typeof getVnListByTag>>
 export default async function Yoyo({ params }: Props) {
-  'use cache'
   const { tagid } = await params
   const tag = await getTagData(tagid)
 

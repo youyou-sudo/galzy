@@ -7,7 +7,6 @@ import { metadataConfig } from '@web/config/metadata'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Suspense } from 'react'
 
 export const metadata: Metadata = {
   title: {
@@ -71,9 +70,8 @@ export default async function YoyoLayout({
           <Toaster position="top-center" />
         </div>
       </div>
-      <Suspense>
-        <Footer />
-      </Suspense>
+
+      <Footer />
       <UmamiScript />
     </>
   )

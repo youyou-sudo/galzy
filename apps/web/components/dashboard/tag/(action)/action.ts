@@ -1,7 +1,6 @@
 'use server'
 import type { TagsModel } from '@api/modules/tags/model'
 import { api } from '@libs'
-import { updateTag } from 'next/cache'
 
 export const tagAllAction = async ({
   pageSize,
@@ -37,7 +36,6 @@ export const tagEditAction = async ({
     zh_alias,
     zh_description,
   })
-  updateTag(`tagData-${id}`)
   return status
 }
 

@@ -1,6 +1,10 @@
 'use client'
 
 import {
+  MotionHighlight,
+  MotionHighlightItem,
+} from '@web/components/animate-ui/effects/motion-highlight'
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -9,10 +13,6 @@ import {
   type AccordionTriggerProps,
   useAccordionItem,
 } from '@web/components/animate-ui/components/radix/accordion'
-import {
-  MotionHighlight,
-  MotionHighlightItem,
-} from '@web/components/animate-ui/effects/motion-highlight'
 import { cn } from '@web/lib/utils'
 import { FileIcon, FolderIcon, FolderOpenIcon } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'

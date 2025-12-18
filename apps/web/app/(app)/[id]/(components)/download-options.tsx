@@ -4,15 +4,12 @@ import type { GameModel } from '@api/modules/games/model'
 import { useQuery } from '@tanstack/react-query'
 import {
   FileItem,
-  Files,
-  FolderContent,
   FolderItem,
   FolderTrigger,
+  FolderContent,
+  Files,
   SubFiles,
-} from '@web/components/animate-ui/components/radix/files'
-import { Copy } from '@web/components/animate-ui/icons/copy'
-import { Download } from '@web/components/animate-ui/icons/download'
-import { AnimateIcon } from '@web/components/animate-ui/icons/icon'
+} from '@web/components/animate-ui/components/radix/files';
 import { MarkdownAsync } from '@web/components/markdownAync'
 import { Button } from '@web/components/ui/button'
 import {
@@ -33,14 +30,20 @@ import {
 import { CopyButton } from '@web/components/ui/shadcn-io/copy-button'
 import { Skeleton } from '@web/components/ui/skeleton'
 import { dwAcConst } from '@web/lib/download/ac'
-import { filesize } from 'filesize'
-import { Check, FileArchive } from 'lucide-react'
+import {
+  Check,
+  FileArchive,
+} from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { tryit } from 'radash'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { downCardDataStore } from './stores/downCardData'
 import { GlgczujmDl } from './tips'
+import { filesize } from 'filesize'
+import { Copy } from '@web/components/animate-ui/icons/copy';
+import { AnimateIcon } from '@web/components/animate-ui/icons/icon';
+import { Download } from '@web/components/animate-ui/icons/download';
 
 export function CopyButtons({ id }: { id?: string }) {
   const [copied, setCopied] = useState(false)
@@ -209,15 +212,18 @@ const TreeRenderer = ({
             }}
             className="cursor-pointer"
           >
-            <FileItem className="underline underline-offset-4 hover:decoration-sky-500 cursor-pointer">
+            <FileItem
+              className="underline underline-offset-4 hover:decoration-sky-500 cursor-pointer"
+            >
               {item.name}
             </FileItem>
           </div>
         ),
       )}
-    </SubFiles>
+    </SubFiles >
   )
 }
+
 
 // ---------- 下载弹窗 ----------
 export const DownCardDialog = () => {
@@ -295,6 +301,7 @@ export const DownCardDialog = () => {
                   </ItemDescription>
                 </ItemContent>
                 <ItemActions>
+
                   <AnimateIcon animateOnHover>
                     <Button
                       variant="outline"
@@ -502,8 +509,8 @@ export const DownCardDialog = () => {
             <div className="space-y-2">
               {isLoading
                 ? Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-5 rounded-full" />
-                  ))
+                  <Skeleton key={i} className="h-5 rounded-full" />
+                ))
                 : null}
             </div>
             <MarkdownAsync readmedata={readmedata} />

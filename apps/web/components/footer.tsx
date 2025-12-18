@@ -1,4 +1,3 @@
-'use client'
 import { cn } from '@web/lib/utils'
 import Link from 'next/link'
 import type React from 'react'

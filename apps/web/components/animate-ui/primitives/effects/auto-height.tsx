@@ -1,27 +1,25 @@
-'use client'
+'use client';
 
+import * as React from 'react';
 import {
-  Slot,
-  type WithAsChild,
-} from '@web/components/animate-ui/primitives/animate/slot'
-import { useAutoHeight } from '@web/hooks/use-auto-height'
-import {
+  motion,
   type HTMLMotionProps,
   type LegacyAnimationControls,
-  motion,
   type TargetAndTransition,
   type Transition,
-} from 'motion/react'
-import type * as React from 'react'
+} from 'motion/react';
+
+import { useAutoHeight } from '@web/hooks/use-auto-height';
+import { Slot, WithAsChild } from '@web/components/animate-ui/primitives/animate/slot';
 
 type AutoHeightProps = WithAsChild<
   {
-    children: React.ReactNode
-    deps?: React.DependencyList
-    animate?: TargetAndTransition | LegacyAnimationControls
-    transition?: Transition
+    children: React.ReactNode;
+    deps?: React.DependencyList;
+    animate?: TargetAndTransition | LegacyAnimationControls;
+    transition?: Transition;
   } & Omit<HTMLMotionProps<'div'>, 'animate'>
->
+>;
 
 function AutoHeight({
   children,
@@ -38,9 +36,9 @@ function AutoHeight({
   asChild = false,
   ...props
 }: AutoHeightProps) {
-  const { ref, height } = useAutoHeight<HTMLDivElement>(deps)
+  const { ref, height } = useAutoHeight<HTMLDivElement>(deps);
 
-  const Comp = asChild ? Slot : motion.div
+  const Comp = asChild ? Slot : motion.div;
 
   return (
     <Comp
@@ -51,7 +49,7 @@ function AutoHeight({
     >
       <div ref={ref}>{children}</div>
     </Comp>
-  )
+  );
 }
 
-export { AutoHeight, type AutoHeightProps }
+export { AutoHeight, type AutoHeightProps };

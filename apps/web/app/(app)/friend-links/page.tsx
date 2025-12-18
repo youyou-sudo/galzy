@@ -1,5 +1,6 @@
 import { MotionHighlight } from '@web/components/animate-ui/effects/motion-highlight'
 import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
+import { LinkIcon } from 'lucide-react'
 import Link from 'next/link'
 import React from 'react'
 

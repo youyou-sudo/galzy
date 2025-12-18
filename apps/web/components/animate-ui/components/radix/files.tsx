@@ -1,30 +1,31 @@
+import * as React from 'react';
+import { FolderIcon, FolderOpenIcon, FileIcon } from 'lucide-react';
+
 import {
-  FileHighlight as FileHighlightPrimitive,
-  FileIcon as FileIconPrimitive,
-  FileLabel as FileLabelPrimitive,
-  type FileLabelProps as FileLabelPrimitiveProps,
-  File as FilePrimitive,
-  type FileProps as FilePrimitiveProps,
-  FilesHighlight as FilesHighlightPrimitive,
   Files as FilesPrimitive,
-  type FilesProps as FilesPrimitiveProps,
-  FolderContent as FolderContentPrimitive,
-  type FolderContentProps as FolderContentPrimitiveProps,
-  FolderHeader as FolderHeaderPrimitive,
-  FolderHighlight as FolderHighlightPrimitive,
-  FolderIcon as FolderIconPrimitive,
+  FilesHighlight as FilesHighlightPrimitive,
   FolderItem as FolderItemPrimitive,
-  type FolderItemProps as FolderItemPrimitiveProps,
-  Folder as FolderPrimitive,
+  FolderHeader as FolderHeaderPrimitive,
   FolderTrigger as FolderTriggerPrimitive,
-} from '@web/components/animate-ui/primitives/radix/files'
-import { cn } from '@web/lib/utils'
-import { FileIcon, FolderIcon, FolderOpenIcon } from 'lucide-react'
-import type * as React from 'react'
+  FolderHighlight as FolderHighlightPrimitive,
+  Folder as FolderPrimitive,
+  FolderIcon as FolderIconPrimitive,
+  FileLabel as FileLabelPrimitive,
+  FolderContent as FolderContentPrimitive,
+  FileHighlight as FileHighlightPrimitive,
+  File as FilePrimitive,
+  FileIcon as FileIconPrimitive,
+  type FilesProps as FilesPrimitiveProps,
+  type FolderItemProps as FolderItemPrimitiveProps,
+  type FolderContentProps as FolderContentPrimitiveProps,
+  type FileProps as FilePrimitiveProps,
+  type FileLabelProps as FileLabelPrimitiveProps,
+} from '@web/components/animate-ui/primitives/radix/files';
+import { cn } from '@web/lib/utils';
 
-type GitStatus = 'untracked' | 'modified' | 'deleted'
+type GitStatus = 'untracked' | 'modified' | 'deleted';
 
-type FilesProps = FilesPrimitiveProps
+type FilesProps = FilesPrimitiveProps;
 
 function Files({ className, children, ...props }: FilesProps) {
   return (
@@ -33,24 +34,24 @@ function Files({ className, children, ...props }: FilesProps) {
         {children}
       </FilesHighlightPrimitive>
     </FilesPrimitive>
-  )
+  );
 }
 
-type SubFilesProps = FilesProps
+type SubFilesProps = FilesProps;
 
 function SubFiles(props: SubFilesProps) {
-  return <FilesPrimitive {...props} />
+  return <FilesPrimitive {...props} />;
 }
 
-type FolderItemProps = FolderItemPrimitiveProps
+type FolderItemProps = FolderItemPrimitiveProps;
 
 function FolderItem(props: FolderItemProps) {
-  return <FolderItemPrimitive {...props} />
+  return <FolderItemPrimitive {...props} />;
 }
 
 type FolderTriggerProps = FileLabelPrimitiveProps & {
-  gitStatus?: GitStatus
-}
+  gitStatus?: GitStatus;
+};
 
 function FolderTrigger({
   children,
@@ -97,23 +98,23 @@ function FolderTrigger({
         </FolderHighlightPrimitive>
       </FolderTriggerPrimitive>
     </FolderHeaderPrimitive>
-  )
+  );
 }
 
-type FolderContentProps = FolderContentPrimitiveProps
+type FolderContentProps = FolderContentPrimitiveProps;
 
 function FolderContent(props: FolderContentProps) {
   return (
     <div className="relative ml-6 before:absolute before:-left-2 before:inset-y-0 before:w-px before:h-full before:bg-border">
       <FolderContentPrimitive {...props} />
     </div>
-  )
+  );
 }
 
 type FileItemProps = FilePrimitiveProps & {
-  icon?: React.ElementType
-  gitStatus?: GitStatus
-}
+  icon?: React.ElementType;
+  gitStatus?: GitStatus;
+};
 
 function FileItem({
   icon: Icon = FileIcon,
@@ -150,7 +151,7 @@ function FileItem({
         )}
       </FilePrimitive>
     </FileHighlightPrimitive>
-  )
+  );
 }
 
 export {
@@ -166,4 +167,4 @@ export {
   type FolderContentProps,
   type FileItemProps,
   type SubFilesProps,
-}
+};

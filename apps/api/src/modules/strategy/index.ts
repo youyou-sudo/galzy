@@ -41,8 +41,8 @@ export const strategy = new Elysia({ prefix: '/strategy' })
   )
   .post(
     '/strategylistdelete',
-    async ({ body: { strategyId } }) => {
-      return await Strategy.strategyDelete({ strategyId })
+    async ({ body: { strategyId, gameId } }) => {
+      return await Strategy.strategyDelete({ strategyId, gameId })
     },
     {
       body: StrategyModel.strategy,

@@ -1,4 +1,5 @@
 import { db } from '@api/libs'
+import { delKv, getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import { t } from 'try'
@@ -6,9 +7,23 @@ import type { TagsModel } from './model'
 
 export const Tags = {
   async gameTags({ id }: TagsModel.gameTags) {
+    const cacheKey = `gameTags-${id}`
 
+    // 1. 尝试从缓存读取
+    const redisData = await getKv(cacheKey)
+    if (redisData) {
+      try {
+        return JSON.parse(redisData) as Tag
+      } catch {
+        // 缓存损坏 → 删除并继续查库
+        await delKv(cacheKey).catch(() => {})
+      }
+    }
+
+    // 2. 判断 id 是否为数字
     const idIsNumber = /^\d+$/.test(id)
 
+    // 3. 查询数据库
     const [, error, items] = await t(
       db
         .selectFrom('galrc_alistb')
@@ -62,9 +77,20 @@ export const Tags = {
 
     const result = structuredClone(items)
 
+    // 写入缓存（失败时只记录，不影响结果返回）
+    setKv(cacheKey, JSON.stringify(result), 60 * 60).catch(() => {
+      console.warn(`缓存写入失败: ${cacheKey}`)
+    })
+
+    // 类型定义：保证 result 不会是 undefined
+    type Tag = NonNullable<typeof result>
     return result
   },
   async tag({ tagId }: TagsModel.tagId) {
+    const redisdata = await getKv(`tag-${tagId}`)
+    if (redisdata !== null && redisdata !== undefined) {
+      return JSON.parse(redisdata) as Tag
+    }
     const [, error, items] = t(
       await db
         .selectFrom('tags')
@@ -88,11 +114,26 @@ export const Tags = {
     if (error) {
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     }
+    void setKv(`tag-${tagId}`, JSON.stringify(result), 60 * 60 * 1)
+    type Tag = typeof result
     return result
   },
   async tagGames({ tagId, pageSize, pageIndex }: TagsModel.tagGames) {
+    const cacheKey = `tagGames:${tagId}:${pageSize}:${pageIndex}`
+
+    // 先查缓存
+    const redisData = await getKv(cacheKey)
+    if (redisData) {
+      try {
+        return JSON.parse(redisData) as TagGames
+      } catch {
+        // 缓存损坏则忽略，走数据库查询
+      }
+    }
+
     const offset = pageIndex * pageSize
 
+    // 并行执行 主查询 + 统计查询
     const [mainResult, countResult] = await Promise.all([
       db
         .selectFrom('tags_vn')
@@ -184,6 +225,10 @@ export const Tags = {
       totalCount,
     }
 
+    // 设置缓存（异步执行，不阻塞返回）
+    void setKv(cacheKey, JSON.stringify(data), 60 * 60)
+
+    type TagGames = typeof data
     return data
   },
   async tagAllGet({ pageSize, pageIndex, keyword, id }: TagsModel.tagAll) {

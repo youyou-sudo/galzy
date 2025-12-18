@@ -1,4 +1,3 @@
-
 import ForesightLink from '@web/components/HoverPLink'
 
 interface Item {

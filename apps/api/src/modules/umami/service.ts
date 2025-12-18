@@ -23,6 +23,10 @@ const startAt = startOfWeek.getTime()
 export const Umami = {
   // Tag 统计
   async remfTagGet() {
+    const redisData = await getKv('remfTag')
+    if (redisData !== null && redisData !== undefined) {
+      return JSON.parse(redisData) as RemfTag
+    }
     const [, error, token] = t(await umamiTokenGet())
     if (error)
       throw status(
@@ -52,10 +56,16 @@ export const Umami = {
 
     const uniqueById = unique(data, (item) => item.tag)
 
+    void setKv('remfTag', JSON.stringify(uniqueById), 60 * 15)
+    type RemfTag = typeof uniqueById
     return uniqueById
   },
   // Game 统计
   async remfGameGet() {
+    const redisData = await getKv('remfGame')
+    if (redisData !== null && redisData !== undefined) {
+      return JSON.parse(redisData) as RemfGame
+    }
     const [, error, token] = t(await umamiTokenGet())
     if (error)
       throw status(
@@ -80,9 +90,16 @@ export const Umami = {
       }
     })
     const uniqueById = unique(parsed, (item) => item.id)
+
+    void setKv('remfGame', JSON.stringify(uniqueById), 60 * 15)
+    type RemfGame = typeof uniqueById
     return uniqueById
   },
   async gameDloadNuber({ vid }: UmamiModel.gameDloadNuber) {
+    const redisData = await getKv(`gameDloadNuber-${vid}`)
+    if (redisData !== null && redisData !== undefined) {
+      return JSON.parse(redisData) as number
+    }
     const [, error, token] = t(await umamiTokenGet())
     if (error)
       throw status(
@@ -109,6 +126,7 @@ export const Umami = {
       (a, b) => a + b,
       0,
     )
+    void setKv(`gameDloadNuber-${vid}`, JSON.stringify(totalDownloads), 60 * 15)
     return totalDownloads
   },
 }
