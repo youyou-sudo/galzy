@@ -58,7 +58,7 @@ const Home = () => {
 
         {/* 热门标签 + 热门游戏 */}
         <div className="grid grid-cols-2 md:grid-cols-2 gap-2 px-0 md:px-3 mb-0">
-          {/* <Card className="gap-3 border-0">
+          <Card className="gap-3 border-0">
             <CardHeader>
               <CardTitle className="flex items-center">
                 热门标签 <Tags className="w-4 h-4 ml-1 text-red-300" />
@@ -70,7 +70,7 @@ const Home = () => {
                 <RankingList fetchData={remfTagGet} linkKey="tag" />
               </Suspense>
             </CardContent>
-          </Card> */}
+          </Card>
 
           <Card className="gap-3 border-0">
             <CardHeader>
