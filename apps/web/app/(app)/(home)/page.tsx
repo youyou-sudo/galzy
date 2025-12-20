@@ -57,7 +57,7 @@ const Home = () => {
         </div>
 
         {/* 热门标签 + 热门游戏 */}
-        <div className="grid grid-cols-1 px-0 md:px-3 mb-0">
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-2 px-0 md:px-3 mb-0">
           {/* <Card className="gap-3 border-0">
             <CardHeader>
               <CardTitle className="flex items-center">
