@@ -100,7 +100,7 @@ export const ContentCard = ({ data }: Props) => {
             )}
 
             {/* Tags section */}
-            {data.vid && <TagsCard id={data.vid} />}
+            {/* {data.vid && <TagsCard id={data.vid} />} */}
           </div>
         </CardContent>
       </Card>
