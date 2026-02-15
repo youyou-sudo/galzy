@@ -432,14 +432,20 @@ function HighlightItem<T extends React.ElementType>({
 
   React.useEffect(() => {
     if (mode !== 'parent') return;
-    let rafId: number;
+    let rafId: number | null = null;
     let previousBounds: Bounds | null = null;
     const shouldUpdateBounds =
       forceUpdateBounds === true ||
       (contextForceUpdateBounds && forceUpdateBounds !== false);
 
     const updateBounds = () => {
-      if (!localRef.current) return;
+      if (!localRef.current || !isActive) {
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+        return;
+      }
 
       const bounds = localRef.current.getBoundingClientRect();
 
@@ -466,7 +472,11 @@ function HighlightItem<T extends React.ElementType>({
       setActiveClassName(activeClassName ?? '');
     } else if (!activeValue) clearBounds();
 
-    if (shouldUpdateBounds) return () => cancelAnimationFrame(rafId);
+    return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
   }, [
     mode,
     isActive,

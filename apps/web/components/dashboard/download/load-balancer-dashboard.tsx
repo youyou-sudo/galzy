@@ -64,6 +64,7 @@ export default function LoadBalancerDashboard() {
       return res
     },
     refetchInterval: 60000,
+    refetchIntervalInBackground: false,
   })
 
   React.useEffect(() => {

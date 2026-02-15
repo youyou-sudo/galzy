@@ -1,5 +1,5 @@
 'use client'
-import { QueryClient, useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import DataManagementPagination from '@web/components/dashboard/dataManagement/Pagination'
 import { Button } from '@web/components/ui/button'
 import {
@@ -64,9 +64,10 @@ export default function DataTabl() {
       return res
     },
     refetchInterval: 6000,
+    refetchIntervalInBackground: false,
   })
 
-  const queryClient = new QueryClient()
+  const queryClient = useQueryClient()
   const {
     isPending,
     mutate: adddatass,
