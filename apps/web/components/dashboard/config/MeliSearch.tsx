@@ -62,7 +62,6 @@ export const MeiliSearch = () => {
 
 const DocumentsCounter = async () => {
   const { data: indexdata } = await api.search.getStats.get()
-  console.log('MeiliSearch 索引统计数据：', indexdata)
 
   if (!indexdata) {
     return <>MeiliSearch</>

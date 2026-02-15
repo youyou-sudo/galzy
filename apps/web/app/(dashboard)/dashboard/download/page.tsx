@@ -16,7 +16,7 @@ export default async function page() {
     },
   })
   return (
-    <div>
+    <div className="space-y-6">
       <HydrationBoundary state={dehydrate(queryClient)}>
         <LoadBalancerDashboard />
       </HydrationBoundary>

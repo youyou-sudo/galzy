@@ -10,6 +10,7 @@ import NavMain from '@web/components/dashboard/sedebar/NavMain'
 import NavUser from '@web/components/dashboard/sedebar/NavUser'
 import Switcher from '@web/components/dashboard/sedebar/Switcher'
 import SideContent from '@web/components/dashboard/sedebar/sideContent'
+import { Toaster } from '@web/components/ui/sonner'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -35,7 +36,12 @@ export default function RootLayout({
           </SidebarFooter>
           <SidebarRail />
         </Sidebar>
-        <SideContent>{children}</SideContent>
+        <SideContent>
+          <div className="p-4">
+            {children}
+          </div>
+        </SideContent>
+        <Toaster position="top-center" />
       </SidebarProvider>
     </AuthYjvg>
   )

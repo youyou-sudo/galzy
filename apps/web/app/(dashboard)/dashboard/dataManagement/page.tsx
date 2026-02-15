@@ -31,20 +31,18 @@ export default async function page() {
     },
   })
   return (
-    <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between p-6">
-          <div>
-            <h1 className="text-3xl font-bold">数据视图</h1>
-            <p className="mt-1 opacity-50">此页面用于数据总数观察</p>
-          </div>
-        </div>
-        <div className="space-y-3">
-          <HydrationBoundary state={dehydrate(queryClient)}>
-            <StatsCard />
-            <DataTabl />
-          </HydrationBoundary>
-        </div>
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">数据管理</h1>
+        <p className="text-muted-foreground">
+          查看数据统计和管理数据视图，监控系统数据状态
+        </p>
+      </div>
+      <div className="space-y-6">
+        <HydrationBoundary state={dehydrate(queryClient)}>
+          <StatsCard />
+          <DataTabl />
+        </HydrationBoundary>
       </div>
     </div>
   )
