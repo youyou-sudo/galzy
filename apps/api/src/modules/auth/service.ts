@@ -25,6 +25,15 @@ const authConfig = {
   emailAndPassword: {
     enabled: true,
   },
+  trustedOrigins: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://galzy.eu.org',
+    'https://www.galzy.eu.org',
+    'https://www.galzy.moe',
+    'https://galzy.moe',
+  ],
+
   basePath: '/auth',
 } satisfies BetterAuthOptions
 
