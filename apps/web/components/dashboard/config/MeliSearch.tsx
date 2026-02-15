@@ -14,11 +14,11 @@ import {
   CardTitle,
 } from '@web/components/ui/card'
 import { Skeleton } from '@web/components/ui/skeleton'
-import { env } from 'next-runtime-env'
 import { Suspense } from 'react'
 import { MeiliSearchEmbedding } from './MeiliSearchEmbedding'
 import { MeiliSearchIndex } from './MeilisearchIndex'
 import { filesize } from 'filesize'
+import '@web/lib/env'
 
 export const MeiliSearch = () => {
   return (
@@ -62,16 +62,28 @@ export const MeiliSearch = () => {
 
 const DocumentsCounter = async () => {
   const { data: indexdata } = await api.search.getStats.get()
+  console.log('MeiliSearch 索引统计数据：', indexdata)
+
+  if (!indexdata) {
+    return <>MeiliSearch</>
+  }
+
+  const indexName = process.env.MEILISEARCH_INDEXNAME || 'galrc_index'
+  const indexStats = indexdata.indexes?.[indexName]
+
+  if (!indexStats) {
+    return <>MeiliSearch</>
+  }
 
   return (
     <>
       MeiliSearch
-      {indexdata
-        ? ` 大小：${filesize(indexdata?.indexes?.[env('MEILISEARCH_INDEXNAME')!].avgDocumentSize, { base: 2, standard: "jedec", precision: 2, locale: "zh" })} | ${
-            indexdata?.indexes?.[env('MEILISEARCH_INDEXNAME')!]
-              .numberOfDocuments
-          } 条索引`
-        : ''}
+      {` 大小：${filesize(indexStats.avgDocumentSize, {
+        base: 2,
+        standard: "jedec",
+        precision: 2,
+        locale: "zh",
+      })} | ${indexStats.numberOfDocuments} 条索引`}
     </>
   )
 }
