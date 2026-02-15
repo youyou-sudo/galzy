@@ -14,7 +14,7 @@ export function ButtonCard() {
   const [loading, setLoading] = useState<string | null>(null)
 
   const handleAction = async (
-    action: () => Promise<void>,
+    action: () => Promise<undefined | boolean>,
     actionName: string
   ) => {
     setLoading(actionName)

@@ -1,5 +1,6 @@
 import { db, MeiliClient } from '@api/libs'
 import { deacquireLocklKv, releaseLockKv } from '@api/libs/redis'
+import { number } from 'better-auth'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import { all } from 'radash'
 import { t } from 'try'
@@ -158,15 +159,20 @@ export const CronService = {
           for (const result of dedupedResults) {
             await trx
               .insertInto('galrc_alistb')
-              .values(result)
+              .values({
+                vid: result.vid,
+                other: result.other != null ? Number(result.other) : null,
+                id: result.id,
+              })
               .onConflict((oc) =>
                 oc.column('id').doUpdateSet({
                   vid: result.vid,
-                  other: result.other,
+                  other: result.other != null ? Number(result.other) : null,
                 }),
               )
               .execute()
           }
+
 
           // 删除不再存在的记录
           const currentIds = dedupedResults.map((r) => r.id)
