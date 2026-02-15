@@ -1,13 +1,14 @@
 import { db } from '@api/libs'
 import {
   acquireIdempotentKey,
+  delKv,
+  generateIdempotentHash,
   getIdempotentResult,
   storeIdempotentResult,
 } from '@api/libs/redis'
 import { status } from 'elysia'
 import { jsonObjectFrom } from 'kysely/helpers/postgres'
 import { t } from 'try'
-import XXH from 'xxhashjs'
 import type { MediaModel } from './model'
 
 export const Media = {
@@ -17,8 +18,7 @@ export const Media = {
     sortOrder,
     cover,
   }: MediaModel.insertmediatoentry) {
-    const str = JSON.stringify({ entryId, media, sortOrder, cover })
-    const hash = XXH.h32(str, 0xabcd).toString(16)
+    const hash = generateIdempotentHash({ entryId, media, sortOrder, cover })
     const cached = await getIdempotentResult(`insertmediatoentry-${hash}`)
     if (cached) {
       return cached
@@ -59,30 +59,32 @@ export const Media = {
 
     // 只有在关联不存在时才创建新的关联
     if (!existingRelation) {
-      if (cover) {
-        await db
-          .updateTable('galrc_other_media')
-          .where('cover', '=', true)
-          .set({ cover: false })
-          .returningAll()
-          .executeTakeFirst()
-      }
-      await db
-        .insertInto('galrc_other_media')
-        .values({
-          other_id: entryId,
-          media_hash: mediahash,
-          sort_order: sortOrder,
-          cover: cover,
-        })
-        .execute()
+      await db.transaction().execute(async (trx) => {
+        if (cover) {
+          await trx
+            .updateTable('galrc_other_media')
+            .where('other_id', '=', entryId)
+            .where('cover', '=', true)
+            .set({ cover: false })
+            .execute()
+        }
+        await trx
+          .insertInto('galrc_other_media')
+          .values({
+            other_id: entryId,
+            media_hash: mediahash,
+            sort_order: sortOrder,
+            cover: cover,
+          })
+          .execute()
+      })
 
+      await delKv(`gameInfo-${entryId}`)
       await storeIdempotentResult(`insertmediatoentry-${hash}`, '', 60)
     }
   },
   async delemediatoentry({ id, mediahash, name }: MediaModel.delemediatoentry) {
-    const str = JSON.stringify({ id, mediahash, name })
-    const hash = XXH.h32(str, 0xabcd).toString(16)
+    const hash = generateIdempotentHash({ id, mediahash, name })
     const cached = await getIdempotentResult(`delemediatoentry-${hash}`)
     if (cached) {
       return cached
@@ -102,7 +104,7 @@ export const Media = {
       .selectAll()
       .where('media_hash', '=', mediahash)
       .executeTakeFirst()
-    if (log === null) {
+    if (log === undefined) {
       // 如果图片没有被其他条目使用，则删除 galrc_media 中的记录
       await db.deleteFrom('galrc_media').where('hash', '=', mediahash).execute()
 
@@ -123,8 +125,7 @@ export const Media = {
     await storeIdempotentResult(`delemediatoentry-${hash}`, '', 60)
   },
   async getMediaByCover({ other, mediahash }: MediaModel.getMediaByCover) {
-    const str = JSON.stringify({ other, mediahash })
-    const hash = XXH.h32(str, 0xabcd).toString(16)
+    const hash = generateIdempotentHash({ other, mediahash })
     const cached = await getIdempotentResult(`getMediaByCover-${hash}`)
     if (cached) {
       return cached
@@ -159,12 +160,12 @@ export const Media = {
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
 
+    await delKv(`gameInfo-${other}`)
     await storeIdempotentResult(`getMediaByCover-${hash}`, media, 60)
     return media
   },
   async getMedia({ other_id }: MediaModel.getMedia) {
-    const str = JSON.stringify({ other_id })
-    const hash = XXH.h32(str, 0xabcd).toString(16)
+    const hash = generateIdempotentHash({ other_id })
     const cached = await getIdempotentResult(`getMedia-${hash}`)
     if (cached) {
       return cached

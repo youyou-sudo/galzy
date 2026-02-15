@@ -2,6 +2,8 @@ import { db, sql } from '@api/libs'
 import {
   acquireIdempotentKey,
   delKv,
+  delKvPattern,
+  generateIdempotentHash,
   getIdempotentResult,
   getKv,
   setKv,
@@ -10,7 +12,6 @@ import {
 import { status } from 'elysia'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import { t } from 'try'
-import XXH from 'xxhashjs'
 import type { GameModel } from './model'
 
 export const Game = {
@@ -28,7 +29,7 @@ export const Game = {
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     const count = Number(totalCountResult?.count || 0)
-    void setKv('gameCount', String(count), 60 * 60 * 12)
+    void setKv('gameCount', String(count), 60 * 30)
     return count
   },
   async List({ pageIndex, pageSize }: GameModel.gameList) {
@@ -121,7 +122,7 @@ export const Game = {
     void setKv(
       `gameList-${pageIndex}-${pageSize}`,
       JSON.stringify(datas),
-      60 * 60 * 12,
+      60 * 60 * 2,
     )
     type GameList = typeof datas
     return datas
@@ -214,7 +215,7 @@ export const Game = {
     }
 
     const result = structuredClone(data)
-    void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 12)
+    void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 6)
 
     type GameInfo = typeof result
     return result
@@ -589,8 +590,7 @@ export const Game = {
     }
   },
   async vidassociationUpdate({ id, data }: GameModel.vidassociationUpdate) {
-    const str = JSON.stringify({ id, data })
-    const hash = XXH.h32(str, 0xabcd).toString(16)
+    const hash = generateIdempotentHash({ id, data })
     const cached = await getIdempotentResult(`vidassociationUpdate-${hash}`)
     if (cached) {
       return cached
@@ -624,6 +624,10 @@ export const Game = {
       message: '更新 galrc_other 成功',
       status: 'success',
     }
+    await delKv(`gameInfo-${id}`)
+    await delKv(`vidassociation-${id}`)
+    await delKvPattern('gameList-*')
+    await delKv('gameCount')
     await storeIdempotentResult(`vidassociationUpdate-${hash}`, datas, 60)
     return datas
   },
@@ -636,19 +640,23 @@ export const Game = {
     if (!ok) {
       throw status(200, '重复请求')
     }
-    const otherId = await db
-      .insertInto('galrc_other')
-      .values({ status: 'draft' })
-      .returning('id')
-      .executeTakeFirstOrThrow()
+    const otherId = await db.transaction().execute(async (trx) => {
+      const newOther = await trx
+        .insertInto('galrc_other')
+        .values({ status: 'draft' })
+        .returning('id')
+        .executeTakeFirstOrThrow()
 
-    await db
-      .insertInto('galrc_alistb')
-      .values({
-        id: String(otherId.id),
-        other: otherId.id,
-      })
-      .execute()
+      await trx
+        .insertInto('galrc_alistb')
+        .values({
+          id: String(newOther.id),
+          other: newOther.id,
+        })
+        .execute()
+
+      return newOther
+    })
 
     await storeIdempotentResult(`vidassociationCreate:action`, otherId, 2)
     type OtherId = typeof otherId

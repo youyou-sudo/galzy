@@ -2,6 +2,7 @@ import { db } from '@api/libs'
 import {
   acquireIdempotentKey,
   delKv,
+  generateIdempotentHash,
   getIdempotentResult,
   getKv,
   setKv,
@@ -10,7 +11,6 @@ import {
 import { status } from 'elysia'
 import { jsonObjectFrom } from 'kysely/helpers/postgres'
 import { t } from 'try'
-import XXH from 'xxhashjs'
 import type { StrategyModel } from './model'
 
 export const Strategy = {
@@ -72,8 +72,7 @@ export const Strategy = {
   async strategyUpdate({ id, data }: StrategyModel.strategyListUpdate) {
     await delKv(`gameStrategys:${id}`)
     await delKv(`strategy-${id}`)
-    const str = JSON.stringify({ id, data })
-    const hash = XXH.h32(str, 0xabcd).toString(16)
+    const hash = generateIdempotentHash({ id, data })
     const cached = await getIdempotentResult(`strategyListUpdate-${hash}`)
     if (cached) {
       return cached
@@ -91,8 +90,7 @@ export const Strategy = {
   },
   async strategyCreate({ id, data, userid }: StrategyModel.strategyListCreate) {
     await delKv(`gameStrategys:${id}`)
-    const str = JSON.stringify({ id, data })
-    const hash = XXH.h32(str, 0xabcd).toString(16)
+    const hash = generateIdempotentHash({ id, data })
     const cached = await getIdempotentResult(`strategyListCreate-${hash}`)
     if (cached) {
       return cached
@@ -110,15 +108,14 @@ export const Strategy = {
     } else {
       await db
         .insertInto('galrc_article')
-        .values({ otherid: Number(id), ...data, type: 'strategy' })
+        .values({ otherid: Number(id), ...data, type: 'strategy', author: userid })
         .executeTakeFirstOrThrow()
     }
     await storeIdempotentResult(`strategyListCreate-${hash}`, '', 60)
   },
   async strategyDelete({ strategyId, gameId }: StrategyModel.strategy) {
     await delKv(`gameStrategys:${gameId}`)
-    const str = JSON.stringify({ strategyId })
-    const hash = XXH.h32(str, 0xabcd).toString(16)
+    const hash = generateIdempotentHash({ strategyId })
     const cached = await getIdempotentResult(`strategyListDelete-${hash}`)
     if (cached) {
       return cached

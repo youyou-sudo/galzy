@@ -1,4 +1,5 @@
 import { redis } from './index'
+import { createHash } from 'node:crypto'
 
 export const setKv = async (key: string, value: string, time?: number) => {
   if (!redis) return
@@ -13,6 +14,15 @@ export const getKv = async (key: string) => {
 export const delKv = async (key: string) => {
   if (!redis) return
   return redis.del(key)
+}
+
+export const delKvPattern = async (pattern: string) => {
+  if (!redis) return
+  const keys = await redis.keys(pattern)
+  if (keys.length > 0) {
+    return redis.del(...keys)
+  }
+  return 0
 }
 
 export const deacquireLocklKv = async (
@@ -76,4 +86,14 @@ export async function getIdempotentResult<T>(key: string): Promise<T | null> {
   if (!redis) return null
   const res = await redis.get(key)
   return res ? (JSON.parse(res) as T) : null
+}
+
+/**
+ * 生成幂等键的 SHA256 哈希
+ * @param data 需要哈希的数据对象
+ * @returns SHA256 哈希字符串
+ */
+export function generateIdempotentHash(data: any): string {
+  const str = JSON.stringify(data)
+  return createHash('sha256').update(str).digest('hex')
 }

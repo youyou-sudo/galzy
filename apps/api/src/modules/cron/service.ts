@@ -8,7 +8,7 @@ export const CronService = {
   async workerDataPull() {
     const lockKey = 'workerDataCorn'
     const lockValue = crypto.randomUUID()
-    const lockTimeout = 10000
+    const lockTimeout = 120000
 
     const lock = await deacquireLocklKv(lockKey, lockValue, lockTimeout)
     if (!lock) {
@@ -113,7 +113,7 @@ export const CronService = {
   async alistSyncScript() {
     const lockKey = 'runAlistData'
     const lockValue = crypto.randomUUID()
-    const lockTimeout = 10000
+    const lockTimeout = 120000
 
     const lock = await deacquireLocklKv(lockKey, lockValue, lockTimeout)
     if (!lock) return null
@@ -154,15 +154,28 @@ export const CronService = {
 
       const [, trxError] = t(
         await db.transaction().execute(async (trx) => {
-          // 使用并行操作优化事务
-          await Promise.all([
-            trx
-              .deleteFrom('galrc_alistb')
-              .execute(),
-            // 可以考虑先删除再插入，而不是等待删除完成
-          ])
+          // 使用 UPSERT 替代全量删除，避免数据丢失
+          for (const result of dedupedResults) {
+            await trx
+              .insertInto('galrc_alistb')
+              .values(result)
+              .onConflict((oc) =>
+                oc.column('id').doUpdateSet({
+                  vid: result.vid,
+                  other: result.other,
+                }),
+              )
+              .execute()
+          }
 
-          await trx.insertInto('galrc_alistb').values(dedupedResults).execute()
+          // 删除不再存在的记录
+          const currentIds = dedupedResults.map((r) => r.id)
+          if (currentIds.length > 0) {
+            await trx
+              .deleteFrom('galrc_alistb')
+              .where('id', 'not in', currentIds)
+              .execute()
+          }
 
           await trx
             .insertInto('galrc_siteConfig')
@@ -250,26 +263,42 @@ export const CronService = {
       const { totalPages } = await this.getMeiliSearchDataInfo()
       const pageSize = 500
 
-      // 创建所有分页任务
-      const pagePromises = Array.from(
-        { length: totalPages },
-        async (_, pageIndex) => {
-          const { items } = await MeiliSearchData(pageSize, pageIndex)
-          if (items.length > 0) {
-            return index.addDocuments(items)
-          }
-          return Promise.resolve()
-        },
-      )
-
       // 并行处理所有分页，但限制并发数量避免过载
-      const concurrencyLimit = 5 // 限制并发数
-      for (let i = 0; i < pagePromises.length; i += concurrencyLimit) {
-        const batch = pagePromises.slice(i, i + concurrencyLimit)
+      const concurrencyLimit = 3 // 降低并发数以减少负载
+      for (let i = 0; i < totalPages; i += concurrencyLimit) {
+        const batch = []
+        for (let j = 0; j < concurrencyLimit && i + j < totalPages; j++) {
+          batch.push(this.indexPageWithRetry(index, pageSize, i + j))
+        }
         await Promise.all(batch)
       }
     } catch (e) {
       console.error('meiliSearchAddIndex 运行失败喵', e)
+      throw e
+    }
+  },
+
+  async indexPageWithRetry(
+    index: any,
+    pageSize: number,
+    pageIndex: number,
+    retries = 3,
+  ) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const { items } = await MeiliSearchData(pageSize, pageIndex)
+        if (items.length > 0) {
+          await index.addDocuments(items)
+        }
+        return
+      } catch (e) {
+        console.error(
+          `索引分页 ${pageIndex} 失败 (尝试 ${i + 1}/${retries})`,
+          e,
+        )
+        if (i === retries - 1) throw e
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)))
+      }
     }
   },
 
@@ -283,26 +312,42 @@ export const CronService = {
       const { totalPages } = await this.getTagDataInfo()
       const pageSize = 500
 
-      // 并行处理所有分页
-      const pagePromises = Array.from(
-        { length: totalPages },
-        async (_, pageIndex) => {
-          const { items } = await tagAllGet(pageSize, pageIndex)
-          if (items.length > 0) {
-            return index.addDocuments(items)
-          }
-          return Promise.resolve()
-        },
-      )
-
-      // 限制并发数量
-      const concurrencyLimit = 5
-      for (let i = 0; i < pagePromises.length; i += concurrencyLimit) {
-        const batch = pagePromises.slice(i, i + concurrencyLimit)
+      // 并行处理所有分页，限制并发数量
+      const concurrencyLimit = 3
+      for (let i = 0; i < totalPages; i += concurrencyLimit) {
+        const batch = []
+        for (let j = 0; j < concurrencyLimit && i + j < totalPages; j++) {
+          batch.push(this.indexTagPageWithRetry(index, pageSize, i + j))
+        }
         await Promise.all(batch)
       }
     } catch (e) {
       console.error('meiliSearchAddTag 运行失败喵', e)
+      throw e
+    }
+  },
+
+  async indexTagPageWithRetry(
+    index: any,
+    pageSize: number,
+    pageIndex: number,
+    retries = 3,
+  ) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const { items } = await tagAllGet(pageSize, pageIndex)
+        if (items.length > 0) {
+          await index.addDocuments(items)
+        }
+        return
+      } catch (e) {
+        console.error(
+          `标签索引分页 ${pageIndex} 失败 (尝试 ${i + 1}/${retries})`,
+          e,
+        )
+        if (i === retries - 1) throw e
+        await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)))
+      }
     }
   },
 
