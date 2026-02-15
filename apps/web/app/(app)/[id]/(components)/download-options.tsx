@@ -400,7 +400,7 @@ export const DownCardDialog = () => {
                   size="default"
                   variant="secondary"
                   content="玖辞"
-                  onCopy={() => console.assert('已复制!')}
+                  onCopy={() => console.assert(true, '已复制!')}
                   className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
                 />
               </div>
@@ -428,7 +428,7 @@ export const DownCardDialog = () => {
                   size="default"
                   variant="secondary"
                   content="玖辞"
-                  onCopy={() => console.assert('已复制!')}
+                  onCopy={() => console.assert(true, '已复制!')}
                   className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
                 />
               </div>

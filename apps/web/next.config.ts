@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   reactCompiler: true,
   experimental: {
-    webpackMemoryOptimizations: true,
     serverActions: {
       bodySizeLimit: '5mb',
     },
