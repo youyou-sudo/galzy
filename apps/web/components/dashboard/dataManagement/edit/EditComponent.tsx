@@ -1,7 +1,7 @@
 'use client'
 
 import { zodResolver } from '@hookform/resolvers/zod'
-import { QueryClient, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@web/components/ui/button'
 import { Card } from '@web/components/ui/card'
 import {
@@ -66,8 +66,7 @@ export default function EditComponent() {
     name: 'title',
   })
 
-  const queryClient = new QueryClient()
-  const queryClientc = useQueryClient()
+  const queryClient = useQueryClient()
   const { close } = useEditDialog()
   const { datapage, limit } = usePaginationStore()
   const filterNusq = useFilterStore((state) => state.filterNusq)
@@ -75,12 +74,14 @@ export default function EditComponent() {
   const { mutate: onSubmit, isPending: delllLoading } = useMutation({
     mutationFn: async (values: FormValues) => {
       await vidassociationUpdate(Number(data!.id), values)
-      queryClientc.invalidateQueries({
+      queryClient.invalidateQueries({
         queryKey: ['dataFilteringGet', filterNusq, datapage, limit],
       })
       close()
     },
-    onSettled: () => queryClient.invalidateQueries(),
+    onSettled: () => queryClient.invalidateQueries({
+      queryKey: ['dataFilteringGet'],
+    }),
   })
 
   // / 中间函数，符合 handleSubmit 需要的签名

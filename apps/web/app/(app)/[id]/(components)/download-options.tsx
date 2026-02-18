@@ -47,6 +47,7 @@ import { Download } from '@web/components/animate-ui/icons/download';
 
 export function CopyButtons({ id }: { id?: string }) {
   const [copied, setCopied] = useState(false)
+  const timeoutIdRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleCopy = () => {
     if (id) {
@@ -55,13 +56,25 @@ export function CopyButtons({ id }: { id?: string }) {
         .writeText(url)
         .then(() => {
           setCopied(true)
-          setTimeout(() => setCopied(false), 3000) // 3秒后恢复图标
+          // 清理之前的定时器
+          if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current)
+          timeoutIdRef.current = setTimeout(() => {
+            setCopied(false)
+            timeoutIdRef.current = null
+          }, 3000)
         })
         .catch(() => {
           alert('复制失败，请手动复制链接。')
         })
     }
   }
+
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current)
+    }
+  }, [])
 
   return (
     <Button

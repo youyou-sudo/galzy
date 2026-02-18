@@ -20,12 +20,25 @@ export function CodeBlock({
   ...props
 }: CodeProps) {
   const [copied, setCopied] = React.useState(false)
+  const timeoutIdRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const copyToClipboard = React.useCallback(() => {
     navigator.clipboard.writeText(code)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    // 清理之前的定时器
+    if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current)
+    timeoutIdRef.current = setTimeout(() => {
+      setCopied(false)
+      timeoutIdRef.current = null
+    }, 2000)
   }, [code])
+
+  // 清理定时器
+  React.useEffect(() => {
+    return () => {
+      if (timeoutIdRef.current) clearTimeout(timeoutIdRef.current)
+    }
+  }, [])
 
   return (
     <div className="relative group">

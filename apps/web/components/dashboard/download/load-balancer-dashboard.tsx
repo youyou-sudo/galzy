@@ -56,6 +56,7 @@ export interface MobileStatsGridProps {
 export default function LoadBalancerDashboard() {
   const [isMobile, setIsMobile] = useState(false)
   const [switchLoading, setSwitchLoading] = useState(false)
+  const isMountedRef = React.useRef(true)
 
   const { data: workersItems, refetch } = useQuery({
     queryKey: ['workersItems'],
@@ -69,12 +70,17 @@ export default function LoadBalancerDashboard() {
 
   React.useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 900)
+      if (isMountedRef.current) {
+        setIsMobile(window.innerWidth < 900)
+      }
     }
 
     checkMobile()
     window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
+    return () => {
+      window.removeEventListener('resize', checkMobile)
+      isMountedRef.current = false
+    }
   }, [])
 
   const healthyNodes = (workersItems || []).filter(
@@ -267,13 +273,19 @@ export default function LoadBalancerDashboard() {
                             checked={node.enable}
                             disabled={switchLoading}
                             onClick={async () => {
+                              if (!isMountedRef.current) return
                               setSwitchLoading(true)
-                              await nodeEnaledAc(node.id, !node.enable)
-                              await refetch()
-                              await new Promise((resolve) =>
-                                setTimeout(resolve, 500),
-                              )
-                              setSwitchLoading(false)
+                              try {
+                                await nodeEnaledAc(node.id, !node.enable)
+                                await refetch()
+                                await new Promise((resolve) =>
+                                  setTimeout(resolve, 500),
+                                )
+                              } finally {
+                                if (isMountedRef.current) {
+                                  setSwitchLoading(false)
+                                }
+                              }
                             }}
                           />
                         </TableCell>
