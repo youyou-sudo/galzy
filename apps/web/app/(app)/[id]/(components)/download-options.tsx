@@ -44,6 +44,7 @@ import { filesize } from 'filesize'
 import { Copy } from '@web/components/animate-ui/icons/copy';
 import { AnimateIcon } from '@web/components/animate-ui/icons/icon';
 import { Download } from '@web/components/animate-ui/icons/download';
+import React from 'react';
 
 export function CopyButtons({ id }: { id?: string }) {
   const [copied, setCopied] = useState(false)
