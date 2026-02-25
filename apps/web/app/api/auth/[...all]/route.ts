@@ -18,7 +18,7 @@ async function proxy(req: NextRequest) {
     cache: 'no-store',
   })
 
-  return new Response(await res.text(), {
+  return new Response(res.body, {
     status: res.status,
     headers: res.headers,
   })

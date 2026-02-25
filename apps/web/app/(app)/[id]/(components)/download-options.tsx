@@ -266,7 +266,17 @@ export const DownCardDialog = () => {
       return fetch(url.url).then((res) => res.text())
     },
     enabled: !!data?.redame,
+    gcTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 10,
   })
+
+  // 对话框关闭时清理状态
+  useEffect(() => {
+    if (!isOpen) {
+      setDownloadingMap({})
+      setIsCopying({})
+    }
+  }, [isOpen])
 
   const [mdReady, setMdReady] = useState(false)
   useEffect(() => {

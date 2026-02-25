@@ -22,19 +22,18 @@ export const authServerClient = createAuthClient({
       const headersList = await headers()
       const cookie = headersList.get('Cookie')
 
-      // Proxy auth-related cookies
       if (cookie) {
-        const authCookies = cookie
-          .split(';')
-          .map((c) => c.trim())
-          .filter(
-            (c) =>
-              c.startsWith(`${BETTER_AUTH_COOKIE_PREFIX}.`) ||
-              c.startsWith(`__Secure-${BETTER_AUTH_COOKIE_PREFIX}.`),
-          )
-          .join('; ')
+        const cookiePattern = new RegExp(
+          `(^|; )(${BETTER_AUTH_COOKIE_PREFIX}\\.[^ ;]+|__Secure-${BETTER_AUTH_COOKIE_PREFIX}\\.[^ ;]+)`,
+          'g'
+        )
+        const matches = cookie.match(cookiePattern)
 
-        if (authCookies) {
+        if (matches) {
+          const authCookies = matches
+            .map(m => m.replace(/^; /, ''))
+            .join('; ')
+
           context.headers.set('Cookie', authCookies)
         }
       }

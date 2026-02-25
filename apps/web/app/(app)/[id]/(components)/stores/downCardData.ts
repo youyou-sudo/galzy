@@ -10,6 +10,7 @@ export const downCardDataStore = create<{
   close: () => void
   setOpen: (open: boolean) => void
   setData: (data: GameModel.TreeNode) => void
+  cleanup: () => void
 }>((set, get) => ({
   data: null,
   isOpen: false,
@@ -33,4 +34,11 @@ export const downCardDataStore = create<{
     set({ timeoutId: newTimeoutId })
   },
   setData: (data) => set({ data }),
+  cleanup: () => {
+    const { timeoutId } = get()
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+      set({ timeoutId: null, data: null, isOpen: false })
+    }
+  }
 }))

@@ -77,8 +77,8 @@ export function groupSplitArchives(
 ): GameModel.TreeNode[] | undefined {
   if (!items || items.length === 0) return items
 
-  const mdMap = new Map<string, string>()
-  const archivesMap = new Map<string, GameModel.TreeNode[]>()
+  const mdMap: Record<string, string> = {}
+  const archivesMap: Record<string, GameModel.TreeNode[]> = {}
   const others: GameModel.TreeNode[] = []
   const splitRegex = /(.*?)(?:\.part\d+)\.(rar|zip|7z)$/i
   const timestamp = Date.now()
@@ -93,24 +93,24 @@ export function groupSplitArchives(
     }
 
     if (item.name.endsWith('.md')) {
-      mdMap.set(item.name.replace(/\.md$/i, ''), item.id)
+      mdMap[item.name.replace(/\.md$/i, '')] = item.id
       return
     }
 
     const match = item.name.match(splitRegex)
     const nameWithoutExt = item.name.replace(/\.[^/.]+$/, '')
-    if (mdMap.has(nameWithoutExt)) item.redame = mdMap.get(nameWithoutExt)
+    if (nameWithoutExt in mdMap) item.redame = mdMap[nameWithoutExt]
 
     if (match) {
       const key = `${match[1]}.${match[2]}`
-      if (!archivesMap.has(key)) archivesMap.set(key, [])
-      archivesMap.get(key)!.push(item)
+      if (!(key in archivesMap)) archivesMap[key] = []
+      archivesMap[key].push(item)
     } else {
       others.push(item)
     }
   })
 
-  const archiveFolders = Array.from(archivesMap.entries()).map(
+  const archiveFolders = Object.entries(archivesMap).map(
     ([fullName, files]) => ({
       id: `archive-${fullName}-${timestamp}`,
       type: 'folder' as const,
