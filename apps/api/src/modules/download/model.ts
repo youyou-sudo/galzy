@@ -22,6 +22,13 @@ export namespace DownloadModel {
     boole: t.Boolean(),
   })
 
+  export const DownloadGet = t.Object({
+    success: t.Boolean(),
+    raw_url: t.String(),
+    sign: t.String(),
+  })
+
+  export type DownloadGet = typeof DownloadGet.static
   export type workerConfigForm = typeof workerConfigForm.static
   export type path = typeof path.static
   export type workerConfigFormDel = typeof workerConfigFormDel.static
