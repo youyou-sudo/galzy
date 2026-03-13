@@ -37,7 +37,6 @@
     "cmdk": "^1.1.1",
     "filesize": "^11.0.13",
     "install": "^0.13.0",
-    "ioredis": "^5.9.3",
     "js.foresight": "^3.4.0",
     "lucide-react": "^0.564.0",
     "meilisearch": "^0.55.0",

@@ -4,7 +4,7 @@ import { t } from 'try'
 import type { DownloadModel } from './model'
 
 export const Download = {
-  async DownloadGet({ path, game_id }: DownloadModel.path) {
+  async DownloadGet({ path, game_id }: DownloadModel.path): Promise<DownloadModel.DownloadGet> {
     const hmacSha256Sign = async (
       path: string,
       expire: number,
@@ -102,7 +102,6 @@ export const Download = {
 
       return {
         success: true,
-        message: '哼哼喵（得意），找到啦～',
         raw_url: `${randomWorker.url_endpoint}/${path}?sign=${sign}`,
         sign,
       }
@@ -112,7 +111,7 @@ export const Download = {
     if (error) {
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     }
-    return structuredClone(res)
+    return res
   },
   async Worker() {
     const [, error, res] = t(
@@ -185,12 +184,17 @@ export const Download = {
     }
   },
   async nodeEnaledAc({ nodeId, boole }: DownloadModel.nodeEnaledAc) {
-    await db
-      .updateTable('galrc_cloudflare')
-      .set({
-        enable: boole,
-      })
-      .where('id', '=', nodeId)
-      .execute()
-  },
+    try {
+      await db
+        .updateTable('galrc_cloudflare')
+        .set({
+          enable: boole,
+        })
+        .where('id', '=', nodeId)
+        .execute()
+    } catch (error) {
+      console.log(error)
+      throw status(400, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+    }
+  }
 }

@@ -1,5 +1,6 @@
-import { db, redis, sql, vndbDb } from '@api/libs'
+import { db, sql, vndbDb } from '@api/libs'
 import { setDeployStatus } from '@api/modules/status/service'
+import { redis } from "bun";
 
 export const dbAction = async () => {
   console.log('⌛ Running database migrations and seeding...')

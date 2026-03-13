@@ -20,7 +20,6 @@
     "ajv": "^8.18.0",
     "croner": "^10.0.1",
     "elysia": "^1.4.25",
-    "ioredis": "^5.9.3",
     "kysely": "^0.28.11",
     "kysely-postgres-js": "^3.0.0",
     "meilisearch": "^0.55.0",

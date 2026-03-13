@@ -1,21 +1,45 @@
-import { redis } from './index'
 import { createHash } from 'node:crypto'
+import { redis } from "bun";
 
+/**
+ * 设置 Key-Value 对，并可选设置过期时间
+ * @param key 键
+ * @param value 值
+ * @param time 过期时间（秒），如果不传则永久有效
+ * @returns Redis 操作结果
+ */
 export const setKv = async (key: string, value: string, time?: number) => {
   if (!redis) return
   return time ? redis.setex(key, time, value) : redis.set(key, value)
 }
 
+/**
+ * 获取 Key 对应的值
+ * @param key 键
+ * @returns 对应的值，如果 Key 不存在则返回 null
+ */
 export const getKv = async (key: string) => {
   if (!redis) return null
   return redis.get(key)
 }
 
+
+/**
+ * 删除 Key
+ * @param key 键
+ * @returns 被删除的 Key 数量
+ */
 export const delKv = async (key: string) => {
   if (!redis) return
   return redis.del(key)
 }
 
+
+/**
+ * 根据模式删除 Key
+ * @param pattern 模式，例如 "session:*" 将删除所有以 "session:" 开头的 Key
+ * @returns 被删除的 Key 数量
+ */
 export const delKvPattern = async (pattern: string) => {
   if (!redis) return
   const keys = await redis.keys(pattern)
@@ -25,42 +49,69 @@ export const delKvPattern = async (pattern: string) => {
   return 0
 }
 
-export const deacquireLocklKv = async (
+/**
+ * 尝试获取分布式锁
+ * @param lockKey 锁的 Key
+ * @param lockValue 锁的值（通常是唯一标识）
+ * @param lockTimeout 锁的过期时间（毫秒）
+ * @returns 是否成功获取锁
+ */
+export const acquireLockKv = async (
   lockKey: string,
   lockValue: string,
-  lockTimeout: number,
+  lockTimeout: number
 ) => {
-  const lock = await redis.set(lockKey, lockValue, 'PX', lockTimeout, 'NX')
-  return lock === 'OK'
-}
+  const result = await redis.send("SET", [
+    lockKey,
+    lockValue,
+    "PX",
+    lockTimeout.toString(),
+    "NX",
+  ]);
 
-export const releaseLockKv = async (lockKey: string, lockValue: string) => {
-  const script = `
-    if redis.call("get", KEYS[1]) == ARGV[1] then
-      return redis.call("del", KEYS[1])
-    else
-      return 0
-    end
-  `
-  const result = await redis.eval(script, 1, lockKey, lockValue)
-  return result === 1
+  return result === "OK";
 }
 
 /**
+ * 释放分布式锁
+ * @param lockKey 锁的 Key
+ * @param lockValue 锁的值（必须与获取锁时使用的值相同）
+ * @returns 是否成功释放锁
+ */
+export const releaseLockKv = async (key: string, value: string) => {
+  const script = `
+if redis.call("get", KEYS[1]) == ARGV[1]
+then
+  return redis.call("del", KEYS[1])
+else
+  return 0
+end
+`;
+
+  return redis.send("EVAL", [script, "1", key, value]);
+};
+
+/**
  * 检查并占用幂等 Key
- * @param key 唯一标识，比如 "order:123" 或 "req:<uuid>"
+ * @param key 幂等 Key
  * @param ttl 过期时间（秒）
- * @returns 是否首次执行（true 表示成功占位，可以执行逻辑）
+ * @returns 是否成功占用 Key
  */
 export async function acquireIdempotentKey(
   key: string,
-  ttl: number,
+  ttl: number
 ): Promise<boolean> {
-  if (!redis) throw new Error('Redis client not initialized')
+  if (!redis) throw new Error("Redis client not initialized");
 
-  // 仅当 key 不存在时设置成功
-  const setRes = await redis.set(key, 'LOCKED', 'EX', ttl, 'NX')
-  return setRes === 'OK'
+  const result = await redis.send("SET", [
+    key,
+    "LOCKED",
+    "EX",
+    ttl.toString(),
+    "NX",
+  ]);
+
+  return result === "OK";
 }
 
 /**
