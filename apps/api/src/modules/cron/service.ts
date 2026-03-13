@@ -1,5 +1,5 @@
 import { db, MeiliClient } from '@api/libs'
-import { deacquireLocklKv, releaseLockKv } from '@api/libs/redis'
+import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
 import { number } from 'better-auth'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import { all } from 'radash'
@@ -11,7 +11,7 @@ export const CronService = {
     const lockValue = crypto.randomUUID()
     const lockTimeout = 120000
 
-    const lock = await deacquireLocklKv(lockKey, lockValue, lockTimeout)
+    const lock = await acquireLockKv(lockKey, lockValue, lockTimeout)
     if (!lock) {
       return
     }
@@ -116,7 +116,7 @@ export const CronService = {
     const lockValue = crypto.randomUUID()
     const lockTimeout = 120000
 
-    const lock = await deacquireLocklKv(lockKey, lockValue, lockTimeout)
+    const lock = await acquireLockKv(lockKey, lockValue, lockTimeout)
     if (!lock) return null
 
     try {
