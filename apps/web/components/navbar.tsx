@@ -76,7 +76,7 @@ export function Navbar() {
                         data-umami-event="广告点击"
                         data-umami-event-name="DZMM"
                         data-umami-event-position="导航广告-DZMM"
-                        href="https://www.xn--i8s951di30azba.com?rf=876926e5"
+                        href="https://www.turfle.top?rf=876926e5"
                       >
                         Ai女友💋（在线畅玩）
                       </Link>
@@ -135,7 +135,7 @@ export function Navbar() {
                       data-umami-event="广告点击"
                       data-umami-event-name="DZMM"
                       data-umami-event-position="导航广告-DZMM"
-                      href="https://www.xn--i8s951di30azba.com?rf=876926e5"
+                      href="https://www.turfle.top?rf=876926e5"
                       className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
                       onClick={() => setIsOpen(false)}
                     >

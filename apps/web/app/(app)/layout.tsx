@@ -41,7 +41,7 @@ export default async function YoyoLayout({
             data-umami-event-name="dzmm"
             data-umami-event-position="Banner-dzmm"
             target="_blank"
-            href="https://www.xn--i8s951di30azba.com?rf=876926e5"
+            href="https://www.turfle.top?rf=876926e5"
           >
             <div id="sidebar-ad" className="sm:hidden">
               <AspectRatio ratio={80 / 9}>
