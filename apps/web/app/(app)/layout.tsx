@@ -1,12 +1,9 @@
-import { Footer } from '@web/components/footer'
-import { Navbar } from '@web/components/navbar'
-import { AspectRatio } from '@web/components/ui/aspect-ratio'
-import { Toaster } from '@web/components/ui/sonner'
-import UmamiScript from '@web/components/umami/script'
-import { metadataConfig } from '@web/config/metadata'
+import { Footer } from '#/components/footer'
+import { Navbar } from '#/components/navbar'
+import { Toaster } from '#/components/ui/sonner'
+import UmamiScript from '#/components/umami/script'
+import { metadataConfig } from '#/config/metadata'
 import type { Metadata } from 'next'
-import Image from 'next/image'
-import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: {
@@ -32,7 +29,7 @@ export default async function YoyoLayout({
       <div className="flex-1 px-3 pt-2">
         <Navbar />
         {/* 广告 */}
-        <aside
+        {/* <aside
           id="sidebar-ad"
           className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-80 relative"
         >
@@ -64,7 +61,7 @@ export default async function YoyoLayout({
               </AspectRatio>
             </div>
           </Link>
-        </aside>
+        </aside> */}
         <div className="flex flex-col mx-auto max-w-7xl space-y-4 py-4 lg:px-0">
           <main>{children}</main>
           <Toaster position="top-center" />

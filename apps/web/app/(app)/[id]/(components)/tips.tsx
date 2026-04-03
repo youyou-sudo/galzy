@@ -1,7 +1,5 @@
-import { Alert, AlertDescription, AlertTitle } from '@web/components/ui/alert'
-import { AspectRatio } from '@web/components/ui/aspect-ratio'
-import { BadgeJapaneseYen, Info } from 'lucide-react'
-import Image from 'next/image'
+import { Alert, AlertDescription, AlertTitle } from '#/components/ui/alert'
+import { Info } from 'lucide-react'
 import Link from 'next/link'
 
 const glgc = [
@@ -49,7 +47,7 @@ export const Glgczujm = () => {
         </AlertDescription>
       </Alert>
 
-      <aside>
+      {/* <aside>
         <Alert
           id="sidebar-ad"
           className="border-cyan-600/30 border-x-0 border-b-0 pb-0 flex items-center gap-2"
@@ -102,7 +100,7 @@ export const Glgczujm = () => {
             </AspectRatio>
           </div>
         </Link>
-      </div>
+      </div> */}
 
       <aside>
         <Alert

@@ -1,23 +1,22 @@
-'use client'
-import { ThemeSwitch } from '@web/components/theme-switch'
-import { Button } from '@web/components/ui/button'
+
+import { ThemeSwitch } from '#/components/theme-switch'
+import { Button } from '#/components/ui/button'
 import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
   navigationMenuTriggerStyle,
-} from '@web/components/ui/navigation-menu'
+} from '#/components/ui/navigation-menu'
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@web/components/ui/sheet'
+} from '#/components/ui/sheet'
 import { Menu } from 'lucide-react'
 import Image from 'next/image'
-import Link from 'next/link'
 import type React from 'react'
 import { useState } from 'react'
 import ForesightLink from './HoverPLink'
