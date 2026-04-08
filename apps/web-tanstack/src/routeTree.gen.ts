@@ -17,7 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as SearchIndexRouteImport } from './routes/search/index'
 import { Route as TagsTagIdRouteImport } from './routes/tags/$tagId'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
-import { Route as ApiHeartbeatRouteImport } from './routes/api/heartbeat'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiGameRouteImport } from './routes/api/game'
 import { Route as IdLayoutRouteImport } from './routes/$id/_layout'
 import { Route as IdLayoutIndexRouteImport } from './routes/$id/_layout/index'
@@ -66,9 +66,9 @@ const ApiSearchRoute = ApiSearchRouteImport.update({
   path: '/api/search',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiHeartbeatRoute = ApiHeartbeatRouteImport.update({
-  id: '/api/heartbeat',
-  path: '/api/heartbeat',
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGameRoute = ApiGameRouteImport.update({
@@ -117,7 +117,7 @@ export interface FileRoutesByFullPath {
   '/openapi': typeof OpenapiRoute
   '/$id': typeof IdLayoutRouteWithChildren
   '/api/game': typeof ApiGameRoute
-  '/api/heartbeat': typeof ApiHeartbeatRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/search/': typeof SearchIndexRoute
@@ -134,7 +134,7 @@ export interface FileRoutesByTo {
   '/friend-links': typeof FriendLinksRoute
   '/openapi': typeof OpenapiRoute
   '/api/game': typeof ApiGameRoute
-  '/api/heartbeat': typeof ApiHeartbeatRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/search': typeof SearchIndexRoute
@@ -153,7 +153,7 @@ export interface FileRoutesById {
   '/openapi': typeof OpenapiRoute
   '/$id/_layout': typeof IdLayoutRouteWithChildren
   '/api/game': typeof ApiGameRoute
-  '/api/heartbeat': typeof ApiHeartbeatRoute
+  '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/search/': typeof SearchIndexRoute
@@ -173,7 +173,7 @@ export interface FileRouteTypes {
     | '/openapi'
     | '/$id'
     | '/api/game'
-    | '/api/heartbeat'
+    | '/api/health'
     | '/api/search'
     | '/tags/$tagId'
     | '/search/'
@@ -190,7 +190,7 @@ export interface FileRouteTypes {
     | '/friend-links'
     | '/openapi'
     | '/api/game'
-    | '/api/heartbeat'
+    | '/api/health'
     | '/api/search'
     | '/tags/$tagId'
     | '/search'
@@ -208,7 +208,7 @@ export interface FileRouteTypes {
     | '/openapi'
     | '/$id/_layout'
     | '/api/game'
-    | '/api/heartbeat'
+    | '/api/health'
     | '/api/search'
     | '/tags/$tagId'
     | '/search/'
@@ -227,7 +227,7 @@ export interface RootRouteChildren {
   OpenapiRoute: typeof OpenapiRoute
   IdLayoutRoute: typeof IdLayoutRouteWithChildren
   ApiGameRoute: typeof ApiGameRoute
-  ApiHeartbeatRoute: typeof ApiHeartbeatRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   ApiSearchRoute: typeof ApiSearchRoute
   TagsTagIdRoute: typeof TagsTagIdRoute
   SearchIndexRoute: typeof SearchIndexRoute
@@ -292,11 +292,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/heartbeat': {
-      id: '/api/heartbeat'
-      path: '/api/heartbeat'
-      fullPath: '/api/heartbeat'
-      preLoaderRoute: typeof ApiHeartbeatRouteImport
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/game': {
@@ -377,7 +377,7 @@ const rootRouteChildren: RootRouteChildren = {
   OpenapiRoute: OpenapiRoute,
   IdLayoutRoute: IdLayoutRouteWithChildren,
   ApiGameRoute: ApiGameRoute,
-  ApiHeartbeatRoute: ApiHeartbeatRoute,
+  ApiHealthRoute: ApiHealthRoute,
   ApiSearchRoute: ApiSearchRoute,
   TagsTagIdRoute: TagsTagIdRoute,
   SearchIndexRoute: SearchIndexRoute,
