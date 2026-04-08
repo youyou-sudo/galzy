@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack && cp -r .next/static .next/standalone/apps/web/.next/static && cp -r public .next/standalone/apps/web/public",
+    "dev:web": "next dev --turbopack",
+    "build:web": "next build --turbopack && cp -r .next/static .next/standalone/apps/web/.next/static && cp -r public .next/standalone/apps/web/public",
     "build:webpack": "next build --webpack && cp -r .next/static .next/standalone/apps/web/.next/static && cp -r public .next/standalone/apps/web/public",
     "build:win": "next build --turbopack && bun scripts/buildWinFileCopy.ts",
     "start": "next start",
