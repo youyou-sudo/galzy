@@ -1,0 +1,172 @@
+# 游戏条目 API
+
+获取指定游戏的游戏信息、文件列表、攻略文章
+---
+
+## 基本信息
+
+- **接口地址**：`/api/game`
+- **请求方法**：`GET`
+- **请求类型**：`application/json`
+- **返回类型**：`application/json`
+
+---
+
+## 请求参数
+**vid**
+-  类型：`string`
+-  必填：✅
+-  说明：游戏的 VNDB ID，例如 `v54`
+
+
+## 成功响应示例
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "vid": "v4",
+    "title": "CLANNAD",
+    "alias": "クラナド, 团子大家族",
+    "description": "Just 200 meters from the school gate……",
+    "filelist": [
+      {
+        "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/【图集】蓝光原盘扫图以及背景音乐.rar",
+        "name": "【图集】蓝光原盘扫图以及背景音乐.rar",
+        "type": "file",
+        "size": "752407331",
+        "format": "RAR"
+      },
+      {
+        "id": "archive-【PC电脑端官中】HD重置.rar-1762971143876",
+        "type": "folder",
+        "name": "(分卷) 【PC电脑端官中】HD重置.rar",
+        "children": [
+          {
+            "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/【PC电脑端官中】HD重置.part1.rar",
+            "name": "【PC电脑端官中】HD重置.part1.rar",
+            "type": "file",
+            "size": "4294967296",
+            "format": "RAR"
+          },
+          {
+            "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/【PC电脑端官中】HD重置.part2.rar",
+            "name": "【PC电脑端官中】HD重置.part2.rar",
+            "type": "file",
+            "size": "225899814",
+            "format": "RAR"
+          }
+        ]
+      }
+    ],
+    "strategy": [
+      {
+        "id": 44,
+        "vid": "v4",
+        "otherid": null,
+        "title": "智代篇",
+        "content":"此处为 HTML OR Markdown OR HTML & Mrkdown",
+        "copyright": "",
+        "type": "strategy",
+        "createdAt": "2025-09-27T09:08:26.625Z",
+        "updatedAt": "2025-09-27T09:08:26.625Z",
+        "user": {
+          "id": "pThdiZDRRaaLsjNKIEAtpBGQeaeGs17I",
+          "name": "admin@admin.com",
+          "image": null
+        }
+      },
+      {
+        "id": 45,
+        "vid": "v4",
+        "otherid": null,
+        "title": "clannad攻略",
+        "content":"此处为 HTML OR Markdown OR HTML & Mrkdown",
+        "copyright": "",
+        "type": "strategy",
+        "createdAt": "2025-09-27T09:09:27.376Z",
+        "updatedAt": "2025-09-27T09:09:27.376Z",
+        "user": {
+          "id": "pThdiZDRRaaLsjNKIEAtpBGQeaeGs17I",
+          "name": "admin@admin.com",
+          "image": null
+        }
+      }
+    ]
+  }
+}
+```
+
+## 类型
+
+```typescript
+export interface ApiResponse {
+  code: number
+  message: string
+  data: GameData
+}
+
+export interface GameData {
+  vid: string
+  title: string
+  alias: string | null
+  description?: string | null
+  filelist: FileItem[]
+  strategy: Strategy[]
+}
+
+export interface FileItem {
+  id: string
+  name: string
+  type: 'file' | 'folder'
+  size?: string
+  format?: string
+  children?: FileItem[]
+}
+
+export interface Strategy {
+  id: number
+  vid: string
+  otherid: number | null
+  title: string
+  content: string
+  copyright: string
+  type: "strategy"
+  createdAt: string
+  updatedAt: string
+  user:User
+}
+
+
+export interface User {
+  id: string
+  name: string
+  image: string | null
+}
+
+```
+
+## 错误响应示例
+
+- 游戏 ID 缺失或无效
+  ```json
+  {
+    "code": "400",
+    "message": "喵喵什么都不知道喵，请提供正确的游戏 ID 喵～"
+  }
+  ```
+
+- 游戏无文件
+  ```json
+  {
+    "code": "400",
+    "message": "喵喵什么都不知道喵，此游戏暂时未上传文件喵～"
+  }
+  ```
+
+## 状态码说明
+- `200`
+  - 请求成功，返回游戏详情
+- `400`
+  - 请求参数错误或未找到游戏
