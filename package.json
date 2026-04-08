@@ -20,7 +20,8 @@
   },
   "packageManager": "bun@1.3.6",
   "workspaces": [
-    "apps/*",
+    "apps/api",
+    "apps/web-tanstack",
     "packages/*"
   ],
   "trustedDependencies": [
