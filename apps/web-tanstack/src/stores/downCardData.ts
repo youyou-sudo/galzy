@@ -1,6 +1,5 @@
 import { createStore } from "@tanstack/react-store";
 
-// biome-ignore lint/suspicious/noExplicitAny: <downCardStore>
 type ModalState<T = any> = {
 	open: boolean;
 	data: T | null;
