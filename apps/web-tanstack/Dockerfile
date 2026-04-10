@@ -19,20 +19,18 @@ ENV NODE_ENV=production
 WORKDIR /app/apps/web-tanstack
 RUN bun --bun run build
 
-# Production stage
-FROM gcr.io/distroless/base
+FROM oven/bun:slim AS production
 
 WORKDIR /app
 
-# Copy server file from build stage
-COPY --from=build /app/apps/web-tanstack/server /app/server
-
-# Environment variables
 ENV NODE_ENV=production
-ENV PORT=3000
-ENV OTEL=false
 
-# Default command
-CMD ["./server"]
+COPY --from=build /app/apps/web-tanstack/dist ./dist
+COPY --from=build /app/apps/web-tanstack/server.ts ./
 
+USER bun
+
+ENV HOSTNAME="0.0.0.0"
 EXPOSE 3000
+
+CMD ["bun", "--bun", "run", "server.ts"]
