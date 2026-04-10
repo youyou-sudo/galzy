@@ -4,13 +4,12 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
+import { nitro } from "nitro/vite";
 
 const config = defineConfig({
+
   resolve: {
     tsconfigPaths: true,
-  },
-  ssr: {
-    noExternal: true,
   },
   build: {
     chunkSizeWarningLimit: 1000,
@@ -31,6 +30,14 @@ const config = defineConfig({
     tailwindcss(),
     tanstackStart(),
     viteReact(),
+    nitro({
+      preset: "bun",
+      compressPublicAssets: {
+        gzip: true,
+        brotli: true,
+      },
+      minify: true,
+    }),
     tanstackRouter({
       autoCodeSplitting: true,
     }),
