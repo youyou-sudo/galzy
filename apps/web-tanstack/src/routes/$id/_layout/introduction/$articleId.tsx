@@ -62,6 +62,7 @@ function RouteComponent() {
         <CardHeader>
           <Link
             to=".."
+            resetScroll={false}
             className="flex items-center pl-3 gap-1 underline opacity-50 hover:opacity-100"
           >
             <ArrowLeft className="w-4 h-4" />
