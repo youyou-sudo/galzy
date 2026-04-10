@@ -6,9 +6,9 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "vite dev --port 3000",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "bun --bun vite dev --port 3000",
+    "build": "bun --bun vite build",
+    "preview": "bun --bun vite preview",
     "test": "vitest run",
     "format": "biome format --write .",
     "lint": "biome lint",
