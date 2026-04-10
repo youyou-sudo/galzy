@@ -13,7 +13,6 @@ const vltdma = {
 	},
 };
 
-// biome-ignore lint/suspicious/noExplicitAny: <any>
 function jsonResponse(data: any, status = 200) {
 	return new Response(JSON.stringify(data), {
 		status,
