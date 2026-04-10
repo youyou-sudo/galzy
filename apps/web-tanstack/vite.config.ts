@@ -4,18 +4,21 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-import { nitro } from "nitro/vite";
 
 const config = defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  ssr: {
+    noExternal: true,
+  },
   build: {
     chunkSizeWarningLimit: 1000,
     sourcemap: false,
-    target: "es2022",
+    target: "esnext",
     minify: "esbuild",
     cssCodeSplit: true,
+    modulePreload: false,
     rollupOptions: {
       treeshake: true,
     },
@@ -25,19 +28,9 @@ const config = defineConfig({
   },
   plugins: [
     devtools(),
-    tailwindcss({
-      optimize: true,
-    }),
+    tailwindcss(),
     tanstackStart(),
-    nitro({
-      preset: "bun",
-      compressPublicAssets: true,
-    }),
-    viteReact({
-      babel: {
-        plugins: ["babel-plugin-react-compiler"],
-      },
-    }),
+    viteReact(),
     tanstackRouter({
       autoCodeSplitting: true,
     }),
