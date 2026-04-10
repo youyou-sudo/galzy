@@ -3,7 +3,6 @@ import { devtools } from "@tanstack/devtools-vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import viteReact from "@vitejs/plugin-react";
-import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 const config = defineConfig({
@@ -18,11 +17,10 @@ const config = defineConfig({
     sourcemap: false,
     target: "esnext",
     minify: "esbuild",
+    cssCodeSplit: true,
+    modulePreload: false,
     rollupOptions: {
       treeshake: true,
-      output: {
-        manualChunks: undefined,
-      },
     },
   },
   define: {
@@ -32,11 +30,7 @@ const config = defineConfig({
     devtools(),
     tailwindcss(),
     tanstackStart(),
-    viteReact(),
-    react({
-      babel: {
-        plugins: ["babel-plugin-react-compiler"],
-      },
+    viteReact({
     }),
     tanstackRouter({
       autoCodeSplitting: true,
