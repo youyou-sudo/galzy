@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "bun --bun vite dev --port 3000",
-    "build": "bun --bun vite build && bun build --compile --minify --sourcemap --bytecode --target bun --outfile server .output/server/index.mjs",
+    "build": "bun --bun vite build",
     "preview": "bun --bun vite preview",
     "start": "bun run .output/server/index.mjs",
     "test": "vitest run",
