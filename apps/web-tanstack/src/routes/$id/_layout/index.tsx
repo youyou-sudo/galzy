@@ -27,6 +27,7 @@ export const Route = createFileRoute("/$id/_layout/")({
       filelist,
     };
   },
+  staleTime: 1000 * 30,
   headers: () => ({
     // Cache at CDN for 1 hour, allow stale content for up to 1 day
     'Cache-Control':

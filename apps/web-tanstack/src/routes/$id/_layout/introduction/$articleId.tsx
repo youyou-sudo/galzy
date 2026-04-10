@@ -38,6 +38,7 @@ export const Route = createFileRoute("/$id/_layout/introduction/$articleId")({
       data: { id: params.articleId },
     });
   },
+  staleTime: 1000 * 30,
   head: ({ loaderData }) => ({
     meta: [
       { title: `${loaderData?.title} | ${seoTemplate.title}` },

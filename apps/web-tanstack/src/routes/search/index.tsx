@@ -42,7 +42,7 @@ export const Route = createFileRoute("/search/")({
     'Cache-Control':
       'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
   }),
-  staleTime: 10_000,
+  staleTime: 1000 * 30,
 });
 
 function RouteComponent() {

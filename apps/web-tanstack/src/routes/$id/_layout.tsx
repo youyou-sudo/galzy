@@ -42,6 +42,7 @@ export const Route = createFileRoute("/$id/_layout")({
       id,
     };
   },
+  staleTime: 1000 * 30,
   head: ({ loaderData }) => ({
     meta: [
       {

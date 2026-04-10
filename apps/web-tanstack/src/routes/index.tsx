@@ -50,7 +50,7 @@ export const Route = createFileRoute("/")({
 		gamelist: await getGameList(),
 		rankings: getCritical(),
 	}),
-	staleTime: 10_000,
+	staleTime: 1000 * 30,
 });
 
 function App() {
