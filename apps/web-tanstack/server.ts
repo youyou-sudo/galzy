@@ -917,7 +917,7 @@ async function initializeServer(): Promise<void> {
       ...routes,
 
       // Fallback — TanStack Start SSR handler with security checks
-      '/*'(req: Request) {
+      async '/*'(req: Request) {
         try {
           // 安全检查：验证请求方法
           const method = req.method
@@ -945,9 +945,13 @@ async function initializeServer(): Promise<void> {
             return new Response(error400Body, { status: 400, headers: error400Headers })
           }
 
-          return handlerFetch(req)
-        } catch {
-          // 避免错误日志的字符串拼接开销，生产环境可以移除日志
+          // await 确保 Promise rejection 被 catch 捕获
+          return await handlerFetch(req)
+        } catch (error) {
+          // 客户端断开连接（AbortError）是正常行为，静默忽略
+          if (error instanceof Error && error.name === 'AbortError') {
+            return new Response(null, { status: 499 })
+          }
           return new Response(error500Body, { status: 500, headers: error500Headers })
         }
       },
@@ -999,6 +1003,17 @@ async function initializeServer(): Promise<void> {
     }, 60000) // 每分钟检查一次
   }
 }
+
+// ─── Global Safety Net ──────────────────────────────────────────────────────
+
+// 捕获未处理的 Promise rejection，防止 AbortError 等导致进程崩溃
+process.on('unhandledRejection', (reason: unknown) => {
+  if (reason instanceof Error && reason.name === 'AbortError') {
+    // 客户端断开连接，静默忽略
+    return
+  }
+  log.error(`Unhandled rejection: ${String(reason)}`)
+})
 
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 
