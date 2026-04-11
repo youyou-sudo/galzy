@@ -6,32 +6,32 @@ import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 const config = defineConfig({
-	resolve: {
-		tsconfigPaths: true,
-	},
+  resolve: {
+    tsconfigPaths: true,
+  },
 
-	ssr: {
-		noExternal: true,
-	},
-	build: {
-		ssrManifest: true,
-		ssr: true,
-		target: "esnext",
-		minify: "oxc",
-		modulePreload: false,
-		rolldownOptions: {
-			treeshake: true,
-		},
-	},
-	plugins: [
-		devtools(),
-		tailwindcss(),
-		tanstackStart(),
-		viteReact(),
-		tanstackRouter({
-			autoCodeSplitting: true,
-		}),
-	],
+  ssr: {
+    noExternal: true,
+  },
+  build: {
+    ssrManifest: true,
+    ssr: true,
+    target: "esnext",
+    minify: "oxc",
+    modulePreload: false,
+    rolldownOptions: {
+      treeshake: true,
+    },
+  },
+  plugins: [
+    devtools(),
+    tailwindcss(),
+    tanstackStart(),
+    viteReact(),
+    tanstackRouter({
+      autoCodeSplitting: true,
+    }),
+  ],
 });
 
 export default config;

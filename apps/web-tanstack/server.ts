@@ -97,7 +97,7 @@ import { join, sep, posix } from 'node:path'
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
-const SERVER_PORT = Number(process.env.PORT ?? 3000)
+const SERVER_PORT = Number(process.env.PORT ?? 3001)
 const CLIENT_DIRECTORY = './dist/client'
 const SERVER_ENTRY_POINT = './dist/server/server.js'
 
