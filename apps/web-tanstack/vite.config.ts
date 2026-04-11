@@ -8,6 +8,7 @@ import { defineConfig } from "vite";
 const config = defineConfig({
   resolve: {
     tsconfigPaths: true,
+    dedupe: ["react", 'react-dom'],
   },
 
   ssr: {
@@ -16,7 +17,6 @@ const config = defineConfig({
   build: {
     ssrManifest: true,
     ssr: true,
-    target: "esnext",
     minify: "oxc",
     modulePreload: false,
     rolldownOptions: {
