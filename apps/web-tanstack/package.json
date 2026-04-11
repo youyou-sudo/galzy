@@ -10,9 +10,10 @@
     "build": "bun --bun vite build",
     "preview": "bun --bun vite preview",
     "start": "bun run .output/server/index.mjs",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
     "test": "vitest run",
     "format": "biome format --write .",
-    "lint": "biome lint",
     "check": "biome check",
     "docker": "cd ../.. && docker build -t mono-web:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/web-tanstack/Dockerfile .",
     "docker:web-tanstack": "cd ../.. && docker build -t mono-web:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/web-tanstack/Dockerfile ."
@@ -71,6 +72,7 @@
     "add": "^2.0.6",
     "babel-plugin-react-compiler": "^1.0.0",
     "jsdom": "^29.0.2",
+    "oxlint": "^1.59.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.7",
     "vitest": "^4.1.3"
