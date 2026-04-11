@@ -29,7 +29,7 @@ export const Route = createFileRoute("/$id/_layout/translate")({
 			game: await getGameDetail({ data: { id } }),
 		};
 	},
-  staleTime: 1000 * 30,
+	staleTime: 1000 * 30,
 	head: ({ loaderData }) => ({
 		meta: [
 			{

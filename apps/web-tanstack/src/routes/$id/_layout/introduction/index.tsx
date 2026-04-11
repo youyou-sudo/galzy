@@ -64,7 +64,7 @@ function RouteComponent() {
 							<Link
 								to="/$id/introduction/$articleId"
 								params={{ id: id, articleId: String(item.id) }}
-                resetScroll={false}
+								resetScroll={false}
 								className="w-full"
 							>
 								<div className="pt-2 flex items-center pb-2 w-full">

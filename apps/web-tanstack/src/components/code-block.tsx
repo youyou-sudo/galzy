@@ -53,11 +53,7 @@ function formatError(input: unknown) {
   }
 }
 
-export function CodeBlock({
-  code,
-  className,
-  ...props
-}: CodeProps) {
+export function CodeBlock({ code, className, ...props }: CodeProps) {
   const formatted = React.useMemo(() => formatError(code), [code]);
 
   return (

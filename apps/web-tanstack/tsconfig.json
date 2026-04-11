@@ -3,6 +3,7 @@
     "**/*.ts",
     "**/*.tsx",
     "env.d.ts",
+    "server.ts",
   ],
   "compilerOptions": {
     "target": "ES2022",

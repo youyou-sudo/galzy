@@ -66,9 +66,7 @@ export default function Errors({ code, errormessage }: ErrorsProps) {
       </div>
       {errormessage && (
         <div className="w-full max-w-3xl mx-auto">
-          <CodeBlock
-            code={JSON.stringify(errormessage, null, 2)}
-          />
+          <CodeBlock code={JSON.stringify(errormessage, null, 2)} />
         </div>
       )}
     </div>
