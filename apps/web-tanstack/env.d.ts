@@ -1,8 +1,6 @@
 /// <reference types="vite/client" />
 
-interface ImportMetaEnv {
-  // Client-side environment variables
-}
+type ImportMetaEnv = {}
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
@@ -21,4 +19,4 @@ declare global {
   }
 }
 
-export {}
+export { }
