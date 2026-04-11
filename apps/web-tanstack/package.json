@@ -6,8 +6,8 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "bun --bun vite dev --port 3000",
-    "build": "bun --bun vite build",
+    "dev": "bunx --bun vite dev --port 3000",
+    "build": "bunx --bun vite build",
     "preview": "bun --bun vite preview",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
