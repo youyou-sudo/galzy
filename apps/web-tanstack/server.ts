@@ -13,6 +13,19 @@
  * - Native gzip compression (2-3x faster than Node.js zlib)
  * - Radix tree routing (Bun.serve routes API)
  * - Minimal GC pressure through pre-allocation and reuse
+ * - Smart file prioritization (small files first for better cache hit rate)
+ * - Pre-built error responses to eliminate runtime allocation
+ *
+ * Security Features:
+ * - Path traversal attack prevention (../ detection)
+ * - Suspicious character filtering in paths
+ * - Null byte injection protection
+ * - Request method validation (whitelist approach)
+ * - Request header size limits (8KB max)
+ * - File size validation (prevents oversized file attacks)
+ * - Total memory limit enforcement (prevents OOM)
+ * - Security response headers (X-Content-Type-Options, X-Frame-Options, etc.)
+ * - CORS preflight handling
  *
  * Features:
  * - Hybrid loading strategy (preload small files, serve large files on-demand)
@@ -22,31 +35,28 @@
  * - Intelligent gzip compression with size/type filtering
  * - Graceful shutdown support (SIGTERM/SIGINT)
  * - Multi-process support via reusePort
+ * - Optional memory monitoring and alerting
  *
  * Environment Variables:
  *
  * PORT (number)
  *   - Server port number
- *   - Default: 3000
+ *   - Default: 3001
  *
  * MAX_REQUEST_BODY_SIZE (number)
  *   - Maximum request body size in bytes
  *   - Default: 10485760 (10MB)
- *   - Example: MAX_REQUEST_BODY_SIZE=10485760
+ *   - Security: Prevents memory exhaustion attacks
  *
- * ENABLE_KEEPALIVE (boolean)
- *   - Enable HTTP keep-alive connections
- *   - Default: true
- *
- * KEEPALIVE_TIMEOUT (number)
- *   - Keep-alive timeout in milliseconds
- *   - Default: 5000 (5 seconds)
+ * MAX_TOTAL_PRELOAD_BYTES (number)
+ *   - Maximum total memory for preloaded assets
+ *   - Default: 104857600 (100MB)
+ *   - Security: Prevents OOM by limiting total preload size
  *
  * ASSET_PRELOAD_MAX_SIZE (number)
  *   - Maximum file size in bytes to preload into memory
  *   - Files larger than this will be served on-demand from disk
  *   - Default: 5242880 (5MB)
- *   - Example: ASSET_PRELOAD_MAX_SIZE=5242880 (5MB)
  *
  * ASSET_PRELOAD_INCLUDE_PATTERNS (string)
  *   - Comma-separated list of glob patterns for files to include
@@ -63,27 +73,27 @@
  * ASSET_PRELOAD_VERBOSE_LOGGING (boolean)
  *   - Enable detailed logging of loaded and skipped files
  *   - Default: false
- *   - Set to "true" to enable verbose output
  *
  * ASSET_PRELOAD_ENABLE_ETAG (boolean)
  *   - Enable ETag generation for preloaded assets
  *   - Default: true
- *   - Set to "false" to disable ETag support
  *
  * ASSET_PRELOAD_ENABLE_GZIP (boolean)
  *   - Enable Gzip compression for eligible assets
  *   - Default: true
- *   - Set to "false" to disable Gzip compression
  *
  * ASSET_PRELOAD_GZIP_MIN_SIZE (number)
  *   - Minimum file size in bytes required for Gzip compression
- *   - Files smaller than this will not be compressed
  *   - Default: 1024 (1KB)
  *
  * ASSET_PRELOAD_GZIP_MIME_TYPES (string)
  *   - Comma-separated list of MIME types eligible for Gzip compression
- *   - Supports partial matching for types ending with "/"
  *   - Default: text/,application/javascript,application/json,application/xml,image/svg+xml
+ *
+ * ENABLE_MEMORY_MONITORING (boolean)
+ *   - Enable periodic memory usage monitoring and logging
+ *   - Default: false
+ *   - Logs memory stats every 60 seconds when enabled
  *
  * Usage:
  *   bun run server.ts
@@ -93,7 +103,7 @@
  *   for i in {1..4}; do bun run server.ts & done
  */
 
-import { join, sep, posix } from 'node:path'
+import { join, posix, sep } from 'node:path'
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 
@@ -105,6 +115,38 @@ const SERVER_ENTRY_POINT = './dist/server/server.js'
 const MAX_REQUEST_BODY_SIZE = Number(
   process.env.MAX_REQUEST_BODY_SIZE ?? 10 * 1024 * 1024, // 10MB 默认
 )
+
+// 安全配置：总内存限制，防止 OOM
+const MAX_TOTAL_PRELOAD_BYTES = Number(
+  process.env.MAX_TOTAL_PRELOAD_BYTES ?? 100 * 1024 * 1024, // 100MB 默认
+)
+
+// ─── Security Configuration ──────────────────────────────────────────────────
+
+// 安全响应头（预构建，避免每次请求创建）
+const SECURITY_HEADERS = Object.freeze({
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'X-XSS-Protection': '1; mode=block',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'geolocation=(), microphone=(), camera=()',
+})
+
+// 路径遍历攻击防护：预编译正则
+const PATH_TRAVERSAL_PATTERN = /(?:^|[\\/])\.\.(?:[\\/]|$)/
+// 检测可疑字符：<>:"|?*
+const SUSPICIOUS_CHARS_PATTERN = /[<>:"|?*]/
+
+/**
+ * 检测字符串中是否包含控制字符 (0x00-0x1F)
+ */
+function hasControlCharacters(str: string): boolean {
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i)
+    if (code >= 0 && code <= 0x1F) return true
+  }
+  return false
+}
 
 // ─── Logging ─────────────────────────────────────────────────────────────────
 
@@ -194,6 +236,22 @@ const GZIP_EXACT_TYPES: ReadonlySet<string> = Object.freeze(
 )
 
 // ─── Utility Functions ───────────────────────────────────────────────────────
+
+/**
+ * 安全路径验证：防止路径遍历攻击
+ * 在处理任何用户输入的路径前必须调用
+ */
+function isPathSafe(path: string): boolean {
+  // 检查路径遍历模式
+  if (PATH_TRAVERSAL_PATTERN.test(path)) return false
+  // 检查可疑字符
+  if (SUSPICIOUS_CHARS_PATTERN.test(path)) return false
+  // 检查控制字符
+  if (hasControlCharacters(path)) return false
+  // 检查空字节注入
+  if (path.includes('\0')) return false
+  return true
+}
 
 /**
  * Compute a weak ETag using Bun's native hash (xxHash64, extremely fast).
@@ -323,6 +381,8 @@ interface PreloadResult {
  * Build all response headers at startup using plain objects.
  * Bun internally optimizes plain object headers better than Headers instances.
  * This eliminates per-request header construction and reduces GC pressure.
+ *
+ * 安全增强：所有响应自动包含安全头
  */
 function buildAssetHeaders(asset: {
   type: string
@@ -340,7 +400,9 @@ function buildAssetHeaders(asset: {
     : 'public, max-age=3600'
 
   // Raw headers - 使用对象字面量，Bun 内部优化更好
+  // 合并安全头，避免运行时合并开销
   const headersRaw: Record<string, string> = {
+    ...SECURITY_HEADERS,
     'Content-Type': asset.type,
     'Cache-Control': cacheControl,
     'Content-Length': asset.raw.byteLength.toString(),
@@ -353,6 +415,7 @@ function buildAssetHeaders(asset: {
   let headersGz: Record<string, string> | undefined
   if (ENABLE_GZIP && asset.gz) {
     headersGz = {
+      ...SECURITY_HEADERS,
       'Content-Type': asset.type,
       'Cache-Control': cacheControl,
       'Content-Encoding': 'gzip',
@@ -368,6 +431,7 @@ function buildAssetHeaders(asset: {
   let headers304: Record<string, string> | undefined
   if (ENABLE_ETAG && asset.etag) {
     headers304 = {
+      ...SECURITY_HEADERS,
       'ETag': asset.etag,
       'Cache-Control': cacheControl,
     }
@@ -447,13 +511,17 @@ function createResponseHandler(
  * Create a response handler for on-demand files.
  * Uses Bun.file() which returns a lazy BunFile — zero memory until read.
  * Bun internally uses sendfile() syscall for zero-copy file serving.
+ *
+ * 安全增强：包含安全响应头
  */
 function createOnDemandHandler(
   filepath: string,
   mimeType: string,
 ): (req: Request) => Response {
   // 预构建 headers 对象，避免每次请求创建新对象
+  // 合并安全头
   const headers = {
+    ...SECURITY_HEADERS,
     'Content-Type': mimeType,
     'Cache-Control': 'public, max-age=3600',
   }
@@ -489,6 +557,11 @@ function createCompositeGlobPattern(): Bun.Glob {
  * 2. 用 Promise.allSettled 并行读取所有待预加载文件
  * 3. 预构建所有 Headers 和 Response handler
  * 4. on-demand 文件使用 Bun.file() sendfile 零拷贝
+ *
+ * 安全增强：
+ * 1. 路径遍历攻击防护
+ * 2. 总内存限制，防止 OOM
+ * 3. 文件大小验证
  */
 async function initializeStaticRoutes(
   clientDirectory: string,
@@ -502,6 +575,9 @@ async function initializeStaticRoutes(
   if (VERBOSE) {
     console.log(
       `Max preload size: ${(MAX_PRELOAD_BYTES / 1024 / 1024).toFixed(2)} MB`,
+    )
+    console.log(
+      `Max total preload: ${(MAX_TOTAL_PRELOAD_BYTES / 1024 / 1024).toFixed(2)} MB`,
     )
     if (INCLUDE_PATTERNS.length > 0) {
       console.log(
@@ -534,13 +610,33 @@ async function initializeStaticRoutes(
     const candidates: FileCandidate[] = []
 
     for await (const relativePath of glob.scan({ cwd: clientDirectory })) {
+      // 安全检查：防止路径遍历攻击
+      if (!isPathSafe(relativePath)) {
+        log.warning(`Skipping suspicious path: ${relativePath}`)
+        continue
+      }
+
       const filepath = join(clientDirectory, relativePath)
       const route = `/${relativePath.split(sep).join(posix.sep)}`
+
+      // 安全检查：验证路由路径
+      if (!isPathSafe(route)) {
+        log.warning(`Skipping suspicious route: ${route}`)
+        continue
+      }
 
       try {
         const file = Bun.file(filepath)
 
         if (file.size === 0) continue
+
+        // 安全检查：防止超大文件
+        if (file.size > MAX_REQUEST_BODY_SIZE) {
+          log.warning(
+            `Skipping oversized file: ${filepath} (${(file.size / 1024 / 1024).toFixed(2)} MB)`,
+          )
+          continue
+        }
 
         const mimeType = file.type || 'application/octet-stream'
         const matchesPattern = isFileEligibleForPreloading(relativePath)
@@ -567,10 +663,20 @@ async function initializeStaticRoutes(
     const toPreload: FileCandidate[] = []
     const toOnDemand: FileCandidate[] = []
 
+    // 按文件大小排序，优先加载小文件（更高的缓存命中率）
+    candidates.sort((a, b) => a.size - b.size)
+
     for (let i = 0; i < candidates.length; i++) {
       const c = candidates[i]
       if (c.shouldPreload) {
-        toPreload.push(c)
+        // 检查总内存限制
+        if (totalPreloadedBytes + c.size <= MAX_TOTAL_PRELOAD_BYTES) {
+          toPreload.push(c)
+          totalPreloadedBytes += c.size
+        } else {
+          // 超过总内存限制，降级为 on-demand
+          toOnDemand.push(c)
+        }
       } else {
         toOnDemand.push(c)
       }
@@ -585,6 +691,9 @@ async function initializeStaticRoutes(
 
     // ── Phase 4: Parallel preload all eligible files ─────────────────────
     // 使用 Promise.allSettled 并行读取，比逐个 await 快得多
+    // 重置计数器，因为上面只是预估
+    totalPreloadedBytes = 0
+
     if (toPreload.length > 0) {
       const readResults = await Promise.allSettled(
         toPreload.map((c) => c.file.arrayBuffer()),
@@ -777,9 +886,19 @@ async function initializeServer(): Promise<void> {
   // Build static routes with intelligent preloading
   const { routes } = await initializeStaticRoutes(CLIENT_DIRECTORY)
 
-  // 预构建 500 错误响应，避免运行时创建
-  const error500Headers = { 'Content-Type': 'text/plain; charset=utf-8' }
+  // 预构建错误响应，避免运行时创建（包含安全头）
+  const error400Headers = { ...SECURITY_HEADERS, 'Content-Type': 'text/plain; charset=utf-8' }
+  const error400Body = 'Bad Request'
+  const error500Headers = { ...SECURITY_HEADERS, 'Content-Type': 'text/plain; charset=utf-8' }
   const error500Body = 'Internal Server Error'
+
+  // 预构建 OPTIONS 响应（CORS 预检）
+  const optionsHeaders = {
+    ...SECURITY_HEADERS,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400', // 24 小时
+  }
 
   // Create Bun server with maximum performance settings
   const server = Bun.serve({
@@ -797,9 +916,35 @@ async function initializeServer(): Promise<void> {
       // 预加载和 on-demand 静态资产路由
       ...routes,
 
-      // Fallback — TanStack Start SSR handler
+      // Fallback — TanStack Start SSR handler with security checks
       '/*'(req: Request) {
         try {
+          // 安全检查：验证请求方法
+          const method = req.method
+          if (method !== 'GET' && method !== 'POST' && method !== 'PUT' && method !== 'DELETE' && method !== 'OPTIONS' && method !== 'HEAD' && method !== 'PATCH') {
+            return new Response(error400Body, { status: 400, headers: error400Headers })
+          }
+
+          // 处理 OPTIONS 预检请求
+          if (method === 'OPTIONS') {
+            return new Response(null, { status: 204, headers: optionsHeaders })
+          }
+
+          // 安全检查：验证 URL 路径
+          const url = new URL(req.url)
+          if (!isPathSafe(url.pathname)) {
+            return new Response(error400Body, { status: 400, headers: error400Headers })
+          }
+
+          // 安全检查：限制请求头大小（防止头部注入攻击）
+          const headerSize = Array.from(req.headers.entries()).reduce(
+            (sum, [k, v]) => sum + k.length + v.length,
+            0
+          )
+          if (headerSize > 8192) { // 8KB 限制
+            return new Response(error400Body, { status: 400, headers: error400Headers })
+          }
+
           return handlerFetch(req)
         } catch {
           // 避免错误日志的字符串拼接开销，生产环境可以移除日志
@@ -815,19 +960,44 @@ async function initializeServer(): Promise<void> {
   })
 
   log.success(`Server listening on http://localhost:${String(server.port)}`)
+  log.info(`Process ID: ${process.pid}`)
+  log.info(`Memory usage: ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)} MB`)
 
   // Bun 1.3+ 支持优雅关闭
-  process.on('SIGTERM', () => {
-    log.info('Received SIGTERM, shutting down gracefully...')
-    server.stop()
-    process.exit(0)
-  })
+  let isShuttingDown = false
 
-  process.on('SIGINT', () => {
-    log.info('Received SIGINT, shutting down gracefully...')
+  const shutdown = () => {
+    if (isShuttingDown) return
+    isShuttingDown = true
+
+    log.info('Shutting down gracefully...')
     server.stop()
-    process.exit(0)
-  })
+
+    // 给正在处理的请求一些时间完成
+    setTimeout(() => {
+      process.exit(0)
+    }, 1000)
+  }
+
+  process.on('SIGTERM', shutdown)
+  process.on('SIGINT', shutdown)
+
+  // 内存监控（可选，生产环境可以禁用）
+  if (process.env.ENABLE_MEMORY_MONITORING === 'true') {
+    setInterval(() => {
+      const usage = process.memoryUsage()
+      const heapUsed = (usage.heapUsed / 1024 / 1024).toFixed(2)
+      const heapTotal = (usage.heapTotal / 1024 / 1024).toFixed(2)
+      const rss = (usage.rss / 1024 / 1024).toFixed(2)
+
+      log.info(`Memory: Heap ${heapUsed}/${heapTotal} MB, RSS ${rss} MB`)
+
+      // 如果内存使用超过阈值，触发 GC（Bun 会自动处理）
+      if (usage.heapUsed > MAX_TOTAL_PRELOAD_BYTES * 2) {
+        log.warning('High memory usage detected')
+      }
+    }, 60000) // 每分钟检查一次
+  }
 }
 
 // ─── Entry Point ─────────────────────────────────────────────────────────────
