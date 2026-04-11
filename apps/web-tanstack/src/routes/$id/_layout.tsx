@@ -9,6 +9,7 @@ import { Glgczujm } from "#/components/game/tips";
 import { GameCard } from "#/components/home/card";
 import { TagsCard } from "#/components/home/game/tags";
 import { Card, CardContent } from "#/components/ui/card";
+import { Skeleton } from "#/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { seoTemplate } from "#/config/seoTemplate";
 import { assertOk } from "#/lib/assertOk";
@@ -86,6 +87,7 @@ function RouteComponent() {
 										: "max-w-55"
 								} relative overflow-hidden text-left`}
 							>
+								<Skeleton className="absolute inset-0 w-full h-full rounded-lg" />
 								<GameCard.Image
 									width={game?.vn_datas?.images?.width ?? 200}
 									height={game?.vn_datas?.images?.height ?? 300}
@@ -103,7 +105,7 @@ function RouteComponent() {
 												t.title.trim() !== "",
 										)?.title || "null"
 									}
-									className="rounded-lg inset-0 w-full h-full object-cover"
+									className="rounded-lg inset-0 w-full h-full object-cover relative"
 								/>
 							</div>
 						</div>
