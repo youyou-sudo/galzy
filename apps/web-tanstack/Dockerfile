@@ -26,11 +26,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY --from=build /app/apps/web-tanstack/dist ./dist
-COPY --from=build /app/apps/web-tanstack/server-ultra.ts ./
+COPY --from=build /app/apps/web-tanstack/server.ts ./
 
 USER bun
 
 ENV HOSTNAME="0.0.0.0"
 EXPOSE 3000
 
-CMD ["bun", "--bun", "run", "server-ultra.ts"]
+CMD ["bun", "--bun", "run", "server.ts"]
