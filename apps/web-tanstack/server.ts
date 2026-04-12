@@ -95,6 +95,21 @@
  *   - Default: false
  *   - Logs memory stats every 60 seconds when enabled
  *
+ * ENABLE_SCHEDULED_GC (boolean)
+ *   - Enable periodic manual garbage collection via Bun.gc()
+ *   - Default: false
+ *   - Helps keep memory usage stable under sustained load
+ *
+ * SCHEDULED_GC_INTERVAL_MS (number)
+ *   - Interval in milliseconds between scheduled GC runs
+ *   - Default: 30000 (30 seconds)
+ *
+ * SCHEDULED_GC_HEAP_THRESHOLD (number)
+ *   - Heap usage threshold in bytes; GC is only triggered when
+ *     heapUsed exceeds this value, avoiding unnecessary collections
+ *   - Default: 0 (always collect on interval)
+ *   - Example: 104857600 (100MB) — only GC when heap > 100MB
+ *
  * Usage:
  *   bun run server.ts
  *
@@ -119,6 +134,15 @@ const MAX_REQUEST_BODY_SIZE = Number(
 // 安全配置：总内存限制，防止 OOM
 const MAX_TOTAL_PRELOAD_BYTES = Number(
   process.env.MAX_TOTAL_PRELOAD_BYTES ?? 100 * 1024 * 1024, // 100MB 默认
+)
+
+// 定时 GC 配置
+const ENABLE_SCHEDULED_GC = process.env.ENABLE_SCHEDULED_GC === 'true'
+const SCHEDULED_GC_INTERVAL_MS = Number(
+  process.env.SCHEDULED_GC_INTERVAL_MS ?? 30_000, // 30 秒默认
+)
+const SCHEDULED_GC_HEAP_THRESHOLD = Number(
+  process.env.SCHEDULED_GC_HEAP_THRESHOLD ?? 0, // 0 = 每次间隔都执行
 )
 
 // ─── Security Configuration ──────────────────────────────────────────────────
@@ -988,7 +1012,7 @@ async function initializeServer(): Promise<void> {
 
   // 内存监控（可选，生产环境可以禁用）
   if (process.env.ENABLE_MEMORY_MONITORING === 'true') {
-    setInterval(() => {
+    const memoryTimer = setInterval(() => {
       const usage = process.memoryUsage()
       const heapUsed = (usage.heapUsed / 1024 / 1024).toFixed(2)
       const heapTotal = (usage.heapTotal / 1024 / 1024).toFixed(2)
@@ -996,11 +1020,42 @@ async function initializeServer(): Promise<void> {
 
       log.info(`Memory: Heap ${heapUsed}/${heapTotal} MB, RSS ${rss} MB`)
 
-      // 如果内存使用超过阈值，触发 GC（Bun 会自动处理）
       if (usage.heapUsed > MAX_TOTAL_PRELOAD_BYTES * 2) {
         log.warning('High memory usage detected')
       }
     }, 60000) // 每分钟检查一次
+    memoryTimer.unref()
+  }
+
+  // 定时 GC（可选，通过 ENABLE_SCHEDULED_GC 启用）
+  if (ENABLE_SCHEDULED_GC) {
+    log.info(
+      `Scheduled GC enabled: interval=${SCHEDULED_GC_INTERVAL_MS}ms` +
+        (SCHEDULED_GC_HEAP_THRESHOLD > 0
+          ? `, threshold=${(SCHEDULED_GC_HEAP_THRESHOLD / 1024 / 1024).toFixed(2)}MB`
+          : ''),
+    )
+
+    const gcTimer = setInterval(() => {
+      // 如果设置了阈值，仅当 heapUsed 超过时才执行
+      if (SCHEDULED_GC_HEAP_THRESHOLD > 0) {
+        const heapUsed = process.memoryUsage().heapUsed
+        if (heapUsed < SCHEDULED_GC_HEAP_THRESHOLD) return
+      }
+
+      const before = process.memoryUsage().heapUsed
+      // Bun.gc(true) 执行同步的完整 GC（包括 major + minor collection）
+      Bun.gc(true)
+      const after = process.memoryUsage().heapUsed
+      const freedMB = ((before - after) / 1024 / 1024).toFixed(2)
+
+      if (VERBOSE) {
+        log.info(
+          `GC: freed ${freedMB} MB (${(before / 1024 / 1024).toFixed(2)} → ${(after / 1024 / 1024).toFixed(2)} MB)`,
+        )
+      }
+    }, SCHEDULED_GC_INTERVAL_MS)
+    gcTimer.unref()
   }
 }
 

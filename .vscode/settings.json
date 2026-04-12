@@ -1,5 +1,6 @@
 {
   "typescript.tsdk": "node_modules\\typescript\\lib",
   "css.customData": [".vscode/tailwind.json"],
-  "scss.lint.unknownAtRules": "ignore"
+  "scss.lint.unknownAtRules": "ignore",
+  "js/ts.tsdk.path": "node_modules\\typescript\\lib"
 }
