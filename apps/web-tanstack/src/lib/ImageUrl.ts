@@ -8,7 +8,7 @@ export const getImageUrl = ({ imageId, width, height }: ImageParams) => {
 	if (!imageId) {
 		return "/No-Image-Placeholder.svg.webp";
 	}
-	const baseUrl = "https://t.vndb.org";
+	const baseUrl = "https://vndb-t.galzy.moe";
 
 	return width && width > 256 && height && height > 400
 		? `${baseUrl}/${imageId.substring(
