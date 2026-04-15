@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "#/components/ui/tabs";
 import { seoTemplate } from "#/config/seoTemplate";
 import { assertOk } from "#/lib/assertOk";
 import { getImageUrl } from "#/lib/ImageUrl";
+import { GameViewsTrackEvents } from "#/components/umami/track-events";
 
 export const getGameDetail = createServerFn()
   .inputValidator(z.object({ id: z.string() }))
@@ -216,6 +217,7 @@ function RouteComponent() {
           <Glgczujm />
         </CardContent>
       </Card>
+      <GameViewsTrackEvents idtitle={id} />
     </div>
   );
 }
