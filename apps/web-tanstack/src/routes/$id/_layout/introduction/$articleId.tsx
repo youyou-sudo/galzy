@@ -38,7 +38,6 @@ export const Route = createFileRoute("/$id/_layout/introduction/$articleId")({
       data: { id: params.articleId },
     });
   },
-  staleTime: 1000 * 30,
   head: ({ loaderData }) => ({
     meta: [
       { title: `${loaderData?.title} | ${seoTemplate.title}` },
@@ -48,11 +47,13 @@ export const Route = createFileRoute("/$id/_layout/introduction/$articleId")({
       },
     ],
   }),
+  // CDN caching (via headers)
   headers: () => ({
-    // Cache at CDN for 1 hour, allow stale content for up to 1 day
-    "Cache-Control":
-      "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
+    'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
   }),
+  // Client-side caching (via TanStack Router)
+  staleTime: 60_000, // Consider data fresh for 60 seconds on client
+  gcTime: 5 * 60_000, // Keep in memory for 5 minutes
 });
 
 function RouteComponent() {
