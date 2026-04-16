@@ -52,6 +52,7 @@ function RouteComponent() {
 									GalzyAdvertising@proton.me
 								</a>
 							</p>
+              <p>记得在邮件写明相关的信息喵～喵喵谢谢各位喵～</p>
 						</section>
 					</CardContent>
 				</Card>
