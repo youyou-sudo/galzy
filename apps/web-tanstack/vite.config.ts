@@ -19,6 +19,7 @@ const config = defineConfig({
     ssr: true,
     minify: "oxc",
     modulePreload: false,
+    assetsInlineLimit: 512,
     rolldownOptions: {
       treeshake: true,
     },
@@ -28,9 +29,7 @@ const config = defineConfig({
     tailwindcss(),
     tanstackStart(),
     viteReact(),
-    tanstackRouter({
-      autoCodeSplitting: true,
-    }),
+    tanstackRouter(),
   ],
 });
 
