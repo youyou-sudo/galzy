@@ -3,6 +3,8 @@ import { status } from 'elysia'
 import { unique } from 'radash'
 import { t } from 'try'
 import type { UmamiModel } from './model'
+import { db } from '../../libs'
+import { jsonArrayFrom } from 'kysely/helpers/postgres'
 
 const now = new Date()
 
@@ -62,10 +64,10 @@ export const Umami = {
   },
   // Game 统计
   async remfGameGet() {
-    const redisData = await getKv('remfGame')
-    if (redisData !== null && redisData !== undefined) {
-      return JSON.parse(redisData) as RemfGame
-    }
+    // const redisData = await getKv('remfGame')
+    // if (redisData !== null && redisData !== undefined) {
+    //   return JSON.parse(redisData) as RemfGame
+    // }
     const [, error, token] = t(await umamiTokenGet())
     if (error)
       throw status(
@@ -87,10 +89,47 @@ export const Umami = {
       total,
     }))
 
-    const uniqueById = unique(parsed, (item) => item.id)
-    void setKv('remfGame', JSON.stringify(uniqueById), 60 * 15)
-    type RemfGame = typeof uniqueById
-    return uniqueById
+    const ids = parsed.map(item => item.id)
+    const rows = await db
+      .selectFrom('vn')
+      .select((v) => [
+        'vn.id',
+        'vn.olang',
+        jsonArrayFrom(
+          v
+            .selectFrom('vn_titles')
+            .select(['vn_titles.lang', 'vn_titles.title'])
+            .whereRef('vn_titles.id', '=', 'vn.id'),
+        ).as('titles')
+      ])
+      .where('id', 'in', ids)
+      .execute()
+    const rowsWithTitle = rows.map((row) => {
+      const titleObj =
+        row.titles.find(t => t.lang === 'zh-Hans') ||
+        row.titles.find(t => t.lang === 'zh') ||
+        row.titles.find(t => t.lang === row.olang)
+
+      return {
+        id: row.id,
+        olang: row.olang,
+        title: titleObj?.title ?? null,
+      }
+    })
+    const titleMap = new Map(
+      rowsWithTitle.map(r => [r.id, r.title])
+    )
+
+    const result = unique(parsed, (item) => item.id).map(item => ({
+      ...item,
+      title: titleMap.get(item.id) ?? item.title ?? null,
+    }))
+
+    void setKv('remfGame', JSON.stringify(result), 60 * 15)
+
+    type RemfGame = typeof result
+
+    return result
   },
   async gameDloadNuber({ vid }: UmamiModel.gameDloadNuber) {
     const redisData = await getKv(`gameDloadNuber-${vid}`)

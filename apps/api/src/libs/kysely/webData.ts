@@ -224,7 +224,7 @@ export interface VnTable {
   id: string
   image: string | null // Deprecated, marked as nullable
   c_image: string | null // vndbid(cv) - assuming cv means character varying
-  olang: string // language type
+  olang: language // language type
   c_votecount: number
   c_rating: number | null // smallint, nullable
   c_average: number | null // smallint, nullable
