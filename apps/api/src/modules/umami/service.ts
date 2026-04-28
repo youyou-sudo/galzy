@@ -34,7 +34,7 @@ export const Umami = {
         `Umami 服务出错了喵~，Error:${JSON.stringify(error, null, 2)}`,
       )
 
-    const url = `${process.env.UMAMI_LOCAL_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=${startAt}&endAt=${endAt}&unit=day&timezone=Asia/Shanghai&eventName=TagViews&propertyName=tagtitle`
+    const url = `${process.env.UMAMI_LOCAL_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=${startAt}&endAt=${endAt}&unit=day&timezone=Asia/Shanghai&page=1&eventName=TagViews&propertyName=tagtitle`
 
     const [, error1, res] = t(
       await fetch(url, {
@@ -72,7 +72,7 @@ export const Umami = {
         500,
         `Umami 服务出错了喵~，Error:${JSON.stringify(error, null, 2)}`,
       )
-    const url = `${process.env.UMAMI_LOCAL_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=${startAt}&endAt=${endAt}&unit=day&timezone=Asia/Shanghai&eventName=GameViews&propertyName=idtitlee`
+    const url = `${process.env.UMAMI_LOCAL_URL}/api/websites/${process.env.UMAMI_DATA_WEBSITE_ID}/event-data/values?startAt=${startAt}&endAt=${endAt}&unit=day&timezone=Asia/Shanghai&page=1&eventName=GameViews&propertyName=idtitlee`
     const [, error1, res] = t(
       await fetch(url, {
         method: 'GET',
