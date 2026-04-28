@@ -81,16 +81,13 @@ export const Umami = {
     )
     if (error1) throw status(res.status, 'Umami 服务出错了喵~')
     const idlist: UmamiModel.remfGame = await res.json()
-    const parsed = idlist.slice(0, 30).map(({ value, total }) => {
-      const match = value.match(/^\[id:(.*?)\]-\[(.*)\]$/)
-      return {
-        id: match?.[1] ?? '',
-        title: match?.[2] ?? '',
-        total,
-      }
-    })
-    const uniqueById = unique(parsed, (item) => item.id)
+    const parsed = idlist.slice(0, 30).map(({ value, total }) => ({
+      id: value,
+      title: '',
+      total,
+    }))
 
+    const uniqueById = unique(parsed, (item) => item.id)
     void setKv('remfGame', JSON.stringify(uniqueById), 60 * 15)
     type RemfGame = typeof uniqueById
     return uniqueById
