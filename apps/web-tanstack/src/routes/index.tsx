@@ -3,10 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { Gamepad2, Tags } from "lucide-react";
 import z from "zod";
-import CountComponent from "#/components/home/Count";
-import { HomeGamelist } from "#/components/home/homeGameList";
-import { RankingList } from "#/components/home/remf";
-import SearchInput from "#/components/home/search/Search";
+
 import {
   Card,
   CardContent,
@@ -14,7 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from "#/components/ui/card";
+
+import { RankingList } from "#/components/home/remf";
 import { assertOk } from "#/lib/assertOk";
+import { lazy } from "react";
+const CountComponent = lazy(() => import("#/components/home/Count"));
+const SearchInput = lazy(() => import("#/components/home/search/Search"));
+const HomeGamelist = lazy(() => import("#/components/home/homeGameList"));
 
 export const getGameList = createServerFn()
   .inputValidator(
