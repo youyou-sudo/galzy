@@ -11,9 +11,9 @@ const config = defineConfig({
     dedupe: ["react", 'react-dom'],
   },
 
-  // ssr: {
-  //   noExternal: true,
-  // },
+  ssr: {
+    noExternal: true,
+  },
   build: {
     ssrManifest: true,
     ssr: true,
@@ -28,9 +28,9 @@ const config = defineConfig({
     tailwindcss(),
     tanstackStart(),
     viteReact(),
-    // tanstackRouter({
-    //   autoCodeSplitting: true,
-    // }),
+    tanstackRouter({
+      autoCodeSplitting: true,
+    }),
   ],
 });
 
