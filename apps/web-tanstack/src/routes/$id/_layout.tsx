@@ -145,7 +145,7 @@ function RouteComponent() {
             {/* 发布日期 */}
             {game?.released_first && (
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                发布: {format(parse('20031017', 'yyyyMMdd', new Date()), 'yyyy-MM-dd')}
+                发布: {format(parse(`${game.released_first}`, 'yyyyMMdd', new Date()), 'yyyy-MM-dd')}
               </div>
             )}
 
