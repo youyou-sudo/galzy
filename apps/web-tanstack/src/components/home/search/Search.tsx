@@ -1,8 +1,10 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "#/components/ui/alert-dialog";
+import { Badge } from "#/components/ui/badge";
+import { Input } from "#/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "#/components/ui/input-group";
 import { useNavigate } from "@tanstack/react-router";
-import { SearchIcon } from "lucide-react";
+import { format, parse, parseISO } from "date-fns";
+import { CalendarIcon, } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
 
@@ -17,24 +19,38 @@ export default function SearchInput({
 
   const [inputValue, setInputValue] = useState("");
 
-  // 同步 URL → input
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [open, setOpen] = useState(false);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setInputValue(params.get("q") ?? "");
+    setStartDate(params.get("startDate") ?? "");
+    setEndDate(params.get("endDate") ?? "");
   }, []);
-
+  console.log("startDate", startDate, "endDate", endDate);
   const handleSearch = () => {
     const trimmed = inputValue.trim();
-    if (!trimmed) return;
+    // if (!trimmed) return;
 
-    // 避免重复跳转
     const params = new URLSearchParams(window.location.search);
-    if (trimmed === params.get("q")) return;
+
+    const isSame =
+      trimmed === params.get("q") &&
+      startDate === (params.get("startDate") ?? "") &&
+      endDate === (params.get("endDate") ?? "");
+
+    if (isSame) return;
 
     navigate({
       to: "/search",
-      search: { q: trimmed },
-      replace: true, // 防止 history 堆积
+      search: {
+        q: trimmed,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      },
+      replace: true,
     });
   };
 
@@ -50,32 +66,75 @@ export default function SearchInput({
   };
 
   return (
-    <Card className="p-0 border-0 shadow-none w-full">
+    <div className="w-full">
       <div className="relative">
-        <Input
-          className="peer ps-9 pe-9"
-          type="text"
-          value={inputValue}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-        />
 
-        <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 inset-s-0 flex items-center justify-center ps-3">
-          <SearchIcon size={16} aria-hidden="true" />
-        </div>
-
-        <Button
-          onClick={handleSearch}
-          variant="ghost"
-          disabled={!inputValue.trim()}
-          size="sm"
-          className="absolute inset-y-0 inset-e-0 mr-2 flex h-full w-12 items-center justify-center"
-          type="button"
-        >
-          搜索
-        </Button>
+        <InputGroup className="border-2 rounded-lg mb-0">
+          <InputGroupAddon align="inline-start">
+            <InputGroupButton variant="secondary" size="icon-xs" onClick={() => setOpen(true)}>
+              <CalendarIcon className="h-4 w-4" />
+            </InputGroupButton>
+          </InputGroupAddon>
+          <InputGroupInput
+            className="border-2 rounded-lg"
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+          />
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton variant="secondary" onClick={handleSearch}>搜索</InputGroupButton>
+          </InputGroupAddon>
+        </InputGroup>
       </div>
-    </Card>
+      {(startDate || endDate) && (
+        <div className="flex items-center gap-2 mt-2">
+          <Badge className="m-0" variant="outline">{`${startDate} - ${endDate}`}</Badge>
+        </div>
+      )}
+
+      {/* 筛选模态框 */}
+      <AlertDialog open={open} onOpenChange={() => setOpen(open => !open)}>
+        <AlertDialogContent size="sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>请选择要检索的时间范围</AlertDialogTitle>
+            <AlertDialogDescription>
+              <div
+                className={`overflow-hidden transition-all duration-200 ${open ? "max-h-40 opacity-100 mt-0" : "max-h-0 opacity-0"
+                  }`}
+              >
+                <div
+                  className="grid grid-cols-2 gap-2 p-2"
+                  onMouseDown={(e) => e.preventDefault()} // 防止 input blur 导致关闭
+                >
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">开始日期</span>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-muted-foreground">结束日期</span>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>关闭</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSearch}>搜索</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }

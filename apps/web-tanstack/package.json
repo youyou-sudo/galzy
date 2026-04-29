@@ -6,8 +6,8 @@
     "#/*": "./src/*"
   },
   "scripts": {
-    "dev": "bunx --bun vite dev --port 3000",
-    "build": "bunx --bun vite build",
+    "dev": "bun --bun vite dev --port 3000",
+    "build": "bun --bun vite build",
     "preview": "bun --bun vite preview",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
@@ -42,6 +42,7 @@
     "next-themes": "^0.4.6",
     "radix-ui": "^1.4.3",
     "react": "^19.2.5",
+    "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.5",
     "react-markdown": "^10.1.0",
     "recharts": "3.8.1",
