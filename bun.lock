@@ -67,6 +67,7 @@
         "better-auth": "^1.6.3",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
+        "date-fns": "^4.1.0",
         "filesize": "^11.0.15",
         "lucide-react": "^1.8.0",
         "motion": "^12.38.0",
@@ -1076,6 +1077,8 @@
     "data-uri-to-buffer": ["data-uri-to-buffer@4.0.1", "", {}, "sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A=="],
 
     "data-urls": ["data-urls@7.0.0", "", { "dependencies": { "whatwg-mimetype": "^5.0.0", "whatwg-url": "^16.0.0" } }, "sha512-23XHcCF+coGYevirZceTVD7NdJOqVn+49IHyxgszm+JIiHLoB2TkmPtsYkNWT1pvRSGkc35L6NHs0yHkN2SumA=="],
+
+    "date-fns": ["date-fns@4.1.0", "", {}, "sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg=="],
 
     "dayjs": ["dayjs@1.11.20", "", {}, "sha512-YbwwqR/uYpeoP4pu043q+LTDLFBLApUP6VxRihdfNTqu4ubqMlGDLd6ErXhEgsyvY0K6nCs7nggYumAN+9uEuQ=="],
 

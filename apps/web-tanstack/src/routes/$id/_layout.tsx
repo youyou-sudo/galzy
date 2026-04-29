@@ -15,6 +15,7 @@ import { seoTemplate } from "#/config/seoTemplate";
 import { assertOk } from "#/lib/assertOk";
 import { getImageUrl } from "#/lib/ImageUrl";
 import { GameViewsTrackEvents } from "#/components/umami/track-events";
+import { format, parse } from "date-fns";
 
 export const getGameDetail = createServerFn()
   .inputValidator(z.object({ id: z.string() }))
@@ -138,6 +139,13 @@ function RouteComponent() {
                         ?.title,
                   )
                   .join(", ")}
+              </div>
+            )}
+
+            {/* 发布日期 */}
+            {game?.released_first && (
+              <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                发布日期: {format(parse('20031017', 'yyyyMMdd', new Date()), 'yyyy-MM-dd')}
               </div>
             )}
 
