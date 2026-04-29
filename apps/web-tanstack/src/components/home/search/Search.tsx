@@ -28,7 +28,6 @@ export default function SearchInput({
     setStartDate(params.get("startDate") ?? "");
     setEndDate(params.get("endDate") ?? "");
   }, []);
-  console.log("startDate", startDate, "endDate", endDate);
   const handleSearch = () => {
     const trimmed = inputValue.trim();
     // if (!trimmed) return;

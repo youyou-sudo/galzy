@@ -15,30 +15,25 @@ import { seoTemplate } from "#/config/seoTemplate";
 import { assertOk } from "#/lib/assertOk";
 import { getImageUrl } from "#/lib/ImageUrl";
 import { GameViewsTrackEvents } from "#/components/umami/track-events";
-import { format, parse } from "date-fns";
 
 function formatLooseDate(raw?: string) {
-  if (!raw || raw.length !== 8) return ''
+  if (!raw || raw.length !== 8) {
+    return { year: '', formatted: '' }
+  }
 
   const y = raw.slice(0, 4)
   const m = raw.slice(4, 6)
   const d = raw.slice(6, 8)
 
-  const mNum = Number(m)
   const dNum = Number(d)
 
-  const validMonth = mNum >= 1 && mNum <= 12
   const validDay = dNum >= 1 && dNum <= 31
 
-  if (!validMonth) {
-    return y
-  }
-
   if (!validDay) {
-    return `${y}-${m}`
+    return { year: y, formatted: `${m}` }
   }
 
-  return `${y}-${m}-${d}`
+  return { year: y, formatted: `${m}-${d}` }
 }
 export const getGameDetail = createServerFn()
   .inputValidator(z.object({ id: z.string() }))
@@ -168,7 +163,17 @@ function RouteComponent() {
             {/* 发行日期 */}
             {game?.released_first && (
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                发行: {formatLooseDate(String(game.released_first))}
+                发行:
+                <Link
+                  to="/search"
+                  search={{
+                    startDate: `${formatLooseDate(String(game.released_first)).year}-01-01`,
+                    endDate: `${formatLooseDate(String(game.released_first)).year}-12-31`,
+                  }}
+                >
+                  {formatLooseDate(String(game.released_first)).year}-
+                  {formatLooseDate(String(game.released_first)).formatted}
+                </Link>
               </div>
             )}
             {/* Description */}
