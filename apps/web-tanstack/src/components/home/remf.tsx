@@ -65,7 +65,6 @@ export const RankingList = ({ linkKey }: { linkKey: "id" | "tag" }) => {
   return (
     <Await promise={rankings} fallback={<SkeletonList />}>
       {(data) => {
-        console.log(linkKey, data);
         return (
           <Comp
             datas={linkKey === "tag" ? data.tag : data.game}
