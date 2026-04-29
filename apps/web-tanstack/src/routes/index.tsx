@@ -15,8 +15,8 @@ import {
 import { RankingList } from "#/components/home/remf";
 import { assertOk } from "#/lib/assertOk";
 import { lazy } from "react";
+import SearchInput from "#/components/home/search/Search";
 const CountComponent = lazy(() => import("#/components/home/Count"));
-const SearchInput = lazy(() => import("#/components/home/search/Search"));
 const HomeGamelist = lazy(() => import("#/components/home/homeGameList"));
 
 export const getGameList = createServerFn()
