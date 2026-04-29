@@ -101,7 +101,6 @@ export const Route = createFileRoute("/$id/_layout")({
 function RouteComponent() {
   const { game, id } = Route.useLoaderData();
   const [currentTab, setCurrentTab] = useState("download");
-  console.log("game", formatLooseDate(String(game?.released_first ?? '')));
   return (
     <div className="space-y-3">
       <Card className="overflow-hidden wrap-break-word border-0 pb-0 ">
@@ -167,14 +166,11 @@ function RouteComponent() {
             )}
 
             {/* 发行日期 */}
-            {/* {game?.released_first && (
+            {game?.released_first && (
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                发行: {format(parse(`${game.released_first}`, 'yyyyMMdd', new Date()), 'yyyy-MM-dd')}
+                发行: {formatLooseDate(String(game.released_first))}
               </div>
-            )} */}
-            {/* <div>
-              {format(parse(`${game?.released_first}`, 'yyyyMMdd', new Date()), 'yyyy-MM-dd')}
-            </div> */}
+            )}
             {/* Description */}
             {(game?.other_datas?.description ||
               game?.vn_datas?.description) && (
