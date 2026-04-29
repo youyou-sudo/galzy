@@ -7,8 +7,7 @@ import { defineConfig } from "vite";
 
 const config = defineConfig({
   resolve: {
-    tsconfigPaths: true,
-    dedupe: ["react", 'react-dom'],
+    // dedupe: ["react", 'react-dom'],
   },
 
   ssr: {
@@ -29,7 +28,9 @@ const config = defineConfig({
     tailwindcss(),
     tanstackStart(),
     viteReact(),
-    tanstackRouter(),
+    tanstackRouter({
+      autoCodeSplitting: true,
+    }),
   ],
 });
 
