@@ -1,6 +1,5 @@
 import { db, MeiliClient } from '@api/libs'
 import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
-import { number } from 'better-auth'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import { all } from 'radash'
 import { t } from 'try'
@@ -266,6 +265,7 @@ export const CronService = {
       // 先清空索引，然后并行处理分页数据
       await index.deleteAllDocuments()
 
+
       const { totalPages } = await this.getMeiliSearchDataInfo()
       const pageSize = 500
 
@@ -278,6 +278,9 @@ export const CronService = {
         }
         await Promise.all(batch)
       }
+      await index.updateFilterableAttributes([
+        'released_first',
+      ])
     } catch (e) {
       console.error('meiliSearchAddIndex 运行失败喵', e)
       throw e
@@ -391,7 +394,16 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
   const items = await db
     .selectFrom('galrc_alistb')
     .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
+
     .select((vneb) => [
+      vneb
+        .selectFrom('releases_vn')
+        .innerJoin('releases', 'releases.id', 'releases_vn.id')
+        .whereRef('releases_vn.vid', '=', 'galrc_alistb.vid')
+        .select('releases.released')
+        .orderBy('releases.released', 'asc')
+        .limit(1)
+        .as('released_first'),
       jsonArrayFrom(
         vneb
           .selectFrom('vn_titles')

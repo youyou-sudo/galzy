@@ -3,8 +3,11 @@ import type { Tags } from '../tags/service'
 
 export namespace SearchModel {
   export const search = t.Object({
-    q: t.String(),
-    limit: t.Number({ minimum: 1 }),
+    q: t.Optional(t.String()),
+    limit: t.Optional((t.Number({ minimum: 1 }))),
+    startDate: t.Optional(t.String()),
+    endDate: t.Optional(t.String()),
+
   })
   export const meilisearchEmbeddersUpdate = t.Object({
     url: t.String(),

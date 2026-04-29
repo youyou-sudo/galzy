@@ -5,8 +5,8 @@ import { Search } from './service'
 export const search = new Elysia({ prefix: '/search' })
   .get(
     '/',
-    async ({ query: { q, limit } }) => {
-      return Search.get({ q, limit })
+    async ({ query: { q, limit, startDate, endDate } }) => {
+      return Search.get({ q, limit, startDate, endDate })
     },
     {
       query: SearchModel.search,
