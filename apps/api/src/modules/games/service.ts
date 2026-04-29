@@ -150,9 +150,12 @@ export const Game = {
         .selectAll()
         .select((eb) => [
           eb
-            .selectFrom('releases')
-            .whereRef('releases.id', '=', 'galrc_alistb.vid')
-            .select('released')
+            .selectFrom('releases_vn')
+            .innerJoin('releases', 'releases.id', 'releases_vn.id')
+            .whereRef('releases_vn.vid', '=', 'galrc_alistb.vid')
+            .select('releases.released')
+            .orderBy('releases.released', 'asc')
+            .limit(1)
             .as('released_first'),
           jsonObjectFrom(
             eb
