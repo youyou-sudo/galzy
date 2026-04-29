@@ -17,6 +17,29 @@ import { getImageUrl } from "#/lib/ImageUrl";
 import { GameViewsTrackEvents } from "#/components/umami/track-events";
 import { format, parse } from "date-fns";
 
+function formatLooseDate(raw?: string) {
+  if (!raw || raw.length !== 8) return ''
+
+  const y = raw.slice(0, 4)
+  const m = raw.slice(4, 6)
+  const d = raw.slice(6, 8)
+
+  const mNum = Number(m)
+  const dNum = Number(d)
+
+  const validMonth = mNum >= 1 && mNum <= 12
+  const validDay = dNum >= 1 && dNum <= 31
+
+  if (!validMonth) {
+    return y
+  }
+
+  if (!validDay) {
+    return `${y}-${m}`
+  }
+
+  return `${y}-${m}-${d}`
+}
 export const getGameDetail = createServerFn()
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
@@ -78,6 +101,7 @@ export const Route = createFileRoute("/$id/_layout")({
 function RouteComponent() {
   const { game, id } = Route.useLoaderData();
   const [currentTab, setCurrentTab] = useState("download");
+  console.log("game", formatLooseDate(String(game?.released_first ?? '')));
   return (
     <div className="space-y-3">
       <Card className="overflow-hidden wrap-break-word border-0 pb-0 ">
@@ -143,12 +167,14 @@ function RouteComponent() {
             )}
 
             {/* 发行日期 */}
-            {game?.released_first && (
+            {/* {game?.released_first && (
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                 发行: {format(parse(`${game.released_first}`, 'yyyyMMdd', new Date()), 'yyyy-MM-dd')}
               </div>
-            )}
-
+            )} */}
+            {/* <div>
+              {format(parse(`${game?.released_first}`, 'yyyyMMdd', new Date()), 'yyyy-MM-dd')}
+            </div> */}
             {/* Description */}
             {(game?.other_datas?.description ||
               game?.vn_datas?.description) && (
