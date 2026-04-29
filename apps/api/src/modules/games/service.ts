@@ -16,7 +16,7 @@ import type { GameModel } from './model'
 
 export const Game = {
   async Count() {
-    const redisData = await getKv('gameCount')
+    const redisData = await getKv("gameCount")
     if (redisData !== null && redisData !== undefined) {
       return Number(redisData)
     }
@@ -29,7 +29,7 @@ export const Game = {
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     const count = Number(totalCountResult?.count || 0)
-    void setKv('gameCount', String(count), 60 * 30)
+    void setKv("gameCount", String(count), 60 * 30)
     return count
   },
   async List({ pageIndex, pageSize }: GameModel.gameList) {
@@ -149,6 +149,11 @@ export const Game = {
         )
         .selectAll()
         .select((eb) => [
+          eb
+            .selectFrom('releases')
+            .whereRef('releases.id', '=', 'galrc_alistb.vid')
+            .select('released')
+            .as('released_first'),
           jsonObjectFrom(
             eb
               .selectFrom('vn')
