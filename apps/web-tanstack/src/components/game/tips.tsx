@@ -1,6 +1,7 @@
 // import { Image } from "@unpic/react";
 import { Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "#/components/ui/alert";
+import { Image } from "@unpic/react";
 
 // import { AspectRatio } from "#/components/ui/aspect-ratio";
 
@@ -49,7 +50,7 @@ export const Glgczujm = () => {
 				</AlertDescription>
 			</Alert>
 
-			{/* <aside>
+			 <aside>
         <Alert
           id="sidebar-ad"
           className="border-cyan-600/30 border-x-0 border-b-0 pb-0 flex items-center gap-2"
@@ -73,7 +74,7 @@ export const Glgczujm = () => {
         </Alert>
       </aside>
 
-      <div className="lg:px-5 lg:w-[80%] px-4 py-0 opacity-80">
+      <div className="lg:px-5 lg:w-[80%] px-4 py-0 opacity-70">
         <a
           target="_blank"
           data-umami-event="广告点击"
@@ -82,29 +83,25 @@ export const Glgczujm = () => {
           href="https://www.turfle.top?rf=876926e5"
         >
           <div className="sm:hidden">
-            <AspectRatio ratio={80 / 9}>
               <Image
-                width={200}
-                height={90}
+              width={1425}
+              height={120}
                 src="/dzmm.webp"
                 alt="DZMM 广告图片"
                 className="object-cover rounded-lg"
               />
-            </AspectRatio>
           </div>
           <div className="hidden sm:block">
-            <AspectRatio ratio={120 / 9}>
               <Image
-                width={200}
-                height={90}
+              width={1425}
+              height={120}
                 src="/dzmm.webp"
                 alt="DZMM 广告图片"
                 className="object-cover rounded-lg"
               />
-            </AspectRatio>
           </div>
         </a>
-      </div> */}
+      </div>
 
 			<aside>
 				<Alert
