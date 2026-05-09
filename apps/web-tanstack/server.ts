@@ -48,8 +48,13 @@
  *   - Default: 10485760 (10MB)
  *   - Security: Prevents memory exhaustion attacks
  *
+ * MAX_STATIC_FILE_SIZE (number)
+ *   - Maximum size in bytes for any individual static file to be served
+ *   - Default: 104857600 (100MB)
+ *   - Prevents oversized file attacks via static asset routes
+ *
  * MAX_TOTAL_PRELOAD_BYTES (number)
- *   - Maximum total memory for preloaded assets
+ *   - Maximum total memory for preloaded assets (including gzip copies)
  *   - Default: 104857600 (100MB)
  *   - Security: Prevents OOM by limiting total preload size
  *
@@ -131,7 +136,12 @@ const MAX_REQUEST_BODY_SIZE = Number(
   process.env.MAX_REQUEST_BODY_SIZE ?? 10 * 1024 * 1024, // 10MB 默认
 )
 
-// 安全配置：总内存限制，防止 OOM
+// 🔧 修复：新增独立的静态文件大小限制，不再混用 MAX_REQUEST_BODY_SIZE
+const MAX_STATIC_FILE_SIZE = Number(
+  process.env.MAX_STATIC_FILE_SIZE ?? 100 * 1024 * 1024, // 100MB 默认
+)
+
+// 安全配置：总内存限制，防止 OOM（包括 gzip 副本）
 const MAX_TOTAL_PRELOAD_BYTES = Number(
   process.env.MAX_TOTAL_PRELOAD_BYTES ?? 100 * 1024 * 1024, // 100MB 默认
 )
@@ -282,11 +292,7 @@ function isPathSafe(path: string): boolean {
  * 使用 Bun.hash 的 64 位输出，比 MD5/SHA1 快 10-20 倍
  */
 function computeEtag(data: Uint8Array): string {
-  // Bun.hash 使用 xxHash64，是目前最快的非加密哈希算法之一
-  // 返回 number | bigint，对于大数据使用 bigint 安全
   const hash = Bun.hash(data)
-  // 使用 16 进制字符串，比 base64 更快（无需额外编码）
-  // 包含长度信息，避免哈希碰撞
   return `W/"${hash.toString(16)}-${data.byteLength.toString(16)}"`
 }
 
@@ -316,10 +322,7 @@ function compressDataIfAppropriate(
   if (!isMimeTypeCompressible(mimeType)) return undefined
 
   try {
-    // Bun.gzipSync 使用原生 C++ 实现，比 Node.js zlib 快得多
-    // 直接传入 Uint8Array，Bun 内部零拷贝处理
     const compressed = Bun.gzipSync(data as Uint8Array<ArrayBuffer>)
-
     // 只有压缩率超过 10% 才使用压缩版本，避免负优化
     if (compressed.byteLength < data.byteLength * 0.9) {
       return compressed
@@ -335,7 +338,6 @@ function compressDataIfAppropriate(
  * Uses pre-compiled RegExp arrays for fast matching.
  */
 function isFileEligibleForPreloading(relativePath: string): boolean {
-  // 提取文件名 — 用 lastIndexOf 比 split 更快，避免创建临时数组
   const lastSlash = Math.max(
     relativePath.lastIndexOf('/'),
     relativePath.lastIndexOf('\\'),
@@ -373,23 +375,14 @@ interface AssetMetadata {
  * Headers are frozen at build time to avoid per-request allocation.
  */
 interface InMemoryAsset {
-  /** Raw file bytes — kept as a single buffer, never copied on response */
   raw: Uint8Array
-  /** Gzip-compressed bytes (if applicable) */
   gz: Uint8Array | undefined
-  /** Weak ETag string */
   etag: string | undefined
-  /** MIME type */
   type: string
-  /** Whether this asset uses immutable caching */
   immutable: boolean
-  /** Original byte length */
   size: number
-  /** Pre-built frozen headers for raw response */
   headersRaw: Record<string, string>
-  /** Pre-built frozen headers for gzip response (if applicable) */
   headersGz: Record<string, string> | undefined
-  /** Pre-built 304 response headers */
   headers304: Record<string, string> | undefined
 }
 
@@ -403,10 +396,6 @@ interface PreloadResult {
 
 /**
  * Build all response headers at startup using plain objects.
- * Bun internally optimizes plain object headers better than Headers instances.
- * This eliminates per-request header construction and reduces GC pressure.
- *
- * 安全增强：所有响应自动包含安全头
  */
 function buildAssetHeaders(asset: {
   type: string
@@ -423,8 +412,6 @@ function buildAssetHeaders(asset: {
     ? 'public, max-age=31536000, immutable'
     : 'public, max-age=3600'
 
-  // Raw headers - 使用对象字面量，Bun 内部优化更好
-  // 合并安全头，避免运行时合并开销
   const headersRaw: Record<string, string> = {
     ...SECURITY_HEADERS,
     'Content-Type': asset.type,
@@ -435,7 +422,6 @@ function buildAssetHeaders(asset: {
     headersRaw.ETag = asset.etag
   }
 
-  // Gzip headers
   let headersGz: Record<string, string> | undefined
   if (ENABLE_GZIP && asset.gz) {
     headersGz = {
@@ -451,7 +437,6 @@ function buildAssetHeaders(asset: {
     }
   }
 
-  // 304 headers
   let headers304: Record<string, string> | undefined
   if (ENABLE_ETAG && asset.etag) {
     headers304 = {
@@ -465,39 +450,58 @@ function buildAssetHeaders(asset: {
 }
 
 /**
+ * 🔧 修复后的 Accept-Encoding 检查：正确处理质量值
+ */
+function acceptsGzip(acceptEncoding: string | null): boolean {
+  if (!acceptEncoding) return false
+  // 简单解析：查找 gzip 标记，并确保没有 q=0 明确拒绝
+  const tokens = acceptEncoding.split(',').map(s => s.trim().split(';')[0])
+  if (!tokens.includes('gzip')) return false
+  // 检查是否有 gzip;q=0 明确拒绝
+  const gzipEntries = acceptEncoding.match(/gzip\s*(;\s*q\s*=\s*([0-9.]+))?/gi)
+  if (!gzipEntries) return false
+  for (const entry of gzipEntries) {
+    const qMatch = entry.match(/q\s*=\s*([0-9.]+)/i)
+    if (qMatch) {
+      const qValue = parseFloat(qMatch[1])
+      if (qValue === 0) return false
+    }
+  }
+  return true
+}
+
+/**
+ * 🔧 修复后的 ETag 匹配：支持多个 ETag 值
+ */
+function matchesEtag(clientHeader: string | null, assetEtag: string): boolean {
+  if (!clientHeader) return false
+  const etags = clientHeader.split(',').map(s => s.trim())
+  return etags.includes(assetEtag)
+}
+
+/**
  * Create a response handler for a preloaded in-memory asset.
- *
- * 关键 GC 优化：
- * 1. 使用对象字面量 headers（Bun 内部优化更好，避免 Headers 实例开销）
- * 2. Response body 直接引用原始 Uint8Array，零拷贝
- * 3. 304 响应使用 null body，无内存分配
- * 4. 闭包只捕获必要的原始值，避免捕获整个 asset 对象
- * 5. 预计算所有分支条件，运行时只做最小判断
+ * 使用修正后的工具函数处理条件请求。
  */
 function createResponseHandler(
   asset: InMemoryAsset,
 ): (req: Request) => Response {
   const { etag, gz, raw, headersRaw, headersGz, headers304 } = asset
 
-  // 预计算分支条件，避免运行时重复判断
   const hasEtag = ENABLE_ETAG && etag !== undefined
   const hasGz = ENABLE_GZIP && gz !== undefined && headersGz !== undefined
 
-  // 预先做一次类型断言，避免每次请求时重复断言
   const rawBody = raw as Uint8Array<ArrayBuffer>
   const gzBody = gz as Uint8Array<ArrayBuffer> | undefined
 
-  // 根据不同的特性组合，返回最优化的处理函数
   if (hasEtag && hasGz) {
-    // 完整路径：ETag + Gzip
     return (req: Request): Response => {
-      const ifNoneMatch = req.headers.get('if-none-match')
-      if (ifNoneMatch === etag) {
+      // 🔧 使用 matchesEtag 而非严格相等
+      if (matchesEtag(req.headers.get('if-none-match'), etag!)) {
         return new Response(null, { status: 304, headers: headers304! })
       }
 
-      const acceptEncoding = req.headers.get('accept-encoding')
-      if (acceptEncoding?.includes('gzip')) {
+      if (acceptsGzip(req.headers.get('accept-encoding'))) {
         return new Response(gzBody!, { status: 200, headers: headersGz! })
       }
 
@@ -506,10 +510,8 @@ function createResponseHandler(
   }
 
   if (hasEtag) {
-    // 仅 ETag，无 Gzip
     return (req: Request): Response => {
-      const ifNoneMatch = req.headers.get('if-none-match')
-      if (ifNoneMatch === etag) {
+      if (matchesEtag(req.headers.get('if-none-match'), etag!)) {
         return new Response(null, { status: 304, headers: headers304! })
       }
       return new Response(rawBody, { status: 200, headers: headersRaw })
@@ -517,44 +519,33 @@ function createResponseHandler(
   }
 
   if (hasGz) {
-    // 仅 Gzip，无 ETag
     return (req: Request): Response => {
-      const acceptEncoding = req.headers.get('accept-encoding')
-      if (acceptEncoding?.includes('gzip')) {
+      if (acceptsGzip(req.headers.get('accept-encoding'))) {
         return new Response(gzBody!, { status: 200, headers: headersGz! })
       }
       return new Response(rawBody, { status: 200, headers: headersRaw })
     }
   }
 
-  // 最简路径：无 ETag，无 Gzip
   return (): Response => new Response(rawBody, { status: 200, headers: headersRaw })
 }
 
 /**
  * Create a response handler for on-demand files.
- * Uses Bun.file() which returns a lazy BunFile — zero memory until read.
- * Bun internally uses sendfile() syscall for zero-copy file serving.
- *
- * 安全增强：包含安全响应头
  */
 function createOnDemandHandler(
   filepath: string,
   mimeType: string,
 ): (req: Request) => Response {
-  // 预构建 headers 对象，避免每次请求创建新对象
-  // 合并安全头
   const headers = {
     ...SECURITY_HEADERS,
     'Content-Type': mimeType,
     'Cache-Control': 'public, max-age=3600',
   }
 
-  // 预先创建 BunFile 实例，Bun 会缓存文件描述符
   const file = Bun.file(filepath)
 
   return (): Response => {
-    // Bun.file() 传入 Response 时使用 sendfile() 系统调用，零拷贝
     return new Response(file, { headers })
   }
 }
@@ -575,17 +566,7 @@ function createCompositeGlobPattern(): Bun.Glob {
 
 /**
  * Initialize static routes with intelligent preloading strategy.
- *
- * 优化策略：
- * 1. 先用 glob.scan 收集所有文件路径（异步迭代，低内存）
- * 2. 用 Promise.allSettled 并行读取所有待预加载文件
- * 3. 预构建所有 Headers 和 Response handler
- * 4. on-demand 文件使用 Bun.file() sendfile 零拷贝
- *
- * 安全增强：
- * 1. 路径遍历攻击防护
- * 2. 总内存限制，防止 OOM
- * 3. 文件大小验证
+ * 🔧 已修复内存统计，包含 gzip 副本估算。
  */
 async function initializeStaticRoutes(
   clientDirectory: string,
@@ -615,6 +596,7 @@ async function initializeStaticRoutes(
     }
   }
 
+  // 🔧 修正：使用独立的最大静态文件尺寸
   let totalPreloadedBytes = 0
 
   try {
@@ -634,7 +616,6 @@ async function initializeStaticRoutes(
     const candidates: FileCandidate[] = []
 
     for await (const relativePath of glob.scan({ cwd: clientDirectory })) {
-      // 安全检查：防止路径遍历攻击
       if (!isPathSafe(relativePath)) {
         log.warning(`Skipping suspicious path: ${relativePath}`)
         continue
@@ -643,7 +624,6 @@ async function initializeStaticRoutes(
       const filepath = join(clientDirectory, relativePath)
       const route = `/${relativePath.split(sep).join(posix.sep)}`
 
-      // 安全检查：验证路由路径
       if (!isPathSafe(route)) {
         log.warning(`Skipping suspicious route: ${route}`)
         continue
@@ -654,8 +634,8 @@ async function initializeStaticRoutes(
 
         if (file.size === 0) continue
 
-        // 安全检查：防止超大文件
-        if (file.size > MAX_REQUEST_BODY_SIZE) {
+        // 🔧 修复：使用独立的 MAX_STATIC_FILE_SIZE
+        if (file.size > MAX_STATIC_FILE_SIZE) {
           log.warning(
             `Skipping oversized file: ${filepath} (${(file.size / 1024 / 1024).toFixed(2)} MB)`,
           )
@@ -687,18 +667,17 @@ async function initializeStaticRoutes(
     const toPreload: FileCandidate[] = []
     const toOnDemand: FileCandidate[] = []
 
-    // 按文件大小排序，优先加载小文件（更高的缓存命中率）
     candidates.sort((a, b) => a.size - b.size)
 
     for (let i = 0; i < candidates.length; i++) {
       const c = candidates[i]
       if (c.shouldPreload) {
-        // 检查总内存限制
-        if (totalPreloadedBytes + c.size <= MAX_TOTAL_PRELOAD_BYTES) {
+        // 🔧 修复：估算内存占用（原始 + gzip 副本约原大小的 0.35）
+        const estimatedMemory = c.size + (ENABLE_GZIP ? Math.ceil(c.size * 0.35) : 0)
+        if (totalPreloadedBytes + estimatedMemory <= MAX_TOTAL_PRELOAD_BYTES) {
           toPreload.push(c)
-          totalPreloadedBytes += c.size
+          totalPreloadedBytes += estimatedMemory
         } else {
-          // 超过总内存限制，降级为 on-demand
           toOnDemand.push(c)
         }
       } else {
@@ -706,7 +685,7 @@ async function initializeStaticRoutes(
       }
     }
 
-    // ── Phase 3: Register on-demand routes (instant, no I/O) ─────────────
+    // ── Phase 3: Register on-demand routes ─────────────────────────────
     for (let i = 0; i < toOnDemand.length; i++) {
       const c = toOnDemand[i]
       routes[c.route] = createOnDemandHandler(c.filepath, c.type)
@@ -714,8 +693,7 @@ async function initializeStaticRoutes(
     }
 
     // ── Phase 4: Parallel preload all eligible files ─────────────────────
-    // 使用 Promise.allSettled 并行读取，比逐个 await 快得多
-    // 重置计数器，因为上面只是预估
+    // 🔧 修正：使用实际读取后的内存统计
     totalPreloadedBytes = 0
 
     if (toPreload.length > 0) {
@@ -731,7 +709,6 @@ async function initializeStaticRoutes(
           log.error(
             `Failed to read ${c.filepath}: ${String(result.reason)}`,
           )
-          // 降级为 on-demand
           routes[c.route] = createOnDemandHandler(c.filepath, c.type)
           skipped.push({ route: c.route, size: c.size, type: c.type })
           continue
@@ -750,7 +727,6 @@ async function initializeStaticRoutes(
           size: bytes.byteLength,
         }
 
-        // 预构建所有 Headers
         const { headersRaw, headersGz, headers304 } =
           buildAssetHeaders(partialAsset)
 
@@ -763,13 +739,12 @@ async function initializeStaticRoutes(
 
         routes[c.route] = createResponseHandler(asset)
         loaded.push({ route: c.route, size: bytes.byteLength, type: c.type })
-        totalPreloadedBytes += bytes.byteLength
+        // 🔧 修正：实际占用内存 = raw + gzip 副本
+        totalPreloadedBytes += bytes.byteLength + (gz?.byteLength ?? 0)
       }
     }
 
     // ── Phase 5: Logging ─────────────────────────────────────────────────
-
-    // Show detailed file overview only when verbose mode is enabled
     if (VERBOSE && (loaded.length > 0 || skipped.length > 0)) {
       const allFiles = [...loaded, ...skipped].sort((a, b) =>
         a.route.localeCompare(b.route),
@@ -830,7 +805,6 @@ async function initializeStaticRoutes(
       }
     }
 
-    // Show detailed verbose info if enabled
     if (VERBOSE) {
       if (loaded.length > 0 || skipped.length > 0) {
         const allFiles = [...loaded, ...skipped].sort((a, b) =>
@@ -862,7 +836,6 @@ async function initializeStaticRoutes(
       }
     }
 
-    // Log summary
     console.log()
     if (loaded.length > 0) {
       log.success(
@@ -893,13 +866,11 @@ async function initializeStaticRoutes(
 async function initializeServer(): Promise<void> {
   log.header('Starting Production Server')
 
-  // Load TanStack Start server handler
   let handlerFetch: (request: Request) => Response | Promise<Response>
   try {
     const serverModule = (await import(SERVER_ENTRY_POINT)) as {
       default: { fetch: (request: Request) => Response | Promise<Response> }
     }
-    // 预先提取 fetch 函数，避免每次请求访问对象属性
     handlerFetch = serverModule.default.fetch
     log.success('TanStack Start application handler initialized')
   } catch (error) {
@@ -907,72 +878,56 @@ async function initializeServer(): Promise<void> {
     process.exit(1)
   }
 
-  // Build static routes with intelligent preloading
   const { routes } = await initializeStaticRoutes(CLIENT_DIRECTORY)
 
-  // 预构建错误响应，避免运行时创建（包含安全头）
   const error400Headers = { ...SECURITY_HEADERS, 'Content-Type': 'text/plain; charset=utf-8' }
   const error400Body = 'Bad Request'
   const error500Headers = { ...SECURITY_HEADERS, 'Content-Type': 'text/plain; charset=utf-8' }
   const error500Body = 'Internal Server Error'
 
-  // 预构建 OPTIONS 响应（CORS 预检）
   const optionsHeaders = {
     ...SECURITY_HEADERS,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Max-Age': '86400', // 24 小时
+    'Access-Control-Max-Age': '86400',
   }
 
-  // Create Bun server with maximum performance settings
   const server = Bun.serve({
     port: SERVER_PORT,
-
-    // Bun 1.3+ 性能优化配置
-    development: false, // 禁用开发模式特性，提升性能
-    reusePort: true, // 允许多进程共享端口（需要手动启动多个进程）
-
-    // 最大请求体大小限制，防止内存溢出
+    development: false,
+    reusePort: true,
     maxRequestBodySize: MAX_REQUEST_BODY_SIZE,
 
-    // Bun 1.3+ 原生路由表 — 内部使用 radix tree，比自行在 fetch 中 if/else 快得多
     routes: {
-      // 预加载和 on-demand 静态资产路由
       ...routes,
 
-      // Fallback — TanStack Start SSR handler with security checks
       async '/*'(req: Request) {
         try {
-          // 安全检查：验证请求方法
           const method = req.method
           if (method !== 'GET' && method !== 'POST' && method !== 'PUT' && method !== 'DELETE' && method !== 'OPTIONS' && method !== 'HEAD' && method !== 'PATCH') {
             return new Response(error400Body, { status: 400, headers: error400Headers })
           }
 
-          // 处理 OPTIONS 预检请求
           if (method === 'OPTIONS') {
             return new Response(null, { status: 204, headers: optionsHeaders })
           }
 
-          // 安全检查：验证 URL 路径
           const url = new URL(req.url)
           if (!isPathSafe(url.pathname)) {
             return new Response(error400Body, { status: 400, headers: error400Headers })
           }
 
-          // 安全检查：限制请求头大小（防止头部注入攻击）
+          // 安全检查：限制请求头大小
           const headerSize = Array.from(req.headers.entries()).reduce(
             (sum, [k, v]) => sum + k.length + v.length,
             0
           )
-          if (headerSize > 8192) { // 8KB 限制
+          if (headerSize > 8192) {
             return new Response(error400Body, { status: 400, headers: error400Headers })
           }
 
-          // await 确保 Promise rejection 被 catch 捕获
           return await handlerFetch(req)
         } catch (error) {
-          // 客户端断开连接（AbortError）是正常行为，静默忽略
           if (error instanceof Error && error.name === 'AbortError') {
             return new Response(null, { status: 499 })
           }
@@ -981,7 +936,6 @@ async function initializeServer(): Promise<void> {
       },
     },
 
-    // Global error handler - 最小化开销
     error() {
       return new Response(error500Body, { status: 500, headers: error500Headers })
     },
@@ -991,7 +945,6 @@ async function initializeServer(): Promise<void> {
   log.info(`Process ID: ${process.pid}`)
   log.info(`Memory usage: ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)} MB`)
 
-  // Bun 1.3+ 支持优雅关闭
   let isShuttingDown = false
 
   const shutdown = () => {
@@ -1001,7 +954,6 @@ async function initializeServer(): Promise<void> {
     log.info('Shutting down gracefully...')
     server.stop()
 
-    // 给正在处理的请求一些时间完成
     setTimeout(() => {
       process.exit(0)
     }, 1000)
@@ -1010,7 +962,6 @@ async function initializeServer(): Promise<void> {
   process.on('SIGTERM', shutdown)
   process.on('SIGINT', shutdown)
 
-  // 内存监控（可选，生产环境可以禁用）
   if (process.env.ENABLE_MEMORY_MONITORING === 'true') {
     const memoryTimer = setInterval(() => {
       const usage = process.memoryUsage()
@@ -1023,11 +974,10 @@ async function initializeServer(): Promise<void> {
       if (usage.heapUsed > MAX_TOTAL_PRELOAD_BYTES * 2) {
         log.warning('High memory usage detected')
       }
-    }, 60000) // 每分钟检查一次
+    }, 60000)
     memoryTimer.unref()
   }
 
-  // 定时 GC（可选，通过 ENABLE_SCHEDULED_GC 启用）
   if (ENABLE_SCHEDULED_GC) {
     log.info(
       `Scheduled GC enabled: interval=${SCHEDULED_GC_INTERVAL_MS}ms` +
@@ -1037,14 +987,12 @@ async function initializeServer(): Promise<void> {
     )
 
     const gcTimer = setInterval(() => {
-      // 如果设置了阈值，仅当 heapUsed 超过时才执行
       if (SCHEDULED_GC_HEAP_THRESHOLD > 0) {
         const heapUsed = process.memoryUsage().heapUsed
         if (heapUsed < SCHEDULED_GC_HEAP_THRESHOLD) return
       }
 
       const before = process.memoryUsage().heapUsed
-      // Bun.gc(true) 执行同步的完整 GC（包括 major + minor collection）
       Bun.gc(true)
       const after = process.memoryUsage().heapUsed
       const freedMB = ((before - after) / 1024 / 1024).toFixed(2)
@@ -1061,10 +1009,8 @@ async function initializeServer(): Promise<void> {
 
 // ─── Global Safety Net ──────────────────────────────────────────────────────
 
-// 捕获未处理的 Promise rejection，防止 AbortError 等导致进程崩溃
 process.on('unhandledRejection', (reason: unknown) => {
   if (reason instanceof Error && reason.name === 'AbortError') {
-    // 客户端断开连接，静默忽略
     return
   }
   log.error(`Unhandled rejection: ${String(reason)}`)
