@@ -17,6 +17,7 @@ import { assertOk } from "#/lib/assertOk";
 import CountComponent from "#/components/home/Count";
 import SearchInput from "#/components/home/search/Search";
 import HomeGamelist from "#/components/home/homeGameList";
+import { Skeleton } from "#/components/ui/skeleton";
 
 export const getGameList = createServerFn()
   .inputValidator(
@@ -53,6 +54,8 @@ export const Route = createFileRoute("/")({
     gamelist: await getGameList(),
     rankings: await getCritical(),
   }),
+
+  pendingComponent: () => <HomePageSkeleton />,
   // CDN caching (via headers)
   headers: () => ({
     'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
@@ -114,3 +117,36 @@ const HanderComp = () => {
     </>
   );
 };
+
+
+function HomePageSkeleton() {
+  return (
+    <div className="min-h-screen flex justify-center p-6">
+      <div className="w-full max-w-2xl space-y-6">
+        {/* 标题 */}
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-3/4 mx-auto" />
+          <Skeleton className="h-8 w-2/3 mx-auto" />
+        </div>
+
+        {/* meta */}
+        <div className="flex justify-center gap-3">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+
+        {/* 封面 */}
+        <Skeleton className="h-64 w-full rounded-xl" />
+
+        {/* 正文 */}
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6 mx-auto" />
+          <Skeleton className="h-4 w-11/12 mx-auto" />
+          <Skeleton className="h-4 w-4/5 mx-auto" />
+        </div>
+      </div>
+    </div>
+  );
+}
