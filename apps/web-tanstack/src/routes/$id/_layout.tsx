@@ -136,7 +136,7 @@ function RouteComponent() {
 
           {/* Main content section */}
           <div className="overflow-hidden wrap-break-word">
-            <h1 className="font-bold text-2xl leading-[1.2] mt-2">
+            <h1 className="font-semibold text-2xl leading-[1.2] mt-2">
               {game?.vn_datas?.titles?.find(
                 (t) => t.lang === game.vn_datas?.olang && t.title.trim() !== "",
               )?.title || "null"}
@@ -144,12 +144,14 @@ function RouteComponent() {
 
             {/* Aliases */}
             {game?.vn_datas?.alias && (
-              <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 leading-[1.2]">
+              <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 leading-[1.2]">
                 别名:{" "}
                 {game?.vn_datas?.alias
                   .split("\n")
-                  .map((s) => s.trim())
-                  .filter(Boolean)
+                  .flatMap((s) => {
+                    const trimmed = s.trim();
+                    return trimmed ? [trimmed] : [];
+                  })
                   .filter(
                     (s) =>
                       s !==
@@ -162,7 +164,7 @@ function RouteComponent() {
 
             {/* 发行日期 */}
             {game?.released_first && (
-              <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+              <div className="text-sm text-zinc-500 dark:text-zinc-400 mt-2">
                 发行:
                 <Link
                   to="/search"
@@ -180,10 +182,10 @@ function RouteComponent() {
             {(game?.other_datas?.description ||
               game?.vn_datas?.description) && (
                 <div className="mt-4">
-                  <div className="text-xs text-gray-500 uppercase mb-1">
+                  <div className="text-xs text-zinc-500 uppercase mb-1">
                     游戏简介
                   </div>
-                  <div className="text-sm line-clamp-6  leading-relaxed text-gray-800 dark:text-gray-200">
+                  <div className="text-sm line-clamp-6  leading-relaxed text-zinc-800 dark:text-zinc-200">
                     <BBCodeRenderer
                       text={
                         game?.other_datas?.description ||
@@ -212,7 +214,7 @@ function RouteComponent() {
                 return {};
               }}
             >
-              <ArrowDownToLine className="h-4 w-4" />
+              <ArrowDownToLine className="size-4" />
               下载
             </Link>
           </TabsTrigger>

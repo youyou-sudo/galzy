@@ -67,7 +67,7 @@ function RouteComponent() {
             resetScroll={false}
             className="flex items-center pl-3 gap-1 underline opacity-50 hover:opacity-100"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="size-4" />
             返回
           </Link>
           <CardTitle className="text-2xl items-center text-center">
@@ -76,7 +76,7 @@ function RouteComponent() {
           <CardDescription>
             <div className="flex items-center justify-center gap-2">
               <span className="inline-flex items-center gap-1">
-                <User className="w-4 h-4" />
+                <User className="size-4" />
                 喵喵喵？
               </span>
               <span>|</span>

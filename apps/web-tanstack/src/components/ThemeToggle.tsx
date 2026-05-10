@@ -71,11 +71,11 @@ export default function ThemeToggle() {
 			<DropdownMenuTrigger asChild>
 				<Button variant="outline" size="icon" className="rounded-full">
 					{mode === "light" ? (
-						<Sun className="h-[1.2rem] w-[1.2rem] text-amber-500" />
+						<Sun className="size-[1.2rem] text-amber-500" />
 					) : mode === "dark" ? (
-						<Moon className="h-[1.2rem] w-[1.2rem] text-blue-400" />
+						<Moon className="size-[1.2rem] text-blue-400" />
 					) : (
-						<Monitor className="h-[1.2rem] w-[1.2rem] text-gray-500" />
+						<Monitor className="size-[1.2rem] text-zinc-500" />
 					)}
 					<span className="sr-only">主题</span>
 				</Button>
@@ -86,27 +86,27 @@ export default function ThemeToggle() {
 					className="flex items-center gap-2 cursor-pointer"
 					onClick={() => changeMode("light")}
 				>
-					<Sun className="h-4 w-4 text-amber-500" />
+					<Sun className="size-4 text-amber-500" />
 					<span>浅色</span>
-					{mode === "light" && <Check className="h-4 w-4 ml-auto" />}
+					{mode === "light" && <Check className="size-4 ml-auto" />}
 				</DropdownMenuItem>
 
 				<DropdownMenuItem
 					className="flex items-center gap-2 cursor-pointer"
 					onClick={() => changeMode("dark")}
 				>
-					<Moon className="h-4 w-4 text-blue-400" />
+					<Moon className="size-4 text-blue-400" />
 					<span>深色</span>
-					{mode === "dark" && <Check className="h-4 w-4 ml-auto" />}
+					{mode === "dark" && <Check className="size-4 ml-auto" />}
 				</DropdownMenuItem>
 
 				<DropdownMenuItem
 					className="flex items-center gap-2 cursor-pointer"
 					onClick={() => changeMode("auto")}
 				>
-					<Monitor className="h-4 w-4 text-gray-500" />
+					<Monitor className="size-4 text-zinc-500" />
 					<span>系统</span>
-					{mode === "auto" && <Check className="h-4 w-4 ml-auto" />}
+					{mode === "auto" && <Check className="size-4 ml-auto" />}
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

@@ -65,7 +65,7 @@ function RouteComponent() {
           {introductionList.map((item) => (
             <div
               key={item.id}
-              className="flex items-center justify-between px-2 space-x-2 rounded-lg"
+              className="flex items-center justify-between px-2 gap-2 rounded-lg"
             >
               <Link
                 to="/$id/introduction/$articleId"
@@ -74,7 +74,7 @@ function RouteComponent() {
                 className="w-full"
               >
                 <div className="pt-2 flex items-center pb-2 w-full">
-                  <NotepadText className="w-4 h-4 mr-1" />
+                  <NotepadText className="size-4 mr-1" />
                   <span>{item.title}</span>
                 </div>
               </Link>

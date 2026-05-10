@@ -21,6 +21,8 @@ export const MarkdownAsync = ({
 	}>({});
 
 	const notifiedRef = useRef(false);
+	const onReadyRef = useRef(onReady);
+	onReadyRef.current = onReady;
 
 	useEffect(() => {
 		if (rehypeRawCache && remarkGfmCache && MarkdownComponents) {
@@ -54,9 +56,9 @@ export const MarkdownAsync = ({
 			!notifiedRef.current
 		) {
 			notifiedRef.current = true;
-			onReady?.();
+			onReadyRef.current?.();
 		}
-	}, [plugins, onReady]);
+	}, [plugins]);
 
 	if (!plugins.rehypeRaw || !plugins.remarkGfm || !plugins.components) {
 		return null;

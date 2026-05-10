@@ -66,7 +66,7 @@ export const Route = createFileRoute("/")({
 function App() {
   return (
     <>
-      <h1 className="text-4xl font-bold text-center mt-10">紫缘社</h1>
+      <h1 className="text-4xl font-semibold text-center mt-10">紫缘社</h1>
 
       <CountComponent />
 
@@ -89,7 +89,7 @@ const HanderComp = () => {
           <Card className="gap-3 border-0">
             <CardHeader>
               <CardTitle className="flex items-center">
-                热门标签 <Tags className="w-4 h-4 ml-1 text-red-300" />
+                热门标签 <Tags className="size-4 ml-1 text-red-300" />
               </CardTitle>
               <CardDescription>每周检索最多标签</CardDescription>
             </CardHeader>
@@ -102,7 +102,7 @@ const HanderComp = () => {
           <Card className="gap-3 border-0">
             <CardHeader>
               <CardTitle className="flex items-center">
-                热门游戏 <Gamepad2 className="w-4 h-4 ml-1 text-red-300" />
+                热门游戏 <Gamepad2 className="size-4 ml-1 text-red-300" />
               </CardTitle>
               <CardDescription>每周浏览最多游戏</CardDescription>
             </CardHeader>

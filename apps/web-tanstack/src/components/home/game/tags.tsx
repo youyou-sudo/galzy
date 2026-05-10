@@ -28,9 +28,9 @@ export function TagsCard() {
 								return tags?.tags?.length === 0 ? null : (
 									<div className="flex flex-wrap gap-2">
 										{tags?.tags.map(
-											(item, i) =>
+											(item) =>
 												item.tag_data && (
-													<Badge variant="secondary" key={i}>
+													<Badge variant="secondary" key={item.tag_data.id}>
 														<Link
 															to={"/tags/$tagId"}
 															params={{ tagId: item.tag_data.id }}

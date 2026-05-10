@@ -71,7 +71,7 @@ function RouteComponent() {
 		<section>
 			<div className="p-2">
 				<div className="mb-6 ml-1 space-y-4">
-					<h1 className="flex justify-center items-center text-4xl font-bold ">
+					<h1 className="flex justify-center items-center text-4xl font-semibold ">
 						🐾喵の朋友们
 					</h1>
 					<p className="ml-1 text-center">
@@ -80,10 +80,10 @@ function RouteComponent() {
 				</div>
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ">
 					<MotionHighlight hover className="rounded-xl">
-						{linksList.map((item, index) => (
-							<a href={item.href} key={index} target="_blank">
+						{linksList.map((item) => (
+							<a href={item.href} key={item.href} target="_blank">
 								<div className="h-32 flex flex-col border rounded-md p-4">
-									<div className="flex space-x-5">
+									<div className="flex gap-5">
 										<Avatar className="flex">
 											<AvatarImage src={item.avatar} />
 											<AvatarFallback>{item.title}</AvatarFallback>

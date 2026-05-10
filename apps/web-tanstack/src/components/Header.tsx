@@ -89,7 +89,7 @@ export default function Header() {
 						<Sheet open={isOpen} onOpenChange={setIsOpen}>
 							<SheetTrigger asChild>
 								<Button variant="ghost" size="icon">
-									<Menu className="h-5 w-5" />
+									<Menu className="size-5" />
 									<span className="sr-only">打开菜单</span>
 								</Button>
 							</SheetTrigger>

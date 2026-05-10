@@ -5,7 +5,7 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "
 import { useNavigate } from "@tanstack/react-router";
 import { CalendarIcon, } from "lucide-react";
 import type React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface SearchInputProps {
   placeholder?: string;
@@ -16,18 +16,16 @@ export default function SearchInput({
 }: SearchInputProps) {
   const navigate = useNavigate();
 
-  const [inputValue, setInputValue] = useState("");
-
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [inputValue, setInputValue] = useState(
+    () => new URLSearchParams(window.location.search).get("q") ?? "",
+  );
+  const [startDate, setStartDate] = useState(
+    () => new URLSearchParams(window.location.search).get("startDate") ?? "",
+  );
+  const [endDate, setEndDate] = useState(
+    () => new URLSearchParams(window.location.search).get("endDate") ?? "",
+  );
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    setInputValue(params.get("q") ?? "");
-    setStartDate(params.get("startDate") ?? "");
-    setEndDate(params.get("endDate") ?? "");
-  }, []);
   const handleSearch = () => {
     const trimmed = inputValue.trim();
     // if (!trimmed) return;
@@ -70,7 +68,7 @@ export default function SearchInput({
         <InputGroup className="border-2 rounded-lg mb-0">
           <InputGroupAddon align="inline-start">
             <InputGroupButton variant="secondary" size="icon-xs" onClick={() => setOpen(true)}>
-              <CalendarIcon className="h-4 w-4" />
+              <CalendarIcon className="size-4" />
             </InputGroupButton>
           </InputGroupAddon>
           <InputGroupInput
@@ -104,6 +102,7 @@ export default function SearchInput({
               >
                 <div
                   className="grid grid-cols-2 gap-2 p-2"
+                  role="presentation"
                   onMouseDown={(e) => e.preventDefault()} // 防止 input blur 导致关闭
                 >
                   <div className="flex flex-col gap-1">

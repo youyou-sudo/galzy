@@ -80,8 +80,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
-				{/** biome-ignore lint/correctness/noChildrenProp: <children> */}
-				<ScriptOnce children={THEME_INIT_SCRIPT} />
+			<ScriptOnce>{THEME_INIT_SCRIPT}</ScriptOnce>
 				<HeadContent />
 			</head>
 			<body className="font-sans antialiased flex flex-col min-h-screen">
@@ -93,7 +92,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<TanStackQueryProvider>
 					<RouterProgress />
 					<Header />
-          <main className="mx-auto w-full max-w-7xl px-4 py-4 space-y-4">
+          <main className="mx-auto w-full max-w-7xl p-4 space-y-4">
             {/* 广告 */}
              <aside
               id="sidebar-ad"
