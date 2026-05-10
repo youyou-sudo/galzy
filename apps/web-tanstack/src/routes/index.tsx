@@ -15,9 +15,9 @@ import {
 import { RankingList } from "#/components/home/remf";
 import { assertOk } from "#/lib/assertOk";
 import { lazy } from "react";
+import CountComponent from "#/components/home/Count";
 import SearchInput from "#/components/home/search/Search";
-const CountComponent = lazy(() => import("#/components/home/Count"));
-const HomeGamelist = lazy(() => import("#/components/home/homeGameList"));
+import HomeGamelist from "#/components/home/homeGameList";
 
 export const getGameList = createServerFn()
   .inputValidator(
