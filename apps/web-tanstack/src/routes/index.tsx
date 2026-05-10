@@ -51,7 +51,7 @@ export const Route = createFileRoute("/")({
   component: App,
   loader: async () => ({
     gamelist: await getGameList(),
-    rankings: getCritical(),
+    rankings: await getCritical(),
   }),
   // CDN caching (via headers)
   headers: () => ({

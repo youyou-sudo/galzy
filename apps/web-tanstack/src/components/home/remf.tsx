@@ -1,5 +1,4 @@
-import { Await, getRouteApi, Link } from "@tanstack/react-router";
-import { Skeleton } from "../ui/skeleton";
+import {  getRouteApi, Link } from "@tanstack/react-router";
 
 interface Item {
   id?: string;
@@ -63,23 +62,9 @@ const apiroute = getRouteApi("/");
 export const RankingList = ({ linkKey }: { linkKey: "id" | "tag" }) => {
   const { rankings } = apiroute.useLoaderData();
   return (
-    <Await promise={rankings} fallback={<SkeletonList />}>
-      {(data) => {
-        return (
-          <Comp
-            datas={linkKey === "tag" ? data.tag : data.game}
-            linkKey={linkKey}
-          />
-        );
-      }}
-    </Await>
+    <Comp
+      datas={linkKey === "tag" ? rankings.tag : rankings.game}
+      linkKey={linkKey}
+    />
   );
 };
-
-const SkeletonList = ({ count = 4 }: { count?: number }) => (
-  <>
-    {Array.from({ length: count }).map((_, index) => (
-      <Skeleton key={index} className="h-5.25 w-full my-2.5" />
-    ))}
-  </>
-);
