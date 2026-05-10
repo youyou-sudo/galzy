@@ -14,7 +14,6 @@ import {
 
 import { RankingList } from "#/components/home/remf";
 import { assertOk } from "#/lib/assertOk";
-import { lazy } from "react";
 import CountComponent from "#/components/home/Count";
 import SearchInput from "#/components/home/search/Search";
 import HomeGamelist from "#/components/home/homeGameList";
