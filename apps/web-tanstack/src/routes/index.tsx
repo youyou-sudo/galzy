@@ -50,10 +50,10 @@ const getCritical = createServerFn().handler(async () => {
 
 export const Route = createFileRoute("/")({
   component: App,
-  loader: async () => ({
-    gamelist: await getGameList(),
-    rankings: await getCritical(),
-  }),
+  loader: async () => {
+    const [gamelist, rankings] = await Promise.all([getGameList(), getCritical()]);
+    return { gamelist, rankings };
+  },
 
   pendingComponent: () => <HomePageSkeleton />,
   // CDN caching (via headers)
