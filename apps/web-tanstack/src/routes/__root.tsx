@@ -103,7 +103,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 data-umami-event-name="dzmm"
                 data-umami-event-position="Banner-dzmm"
                 target="_blank"
-                href="https://www.duskpine.top?rf=876926e5"
+                href="https://www.ainexa.top?rf=876926e5"
               >
                 <div id="sidebar-ad" className="sm:hidden overflow-hidden rounded-lg">
                   <Image
