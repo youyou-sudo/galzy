@@ -4,46 +4,74 @@ import { redis } from "bun";
 
 export const dbAction = async () => {
   console.log('⌛ Running database migrations and seeding...')
-  if (await checkDbConnection(db)) {
+
+  // 1. 并行做数据库连通性检测
+  const [dbConn, vndbConn] = await Promise.allSettled([
+    checkDbConnection(db),
+    checkDbConnection(vndbDb),
+  ])
+
+  const dbOk = dbConn.status === 'fulfilled' && dbConn.value
+  const vndbOk = vndbConn.status === 'fulfilled' && vndbConn.value
+
+  if (dbOk) {
     console.log('✅️ Website database connection test successful')
   } else {
     setDeployStatus('error')
-    console.error('❌ Website database connection test failed')
+    console.error('❌ Website database connection test failed', dbConn)
   }
 
-  if (await checkDbConnection(vndbDb)) {
+  if (vndbOk) {
     console.log('✅️ VNDB database connection test successful')
   } else {
     setDeployStatus('error')
-    console.error('❌ VNDB database connection test failed')
+    console.error('❌ VNDB database connection test failed', vndbConn)
   }
 
-  try {
-    setDeployStatus('migrating')
-    await dbSeed()
-  } catch (error) {
-    setDeployStatus('error')
-    console.error('❌ Error during database setup:', error)
-  }
-  try {
-    await dbFdw()
-    console.log('✅️ dbFdw connection test successful')
-  } catch (error) {
-    setDeployStatus('error')
-    console.error('❌ Error during FDW setup:', error)
-  }
-  try {
+  // 如果连接都不通过，可以提前终止（可选）
+  if (!dbOk || !vndbOk) return
+
+  // 2. 进入初始化阶段
+  setDeployStatus('migrating')
+
+  const seedPromise = dbSeed()
+  const fdwPromise = dbFdw()
+  const redisPromise = (async () => {
     const pong = await redis.ping()
-    if (pong === 'PONG') {
-      console.log('✅️ Redis connection test successful')
-    } else {
-      setDeployStatus('error')
-      console.error('❌ Redis connection test failed')
+    if (pong !== 'PONG') {
+      throw new Error('Redis ping failed')
     }
-  } catch (error) {
+    return pong
+  })()
+
+  const [seedRes, fdwRes, redisRes] = await Promise.allSettled([
+    seedPromise,
+    fdwPromise,
+    redisPromise,
+  ])
+
+  // 3. 分别处理结果
+  if (seedRes.status === 'fulfilled') {
+    console.log('✅️ Database seed completed')
+  } else {
     setDeployStatus('error')
-    console.error('❌ Error during Redis connection test:', error)
+    console.error('❌ Error during database setup:', seedRes.reason)
   }
+
+  if (fdwRes.status === 'fulfilled') {
+    console.log('✅️ dbFdw connection test successful')
+  } else {
+    setDeployStatus('error')
+    console.error('❌ Error during FDW setup:', fdwRes.reason)
+  }
+
+  if (redisRes.status === 'fulfilled') {
+    console.log('✅️ Redis connection test successful')
+  } else {
+    setDeployStatus('error')
+    console.error('❌ Redis connection test failed:', redisRes.reason)
+  }
+
   setDeployStatus('ready')
   console.log('🎉 Database loading complete')
 }
@@ -603,4 +631,36 @@ const dbFdw = async () => {
     table_name  'releases_titles'
   );
 `.execute(db)
+
+  await sql`
+  CREATE FOREIGN TABLE IF NOT EXISTS producers (
+    id  text,
+    type text,
+    lang text,
+    name text,
+    latin text,
+    alias text,
+    description  text
+  )
+  SERVER vndb_server
+  OPTIONS (
+    schema_name 'public',
+    table_name  'producers'
+  );
+  `.execute(db)
+
+  await sql`
+  CREATE FOREIGN TABLE IF NOT EXISTS releases_producers (
+    id  text,
+    pid text,
+    developer  boolean,
+    publisher boolean
+  )
+  SERVER vndb_server
+  OPTIONS (
+    schema_name 'public',
+    table_name  'releases_producers'
+  );
+  `.execute(db)
+
 }
