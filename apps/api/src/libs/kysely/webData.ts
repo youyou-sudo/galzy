@@ -369,11 +369,32 @@ export interface ReleasesVnTable {
 }
 
 export interface ReleasesTitlesTable {
-  id: string // 主键，自增
+  id: string
   lang: language // 语言代码（如 'en', 'ja' 等）
   mtl: boolean // 是否为 machine-translated
   title: string | null // 可为空
   latin: string | null // 可为空
+}
+
+// vndb 条目组织关联表
+export interface ReleasesProducersTable {
+  id: string // 关联 VNDBID
+  pid: string  // 组织 ID
+  developer: boolean // 是否为开发者
+  publisher: boolean // 是否为出版商
+}
+
+type ProducerType = 'co' | 'in' | 'ng'
+
+// 组织条目表
+export interface ProducersTable {
+  id: string // 组织 ID
+  type: ProducerType // 组织类型
+  lang: language // 语言（如 'en', 'ja' 等）
+  name: string // 组织名称
+  latin: string | null // 组织拉丁名（可为空）
+  alias: string | null // 组织别名（可为空）
+  description: string | null // 组织描述（可为空）
 }
 
 export interface GameDownloadStats {
@@ -428,6 +449,8 @@ export interface Database {
   releases: ReleasesTable
   releases_vn: ReleasesVnTable
   releases_titles: ReleasesTitlesTable
+  producers: ProducersTable
+  releases_producers: ReleasesProducersTable
 }
 
 const dialect = new PostgresDialect({
