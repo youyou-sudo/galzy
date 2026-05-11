@@ -131,13 +131,13 @@ export const Game = {
     const cacheKey = `gameInfo-${id}`
     const redisData = await getKv(cacheKey)
 
-    if (redisData) {
-      try {
-        return JSON.parse(redisData) as GameInfo
-      } catch {
-        await delKv(cacheKey)
-      }
-    }
+    // if (redisData) {
+    //   try {
+    //     return JSON.parse(redisData) as GameInfo
+    //   } catch {
+    //     await delKv(cacheKey)
+    //   }
+    // }
 
     const idIsNumber = /^\d+$/.test(id)
 
@@ -157,6 +157,40 @@ export const Game = {
             .orderBy('releases.released', 'asc')
             .limit(1)
             .as('released_first'),
+          jsonArrayFrom(
+            eb
+              .selectFrom('releases_vn')
+              .innerJoin('releases_producers', 'releases_producers.id', 'releases_vn.id')
+              .innerJoin('releases', 'releases.id', 'releases_vn.id')
+              .innerJoin('producers', 'producers.id', 'releases_producers.pid')
+              .whereRef('releases_vn.vid', '=', 'galrc_alistb.vid')
+              .groupBy([
+                'producers.id',
+                'producers.name',
+                'producers.latin',
+                'producers.alias',
+                'producers.type',
+              ])
+              .select((pb) => [
+                'producers.id',
+                'producers.name',
+                'producers.latin',
+                'producers.alias',
+                'producers.type',
+
+                pb.fn.countAll().as('count'),
+
+                pb.fn.agg<boolean>('bool_or', ['releases_producers.developer']).as('is_dev'),
+                pb.fn.agg<boolean>('bool_or', ['releases_producers.publisher']).as('is_pub'),
+
+                pb.fn.agg<boolean>('bool_or', ['releases.official']).as('official'),
+                pb.fn.min<number>('releases.released').as('first_release'),
+              ])
+
+              .orderBy('official', 'desc')        // NOT bool_or(official)
+              .orderBy('first_release', 'asc')    // MIN(released)
+          )
+          .as('producers'),
           jsonObjectFrom(
             eb
               .selectFrom('vn')
