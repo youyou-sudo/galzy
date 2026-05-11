@@ -1,11 +1,6 @@
 import { dbConfig } from '@api/libs/config'
-import {
-  type ColumnType,
-  type Generated,
-  Kysely,
-  PostgresDialect,
-} from 'kysely'
-import { Pool } from 'pg'
+import { type ColumnType, type Generated, Kysely } from 'kysely'
+import { BunPostgresDialect } from 'kysely-bun-sql'
 
 // better 部分
 export interface User {
@@ -379,7 +374,7 @@ export interface ReleasesTitlesTable {
 // vndb 条目组织关联表
 export interface ReleasesProducersTable {
   id: string // 关联 VNDBID
-  pid: string  // 组织 ID
+  pid: string // 组织 ID
   developer: boolean // 是否为开发者
   publisher: boolean // 是否为出版商
 }
@@ -453,9 +448,7 @@ export interface Database {
   releases_producers: ReleasesProducersTable
 }
 
-const dialect = new PostgresDialect({
-  pool: new Pool(dbConfig),
-})
+const dialect = new BunPostgresDialect(dbConfig)
 
 export const db = new Kysely<Database>({
   dialect,

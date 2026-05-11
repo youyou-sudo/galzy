@@ -1,10 +1,8 @@
 import { vndbDbConfig } from '@api/libs/config'
-import { Kysely, PostgresDialect } from 'kysely'
-import { Pool } from 'pg'
+import { Kysely } from 'kysely'
+import { BunPostgresDialect } from 'kysely-bun-sql'
 
-const dialect = new PostgresDialect({
-  pool: new Pool(vndbDbConfig),
-})
+const dialect = new BunPostgresDialect(vndbDbConfig)
 
 export const vndbDb = new Kysely({
   dialect,

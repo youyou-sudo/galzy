@@ -16,7 +16,7 @@ import type { GameModel } from './model'
 
 export const Game = {
   async Count() {
-    const redisData = await getKv("gameCount")
+    const redisData = await getKv('gameCount')
     if (redisData !== null && redisData !== undefined) {
       return Number(redisData)
     }
@@ -29,7 +29,7 @@ export const Game = {
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     const count = Number(totalCountResult?.count || 0)
-    void setKv("gameCount", String(count), 60 * 30)
+    void setKv('gameCount', String(count), 60 * 30)
     return count
   },
   async List({ pageIndex, pageSize }: GameModel.gameList) {
@@ -160,7 +160,11 @@ export const Game = {
           jsonArrayFrom(
             eb
               .selectFrom('releases_vn')
-              .innerJoin('releases_producers', 'releases_producers.id', 'releases_vn.id')
+              .innerJoin(
+                'releases_producers',
+                'releases_producers.id',
+                'releases_vn.id',
+              )
               .innerJoin('releases', 'releases.id', 'releases_vn.id')
               .innerJoin('producers', 'producers.id', 'releases_producers.pid')
               .whereRef('releases_vn.vid', '=', 'galrc_alistb.vid')
@@ -180,17 +184,22 @@ export const Game = {
 
                 pb.fn.countAll().as('count'),
 
-                pb.fn.agg<boolean>('bool_or', ['releases_producers.developer']).as('is_dev'),
-                pb.fn.agg<boolean>('bool_or', ['releases_producers.publisher']).as('is_pub'),
+                pb.fn
+                  .agg<boolean>('bool_or', ['releases_producers.developer'])
+                  .as('is_dev'),
+                pb.fn
+                  .agg<boolean>('bool_or', ['releases_producers.publisher'])
+                  .as('is_pub'),
 
-                pb.fn.agg<boolean>('bool_or', ['releases.official']).as('official'),
+                pb.fn
+                  .agg<boolean>('bool_or', ['releases.official'])
+                  .as('official'),
                 pb.fn.min<number>('releases.released').as('first_release'),
               ])
 
-              .orderBy('official', 'desc')        // NOT bool_or(official)
-              .orderBy('first_release', 'asc')    // MIN(released)
-          )
-          .as('producers'),
+              .orderBy('official', 'desc') // NOT bool_or(official)
+              .orderBy('first_release', 'asc'), // MIN(released)
+          ).as('producers'),
           jsonObjectFrom(
             eb
               .selectFrom('vn')
@@ -262,7 +271,9 @@ export const Game = {
     type GameInfo = typeof result
     return result
   },
-  async OpenListFiles({ id }: GameModel.OpenListFiles): Promise<GameModel.TreeNode[]> {
+  async OpenListFiles({
+    id,
+  }: GameModel.OpenListFiles): Promise<GameModel.TreeNode[]> {
     const isVNDB = /^v\d+$/.test(id)
     const targetKey = `${isVNDB ? 'vndb' : 'other'}-${id}`
     const keyPattern = `%[${targetKey}]%`
@@ -303,11 +314,11 @@ export const Game = {
             type: isLast && !row.is_dir ? 'file' : 'folder',
             ...(isLast && !row.is_dir
               ? {
-                size: row.size !== undefined ? String(row.size) : undefined,
-                format: part.includes('.')
-                  ? part.substring(part.lastIndexOf('.') + 1).toUpperCase()
-                  : undefined,
-              }
+                  size: row.size !== undefined ? String(row.size) : undefined,
+                  format: part.includes('.')
+                    ? part.substring(part.lastIndexOf('.') + 1).toUpperCase()
+                    : undefined,
+                }
               : {}),
           }
         }
@@ -332,7 +343,11 @@ export const Game = {
           const base: GameModel.TreeNode = {
             ...rest,
             ...(children
-              ? { children: await convert(children as Record<string, TreeNodeBuilder>) }
+              ? {
+                  children: await convert(
+                    children as Record<string, TreeNodeBuilder>,
+                  ),
+                }
               : {}),
           }
           return base
@@ -749,5 +764,5 @@ export const Game = {
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     return { total: data?.total, res }
-  }
+  },
 }

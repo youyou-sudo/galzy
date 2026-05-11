@@ -1,6 +1,6 @@
 import { db, sql, vndbDb } from '@api/libs'
 import { setDeployStatus } from '@api/modules/status/service'
-import { redis } from "bun";
+import { redis } from 'bun'
 
 export const dbAction = async () => {
   console.log('⌛ Running database migrations and seeding...')
@@ -662,5 +662,4 @@ const dbFdw = async () => {
     table_name  'releases_producers'
   );
   `.execute(db)
-
 }
