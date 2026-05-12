@@ -662,4 +662,17 @@ const dbFdw = async () => {
     table_name  'releases_producers'
   );
   `.execute(db)
+
+  await sql`
+  CREATE FOREIGN TABLE IF NOT EXISTS producers_relations (
+    id  text,
+    pid text,
+    relation  text
+  )
+  SERVER vndb_server
+  OPTIONS (
+    schema_name 'public',
+    table_name  'producers_relations'
+  );
+  `.execute(db)
 }

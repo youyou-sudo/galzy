@@ -392,6 +392,23 @@ export interface ProducersTable {
   description: string | null // 组织描述（可为空）
 }
 
+type relation =
+  | 'old' // 旧组织 / 前身（pid 是 id 的旧版本）
+  | 'new' // 新组织 / 后继（pid 是 id 的新版本）
+  | 'sub' // 子组织（pid 是 id 的子公司 / 子品牌）
+  | 'par' // 母组织（pid 是 id 的母公司）
+  | 'imp' // 继承（pid 继承自 id，通常指资源/品牌等）
+  | 'ipa' // 被继承（pid 被 id 继承，imp 的反向）
+  | 'spa' // 分拆（pid 从 id 拆分出来）
+  | 'ori' // 原始来源（pid 源自 id，最初起点）
+
+// 组织间关系表
+export interface ProducersRelationsTable {
+  id: string // 关联 VNDBID
+  pid: string // 组织 ID
+  relation: relation
+}
+
 export interface GameDownloadStats {
   id: Generated<number>
   game_id: string // VNDB 游戏 ID
@@ -446,6 +463,7 @@ export interface Database {
   releases_titles: ReleasesTitlesTable
   producers: ProducersTable
   releases_producers: ReleasesProducersTable
+  producers_relations: ProducersRelationsTable
 }
 
 const dialect = new BunPostgresDialect(dbConfig)
