@@ -1,14 +1,15 @@
-import tailwindcss from "@tailwindcss/vite";
-import { devtools } from "@tanstack/devtools-vite";
-import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import { tanstackRouter } from "@tanstack/router-plugin/vite";
-import viteReact from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import babel from '@rolldown/plugin-babel'
+import tailwindcss from '@tailwindcss/vite'
+import { devtools } from '@tanstack/devtools-vite'
+import { tanstackStart } from '@tanstack/react-start/plugin/vite'
+import { tanstackRouter } from '@tanstack/router-plugin/vite'
+import react, { reactCompilerPreset } from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
 
 const config = defineConfig({
   resolve: {
     tsconfigPaths: true,
-    dedupe: ["react", 'react-dom'],
+    dedupe: ['react', 'react-dom'],
   },
 
   ssr: {
@@ -17,7 +18,7 @@ const config = defineConfig({
   build: {
     ssrManifest: true,
     ssr: true,
-    minify: "oxc",
+    minify: 'oxc',
     modulePreload: false,
     rolldownOptions: {
       treeshake: true,
@@ -27,11 +28,12 @@ const config = defineConfig({
     devtools(),
     tailwindcss(),
     tanstackStart(),
-    viteReact(),
+    react(),
+    babel({ presets: [reactCompilerPreset()] }),
     tanstackRouter({
       autoCodeSplitting: true,
     }),
   ],
-});
+})
 
-export default config;
+export default config
