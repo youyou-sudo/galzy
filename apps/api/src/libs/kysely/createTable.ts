@@ -354,6 +354,32 @@ const dbSeed = async () => {
     .on('tags')
     .column('id')
     .execute()
+  await vndbDb.schema
+    .createIndex('releases_producers_index')
+    .ifNotExists()
+    .on('releases_producers')
+    .column('id')
+    .column('pid')
+    .execute()
+  await vndbDb.schema
+    .createIndex('releases_producers_pid_index')
+    .ifNotExists()
+    .on('releases_producers')
+    .column('pid')
+    .execute()
+  await vndbDb.schema
+    .createIndex('producers_index')
+    .ifNotExists()
+    .on('producers')
+    .column('id')
+    .execute()
+  await vndbDb.schema
+    .createIndex('producers_relations_index')
+    .ifNotExists()
+    .on('producers_relations')
+    .column('id')
+    .column('pid')
+    .execute()
 
   // galrc
   await db.schema
