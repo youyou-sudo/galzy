@@ -1,10 +1,12 @@
 import { dbConfig } from '@api/libs/config'
 import { type BetterAuthOptions, betterAuth } from 'better-auth'
 import { admin } from 'better-auth/plugins'
-import { Pool } from 'pg'
+import { BunPostgresDialect } from 'kysely-bun-sql'
+
+const dialect = new BunPostgresDialect(dbConfig)
 
 const authConfig = {
-  database: new Pool(dbConfig),
+  database: dialect,
   user: {
     modelName: 'galrc_user',
   },
