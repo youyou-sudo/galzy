@@ -5,9 +5,9 @@ import { ArrowDownToLine, Search, Swords, TrendingUp } from 'lucide-react'
 import { useState } from 'react'
 import z from 'zod'
 import { BBCodeRenderer } from '#/components/bbcode'
-import { Glgczujm } from '#/components/game/tips'
 import { GameCard } from '#/components/home/card'
 import { TagsCard } from '#/components/home/game/tags'
+import { Glgczujm } from '#/components/home/game/tips'
 import { Card, CardContent } from '#/components/ui/card'
 import { Skeleton } from '#/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '#/components/ui/tabs'
@@ -195,8 +195,8 @@ function RouteComponent() {
                   .filter((producer) => producer.is_dev === true)
                   .map((producer, index, arr) => (
                     <Link
-                      to={`/producer/$id`}
-                      params={{ id: producer.id }}
+                      to={`/producer/$pid`}
+                      params={{ pid: producer.id }}
                       key={producer.id}
                     >
                       <span className="relative inline-flex items-center gap-0.5 text-cyan-600 wrap-break-word hover:underline">
@@ -217,8 +217,8 @@ function RouteComponent() {
                     .filter((producer) => producer.is_pub === true)
                     .map((producer, index, arr) => (
                       <Link
-                        to={`/producer/$id`}
-                        params={{ id: producer.id }}
+                        to={`/producer/$pid`}
+                        params={{ pid: producer.id }}
                         key={producer.id}
                       >
                         <span

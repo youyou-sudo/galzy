@@ -5,5 +5,9 @@ export const Route = createFileRoute('/producer/')({
 })
 
 function RouteComponent() {
-  return <div>Hello "/producer/"!</div>
+  return (
+    <div className="flex justify-center items-center h-full text-[1.5rem]">
+      该区域开发中
+    </div>
+  )
 }
