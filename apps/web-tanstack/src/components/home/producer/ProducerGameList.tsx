@@ -22,9 +22,18 @@ export const ProducerGamelist = () => {
       >
         {(gameList) => (
           <>
-            {gameList?.flatMap(
-              (item) =>
-                item && (
+            {!gameList || gameList.length === 0 ? (
+              <div className="text-center items-center">没找相关的游戏喵～</div>
+            ) : (
+              gameList.map((item) => {
+                if (!item) return null
+
+                const title =
+                  item.titles?.find(
+                    (t) => t.lang === item.olang && t.title.trim() !== '',
+                  )?.title ?? 'null'
+
+                return (
                   <GameItem
                     key={item.id}
                     gameid={String(item.id)}
@@ -35,13 +44,10 @@ export const ProducerGamelist = () => {
                       width: item.image_width,
                       height: item.image_height,
                     })}
-                    title={
-                      item?.titles?.find(
-                        (t) => t.lang === item.olang && t.title.trim() !== '',
-                      )?.title || 'null'
-                    }
+                    title={title}
                   />
-                ),
+                )
+              })
             )}
           </>
         )}
