@@ -6,6 +6,7 @@ import {
   download,
   game,
   media,
+  producer,
   search,
   startCronTasks,
   status,
@@ -39,6 +40,7 @@ const app = new Elysia()
   .use(search)
   .use(strategy)
   .use(media)
+  .use(producer)
   .listen(process.env.API_PORT ?? 3001)
 
 export type APP = typeof app
