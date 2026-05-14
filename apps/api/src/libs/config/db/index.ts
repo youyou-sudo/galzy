@@ -14,7 +14,7 @@ export const dbConfig: BunPostgresDialectConfig = {
   // Optional: tune Bun SQL client when we create it for you
   clientOptions: {
     max: Number(process.env.POSTGRES_POOL_MAX),
-    idleTimeout: 30,
+    idleTimeout: Number(process.env.POSTGRES_POOL_IDLETIMEOUT),
     maxLifetime: 0,
     connectionTimeout: 10,
     prepare: true,
@@ -40,7 +40,7 @@ export const vndbDbConfig: BunPostgresDialectConfig = {
   // Optional: tune Bun SQL client when we create it for you
   clientOptions: {
     max: Number(process.env.POSTGRES_POOL_MAX),
-    idleTimeout: 30,
+    idleTimeout: Number(process.env.POSTGRES_POOL_IDLETIMEOUT),
     maxLifetime: 0,
     connectionTimeout: 10,
     prepare: true,
