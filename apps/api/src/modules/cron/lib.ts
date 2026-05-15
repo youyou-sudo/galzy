@@ -36,7 +36,6 @@ function buildFullPath(item: RawDataItem): string {
 }
 
 // 去除有父子关系的路径（保留更短的父路径）
-// 例如：输入 ["/A/B", "/A/B/C", "/A/B/C/D"] 返回 ["/A/B"]
 function removeParentChildPaths(paths: string[]): string[] {
   // 按路径长度升序排序
   const sorted = [...paths].sort((a, b) => a.length - b.length)
@@ -70,35 +69,41 @@ export function processData(data: RawDataItem[]): ProcessedItem[] {
     })
     .filter((item): item is ExtendedItem => item !== null)
 
-  // 为每个条目构建 path 数组
-  const result: ProcessedItem[] = items.map((currentItem) => {
-    const paths: string[] = []
+  // 使用 Map 来按 vid 分组
+  const vidMap = new Map<string, Set<string>>()
 
-    // 找出所有以当前条目路径为前缀的其他条目（即子路径）
+  for (const item of items) {
+    if (!vidMap.has(item.vid)) {
+      vidMap.set(item.vid, new Set())
+    }
+    // 添加当前条目的完整路径
+    vidMap.get(item.vid)!.add(item.fullPath)
+
+    // 查找所有以当前条目路径为前缀的其他条目（即子路径）
     for (const otherItem of items) {
-      // 跳过自身
-      if (otherItem.fullPath === currentItem.fullPath) continue
+      if (otherItem.fullPath === item.fullPath) continue
 
-      // 检查 otherItem 的完整路径是否以当前条目的完整路径为前缀
-      // 这意味着 otherItem 是 currentItem 的子目录或更深层的内容
-      if (otherItem.fullPath.startsWith(currentItem.fullPath + '/')) {
-        paths.push(otherItem.fullPath)
+      // 如果 otherItem 是当前条目的子路径，也添加到集合中
+      if (otherItem.fullPath.startsWith(item.fullPath + '/')) {
+        vidMap.get(item.vid)!.add(otherItem.fullPath)
       }
     }
+  }
 
-    // 先添加自己的路径
-    const allPaths = [currentItem.fullPath, ...paths]
+  // 将 Map 转换为结果数组
+  const result: ProcessedItem[] = []
+  for (const [vid, pathSet] of vidMap.entries()) {
+    const paths = Array.from(pathSet)
+    // 去除有父子关系的路径
+    const cleanedPaths = removeParentChildPaths(paths)
 
-    // 去除有父子关系的路径（保留最顶层的父路径）
-    const cleanedPaths = removeParentChildPaths(allPaths)
-
-    return {
-      id: currentItem.vid,
-      vid: currentItem.vid,
+    result.push({
+      id: vid,
+      vid: vid,
       other: null,
       path: cleanedPaths,
-    }
-  })
+    })
+  }
 
   return result
 }

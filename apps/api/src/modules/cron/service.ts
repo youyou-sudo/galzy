@@ -169,7 +169,7 @@ export const CronService = {
       )
 
       const data = await openlistdatas.json()
-      console.log('processedData', processedData)
+      const processedData = processData(data.data.content)
 
       const [, trxError] = t(
         await db.transaction().execute(async (trx) => {
