@@ -79,7 +79,7 @@ export const Media = {
           .execute()
       })
 
-      await delKv(`gameInfo-${entryId}`)
+      await delKv(`gameInfo:${entryId}`)
       await storeIdempotentResult(`insertmediatoentry-${hash}`, '', 60)
     }
   },
@@ -160,7 +160,7 @@ export const Media = {
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
 
-    await delKv(`gameInfo-${other}`)
+    await delKv(`gameInfo:${other}`)
     await storeIdempotentResult(`getMediaByCover-${hash}`, media, 60)
     return media
   },

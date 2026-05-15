@@ -33,7 +33,7 @@ export const Game = {
     return count
   },
   async List({ pageIndex, pageSize }: GameModel.gameList) {
-    const redisData = await getKv(`gameList-${pageIndex}-${pageSize}`)
+    const redisData = await getKv(`gameList:${pageIndex}-${pageSize}`)
     if (redisData !== null && redisData !== undefined) {
       return JSON.parse(redisData) as GameList
     }
@@ -120,7 +120,7 @@ export const Game = {
       totalCount,
     }
     void setKv(
-      `gameList-${pageIndex}-${pageSize}`,
+      `gameList:${pageIndex}-${pageSize}`,
       JSON.stringify(datas),
       60 * 60 * 2,
     )
@@ -128,7 +128,7 @@ export const Game = {
     return datas
   },
   async InfoGet({ id }: GameModel.infoId) {
-    const cacheKey = `gameInfo-${id}`
+    const cacheKey = `gameInfo:${id}`
     const redisData = await getKv(cacheKey)
 
     if (redisData) {
@@ -274,7 +274,7 @@ export const Game = {
   async OpenListFiles({
     id,
   }: GameModel.OpenListFiles): Promise<GameModel.TreeNode[]> {
-    const cacheKey = `OpenListFiles-${id}`
+    const cacheKey = `OpenListFiles:${id}`
     const redisData = await getKv(cacheKey)
 
     if (redisData) {
@@ -690,9 +690,9 @@ export const Game = {
       message: '更新 galrc_other 成功',
       status: 'success',
     }
-    await delKv(`gameInfo-${id}`)
+    await delKv(`gameInfo:${id}`)
     await delKv(`vidassociation-${id}`)
-    await delKvPattern('gameList-*')
+    await delKvPattern('gameList')
     await delKv('gameCount')
     await storeIdempotentResult(`vidassociationUpdate-${hash}`, datas, 60)
     return datas

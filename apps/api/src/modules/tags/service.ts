@@ -7,7 +7,7 @@ import type { TagsModel } from './model'
 
 export const Tags = {
   async gameTags({ id }: TagsModel.gameTags) {
-    const cacheKey = `gameTags-${id}`
+    const cacheKey = `gameTags:${id}`
 
     // 1. 尝试从缓存读取
     const redisData = await getKv(cacheKey)
@@ -87,7 +87,7 @@ export const Tags = {
     return result
   },
   async tag({ tagId }: TagsModel.tagId) {
-    const redisdata = await getKv(`tag-${tagId}`)
+    const redisdata = await getKv(`tag:${tagId}`)
     if (redisdata !== null && redisdata !== undefined) {
       return JSON.parse(redisdata) as Tag
     }
@@ -114,7 +114,7 @@ export const Tags = {
     if (error) {
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     }
-    void setKv(`tag-${tagId}`, JSON.stringify(result), 60 * 60 * 1)
+    void setKv(`tag:${tagId}`, JSON.stringify(result), 60 * 60 * 1)
     type Tag = typeof result
     return result
   },

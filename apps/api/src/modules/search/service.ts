@@ -7,7 +7,9 @@ import type { SearchModel } from './model'
 export const Search = {
   async get({ q, limit, startDate, endDate }: SearchModel.search) {
     const safeQ = q?.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim()
-    const redisData = await getKv(`Search-${safeQ}-${limit}-${startDate}-${endDate}`)
+    const redisData = await getKv(
+      `Search:${safeQ}-${limit}-${startDate}-${endDate}`,
+    )
 
     if (redisData) {
       const parsed = JSON.parse(redisData)
@@ -16,7 +18,9 @@ export const Search = {
     const filters: string[] = []
 
     if (startDate && endDate) {
-      filters.push(`released_first >= ${startDate} AND released_first <= ${endDate}`)
+      filters.push(
+        `released_first >= ${startDate} AND released_first <= ${endDate}`,
+      )
     }
     const [, error, [index, tagf]] = t(
       await Promise.all([
@@ -45,7 +49,7 @@ export const Search = {
         ? (topTag as SearchModel.tagAllReturn['items'][0])
         : undefined,
     }
-    void setKv(`Search-${safeQ}-${limit}`, JSON.stringify(data), 60 * 60 * 1)
+    void setKv(`Search:${safeQ}-${limit}`, JSON.stringify(data), 60 * 60 * 1)
     type SearchReturn = typeof data
     return data
   },
