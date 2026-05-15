@@ -7,7 +7,7 @@ import type { ProducerModel } from './model'
 
 export const Producer = {
   async info({ pid }: ProducerModel.ProducerGet) {
-    const redisKey = `Producerinfo-${pid}`
+    const redisKey = `Producerinfo:${pid}`
     const redisData = await getKv(redisKey)
     if (redisData !== null && redisData !== undefined) {
       return JSON.parse(redisData) as Producer
@@ -48,7 +48,7 @@ export const Producer = {
     return producer
   },
   async gamelists({ pid }: ProducerModel.ProducerGet) {
-    const redisKey = `ProducerGameLists-${pid}`
+    const redisKey = `ProducerGameLists:${pid}`
     const redisData = await getKv(redisKey)
     if (redisData) {
       try {
