@@ -163,16 +163,13 @@ export const CronService = {
             keywords: '[vndb-',
             scope: 1,
             page: 1,
-            per_page: 100000,
+            per_page: 1000000,
           }),
         },
       )
 
       const data = await openlistdatas.json()
-      console.log(data)
-      const alistData = data.data.content
-
-      const processedData = processData(alistData)
+      console.log('processedData', processedData)
 
       const [, trxError] = t(
         await db.transaction().execute(async (trx) => {
@@ -197,7 +194,7 @@ export const CronService = {
           }
 
           // 删除不再存在的记录
-          const currentIds = processedData.map((r) => r.id)
+          const currentIds = processedData.map((r) => r.vid)
           if (currentIds.length > 0) {
             await trx
               .deleteFrom('galrc_alistb')
@@ -224,6 +221,7 @@ export const CronService = {
         }),
       )
       if (trxError) throw `Error:${JSON.stringify(trxError)}`
+      console.log('alistSyncScript 运行成功喵')
       await releaseLockKv(lockKey, lockValue)
     } catch (e) {
       console.error('alistSyncScript 运行失败喵', e)
