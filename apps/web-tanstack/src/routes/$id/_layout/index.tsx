@@ -22,7 +22,7 @@ export const Route = createFileRoute('/$id/_layout/')({
   component: DownloadComponent,
   loader: async ({ params }) => {
     const { id } = params
-    const filelist = await getFileList({ data: { id } })
+    const filelist = getFileList({ data: { id } })
     return {
       filelist,
     }
@@ -37,9 +37,5 @@ export const Route = createFileRoute('/$id/_layout/')({
 })
 
 function DownloadComponent() {
-  const { filelist } = Route.useLoaderData()
-  if (!filelist) {
-    return <div>没有找到文件列表喵～</div>
-  }
-  return <>{filelist.game && <DownloadOptions />}</>
+  return <DownloadOptions />
 }

@@ -1,7 +1,7 @@
 import type { GameModel } from '@api/modules/games/model'
 import { api } from '@libs'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
+import { Await, getRouteApi } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useStore } from '@tanstack/react-store'
 import { filesize } from 'filesize'
@@ -50,7 +50,21 @@ export const DownloadOptions = () => {
   const { filelist } = apiroute.useLoaderData()
   return (
     <>
-      <FileExplorer items={filelist?.game || []} />
+      <Await
+        promise={filelist}
+        fallback={
+          <>
+            <Skeleton className="w-[50%] h-7" />
+            <Skeleton className="w-[70%] h-7 mt-2" />
+            <Skeleton className="w-full h-7 mt-2" />
+          </>
+        }
+      >
+        {(items) => {
+          if (!items.game) return <div>没有找到文件列表喵～</div>
+          return <FileExplorer items={items.game} />
+        }}
+      </Await>
       <DownCardDialog />
     </>
   )
