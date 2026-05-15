@@ -3,6 +3,7 @@ import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import { all } from 'radash'
 import { t } from 'try'
+import { processData } from './lib'
 
 export const CronService = {
   async workerDataPull() {
@@ -119,14 +120,14 @@ export const CronService = {
     if (!lock) return null
 
     try {
-      // 并行获取两个配置项
       const [, error, [alistUpInfo, alistUpTime]] = t(
         await Promise.all([
-          db
-            .selectFrom('galrc_setting_items')
-            .selectAll()
-            .where('key', '=', 'index_progress')
-            .executeTakeFirst(),
+          fetch(`${process.env.OPENLIST_HOST}/api/admin/index/progress`, {
+            method: 'GET',
+            headers: {
+              Authorization: `${process.env.OPENLIST_API_KEY}`,
+            },
+          }),
           db
             .selectFrom('galrc_siteConfig')
             .selectAll()
@@ -135,50 +136,72 @@ export const CronService = {
         ]),
       )
 
+      const alistUp = await alistUpInfo.json()
+
       if (error) throw `Error:${JSON.stringify(error)}`
 
-      const parsedValue = JSON.parse(alistUpInfo?.value as unknown as string)
-      if (!alistUpInfo) return
-      if (parsedValue.is_done === false) return
-      if ((alistUpTime?.config.lastUpdate || 0) === parsedValue.last_done_time)
-        return
+      if (!alistUp) return
+      if (alistUp.is_done === false) return
+      if ((alistUpTime?.config.lastUpdate || 0) === alistUp.last_done_time)
+        return console.log(
+          'alistUp.last_done_time',
+          alistUp.last_done_time,
+          'alistUpTime.config.lastUpdate',
+          alistUpTime?.config.lastUpdate,
+        )
 
-      const [, alistDataError, alistData] = t(
-        await db.selectFrom('galrc_search_nodes').select(['name']).execute(),
+      const openlistdatas = await fetch(
+        `${process.env.OPENLIST_HOST}/api/fs/search`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `${process.env.OPENLIST_API_KEY}`,
+          },
+          body: JSON.stringify({
+            parent: '/',
+            keywords: '[vndb-',
+            scope: 1,
+            page: 1,
+            per_page: 100000,
+          }),
+        },
       )
-      if (alistDataError) throw `Error:${JSON.stringify(alistDataError)}`
 
-      // 优化正则处理，使用更高效的方式
-      const results = this.processAlistData(alistData)
-      const dedupedResults = this.deduplicateResults(results)
+      const data = await openlistdatas.json()
+      console.log(data)
+      const alistData = data.data.content
+
+      const processedData = processData(alistData)
 
       const [, trxError] = t(
         await db.transaction().execute(async (trx) => {
           // 使用 UPSERT 替代全量删除，避免数据丢失
-          for (const result of dedupedResults) {
+          for (const result of processedData) {
             await trx
               .insertInto('galrc_alistb')
               .values({
+                id: result.id,
                 vid: result.vid,
                 other: result.other != null ? Number(result.other) : null,
-                id: result.id,
+                path: result.path,
               })
               .onConflict((oc) =>
                 oc.column('id').doUpdateSet({
                   vid: result.vid,
                   other: result.other != null ? Number(result.other) : null,
+                  path: result.path,
                 }),
               )
               .execute()
           }
 
-
           // 删除不再存在的记录
-          const currentIds = dedupedResults.map((r) => r.id)
+          const currentIds = processedData.map((r) => r.id)
           if (currentIds.length > 0) {
             await trx
               .deleteFrom('galrc_alistb')
-              .where('id', 'not in', currentIds)
+              .where('vid', 'not in', currentIds)
               .execute()
           }
 
@@ -187,24 +210,24 @@ export const CronService = {
             .values({
               key: 'alistUpTime',
               config: JSON.stringify({
-                lastUpdate: parsedValue.last_done_time,
+                lastUpdate: alistUp.last_done_time,
               }),
             })
             .onConflict((oc) =>
               oc.column('key').doUpdateSet({
                 config: JSON.stringify({
-                  lastUpdate: parsedValue.last_done_time,
+                  lastUpdate: alistUp.last_done_time,
                 }),
               }),
             )
             .execute()
         }),
       )
-
       if (trxError) throw `Error:${JSON.stringify(trxError)}`
       await releaseLockKv(lockKey, lockValue)
     } catch (e) {
       console.error('alistSyncScript 运行失败喵', e)
+    } finally {
       await releaseLockKv(lockKey, lockValue)
     }
   },
@@ -265,7 +288,6 @@ export const CronService = {
       // 先清空索引，然后并行处理分页数据
       await index.deleteAllDocuments()
 
-
       const { totalPages } = await this.getMeiliSearchDataInfo()
       const pageSize = 500
 
@@ -278,9 +300,7 @@ export const CronService = {
         }
         await Promise.all(batch)
       }
-      await index.updateFilterableAttributes([
-        'released_first',
-      ])
+      await index.updateFilterableAttributes(['released_first'])
     } catch (e) {
       console.error('meiliSearchAddIndex 运行失败喵', e)
       throw e

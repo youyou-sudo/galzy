@@ -256,6 +256,7 @@ const dbSeed = async () => {
     .addColumn('id', 'varchar(512)', (cb) => cb.notNull().primaryKey())
     .addColumn('vid', 'varchar(255)')
     .addColumn('other', 'bigint')
+    .addColumn('path', 'jsonb')
     .execute()
 
   await db.schema

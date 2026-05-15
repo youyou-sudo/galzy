@@ -59,6 +59,7 @@ export interface AlistB {
   id: Generated<string>
   vid: string | null
   other: number | null
+  path: string[] | null
 }
 
 // alist 部分
