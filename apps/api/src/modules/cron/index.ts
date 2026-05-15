@@ -27,11 +27,11 @@ export function startCronTasks() {
     console.log('[Cron] workerDataPull 定时执行')
   })
 
-  // 每5分钟执行一次
-  new Cron('*/5 * * * *', () => {
-    CronService.alistSyncScript()
-    console.log('[Cron] alistSyncScript 定时执行')
-  })
+  // // 每5分钟执行一次
+  // new Cron('*/5 * * * *', () => {
+  //   CronService.alistSyncScript()
+  //   console.log('[Cron] alistSyncScript 定时执行')
+  // })
 
   // 每12小时执行一次
   new Cron('0 */12 * * *', () => {

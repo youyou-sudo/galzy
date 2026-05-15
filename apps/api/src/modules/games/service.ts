@@ -274,114 +274,128 @@ export const Game = {
   async OpenListFiles({
     id,
   }: GameModel.OpenListFiles): Promise<GameModel.TreeNode[]> {
-    const isVNDB = /^v\d+$/.test(id)
-    const targetKey = `${isVNDB ? 'vndb' : 'other'}-${id}`
-    const keyPattern = `%[${targetKey}]%`
+    const cacheKey = `OpenListFiles-${id}`
+    const redisData = await getKv(cacheKey)
 
-    const [, rowsError, rows] = t(
-      await db
-        .selectFrom('galrc_search_nodes')
-        .selectAll()
-        .where('parent', 'like', keyPattern)
-        .execute(),
-    )
-    if (rowsError)
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(rowsError)}`)
-
-    type TreeNodeBuilder = Omit<GameModel.TreeNode, 'children'> & {
-      children?: Record<string, TreeNodeBuilder>
-    }
-    const root: Record<string, TreeNodeBuilder> = {}
-    const rowscopy = structuredClone(rows)
-
-    for (const row of rowscopy) {
-      const fullPath = row.parent.endsWith('/')
-        ? row.parent + row.name
-        : `${row.parent}/${row.name}`
-      const parts = fullPath.split('/').filter(Boolean)
-      let currentLevel = root
-      let parentId = ''
-
-      for (let i = 0; i < parts.length; i++) {
-        const part = parts[i]
-        const isLast = i === parts.length - 1
-        const nodeId = parentId ? `${parentId}/${part}` : part
-
-        if (!currentLevel[part]) {
-          currentLevel[part] = {
-            id: nodeId,
-            name: part.replace(/\[(vndb|other)-[^\]]+\]/g, '').trim(),
-            type: isLast && !row.is_dir ? 'file' : 'folder',
-            ...(isLast && !row.is_dir
-              ? {
-                  size: row.size !== undefined ? String(row.size) : undefined,
-                  format: part.includes('.')
-                    ? part.substring(part.lastIndexOf('.') + 1).toUpperCase()
-                    : undefined,
-                }
-              : {}),
-          }
-        }
-
-        if (!currentLevel[part].children && (!isLast || row.is_dir)) {
-          currentLevel[part].children = {}
-        }
-        if (!isLast) {
-          if (!currentLevel[part].children) return []
-          currentLevel = currentLevel[part].children
-          parentId = nodeId
-        }
+    if (redisData) {
+      try {
+        return JSON.parse(redisData) as DataType
+      } catch {
+        await delKv(cacheKey)
       }
     }
+    const viddata = await db
+      .selectFrom('galrc_alistb')
+      .where('vid', '=', id)
+      .selectAll()
+      .executeTakeFirst()
 
-    async function convert(
-      node: Record<string, TreeNodeBuilder>,
-    ): Promise<GameModel.TreeNode[]> {
-      const nodes = await Promise.all(
-        Object.values(node).map(async (n) => {
-          const { children, ...rest } = n
-          const base: GameModel.TreeNode = {
-            ...rest,
-            ...(children
-              ? {
-                  children: await convert(
-                    children as Record<string, TreeNodeBuilder>,
-                  ),
-                }
-              : {}),
+    type RawItem = {
+      name: string
+      size: number
+      is_dir: boolean
+      type: number
+    }
+
+    const fetchList = async (parent: string): Promise<RawItem[]> => {
+      const res = await fetch(`${process.env.OPENLIST_HOST}/api/fs/list`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `${process.env.OPENLIST_API_KEY}`,
+        },
+        body: JSON.stringify({
+          path: parent,
+          password: '',
+          refresh: false,
+          page: 1,
+          per_page: 100000,
+        }),
+      })
+
+      const json = await res.json()
+      return json.data?.content || []
+    }
+
+    // 简单 size 格式化
+    const formatSize = (size: number) => {
+      if (!size) return '0B'
+      const units = ['B', 'KB', 'MB', 'GB']
+      let i = 0
+      while (size >= 1024 && i < units.length - 1) {
+        size /= 1024
+        i++
+      }
+      return `${size.toFixed(1)}${units[i]}`
+    }
+
+    const buildTree = async (parent: string): Promise<GameModel.TreeNode[]> => {
+      const list = await fetchList(parent)
+
+      const mdMap = new Map<string, string>()
+      for (const item of list) {
+        if (!item.is_dir && item.name.endsWith('.md')) {
+          const base = item.name.replace(/\.md$/, '')
+          mdMap.set(base, `${parent}/${item.name}`)
+        }
+      }
+
+      // 先构建 node（不递归）
+      const nodes: GameModel.TreeNode[] = list
+        .filter((item) => !(!item.is_dir && item.name.endsWith('.md')))
+        .map((item) => {
+          const node: GameModel.TreeNode = {
+            id: `${parent}/${item.name}`,
+            name: item.name,
+            type: item.is_dir ? 'folder' : 'file',
           }
-          return base
+
+          if (!item.is_dir) {
+            node.size = formatSize(item.size)
+            node.format = item.name.split('.').pop()
+          }
+
+          if (mdMap.has(item.name)) {
+            node.redame = mdMap.get(item.name)
+          }
+
+          return node
+        })
+
+      // 👉 并行处理子目录
+      await Promise.all(
+        nodes.map(async (node) => {
+          if (node.type === 'folder') {
+            node.children = await buildTree(node.id)
+          }
         }),
       )
+
       return nodes
     }
 
-    const findMatchingSubtree = async (
-      tree: Record<string, TreeNodeBuilder>,
-      matchKey: string,
+    const buildAllTrees = async (
+      paths: string[],
     ): Promise<GameModel.TreeNode[]> => {
-      const result: GameModel.TreeNode[] = []
+      return Promise.all(
+        paths.map(async (p) => {
+          const tree = await buildTree(p)
 
-      for (const node of Object.values(tree)) {
-        if (node.id.includes(matchKey)) {
-          const { children, ...rest } = node
-          result.push({
-            ...rest,
-            ...(children ? { children: await convert(children) } : {}),
-          })
-        } else if (node.children) {
-          const childMatch = await findMatchingSubtree(node.children, matchKey)
-          if (childMatch.length > 0) {
-            result.push(...childMatch)
+          return {
+            id: p,
+            name: p.split('/').pop() ?? '',
+            type: 'folder' as const,
+            children: tree,
           }
-        }
-      }
-
-      return result
+        }),
+      )
     }
+    if (!viddata?.path) throw status(500, `未找到相关文件`)
 
-    const data = await findMatchingSubtree(root, targetKey)
-    return structuredClone(data)
+    const data = await buildAllTrees(viddata?.path)
+    void setKv(cacheKey, JSON.stringify(data), 60 * 6)
+    type DataType = typeof data
+    return data
   },
   async DataFilteringStats() {
     const [, error, [onlyOther, bothExist, onlyVid, all]] = t(
