@@ -50,58 +50,58 @@ export const Glgczujm = () => {
 				</AlertDescription>
 			</Alert>
 
-			 <aside>
-        <Alert
-          id="sidebar-ad"
-          className="border-cyan-600/30 border-x-0 border-b-0 pb-0 flex items-center gap-2"
-        >
-          <span
-            className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-cyan-100 text-lg opacity-60"
-            aria-hidden="true"
-          >
-            🍚
-          </span>
+			<aside>
+				<Alert
+					id="sidebar-ad"
+					className="border-cyan-600/30 border-x-0 border-b-0 pb-0 flex items-center gap-2"
+				>
+					<span
+						className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-cyan-100 text-lg opacity-60"
+						aria-hidden="true"
+					>
+						🍚
+					</span>
 
-          <a
-            target="_blank"
-            data-umami-event="广告点击"
-            data-umami-event-name="DZMM"
-            data-umami-event-position="页内广告-DZMM"
-            href="https://www.ainexa.top?rf=876926e5"
-          >
-            <AlertTitle>Ai 女友💋（在线畅玩）</AlertTitle>
-          </a>
-        </Alert>
-      </aside>
+					<a
+						target="_blank"
+						data-umami-event="广告点击"
+						data-umami-event-name="DZMM"
+						data-umami-event-position="页内广告-DZMM"
+						href="https://www.ainexa.top?rf=876926e5"
+					>
+						<AlertTitle>Ai 女友💋（在线畅玩）</AlertTitle>
+					</a>
+				</Alert>
+			</aside>
 
-      <div className="lg:px-5 lg:w-[80%] px-4 py-0 opacity-70">
-        <a
-          target="_blank"
-          data-umami-event="广告点击"
-          data-umami-event-name="DZMM"
-          data-umami-event-position="页内广告-DZMM"
-          href="https://www.ainexa.top?rf=876926e5"
-        >
-          <div className="sm:hidden">
-              <Image
-              width={1425}
-              height={120}
-                src="/dzmm.webp"
-                alt="DZMM 广告图片"
-                className="object-cover rounded-lg"
-              />
-          </div>
-          <div className="hidden sm:block">
-              <Image
-              width={1425}
-              height={120}
-                src="/dzmm.webp"
-                alt="DZMM 广告图片"
-                className="object-cover rounded-lg"
-              />
-          </div>
-        </a>
-      </div>
+			<div className="lg:px-5 lg:w-[80%] px-4 py-0 opacity-70">
+				<a
+					target="_blank"
+					data-umami-event="广告点击"
+					data-umami-event-name="DZMM"
+					data-umami-event-position="页内广告-DZMM"
+					href="https://www.ainexa.top?rf=876926e5"
+				>
+					<div className="sm:hidden">
+						<Image
+							width={1425}
+							height={120}
+							src="/dzmm.webp"
+							alt="DZMM 广告图片"
+							className="object-cover rounded-lg"
+						/>
+					</div>
+					<div className="hidden sm:block">
+						<Image
+							width={1425}
+							height={120}
+							src="/dzmm.webp"
+							alt="DZMM 广告图片"
+							className="object-cover rounded-lg"
+						/>
+					</div>
+				</a>
+			</div>
 
 			<aside>
 				<Alert

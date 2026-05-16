@@ -14,10 +14,7 @@ export function TagsCard() {
 
 	return (
 		<div className="mt-4 mb-5">
-			<Await
-				promise={tags}
-				fallback={<Skeleton className="w-full h-10" />}
-			>
+			<Await promise={tags} fallback={<Skeleton className="w-full h-10" />}>
 				{(tags) => {
 					return tags?.tags?.length === 0 ? null : (
 						<Accordion type="single" collapsible className="w-full ">

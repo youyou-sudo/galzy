@@ -4,7 +4,10 @@ import { t } from 'try'
 import type { DownloadModel } from './model'
 
 export const Download = {
-  async DownloadGet({ path, game_id }: DownloadModel.path): Promise<DownloadModel.DownloadGet> {
+  async DownloadGet({
+    path,
+    game_id,
+  }: DownloadModel.path): Promise<DownloadModel.DownloadGet> {
     const hmacSha256Sign = async (
       path: string,
       expire: number,
@@ -196,5 +199,5 @@ export const Download = {
       console.log(error)
       throw status(400, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     }
-  }
+  },
 }

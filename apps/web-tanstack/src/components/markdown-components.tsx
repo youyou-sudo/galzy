@@ -58,10 +58,7 @@ export const MarkdownComponents = {
 		/>
 	),
 	p: ({ className, ...props }: ComponentProps<"p">) => (
-		<p
-			className={cn("leading-7 not-first:mt-6", className)}
-			{...props}
-		/>
+		<p className={cn("leading-7 not-first:mt-6", className)} {...props} />
 	),
 	ul: ({ className, ...props }: ComponentProps<"ul">) => (
 		<ul

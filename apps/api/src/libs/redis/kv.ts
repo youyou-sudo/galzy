@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { redis } from "bun";
+import { redis } from 'bun'
 
 /**
  * 设置 Key-Value 对，并可选设置过期时间
@@ -23,7 +23,6 @@ export const getKv = async (key: string) => {
   return redis.get(key)
 }
 
-
 /**
  * 删除 Key
  * @param key 键
@@ -33,7 +32,6 @@ export const delKv = async (key: string) => {
   if (!redis) return
   return redis.del(key)
 }
-
 
 /**
  * 根据模式删除 Key
@@ -59,17 +57,17 @@ export const delKvPattern = async (pattern: string) => {
 export const acquireLockKv = async (
   lockKey: string,
   lockValue: string,
-  lockTimeout: number
+  lockTimeout: number,
 ) => {
-  const result = await redis.send("SET", [
+  const result = await redis.send('SET', [
     lockKey,
     lockValue,
-    "PX",
+    'PX',
     lockTimeout.toString(),
-    "NX",
-  ]);
+    'NX',
+  ])
 
-  return result === "OK";
+  return result === 'OK'
 }
 
 /**
@@ -86,10 +84,10 @@ then
 else
   return 0
 end
-`;
+`
 
-  return redis.send("EVAL", [script, "1", key, value]);
-};
+  return redis.send('EVAL', [script, '1', key, value])
+}
 
 /**
  * 检查并占用幂等 Key
@@ -99,19 +97,19 @@ end
  */
 export async function acquireIdempotentKey(
   key: string,
-  ttl: number
+  ttl: number,
 ): Promise<boolean> {
-  if (!redis) throw new Error("Redis client not initialized");
+  if (!redis) throw new Error('Redis client not initialized')
 
-  const result = await redis.send("SET", [
+  const result = await redis.send('SET', [
     key,
-    "LOCKED",
-    "EX",
+    'LOCKED',
+    'EX',
     ttl.toString(),
-    "NX",
-  ]);
+    'NX',
+  ])
 
-  return result === "OK";
+  return result === 'OK'
 }
 
 /**

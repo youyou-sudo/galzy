@@ -80,7 +80,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
-			<ScriptOnce>{THEME_INIT_SCRIPT}</ScriptOnce>
+				<ScriptOnce>{THEME_INIT_SCRIPT}</ScriptOnce>
 				<HeadContent />
 			</head>
 			<body className="font-sans antialiased flex flex-col min-h-screen">
@@ -92,39 +92,42 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<TanStackQueryProvider>
 					<RouterProgress />
 					<Header />
-          <main className="mx-auto w-full max-w-7xl p-4 space-y-4">
-            {/* 广告 */}
-             <aside
-              id="sidebar-ad"
-              className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-70 relative"
-            >
-              <a
-                data-umami-event="广告点击"
-                data-umami-event-name="dzmm"
-                data-umami-event-position="Banner-dzmm"
-                target="_blank"
-                href="https://www.ainexa.top?rf=876926e5"
-              >
-                <div id="sidebar-ad" className="sm:hidden overflow-hidden rounded-lg">
-                  <Image
-                    width={1425}
-                    height={120}
-                    src="/dzmm.webp"
-                    alt="dzmm 广告图片"
-                    className="object-cover scale-[1.03]"
-                  />
-                </div>
-                <div id="sidebar-ad" className="hidden sm:block">
-                    <Image
-                    width={1425}
-                    height={113}
-                      src="/dzmm.webp"
-                      alt="dzmm 广告图片"
-                      className="object-cover rounded-lg"
-                    />
-                </div>
-              </a>
-            </aside>
+					<main className="mx-auto w-full max-w-7xl p-4 space-y-4">
+						{/* 广告 */}
+						<aside
+							id="sidebar-ad"
+							className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-70 relative"
+						>
+							<a
+								data-umami-event="广告点击"
+								data-umami-event-name="dzmm"
+								data-umami-event-position="Banner-dzmm"
+								target="_blank"
+								href="https://www.ainexa.top?rf=876926e5"
+							>
+								<div
+									id="sidebar-ad"
+									className="sm:hidden overflow-hidden rounded-lg"
+								>
+									<Image
+										width={1425}
+										height={120}
+										src="/dzmm.webp"
+										alt="dzmm 广告图片"
+										className="object-cover scale-[1.03]"
+									/>
+								</div>
+								<div id="sidebar-ad" className="hidden sm:block">
+									<Image
+										width={1425}
+										height={113}
+										src="/dzmm.webp"
+										alt="dzmm 广告图片"
+										className="object-cover rounded-lg"
+									/>
+								</div>
+							</a>
+						</aside>
 						{children}
 					</main>
 					<Footer />

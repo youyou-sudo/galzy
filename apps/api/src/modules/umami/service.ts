@@ -89,7 +89,7 @@ export const Umami = {
       total,
     }))
 
-    const ids = parsed.map(item => item.id)
+    const ids = parsed.map((item) => item.id)
     const rows = await db
       .selectFrom('vn')
       .select((v) => [
@@ -100,15 +100,15 @@ export const Umami = {
             .selectFrom('vn_titles')
             .select(['vn_titles.lang', 'vn_titles.title'])
             .whereRef('vn_titles.id', '=', 'vn.id'),
-        ).as('titles')
+        ).as('titles'),
       ])
       .where('id', 'in', ids)
       .execute()
     const rowsWithTitle = rows.map((row) => {
       const titleObj =
-        row.titles.find(t => t.lang === 'zh-Hans') ||
-        row.titles.find(t => t.lang === 'zh') ||
-        row.titles.find(t => t.lang === row.olang)
+        row.titles.find((t) => t.lang === 'zh-Hans') ||
+        row.titles.find((t) => t.lang === 'zh') ||
+        row.titles.find((t) => t.lang === row.olang)
 
       return {
         id: row.id,
@@ -116,11 +116,9 @@ export const Umami = {
         title: titleObj?.title ?? null,
       }
     })
-    const titleMap = new Map(
-      rowsWithTitle.map(r => [r.id, r.title])
-    )
+    const titleMap = new Map(rowsWithTitle.map((r) => [r.id, r.title]))
 
-    const result = unique(parsed, (item) => item.id).map(item => ({
+    const result = unique(parsed, (item) => item.id).map((item) => ({
       ...item,
       title: titleMap.get(item.id) ?? item.title ?? null,
     }))

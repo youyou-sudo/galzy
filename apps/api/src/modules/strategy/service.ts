@@ -108,7 +108,12 @@ export const Strategy = {
     } else {
       await db
         .insertInto('galrc_article')
-        .values({ otherid: Number(id), ...data, type: 'strategy', author: userid })
+        .values({
+          otherid: Number(id),
+          ...data,
+          type: 'strategy',
+          author: userid,
+        })
         .executeTakeFirstOrThrow()
     }
     await storeIdempotentResult(`strategyListCreate-${hash}`, '', 60)
