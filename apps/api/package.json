@@ -21,7 +21,7 @@
     "ajv": "^8.20.0",
     "croner": "^10.0.1",
     "elysia": "^1.4.28",
-    "kysely": "^0.29.1",
+    "kysely": "^0.29.2",
     "kysely-bun-sql": "^0.2.0",
     "kysely-postgres-js": "^3.0.0",
     "meilisearch": "^0.58.0",

@@ -14,19 +14,13 @@
   "devDependencies": {
     "@elysiajs/cron": "^1.4.2",
     "@types/bun": "^1.3.14",
+    "@typescript/native-preview": "^7.0.0-dev.20260517.1",
     "babel-plugin-react-compiler": "1.0.0",
-    "config": "workspace:*",
-    "typescript": "^6.0.3"
+    "config": "workspace:*"
   },
   "packageManager": "bun@1.3.6",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
-  "trustedDependencies": [
-    "bun",
-    "protobufjs"
-  ],
+  "workspaces": ["apps/*", "packages/*"],
+  "trustedDependencies": ["bun", "protobufjs"],
   "dependencies": {
     "@biomejs/biome": "^2.4.15",
     "@mdx-js/loader": "^3.1.1",
