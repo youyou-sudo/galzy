@@ -7,6 +7,7 @@
     "module": "ESNext",
     "paths": {
       "#/*": ["./src/*"],
+      "@/*": ["./src/*"],
       "@api": ["../api/src/index.ts"],
       "@api/*": ["../api/src/*"],
       "@libs": ["../../packages/libs/src/index.ts"],
