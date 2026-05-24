@@ -1,83 +1,30 @@
 import { db } from '@api/libs'
 import { status } from 'elysia'
 import { t } from 'try'
-import type { DownloadModel } from './model'
+import type { AlistFsResponse, DownloadModel } from './model'
 
 export const Download = {
   async DownloadGet({
     path,
     game_id,
   }: DownloadModel.path): Promise<DownloadModel.DownloadGet> {
-    const hmacSha256Sign = async (
-      path: string,
-      expire: number,
-      token: string,
-    ) => {
-      const key = await crypto.subtle.importKey(
-        'raw',
-        new TextEncoder().encode(token),
-        { name: 'HMAC', hash: 'SHA-256' },
-        false,
-        ['sign', 'verify'],
-      )
-      const buf = await crypto.subtle.sign(
-        { name: 'HMAC', hash: 'SHA-256' },
-        key,
-        new TextEncoder().encode(`/${path}:${expire}`),
-      )
-      return (
-        btoa(String.fromCharCode(...new Uint8Array(buf)))
-          .replace(/\+/g, '-')
-          .replace(/\//g, '_') +
-        ':' +
-        expire
-      )
-    }
-
-    type AlistSettings = {
-      token: string
-      linkExpiration: number
-    }
-
-    let alistSettingsCache: AlistSettings | null = null
-
-    const loadAlistSettings = async (): Promise<AlistSettings> => {
-      const [tokenRow, expirationRow] = await Promise.all([
-        db
-          .selectFrom('galrc_setting_items')
-          .select('value')
-          .where('key', '=', 'token')
-          .executeTakeFirst(),
-        db
-          .selectFrom('galrc_setting_items')
-          .select('value')
-          .where('key', '=', 'link_expiration')
-          .executeTakeFirst(),
-      ])
-
-      if (!tokenRow?.value) {
-        throw new Error('缺少 openlist token 配置')
-      }
-
-      return {
-        token: tokenRow.value as unknown as string,
-        linkExpiration: Number(expirationRow?.value) || 1,
-      }
-    }
-
     const alistDownloadGet = async (path: string) => {
-      if (!alistSettingsCache) {
-        alistSettingsCache = await loadAlistSettings()
-      }
-
-      const now = Math.floor(Date.now() / 1000)
-      const expiration = now + alistSettingsCache.linkExpiration * 3600
-
-      const sign = await hmacSha256Sign(
-        path,
-        expiration,
-        alistSettingsCache.token,
+      const [, alisterror, alistDatas] = t(
+        await fetch(`${process.env.OPENLIST_HOST}/api/fs/get`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `${process.env.OPENLIST_API_KEY}`,
+          },
+          body: JSON.stringify({ path }),
+        }),
       )
+
+      const alistData = (await alistDatas.json()) as AlistFsResponse
+
+      if (alistData.data === undefined) throw status(500, `未找到此文件`)
+
+      if (alisterror) throw status(500, `Error:${JSON.stringify(alisterror)}`)
 
       const [, error, workerList] = t(
         await db
@@ -105,8 +52,8 @@ export const Download = {
 
       return {
         success: true,
-        raw_url: `${randomWorker.url_endpoint}${path}?sign=${sign}`,
-        sign,
+        raw_url: `${randomWorker.url_endpoint}${path.split('/').map(encodeURIComponent).join('/')}?sign=${alistData.data?.sign}`,
+        sign: alistData.data?.sign,
       }
     }
 
