@@ -105,7 +105,7 @@ export const Download = {
 
       return {
         success: true,
-        raw_url: `${randomWorker.url_endpoint}/${path}?sign=${sign}`,
+        raw_url: `${randomWorker.url_endpoint}${path}?sign=${sign}`,
         sign,
       }
     }

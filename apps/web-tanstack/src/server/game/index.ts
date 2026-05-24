@@ -46,3 +46,12 @@ export const translateData = createServerFn()
     })
     return assertOk(translate, 'translateData')
   })
+
+export const dwAcConst = createServerFn()
+  .inputValidator(z.object({ path: z.string(), game_id: z.string() }))
+  .handler(async ({ data }) => {
+    const res = await api.download.path.get({
+      query: { path: data.path, game_id: data.game_id },
+    })
+    return assertOk(res, 'download path')
+  })
