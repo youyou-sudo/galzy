@@ -23,6 +23,8 @@ export const Download = {
       const alistData = (await alistDatas.json()) as AlistFsResponse
 
       if (alistData.data === undefined) throw status(500, `未找到此文件`)
+      if (alistData.data.sign === undefined)
+        throw status(500, `未找到此文件的签名`)
 
       if (alisterror) throw status(500, `Error:${JSON.stringify(alisterror)}`)
 
@@ -53,7 +55,7 @@ export const Download = {
       return {
         success: true,
         raw_url: `${randomWorker.url_endpoint}${path.split('/').map(encodeURIComponent).join('/')}?sign=${alistData.data?.sign}`,
-        sign: alistData.data?.sign,
+        sign: alistData.data.sign,
       }
     }
 
