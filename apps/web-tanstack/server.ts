@@ -123,36 +123,34 @@
  *   for i in {1..4}; do bun run server.ts & done
  */
 
-import { join, posix, sep } from 'node:path'
-
 // ─── Configuration ───────────────────────────────────────────────────────────
 
-const SERVER_PORT = Number(process.env.PORT ?? 3001)
+const SERVER_PORT = Number(Bun.env.PORT ?? 3001)
 const CLIENT_DIRECTORY = './dist/client'
 const SERVER_ENTRY_POINT = './dist/server/server.js'
 
 // Bun 1.3+ 性能优化配置
 const MAX_REQUEST_BODY_SIZE = Number(
-  process.env.MAX_REQUEST_BODY_SIZE ?? 10 * 1024 * 1024, // 10MB 默认
+  Bun.env.MAX_REQUEST_BODY_SIZE ?? 10 * 1024 * 1024, // 10MB 默认
 )
 
 // 🔧 修复：新增独立的静态文件大小限制，不再混用 MAX_REQUEST_BODY_SIZE
 const MAX_STATIC_FILE_SIZE = Number(
-  process.env.MAX_STATIC_FILE_SIZE ?? 100 * 1024 * 1024, // 100MB 默认
+  Bun.env.MAX_STATIC_FILE_SIZE ?? 100 * 1024 * 1024, // 100MB 默认
 )
 
 // 安全配置：总内存限制，防止 OOM（包括 gzip 副本）
 const MAX_TOTAL_PRELOAD_BYTES = Number(
-  process.env.MAX_TOTAL_PRELOAD_BYTES ?? 100 * 1024 * 1024, // 100MB 默认
+  Bun.env.MAX_TOTAL_PRELOAD_BYTES ?? 100 * 1024 * 1024, // 100MB 默认
 )
 
 // 定时 GC 配置
-const ENABLE_SCHEDULED_GC = process.env.ENABLE_SCHEDULED_GC === 'true'
+const ENABLE_SCHEDULED_GC = Bun.env.ENABLE_SCHEDULED_GC === 'true'
 const SCHEDULED_GC_INTERVAL_MS = Number(
-  process.env.SCHEDULED_GC_INTERVAL_MS ?? 30_000, // 30 秒默认
+  Bun.env.SCHEDULED_GC_INTERVAL_MS ?? 30_000, // 30 秒默认
 )
 const SCHEDULED_GC_HEAP_THRESHOLD = Number(
-  process.env.SCHEDULED_GC_HEAP_THRESHOLD ?? 0, // 0 = 每次间隔都执行
+  Bun.env.SCHEDULED_GC_HEAP_THRESHOLD ?? 0, // 0 = 每次间隔都执行
 )
 
 // ─── Security Configuration ──────────────────────────────────────────────────
@@ -177,7 +175,7 @@ const SUSPICIOUS_CHARS_PATTERN = /[<>:"|?*]/
 function hasControlCharacters(str: string): boolean {
   for (let i = 0; i < str.length; i++) {
     const code = str.charCodeAt(i)
-    if (code >= 0 && code <= 0x1F) return true
+    if (code >= 0 && code <= 0x1f) return true
   }
   return false
 }
@@ -213,7 +211,7 @@ const log = {
 // ─── Preloading Configuration ────────────────────────────────────────────────
 
 const MAX_PRELOAD_BYTES = Number(
-  process.env.ASSET_PRELOAD_MAX_SIZE ?? 5 * 1024 * 1024,
+  Bun.env.ASSET_PRELOAD_MAX_SIZE ?? 5 * 1024 * 1024,
 )
 
 /**
@@ -229,7 +227,7 @@ function convertGlobToRegExp(globPattern: string): RegExp {
 
 // 预编译正则 — 启动时一次性完成，运行时零开销
 const INCLUDE_PATTERNS: readonly RegExp[] = Object.freeze(
-  (process.env.ASSET_PRELOAD_INCLUDE_PATTERNS ?? '')
+  (Bun.env.ASSET_PRELOAD_INCLUDE_PATTERNS ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
@@ -237,23 +235,21 @@ const INCLUDE_PATTERNS: readonly RegExp[] = Object.freeze(
 )
 
 const EXCLUDE_PATTERNS: readonly RegExp[] = Object.freeze(
-  (process.env.ASSET_PRELOAD_EXCLUDE_PATTERNS ?? '')
+  (Bun.env.ASSET_PRELOAD_EXCLUDE_PATTERNS ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
     .map(convertGlobToRegExp),
 )
 
-const VERBOSE = process.env.ASSET_PRELOAD_VERBOSE_LOGGING === 'true'
-const ENABLE_ETAG =
-  (process.env.ASSET_PRELOAD_ENABLE_ETAG ?? 'true') === 'true'
-const ENABLE_GZIP =
-  (process.env.ASSET_PRELOAD_ENABLE_GZIP ?? 'true') === 'true'
-const GZIP_MIN_BYTES = Number(process.env.ASSET_PRELOAD_GZIP_MIN_SIZE ?? 1024)
+const VERBOSE = Bun.env.ASSET_PRELOAD_VERBOSE_LOGGING === 'true'
+const ENABLE_ETAG = (Bun.env.ASSET_PRELOAD_ENABLE_ETAG ?? 'true') === 'true'
+const ENABLE_GZIP = (Bun.env.ASSET_PRELOAD_ENABLE_GZIP ?? 'true') === 'true'
+const GZIP_MIN_BYTES = Number(Bun.env.ASSET_PRELOAD_GZIP_MIN_SIZE ?? 1024)
 
 const GZIP_TYPES: readonly string[] = Object.freeze(
   (
-    process.env.ASSET_PRELOAD_GZIP_MIME_TYPES ??
+    Bun.env.ASSET_PRELOAD_GZIP_MIME_TYPES ??
     'text/,application/javascript,application/json,application/xml,image/svg+xml'
   )
     .split(',')
@@ -342,7 +338,8 @@ function isFileEligibleForPreloading(relativePath: string): boolean {
     relativePath.lastIndexOf('/'),
     relativePath.lastIndexOf('\\'),
   )
-  const fileName = lastSlash >= 0 ? relativePath.slice(lastSlash + 1) : relativePath
+  const fileName =
+    lastSlash >= 0 ? relativePath.slice(lastSlash + 1) : relativePath
 
   if (INCLUDE_PATTERNS.length > 0) {
     let matched = false
@@ -430,7 +427,7 @@ function buildAssetHeaders(asset: {
       'Cache-Control': cacheControl,
       'Content-Encoding': 'gzip',
       'Content-Length': asset.gz.byteLength.toString(),
-      'Vary': 'Accept-Encoding',
+      Vary: 'Accept-Encoding',
     }
     if (ENABLE_ETAG && asset.etag) {
       headersGz.ETag = asset.etag
@@ -441,7 +438,7 @@ function buildAssetHeaders(asset: {
   if (ENABLE_ETAG && asset.etag) {
     headers304 = {
       ...SECURITY_HEADERS,
-      'ETag': asset.etag,
+      ETag: asset.etag,
       'Cache-Control': cacheControl,
     }
   }
@@ -455,7 +452,7 @@ function buildAssetHeaders(asset: {
 function acceptsGzip(acceptEncoding: string | null): boolean {
   if (!acceptEncoding) return false
   // 简单解析：查找 gzip 标记，并确保没有 q=0 明确拒绝
-  const tokens = acceptEncoding.split(',').map(s => s.trim().split(';')[0])
+  const tokens = acceptEncoding.split(',').map((s) => s.trim().split(';')[0])
   if (!tokens.includes('gzip')) return false
   // 检查是否有 gzip;q=0 明确拒绝
   const gzipEntries = acceptEncoding.match(/gzip\s*(;\s*q\s*=\s*([0-9.]+))?/gi)
@@ -475,7 +472,7 @@ function acceptsGzip(acceptEncoding: string | null): boolean {
  */
 function matchesEtag(clientHeader: string | null, assetEtag: string): boolean {
   if (!clientHeader) return false
-  const etags = clientHeader.split(',').map(s => s.trim())
+  const etags = clientHeader.split(',').map((s) => s.trim())
   return etags.includes(assetEtag)
 }
 
@@ -527,7 +524,8 @@ function createResponseHandler(
     }
   }
 
-  return (): Response => new Response(rawBody, { status: 200, headers: headersRaw })
+  return (): Response =>
+    new Response(rawBody, { status: 200, headers: headersRaw })
 }
 
 /**
@@ -553,7 +551,7 @@ function createOnDemandHandler(
 // ─── Glob Pattern Builder ────────────────────────────────────────────────────
 
 function createCompositeGlobPattern(): Bun.Glob {
-  const raw = (process.env.ASSET_PRELOAD_INCLUDE_PATTERNS ?? '')
+  const raw = (Bun.env.ASSET_PRELOAD_INCLUDE_PATTERNS ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
@@ -586,12 +584,12 @@ async function initializeStaticRoutes(
     )
     if (INCLUDE_PATTERNS.length > 0) {
       console.log(
-        `Include patterns: ${process.env.ASSET_PRELOAD_INCLUDE_PATTERNS ?? ''}`,
+        `Include patterns: ${Bun.env.ASSET_PRELOAD_INCLUDE_PATTERNS ?? ''}`,
       )
     }
     if (EXCLUDE_PATTERNS.length > 0) {
       console.log(
-        `Exclude patterns: ${process.env.ASSET_PRELOAD_EXCLUDE_PATTERNS ?? ''}`,
+        `Exclude patterns: ${Bun.env.ASSET_PRELOAD_EXCLUDE_PATTERNS ?? ''}`,
       )
     }
   }
@@ -621,8 +619,9 @@ async function initializeStaticRoutes(
         continue
       }
 
-      const filepath = join(clientDirectory, relativePath)
-      const route = `/${relativePath.split(sep).join(posix.sep)}`
+      // Bun 在所有平台统一使用 `/` 作为路径分隔符
+      const filepath = `${clientDirectory}/${relativePath}`
+      const route = `/${relativePath.replace(/\\/g, '/')}`
 
       if (!isPathSafe(route)) {
         log.warning(`Skipping suspicious route: ${route}`)
@@ -673,7 +672,8 @@ async function initializeStaticRoutes(
       const c = candidates[i]
       if (c.shouldPreload) {
         // 🔧 修复：估算内存占用（原始 + gzip 副本约原大小的 0.35）
-        const estimatedMemory = c.size + (ENABLE_GZIP ? Math.ceil(c.size * 0.35) : 0)
+        const estimatedMemory =
+          c.size + (ENABLE_GZIP ? Math.ceil(c.size * 0.35) : 0)
         if (totalPreloadedBytes + estimatedMemory <= MAX_TOTAL_PRELOAD_BYTES) {
           toPreload.push(c)
           totalPreloadedBytes += estimatedMemory
@@ -706,9 +706,7 @@ async function initializeStaticRoutes(
         const result = readResults[i]
 
         if (result.status === 'rejected') {
-          log.error(
-            `Failed to read ${c.filepath}: ${String(result.reason)}`,
-          )
+          log.error(`Failed to read ${c.filepath}: ${String(result.reason)}`)
           routes[c.route] = createOnDemandHandler(c.filepath, c.type)
           skipped.push({ route: c.route, size: c.size, type: c.type })
           continue
@@ -880,9 +878,15 @@ async function initializeServer(): Promise<void> {
 
   const { routes } = await initializeStaticRoutes(CLIENT_DIRECTORY)
 
-  const error400Headers = { ...SECURITY_HEADERS, 'Content-Type': 'text/plain; charset=utf-8' }
+  const error400Headers = {
+    ...SECURITY_HEADERS,
+    'Content-Type': 'text/plain; charset=utf-8',
+  }
   const error400Body = 'Bad Request'
-  const error500Headers = { ...SECURITY_HEADERS, 'Content-Type': 'text/plain; charset=utf-8' }
+  const error500Headers = {
+    ...SECURITY_HEADERS,
+    'Content-Type': 'text/plain; charset=utf-8',
+  }
   const error500Body = 'Internal Server Error'
 
   const optionsHeaders = {
@@ -904,8 +908,19 @@ async function initializeServer(): Promise<void> {
       async '/*'(req: Request) {
         try {
           const method = req.method
-          if (method !== 'GET' && method !== 'POST' && method !== 'PUT' && method !== 'DELETE' && method !== 'OPTIONS' && method !== 'HEAD' && method !== 'PATCH') {
-            return new Response(error400Body, { status: 400, headers: error400Headers })
+          if (
+            method !== 'GET' &&
+            method !== 'POST' &&
+            method !== 'PUT' &&
+            method !== 'DELETE' &&
+            method !== 'OPTIONS' &&
+            method !== 'HEAD' &&
+            method !== 'PATCH'
+          ) {
+            return new Response(error400Body, {
+              status: 400,
+              headers: error400Headers,
+            })
           }
 
           if (method === 'OPTIONS') {
@@ -914,16 +929,22 @@ async function initializeServer(): Promise<void> {
 
           const url = new URL(req.url)
           if (!isPathSafe(url.pathname)) {
-            return new Response(error400Body, { status: 400, headers: error400Headers })
+            return new Response(error400Body, {
+              status: 400,
+              headers: error400Headers,
+            })
           }
 
-          // 安全检查：限制请求头大小
-          const headerSize = Array.from(req.headers.entries()).reduce(
-            (sum, [k, v]) => sum + k.length + v.length,
-            0
-          )
+          // 安全检查：限制请求头大小（Bun 原生 Headers forEach）
+          let headerSize = 0
+          req.headers.forEach((v, k) => {
+            headerSize += k.length + v.length
+          })
           if (headerSize > 8192) {
-            return new Response(error400Body, { status: 400, headers: error400Headers })
+            return new Response(error400Body, {
+              status: 400,
+              headers: error400Headers,
+            })
           }
 
           return await handlerFetch(req)
@@ -931,19 +952,27 @@ async function initializeServer(): Promise<void> {
           if (error instanceof Error && error.name === 'AbortError') {
             return new Response(null, { status: 499 })
           }
-          return new Response(error500Body, { status: 500, headers: error500Headers })
+          return new Response(error500Body, {
+            status: 500,
+            headers: error500Headers,
+          })
         }
       },
     },
 
     error() {
-      return new Response(error500Body, { status: 500, headers: error500Headers })
+      return new Response(error500Body, {
+        status: 500,
+        headers: error500Headers,
+      })
     },
   })
 
   log.success(`Server listening on http://localhost:${String(server.port)}`)
   log.info(`Process ID: ${process.pid}`)
-  log.info(`Memory usage: ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)} MB`)
+  log.info(
+    `Memory usage: ${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)} MB`,
+  )
 
   let isShuttingDown = false
 
@@ -962,7 +991,7 @@ async function initializeServer(): Promise<void> {
   process.on('SIGTERM', shutdown)
   process.on('SIGINT', shutdown)
 
-  if (process.env.ENABLE_MEMORY_MONITORING === 'true') {
+  if (Bun.env.ENABLE_MEMORY_MONITORING === 'true') {
     const memoryTimer = setInterval(() => {
       const usage = process.memoryUsage()
       const heapUsed = (usage.heapUsed / 1024 / 1024).toFixed(2)
