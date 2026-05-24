@@ -53,7 +53,7 @@ export const Download = {
       return {
         success: true,
         raw_url: `${randomWorker.url_endpoint}${path.split('/').map(encodeURIComponent).join('/')}?sign=${alistData.data?.sign}`,
-        sign: alistData.data?.sign,
+        sign: alistData.data.sign!,
       }
     }
 
