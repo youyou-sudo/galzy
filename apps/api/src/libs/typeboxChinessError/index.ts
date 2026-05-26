@@ -144,4 +144,3 @@ export function ChineseErrorFunction(error: ErrorFunctionParameter): string {
 export function initValidationError() {
   SetErrorFunction(ChineseErrorFunction)
 }
-

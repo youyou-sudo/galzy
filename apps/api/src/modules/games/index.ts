@@ -16,10 +16,9 @@ export const game = new Elysia({ prefix: '/games' })
   .get('/count', async () => {
     return await Game.Count()
   })
-  .use(betterAuth)
   .get(
     '/gamelist',
-    async ({ user, query: { pageIndex, pageSize } }) => {
+    async ({ query: { pageIndex, pageSize } }) => {
       return await Game.List({
         pageIndex,
         pageSize,
@@ -27,7 +26,6 @@ export const game = new Elysia({ prefix: '/games' })
     },
     {
       query: GameModel.gameList,
-      auth: true,
     },
   )
   .get(

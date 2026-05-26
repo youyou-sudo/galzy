@@ -1,5 +1,5 @@
-import { db, sql } from './webData'
 import { vndbDb } from './vndb'
+import { db, sql } from './webData'
 
 export const dbSeed = async () => {
   await db.schema

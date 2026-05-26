@@ -1,15 +1,11 @@
 import type { GameModel } from '@api/modules/games/model'
-import { api } from '@libs'
 import { useQuery } from '@tanstack/react-query'
 import { Await, getRouteApi } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { useStore } from '@tanstack/react-store'
-import { filesize } from 'filesize'
 import { FileArchive } from 'lucide-react'
 import { tryit } from 'radash'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import z from 'zod'
 import {
   FileItem,
   Files,

@@ -1,10 +1,10 @@
 import { getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
+import { jsonArrayFrom } from 'kysely/helpers/postgres'
 import { unique } from 'radash'
 import { t } from 'try'
-import type { UmamiModel } from './model'
 import { db } from '../../libs'
-import { jsonArrayFrom } from 'kysely/helpers/postgres'
+import type { UmamiModel } from './model'
 
 const now = new Date()
 
@@ -64,10 +64,10 @@ export const Umami = {
   },
   // Game 统计
   async remfGameGet() {
-    // const redisData = await getKv('remfGame')
-    // if (redisData !== null && redisData !== undefined) {
-    //   return JSON.parse(redisData) as RemfGame
-    // }
+    const redisData = await getKv('remfGame')
+    if (redisData !== null && redisData !== undefined) {
+      return JSON.parse(redisData) as RemfGame
+    }
     const [, error, token] = t(await umamiTokenGet())
     if (error)
       throw status(
