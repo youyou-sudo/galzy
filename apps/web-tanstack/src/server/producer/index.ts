@@ -1,20 +1,24 @@
 import { api } from '@libs'
 import { createServerFn } from '@tanstack/react-start'
 import z from 'zod'
-import { assertOk } from '#/lib'
+import { elysiaErrorF } from '#/lib'
 
 export const producerInfo = createServerFn()
   .inputValidator(z.object({ pid: z.string() }))
   .handler(async ({ data }) => {
-    const producer = await api.producer.info.get({ query: { pid: data.pid } })
-    return assertOk(producer, `${data.pid} producer 信息`)
+    const { data: producer, error } = await api.producer.info.get({
+      query: { pid: data.pid },
+    })
+    elysiaErrorF(error)
+    return producer
   })
 
 export const producerGameList = createServerFn()
   .inputValidator(z.object({ pid: z.string() }))
   .handler(async ({ data }) => {
-    const producer = await api.producer.gamelists.get({
+    const { data: producer, error } = await api.producer.gamelists.get({
       query: { pid: data.pid },
     })
-    return assertOk(producer, `${data.pid} producer 游戏列表`)
+    elysiaErrorF(error)
+    return producer
   })

@@ -1,36 +1,39 @@
 import { api } from '@libs'
 import { createServerFn } from '@tanstack/react-start'
 import z from 'zod'
-import { assertOk } from '#/lib'
+import { elysiaErrorF } from '#/lib'
 
 export const getGameDetail = createServerFn()
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const getgame = await api.games.get({
+    const { data: getgame, error } = await api.games.get({
       query: {
         id: data.id,
       },
     })
-    return assertOk(getgame, 'game')
+    elysiaErrorF(error)
+    return getgame
   })
 
 export const getGameTags = createServerFn()
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const res = await api.tags.gametags.post({ id: data.id })
-    return assertOk(res, 'tags')
+    const { data: tags, error } = await api.tags.gametags.post({ id: data.id })
+    elysiaErrorF(error)
+    return tags
   })
 
 export const getFileList = createServerFn()
   .inputValidator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
-    const filelist = await api.games.openlistfiles.get({
+    const { data: filelist, error } = await api.games.openlistfiles.get({
       query: {
         id: data.id,
       },
     })
+    elysiaErrorF(error)
     return {
-      game: assertOk(filelist, '文件列表'),
+      game: filelist,
     }
   })
 
@@ -41,17 +44,19 @@ export const translateData = createServerFn()
     }),
   )
   .handler(async ({ data }) => {
-    const translate = await api.games.gameTimeNumberGet.get({
+    const { data: translate, error } = await api.games.gameTimeNumberGet.get({
       query: { id: data.id, time: 'week' },
     })
-    return assertOk(translate, 'translateData')
+    elysiaErrorF(error)
+    return translate
   })
 
 export const dwAcConst = createServerFn()
   .inputValidator(z.object({ path: z.string(), game_id: z.string() }))
   .handler(async ({ data }) => {
-    const res = await api.download.path.get({
+    const { data: res, error } = await api.download.path.get({
       query: { path: data.path, game_id: data.game_id },
     })
-    return assertOk(res, 'download path')
+    elysiaErrorF(error)
+    return res
   })

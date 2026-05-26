@@ -40,7 +40,6 @@ import {
   ItemTitle,
 } from '#/components/ui/item'
 import { Skeleton } from '#/components/ui/skeleton'
-import { assertOk } from '#/lib/assertOk'
 import { dwAcConst } from '#/server/game'
 import { downCardStore, downmodalActions } from '#/stores/downCardData'
 import { GlgczujmDl } from './tips'

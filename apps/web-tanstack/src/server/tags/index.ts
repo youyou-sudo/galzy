@@ -1,7 +1,7 @@
 import { api } from '@libs'
 import { createServerFn } from '@tanstack/react-start'
 import z from 'zod'
-import { assertOk } from '#/lib'
+import { elysiaErrorF } from '#/lib'
 
 export const getTagData = createServerFn()
   .inputValidator(
@@ -10,8 +10,11 @@ export const getTagData = createServerFn()
     }),
   )
   .handler(async ({ data }) => {
-    const res = await api.tags.tag.get({ query: { tagId: data.tagId } })
-    return assertOk(res, `${data.tagId} Tag 信息`)
+    const { data: res, error } = await api.tags.tag.get({
+      query: { tagId: data.tagId },
+    })
+    elysiaErrorF(error)
+    return res
   })
 
 export const getVnListByTag = createServerFn()
@@ -23,10 +26,11 @@ export const getVnListByTag = createServerFn()
     }),
   )
   .handler(async ({ data }) => {
-    const res = await api.tags.taggames.post({
+    const { data: res, error } = await api.tags.taggames.post({
       tagId: data.tagId,
       pageSize: data.pageSize,
       pageIndex: data.pageIndex,
     })
-    return assertOk(res, `${data.tagId} Tag 关联游戏`)
+    elysiaErrorF(error)
+    return res
   })

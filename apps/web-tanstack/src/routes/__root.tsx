@@ -17,7 +17,7 @@ import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 import TanStackQueryProvider from '../integrations/tanstack-query/root-provider'
 import appCss from '../styles.css?url'
 
-interface MyRouterContext {
+export type MyRouterContext = {
   queryClient: QueryClient
 }
 

@@ -1,7 +1,7 @@
 import { api } from '@libs'
 import { createServerFn } from '@tanstack/react-start'
 import z from 'zod'
-import { assertOk } from '#/lib'
+import { elysiaErrorF } from '#/lib'
 
 export const getIntroductionArticle = createServerFn()
   .inputValidator(
@@ -10,12 +10,13 @@ export const getIntroductionArticle = createServerFn()
     }),
   )
   .handler(async ({ data }) => {
-    const res = await api.strategy.strategy.get({
+    const { data: res, error } = await api.strategy.strategy.get({
       query: {
         strategyId: +data.id,
       },
     })
-    return assertOk(res, '文章')
+    elysiaErrorF(error)
+    return res
   })
 
 export const getintroductionList = createServerFn()
@@ -25,8 +26,9 @@ export const getintroductionList = createServerFn()
     }),
   )
   .handler(async ({ data }) => {
-    const res = await api.strategy.gamestrategys.get({
+    const { data: res, error } = await api.strategy.gamestrategys.get({
       query: { gameId: data.id },
     })
-    return assertOk(res, '攻略列表')
+    elysiaErrorF(error)
+    return res
   })

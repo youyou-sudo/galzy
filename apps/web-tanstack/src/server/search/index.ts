@@ -2,8 +2,7 @@ import { api } from '@libs'
 import { createServerFn } from '@tanstack/react-start'
 import { format, parseISO } from 'date-fns'
 import z from 'zod'
-import { assertOk } from '#/lib/assertOk'
-
+import { elysiaErrorF } from '#/lib'
 export const SearchSchema = z.object({
   q: z.string().optional(),
   startDate: z.string().optional(),
@@ -13,7 +12,7 @@ export const SearchSchema = z.object({
 export const getSearch = createServerFn()
   .inputValidator(SearchSchema)
   .handler(async ({ data }) => {
-    const gameListData = await api.search.get({
+    const { data: gameListData, error } = await api.search.get({
       query: {
         q: data.q || '',
         limit: 100,
@@ -25,5 +24,6 @@ export const getSearch = createServerFn()
           : undefined,
       },
     })
-    return assertOk(gameListData, 'search')
+    elysiaErrorF(error)
+    return gameListData
   })
