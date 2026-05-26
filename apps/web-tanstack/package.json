@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "test": "vitest run",
-    "format": "biome format --write .",
+    "format": "biome format --write",
     "check": "biome check",
     "docker": "cd ../.. && docker build -t mono-web:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/web-tanstack/Dockerfile .",
     "docker:web-tanstack": "cd ../.. && docker build -t mono-web:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/web-tanstack/Dockerfile ."

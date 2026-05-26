@@ -5,7 +5,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "lint": "biome check"
+    "lint": "biome check --write"
   },
   "publishConfig": {
     "access": "public"
