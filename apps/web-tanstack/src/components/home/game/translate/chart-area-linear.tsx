@@ -1,12 +1,12 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { Area, AreaChart, CartesianGrid, LineChart, XAxis } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@web/components/ui/card";
 import {
 	type ChartConfig,
 	ChartContainer,
 	ChartTooltip,
 	ChartTooltipContent,
-} from "#/components/ui/chart";
+} from "@web/components/ui/chart";
 
 const chartConfig = {
 	desktop: {

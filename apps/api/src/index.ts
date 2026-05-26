@@ -1,7 +1,6 @@
-import swagger from '@elysiajs/swagger'
-import { Elysia } from 'elysia'
-import { dbAction, initValidationError } from './libs'
+import { dbAction, initValidationError } from '@api/libs'
 import {
+  betterAuth,
   cronServer,
   download,
   game,
@@ -13,9 +12,10 @@ import {
   strategy,
   tags,
   umami,
-  YouyouAuth,
-} from './modules'
-import { setDeployStatus } from './modules/status/service'
+} from '@api/modules'
+import { setDeployStatus } from '@api/modules/status/service'
+import swagger from '@elysiajs/swagger'
+import { Elysia } from 'elysia'
 
 setDeployStatus('starting')
 
@@ -32,7 +32,6 @@ const app = new Elysia()
   .use(process.env.NODE_ENV === 'development' ? swagger() : (app) => app)
   .use(status)
   .use(cronServer)
-  .use(YouyouAuth)
   .use(umami)
   .use(game)
   .use(tags)

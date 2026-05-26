@@ -4,19 +4,19 @@ import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeader } from '@tanstack/react-start/server'
 import { Gamepad2, Tags } from 'lucide-react'
 import z from 'zod'
-import CountComponent from '#/components/home/Count'
-import HomeGamelist from '#/components/home/homeGameList'
-import { RankingList } from '#/components/home/remf'
-import SearchInput from '#/components/home/search/Search'
+import CountComponent from '@web/components/home/Count'
+import HomeGamelist from '@web/components/home/homeGameList'
+import { RankingList } from '@web/components/home/remf'
+import SearchInput from '@web/components/home/search/Search'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '#/components/ui/card'
-import { Skeleton } from '#/components/ui/skeleton'
-import { elysiaErrorF } from '#/lib'
+} from '@web/components/ui/card'
+import { Skeleton } from '@web/components/ui/skeleton'
+import { elysiaErrorF } from '@web/lib'
 
 export const getGameList = createServerFn()
   .inputValidator(

@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "#/lib/utils";
+import { cn } from "@web/lib/utils";
 import { type HTMLMotionProps, motion } from "motion/react";
 import { Switch as SwitchPrimitives } from "radix-ui";
 import * as React from "react";

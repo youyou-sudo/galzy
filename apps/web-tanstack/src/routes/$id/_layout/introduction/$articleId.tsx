@@ -9,9 +9,9 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from '#/components/ui/card'
-import { seoTemplate } from '#/config/seoTemplate'
-import { getIntroductionArticle } from '#/server/introduction'
+} from '@web/components/ui/card'
+import { seoTemplate } from '@web/config/seoTemplate'
+import { getIntroductionArticle } from '@web/server/introduction'
 
 export const Route = createFileRoute('/$id/_layout/introduction/$articleId')({
   component: RouteComponent,

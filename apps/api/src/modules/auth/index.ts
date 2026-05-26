@@ -1,10 +1,10 @@
+import { auth } from '@api/modules/auth/service'
 import cors from '@elysiajs/cors'
 import { Elysia } from 'elysia'
-import { auth } from './service'
 
 const allowedOrigins = ['http://localhost:3000', `${process.env.WEB_HOST}`]
 
-const betterAuth = new Elysia({ name: 'better-auth' })
+export const betterAuth = new Elysia({ name: 'better-auth' })
   .use(
     cors({
       origin: allowedOrigins,
@@ -23,12 +23,16 @@ const betterAuth = new Elysia({ name: 'better-auth' })
 
         if (!session) return status(401)
 
-        return {
-          user: session.user,
-          session: session.session,
-        }
+        return session
+      },
+    },
+    isAdmin: {
+      async resolve({ status, request: { headers } }) {
+        const session = await auth.api.getSession({
+          headers,
+        })
+        if (session?.user.role !== 'admin') return status('Unauthorized')
+        return { user: session?.user, session }
       },
     },
   })
-
-export const YouyouAuth = new Elysia().use(betterAuth)

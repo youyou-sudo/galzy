@@ -41,3 +41,7 @@ bun.lock
 *.tsbuildinfo
 next-env.d.ts
 .next
+
+.skills
+skills-lock.json
+.agents

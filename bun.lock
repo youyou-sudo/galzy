@@ -21,6 +21,7 @@
         "@typescript/native-preview": "^7.0.0-dev.20260526.1",
         "babel-plugin-react-compiler": "1.0.0",
         "config": "workspace:*",
+        "typescript": "^6.0.3",
       },
     },
     "apps/api": {

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MotionHighlight } from "#/components/animate-ui/effects/motion-highlight";
-import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
-import { seoTemplate } from "#/config/seoTemplate";
+import { MotionHighlight } from "@web/components/animate-ui/effects/motion-highlight";
+import { Avatar, AvatarFallback, AvatarImage } from "@web/components/ui/avatar";
+import { seoTemplate } from "@web/config/seoTemplate";
 
 const linksList: {
 	title: string;

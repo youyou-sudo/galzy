@@ -3,7 +3,7 @@ import { useSuspenseQuery } from '@tanstack/react-query'
 import { createServerFn } from '@tanstack/react-start'
 import { Send } from 'lucide-react'
 import { Suspense } from 'react'
-import { elysiaErrorF } from '#/lib'
+import { elysiaErrorF } from '@web/lib'
 import { Skeleton } from '../ui/skeleton'
 
 export default function CountComponent() {

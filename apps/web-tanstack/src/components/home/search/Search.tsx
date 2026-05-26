@@ -18,15 +18,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '#/components/ui/alert-dialog'
-import { Badge } from '#/components/ui/badge'
-import { Input } from '#/components/ui/input'
+} from '@web/components/ui/alert-dialog'
+import { Badge } from '@web/components/ui/badge'
+import { Input } from '@web/components/ui/input'
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from '#/components/ui/input-group'
+} from '@web/components/ui/input-group'
 
 interface SearchInputProps {
   placeholder?: string

@@ -2,9 +2,9 @@
 
 import { Image } from '@unpic/react'
 import { Info } from 'lucide-react'
-import { Alert, AlertDescription, AlertTitle } from '#/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@web/components/ui/alert'
 
-// import { AspectRatio } from "#/components/ui/aspect-ratio";
+// import { AspectRatio } from "@web/components/ui/aspect-ratio";
 
 const glgc = [
   {
@@ -20,7 +20,7 @@ const glgc = [
   },
   {
     name: 'MujikaNetwork',
-    url: 'https://my.mujika.pro/#/register?code=G0Udwpw2',
+    url: 'https://my.mujika.pro/@web/register?code=G0Udwpw2',
     desc: 'IEPL专线接入，超低延迟无惧晚高峰、流媒体/AI全解锁、覆盖主流地区节点、设有机场EMBY服（标准订阅计划及以上可享），跨境快车道，就用母鸡卡！',
   },
 ]

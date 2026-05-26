@@ -17,13 +17,13 @@ import {
   FolderItem,
   FolderTrigger,
   SubFiles,
-} from '#/components/animate-ui/components/radix/files'
-import { Copy } from '#/components/animate-ui/icons/copy'
-import { Download } from '#/components/animate-ui/icons/download'
-import { AnimateIcon } from '#/components/animate-ui/icons/icon'
-import { MarkdownAsync } from '#/components/markdownAync'
-import { CopyButton } from '#/components/shadcn-io/copy-button'
-import { Button } from '#/components/ui/button'
+} from '@web/components/animate-ui/components/radix/files'
+import { Copy } from '@web/components/animate-ui/icons/copy'
+import { Download } from '@web/components/animate-ui/icons/download'
+import { AnimateIcon } from '@web/components/animate-ui/icons/icon'
+import { MarkdownAsync } from '@web/components/markdownAync'
+import { CopyButton } from '@web/components/shadcn-io/copy-button'
+import { Button } from '@web/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -31,17 +31,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '#/components/ui/dialog'
+} from '@web/components/ui/dialog'
 import {
   Item,
   ItemActions,
   ItemContent,
   ItemDescription,
   ItemTitle,
-} from '#/components/ui/item'
-import { Skeleton } from '#/components/ui/skeleton'
-import { dwAcConst } from '#/server/game'
-import { downCardStore, downmodalActions } from '#/stores/downCardData'
+} from '@web/components/ui/item'
+import { Skeleton } from '@web/components/ui/skeleton'
+import { dwAcConst } from '@web/server/game'
+import { downCardStore, downmodalActions } from '@web/stores/downCardData'
 import { GlgczujmDl } from './tips'
 
 const apiroute = getRouteApi('/$id/_layout/')

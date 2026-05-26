@@ -1,8 +1,8 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
-import { Button } from '#/components/ui/button'
-import { getImageUrl } from '#/lib/ImageUrl'
-import { getVnListByTag } from '#/server/tags'
+import { Button } from '@web/components/ui/button'
+import { getImageUrl } from '@web/lib/ImageUrl'
+import { getVnListByTag } from '@web/server/tags'
 import { GameCard } from '../card'
 import { GameItem } from '../GameItem'
 

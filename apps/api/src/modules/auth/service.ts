@@ -5,7 +5,7 @@ import { BunPostgresDialect } from 'kysely-bun-sql'
 
 const dialect = new BunPostgresDialect(dbConfig)
 
-const authConfig = {
+const _authConfig = {
   database: dialect,
   user: {
     modelName: 'galrc_user',
@@ -39,6 +39,4 @@ const authConfig = {
   basePath: '/auth',
 } satisfies BetterAuthOptions
 
-export const auth = betterAuth(authConfig) as ReturnType<
-  typeof betterAuth<typeof authConfig>
->
+export const auth = betterAuth(_authConfig)

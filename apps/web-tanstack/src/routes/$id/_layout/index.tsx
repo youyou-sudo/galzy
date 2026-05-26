@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { DownloadOptions } from '#/components/home/game/download-options'
-import { getFileList } from '#/server/game'
+import { DownloadOptions } from '@web/components/home/game/download-options'
+import { getFileList } from '@web/server/game'
 
 export const Route = createFileRoute('/$id/_layout/')({
   component: DownloadComponent,

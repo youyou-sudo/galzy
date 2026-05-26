@@ -5,7 +5,7 @@ import {
 	type IconProps,
 	IconWrapper,
 	useAnimateIconContext,
-} from "#/components/animate-ui/icons/icon";
+} from "@web/components/animate-ui/icons/icon";
 import { motion, type Variants } from "motion/react";
 import * as React from "react";
 

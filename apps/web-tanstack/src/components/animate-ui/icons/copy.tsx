@@ -8,7 +8,7 @@ import {
 	useAnimateIconContext,
 	IconWrapper,
 	type IconProps,
-} from "#/components/animate-ui/icons/icon";
+} from "@web/components/animate-ui/icons/icon";
 
 type CopyProps = IconProps<keyof typeof animations>;
 

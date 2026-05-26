@@ -2,9 +2,6 @@
   "name": "web-tanstack",
   "private": true,
   "type": "module",
-  "imports": {
-    "#/*": "./src/*"
-  },
   "scripts": {
     "dev": "bun --bun vite dev --port 3000",
     "build": "bun --bun vite build",

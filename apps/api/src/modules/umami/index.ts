@@ -1,6 +1,6 @@
+import { UmamiModel } from '@api/modules/umami/model'
+import { Umami } from '@api/modules/umami/service'
 import { Elysia } from 'elysia'
-import { UmamiModel } from './model'
-import { Umami } from './service'
 
 export const umami = new Elysia({ prefix: '/umami' })
   .get('/remfTag', async () => {

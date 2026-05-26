@@ -1,14 +1,14 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { BBCodeRenderer } from '#/components/bbcode'
-import { ProducerGamelist } from '#/components/home/producer/ProducerGameList'
+import { BBCodeRenderer } from '@web/components/bbcode'
+import { ProducerGamelist } from '@web/components/home/producer/ProducerGameList'
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '#/components/ui/card'
-import { producerGameList, producerInfo } from '#/server/producer'
+} from '@web/components/ui/card'
+import { producerGameList, producerInfo } from '@web/server/producer'
 
 export const Route = createFileRoute('/producer/$pid')({
   component: RouteComponent,

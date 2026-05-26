@@ -19,8 +19,8 @@ import {
 	type FolderItemProps as FolderItemPrimitiveProps,
 	Folder as FolderPrimitive,
 	FolderTrigger as FolderTriggerPrimitive,
-} from "@/components/animate-ui/primitives/radix/files";
-import { cn } from "@/lib/utils";
+} from "@web/components/animate-ui/primitives/radix/files";
+import { cn } from "@web/lib/utils";
 
 type GitStatus = "untracked" | "modified" | "deleted";
 

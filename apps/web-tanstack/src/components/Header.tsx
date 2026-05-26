@@ -2,21 +2,21 @@ import { Link } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import { Menu } from "lucide-react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@web/components/ui/button";
 import {
 	NavigationMenu,
 	NavigationMenuItem,
 	NavigationMenuLink,
 	NavigationMenuList,
 	navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
+} from "@web/components/ui/navigation-menu";
 import {
 	Sheet,
 	SheetContent,
 	SheetHeader,
 	SheetTitle,
 	SheetTrigger,
-} from "@/components/ui/sheet";
+} from "@web/components/ui/sheet";
 import ThemeToggle from "./ThemeToggle";
 
 export default function Header() {

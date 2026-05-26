@@ -1,7 +1,7 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <any> */
 import { getRouteApi } from "@tanstack/react-router";
-import { TagViewsTrackEvents } from "#/components/umami/track-events";
-import { getImageUrl } from "#/lib/ImageUrl";
+import { TagViewsTrackEvents } from "@web/components/umami/track-events";
+import { getImageUrl } from "@web/lib/ImageUrl";
 import { GameItem } from "../GameItem";
 
 const routeApi = getRouteApi("/search/");

@@ -18,8 +18,8 @@ import {
 	type DialogTitleProps as DialogTitlePrimitiveProps,
 	DialogTrigger as DialogTriggerPrimitive,
 	type DialogTriggerProps as DialogTriggerPrimitiveProps,
-} from "#/components/animate-ui/primitives/radix/dialog";
-import { cn } from "#/lib/utils";
+} from "@web/components/animate-ui/primitives/radix/dialog";
+import { cn } from "@web/lib/utils";
 import { XIcon } from "lucide-react";
 import * as React from "react";
 

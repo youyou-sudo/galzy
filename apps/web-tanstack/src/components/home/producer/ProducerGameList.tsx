@@ -1,5 +1,5 @@
 import { Await, getRouteApi } from "@tanstack/react-router";
-import { getImageUrl } from "#/lib/ImageUrl";
+import { getImageUrl } from "@web/lib/ImageUrl";
 import { GameCard } from "../card";
 import { GameItem } from "../GameItem";
 

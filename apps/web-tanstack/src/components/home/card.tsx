@@ -1,5 +1,5 @@
-import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AspectRatio } from "@web/components/ui/aspect-ratio";
+import { Skeleton } from "@web/components/ui/skeleton";
 import { Image, type ImageProps } from "@unpic/react";
 import type { ComponentProps } from "react";
 

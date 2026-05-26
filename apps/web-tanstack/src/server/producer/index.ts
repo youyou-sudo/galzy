@@ -1,7 +1,7 @@
 import { api } from '@libs'
 import { createServerFn } from '@tanstack/react-start'
 import z from 'zod'
-import { elysiaErrorF } from '#/lib'
+import { elysiaErrorF } from '@web/lib'
 
 export const producerInfo = createServerFn()
   .inputValidator(z.object({ pid: z.string() }))

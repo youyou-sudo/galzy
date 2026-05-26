@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@web/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { AnimatePresence, type HTMLMotionProps, motion } from "motion/react";

@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
-import { getImageUrl } from "#/lib/ImageUrl";
-import { getGameList } from "#/routes";
+import { getImageUrl } from "@web/lib/ImageUrl";
+import { getGameList } from "@web/routes";
 import { Button } from "../ui/button";
 import { GameCard } from "./card";
 import { GameItem } from "./GameItem";

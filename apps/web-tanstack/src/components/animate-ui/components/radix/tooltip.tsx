@@ -1,6 +1,6 @@
 "use client";
 
-import { cn } from "#/lib/utils";
+import { cn } from "@web/lib/utils";
 import { AnimatePresence, motion, type Transition } from "motion/react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import * as React from "react";

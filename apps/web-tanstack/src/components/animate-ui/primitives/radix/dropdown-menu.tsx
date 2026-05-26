@@ -5,9 +5,9 @@ import {
 	HighlightItem,
 	type HighlightItemProps,
 	type HighlightProps,
-} from "#/components/animate-ui/primitives/effects/highlight";
-import { useControlledState } from "#/hooks/use-controlled-state";
-import { getStrictContext } from "#/lib/get-strict-context";
+} from "@web/components/animate-ui/primitives/effects/highlight";
+import { useControlledState } from "@web/hooks/use-controlled-state";
+import { getStrictContext } from "@web/lib/get-strict-context";
 import { AnimatePresence, type HTMLMotionProps, motion } from "motion/react";
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
 import type * as React from "react";

@@ -3,26 +3,26 @@
 import {
 	MotionHighlight,
 	MotionHighlightItem,
-} from "#/components/animate-ui/effects/motion-highlight";
+} from "@web/components/animate-ui/effects/motion-highlight";
 import {
 	Sheet,
 	SheetContent,
 	SheetDescription,
 	SheetHeader,
 	SheetTitle,
-} from "#/components/animate-ui/components/radix/sheet";
+} from "@web/components/animate-ui/components/radix/sheet";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
-} from "#/components/animate-ui/components/radix/tooltip";
-import { Button } from "#/components/ui/button";
-import { Input } from "#/components/ui/input";
-import { Separator } from "#/components/ui/separator";
-import { Skeleton } from "#/components/ui/skeleton";
-import { useIsMobile } from "#/hooks/use-mobile";
-import { cn } from "#/lib/utils";
+} from "@web/components/animate-ui/components/radix/tooltip";
+import { Button } from "@web/components/ui/button";
+import { Input } from "@web/components/ui/input";
+import { Separator } from "@web/components/ui/separator";
+import { Skeleton } from "@web/components/ui/skeleton";
+import { useIsMobile } from "@web/hooks/use-mobile";
+import { cn } from "@web/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { PanelLeftIcon } from "lucide-react";
 import type { Transition } from "motion/react";

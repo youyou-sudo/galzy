@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { TagGamelist } from '#/components/home/tag/tagGameList'
-import { Card, CardHeader, CardTitle } from '#/components/ui/card'
-import { seoTemplate } from '#/config/seoTemplate'
-import { getTagData, getVnListByTag } from '#/server/tags'
+import { TagGamelist } from '@web/components/home/tag/tagGameList'
+import { Card, CardHeader, CardTitle } from '@web/components/ui/card'
+import { seoTemplate } from '@web/config/seoTemplate'
+import { getTagData, getVnListByTag } from '@web/server/tags'
 
 export const Route = createFileRoute('/tags/$tagId')({
   component: RouteComponent,

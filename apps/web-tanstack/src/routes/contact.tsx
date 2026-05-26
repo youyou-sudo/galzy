@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
-import { seoTemplate } from "#/config/seoTemplate";
+import { Card, CardContent, CardHeader, CardTitle } from "@web/components/ui/card";
+import { seoTemplate } from "@web/config/seoTemplate";
 
 export const Route = createFileRoute("/contact")({
 	component: RouteComponent,

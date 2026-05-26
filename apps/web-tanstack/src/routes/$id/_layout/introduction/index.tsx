@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { NotepadText } from 'lucide-react'
-import { seoTemplate } from '#/config/seoTemplate'
-import { getGameDetail } from '#/server/game'
-import { getintroductionList } from '#/server/introduction'
+import { seoTemplate } from '@web/config/seoTemplate'
+import { getGameDetail } from '@web/server/game'
+import { getintroductionList } from '@web/server/introduction'
 
 export const Route = createFileRoute('/$id/_layout/introduction/')({
   component: RouteComponent,

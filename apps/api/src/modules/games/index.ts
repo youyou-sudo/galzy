@@ -1,4 +1,5 @@
 import { Elysia } from 'elysia'
+import { betterAuth } from '../auth'
 import { GameModel } from './model'
 import { Game } from './service'
 
@@ -15,15 +16,19 @@ export const game = new Elysia({ prefix: '/games' })
   .get('/count', async () => {
     return await Game.Count()
   })
+  .use(betterAuth)
   .get(
     '/gamelist',
-    async ({ query: { pageIndex, pageSize } }) => {
+    async ({ user, query: { pageIndex, pageSize } }) => {
       return await Game.List({
         pageIndex,
         pageSize,
       })
     },
-    { query: GameModel.gameList },
+    {
+      query: GameModel.gameList,
+      auth: true,
+    },
   )
   .get(
     '/search',

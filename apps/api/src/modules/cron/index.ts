@@ -1,6 +1,6 @@
+import { CronService } from '@api/modules/cron/service'
 import { Cron } from 'croner'
 import { Elysia } from 'elysia'
-import { CronService } from './service'
 
 export const cronServer = new Elysia()
   .get('/task/meiliSearchAddIndex', () => {

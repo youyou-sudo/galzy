@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { ChartAreaLinear } from '#/components/home/game/translate/chart-area-linear'
-import { seoTemplate } from '#/config/seoTemplate'
-import { getGameDetail, translateData } from '#/server/game'
+import { ChartAreaLinear } from '@web/components/home/game/translate/chart-area-linear'
+import { seoTemplate } from '@web/config/seoTemplate'
+import { getGameDetail, translateData } from '@web/server/game'
 
 export const Route = createFileRoute('/$id/_layout/translate')({
   component: RouteComponent,

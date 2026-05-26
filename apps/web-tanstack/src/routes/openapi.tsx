@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MarkdownAsync } from "#/components/markdownAync";
-import { Card, CardContent } from "#/components/ui/card";
-import { seoTemplate } from "#/config/seoTemplate";
-import openapiDoc from "#/markdown/openapi.md?raw";
+import { MarkdownAsync } from "@web/components/markdownAync";
+import { Card, CardContent } from "@web/components/ui/card";
+import { seoTemplate } from "@web/config/seoTemplate";
+import openapiDoc from "@web/markdown/openapi.md?raw";
 
 export const Route = createFileRoute("/openapi")({
 	component: RouteComponent,

@@ -6,8 +6,8 @@
     "jsx": "react-jsx",
     "module": "ESNext",
     "paths": {
-      "#/*": ["./src/*"],
-      "@/*": ["./src/*"],
+      "@web": ["./src/*"],
+      "@web/*": ["./src/*"],
       "@api": ["../api/src/index.ts"],
       "@api/*": ["../api/src/*"],
       "@libs": ["../../packages/libs/src/index.ts"],

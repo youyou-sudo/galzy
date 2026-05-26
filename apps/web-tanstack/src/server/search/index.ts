@@ -2,7 +2,7 @@ import { api } from '@libs'
 import { createServerFn } from '@tanstack/react-start'
 import { format, parseISO } from 'date-fns'
 import z from 'zod'
-import { elysiaErrorF } from '#/lib'
+import { elysiaErrorF } from '@web/lib'
 export const SearchSchema = z.object({
   q: z.string().optional(),
   startDate: z.string().optional(),

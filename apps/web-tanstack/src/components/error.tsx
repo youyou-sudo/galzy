@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@web/components/ui/button";
 import { CodeBlock } from "./code-block";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Image } from "@unpic/react";

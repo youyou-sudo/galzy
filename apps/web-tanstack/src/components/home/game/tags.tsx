@@ -4,9 +4,9 @@ import {
 	AccordionContent,
 	AccordionItem,
 	AccordionTrigger,
-} from "#/components/ui/accordion";
-import { Skeleton } from "#/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+} from "@web/components/ui/accordion";
+import { Skeleton } from "@web/components/ui/skeleton";
+import { Badge } from "@web/components/ui/badge";
 
 export function TagsCard() {
 	const routeApi = getRouteApi("/$id/_layout");
