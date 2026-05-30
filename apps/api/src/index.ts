@@ -1,6 +1,5 @@
 import { dbAction, initValidationError } from '@api/libs'
 import {
-  betterAuth,
   cronServer,
   download,
   game,

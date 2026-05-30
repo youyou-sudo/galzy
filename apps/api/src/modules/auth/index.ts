@@ -14,25 +14,27 @@ export const betterAuth = new Elysia({ name: 'better-auth' })
     }),
   )
   .mount(auth.handler)
+  .derive(async ({ request: { headers } }) => {
+    const session = await auth.api.getSession({ headers })
+
+    return {
+      auth: session,
+    }
+  })
   .macro({
     auth: {
-      async resolve({ status, request: { headers } }) {
-        const session = await auth.api.getSession({
-          headers,
-        })
-
-        if (!session) return status(401)
-
-        return session
+      async resolve({ status, auth }) {
+        if (!auth) return status(401, '请先登录喵～')
+        return auth
       },
     },
     isAdmin: {
-      async resolve({ status, request: { headers } }) {
-        const session = await auth.api.getSession({
-          headers,
-        })
-        if (session?.user.role !== 'admin') return status('Unauthorized')
-        return { user: session?.user, session }
+      async resolve({ status, auth }) {
+        if (!auth) return status(401, '请先登录喵～')
+        if (auth.user.role !== 'admin')
+          return status(403, '该用户不具有管理员权限喵～')
+
+        return auth
       },
     },
   })

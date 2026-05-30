@@ -1,6 +1,8 @@
 {
   "extends": "config/typescript/base.json",
   "compilerOptions": {
+    "declaration": false,
+    "declarationMap": false,
     "noEmit": true,
     "paths": {
       "@web/*": ["../web/src/*"],

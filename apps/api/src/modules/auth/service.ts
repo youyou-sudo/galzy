@@ -1,6 +1,7 @@
 import { dbConfig } from '@api/libs/config'
 import { type BetterAuthOptions, betterAuth } from 'better-auth'
 import { admin } from 'better-auth/plugins'
+import { localization } from 'better-auth-localization'
 import { BunPostgresDialect } from 'kysely-bun-sql'
 
 const dialect = new BunPostgresDialect(dbConfig)
@@ -23,7 +24,13 @@ const _authConfig = {
   verification: {
     modelName: 'galrc_verification',
   },
-  plugins: [admin()],
+  plugins: [
+    admin(),
+    localization({
+      defaultLocale: 'zh-Hans', // Use built-in Chinese translations
+      fallbackLocale: 'default', // Fallback to English
+    }),
+  ],
   emailAndPassword: {
     enabled: true,
   },
