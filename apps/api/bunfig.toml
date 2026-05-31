@@ -1,1 +1,1 @@
-preload = "src/modules/otel/index.ts"
+preload = "./src/modules/otel/index.ts"
