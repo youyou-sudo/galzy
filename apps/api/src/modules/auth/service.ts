@@ -1,10 +1,15 @@
-import { dbConfig } from '@api/libs/config'
+// import { dbConfig } from '@api/libs/config'
 import { type BetterAuthOptions, betterAuth } from 'better-auth'
 import { admin } from 'better-auth/plugins'
 import { localization } from 'better-auth-localization'
-import { BunPostgresDialect } from 'kysely-bun-sql'
+// import { BunPostgresDialect } from 'kysely-bun-sql'
+import { Pool } from 'pg'
 
-const dialect = new BunPostgresDialect(dbConfig)
+// const dialect = new BunPostgresDialect(dbConfig)
+//
+const dialect = new Pool({
+  connectionString: process.env.DATABASE_URL,
+})
 
 const _authConfig = {
   database: dialect,
