@@ -1,5 +1,6 @@
 import { dbAction, initValidationError } from '@api/libs'
 import {
+  betterAuth,
   cronServer,
   download,
   game,
@@ -29,6 +30,7 @@ const app = new Elysia()
     if (code === 'VALIDATION') return error.message
   })
   .use(process.env.NODE_ENV === 'development' ? swagger() : (app) => app)
+  .use(betterAuth)
   .use(status)
   .use(cronServer)
   .use(umami)
