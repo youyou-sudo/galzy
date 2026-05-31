@@ -16,8 +16,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as TagsIndexRouteImport } from './routes/tags/index'
 import { Route as SearchIndexRouteImport } from './routes/search/index'
 import { Route as ProducerIndexRouteImport } from './routes/producer/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as TagsTagIdRouteImport } from './routes/tags/$tagId'
 import { Route as ProducerPidRouteImport } from './routes/producer/$pid'
+import { Route as AuthSignupRouteImport } from './routes/auth/signup'
+import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiGameRouteImport } from './routes/api/game'
@@ -63,6 +66,11 @@ const ProducerIndexRoute = ProducerIndexRouteImport.update({
   path: '/producer/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TagsTagIdRoute = TagsTagIdRouteImport.update({
   id: '/tags/$tagId',
   path: '/tags/$tagId',
@@ -71,6 +79,16 @@ const TagsTagIdRoute = TagsTagIdRouteImport.update({
 const ProducerPidRoute = ProducerPidRouteImport.update({
   id: '/producer/$pid',
   path: '/producer/$pid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSignupRoute = AuthSignupRouteImport.update({
+  id: '/auth/signup',
+  path: '/auth/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSearchRoute = ApiSearchRouteImport.update({
@@ -130,8 +148,11 @@ export interface FileRoutesByFullPath {
   '/api/game': typeof ApiGameRoute
   '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
+  '/admin/': typeof AdminIndexRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
@@ -149,8 +170,11 @@ export interface FileRoutesByTo {
   '/api/game': typeof ApiGameRoute
   '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
+  '/admin': typeof AdminIndexRoute
   '/producer': typeof ProducerIndexRoute
   '/search': typeof SearchIndexRoute
   '/tags': typeof TagsIndexRoute
@@ -170,8 +194,11 @@ export interface FileRoutesById {
   '/api/game': typeof ApiGameRoute
   '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
+  '/admin/': typeof AdminIndexRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
@@ -192,8 +219,11 @@ export interface FileRouteTypes {
     | '/api/game'
     | '/api/health'
     | '/api/search'
+    | '/auth/login'
+    | '/auth/signup'
     | '/producer/$pid'
     | '/tags/$tagId'
+    | '/admin/'
     | '/producer/'
     | '/search/'
     | '/tags/'
@@ -211,8 +241,11 @@ export interface FileRouteTypes {
     | '/api/game'
     | '/api/health'
     | '/api/search'
+    | '/auth/login'
+    | '/auth/signup'
     | '/producer/$pid'
     | '/tags/$tagId'
+    | '/admin'
     | '/producer'
     | '/search'
     | '/tags'
@@ -231,8 +264,11 @@ export interface FileRouteTypes {
     | '/api/game'
     | '/api/health'
     | '/api/search'
+    | '/auth/login'
+    | '/auth/signup'
     | '/producer/$pid'
     | '/tags/$tagId'
+    | '/admin/'
     | '/producer/'
     | '/search/'
     | '/tags/'
@@ -252,8 +288,11 @@ export interface RootRouteChildren {
   ApiGameRoute: typeof ApiGameRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiSearchRoute: typeof ApiSearchRoute
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthSignupRoute: typeof AuthSignupRoute
   ProducerPidRoute: typeof ProducerPidRoute
   TagsTagIdRoute: typeof TagsTagIdRoute
+  AdminIndexRoute: typeof AdminIndexRoute
   ProducerIndexRoute: typeof ProducerIndexRoute
   SearchIndexRoute: typeof SearchIndexRoute
   TagsIndexRoute: typeof TagsIndexRoute
@@ -311,6 +350,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProducerIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tags/$tagId': {
       id: '/tags/$tagId'
       path: '/tags/$tagId'
@@ -323,6 +369,20 @@ declare module '@tanstack/react-router' {
       path: '/producer/$pid'
       fullPath: '/producer/$pid'
       preLoaderRoute: typeof ProducerPidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/signup': {
+      id: '/auth/signup'
+      path: '/auth/signup'
+      fullPath: '/auth/signup'
+      preLoaderRoute: typeof AuthSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/search': {
@@ -418,8 +478,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGameRoute: ApiGameRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiSearchRoute: ApiSearchRoute,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthSignupRoute: AuthSignupRoute,
   ProducerPidRoute: ProducerPidRoute,
   TagsTagIdRoute: TagsTagIdRoute,
+  AdminIndexRoute: AdminIndexRoute,
   ProducerIndexRoute: ProducerIndexRoute,
   SearchIndexRoute: SearchIndexRoute,
   TagsIndexRoute: TagsIndexRoute,

@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { GamepadIcon } from 'lucide-react'
 import SearchlistComponent from '@web/components/home/search/meilisearch'
 import SearchInput from '@web/components/home/search/Search'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { getSearch, SearchSchema } from '@web/server/search'
+import { GamepadIcon } from 'lucide-react'
 
 export const Route = createFileRoute('/search/')({
   component: RouteComponent,
