@@ -27,6 +27,7 @@ export const strategy = new Elysia({ prefix: '/strategy' })
       return await Strategy.strategyUpdate({ id, data })
     },
     {
+      isAdmin: true,
       body: StrategyModel.strategyListUpdate,
     },
   )
@@ -36,6 +37,7 @@ export const strategy = new Elysia({ prefix: '/strategy' })
       return await Strategy.strategyCreate({ id, data, userid })
     },
     {
+      isAdmin: true,
       body: StrategyModel.strategyListCreate,
     },
   )
@@ -45,6 +47,7 @@ export const strategy = new Elysia({ prefix: '/strategy' })
       return await Strategy.strategyDelete({ strategyId, gameId })
     },
     {
+      isAdmin: true,
       body: StrategyModel.strategy,
     },
   )

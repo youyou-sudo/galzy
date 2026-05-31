@@ -32,6 +32,7 @@ export const search = new Elysia({ prefix: '/search' })
       })
     },
     {
+      isAdmin: true,
       body: SearchModel.meilisearchEmbeddersUpdate,
     },
   )
@@ -53,6 +54,7 @@ export const search = new Elysia({ prefix: '/search' })
       return await Search.meilisearcSearchableAttributeshUpdate({ fields })
     },
     {
+      isAdmin: true,
       body: SearchModel.meilisearcSearchableAttributeshUpdate,
     },
   )

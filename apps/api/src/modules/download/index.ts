@@ -30,6 +30,7 @@ export const download = new Elysia({ prefix: '/download' })
       })
     },
     {
+      isAdmin: true,
       body: DownloadModel.workerConfigForm,
     },
   )
@@ -39,6 +40,7 @@ export const download = new Elysia({ prefix: '/download' })
       return Download.workerConfigFormDel({ id })
     },
     {
+      isAdmin: true,
       body: DownloadModel.workerConfigFormDel,
     },
   )
@@ -49,6 +51,7 @@ export const download = new Elysia({ prefix: '/download' })
       return Download.nodeEnaledAc({ nodeId, boole })
     },
     {
+      isAdmin: true,
       body: DownloadModel.nodeEnaledAc,
     },
   )
