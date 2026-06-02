@@ -1,10 +1,12 @@
 import { dbAction, initValidationError } from '@api/libs'
 import {
   betterAuth,
+  comments,
   cronServer,
   download,
   game,
   media,
+  otel,
   producer,
   search,
   startCronTasks,
@@ -13,8 +15,9 @@ import {
   tags,
   umami,
 } from '@api/modules'
+import { OpenAPI } from '@api/modules/auth/service'
 import { setDeployStatus } from '@api/modules/status/service'
-import swagger from '@elysiajs/swagger'
+import { openapi } from '@elysia/openapi'
 import { Elysia } from 'elysia'
 
 setDeployStatus('starting')
@@ -25,25 +28,36 @@ initValidationError()
 dbAction()
 if (process.env.NODE_ENV === 'production') startCronTasks()
 
-const app = new Elysia()
+export const app = new Elysia()
   .onError(({ code, error }) => {
     if (code === 'VALIDATION') return error.message
   })
-  .use(process.env.NODE_ENV === 'development' ? swagger() : (app) => app)
+  .use(
+    openapi({
+      documentation: {
+        components: await OpenAPI.components,
+        paths: await OpenAPI.getPaths(),
+      },
+    }),
+  )
   .use(betterAuth)
+  .use(otel)
+  .use(game)
+  .use(comments)
   .use(status)
   .use(cronServer)
   .use(umami)
-  .use(game)
   .use(tags)
   .use(download)
   .use(search)
   .use(strategy)
   .use(media)
   .use(producer)
-  .listen(process.env.API_PORT ?? 3001)
+  .listen(Bun.env.PORT ?? 3001)
 
-export type APP = typeof app
+process.on('beforeExit', app.stop)
+
+export type app = typeof app
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,

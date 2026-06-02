@@ -3,14 +3,23 @@ export const elysiaErrorF = (error: any) => {
     switch (error.status) {
       case 400:
       case 401:
-        throw new Error(error.value)
+        throw {
+          status: error.status,
+          message: error.value,
+        }
 
       case 500:
       case 502:
-        throw new Error(error.value)
+        throw {
+          status: error.status,
+          message: error.value,
+        }
 
       default:
-        throw new Error(error.value)
+        throw {
+          status: error.status ?? 500,
+          message: error.value ?? 'Unknown error',
+        }
     }
   }
 }
