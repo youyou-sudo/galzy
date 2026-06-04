@@ -1,5 +1,4 @@
 import { Elysia } from 'elysia'
-import { betterAuth } from '../auth'
 import { GameModel } from './model'
 import { Game } from './service'
 

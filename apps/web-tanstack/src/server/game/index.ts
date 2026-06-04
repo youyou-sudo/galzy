@@ -1,7 +1,7 @@
 import { api } from '@libs'
 import { createServerFn } from '@tanstack/react-start'
-import z from 'zod'
 import { elysiaErrorF } from '@web/lib'
+import z from 'zod'
 
 export const getGameDetail = createServerFn()
   .inputValidator(z.object({ id: z.string() }))

@@ -1,6 +1,4 @@
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
-import { ArrowDownToLine, Search, Swords, TrendingUp } from 'lucide-react'
-import { useState } from 'react'
 import { BBCodeRenderer } from '@web/components/bbcode'
 import { GameCard } from '@web/components/home/card'
 import { TagsCard } from '@web/components/home/game/tags'
@@ -12,6 +10,8 @@ import { GameViewsTrackEvents } from '@web/components/umami/track-events'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { formatLooseDate, getImageUrl } from '@web/lib'
 import { getGameDetail, getGameTags } from '@web/server/game'
+import { ArrowDownToLine, Search, Swords, TrendingUp } from 'lucide-react'
+import { useState } from 'react'
 
 export const Route = createFileRoute('/$id/_layout')({
   component: RouteComponent,

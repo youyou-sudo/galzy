@@ -2,7 +2,7 @@ import { auth } from '@api/modules/auth/service'
 import cors from '@elysiajs/cors'
 import { Elysia } from 'elysia'
 
-const allowedOrigins = ['http://localhost:3000', `${process.env.WEB_HOST}`]
+const allowedOrigins = ['http://localhost:3001', `${process.env.WEB_HOST}`]
 
 export const betterAuth = new Elysia({ name: 'better-auth' })
   .use(
@@ -14,27 +14,22 @@ export const betterAuth = new Elysia({ name: 'better-auth' })
     }),
   )
   .mount(auth.handler)
-  .derive(async ({ request: { headers } }) => {
-    const session = await auth.api.getSession({ headers })
-
-    return {
-      auth: session,
-    }
-  })
   .macro({
     auth: {
-      async resolve({ status, auth }) {
-        if (!auth) return status(401, '请先登录喵～')
-        return auth
+      async resolve({ status, request: { headers } }) {
+        const session = await auth.api.getSession({ headers })
+        if (!session) throw status(401, '请先登录喵～')
+        return session
       },
     },
     isAdmin: {
-      async resolve({ status, auth }) {
-        if (!auth) return status(401, '请先登录喵～')
-        if (auth.user.role !== 'admin')
-          return status(403, '该用户不具有管理员权限喵～')
+      async resolve({ status, request: { headers } }) {
+        const session = await auth.api.getSession({ headers })
+        if (!session || session === null) throw status(401, '请先登录喵～')
+        if (session.user.role !== 'admin')
+          throw status(403, '该用户不具有管理员权限喵～')
 
-        return auth
+        return session
       },
     },
   })

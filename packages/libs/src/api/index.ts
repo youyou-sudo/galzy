@@ -1,4 +1,10 @@
-import type { APP } from '@api'
+import type { app } from '@api'
 import { treaty } from '@elysiajs/eden'
 
-export const api = treaty<APP>(`${process.env.API_HOST || 'localhost:3001'}`)
+const apiHost = process.env.API_HOST || 'http://localhost:3001'
+
+export const api = treaty<app>(apiHost, {
+  fetch: {
+    credentials: 'include',
+  },
+})

@@ -72,7 +72,14 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     return <Errors code="404" errormessage={'页面不存在'} />
   },
   errorComponent: ({ error }) => {
-    return <Errors code="500" errormessage={error.message} />
+    const status =
+      typeof error === 'object' &&
+      error &&
+      'status' in error &&
+      typeof (error as any).status === 'number'
+        ? (error as any).status
+        : 500
+    return <Errors code={status} errormessage={error.message} />
   },
 })
 

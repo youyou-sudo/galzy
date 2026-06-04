@@ -1,8 +1,8 @@
 // import { Image } from "@unpic/react";
 
 import { Image } from '@unpic/react'
-import { Info } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@web/components/ui/alert'
+import { Info } from 'lucide-react'
 
 // import { AspectRatio } from "@web/components/ui/aspect-ratio";
 

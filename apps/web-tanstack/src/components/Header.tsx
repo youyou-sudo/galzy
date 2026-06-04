@@ -51,32 +51,6 @@ export default function Header() {
                     <Link to="/contact">联系</Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
-
-                {/* <NavigationMenuItem>
-                    <NavigationMenuLink
-                      asChild
-                      className={navigationMenuTriggerStyle()}
-                    >
-                      <Link href="/openapi">OpenApi</Link>
-                    </NavigationMenuLink>
-                  </NavigationMenuItem> */}
-
-                {/* <NavigationMenuItem>
-                    <NavigationMenuLink
-                      asChild
-                      className={navigationMenuTriggerStyle()}
-                    >
-                      <Link
-                        target="_blank"
-                        data-umami-event="广告点击"
-                        data-umami-event-name="DZMM"
-                        data-umami-event-position="导航广告-DZMM"
-                        href="https://www.ainexa.top?rf=876926e5"
-                      >
-                        Ai女友💋（在线畅玩）
-                      </Link>
-                    </NavigationMenuLink>
-                  </NavigationMenuItem> */}
               </NavigationMenuList>
             </NavigationMenu>
           </div>
@@ -118,19 +92,6 @@ export default function Header() {
                     联系
                   </Link>
                 </div>
-                {/* <div className="space-y-4">
-                    <Link
-                      target="_blank"
-                      data-umami-event="广告点击"
-                      data-umami-event-name="DZMM"
-                      data-umami-event-position="导航广告-DZMM"
-                      href="https://www.ainexa.top?rf=876926e5"
-                      className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Ai女友💋（在线畅玩）
-                    </Link>
-                  </div> */}
               </SheetContent>
             </Sheet>
           </div>
