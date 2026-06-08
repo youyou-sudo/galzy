@@ -1,13 +1,13 @@
 import { getRequestHeader } from '@tanstack/react-start/server'
 import { createAuthClient } from 'better-auth/client'
-import { adminClient } from 'better-auth/client/plugins'
+import { betterPlugins } from './betterPlugins'
 
 const BETTER_AUTH_URL = process.env.API_HOST || 'http://localhost:3001'
 const BETTER_AUTH_BASE_PATH = '/auth'
 const BETTER_AUTH_COOKIE_PREFIX = 'better-auth'
 
 export const authServerClient = createAuthClient({
-  plugins: [adminClient()],
+  plugins: betterPlugins,
   baseURL: BETTER_AUTH_URL,
   basePath: BETTER_AUTH_BASE_PATH,
   fetchOptions: {

@@ -28,6 +28,7 @@
     "kysely-postgres-js": "^3.0.0",
     "meilisearch": "^0.58.0",
     "pg": "^8.21.0",
+    "unemail": "^0.4.1",
     "xxhashjs": "^0.2.2"
   },
   "devDependencies": {

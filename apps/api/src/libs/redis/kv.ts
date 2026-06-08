@@ -14,6 +14,16 @@ export const setKv = async (key: string, value: string, time?: number) => {
 }
 
 /**
+ * 获取 Key 对应 TTL
+ * @param key 键
+ * @returns TTl
+ */
+export const getKvTime = async (key: string) => {
+  if (!redis) return
+  return redis.ttl(key)
+}
+
+/**
  * 获取 Key 对应的值
  * @param key 键
  * @returns 对应的值，如果 Key 不存在则返回 null

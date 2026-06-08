@@ -1,4 +1,10 @@
-import { Link } from '@tanstack/react-router'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
+import { Link, useRouter } from '@tanstack/react-router'
 import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
 import {
   DropdownMenu,
@@ -8,29 +14,52 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@web/components/ui/dropdown-menu'
+import { elysiaErrorF } from '@web/lib'
 import { authClient } from '@web/server/auth/auth-client'
 import { LogOut, User, UserCog } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
+import { Button } from '../ui/button'
 import ProfileMenu from './ProfileMenu'
 import UserHeader from './ProfileMenu/UserHeader'
 
 export default function UserMenu() {
-  const { data: session, isPending } = authClient.useSession()
+  const queryClient = useQueryClient()
+  const { data: session, isPending } = useQuery({
+    queryKey: ['auth'],
+    queryFn: async () => {
+      const { data: res, error } = await authClient.getSession()
+      elysiaErrorF(error)
+      return res
+    },
+  })
   const [profileOpen, setProfileOpen] = useState(false)
-
+  const mutation = useMutation({
+    mutationFn: async () => {
+      await authClient.signOut()
+    },
+    onError: () => {
+      toast.error(`退出登陆失败喵`)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['auth'],
+      })
+      toast.success(`退出登陆成功喵～`)
+    },
+  })
   if (isPending) {
     return <div className="size-8 rounded-full bg-muted animate-pulse" />
   }
 
-  if (!session?.user) {
+  if (!session) {
     return (
-      <Link
-        to="/auth/login"
-        className="inline-flex items-center gap-1.5 h-9 px-4 text-sm font-medium bg-white dark:bg-neutral-900 text-neutral-900 dark:text-neutral-50 border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors rounded-md"
-      >
-        <User className="size-4" />
-        登录
-      </Link>
+      <Button asChild variant="outline" size="sm">
+        <Link to="/auth/login">
+          <User className="size-3" />
+          登录
+        </Link>
+      </Button>
     )
   }
 
@@ -60,6 +89,7 @@ export default function UserMenu() {
               name={user.name}
               email={user.email}
               image={user.image}
+              profileMenu={true}
             />
           </div>
           <DropdownMenuSeparator />
@@ -70,8 +100,8 @@ export default function UserMenu() {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
-            onSelect={() => {
-              void authClient.signOut()
+            onSelect={async () => {
+              await mutation.mutate()
             }}
           >
             <LogOut className="size-4" />

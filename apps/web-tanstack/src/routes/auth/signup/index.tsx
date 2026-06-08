@@ -1,5 +1,11 @@
 import { useForm } from '@tanstack/react-form'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
+import {
+  createFileRoute,
+  Link,
+  redirect,
+  useNavigate,
+} from '@tanstack/react-router'
 import { Button } from '@web/components/ui/button'
 import {
   Card,
@@ -18,11 +24,13 @@ import {
 } from '@web/components/ui/field'
 import { Input } from '@web/components/ui/input'
 import { InputGroup, InputGroupInput } from '@web/components/ui/input-group'
+import { getSession } from '@web/server/auth/auth.functions'
 import { authClient } from '@web/server/auth/auth-client'
 import { Eye, EyeOff, Loader2, LogIn, Mail, User } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { ReturnToSchema } from '../login'
 
 const signupSchema = z
   .object({
@@ -36,14 +44,26 @@ const signupSchema = z
     path: ['confirmPassword'],
   })
 
-export const Route = createFileRoute('/auth/signup')({
+export const Route = createFileRoute('/auth/signup/')({
+  validateSearch: ReturnToSchema,
   component: RouteComponent,
+  loaderDeps: ({ search: { return_to } }) => ({ return_to }),
+  loader: async ({ deps: { return_to } }) => {
+    const auth = await getSession()
+    if (auth)
+      return redirect({
+        to: return_to || '/',
+      })
+  },
 })
 
 function RouteComponent() {
-  const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const { return_to } = Route.useSearch()
+
+  const queryCliten = useQueryClient()
+  const navigate = useNavigate()
 
   const form = useForm({
     defaultValues: {
@@ -56,19 +76,27 @@ function RouteComponent() {
       onChange: signupSchema,
     },
     onSubmit: async ({ value }) => {
-      const { error } = await authClient.signUp.email({
+      const return_to_email =
+        '/auth/signup/Verification?email=' +
+        value.email +
+        (return_to ? `&return_to=${return_to}` : '')
+      await authClient.signUp.email({
         name: value.name,
         email: value.email,
         password: value.password,
+        fetchOptions: {
+          onSuccess: () => {
+            queryCliten.invalidateQueries({
+              queryKey: ['auth'],
+            })
+            toast.success('注册成功，跳转到验证喵...')
+            navigate({ to: return_to_email })
+          },
+          onError: ({ error }) => {
+            toast.error(error.message || '注册失败，请重试')
+          },
+        },
       })
-
-      if (error) {
-        toast.error(error.message || '注册失败，请重试')
-        return
-      }
-
-      toast.success('注册成功，即将跳转...')
-      // navigate({ to: '/' })
     },
   })
 
@@ -110,7 +138,7 @@ function RouteComponent() {
                         field.state.meta.errors.length > 0
                       }
                     />
-                    <FieldDescription>设置您的显示名称</FieldDescription>
+                    <FieldDescription>设置您的显示名称喵～</FieldDescription>
                     <FieldError errors={field.state.meta.errors} />
                   </FieldContent>
                 </Field>
@@ -139,7 +167,7 @@ function RouteComponent() {
                         field.state.meta.errors.length > 0
                       }
                     />
-                    <FieldDescription>用于登录和接收通知</FieldDescription>
+                    <FieldDescription>用于登录和接收通知喵～</FieldDescription>
                     <FieldError errors={field.state.meta.errors} />
                   </FieldContent>
                 </Field>

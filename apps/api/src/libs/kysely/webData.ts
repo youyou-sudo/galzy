@@ -202,6 +202,35 @@ export interface ArticlesTable {
   updatedAt: ColumnType<Date, string | undefined, never>
 }
 
+// 评论类型：普通评论、反馈、提问
+export type CommentType = 'comment' | 'feedback' | 'question'
+// 评论状态：正常、隐藏、已删除
+export type CommentStatus = 'normal' | 'hidden' | 'deleted'
+// 反馈处理状态：待处理、处理中、已解决、已驳回
+export type FeedbackStatus = 'open' | 'processing' | 'resolved' | 'rejected'
+
+export interface CommentsTable {
+  id: Generated<string>
+  targetType: 'post' | 'article' | 'game' // 评论所属区块
+  targetId: string // 评论所属条目 ID，如 V1 game
+  userId: string
+  content: string
+  type: CommentType // 评论类型
+  parentId: string | null // 评论父级
+  rootId: string | null // 评论根
+  depth: number // 评论层级
+  replyToUserId: string | null // 回复用户
+  status: CommentStatus
+  feedbackStatus: FeedbackStatus | null // 评论状态
+  isPinned: boolean
+  isWhispers: boolean
+  lastReplyAt: ColumnType<Date | null, Date | null, Date | null>
+  meta: Record<string, any> | null
+  createdAt: ColumnType<Date, string | undefined, never>
+  updatedAt: ColumnType<Date, string | undefined, never>
+  deletedAt: ColumnType<Date | null, Date | null, Date | null>
+}
+
 // vndb
 export interface TagsVnTable {
   updatedAt: ColumnType<Date, string | undefined, never>
@@ -448,6 +477,7 @@ export interface Database {
   galrc_cloudflare: CloudflareConfigTable
   galrc_siteConfig: SiteConfigTable
   galrc_gameDownloadStats: GameDownloadStats
+  galrc_comments: CommentsTable
 
   // Alist 部分
   galrc_search_nodes: AlsitSearchNodes

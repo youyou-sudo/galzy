@@ -1,10 +1,7 @@
 import { useForm } from '@tanstack/react-form'
-import {
-  createFileRoute,
-  Link,
-  redirect,
-  useNavigate,
-} from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
 import { Button } from '@web/components/ui/button'
 import {
   Card,
@@ -42,20 +39,20 @@ export const ReturnToSchema = z.object({
 export const Route = createFileRoute('/auth/login')({
   component: RouteComponent,
   validateSearch: ReturnToSchema,
-  beforeLoad: async () => {
-    const session = await authClient.getSession()
-    if (session.data) {
-      throw redirect({
-        to: '/',
+  loaderDeps: ({ search: { return_to } }) => ({ return_to }),
+  loader: async ({ deps: { return_to } }) => {
+    const auth = await getSession()
+    if (auth)
+      return redirect({
+        to: return_to || '/',
       })
-    }
   },
 })
 
 function RouteComponent() {
-  const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
-
+  const queryClient = useQueryClient()
+  const { return_to } = Route.useSearch()
   const form = useForm({
     defaultValues: {
       email: '',
@@ -65,18 +62,22 @@ function RouteComponent() {
       onChange: loginSchema,
     },
     onSubmit: async ({ value }) => {
-      const { error } = await authClient.signIn.email({
+      await authClient.signIn.email({
         email: value.email,
         password: value.password,
+        callbackURL: return_to || '/',
+        fetchOptions: {
+          onSuccess: () => {
+            queryClient.invalidateQueries({
+              queryKey: ['auth'],
+            })
+            toast.success('登录成功喵～')
+          },
+          onError: ({ error }) => {
+            toast.error(error.message || '登录失败，请重试喵～')
+          },
+        },
       })
-
-      if (error) {
-        toast.error(error.message || '登录失败，请重试')
-        return
-      }
-
-      toast.success('登录成功')
-      navigate({ to: '/' })
     },
   })
 
