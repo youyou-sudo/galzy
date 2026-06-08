@@ -27,6 +27,7 @@
     "@tanstack/react-router-ssr-query": "^1.167.1",
     "@tanstack/react-start": "1.168.22",
     "@tanstack/react-store": "^0.11.0",
+    "@tanstack/router-plugin": "^1.168.18",
     "@unpic/react": "^1.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -54,7 +55,6 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.13",
-    "@rolldown/plugin-babel": "^0.2.3",
     "@tailwindcss/typography": "^0.5.20",
     "@tanstack/devtools-vite": "0.7.0",
     "@testing-library/dom": "^10.4.1",
