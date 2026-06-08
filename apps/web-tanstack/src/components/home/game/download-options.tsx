@@ -1,11 +1,7 @@
 import type { GameModel } from '@api/modules/games/model'
 import { useQuery } from '@tanstack/react-query'
 import { Await, getRouteApi } from '@tanstack/react-router'
-import { useStore } from '@tanstack/react-store'
-import { FileArchive } from 'lucide-react'
-import { tryit } from 'radash'
-import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
+import { useSelector } from '@tanstack/react-store'
 import {
   FileItem,
   Files,
@@ -38,6 +34,10 @@ import {
 import { Skeleton } from '@web/components/ui/skeleton'
 import { dwAcConst } from '@web/server/game'
 import { downCardStore, downmodalActions } from '@web/stores/downCardData'
+import { FileArchive } from 'lucide-react'
+import { tryit } from 'radash'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { GlgczujmDl } from './tips'
 
 const apiroute = getRouteApi('/$id/_layout/')
@@ -186,8 +186,8 @@ const FileExplorer = ({ items }: { items: GameModel.TreeNode[] }) => {
 
 // ---------- 下载弹窗 ----------
 export const DownCardDialog = () => {
-  const data = useStore(downCardStore, (s) => s.data)
-  const open = useStore(downCardStore, (s) => s.open)
+  const data = useSelector(downCardStore, (s) => s.data)
+  const open = useSelector(downCardStore, (s) => s.open)
 
   const [downloadingMap, setDownloadingMap] = useState<Record<string, boolean>>(
     {},

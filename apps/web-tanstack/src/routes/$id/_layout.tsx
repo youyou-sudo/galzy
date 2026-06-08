@@ -10,7 +10,13 @@ import { GameViewsTrackEvents } from '@web/components/umami/track-events'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { formatLooseDate, getImageUrl } from '@web/lib'
 import { getGameDetail, getGameTags } from '@web/server/game'
-import { ArrowDownToLine, Search, Swords, TrendingUp } from 'lucide-react'
+import {
+  ArrowDownToLine,
+  MessageCircle,
+  Search,
+  Swords,
+  TrendingUp,
+} from 'lucide-react'
 import { useState } from 'react'
 
 export const Route = createFileRoute('/$id/_layout')({
@@ -252,6 +258,20 @@ function RouteComponent() {
             >
               <Swords />
               攻略
+            </Link>
+          </TabsTrigger>
+          <TabsTrigger value="comment" asChild>
+            <Link
+              to="/$id/comment"
+              params={{ id: id }}
+              resetScroll={false}
+              activeProps={() => {
+                setCurrentTab('comment')
+                return {}
+              }}
+            >
+              <MessageCircle />
+              讨论
             </Link>
           </TabsTrigger>
           <TabsTrigger value="translate" asChild>

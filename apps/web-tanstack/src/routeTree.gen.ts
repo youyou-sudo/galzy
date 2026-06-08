@@ -17,17 +17,21 @@ import { Route as TagsIndexRouteImport } from './routes/tags/index'
 import { Route as SearchIndexRouteImport } from './routes/search/index'
 import { Route as ProducerIndexRouteImport } from './routes/producer/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as TestIdRouteImport } from './routes/test/$id'
 import { Route as TagsTagIdRouteImport } from './routes/tags/$tagId'
 import { Route as ProducerPidRouteImport } from './routes/producer/$pid'
-import { Route as AuthSignupRouteImport } from './routes/auth/signup'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiGameRouteImport } from './routes/api/game'
 import { Route as IdLayoutRouteImport } from './routes/$id/_layout'
+import { Route as AuthSignupIndexRouteImport } from './routes/auth/signup/index'
 import { Route as IdLayoutIndexRouteImport } from './routes/$id/_layout/index'
+import { Route as AuthSignupTestRouteImport } from './routes/auth/signup/test'
+import { Route as AuthSignupVerificationRouteImport } from './routes/auth/signup/Verification'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as IdLayoutTranslateRouteImport } from './routes/$id/_layout/translate'
+import { Route as IdLayoutCommentRouteImport } from './routes/$id/_layout/comment'
 import { Route as IdLayoutIntroductionIndexRouteImport } from './routes/$id/_layout/introduction/index'
 import { Route as IdLayoutIntroductionArticleIdRouteImport } from './routes/$id/_layout/introduction/$articleId'
 
@@ -71,6 +75,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TestIdRoute = TestIdRouteImport.update({
+  id: '/test/$id',
+  path: '/test/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TagsTagIdRoute = TagsTagIdRouteImport.update({
   id: '/tags/$tagId',
   path: '/tags/$tagId',
@@ -79,11 +88,6 @@ const TagsTagIdRoute = TagsTagIdRouteImport.update({
 const ProducerPidRoute = ProducerPidRouteImport.update({
   id: '/producer/$pid',
   path: '/producer/$pid',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthSignupRoute = AuthSignupRouteImport.update({
-  id: '/auth/signup',
-  path: '/auth/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
@@ -111,10 +115,25 @@ const IdLayoutRoute = IdLayoutRouteImport.update({
   path: '/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthSignupIndexRoute = AuthSignupIndexRouteImport.update({
+  id: '/auth/signup/',
+  path: '/auth/signup/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IdLayoutIndexRoute = IdLayoutIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => IdLayoutRoute,
+} as any)
+const AuthSignupTestRoute = AuthSignupTestRouteImport.update({
+  id: '/auth/signup/test',
+  path: '/auth/signup/test',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSignupVerificationRoute = AuthSignupVerificationRouteImport.update({
+  id: '/auth/signup/Verification',
+  path: '/auth/signup/Verification',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -124,6 +143,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 const IdLayoutTranslateRoute = IdLayoutTranslateRouteImport.update({
   id: '/translate',
   path: '/translate',
+  getParentRoute: () => IdLayoutRoute,
+} as any)
+const IdLayoutCommentRoute = IdLayoutCommentRouteImport.update({
+  id: '/comment',
+  path: '/comment',
   getParentRoute: () => IdLayoutRoute,
 } as any)
 const IdLayoutIntroductionIndexRoute =
@@ -149,16 +173,20 @@ export interface FileRoutesByFullPath {
   '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/auth/login': typeof AuthLoginRoute
-  '/auth/signup': typeof AuthSignupRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
+  '/test/$id': typeof TestIdRoute
   '/admin/': typeof AdminIndexRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
+  '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/auth/signup/Verification': typeof AuthSignupVerificationRoute
+  '/auth/signup/test': typeof AuthSignupTestRoute
   '/$id/': typeof IdLayoutIndexRoute
+  '/auth/signup/': typeof AuthSignupIndexRoute
   '/$id/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
   '/$id/introduction/': typeof IdLayoutIntroductionIndexRoute
 }
@@ -171,16 +199,20 @@ export interface FileRoutesByTo {
   '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/auth/login': typeof AuthLoginRoute
-  '/auth/signup': typeof AuthSignupRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
+  '/test/$id': typeof TestIdRoute
   '/admin': typeof AdminIndexRoute
   '/producer': typeof ProducerIndexRoute
   '/search': typeof SearchIndexRoute
   '/tags': typeof TagsIndexRoute
+  '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/auth/signup/Verification': typeof AuthSignupVerificationRoute
+  '/auth/signup/test': typeof AuthSignupTestRoute
   '/$id': typeof IdLayoutIndexRoute
+  '/auth/signup': typeof AuthSignupIndexRoute
   '/$id/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
   '/$id/introduction': typeof IdLayoutIntroductionIndexRoute
 }
@@ -195,16 +227,20 @@ export interface FileRoutesById {
   '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/auth/login': typeof AuthLoginRoute
-  '/auth/signup': typeof AuthSignupRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
+  '/test/$id': typeof TestIdRoute
   '/admin/': typeof AdminIndexRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
+  '/$id/_layout/comment': typeof IdLayoutCommentRoute
   '/$id/_layout/translate': typeof IdLayoutTranslateRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/auth/signup/Verification': typeof AuthSignupVerificationRoute
+  '/auth/signup/test': typeof AuthSignupTestRoute
   '/$id/_layout/': typeof IdLayoutIndexRoute
+  '/auth/signup/': typeof AuthSignupIndexRoute
   '/$id/_layout/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
   '/$id/_layout/introduction/': typeof IdLayoutIntroductionIndexRoute
 }
@@ -220,16 +256,20 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/api/search'
     | '/auth/login'
-    | '/auth/signup'
     | '/producer/$pid'
     | '/tags/$tagId'
+    | '/test/$id'
     | '/admin/'
     | '/producer/'
     | '/search/'
     | '/tags/'
+    | '/$id/comment'
     | '/$id/translate'
     | '/api/auth/$'
+    | '/auth/signup/Verification'
+    | '/auth/signup/test'
     | '/$id/'
+    | '/auth/signup/'
     | '/$id/introduction/$articleId'
     | '/$id/introduction/'
   fileRoutesByTo: FileRoutesByTo
@@ -242,16 +282,20 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/api/search'
     | '/auth/login'
-    | '/auth/signup'
     | '/producer/$pid'
     | '/tags/$tagId'
+    | '/test/$id'
     | '/admin'
     | '/producer'
     | '/search'
     | '/tags'
+    | '/$id/comment'
     | '/$id/translate'
     | '/api/auth/$'
+    | '/auth/signup/Verification'
+    | '/auth/signup/test'
     | '/$id'
+    | '/auth/signup'
     | '/$id/introduction/$articleId'
     | '/$id/introduction'
   id:
@@ -265,16 +309,20 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/api/search'
     | '/auth/login'
-    | '/auth/signup'
     | '/producer/$pid'
     | '/tags/$tagId'
+    | '/test/$id'
     | '/admin/'
     | '/producer/'
     | '/search/'
     | '/tags/'
+    | '/$id/_layout/comment'
     | '/$id/_layout/translate'
     | '/api/auth/$'
+    | '/auth/signup/Verification'
+    | '/auth/signup/test'
     | '/$id/_layout/'
+    | '/auth/signup/'
     | '/$id/_layout/introduction/$articleId'
     | '/$id/_layout/introduction/'
   fileRoutesById: FileRoutesById
@@ -289,14 +337,17 @@ export interface RootRouteChildren {
   ApiHealthRoute: typeof ApiHealthRoute
   ApiSearchRoute: typeof ApiSearchRoute
   AuthLoginRoute: typeof AuthLoginRoute
-  AuthSignupRoute: typeof AuthSignupRoute
   ProducerPidRoute: typeof ProducerPidRoute
   TagsTagIdRoute: typeof TagsTagIdRoute
+  TestIdRoute: typeof TestIdRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ProducerIndexRoute: typeof ProducerIndexRoute
   SearchIndexRoute: typeof SearchIndexRoute
   TagsIndexRoute: typeof TagsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  AuthSignupVerificationRoute: typeof AuthSignupVerificationRoute
+  AuthSignupTestRoute: typeof AuthSignupTestRoute
+  AuthSignupIndexRoute: typeof AuthSignupIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -357,6 +408,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/test/$id': {
+      id: '/test/$id'
+      path: '/test/$id'
+      fullPath: '/test/$id'
+      preLoaderRoute: typeof TestIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tags/$tagId': {
       id: '/tags/$tagId'
       path: '/tags/$tagId'
@@ -369,13 +427,6 @@ declare module '@tanstack/react-router' {
       path: '/producer/$pid'
       fullPath: '/producer/$pid'
       preLoaderRoute: typeof ProducerPidRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/signup': {
-      id: '/auth/signup'
-      path: '/auth/signup'
-      fullPath: '/auth/signup'
-      preLoaderRoute: typeof AuthSignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/login': {
@@ -413,12 +464,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IdLayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/signup/': {
+      id: '/auth/signup/'
+      path: '/auth/signup'
+      fullPath: '/auth/signup/'
+      preLoaderRoute: typeof AuthSignupIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$id/_layout/': {
       id: '/$id/_layout/'
       path: '/'
       fullPath: '/$id/'
       preLoaderRoute: typeof IdLayoutIndexRouteImport
       parentRoute: typeof IdLayoutRoute
+    }
+    '/auth/signup/test': {
+      id: '/auth/signup/test'
+      path: '/auth/signup/test'
+      fullPath: '/auth/signup/test'
+      preLoaderRoute: typeof AuthSignupTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/signup/Verification': {
+      id: '/auth/signup/Verification'
+      path: '/auth/signup/Verification'
+      fullPath: '/auth/signup/Verification'
+      preLoaderRoute: typeof AuthSignupVerificationRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -432,6 +504,13 @@ declare module '@tanstack/react-router' {
       path: '/translate'
       fullPath: '/$id/translate'
       preLoaderRoute: typeof IdLayoutTranslateRouteImport
+      parentRoute: typeof IdLayoutRoute
+    }
+    '/$id/_layout/comment': {
+      id: '/$id/_layout/comment'
+      path: '/comment'
+      fullPath: '/$id/comment'
+      preLoaderRoute: typeof IdLayoutCommentRouteImport
       parentRoute: typeof IdLayoutRoute
     }
     '/$id/_layout/introduction/': {
@@ -452,6 +531,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface IdLayoutRouteChildren {
+  IdLayoutCommentRoute: typeof IdLayoutCommentRoute
   IdLayoutTranslateRoute: typeof IdLayoutTranslateRoute
   IdLayoutIndexRoute: typeof IdLayoutIndexRoute
   IdLayoutIntroductionArticleIdRoute: typeof IdLayoutIntroductionArticleIdRoute
@@ -459,6 +539,7 @@ interface IdLayoutRouteChildren {
 }
 
 const IdLayoutRouteChildren: IdLayoutRouteChildren = {
+  IdLayoutCommentRoute: IdLayoutCommentRoute,
   IdLayoutTranslateRoute: IdLayoutTranslateRoute,
   IdLayoutIndexRoute: IdLayoutIndexRoute,
   IdLayoutIntroductionArticleIdRoute: IdLayoutIntroductionArticleIdRoute,
@@ -479,14 +560,17 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHealthRoute: ApiHealthRoute,
   ApiSearchRoute: ApiSearchRoute,
   AuthLoginRoute: AuthLoginRoute,
-  AuthSignupRoute: AuthSignupRoute,
   ProducerPidRoute: ProducerPidRoute,
   TagsTagIdRoute: TagsTagIdRoute,
+  TestIdRoute: TestIdRoute,
   AdminIndexRoute: AdminIndexRoute,
   ProducerIndexRoute: ProducerIndexRoute,
   SearchIndexRoute: SearchIndexRoute,
   TagsIndexRoute: TagsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  AuthSignupVerificationRoute: AuthSignupVerificationRoute,
+  AuthSignupTestRoute: AuthSignupTestRoute,
+  AuthSignupIndexRoute: AuthSignupIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
