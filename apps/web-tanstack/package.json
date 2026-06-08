@@ -22,7 +22,7 @@
     "@tanstack/react-form": "^1.33.0",
     "@tanstack/react-query": "^5.101.0",
     "@tanstack/react-query-devtools": "^5.101.0",
-    "@tanstack/react-router": "^1.170.13",
+    "@tanstack/react-router": "^1.170.15",
     "@tanstack/react-router-devtools": "^1.167.0",
     "@tanstack/react-router-ssr-query": "^1.167.1",
     "@tanstack/react-start": "1.168.22",
@@ -55,7 +55,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.13",
     "@rolldown/plugin-babel": "^0.2.3",
-    "@tailwindcss/typography": "^0.5.19",
+    "@tailwindcss/typography": "^0.5.20",
     "@tanstack/devtools-vite": "0.7.0",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
