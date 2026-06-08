@@ -1,7 +1,4 @@
-import { api } from '@libs'
 import { createFileRoute } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
-import { getRequestHeader } from '@tanstack/react-start/server'
 import CountComponent from '@web/components/home/Count'
 import HomeGamelist from '@web/components/home/homeGameList'
 import { RankingList } from '@web/components/home/remf'
@@ -14,48 +11,8 @@ import {
   CardTitle,
 } from '@web/components/ui/card'
 import { Skeleton } from '@web/components/ui/skeleton'
-import { elysiaErrorF } from '@web/lib'
+import { getCritical, getGameList } from '@web/server/game'
 import { Gamepad2, Tags } from 'lucide-react'
-import z from 'zod'
-
-export const getGameList = createServerFn()
-  .inputValidator(
-    z
-      .object({
-        pageSize: z.number(),
-        pageIndex: z.number(),
-      })
-      .partial()
-      .default({}),
-  )
-  .handler(async ({ data }) => {
-    const cookie = getRequestHeader('Cookie')
-    const { data: gamelistRes, error } = await api.games.gamelist.get({
-      query: {
-        pageIndex: data.pageIndex || 0,
-        pageSize: data.pageSize || 24,
-      },
-      headers: {
-        cookie,
-      },
-    })
-
-    elysiaErrorF(error)
-    return { gamelist: gamelistRes }
-  })
-
-const getCritical = createServerFn().handler(async () => {
-  const [
-    { data: gameRes, error: gameReserror },
-    { data: tagRes, error: tagReserror },
-  ] = await Promise.all([api.umami.remfGame.get(), api.umami.remfTag.get()])
-  elysiaErrorF(gameReserror)
-  elysiaErrorF(tagReserror)
-  return {
-    game: gameRes,
-    tag: tagRes,
-  }
-})
 
 export const Route = createFileRoute('/')({
   component: App,
@@ -69,6 +26,11 @@ export const Route = createFileRoute('/')({
 
   pendingComponent: () => <HomePageSkeleton />,
   // Client-side caching (via TanStack Router)
+  headers: () => ({
+    // Cache at CDN for 1 hour, allow stale content for up to 1 day
+    'Cache-Control':
+      'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
+  }),
   staleTime: 60_000, // Consider data fresh for 60 seconds on client
   gcTime: 5 * 60_000, // Keep in memory for 5 minutes
 })

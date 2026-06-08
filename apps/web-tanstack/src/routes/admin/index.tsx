@@ -5,7 +5,7 @@ export const Route = createFileRoute('/admin/')({
   component: RouteComponent,
   loader: async () => {
     const authSession = await getSession()
-    const isAdmin = authSession.user.role === 'admin'
+    const isAdmin = authSession?.user.role === 'admin'
     if (!isAdmin) {
       throw new Error('不是管理员喵～')
     }

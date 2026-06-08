@@ -23,8 +23,8 @@ async function proxy(request: Request) {
 export const Route = createFileRoute('/api/auth/$')({
   server: {
     handlers: {
-      GET: ({ request }) => proxy(request),
-      POST: ({ request }) => proxy(request),
+      GET: async ({ request }: { request: Request }) => proxy(request),
+      POST: async ({ request }: { request: Request }) => proxy(request),
     },
   },
 })

@@ -60,3 +60,38 @@ export const dwAcConst = createServerFn()
     elysiaErrorF(error)
     return res
   })
+
+export const getGameList = createServerFn()
+  .inputValidator(
+    z
+      .object({
+        pageSize: z.number(),
+        pageIndex: z.number(),
+      })
+      .partial()
+      .default({}),
+  )
+  .handler(async ({ data }) => {
+    const { data: gamelistRes, error } = await api.games.gamelist.get({
+      query: {
+        pageIndex: data.pageIndex || 0,
+        pageSize: data.pageSize || 24,
+      },
+    })
+
+    elysiaErrorF(error)
+    return { gamelist: gamelistRes }
+  })
+
+export const getCritical = createServerFn().handler(async () => {
+  const [
+    { data: gameRes, error: gameReserror },
+    { data: tagRes, error: tagReserror },
+  ] = await Promise.all([api.umami.remfGame.get(), api.umami.remfTag.get()])
+  elysiaErrorF(gameReserror)
+  elysiaErrorF(tagReserror)
+  return {
+    game: gameRes,
+    tag: tagRes,
+  }
+})

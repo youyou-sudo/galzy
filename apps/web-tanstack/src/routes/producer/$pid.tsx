@@ -19,6 +19,10 @@ export const Route = createFileRoute('/producer/$pid')({
       gameList: producerGameList({ data: { pid } }),
     }
   },
+  headers: () => ({
+    // Cache at CDN for 1 hour, allow stale content for up to 1 day
+    'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
+  }),
 })
 
 function RouteComponent() {

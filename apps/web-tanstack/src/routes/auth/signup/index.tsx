@@ -55,6 +55,9 @@ export const Route = createFileRoute('/auth/signup/')({
         to: return_to || '/',
       })
   },
+  headers: () => ({
+    'Cache-Control': 'no-cache',
+  }),
 })
 
 function RouteComponent() {

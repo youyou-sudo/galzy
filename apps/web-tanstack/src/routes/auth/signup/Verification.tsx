@@ -37,6 +37,9 @@ export const Route = createFileRoute('/auth/signup/Verification')({
       seedS: await seedVerification({ data: { email: deps.email } }),
     }
   },
+  headers: () => ({
+    'Cache-Control': 'no-cache',
+  }),
 })
 
 function RouteComponent() {
