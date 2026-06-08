@@ -2,8 +2,6 @@ import { api } from '@libs'
 import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeader } from '@tanstack/react-start/server'
-import { Gamepad2, Tags } from 'lucide-react'
-import z from 'zod'
 import CountComponent from '@web/components/home/Count'
 import HomeGamelist from '@web/components/home/homeGameList'
 import { RankingList } from '@web/components/home/remf'
@@ -17,6 +15,8 @@ import {
 } from '@web/components/ui/card'
 import { Skeleton } from '@web/components/ui/skeleton'
 import { elysiaErrorF } from '@web/lib'
+import { Gamepad2, Tags } from 'lucide-react'
+import z from 'zod'
 
 export const getGameList = createServerFn()
   .inputValidator(
@@ -68,10 +68,6 @@ export const Route = createFileRoute('/')({
   },
 
   pendingComponent: () => <HomePageSkeleton />,
-  // CDN caching (via headers)
-  headers: () => ({
-    'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
-  }),
   // Client-side caching (via TanStack Router)
   staleTime: 60_000, // Consider data fresh for 60 seconds on client
   gcTime: 5 * 60_000, // Keep in memory for 5 minutes

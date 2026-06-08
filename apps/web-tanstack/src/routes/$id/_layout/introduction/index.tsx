@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { NotepadText } from 'lucide-react'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { getGameDetail } from '@web/server/game'
 import { getintroductionList } from '@web/server/introduction'
+import { NotepadText } from 'lucide-react'
 
 export const Route = createFileRoute('/$id/_layout/introduction/')({
   component: RouteComponent,
@@ -26,10 +26,6 @@ export const Route = createFileRoute('/$id/_layout/introduction/')({
         } 攻略文章列表 | ${seoTemplate.title}`,
       },
     ],
-  }),
-  // CDN caching (via headers)
-  headers: () => ({
-    'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
   }),
   // Client-side caching (via TanStack Router)
   staleTime: 60_000, // Consider data fresh for 60 seconds on client

@@ -1,8 +1,4 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowLeft, User } from 'lucide-react'
-import Markdown from 'react-markdown'
-import rehypeRaw from 'rehype-raw'
-import remarkGfm from 'remark-gfm'
 import {
   Card,
   CardContent,
@@ -12,6 +8,10 @@ import {
 } from '@web/components/ui/card'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { getIntroductionArticle } from '@web/server/introduction'
+import { ArrowLeft, User } from 'lucide-react'
+import Markdown from 'react-markdown'
+import rehypeRaw from 'rehype-raw'
+import remarkGfm from 'remark-gfm'
 
 export const Route = createFileRoute('/$id/_layout/introduction/$articleId')({
   component: RouteComponent,
@@ -28,10 +28,6 @@ export const Route = createFileRoute('/$id/_layout/introduction/$articleId')({
         content: `${loaderData?.title}`,
       },
     ],
-  }),
-  // CDN caching (via headers)
-  headers: () => ({
-    'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
   }),
   // Client-side caching (via TanStack Router)
   staleTime: 60_000, // Consider data fresh for 60 seconds on client

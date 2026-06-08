@@ -25,10 +25,6 @@ export const Route = createFileRoute('/$id/_layout/translate')({
       },
     ],
   }),
-  // CDN caching (via headers)
-  headers: () => ({
-    'Cache-Control': 'public, max-age=3600, stale-while-revalidate=86400',
-  }),
   // Client-side caching (via TanStack Router)
   staleTime: 60_000, // Consider data fresh for 60 seconds on client
   gcTime: 5 * 60_000, // Keep in memory for 5 minutes

@@ -17,7 +17,6 @@ import { Route as TagsIndexRouteImport } from './routes/tags/index'
 import { Route as SearchIndexRouteImport } from './routes/search/index'
 import { Route as ProducerIndexRouteImport } from './routes/producer/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as TestIdRouteImport } from './routes/test/$id'
 import { Route as TagsTagIdRouteImport } from './routes/tags/$tagId'
 import { Route as ProducerPidRouteImport } from './routes/producer/$pid'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
@@ -27,7 +26,6 @@ import { Route as ApiGameRouteImport } from './routes/api/game'
 import { Route as IdLayoutRouteImport } from './routes/$id/_layout'
 import { Route as AuthSignupIndexRouteImport } from './routes/auth/signup/index'
 import { Route as IdLayoutIndexRouteImport } from './routes/$id/_layout/index'
-import { Route as AuthSignupTestRouteImport } from './routes/auth/signup/test'
 import { Route as AuthSignupVerificationRouteImport } from './routes/auth/signup/Verification'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as IdLayoutTranslateRouteImport } from './routes/$id/_layout/translate'
@@ -75,11 +73,6 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TestIdRoute = TestIdRouteImport.update({
-  id: '/test/$id',
-  path: '/test/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TagsTagIdRoute = TagsTagIdRouteImport.update({
   id: '/tags/$tagId',
   path: '/tags/$tagId',
@@ -124,11 +117,6 @@ const IdLayoutIndexRoute = IdLayoutIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => IdLayoutRoute,
-} as any)
-const AuthSignupTestRoute = AuthSignupTestRouteImport.update({
-  id: '/auth/signup/test',
-  path: '/auth/signup/test',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSignupVerificationRoute = AuthSignupVerificationRouteImport.update({
   id: '/auth/signup/Verification',
@@ -175,7 +163,6 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AuthLoginRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
-  '/test/$id': typeof TestIdRoute
   '/admin/': typeof AdminIndexRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
@@ -184,7 +171,6 @@ export interface FileRoutesByFullPath {
   '/$id/translate': typeof IdLayoutTranslateRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
-  '/auth/signup/test': typeof AuthSignupTestRoute
   '/$id/': typeof IdLayoutIndexRoute
   '/auth/signup/': typeof AuthSignupIndexRoute
   '/$id/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
@@ -201,7 +187,6 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
-  '/test/$id': typeof TestIdRoute
   '/admin': typeof AdminIndexRoute
   '/producer': typeof ProducerIndexRoute
   '/search': typeof SearchIndexRoute
@@ -210,7 +195,6 @@ export interface FileRoutesByTo {
   '/$id/translate': typeof IdLayoutTranslateRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
-  '/auth/signup/test': typeof AuthSignupTestRoute
   '/$id': typeof IdLayoutIndexRoute
   '/auth/signup': typeof AuthSignupIndexRoute
   '/$id/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
@@ -229,7 +213,6 @@ export interface FileRoutesById {
   '/auth/login': typeof AuthLoginRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
-  '/test/$id': typeof TestIdRoute
   '/admin/': typeof AdminIndexRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
@@ -238,7 +221,6 @@ export interface FileRoutesById {
   '/$id/_layout/translate': typeof IdLayoutTranslateRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
-  '/auth/signup/test': typeof AuthSignupTestRoute
   '/$id/_layout/': typeof IdLayoutIndexRoute
   '/auth/signup/': typeof AuthSignupIndexRoute
   '/$id/_layout/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
@@ -258,7 +240,6 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/producer/$pid'
     | '/tags/$tagId'
-    | '/test/$id'
     | '/admin/'
     | '/producer/'
     | '/search/'
@@ -267,7 +248,6 @@ export interface FileRouteTypes {
     | '/$id/translate'
     | '/api/auth/$'
     | '/auth/signup/Verification'
-    | '/auth/signup/test'
     | '/$id/'
     | '/auth/signup/'
     | '/$id/introduction/$articleId'
@@ -284,7 +264,6 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/producer/$pid'
     | '/tags/$tagId'
-    | '/test/$id'
     | '/admin'
     | '/producer'
     | '/search'
@@ -293,7 +272,6 @@ export interface FileRouteTypes {
     | '/$id/translate'
     | '/api/auth/$'
     | '/auth/signup/Verification'
-    | '/auth/signup/test'
     | '/$id'
     | '/auth/signup'
     | '/$id/introduction/$articleId'
@@ -311,7 +289,6 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/producer/$pid'
     | '/tags/$tagId'
-    | '/test/$id'
     | '/admin/'
     | '/producer/'
     | '/search/'
@@ -320,7 +297,6 @@ export interface FileRouteTypes {
     | '/$id/_layout/translate'
     | '/api/auth/$'
     | '/auth/signup/Verification'
-    | '/auth/signup/test'
     | '/$id/_layout/'
     | '/auth/signup/'
     | '/$id/_layout/introduction/$articleId'
@@ -339,14 +315,12 @@ export interface RootRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
   ProducerPidRoute: typeof ProducerPidRoute
   TagsTagIdRoute: typeof TagsTagIdRoute
-  TestIdRoute: typeof TestIdRoute
   AdminIndexRoute: typeof AdminIndexRoute
   ProducerIndexRoute: typeof ProducerIndexRoute
   SearchIndexRoute: typeof SearchIndexRoute
   TagsIndexRoute: typeof TagsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   AuthSignupVerificationRoute: typeof AuthSignupVerificationRoute
-  AuthSignupTestRoute: typeof AuthSignupTestRoute
   AuthSignupIndexRoute: typeof AuthSignupIndexRoute
 }
 
@@ -406,13 +380,6 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/test/$id': {
-      id: '/test/$id'
-      path: '/test/$id'
-      fullPath: '/test/$id'
-      preLoaderRoute: typeof TestIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tags/$tagId': {
@@ -477,13 +444,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/$id/'
       preLoaderRoute: typeof IdLayoutIndexRouteImport
       parentRoute: typeof IdLayoutRoute
-    }
-    '/auth/signup/test': {
-      id: '/auth/signup/test'
-      path: '/auth/signup/test'
-      fullPath: '/auth/signup/test'
-      preLoaderRoute: typeof AuthSignupTestRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/auth/signup/Verification': {
       id: '/auth/signup/Verification'
@@ -562,14 +522,12 @@ const rootRouteChildren: RootRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
   ProducerPidRoute: ProducerPidRoute,
   TagsTagIdRoute: TagsTagIdRoute,
-  TestIdRoute: TestIdRoute,
   AdminIndexRoute: AdminIndexRoute,
   ProducerIndexRoute: ProducerIndexRoute,
   SearchIndexRoute: SearchIndexRoute,
   TagsIndexRoute: TagsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   AuthSignupVerificationRoute: AuthSignupVerificationRoute,
-  AuthSignupTestRoute: AuthSignupTestRoute,
   AuthSignupIndexRoute: AuthSignupIndexRoute,
 }
 export const routeTree = rootRouteImport
