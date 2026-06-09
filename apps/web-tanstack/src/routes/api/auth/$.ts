@@ -10,6 +10,7 @@ async function proxy(request: Request) {
   const res = await fetch(targetUrl, {
     method: request.method,
     headers: request.headers,
+    redirect: 'manual',
     body:
       request.method !== 'GET' && request.method !== 'HEAD'
         ? await request.text()

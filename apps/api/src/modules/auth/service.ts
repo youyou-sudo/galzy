@@ -1,12 +1,9 @@
 // import { dbConfig } from '@api/libs/config'
 
-import { getKvTime, setKv } from '@api/libs'
-import { emailServer } from '@api/libs/seedMail'
-import { type BetterAuthOptions, betterAuth } from 'better-auth'
+import { APIError, type BetterAuthOptions, betterAuth } from 'better-auth'
 // import { BunPostgresDialect } from 'kysely-bun-sql'
-import { admin, emailOTP, genericOAuth, openAPI } from 'better-auth/plugins'
+import { admin, genericOAuth, openAPI } from 'better-auth/plugins'
 import { localization } from 'better-auth-localization'
-import { status } from 'elysia'
 import { Pool } from 'pg'
 import { emailOtpPlugin } from './emailOtp-plugin'
 
@@ -42,29 +39,6 @@ const _authConfig = {
       fallbackLocale: 'default', // Fallback to English
     }),
     emailOtpPlugin(),
-    // emailOTP({
-    //   overrideDefaultEmailVerification: true,
-    //   disableSignUp: true,
-    //   async sendVerificationOTP({ email, otp, type }) {
-    //     const otpTtl = await getKvTime(email)
-
-    //     console.log(otpTtl)
-    //     if (otpTtl && otpTtl < 0)
-    //       throw status(429, `请求过于频繁，请 ${otpTtl}s 后再试`)
-
-    //     if (type === 'sign-in') return
-    //     if (type === 'email-verification') {
-    //       // Send the OTP for email verification
-    //       // void (await emailServer.send({
-    //       //   from: '紫缘社 <verify@outbound.galzy.moe>',
-    //       //   to: email,
-    //       //   subject: '紫缘社注册验证码喵～',
-    //       //   text: `您的验证码是 ${otp} 喵～，有效期 5 分钟喵，请不要告诉别人喵～`,
-    //       // }))
-    //       await setKv(email, email, 60)
-    //     }
-    //   },
-    // }),
     genericOAuth({
       config: [
         {
@@ -133,12 +107,98 @@ const _authConfig = {
             }
           },
         },
+        {
+          providerId: 'linuxdo',
+          clientId: process.env.LINUXDO_CLIENT_ID || '',
+          clientSecret: process.env.LINUXDO_CLIENT_SECRET || '',
+          authorizationUrl: 'https://connect.linux.do/oauth2/authorize',
+          tokenUrl: 'https://connect.linux.do/oauth2/token',
+          scopes: ['openid', 'profile', 'email'],
+          pkce: true,
+          getToken: async ({ code, redirectURI, codeVerifier }) => {
+            const res = await fetch('https://connect.linux.do/oauth2/token', {
+              method: 'POST',
+              headers: { 'content-type': 'application/x-www-form-urlencoded' },
+              body: new URLSearchParams({
+                grant_type: 'authorization_code',
+                code,
+                redirect_uri: redirectURI,
+                client_id: process.env.LINUXDO_CLIENT_ID || '',
+                client_secret: process.env.LINUXDO_CLIENT_SECRET || '',
+                ...(codeVerifier ? { code_verifier: codeVerifier } : {}),
+              }),
+            })
+
+            if (!res.ok) {
+              const err = await res.json()
+              console.log(err)
+              throw new APIError('BAD_REQUEST', {
+                message: err.error || 'OAuth token 获取失败',
+              })
+            }
+
+            const json = await res.json()
+
+            return {
+              accessToken: json.access_token,
+              refreshToken: json.refresh_token,
+              accessTokenExpiresAt: new Date(
+                Date.now() + json.expires_in * 1000,
+              ),
+              raw: json,
+            }
+          },
+          getUserInfo: async (tokens) => {
+            const res = await fetch('https://connect.linux.do/api/user', {
+              headers: {
+                Authorization: `Bearer ${tokens.accessToken}`,
+              },
+            })
+
+            if (!res.ok) {
+              const err = await res.json()
+              throw new Error(
+                err.error_description || err.error || '用户信息请求失败',
+              )
+            }
+
+            const json = await res.json()
+
+            return {
+              id: json.sub,
+              email: json.email,
+              name: json.name || json.username || json.login,
+              image: json.avatar_url,
+              emailVerified: true,
+            }
+          },
+        },
       ],
     }),
   ],
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
+  },
+  socialProviders: {
+    github: {
+      clientId: process.env.GITHUB_CLIENT_ID as string,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+      redirectURI: process.env.WEB_HOST + '/api/auth/callback/github',
+    },
+    discord: {
+      clientId: process.env.DISCORD_CLIENT_ID as string,
+      clientSecret: process.env.DISCORD_CLIENT_SECRET as string,
+      redirectURI: process.env.WEB_HOST + '/api/auth/callback/discord',
+      mapProfileToUser: (profile) => ({
+        email: profile.email ?? `${profile.id}@discord.placeholder.local`,
+      }),
+    },
+    twitter: {
+      clientId: process.env.TWITTER_CLIENT_ID as string,
+      clientSecret: process.env.TWITTER_CLIENT_SECRET as string,
+      redirectURI: process.env.WEB_HOST + '/api/auth/callback/twitter',
+    },
   },
   trustedOrigins: [
     'http://localhost:3000',
