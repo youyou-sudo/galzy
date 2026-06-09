@@ -53,8 +53,9 @@ const _authConfig = {
           pkce: true,
           requireIssuerValidation: true,
           getToken: async ({ code, codeVerifier }) => {
-            const redirectURI =
+            const redirecturl =
               process.env.WEB_HOST + '/api/auth/oauth2/callback/kungal'
+            console.log(redirecturl)
             const res = await fetch(
               'https://oauth.kungal.com/api/v1/oauth/token',
               {
@@ -63,7 +64,7 @@ const _authConfig = {
                 body: JSON.stringify({
                   grant_type: 'authorization_code',
                   code,
-                  redirect_uri: redirectURI,
+                  redirect_uri: redirecturl,
                   client_id: process.env.KUNGAL_CLIENT_ID || '',
                   client_secret: process.env.KUNGAL_CLIENT_SECRET || '',
                   code_verifier: codeVerifier,
@@ -129,15 +130,17 @@ const _authConfig = {
           scopes: ['openid', 'profile', 'email'],
           pkce: true,
           getToken: async ({ code, codeVerifier }) => {
-            const redirectURI =
+            const redirecturl =
               process.env.WEB_HOST + '/api/auth/oauth2/callback/linuxdo'
+            console.log(redirecturl)
+
             const res = await fetch('https://connect.linux.do/oauth2/token', {
               method: 'POST',
               headers: { 'content-type': 'application/x-www-form-urlencoded' },
               body: new URLSearchParams({
                 grant_type: 'authorization_code',
                 code,
-                redirect_uri: redirectURI,
+                redirect_uri: redirecturl,
                 client_id: process.env.LINUXDO_CLIENT_ID || '',
                 client_secret: process.env.LINUXDO_CLIENT_SECRET || '',
                 ...(codeVerifier ? { code_verifier: codeVerifier } : {}),
