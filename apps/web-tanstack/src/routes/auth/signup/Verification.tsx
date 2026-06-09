@@ -51,6 +51,23 @@ function RouteComponent() {
 
   const verify = useMutation({
     mutationFn: async () => {
+      await authClient.emailopt.seedverificationemail({
+        email: email,
+        type: 'email-verification',
+        fetchOptions: {
+          onSuccess: () => {
+            toast.success('验证码已发送喵～')
+          },
+          onError: (ctx) => {
+            toast.error(ctx.error.message)
+          },
+        },
+      })
+    },
+  })
+
+  const seedVerificationEmail = useMutation({
+    mutationFn: async () => {
       await authClient.emailopt.emailverificationtop({
         email,
         otp: value,
@@ -60,7 +77,7 @@ function RouteComponent() {
             queryClient.invalidateQueries({
               queryKey: ['auth'],
             })
-            toast.success('验证成功，正在跳转')
+            toast.success('验证成功，正在跳转喵～')
             navigate({ to: return_to || '/auth/login' })
           },
           onError: (ctx) => {
@@ -81,7 +98,7 @@ function RouteComponent() {
         <CardHeader>
           <CardTitle>验证您的邮箱喵～</CardTitle>
           <CardDescription>
-            输入发送到邮箱的验证码：
+            输入发送到邮箱的验证码（可能在垃圾邮箱里喵～）：
             <span className="font-medium">{email}</span>
           </CardDescription>
         </CardHeader>
@@ -94,22 +111,13 @@ function RouteComponent() {
               <Button
                 variant="outline"
                 size="xs"
-                onClick={async () => {
-                  await authClient.emailopt.seedverificationemail({
-                    email: email,
-                    type: 'email-verification',
-                    fetchOptions: {
-                      onSuccess: () => {
-                        toast.success('验证码已发送')
-                      },
-                      onError: (ctx) => {
-                        toast.error(ctx.error.message)
-                      },
-                    },
-                  })
-                }}
+                onClick={() => seedVerificationEmail.mutate()}
               >
-                <RefreshCwIcon />
+                {seedVerificationEmail.isPending ? (
+                  <RefreshCwIcon className="animate-spin" />
+                ) : (
+                  <RefreshCwIcon />
+                )}
                 重新发送验证码
               </Button>
             </div>
@@ -148,7 +156,7 @@ function RouteComponent() {
               onClick={() => verify.mutate()}
             >
               {verify.isPending && <RefreshCwIcon className="animate-spin" />}
-              Verify
+              验证
             </Button>
           </Field>
         </CardFooter>
