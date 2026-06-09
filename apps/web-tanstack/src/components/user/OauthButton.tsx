@@ -1,11 +1,11 @@
 import { Image } from '@unpic/react'
 import { authClient } from '@web/server/auth/auth-client'
 import { useState } from 'react'
-import { FaDiscord, FaGithub } from 'react-icons/fa'
+import { FaDiscord, FaGithub, FaTwitter } from 'react-icons/fa'
 import { Button } from '../ui/button'
 import { Separator } from '../ui/separator'
 
-type Provider = 'github' | 'linuxdo' | 'discord' | 'kungal'
+type Provider = 'github' | 'linuxdo' | 'discord' | 'kungal' | 'twitter'
 
 export const OauthButton = () => {
   const [loading, setLoading] = useState<Provider | null>(null)
@@ -64,6 +64,14 @@ export const OauthButton = () => {
         >
           <FaGithub data-icon="inline-start" />
           Github
+        </Button>
+
+        <Button
+          disabled={loading === 'twitter'}
+          onClick={() => handleSocialSignIn('twitter')}
+        >
+          <FaTwitter data-icon="inline-start" />
+          twitter
         </Button>
 
         <Button

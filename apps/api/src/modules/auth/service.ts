@@ -210,6 +210,11 @@ const _authConfig = {
         email: profile.email ?? `${profile.id}@discord.placeholder.local`,
       }),
     },
+    twitter: {
+      clientId: process.env.TWITTER_CLIENT_ID as string,
+      clientSecret: process.env.TWITTER_CLIENT_SECRET as string,
+      redirectURI: process.env.WEB_HOST + '/api/auth/callback/twitter',
+    },
   },
   trustedOrigins: [
     'http://localhost:3000',
