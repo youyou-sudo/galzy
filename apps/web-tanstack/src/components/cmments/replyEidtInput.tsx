@@ -9,6 +9,7 @@ import { authClient } from '@web/server/auth/auth-client'
 import { createCmments } from '@web/server/comments'
 import { replyCardStore, replycardActions } from '@web/stores/replyEidtInput'
 import { PawPrint } from 'lucide-react'
+import { useRef } from 'react'
 import { toast } from 'sonner'
 import * as z from 'zod'
 import KaomojiPicker from '../EmojiPicker/emoji-picker'
@@ -43,6 +44,7 @@ export const ReplyEidtInput = ({
   commentscomp: boolean
 }) => {
   const formId = `reply-edit-form-${reId}-${targetId}`
+  const cursorPosRef = useRef({ start: 0, end: 0 })
 
   const data = useSelector(replyCardStore, (s) => s.data)
   const openReId = useSelector(replyCardStore, (s) => s.openReId)
@@ -170,7 +172,11 @@ export const ReplyEidtInput = ({
                       id={field.name}
                       name={field.name}
                       value={field.state.value}
-                      onBlur={() => {
+                      onBlur={(e) => {
+                        cursorPosRef.current = {
+                          start: e.currentTarget.selectionStart ?? 0,
+                          end: e.currentTarget.selectionEnd ?? 0,
+                        }
                         field.handleBlur()
                       }}
                       onChange={(e) => field.handleChange(e.target.value)}
@@ -199,15 +205,29 @@ export const ReplyEidtInput = ({
                     <Field orientation="horizontal" className="justify-between">
                       <div className="flex items-center">
                         <KaomojiPicker
-                          onKaomojiSelect={(emoji) =>
-                            form.setFieldValue(
-                              'comments',
-                              form.getFieldValue('comments') +
-                                ' ' +
-                                emoji +
-                                ' ',
-                            )
-                          }
+                          onKaomojiSelect={(emoji) => {
+                            const { start, end } = cursorPosRef.current
+                            const currentValue = form.getFieldValue('comments')
+                            const newValue =
+                              currentValue.slice(0, start) +
+                              ` ${emoji} ` +
+                              currentValue.slice(end)
+                            form.setFieldValue('comments', newValue)
+                            // 恢复光标位置到插入内容之后
+                            requestAnimationFrame(() => {
+                              const textarea = document.getElementById(
+                                'comments',
+                              ) as HTMLTextAreaElement | null
+                              if (textarea) {
+                                const newCursorPos = start + emoji.length + 2
+                                textarea.setSelectionRange(
+                                  newCursorPos,
+                                  newCursorPos,
+                                )
+                                textarea.focus()
+                              }
+                            })
+                          }}
                           trigger={
                             <Button
                               type="button"
