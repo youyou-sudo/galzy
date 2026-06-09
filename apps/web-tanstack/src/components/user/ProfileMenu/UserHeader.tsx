@@ -28,7 +28,7 @@ export default function UserHeader({
         </h2>
         <p className={`text-sm text-muted-foreground flex items-center gap-1 `}>
           <Mail className="size-4" />
-          <span className={`${profileMenu ? 'truncate' : ''}`}>{email}</span>
+          <span className={`truncate`}>{email}</span>
         </p>
       </div>
     </div>
