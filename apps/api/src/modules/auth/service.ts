@@ -55,7 +55,6 @@ const _authConfig = {
           getToken: async ({ code, codeVerifier }) => {
             const redirecturl =
               process.env.WEB_HOST + '/api/auth/oauth2/callback/kungal'
-            console.log(redirecturl)
             const res = await fetch(
               'https://oauth.kungal.com/api/v1/oauth/token',
               {
@@ -126,14 +125,14 @@ const _authConfig = {
           clientId: process.env.LINUXDO_CLIENT_ID || '',
           clientSecret: process.env.LINUXDO_CLIENT_SECRET || '',
           authorizationUrl: 'https://connect.linux.do/oauth2/authorize',
+          redirectURI:
+            process.env.WEB_HOST + '/api/auth/oauth2/callback/linuxdo',
           tokenUrl: 'https://connect.linux.do/oauth2/token',
           scopes: ['openid', 'profile', 'email'],
           pkce: true,
           getToken: async ({ code, codeVerifier }) => {
             const redirecturl =
               process.env.WEB_HOST + '/api/auth/oauth2/callback/linuxdo'
-            console.log(redirecturl)
-
             const res = await fetch('https://connect.linux.do/oauth2/token', {
               method: 'POST',
               headers: { 'content-type': 'application/x-www-form-urlencoded' },
