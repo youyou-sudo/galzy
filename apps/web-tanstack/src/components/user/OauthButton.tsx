@@ -18,14 +18,14 @@ export const OauthButton = () => {
     setLoading(provider)
     try {
       if (provider === 'linuxdo') {
-        await authClient.signIn.oauth2({
+        return await authClient.signIn.oauth2({
           providerId: 'linuxdo',
           callbackURL: `${window.location.origin}/${return_to}`,
           requestSignUp: false,
         })
       }
       if (provider === 'kungal') {
-        await authClient.signIn.oauth2({
+        return await authClient.signIn.oauth2({
           providerId: 'kungal',
           callbackURL: `${window.location.origin}/${return_to}`,
           requestSignUp: false,
