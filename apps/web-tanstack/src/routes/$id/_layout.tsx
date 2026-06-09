@@ -21,6 +21,18 @@ import { useState } from 'react'
 
 export const Route = createFileRoute('/$id/_layout')({
   component: RouteComponent,
+  params: {
+    parse: ({ id }) => {
+      const match = id.match(/^([vd])(\d+)$/)
+      if (!match) return false
+      return {
+        id,
+      }
+    },
+    stringify: ({ id }) => ({
+      id,
+    }),
+  },
   loader: async ({ params }) => {
     const { id } = params
     return {

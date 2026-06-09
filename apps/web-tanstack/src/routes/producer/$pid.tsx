@@ -15,6 +15,7 @@ export const Route = createFileRoute('/producer/$pid')({
   loader: async ({ params }) => {
     const { pid } = params
     return {
+      pid: pid,
       producer: await producerInfo({ data: { pid } }),
       gameList: producerGameList({ data: { pid } }),
     }
