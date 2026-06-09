@@ -128,7 +128,9 @@ const _authConfig = {
           tokenUrl: 'https://connect.linux.do/oauth2/token',
           scopes: ['openid', 'profile', 'email'],
           pkce: true,
-          getToken: async ({ code, redirectURI, codeVerifier }) => {
+          getToken: async ({ code, codeVerifier }) => {
+            const redirectURI =
+              process.env.WEB_HOST + '/api/auth/oauth2/callback/linuxdo'
             const res = await fetch('https://connect.linux.do/oauth2/token', {
               method: 'POST',
               headers: { 'content-type': 'application/x-www-form-urlencoded' },
