@@ -6,12 +6,12 @@ export const dbSeed = async () => {
     .createTable('galrc_user')
     .ifNotExists()
     .addColumn('id', 'text', (cb) => cb.primaryKey())
-    .addColumn('name', 'varchar(255)', (cb) => cb.notNull())
+    .addColumn('name', 'text', (cb) => cb.notNull())
     .addColumn('email', 'varchar(255)', (cb) => cb.notNull().unique())
     .addColumn('emailVerified', 'boolean', (cb) =>
       cb.notNull().defaultTo(false),
     )
-    .addColumn('image', 'varchar(255)')
+    .addColumn('image', 'text')
     .addColumn('role', 'varchar(10)', (cb) =>
       cb.notNull().defaultTo('user').check(sql`role IN ('user', 'admin')`),
     )
@@ -33,12 +33,12 @@ export const dbSeed = async () => {
     .addColumn('userId', 'varchar(255)', (cb) =>
       cb.notNull().references('galrc_user.id'),
     )
-    .addColumn('token', 'varchar(255)', (cb) => cb.notNull().unique())
+    .addColumn('token', 'text', (cb) => cb.notNull().unique())
     .addColumn('expiresAt', sql`timestamp with time zone`, (cb) =>
       cb.defaultTo(sql`current_timestamp`),
     )
-    .addColumn('ipAddress', 'varchar(255)')
-    .addColumn('userAgent', 'varchar(255)')
+    .addColumn('ipAddress', 'text')
+    .addColumn('userAgent', 'text')
     .addColumn('createdAt', sql`timestamp with time zone`, (cb) =>
       cb.defaultTo(sql`current_timestamp`),
     )
@@ -51,11 +51,11 @@ export const dbSeed = async () => {
     .createTable('galrc_account')
     .ifNotExists()
     .addColumn('id', 'text', (cb) => cb.primaryKey())
-    .addColumn('userId', 'varchar(255)', (cb) =>
+    .addColumn('userId', 'text', (cb) =>
       cb.notNull().references('galrc_user.id').onDelete('cascade'),
     )
-    .addColumn('accountId', 'varchar(255)')
-    .addColumn('providerId', 'varchar(255)')
+    .addColumn('accountId', 'text', (cb) => cb.notNull())
+    .addColumn('providerId', 'text', (cb) => cb.notNull())
     .addColumn('accessToken', 'text')
     .addColumn('refreshToken', 'text')
     .addColumn('accessTokenExpiresAt', 'timestamp')
@@ -79,8 +79,8 @@ export const dbSeed = async () => {
     .createTable('galrc_verification')
     .ifNotExists()
     .addColumn('id', 'text', (cb) => cb.primaryKey())
-    .addColumn('identifier', 'varchar(255)', (cb) => cb.notNull())
-    .addColumn('value', 'varchar(255)', (cb) => cb.notNull())
+    .addColumn('identifier', 'text', (cb) => cb.notNull())
+    .addColumn('value', 'text', (cb) => cb.notNull())
     .addColumn('expiresAt', 'timestamp', (cb) => cb.notNull())
     .addColumn('createdAt', 'timestamp', (cb) =>
       cb.defaultTo(sql`current_timestamp`).notNull(),
