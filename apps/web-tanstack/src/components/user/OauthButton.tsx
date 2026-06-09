@@ -2,11 +2,10 @@ import { Image } from '@unpic/react'
 import { authClient } from '@web/server/auth/auth-client'
 import { useState } from 'react'
 import { FaDiscord, FaGithub } from 'react-icons/fa'
-import { FaXTwitter } from 'react-icons/fa6'
 import { Button } from '../ui/button'
 import { Separator } from '../ui/separator'
 
-type Provider = 'twitter' | 'github' | 'linuxdo' | 'discord'
+type Provider = 'github' | 'linuxdo' | 'discord'
 
 export const OauthButton = () => {
   const [loading, setLoading] = useState<Provider | null>(null)
@@ -39,13 +38,6 @@ export const OauthButton = () => {
     <div>
       <Separator />
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <Button
-          disabled={loading === 'twitter'}
-          onClick={() => handleSocialSignIn('twitter')}
-        >
-          <FaXTwitter data-icon="inline-start" />
-          Twitter
-        </Button>
         <Button
           disabled={loading === 'github'}
           onClick={() => handleSocialSignIn('github')}
