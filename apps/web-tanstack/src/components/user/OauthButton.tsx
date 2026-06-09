@@ -5,7 +5,7 @@ import { FaDiscord, FaGithub } from 'react-icons/fa'
 import { Button } from '../ui/button'
 import { Separator } from '../ui/separator'
 
-type Provider = 'github' | 'linuxdo' | 'discord'
+type Provider = 'github' | 'linuxdo' | 'discord' | 'kungal'
 
 export const OauthButton = () => {
   const [loading, setLoading] = useState<Provider | null>(null)
@@ -23,12 +23,18 @@ export const OauthButton = () => {
           callbackURL: `${window.location.origin}/${return_to}`,
           requestSignUp: false,
         })
-      } else {
-        await authClient.signIn.social({
-          provider,
+      }
+      if (provider === 'kungal') {
+        await authClient.signIn.oauth2({
+          providerId: 'kungal',
           callbackURL: `${window.location.origin}/${return_to}`,
+          requestSignUp: false,
         })
       }
+      await authClient.signIn.social({
+        provider,
+        callbackURL: `${window.location.origin}/${return_to}`,
+      })
     } finally {
       setLoading(null)
     }
@@ -38,6 +44,20 @@ export const OauthButton = () => {
     <div>
       <Separator />
       <div className="mt-2 grid grid-cols-2 gap-2">
+        <Button
+          disabled={loading === 'kungal'}
+          onClick={() => handleSocialSignIn('kungal')}
+        >
+          <Image
+            src="/kungal.webp"
+            width={16}
+            height={16}
+            alt="这是 KunGalgame 登陆按钮图标"
+            data-icon="inline-start"
+            className="rounded-4xl"
+          />
+          Kun Galgame
+        </Button>
         <Button
           disabled={loading === 'github'}
           onClick={() => handleSocialSignIn('github')}

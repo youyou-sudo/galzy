@@ -42,14 +42,19 @@ const _authConfig = {
     genericOAuth({
       config: [
         {
-          providerId: 'kun-oauth',
-          clientId: process.env.KUN_CLIENT_ID || '',
-          clientSecret: process.env.KUN_CLIENT_SECRET || '',
+          providerId: 'kungal',
+          clientId: process.env.KUNGAL_CLIENT_ID || '',
+          clientSecret: process.env.KUNGAL_CLIENT_SECRET || '',
+          redirectURI:
+            process.env.WEB_HOST + '/api/auth/oauth2/callback/kungal',
           authorizationUrl: 'https://oauth.kungal.com/api/v1/oauth/authorize',
           tokenUrl: 'https://oauth.kungal.com/api/v1/oauth/token',
           scopes: ['openid', 'profile', 'email'],
           pkce: true,
-          getToken: async ({ code, redirectURI, codeVerifier }) => {
+          requireIssuerValidation: true,
+          getToken: async ({ code, codeVerifier }) => {
+            const redirectURI =
+              process.env.WEB_HOST + '/api/auth/oauth2/callback/kungal'
             const res = await fetch(
               'https://oauth.kungal.com/api/v1/oauth/token',
               {
@@ -59,17 +64,18 @@ const _authConfig = {
                   grant_type: 'authorization_code',
                   code,
                   redirect_uri: redirectURI,
-                  client_id: process.env.KUN_CLIENT_ID || '',
-                  client_secret: process.env.KUN_CLIENT_SECRET || '',
+                  client_id: process.env.KUNGAL_CLIENT_ID || '',
+                  client_secret: process.env.KUNGAL_CLIENT_SECRET || '',
                   code_verifier: codeVerifier,
                 }),
               },
             )
 
             const json = await res.json()
-
-            if (json.code !== 0) {
-              throw new Error(json.message)
+            if (!res.ok) {
+              throw new APIError('BAD_REQUEST', {
+                message: json.message || 'OAuth token 获取失败',
+              })
             }
 
             return {
@@ -91,6 +97,13 @@ const _authConfig = {
                 },
               },
             )
+
+            if (!res.ok) {
+              const err = await res.json()
+              throw new Error(
+                err.error_description || err.error || '用户信息请求失败',
+              )
+            }
 
             const json = await res.json()
 
@@ -115,7 +128,9 @@ const _authConfig = {
           tokenUrl: 'https://connect.linux.do/oauth2/token',
           scopes: ['openid', 'profile', 'email'],
           pkce: true,
-          getToken: async ({ code, redirectURI, codeVerifier }) => {
+          getToken: async ({ code, codeVerifier }) => {
+            const redirectURI =
+              process.env.WEB_HOST + '/api/auth/oauth2/callback/kungal'
             const res = await fetch('https://connect.linux.do/oauth2/token', {
               method: 'POST',
               headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -131,7 +146,6 @@ const _authConfig = {
 
             if (!res.ok) {
               const err = await res.json()
-              console.log(err)
               throw new APIError('BAD_REQUEST', {
                 message: err.error || 'OAuth token 获取失败',
               })
