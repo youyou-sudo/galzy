@@ -46,6 +46,14 @@ const linksList: {
     href: 'https://kisuacg.moe',
     description: '免费的 GalGame 资源分享平台！',
   },
+  {
+    title: 'TouchGal',
+    avatar:
+      'https://cloud.touchgaloss.com/2024/06/8b9411844520240614204452.webp',
+    href: 'https://www.touchgal.ink',
+    description:
+      'TouchGal 是一个一站式 Galgame 文化社区。提供Galgame 论坛、Galgame 下载等服务。承诺永久免费, 高质量。为Galgame 爱好者提供一片净土！',
+  },
 ]
 
 export const Route = createFileRoute('/friend-links')({
