@@ -28,21 +28,9 @@ export default function UserMenu() {
       return res
     },
   })
+
   const [profileOpen, setProfileOpen] = useState(false)
-  const mutation = useMutation({
-    mutationFn: async () => {
-      await authClient.signOut()
-    },
-    onError: () => {
-      toast.error(`退出登陆失败喵`)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['auth'],
-      })
-      toast.success(`退出登陆成功喵～`)
-    },
-  })
+
   if (isPending) {
     return <div className="size-8 rounded-full bg-muted animate-pulse" />
   }
@@ -95,9 +83,21 @@ export default function UserMenu() {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             variant="destructive"
-            onSelect={async () => {
-              await mutation.mutate()
-            }}
+            onSelect={async () =>
+              await authClient.signOut({
+                fetchOptions: {
+                  onError: () => {
+                    toast.error(`退出登陆失败喵`)
+                  },
+                  onSuccess: () => {
+                    queryClient.invalidateQueries({
+                      queryKey: ['auth'],
+                    })
+                    toast.success(`退出登陆成功喵～`)
+                  },
+                },
+              })
+            }
           >
             <LogOut className="size-4" />
             退出登录
