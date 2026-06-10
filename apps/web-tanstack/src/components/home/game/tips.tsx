@@ -68,7 +68,7 @@ export const Glgczujm = () => {
             data-umami-event="广告点击"
             data-umami-event-name="DZMM"
             data-umami-event-position="页内广告-DZMM"
-            href="https://www.ainexa.top?rf=876926e5"
+            href="https://www.aikda.com/?rf=876926e5"
           >
             <AlertTitle>Ai 女友💋（在线畅玩）</AlertTitle>
           </a>
@@ -81,7 +81,7 @@ export const Glgczujm = () => {
           data-umami-event="广告点击"
           data-umami-event-name="DZMM"
           data-umami-event-position="页内广告-DZMM"
-          href="https://www.ainexa.top?rf=876926e5"
+          href="https://www.aikda.com/?rf=876926e5"
         >
           <div className="sm:hidden">
             <Image
