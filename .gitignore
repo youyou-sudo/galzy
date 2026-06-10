@@ -43,3 +43,7 @@ next-env.d.ts
 .next
 
 skills-lock.json
+.omo/*
+.codegraph/
+.reasonix/
+reasonix.toml
