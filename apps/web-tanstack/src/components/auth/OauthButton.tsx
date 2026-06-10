@@ -1,5 +1,6 @@
 import { Image } from '@unpic/react'
 import { authClient } from '@web/server/auth/auth-client'
+import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { FaDiscord, FaGithub, FaTwitter } from 'react-icons/fa'
 import { Button } from '../ui/button'
@@ -48,6 +49,7 @@ export const OauthButton = () => {
           disabled={loading === 'kungal'}
           onClick={() => handleSocialSignIn('kungal')}
         >
+          {loading === 'kungal' && <Loader2 className="animate-spin" />}
           <Image
             src="/kungal.webp"
             width={16}
@@ -62,6 +64,7 @@ export const OauthButton = () => {
           disabled={loading === 'github'}
           onClick={() => handleSocialSignIn('github')}
         >
+          {loading === 'github' && <Loader2 className="animate-spin" />}
           <FaGithub data-icon="inline-start" />
           Github
         </Button>
@@ -70,6 +73,7 @@ export const OauthButton = () => {
           disabled={loading === 'twitter'}
           onClick={() => handleSocialSignIn('twitter')}
         >
+          {loading === 'twitter' && <Loader2 className="animate-spin" />}
           <FaTwitter data-icon="inline-start" />
           twitter
         </Button>
@@ -78,6 +82,7 @@ export const OauthButton = () => {
           disabled={loading === 'linuxdo'}
           onClick={() => handleSocialSignIn('linuxdo')}
         >
+          {loading === 'linuxdo' && <Loader2 className="animate-spin" />}
           <Image
             src="/linuxdo.webp"
             width={16}
@@ -93,6 +98,7 @@ export const OauthButton = () => {
           disabled={loading === 'discord'}
           onClick={() => handleSocialSignIn('discord')}
         >
+          {loading === 'discord' && <Loader2 className="animate-spin" />}
           <FaDiscord data-icon="inline-start" />
           Discord
         </Button>

@@ -1,6 +1,7 @@
 import { useForm } from '@tanstack/react-form'
 import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, Link, redirect } from '@tanstack/react-router'
+import { OauthButton } from '@web/components/auth/OauthButton'
 import { Button } from '@web/components/ui/button'
 import {
   Card,
@@ -19,7 +20,6 @@ import {
 } from '@web/components/ui/field'
 import { Input } from '@web/components/ui/input'
 import { InputGroup, InputGroupInput } from '@web/components/ui/input-group'
-import { OauthButton } from '@web/components/user/OauthButton'
 import { getSession } from '@web/server/auth/auth.functions'
 import { authClient } from '@web/server/auth/auth-client'
 import { Eye, EyeOff, Loader2, LogIn, Mail } from 'lucide-react'
