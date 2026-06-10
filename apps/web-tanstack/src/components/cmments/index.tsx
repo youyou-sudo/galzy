@@ -88,7 +88,7 @@ function ReplyItem({
   return replies?.map((reply) => (
     <div className="flex -ml-6" key={reply.id}>
       <Separator orientation="vertical" />
-      <div className="flex space-x-3 pl-3 py-2">
+      <div className="flex space-x-3 pl-3 py-2 w-full">
         <Avatar className="size-8">
           <AvatarImage src={reply.user?.image || ''} alt={reply.user?.name} />
           <AvatarFallback className="bg-muted text-muted-foreground text-xs">
