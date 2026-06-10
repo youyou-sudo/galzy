@@ -47,3 +47,5 @@ skills-lock.json
 .codegraph/
 .reasonix/
 reasonix.toml
+
+todo.md
