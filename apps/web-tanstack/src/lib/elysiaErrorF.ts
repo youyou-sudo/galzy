@@ -27,7 +27,6 @@ export const elysiaErrorF = (error: any) => {
         }
 
       default:
-        console.log(error)
         throw {
           status: error.status ?? 500,
           message: error.value ?? 'Unknown error',
