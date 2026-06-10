@@ -42,8 +42,8 @@ const linksList: {
   },
   {
     title: 'KisuGal',
-    avatar: 'https://kisuacg.moe/_next/image?url=%2Ffavicon.webp&w=64&q=75',
-    href: 'https://kisuacg.moe',
+    avatar: 'https://www.kisuacg.moe/_next/image?url=%2Ffavicon.webp&w=64&q=75',
+    href: 'https://www.kisuacg.moe',
     description: '免费的 GalGame 资源分享平台！',
   },
   {
