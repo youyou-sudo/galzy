@@ -1,5 +1,6 @@
 import { db, MeiliClient } from '@api/libs'
 import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
+import { status } from 'elysia'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import { all } from 'radash'
 import { t } from 'try'
@@ -299,9 +300,10 @@ export const CronService = {
         await Promise.all(batch)
       }
       await index.updateFilterableAttributes(['released_first'])
+      return { code: 200 }
     } catch (e) {
       console.error('meiliSearchAddIndex 运行失败喵', e)
-      throw e
+      throw status(500, `meiliSearchAddIndex 运行失败喵 ${e}`)
     }
   },
 
@@ -348,9 +350,10 @@ export const CronService = {
         }
         await Promise.all(batch)
       }
+      return { code: 200 }
     } catch (e) {
       console.error('meiliSearchAddTag 运行失败喵', e)
-      throw e
+      throw status(500, `meiliSearchAddTag 运行失败喵 ${e}`)
     }
   },
 
