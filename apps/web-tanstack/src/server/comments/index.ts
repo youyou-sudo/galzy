@@ -2,6 +2,7 @@ import { api } from '@libs'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeader } from '@tanstack/react-start/server'
 import { elysiaErrorF } from '@web/lib'
+import { cookiePass } from '@web/lib/cookie-pass'
 import z from 'zod'
 
 export const getCmments = createServerFn()
@@ -16,7 +17,6 @@ export const getCmments = createServerFn()
     }),
   )
   .handler(async ({ data }) => {
-    const cookie = getRequestHeader('Cookie')
     const { data: res, error } = await api.comments.get({
       query: {
         targetType: data.targetType,
@@ -26,11 +26,7 @@ export const getCmments = createServerFn()
         type: data.type,
         status: data.status,
       },
-      fetch: {
-        headers: {
-          cookie: cookie || '',
-        },
-      },
+      ...cookiePass,
     })
     elysiaErrorF(error)
     return res
@@ -48,7 +44,6 @@ export const createCmments = createServerFn()
     }),
   )
   .handler(async ({ data }) => {
-    const cookie = getRequestHeader('Cookie')
     const { data: res, error } = await api.comments.post(
       {
         targetType: data.targetType,
@@ -58,13 +53,7 @@ export const createCmments = createServerFn()
         replyToUserId: data.replyToUserId,
         type: data.type,
       },
-      {
-        fetch: {
-          headers: {
-            cookie: cookie || '',
-          },
-        },
-      },
+      ...cookiePass,
     )
     elysiaErrorF(error)
     return res
