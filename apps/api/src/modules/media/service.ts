@@ -6,10 +6,22 @@ import {
   getIdempotentResult,
   storeIdempotentResult,
 } from '@api/libs/redis'
+import { S3Client } from 'bun'
 import { status } from 'elysia'
 import { jsonObjectFrom } from 'kysely/helpers/postgres'
 import { t } from 'try'
+import { auth } from '../auth/service'
 import type { MediaModel } from './model'
+
+// Bun's S3Client reads S3_* or AWS_* env vars automatically.
+const config = {
+  endpoint: process.env.S3_ENDPOINT,
+  bucket: process.env.S3_BUCKET,
+  accessKeyId: process.env.S3_ACCESS_KEY_ID,
+  secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+  region: process.env.S3_REGION,
+}
+const s3 = new S3Client(config)
 
 export const Media = {
   async insertmediatoentry({
@@ -198,5 +210,46 @@ export const Media = {
 
     await storeIdempotentResult(`getMedia-${hash}`, data, 60)
     return data
+  },
+  async uploadAvatar({
+    image,
+    userId,
+  }: {
+    image: MediaModel.uploadAvatar['image']
+    userId: string
+  }) {
+    const contentType = image.type || 'image/png'
+    const ext = contentType.split('/')[1] || 'png'
+    const key = `avatars/${userId}/${image.name}.${ext}`
+
+    // Read file bytes
+    const buffer = Buffer.from(await image.arrayBuffer())
+
+    // Delete old avatar if exists (best-effort)
+    try {
+      const existing = await s3.exists(key)
+      if (existing) {
+        await s3.delete(key)
+      }
+    } catch {
+      // Non-critical – old file may not exist or credentials may not have delete permission
+    }
+
+    // Delete old avatar if exists (best-effort)
+    try {
+      const existing = await s3.exists(key)
+      if (existing) {
+        await s3.delete(key)
+      }
+    } catch {
+      // Non-critical – old file may not exist or credentials may not have delete permission
+    }
+
+    // Upload to S3
+    await s3.write(key, buffer)
+
+    const presignedUrl = `${process.env.S3_IMAGEURL}/${key}`
+
+    return { url: presignedUrl }
   },
 }

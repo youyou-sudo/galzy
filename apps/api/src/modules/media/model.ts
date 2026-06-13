@@ -18,8 +18,12 @@ export namespace MediaModel {
   export const getMedia = t.Object({
     other_id: t.String(),
   })
+  export const uploadAvatar = t.Object({
+    image: t.File(),
+  })
   export type insertmediatoentry = typeof insertmediatoentry.static
   export type delemediatoentry = typeof delemediatoentry.static
   export type getMediaByCover = typeof getMediaByCover.static
   export type getMedia = typeof getMedia.static
+  export type uploadAvatar = typeof uploadAvatar.static
 }

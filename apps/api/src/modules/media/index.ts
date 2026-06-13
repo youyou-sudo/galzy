@@ -1,8 +1,10 @@
+import { betterAuth } from '@api/modules/auth'
 import { Elysia } from 'elysia'
 import { MediaModel } from './model'
 import { Media } from './service'
 
 export const media = new Elysia({ prefix: '/media' })
+  .use(betterAuth)
   .post(
     '/insertmediatoentry',
     async ({ body: { entryId, media, sortOrder, cover } }) => {
@@ -37,5 +39,15 @@ export const media = new Elysia({ prefix: '/media' })
     },
     {
       query: MediaModel.getMedia,
+    },
+  )
+  .post(
+    '/uploadavatar',
+    async ({ body: { image }, user }) => {
+      return Media.uploadAvatar({ image, userId: user.id })
+    },
+    {
+      auth: true,
+      body: MediaModel.uploadAvatar,
     },
   )
