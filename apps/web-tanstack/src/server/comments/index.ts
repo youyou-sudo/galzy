@@ -1,6 +1,5 @@
 import { api } from '@libs'
 import { createServerFn } from '@tanstack/react-start'
-import { getRequestHeader } from '@tanstack/react-start/server'
 import { elysiaErrorF } from '@web/lib'
 import { cookiePass } from '@web/lib/cookie-pass'
 import z from 'zod'
@@ -53,7 +52,7 @@ export const createCmments = createServerFn()
         replyToUserId: data.replyToUserId,
         type: data.type,
       },
-      ...cookiePass,
+      cookiePass,
     )
     elysiaErrorF(error)
     return res

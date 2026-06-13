@@ -1,8 +1,8 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <any> */
 import { getRouteApi } from "@tanstack/react-router";
 import { TagViewsTrackEvents } from "@web/components/umami/track-events";
-import { getImageUrl } from "@web/lib/ImageUrl";
-import { GameItem } from "../GameItem";
+import { getImageUrl } from "@web/lib/image-url";
+import { GameCard } from "../card";
 
 const routeApi = getRouteApi("/search/");
 
@@ -36,7 +36,7 @@ const SearchlistComponent = () => {
 				<div key={item.id}>
 					{/* [x] VNDB 来源图片进行缓存以防止滥用 VNDB 服务
 					 */}
-					<GameItem
+					<GameCard.Item
 						gameid={item.id}
 						width={imagesData?.width ?? 200}
 						height={imagesData?.height ?? 300}

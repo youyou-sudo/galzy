@@ -1,7 +1,6 @@
 import { Await, getRouteApi } from '@tanstack/react-router'
-import { getImageUrl } from '@web/lib/ImageUrl'
+import { getImageUrl } from '@web/lib/image-url'
 import { GameCard } from '../card'
-import { GameItem } from '../GameItem'
 
 const apiroute = getRouteApi('/producer/$pid')
 
@@ -34,7 +33,7 @@ export const ProducerGamelist = () => {
                   )?.title ?? 'null'
 
                 return (
-                  <GameItem
+                  <GameCard.Item
                     key={item.id}
                     gameid={String(item.id)}
                     width={item.image_width ?? 200}

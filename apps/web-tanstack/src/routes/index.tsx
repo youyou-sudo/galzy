@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import CountComponent from '@web/components/home/Count'
-import HomeGamelist from '@web/components/home/homeGameList'
+import HomeGamelist from '@web/components/home/home-game-list'
 import { RankingList } from '@web/components/home/remf'
 import SearchInput from '@web/components/home/search/Search'
 import {

@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { Image, type ImageProps } from '@unpic/react'
 import { AspectRatio } from '@web/components/ui/aspect-ratio'
 import { Skeleton } from '@web/components/ui/skeleton'
@@ -53,8 +54,45 @@ export function Images({ className, ...props }: ImageProps) {
   )
 }
 
+function Item({
+  gameid,
+  title,
+  width,
+  height,
+  src,
+}: {
+  gameid: string
+  title: string
+  width?: number
+  height?: number
+  src: string
+}) {
+  return (
+    <Link to="/$id" params={{ id: gameid }}>
+      <AspectRatio
+        ratio={9 / 13}
+        className="block relative overflow-hidden rounded-lg"
+        style={{ contentVisibility: 'auto' }}
+      >
+        <Skeleton className="absolute inset-0 w-full h-full" />
+        <Image
+          width={width ?? 200}
+          height={height ?? 300}
+          loading="lazy"
+          decoding="async"
+          src={src}
+          alt={title || ' '}
+          className="absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+        />
+      </AspectRatio>
+      <p className="text-sm truncate w-full text-center px-2 pt-2">{title}</p>
+    </Link>
+  )
+}
+
 export const GameCard = {
   ListSkeleton: GameSkeleton,
   Image,
   IdGameCardSkeleton,
+  Item,
 }

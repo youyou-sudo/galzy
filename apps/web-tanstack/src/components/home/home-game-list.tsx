@@ -1,10 +1,9 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
-import { getImageUrl } from '@web/lib/ImageUrl'
+import { getImageUrl } from '@web/lib/image-url'
 import { getGameList } from '@web/server/game'
 import { Button } from '../ui/button'
 import { GameCard } from './card'
-import { GameItem } from './GameItem'
 
 const apiroute = getRouteApi('/')
 
@@ -48,7 +47,7 @@ const HomeGamelist = () => {
 
   const gameList = gameListData?.pages.flatMap((page) =>
     page?.items?.map((item) => (
-      <GameItem
+      <GameCard.Item
         key={item.id}
         gameid={String(item.id)}
         width={item.images?.width ?? 200}

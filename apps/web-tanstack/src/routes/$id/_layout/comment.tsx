@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { CommentItem } from '@web/components/cmments'
-import { ReplyEidtInput } from '@web/components/cmments/replyEidtInput'
+import { ReplyEidtInput } from '@web/components/cmments/reply-edit-input'
 import { getCmments } from '@web/server/comments'
 
 export const Route = createFileRoute('/$id/_layout/comment')({

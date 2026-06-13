@@ -4,7 +4,7 @@ import { getRouteApi } from '@tanstack/react-router'
 import { elysiaErrorF } from '@web/lib'
 import { authClient } from '@web/server/auth/auth-client'
 import { getCmments } from '@web/server/comments'
-import { replycardActions } from '@web/stores/replyEidtInput'
+import { replycardActions } from '@web/stores/reply-edit-input'
 import {
   MessageCircleQuestionMark,
   MessageSquareHeart,
@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { Separator } from '../ui/separator'
-import { ReplyEidtInput } from './replyEidtInput'
+import { ReplyEidtInput } from './reply-edit-input'
 
 function formatTime(dateStr: string) {
   const date = new Date(dateStr)
