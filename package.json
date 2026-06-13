@@ -28,12 +28,12 @@
     "protobufjs"
   ],
   "dependencies": {
-    "@biomejs/biome": "^2.4.16",
+    "@biomejs/biome": "^2.5.0",
     "@mdx-js/loader": "^3.1.1",
     "@mdx-js/react": "^3.1.1",
-    "@next/mdx": "^16.2.7",
+    "@next/mdx": "^16.2.9",
     "@types/mdx": "^2.0.14",
-    "better-auth": "^1.6.15",
+    "better-auth": "^1.6.18",
     "concurrently": "^9.2.1",
     "radash": "^12.1.1",
     "try": "^1.0.3",
