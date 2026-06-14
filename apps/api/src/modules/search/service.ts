@@ -1,4 +1,4 @@
-import { db, MeiliClient } from '@api/libs'
+import { MeiliClient } from '@api/libs'
 import { getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
 import { t } from 'try'
@@ -60,7 +60,7 @@ export const Search = {
     documentTemplateMaxBytes,
     documentTemplate,
   }: SearchModel.meilisearchEmbeddersUpdate) {
-    const task = await MeiliClient.index(
+    const indexdata = await MeiliClient.index(
       process.env.MEILISEARCH_INDEXNAME!,
     ).updateEmbedders({
       body: {
@@ -81,32 +81,7 @@ export const Search = {
         documentTemplate: documentTemplate,
       },
     })
-    // 保存任务信息到 galrc_siteConfig
-    await db
-      .insertInto('galrc_siteConfig')
-      .values({
-        key: `searchTask_${task.taskUid}`,
-        config: JSON.stringify({
-          taskUid: task.taskUid,
-          type: 'embeddersUpdate',
-          indexUid: task.indexUid,
-          status: task.status,
-          enqueuedAt: task.enqueuedAt,
-        }),
-      })
-      .onConflict((oc) =>
-        oc.column('key').doUpdateSet({
-          config: JSON.stringify({
-            taskUid: task.taskUid,
-            type: 'embeddersUpdate',
-            indexUid: task.indexUid,
-            status: task.status,
-            enqueuedAt: task.enqueuedAt,
-          }),
-        }),
-      )
-      .execute()
-    return task
+    return indexdata
   },
   async meilisearchEmbeddersGet() {
     const indexdata = await MeiliClient.index(
@@ -142,33 +117,8 @@ export const Search = {
   }: SearchModel.meilisearcSearchableAttributeshUpdate) {
     try {
       const index = MeiliClient.index(process.env.MEILISEARCH_INDEXNAME!)
-      const task = await index.updateSearchableAttributes(fields)
-      // 保存任务信息到 galrc_siteConfig
-      await db
-        .insertInto('galrc_siteConfig')
-        .values({
-          key: `searchTask_${task.taskUid}`,
-          config: JSON.stringify({
-            taskUid: task.taskUid,
-            type: 'searchableAttributesUpdate',
-            indexUid: task.indexUid,
-            status: task.status,
-            enqueuedAt: task.enqueuedAt,
-          }),
-        })
-        .onConflict((oc) =>
-          oc.column('key').doUpdateSet({
-            config: JSON.stringify({
-              taskUid: task.taskUid,
-              type: 'searchableAttributesUpdate',
-              indexUid: task.indexUid,
-              status: task.status,
-              enqueuedAt: task.enqueuedAt,
-            }),
-          }),
-        )
-        .execute()
-      return { code: 200, taskUid: task.taskUid }
+      await index.updateSearchableAttributes(fields)
+      return { code: 200 }
     } catch (error) {
       throw status(500, error)
     }
@@ -176,37 +126,5 @@ export const Search = {
   async getStats() {
     const indexdata = await MeiliClient.getStats()
     return indexdata
-  },
-
-  // 获取单个任务的实时进度（从 Meilisearch 拉取最新状态并更新 DB）
-  async getTask(uid: number) {
-    const task = await MeiliClient.tasks.getTask(uid)
-    // 同步更新 galrc_siteConfig
-    await db
-      .insertInto('galrc_siteConfig')
-      .values({
-        key: `searchTask_${uid}`,
-        config: JSON.stringify(task),
-      })
-      .onConflict((oc) =>
-        oc.column('key').doUpdateSet({
-          config: JSON.stringify(task),
-        }),
-      )
-      .execute()
-    return task
-  },
-
-  // 列出所有 search 相关的任务记录
-  async getTasks() {
-    const rows = await db
-      .selectFrom('galrc_siteConfig')
-      .selectAll()
-      .where('key', 'like', 'searchTask_%')
-      .execute()
-    return rows.map((r) => ({
-      key: r.key,
-      ...(typeof r.config === 'string' ? JSON.parse(r.config) : r.config),
-    }))
   },
 }

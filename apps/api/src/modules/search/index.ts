@@ -42,25 +42,6 @@ export const search = new Elysia({ prefix: '/search' })
     return await Search.getStats()
   })
   .get(
-    '/tasks',
-    async () => {
-      return await Search.getTasks()
-    },
-    {
-      isAdmin: true,
-    },
-  )
-  .get(
-    '/task/:uid',
-    async ({ params: { uid } }) => {
-      return await Search.getTask(uid)
-    },
-    {
-      isAdmin: true,
-      params: SearchModel.taskQuery,
-    },
-  )
-  .get(
     '/meilisearchEmbeddersGet',
     async () => {
       return await Search.meilisearchEmbeddersGet()
