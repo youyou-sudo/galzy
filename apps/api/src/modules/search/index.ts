@@ -1,8 +1,10 @@
 import { Elysia } from 'elysia'
+import { betterAuth } from '../auth'
 import { SearchModel } from './model'
 import { Search } from './service'
 
 export const search = new Elysia({ prefix: '/search' })
+  .use(betterAuth)
   .get(
     '/',
     async ({ query: { q, limit, startDate, endDate } }) => {
@@ -39,15 +41,33 @@ export const search = new Elysia({ prefix: '/search' })
   .get('/getStats', async () => {
     return await Search.getStats()
   })
-  .get('/meilisearchEmbeddersGet', async () => {
-    return await Search.meilisearchEmbeddersGet()
-  })
-  .get('/meilisearchPropertylist', async () => {
-    return await Search.meilisearchPropertylist()
-  })
-  .get('/meilisearcSearchableAttributeshGet', async () => {
-    return await Search.meilisearcSearchableAttributeshGet()
-  })
+  .get(
+    '/meilisearchEmbeddersGet',
+    async () => {
+      return await Search.meilisearchEmbeddersGet()
+    },
+    {
+      isAdmin: true,
+    },
+  )
+  .get(
+    '/meilisearchPropertylist',
+    async () => {
+      return await Search.meilisearchPropertylist()
+    },
+    {
+      isAdmin: true,
+    },
+  )
+  .get(
+    '/meilisearcSearchableAttributeshGet',
+    async () => {
+      return await Search.meilisearcSearchableAttributeshGet()
+    },
+    {
+      isAdmin: true,
+    },
+  )
   .post(
     '/meilisearcSearchableAttributeshUpdate',
     async ({ body: { fields } }) => {

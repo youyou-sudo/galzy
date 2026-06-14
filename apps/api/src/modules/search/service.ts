@@ -115,8 +115,13 @@ export const Search = {
   async meilisearcSearchableAttributeshUpdate({
     fields,
   }: SearchModel.meilisearcSearchableAttributeshUpdate) {
-    const index = MeiliClient.index(process.env.MEILISEARCH_INDEXNAME!)
-    await index.updateSearchableAttributes(fields)
+    try {
+      const index = MeiliClient.index(process.env.MEILISEARCH_INDEXNAME!)
+      await index.updateSearchableAttributes(fields)
+      return { code: 200 }
+    } catch (error) {
+      throw status(500, error)
+    }
   },
   async getStats() {
     const indexdata = await MeiliClient.getStats()
