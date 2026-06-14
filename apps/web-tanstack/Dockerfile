@@ -26,7 +26,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY --from=build /app/apps/web-tanstack/dist ./dist
-COPY --from=build /app/apps/web-tanstack/server.ts ./
+COPY --from=build /app/apps/web-tanstack/server-prod.ts ./
 
 USER bun
 
