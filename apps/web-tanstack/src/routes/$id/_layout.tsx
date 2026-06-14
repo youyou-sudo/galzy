@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, useRouterState } from '@tanstack/react-router'
+import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { GameHeader } from '@web/components/home/game/GameHeader'
 import { GameInfo } from '@web/components/home/game/GameInfo'
 import { GameTabs } from '@web/components/home/game/GameTabs'
@@ -7,7 +7,7 @@ import { Card, CardContent } from '@web/components/ui/card'
 import { GameViewsTrackEvents } from '@web/components/umami/track-events'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { getGameDetail, getGameTags } from '@web/server/game'
-import { useMemo } from 'react'
+import { useState } from 'react'
 
 export const Route = createFileRoute('/$id/_layout')({
   component: RouteComponent,
@@ -65,12 +65,7 @@ export const Route = createFileRoute('/$id/_layout')({
 
 function RouteComponent() {
   const { game, id } = Route.useLoaderData()
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const currentTab = useMemo(() => {
-    const segments = pathname.split('/').filter(Boolean)
-    // segments like ["$id"] → "download", ["$id", "comment"] → "comment"
-    return segments.length <= 1 ? 'download' : (segments[1] ?? 'download')
-  }, [pathname])
+  const [currentTab, setCurrentTab] = useState('download')
   return (
     <div className="space-y-3">
       <Card className="overflow-hidden wrap-break-word border-0 pb-0 ">
@@ -80,7 +75,7 @@ function RouteComponent() {
         </CardContent>
       </Card>
 
-      <GameTabs id={id} currentTab={currentTab} />
+      <GameTabs id={id} currentTab={currentTab} setCurrentTab={setCurrentTab} />
       <Card className="p-1">
         <CardContent className="p-1">
           <Outlet />
