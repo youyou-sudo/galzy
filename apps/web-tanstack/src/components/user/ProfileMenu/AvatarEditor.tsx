@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
 import { Button } from '@web/components/ui/button'
 import {
@@ -10,7 +10,7 @@ import {
 } from '@web/components/ui/dialog'
 import { authClient } from '@web/server/auth/auth-client'
 import { Camera, Loader2, X } from 'lucide-react'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Cropper, { type Area } from 'react-easy-crop'
 import { toast } from 'sonner'
 import { rgbaToThumbHash, thumbHashToDataURL } from 'thumbhash'
@@ -215,14 +215,6 @@ export default function AvatarComp({ name, image, editor }: AvatarEditorProps) {
   // ------ 渲染 ------
   const displaySrc = image ?? undefined
   const fallbackChar = name?.charAt(0).toUpperCase() || 'U'
-  const { data: avatarPlaceholder } = useQuery({
-    queryKey: ['avatarPlaceholder'],
-    queryFn: async () => {
-      if (!displaySrc) return
-      const res = await imageUrlToPlaceholder(displaySrc)
-      return res
-    },
-  })
 
   return (
     <>
@@ -240,11 +232,7 @@ export default function AvatarComp({ name, image, editor }: AvatarEditorProps) {
               <Avatar size="lg" className="size-20">
                 <AvatarImage src={displaySrc} alt={name ?? ''} />
                 <AvatarFallback className="text-2xl">
-                  <img
-                    src={avatarPlaceholder}
-                    alt={name ?? ''}
-                    className="size-full rounded-full object-cover"
-                  />
+                  {fallbackChar}
                 </AvatarFallback>
               </Avatar>
 
@@ -263,15 +251,7 @@ export default function AvatarComp({ name, image, editor }: AvatarEditorProps) {
               <Avatar size="lg" className="size-20">
                 <AvatarImage src={displaySrc} alt={name ?? ''} />
                 <AvatarFallback className="text-2xl">
-                  {avatarPlaceholder ? (
-                    <img
-                      src={avatarPlaceholder}
-                      alt=""
-                      className="size-full rounded-full object-cover"
-                    />
-                  ) : (
-                    fallbackChar
-                  )}
+                  {fallbackChar}
                 </AvatarFallback>
               </Avatar>
             </div>

@@ -15,7 +15,8 @@ import {
 } from '@web/components/ui/tabs'
 import ProfileTab from '@web/components/user/ProfileMenu/ProfileTab'
 import SecurityTab from '@web/components/user/ProfileMenu/SecurityTab'
-import { getSession } from '@web/server/auth/auth.functions'
+import { elysiaErrorF } from '@web/lib'
+import { getSession, listAccounts } from '@web/server/auth/auth.functions'
 import { authClient } from '@web/server/auth/auth-client'
 import { Mail, Pencil, Shield, User } from 'lucide-react'
 
@@ -25,6 +26,14 @@ export const Route = createFileRoute('/user/')({
     const session = await context.queryClient.ensureQueryData({
       queryKey: ['auth'],
       queryFn: getSession,
+    })
+    await context.queryClient.ensureQueryData({
+      queryKey: ['linked-accounts'],
+      queryFn: async () => {
+        const { data, error } = await listAccounts()
+        elysiaErrorF(error)
+        return data ?? []
+      },
     })
 
     if (!session) {
