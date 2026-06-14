@@ -1,15 +1,13 @@
-import { createFileRoute, Outlet } from '@tanstack/react-router'
+import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 import { getSession } from '@web/server/auth/auth.functions'
 
 export const Route = createFileRoute('/admin/_layout')({
   component: RouteComponent,
-  loader: async () => {
-    const authSession = await getSession()
-    const isAdmin = authSession?.user.role === 'admin'
-    if (!isAdmin) {
-      throw new Error('不是管理员喵～')
+  beforeLoad: async () => {
+    const session = await getSession()
+    if (session?.user.role !== 'admin') {
+      throw redirect({ to: '/' })
     }
-    return authSession
   },
 })
 
