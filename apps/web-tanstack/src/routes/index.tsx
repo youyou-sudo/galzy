@@ -11,16 +11,21 @@ import {
   CardTitle,
 } from '@web/components/ui/card'
 import { Skeleton } from '@web/components/ui/skeleton'
+import { getSession } from '@web/server/auth/auth.functions'
 import { getCritical, getGameList } from '@web/server/game'
 import { Gamepad2, Tags } from 'lucide-react'
 
 export const Route = createFileRoute('/')({
   component: App,
-  loader: async () => {
+  loader: async ({ context }) => {
     const [gamelist, rankings] = await Promise.all([
       getGameList(),
       getCritical(),
     ])
+    await context.queryClient.ensureQueryData({
+      queryKey: ['auth'],
+      queryFn: getSession,
+    })
     return { gamelist, rankings }
   },
 

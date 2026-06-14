@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import {
   Dialog,
   DialogContent,
@@ -11,6 +12,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@web/components/ui/tabs'
+import { elysiaErrorF } from '@web/lib'
 import { authClient } from '@web/server/auth/auth-client'
 import { Shield, User } from 'lucide-react'
 import ProfileTab from './ProfileTab'
@@ -23,7 +25,14 @@ interface ProfileMenuProps {
 }
 
 export default function ProfileMenu({ open, onOpenChange }: ProfileMenuProps) {
-  const { data: session, refetch: refetchSession } = authClient.useSession()
+  const { data: session, refetch: refetchSession } = useQuery({
+    queryKey: ['auth'],
+    queryFn: async () => {
+      const { data: res, error } = await authClient.getSession()
+      elysiaErrorF(error)
+      return res
+    },
+  })
   const user = session?.user
 
   if (!user) return null
@@ -44,6 +53,7 @@ export default function ProfileMenu({ open, onOpenChange }: ProfileMenuProps) {
             {user.email}
           </DialogDescription>
         </DialogHeader>
+        <div>点击头像上传头像喵～</div>
         <div>用户系统正在完善喵～</div>
         <Tabs defaultValue="profile">
           <TabsList variant="line" className="w-full">

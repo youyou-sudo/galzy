@@ -225,26 +225,6 @@ export const Media = {
     // Read file bytes
     const buffer = Buffer.from(await image.arrayBuffer())
 
-    // Delete old avatar if exists (best-effort)
-    try {
-      const existing = await s3.exists(key)
-      if (existing) {
-        await s3.delete(key)
-      }
-    } catch {
-      // Non-critical – old file may not exist or credentials may not have delete permission
-    }
-
-    // Delete old avatar if exists (best-effort)
-    try {
-      const existing = await s3.exists(key)
-      if (existing) {
-        await s3.delete(key)
-      }
-    } catch {
-      // Non-critical – old file may not exist or credentials may not have delete permission
-    }
-
     // Upload to S3
     await s3.write(key, buffer)
 

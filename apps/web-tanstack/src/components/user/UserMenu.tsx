@@ -1,6 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useRouter } from '@tanstack/react-router'
-import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,10 +11,9 @@ import {
 import { elysiaErrorF } from '@web/lib'
 import { authClient } from '@web/server/auth/auth-client'
 import { LogOut, User, UserCog } from 'lucide-react'
-import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '../ui/button'
-import ProfileMenu from './ProfileMenu'
+import AvatarComp from './ProfileMenu/AvatarEditor'
 import UserHeader from './ProfileMenu/UserHeader'
 
 export default function UserMenu() {
@@ -28,8 +26,6 @@ export default function UserMenu() {
       return res
     },
   })
-
-  const [profileOpen, setProfileOpen] = useState(false)
 
   if (isPending) {
     return <div className="size-8 rounded-full bg-muted animate-pulse" />
@@ -49,63 +45,53 @@ export default function UserMenu() {
   const { user } = session
 
   return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <Avatar size="default">
-              <AvatarImage
-                src={user.image ?? undefined}
-                alt={user.name ?? ''}
-              />
-              <AvatarFallback>
-                {user.name?.charAt(0).toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>账户</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <div className="px-1.5 py-2">
-            <UserHeader
-              name={user.name}
-              email={user.email}
-              image={user.image}
-              profileMenu={true}
-            />
-          </div>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => setProfileOpen(true)}>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <AvatarComp name={user.name} image={user.image} editor={false} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>账户</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <div className="px-1.5 py-2">
+          <UserHeader
+            name={user.name}
+            email={user.email}
+            image={user.image}
+            profileMenu={true}
+          />
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/user">
             <UserCog className="size-4" />
             个人设置
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            variant="destructive"
-            onSelect={async () =>
-              await authClient.signOut({
-                fetchOptions: {
-                  onError: () => {
-                    toast.error(`退出登陆失败喵`)
-                  },
-                  onSuccess: () => {
-                    queryClient.invalidateQueries({
-                      queryKey: ['auth'],
-                    })
-                    toast.success(`退出登陆成功喵～`)
-                  },
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          variant="destructive"
+          onSelect={async () =>
+            await authClient.signOut({
+              fetchOptions: {
+                onError: () => {
+                  toast.error(`退出登陆失败喵`)
                 },
-              })
-            }
-          >
-            <LogOut className="size-4" />
-            退出登录
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <ProfileMenu open={profileOpen} onOpenChange={setProfileOpen} />
-    </>
+                onSuccess: () => {
+                  queryClient.invalidateQueries({
+                    queryKey: ['auth'],
+                  })
+                  toast.success(`退出登陆成功喵～`)
+                },
+              },
+            })
+          }
+        >
+          <LogOut className="size-4" />
+          退出登录
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

@@ -1,5 +1,5 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
 import { Mail } from 'lucide-react'
+import AvatarComp from './AvatarEditor'
 
 interface UserHeaderProps {
   name?: string | null
@@ -16,10 +16,7 @@ export default function UserHeader({
 }: UserHeaderProps) {
   return (
     <div className="flex items-center gap-3">
-      <Avatar size="lg">
-        <AvatarImage src={image ?? undefined} alt={name ?? ''} />
-        <AvatarFallback>{name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
-      </Avatar>
+      <AvatarComp name={name} image={image} editor={true} />
       <div className={`${profileMenu ? 'max-w-39' : 'max-w-80'}`}>
         <h2
           className={`text-lg font-semibold leading-none tracking-tight truncate`}

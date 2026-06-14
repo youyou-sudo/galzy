@@ -26,6 +26,7 @@ import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiGameRouteImport } from './routes/api/game'
 import { Route as AdminMeilisearchRouteImport } from './routes/admin/meilisearch'
+import { Route as AdminLayoutRouteImport } from './routes/admin/_layout'
 import { Route as IdLayoutRouteImport } from './routes/$id/_layout'
 import { Route as AuthSignupIndexRouteImport } from './routes/auth/signup/index'
 import { Route as ApiUploadIndexRouteImport } from './routes/api/upload/index'
@@ -122,6 +123,11 @@ const AdminMeilisearchRoute = AdminMeilisearchRouteImport.update({
   path: '/admin/meilisearch',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminLayoutRoute = AdminLayoutRouteImport.update({
+  id: '/admin/_layout',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IdLayoutRoute = IdLayoutRouteImport.update({
   id: '/$id/_layout',
   path: '/$id',
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/friend-links': typeof FriendLinksRoute
   '/openapi': typeof OpenapiRoute
   '/$id': typeof IdLayoutRouteWithChildren
+  '/admin': typeof AdminLayoutRoute
   '/admin/meilisearch': typeof AdminMeilisearchRoute
   '/api/game': typeof ApiGameRoute
   '/api/health': typeof ApiHealthRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/friend-links': typeof FriendLinksRoute
   '/openapi': typeof OpenapiRoute
+  '/admin': typeof AdminIndexRoute
   '/admin/meilisearch': typeof AdminMeilisearchRoute
   '/api/game': typeof ApiGameRoute
   '/api/health': typeof ApiHealthRoute
@@ -217,7 +225,6 @@ export interface FileRoutesByTo {
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/user/editor': typeof UserEditorRoute
-  '/admin': typeof AdminIndexRoute
   '/producer': typeof ProducerIndexRoute
   '/search': typeof SearchIndexRoute
   '/tags': typeof TagsIndexRoute
@@ -239,6 +246,7 @@ export interface FileRoutesById {
   '/friend-links': typeof FriendLinksRoute
   '/openapi': typeof OpenapiRoute
   '/$id/_layout': typeof IdLayoutRouteWithChildren
+  '/admin/_layout': typeof AdminLayoutRoute
   '/admin/meilisearch': typeof AdminMeilisearchRoute
   '/api/game': typeof ApiGameRoute
   '/api/health': typeof ApiHealthRoute
@@ -270,6 +278,7 @@ export interface FileRouteTypes {
     | '/friend-links'
     | '/openapi'
     | '/$id'
+    | '/admin'
     | '/admin/meilisearch'
     | '/api/game'
     | '/api/health'
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/friend-links'
     | '/openapi'
+    | '/admin'
     | '/admin/meilisearch'
     | '/api/game'
     | '/api/health'
@@ -306,7 +316,6 @@ export interface FileRouteTypes {
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/user/editor'
-    | '/admin'
     | '/producer'
     | '/search'
     | '/tags'
@@ -327,6 +336,7 @@ export interface FileRouteTypes {
     | '/friend-links'
     | '/openapi'
     | '/$id/_layout'
+    | '/admin/_layout'
     | '/admin/meilisearch'
     | '/api/game'
     | '/api/health'
@@ -357,6 +367,7 @@ export interface RootRouteChildren {
   FriendLinksRoute: typeof FriendLinksRoute
   OpenapiRoute: typeof OpenapiRoute
   IdLayoutRoute: typeof IdLayoutRouteWithChildren
+  AdminLayoutRoute: typeof AdminLayoutRoute
   AdminMeilisearchRoute: typeof AdminMeilisearchRoute
   ApiGameRoute: typeof ApiGameRoute
   ApiHealthRoute: typeof ApiHealthRoute
@@ -497,6 +508,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMeilisearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/_layout': {
+      id: '/admin/_layout'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminLayoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$id/_layout': {
       id: '/$id/_layout'
       path: '/$id'
@@ -596,6 +614,7 @@ const rootRouteChildren: RootRouteChildren = {
   FriendLinksRoute: FriendLinksRoute,
   OpenapiRoute: OpenapiRoute,
   IdLayoutRoute: IdLayoutRouteWithChildren,
+  AdminLayoutRoute: AdminLayoutRoute,
   AdminMeilisearchRoute: AdminMeilisearchRoute,
   ApiGameRoute: ApiGameRoute,
   ApiHealthRoute: ApiHealthRoute,
