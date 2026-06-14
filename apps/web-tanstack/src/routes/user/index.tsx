@@ -23,10 +23,11 @@ import { Mail, Pencil, Shield, User } from 'lucide-react'
 export const Route = createFileRoute('/user/')({
   component: RouteComponent,
   loader: async ({ context }) => {
-    const session = await context.queryClient.ensureQueryData({
-      queryKey: ['auth'],
-      queryFn: getSession,
-    })
+    const session = await getSession()
+    if (!session) {
+      throw redirect({ to: '/auth/login' })
+    }
+
     await context.queryClient.ensureQueryData({
       queryKey: ['linked-accounts'],
       queryFn: async () => {
@@ -35,10 +36,6 @@ export const Route = createFileRoute('/user/')({
         return data ?? []
       },
     })
-
-    if (!session) {
-      throw redirect({ to: '/auth/login' })
-    }
 
     return session
   },
