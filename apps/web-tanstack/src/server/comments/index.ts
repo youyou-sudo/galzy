@@ -25,7 +25,7 @@ export const getCmments = createServerFn()
         type: data.type,
         status: data.status,
       },
-      ...cookiePass,
+      ...cookiePass(),
     })
     elysiaErrorF(error)
     return res
@@ -52,7 +52,7 @@ export const createCmments = createServerFn()
         replyToUserId: data.replyToUserId,
         type: data.type,
       },
-      cookiePass,
+      cookiePass(),
     )
     elysiaErrorF(error)
     return res

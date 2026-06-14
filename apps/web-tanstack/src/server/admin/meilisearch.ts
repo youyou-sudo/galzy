@@ -10,7 +10,7 @@ import z from 'zod'
 
 export const getMeiliStats = createServerFn({ method: 'GET' }).handler(
   async () => {
-    const { data, error } = await api.search.getStats.get(cookiePass)
+    const { data, error } = await api.search.getStats.get(cookiePass())
     elysiaErrorF(error)
     return data
   },
@@ -22,7 +22,7 @@ export const getMeiliStats = createServerFn({ method: 'GET' }).handler(
 export const getEmbedders = createServerFn({ method: 'GET' }).handler(
   async () => {
     const { data, error } =
-      await api.search.meilisearchEmbeddersGet.get(cookiePass)
+      await api.search.meilisearchEmbeddersGet.get(cookiePass())
     elysiaErrorF(error)
     return data
   },
@@ -44,7 +44,7 @@ export const updateEmbedders = createServerFn({ method: 'POST' })
   .handler(async ({ data: body }) => {
     const { data, error } = await api.search.meilisearchEmbeddersUpdate.post(
       body,
-      cookiePass,
+      cookiePass(),
     )
     elysiaErrorF(error)
     return data
@@ -56,7 +56,7 @@ export const updateEmbedders = createServerFn({ method: 'POST' })
 export const getPropertyList = createServerFn({ method: 'GET' }).handler(
   async () => {
     const { data, error } =
-      await api.search.meilisearchPropertylist.get(cookiePass)
+      await api.search.meilisearchPropertylist.get(cookiePass())
     elysiaErrorF(error)
     return data
   },
@@ -69,7 +69,7 @@ export const getSearchableAttributes = createServerFn({
   method: 'GET',
 }).handler(async () => {
   const { data, error } =
-    await api.search.meilisearcSearchableAttributeshGet.get(cookiePass)
+    await api.search.meilisearcSearchableAttributeshGet.get(cookiePass())
   elysiaErrorF(error)
   return data
 })
@@ -87,7 +87,7 @@ export const updateSearchableAttributes = createServerFn({ method: 'POST' })
     const { data, error } =
       await api.search.meilisearcSearchableAttributeshUpdate.post(
         body,
-        cookiePass,
+        cookiePass(),
       )
     elysiaErrorF(error)
     return data
@@ -99,7 +99,7 @@ export const updateSearchableAttributes = createServerFn({ method: 'POST' })
 export const triggerGameIndexRebuild = createServerFn({
   method: 'GET',
 }).handler(async () => {
-  const { data, error } = await api.task.meiliSearchAddIndex.get(cookiePass)
+  const { data, error } = await api.task.meiliSearchAddIndex.get(cookiePass())
   elysiaErrorF(error)
   return data
 })
@@ -109,7 +109,7 @@ export const triggerGameIndexRebuild = createServerFn({
  */
 export const triggerTagIndexRebuild = createServerFn({ method: 'GET' }).handler(
   async () => {
-    const { data, error } = await api.task.meiliSearchAddTag.get(cookiePass)
+    const { data, error } = await api.task.meiliSearchAddTag.get(cookiePass())
     elysiaErrorF(error)
     return data
   },

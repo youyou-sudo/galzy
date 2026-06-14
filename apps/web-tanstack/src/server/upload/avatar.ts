@@ -35,7 +35,7 @@ export const uploadAvatar = createServerFn({ method: 'POST' })
       {
         image: image,
       },
-      cookiePass,
+      cookiePass(),
     )
     elysiaErrorF(error)
     if (!res)
