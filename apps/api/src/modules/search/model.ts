@@ -18,10 +18,14 @@ export namespace SearchModel {
   export const meilisearcSearchableAttributeshUpdate = t.Object({
     fields: t.Array(t.String()),
   })
+  export const taskQuery = t.Object({
+    uid: t.Number(),
+  })
   export type tagAllReturn = Awaited<ReturnType<typeof Tags.tagAllGet>>
   export type search = typeof search.static
   export type meilisearchEmbeddersUpdate =
     typeof meilisearchEmbeddersUpdate.static
   export type meilisearcSearchableAttributeshUpdate =
     typeof meilisearcSearchableAttributeshUpdate.static
+  export type taskQuery = typeof taskQuery.static
 }

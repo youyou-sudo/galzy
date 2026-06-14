@@ -1,6 +1,7 @@
 import { CronService } from '@api/modules/cron/service'
 import { Cron } from 'croner'
 import { Elysia } from 'elysia'
+import { db } from '@api/libs'
 
 export const cronServer = new Elysia()
   .get('/task/meiliSearchAddIndex', () => {
@@ -18,6 +19,17 @@ export const cronServer = new Elysia()
   .get('/task/workerDataPull', () => {
     console.log('[Cron Trigger] workerDataPull 手动触发')
     return CronService.workerDataPull()
+  })
+  .get('/task/meilisearchTasks', async () => {
+    const rows = await db
+      .selectFrom('galrc_siteConfig')
+      .selectAll()
+      .where('key', 'like', 'meiliTask_%')
+      .execute()
+    return rows.map((r) => ({
+      key: r.key,
+      ...(typeof r.config === 'string' ? JSON.parse(r.config) : r.config),
+    }))
   })
 
 export function startCronTasks() {

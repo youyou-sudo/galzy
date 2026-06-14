@@ -114,3 +114,65 @@ export const triggerTagIndexRebuild = createServerFn({ method: 'GET' }).handler(
     return data
   },
 )
+
+/**
+ * 获取最近的任务执行状态
+ */
+export const getMeiliTaskStatus = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    const { data, error } = await api.task.meilisearchTasks.get(cookiePass())
+    elysiaErrorF(error)
+    return data ?? []
+  },
+)
+
+/**
+ * 执行搜索查询（测试用）
+ */
+export const searchMeili = createServerFn({ method: 'GET' })
+  .inputValidator(
+    z.object({
+      q: z.string().min(1, '搜索词不能为空'),
+      limit: z.number().min(1).max(100).optional().default(20),
+      startDate: z.string().optional(),
+      endDate: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data: body }) => {
+    const { data, error } = await api.search.get({
+      query: {
+        q: body.q,
+        limit: body.limit,
+        startDate: body.startDate,
+        endDate: body.endDate,
+      },
+    })
+    elysiaErrorF(error)
+    return data
+  })
+
+/**
+ * 获取 search 相关的任务记录（embedder 更新、搜索属性更新等）
+ */
+export const getSearchTasks = createServerFn({ method: 'GET' }).handler(
+  async () => {
+    const { data, error } = await api.search.tasks.get(cookiePass())
+    elysiaErrorF(error)
+    return data ?? []
+  },
+)
+
+/**
+ * 获取单个任务的实时状态（从 Meilisearch 拉取）
+ */
+export const getSearchTask = createServerFn({ method: 'GET' })
+  .inputValidator(
+    z.object({
+      uid: z.number(),
+    }),
+  )
+  .handler(async ({ data: { uid } }) => {
+    const { data, error } = await api.search.task({ uid }).get(cookiePass())
+    elysiaErrorF(error)
+    return data
+  })

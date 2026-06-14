@@ -289,6 +289,7 @@ export const CronService = {
 
       const { totalPages } = await this.getMeiliSearchDataInfo()
       const pageSize = 500
+      const taskUids: number[] = []
 
       // 并行处理所有分页，但限制并发数量避免过载
       const concurrencyLimit = 3 // 降低并发数以减少负载
@@ -297,8 +298,15 @@ export const CronService = {
         for (let j = 0; j < concurrencyLimit && i + j < totalPages; j++) {
           batch.push(this.indexPageWithRetry(index, pageSize, i + j))
         }
-        await Promise.all(batch)
+        const results = await Promise.all(batch)
+        for (const taskUid of results) {
+          if (taskUid != null) taskUids.push(taskUid)
+        }
       }
+
+      // 等待所有文档添加任务完成并汇总结果
+      await this.waitForMeiliTasks(taskUids, 'meiliSearchAddIndex')
+
       await index.updateFilterableAttributes(['released_first'])
       return { code: 200 }
     } catch (e) {
@@ -312,14 +320,15 @@ export const CronService = {
     pageSize: number,
     pageIndex: number,
     retries = 3,
-  ) {
+  ): Promise<number | null> {
     for (let i = 0; i < retries; i++) {
       try {
         const { items } = await MeiliSearchData(pageSize, pageIndex)
         if (items.length > 0) {
-          await index.addDocuments(items)
+          const task = await index.addDocuments(items)
+          return task.taskUid
         }
-        return
+        return null
       } catch (e) {
         console.error(
           `索引分页 ${pageIndex} 失败 (尝试 ${i + 1}/${retries})`,
@@ -329,6 +338,7 @@ export const CronService = {
         await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)))
       }
     }
+    return null
   },
 
   async meiliSearchAddTag() {
@@ -340,6 +350,7 @@ export const CronService = {
 
       const { totalPages } = await this.getTagDataInfo()
       const pageSize = 500
+      const taskUids: number[] = []
 
       // 并行处理所有分页，限制并发数量
       const concurrencyLimit = 3
@@ -348,8 +359,15 @@ export const CronService = {
         for (let j = 0; j < concurrencyLimit && i + j < totalPages; j++) {
           batch.push(this.indexTagPageWithRetry(index, pageSize, i + j))
         }
-        await Promise.all(batch)
+        const results = await Promise.all(batch)
+        for (const taskUid of results) {
+          if (taskUid != null) taskUids.push(taskUid)
+        }
       }
+
+      // 等待所有文档添加任务完成并汇总结果
+      await this.waitForMeiliTasks(taskUids, 'meiliSearchAddTag')
+
       return { code: 200 }
     } catch (e) {
       console.error('meiliSearchAddTag 运行失败喵', e)
@@ -362,14 +380,15 @@ export const CronService = {
     pageSize: number,
     pageIndex: number,
     retries = 3,
-  ) {
+  ): Promise<number | null> {
     for (let i = 0; i < retries; i++) {
       try {
         const { items } = await tagAllGet(pageSize, pageIndex)
         if (items.length > 0) {
-          await index.addDocuments(items)
+          const task = await index.addDocuments(items)
+          return task.taskUid
         }
-        return
+        return null
       } catch (e) {
         console.error(
           `标签索引分页 ${pageIndex} 失败 (尝试 ${i + 1}/${retries})`,
@@ -378,6 +397,104 @@ export const CronService = {
         if (i === retries - 1) throw e
         await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)))
       }
+    }
+    return null
+  },
+
+  // 等待 Meilisearch 任务完成并保存结果到 galrc_siteConfig
+  async waitForMeiliTasks(taskUids: number[], label: string) {
+    if (taskUids.length === 0) {
+      console.log(`[${label}] 无文档添加任务，跳过等待`)
+      return
+    }
+
+    console.log(`[${label}] 等待 ${taskUids.length} 个任务完成...`)
+    const startTime = Date.now()
+
+    try {
+      // 使用 SDK 的 waitForTasks 一次性等待所有任务
+      const tasks = await MeiliClient.tasks.waitForTasks(taskUids, {
+        timeout: 300_000,  // 单个任务最多等 5 分钟
+        interval: 2000,    // 每 2 秒轮询一次
+      })
+
+      const failed: number[] = []
+      for (const task of tasks) {
+        if (task.status === 'failed' || task.error) {
+          failed.push(task.uid)
+        }
+      }
+
+      const summary = {
+        label,
+        indexName:
+          label === 'meiliSearchAddIndex'
+            ? process.env.MEILISEARCH_INDEXNAME
+            : process.env.MEILISEARCH_TAG_INDEXNAME,
+        total: tasks.length,
+        succeeded: tasks.filter((t) => t.status === 'succeeded').length,
+        failed: tasks.filter((t) => t.status === 'failed').length,
+        tasks: tasks.map((t) => ({
+          uid: t.uid,
+          status: t.status,
+          error: t.error,
+          duration: t.duration,
+        })),
+        finishedAt: new Date().toISOString(),
+        elapsedMs: Date.now() - startTime,
+      }
+
+      // 保存到 galrc_siteConfig
+      await db
+        .insertInto('galrc_siteConfig')
+        .values({
+          key: `meiliTask_${label}`,
+          config: JSON.stringify(summary),
+        })
+        .onConflict((oc) =>
+          oc.column('key').doUpdateSet({
+            config: JSON.stringify(summary),
+          }),
+        )
+        .execute()
+
+      if (failed.length > 0) {
+        console.error(
+          `[${label}] ⚠️ ${failed.length}/${tasks.length} 个任务失败，UID:`,
+          failed,
+        )
+      } else {
+        console.log(
+          `[${label}] ✅ 全部 ${tasks.length} 个任务完成 (${summary.elapsedMs}ms)`,
+        )
+      }
+    } catch (e) {
+      console.error(`[${label}] 等待任务超时或出错`, e)
+      // 即使出错也保存当前状态
+      await db
+        .insertInto('galrc_siteConfig')
+        .values({
+          key: `meiliTask_${label}`,
+          config: JSON.stringify({
+            label,
+            error: String(e),
+            taskUids,
+            finishedAt: new Date().toISOString(),
+            elapsedMs: Date.now() - startTime,
+          }),
+        })
+        .onConflict((oc) =>
+          oc.column('key').doUpdateSet({
+            config: JSON.stringify({
+              label,
+              error: String(e),
+              taskUids,
+              finishedAt: new Date().toISOString(),
+              elapsedMs: Date.now() - startTime,
+            }),
+          }),
+        )
+        .execute()
     }
   },
 
