@@ -17,7 +17,6 @@ import { Route as UserIndexRouteImport } from './routes/user/index'
 import { Route as TagsIndexRouteImport } from './routes/tags/index'
 import { Route as SearchIndexRouteImport } from './routes/search/index'
 import { Route as ProducerIndexRouteImport } from './routes/producer/index'
-import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as UserEditorRouteImport } from './routes/user/editor'
 import { Route as TagsTagIdRouteImport } from './routes/tags/$tagId'
 import { Route as ProducerPidRouteImport } from './routes/producer/$pid'
@@ -25,14 +24,16 @@ import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as ApiGameRouteImport } from './routes/api/game'
-import { Route as AdminMeilisearchRouteImport } from './routes/admin/meilisearch'
-import { Route as AdminLayoutRouteImport } from './routes/admin/_layout'
+import { Route as AdminAuthLRouteImport } from './routes/admin/_authL'
 import { Route as IdLayoutRouteImport } from './routes/$id/_layout'
 import { Route as AuthSignupIndexRouteImport } from './routes/auth/signup/index'
 import { Route as ApiUploadIndexRouteImport } from './routes/api/upload/index'
+import { Route as AdminAuthLIndexRouteImport } from './routes/admin/_authL/index'
 import { Route as IdLayoutIndexRouteImport } from './routes/$id/_layout/index'
 import { Route as AuthSignupVerificationRouteImport } from './routes/auth/signup/Verification'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AdminAuthLUsersRouteImport } from './routes/admin/_authL/users'
+import { Route as AdminAuthLMeilisearchRouteImport } from './routes/admin/_authL/meilisearch'
 import { Route as IdLayoutTranslateRouteImport } from './routes/$id/_layout/translate'
 import { Route as IdLayoutCommentRouteImport } from './routes/$id/_layout/comment'
 import { Route as IdLayoutIntroductionIndexRouteImport } from './routes/$id/_layout/introduction/index'
@@ -78,11 +79,6 @@ const ProducerIndexRoute = ProducerIndexRouteImport.update({
   path: '/producer/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/admin/',
-  path: '/admin/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const UserEditorRoute = UserEditorRouteImport.update({
   id: '/user/editor',
   path: '/user/editor',
@@ -118,13 +114,8 @@ const ApiGameRoute = ApiGameRouteImport.update({
   path: '/api/game',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminMeilisearchRoute = AdminMeilisearchRouteImport.update({
-  id: '/admin/meilisearch',
-  path: '/admin/meilisearch',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminLayoutRoute = AdminLayoutRouteImport.update({
-  id: '/admin/_layout',
+const AdminAuthLRoute = AdminAuthLRouteImport.update({
+  id: '/admin/_authL',
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
@@ -143,6 +134,11 @@ const ApiUploadIndexRoute = ApiUploadIndexRouteImport.update({
   path: '/api/upload/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAuthLIndexRoute = AdminAuthLIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
 const IdLayoutIndexRoute = IdLayoutIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -157,6 +153,16 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAuthLUsersRoute = AdminAuthLUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
+const AdminAuthLMeilisearchRoute = AdminAuthLMeilisearchRouteImport.update({
+  id: '/meilisearch',
+  path: '/meilisearch',
+  getParentRoute: () => AdminAuthLRoute,
 } as any)
 const IdLayoutTranslateRoute = IdLayoutTranslateRouteImport.update({
   id: '/translate',
@@ -187,8 +193,7 @@ export interface FileRoutesByFullPath {
   '/friend-links': typeof FriendLinksRoute
   '/openapi': typeof OpenapiRoute
   '/$id': typeof IdLayoutRouteWithChildren
-  '/admin': typeof AdminLayoutRoute
-  '/admin/meilisearch': typeof AdminMeilisearchRoute
+  '/admin': typeof AdminAuthLRouteWithChildren
   '/api/game': typeof ApiGameRoute
   '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
@@ -196,16 +201,18 @@ export interface FileRoutesByFullPath {
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/user/editor': typeof UserEditorRoute
-  '/admin/': typeof AdminIndexRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
   '/user/': typeof UserIndexRoute
   '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
+  '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
+  '/admin/users': typeof AdminAuthLUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
   '/$id/': typeof IdLayoutIndexRoute
+  '/admin/': typeof AdminAuthLIndexRoute
   '/api/upload/': typeof ApiUploadIndexRoute
   '/auth/signup/': typeof AuthSignupIndexRoute
   '/$id/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
@@ -216,8 +223,6 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/friend-links': typeof FriendLinksRoute
   '/openapi': typeof OpenapiRoute
-  '/admin': typeof AdminIndexRoute
-  '/admin/meilisearch': typeof AdminMeilisearchRoute
   '/api/game': typeof ApiGameRoute
   '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
@@ -231,9 +236,12 @@ export interface FileRoutesByTo {
   '/user': typeof UserIndexRoute
   '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
+  '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
+  '/admin/users': typeof AdminAuthLUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
   '/$id': typeof IdLayoutIndexRoute
+  '/admin': typeof AdminAuthLIndexRoute
   '/api/upload': typeof ApiUploadIndexRoute
   '/auth/signup': typeof AuthSignupIndexRoute
   '/$id/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
@@ -246,8 +254,7 @@ export interface FileRoutesById {
   '/friend-links': typeof FriendLinksRoute
   '/openapi': typeof OpenapiRoute
   '/$id/_layout': typeof IdLayoutRouteWithChildren
-  '/admin/_layout': typeof AdminLayoutRoute
-  '/admin/meilisearch': typeof AdminMeilisearchRoute
+  '/admin/_authL': typeof AdminAuthLRouteWithChildren
   '/api/game': typeof ApiGameRoute
   '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
@@ -255,16 +262,18 @@ export interface FileRoutesById {
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/user/editor': typeof UserEditorRoute
-  '/admin/': typeof AdminIndexRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
   '/user/': typeof UserIndexRoute
   '/$id/_layout/comment': typeof IdLayoutCommentRoute
   '/$id/_layout/translate': typeof IdLayoutTranslateRoute
+  '/admin/_authL/meilisearch': typeof AdminAuthLMeilisearchRoute
+  '/admin/_authL/users': typeof AdminAuthLUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
   '/$id/_layout/': typeof IdLayoutIndexRoute
+  '/admin/_authL/': typeof AdminAuthLIndexRoute
   '/api/upload/': typeof ApiUploadIndexRoute
   '/auth/signup/': typeof AuthSignupIndexRoute
   '/$id/_layout/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
@@ -279,7 +288,6 @@ export interface FileRouteTypes {
     | '/openapi'
     | '/$id'
     | '/admin'
-    | '/admin/meilisearch'
     | '/api/game'
     | '/api/health'
     | '/api/search'
@@ -287,16 +295,18 @@ export interface FileRouteTypes {
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/user/editor'
-    | '/admin/'
     | '/producer/'
     | '/search/'
     | '/tags/'
     | '/user/'
     | '/$id/comment'
     | '/$id/translate'
+    | '/admin/meilisearch'
+    | '/admin/users'
     | '/api/auth/$'
     | '/auth/signup/Verification'
     | '/$id/'
+    | '/admin/'
     | '/api/upload/'
     | '/auth/signup/'
     | '/$id/introduction/$articleId'
@@ -307,8 +317,6 @@ export interface FileRouteTypes {
     | '/contact'
     | '/friend-links'
     | '/openapi'
-    | '/admin'
-    | '/admin/meilisearch'
     | '/api/game'
     | '/api/health'
     | '/api/search'
@@ -322,9 +330,12 @@ export interface FileRouteTypes {
     | '/user'
     | '/$id/comment'
     | '/$id/translate'
+    | '/admin/meilisearch'
+    | '/admin/users'
     | '/api/auth/$'
     | '/auth/signup/Verification'
     | '/$id'
+    | '/admin'
     | '/api/upload'
     | '/auth/signup'
     | '/$id/introduction/$articleId'
@@ -336,8 +347,7 @@ export interface FileRouteTypes {
     | '/friend-links'
     | '/openapi'
     | '/$id/_layout'
-    | '/admin/_layout'
-    | '/admin/meilisearch'
+    | '/admin/_authL'
     | '/api/game'
     | '/api/health'
     | '/api/search'
@@ -345,16 +355,18 @@ export interface FileRouteTypes {
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/user/editor'
-    | '/admin/'
     | '/producer/'
     | '/search/'
     | '/tags/'
     | '/user/'
     | '/$id/_layout/comment'
     | '/$id/_layout/translate'
+    | '/admin/_authL/meilisearch'
+    | '/admin/_authL/users'
     | '/api/auth/$'
     | '/auth/signup/Verification'
     | '/$id/_layout/'
+    | '/admin/_authL/'
     | '/api/upload/'
     | '/auth/signup/'
     | '/$id/_layout/introduction/$articleId'
@@ -367,8 +379,7 @@ export interface RootRouteChildren {
   FriendLinksRoute: typeof FriendLinksRoute
   OpenapiRoute: typeof OpenapiRoute
   IdLayoutRoute: typeof IdLayoutRouteWithChildren
-  AdminLayoutRoute: typeof AdminLayoutRoute
-  AdminMeilisearchRoute: typeof AdminMeilisearchRoute
+  AdminAuthLRoute: typeof AdminAuthLRouteWithChildren
   ApiGameRoute: typeof ApiGameRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiSearchRoute: typeof ApiSearchRoute
@@ -376,7 +387,6 @@ export interface RootRouteChildren {
   ProducerPidRoute: typeof ProducerPidRoute
   TagsTagIdRoute: typeof TagsTagIdRoute
   UserEditorRoute: typeof UserEditorRoute
-  AdminIndexRoute: typeof AdminIndexRoute
   ProducerIndexRoute: typeof ProducerIndexRoute
   SearchIndexRoute: typeof SearchIndexRoute
   TagsIndexRoute: typeof TagsIndexRoute
@@ -445,13 +455,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProducerIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/': {
-      id: '/admin/'
-      path: '/admin'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/user/editor': {
       id: '/user/editor'
       path: '/user/editor'
@@ -501,18 +504,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGameRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/meilisearch': {
-      id: '/admin/meilisearch'
-      path: '/admin/meilisearch'
-      fullPath: '/admin/meilisearch'
-      preLoaderRoute: typeof AdminMeilisearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/_layout': {
-      id: '/admin/_layout'
+    '/admin/_authL': {
+      id: '/admin/_authL'
       path: '/admin'
       fullPath: '/admin'
-      preLoaderRoute: typeof AdminLayoutRouteImport
+      preLoaderRoute: typeof AdminAuthLRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$id/_layout': {
@@ -536,6 +532,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiUploadIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/_authL/': {
+      id: '/admin/_authL/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminAuthLIndexRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
     '/$id/_layout/': {
       id: '/$id/_layout/'
       path: '/'
@@ -556,6 +559,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/_authL/users': {
+      id: '/admin/_authL/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminAuthLUsersRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
+    '/admin/_authL/meilisearch': {
+      id: '/admin/_authL/meilisearch'
+      path: '/meilisearch'
+      fullPath: '/admin/meilisearch'
+      preLoaderRoute: typeof AdminAuthLMeilisearchRouteImport
+      parentRoute: typeof AdminAuthLRoute
     }
     '/$id/_layout/translate': {
       id: '/$id/_layout/translate'
@@ -608,14 +625,29 @@ const IdLayoutRouteWithChildren = IdLayoutRoute._addFileChildren(
   IdLayoutRouteChildren,
 )
 
+interface AdminAuthLRouteChildren {
+  AdminAuthLMeilisearchRoute: typeof AdminAuthLMeilisearchRoute
+  AdminAuthLUsersRoute: typeof AdminAuthLUsersRoute
+  AdminAuthLIndexRoute: typeof AdminAuthLIndexRoute
+}
+
+const AdminAuthLRouteChildren: AdminAuthLRouteChildren = {
+  AdminAuthLMeilisearchRoute: AdminAuthLMeilisearchRoute,
+  AdminAuthLUsersRoute: AdminAuthLUsersRoute,
+  AdminAuthLIndexRoute: AdminAuthLIndexRoute,
+}
+
+const AdminAuthLRouteWithChildren = AdminAuthLRoute._addFileChildren(
+  AdminAuthLRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ContactRoute: ContactRoute,
   FriendLinksRoute: FriendLinksRoute,
   OpenapiRoute: OpenapiRoute,
   IdLayoutRoute: IdLayoutRouteWithChildren,
-  AdminLayoutRoute: AdminLayoutRoute,
-  AdminMeilisearchRoute: AdminMeilisearchRoute,
+  AdminAuthLRoute: AdminAuthLRouteWithChildren,
   ApiGameRoute: ApiGameRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiSearchRoute: ApiSearchRoute,
@@ -623,7 +655,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProducerPidRoute: ProducerPidRoute,
   TagsTagIdRoute: TagsTagIdRoute,
   UserEditorRoute: UserEditorRoute,
-  AdminIndexRoute: AdminIndexRoute,
   ProducerIndexRoute: ProducerIndexRoute,
   SearchIndexRoute: SearchIndexRoute,
   TagsIndexRoute: TagsIndexRoute,
