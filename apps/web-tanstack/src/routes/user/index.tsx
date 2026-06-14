@@ -19,9 +19,26 @@ import { elysiaErrorF } from '@web/lib'
 import { getSession, listAccounts } from '@web/server/auth/auth.functions'
 import { authClient } from '@web/server/auth/auth-client'
 import { Mail, Pencil, Shield, User } from 'lucide-react'
+import { useEffect } from 'react'
+import { toast } from 'sonner'
+import { z } from 'zod'
+
+const errorMessages: Record<string, string> = {
+  "email_doesn't_match":
+    '当前账户邮箱与第三方账户邮箱不一致，无法绑定。如需绑定不同邮箱的账户，请联系管理员喵～',
+  account_already_linked_to_different_user:
+    '该第三方账户已绑定到其他用户，无法重复绑定。',
+  unable_to_link_account: '账户关联失败，请稍后重试。',
+}
+
+const UserSearchSchema = z.object({
+  error: z.string().optional(),
+  error_description: z.string().optional(),
+})
 
 export const Route = createFileRoute('/user/')({
   component: RouteComponent,
+  validateSearch: UserSearchSchema,
   loader: async ({ context }) => {
     const session = await getSession()
     if (!session) {
@@ -43,9 +60,21 @@ export const Route = createFileRoute('/user/')({
 
 function RouteComponent() {
   const session = Route.useLoaderData()
+  const { error: errorCode, error_description: errorDescription } =
+    Route.useSearch()
   const { data: clientSession, refetch: refetchSession } =
     authClient.useSession()
   const user = clientSession?.user ?? session.user
+
+  useEffect(() => {
+    if (errorCode) {
+      const message =
+        errorMessages[errorCode] ??
+        errorDescription ??
+        `账户关联时发生错误（${errorCode}），请稍后重试或联系管理员喵～`
+      toast.error(message)
+    }
+  }, [errorCode, errorDescription])
 
   if (!user) return null
 

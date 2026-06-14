@@ -10,6 +10,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { Image } from '@unpic/react'
 import Errors from '@web/components/error'
 import { RouterProgress } from '@web/components/ProgressProvider'
+import { TooltipProvider } from '@web/components/ui/tooltip'
 import { Toaster } from 'sonner'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
@@ -135,7 +136,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 </div>
               </a>
             </aside>
-            {children}
+            <TooltipProvider>{children}</TooltipProvider>
           </main>
           <Footer />
           <Toaster position="top-center" />

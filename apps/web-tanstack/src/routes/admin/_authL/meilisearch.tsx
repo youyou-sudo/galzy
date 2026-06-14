@@ -18,7 +18,7 @@ import {
   ServerIcon,
 } from 'lucide-react'
 
-export const Route = createFileRoute('/admin/meilisearch')({
+export const Route = createFileRoute('/admin/_authL/meilisearch')({
   component: RouteComponent,
 })
 

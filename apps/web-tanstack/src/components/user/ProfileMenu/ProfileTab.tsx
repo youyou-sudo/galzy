@@ -4,6 +4,11 @@ import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
 import { Label } from '@web/components/ui/label'
 import { Skeleton } from '@web/components/ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@web/components/ui/tooltip'
 import { getAccountInfo, listAccounts } from '@web/server/auth/auth.functions'
 import { authClient } from '@web/server/auth/auth-client'
 import { Check, Loader2 } from 'lucide-react'
@@ -129,10 +134,19 @@ export default function ProfileTab({
     setLinkingProvider(providerId)
     try {
       const callbackURL = `${window.location.origin}/user`
+      const errorCallbackURL = callbackURL
       if (type === 'oauth2') {
-        await authClient.oauth2.link({ providerId, callbackURL })
+        await authClient.oauth2.link({
+          providerId,
+          callbackURL,
+          errorCallbackURL,
+        })
       } else {
-        await authClient.linkSocial({ provider: providerId, callbackURL })
+        await authClient.linkSocial({
+          provider: providerId,
+          callbackURL,
+          errorCallbackURL,
+        })
       }
     } finally {
       setLinkingProvider(null)
@@ -177,13 +191,17 @@ export default function ProfileTab({
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="profile-email">邮箱</Label>
-        <Input
-          id="profile-email"
-          value={user.email ?? ''}
-          disabled
-          className="opacity-60"
-        />
+        <Label>邮箱</Label>
+        <Tooltip delayDuration={300}>
+          <TooltipTrigger asChild>
+            <div className="flex min-h-8 w-full min-w-0 items-center rounded-lg border border-input bg-input/30 px-2.5 py-1 text-sm text-muted-foreground break-all dark:bg-input/80">
+              {user.email ?? '未设置邮箱'}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{user.email}</p>
+          </TooltipContent>
+        </Tooltip>
         <p className="text-xs text-muted-foreground">
           邮箱无法直接修改，如需帮助请联系管理员喵。
         </p>
