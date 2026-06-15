@@ -30,7 +30,8 @@ const config = defineConfig({
     tailwindcss(),
     tanstackStart(),
     react(),
-    viteCompression(),
+    viteCompression({ algorithm: 'gzip', ext: '.gz' }),
+    viteCompression({ algorithm: 'brotliCompress', ext: '.br' }),
     babel({ presets: [reactCompilerPreset()] }),
     tanstackRouter({
       autoCodeSplitting: true,

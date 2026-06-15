@@ -220,37 +220,82 @@ async function loadStatics(): Promise<void> {
 
 // ── Fast URL → path extraction ──────────────────────
 function fastPath(url: string): string {
-  const i = url.indexOf('/', 8) // skip "https://"
+  if (url.charCodeAt(0) === 47) return url
+  const i = url.indexOf('/', 8)
   return i === -1 ? '/' : url.slice(i)
+}
+
+function safeSSRResponse(res: Response): Response {
+  if (!res.body) return res
+  const reader = res.body.getReader()
+  let canceled = false
+  const stream = new ReadableStream({
+    async pull(controller) {
+      if (canceled) return
+      try {
+        const { done, value } = await reader.read()
+        if (done) {
+          canceled = true
+          controller.close()
+          return
+        }
+        controller.enqueue(value)
+      } catch (e) {
+        if ((e as { name?: string }).name === 'AbortError') {
+          try { controller.close() } catch {}
+        } else {
+          try { controller.error(e as Error) } catch {}
+        }
+        canceled = true
+      }
+    },
+    cancel() {
+      canceled = true
+      reader.cancel().catch(() => {})
+    },
+  })
+  return new Response(stream, {
+    status: res.status,
+    statusText: res.statusText,
+    headers: res.headers,
+  })
 }
 
 // ── Main ────────────────────────────────────────────
 async function main(): Promise<void> {
   console.log('[info] Starting production server …')
 
-  // Load SSR handler (can happen in parallel with statics)
-  const ssrMod = (await import(SSR_ENTRY)) as {
-    default: { fetch: (req: Request) => Response | Promise<Response> }
-  }
-  console.log('[ ok ] SSR handler loaded')
+  process.on('unhandledRejection', (reason) => {
+    if ((reason as { name?: string }).name === 'AbortError') return
+    console.error('[err] unhandled rejection:', reason)
+  })
 
-  await loadStatics()
+  // Load SSR handler and static assets in parallel
+  const [ssrMod] = await Promise.all([
+    import(SSR_ENTRY) as Promise<{
+      default: { fetch: (req: Request) => Response | Promise<Response> }
+    }>,
+    loadStatics(),
+  ])
 
   Bun.serve({
     port: PORT,
     reusePort: true,
 
-    fetch(req) {
+    async fetch(req) {
       const handler = statics[fastPath(req.url)]
       if (handler) return handler(req)
       try {
-        return ssrMod.default.fetch(req)
+        return safeSSRResponse(await ssrMod.default.fetch(req))
       } catch (e) {
         return new Response('Internal Server Error', { status: 500 })
       }
     },
 
     error(e) {
+      if ((e as { name?: string }).name === 'AbortError') {
+        return new Response(null, { status: 499 })
+      }
       console.error('[err]', e)
       return new Response('Internal Server Error', { status: 500 })
     },
