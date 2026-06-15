@@ -21,6 +21,9 @@
  *   ASSET_PRELOAD_INCLUDE       comma globs, e.g. "*.js,*.css"
  *   ASSET_PRELOAD_EXCLUDE       comma globs, e.g. "*.map"
  *   ASSET_PRELOAD_VERBOSE       "true" for per-file listing
+ *   SSR_TIMEOUT_MS              SSR hard timeout (ms), default 55000
+ *   SSR_DIAG_TIMEOUT_MS         diagnostic warning threshold (ms), default 15000
+ *                                set to 0 to disable
  */
 
 import { join } from 'node:path'
@@ -32,6 +35,13 @@ const SSR_ENTRY = './dist/server/server.js'
 
 const MAX_BYTES = Number(process.env.ASSET_PRELOAD_MAX_SIZE ?? 5 * 1024 * 1024)
 const VERBOSE = process.env.ASSET_PRELOAD_VERBOSE === 'true'
+
+// ── SSR timeout ────────────────────────────────────
+// Hard cap: abort the SSR promise if it hasn't resolved.
+// Set below React 19's internal 120s stream lifetime to preempt it.
+const SSR_TIMEOUT_MS = Number(process.env.SSR_TIMEOUT_MS ?? 55_000)
+// Soft threshold: print a warning if SSR is still rendering after this.
+const SSR_DIAG_TIMEOUT_MS = Number(process.env.SSR_DIAG_TIMEOUT_MS ?? 15_000)
 
 // ── Filter patterns ─────────────────────────────────
 const INCLUDE = (process.env.ASSET_PRELOAD_INCLUDE ?? '')
@@ -225,6 +235,12 @@ function fastPath(url: string): string {
   return i === -1 ? '/' : url.slice(i)
 }
 
+/**
+ * Wrap the SSR ReadableStream so that mid-stream aborts (e.g. React's
+ * internal 120s lifetime kill) don't crash the server.  On AbortError we
+ * close the stream cleanly; the client already received headers and will
+ * see a truncated body, but the server stays healthy.
+ */
 function safeSSRResponse(res: Response): Response {
   if (!res.body) return res
   const reader = res.body.getReader()
@@ -241,7 +257,9 @@ function safeSSRResponse(res: Response): Response {
         }
         controller.enqueue(value)
       } catch (e) {
-        if ((e as { name?: string }).name === 'AbortError') {
+        // React 19 aborts the stream after 120s → DOMException AbortError.
+        // Also covers our own SSR_TIMEOUT_MS abort.
+        if (e instanceof DOMException || (e as { name?: string }).name === 'AbortError') {
           try { controller.close() } catch {}
         } else {
           try { controller.error(e as Error) } catch {}
@@ -266,7 +284,11 @@ async function main(): Promise<void> {
   console.log('[info] Starting production server …')
 
   process.on('unhandledRejection', (reason) => {
-    if ((reason as { name?: string }).name === 'AbortError') return
+    if (
+      reason instanceof DOMException ||
+      (reason as { name?: string }).name === 'AbortError'
+    )
+      return
     console.error('[err] unhandled rejection:', reason)
   })
 
@@ -285,15 +307,66 @@ async function main(): Promise<void> {
     async fetch(req) {
       const handler = statics[fastPath(req.url)]
       if (handler) return handler(req)
+
+      const url = req.url
+      const start = performance.now()
+
+      // Diagnostic timer: warn if SSR is slow (non-blocking)
+      let diagTimer: ReturnType<typeof setTimeout> | undefined
+      if (SSR_DIAG_TIMEOUT_MS > 0) {
+        diagTimer = setTimeout(() => {
+          const elapsed = (performance.now() - start).toFixed(0)
+          console.warn(
+            `[warn] Slow SSR (${elapsed}ms): ${req.method} ${url}`,
+          )
+        }, SSR_DIAG_TIMEOUT_MS)
+      }
+
       try {
-        return safeSSRResponse(await ssrMod.default.fetch(req))
+        let res: Response
+        if (SSR_TIMEOUT_MS > 0) {
+          // Race the SSR call against a hard timeout so we preempt React's
+          // internal 120s stream lifetime and return a clean error response.
+          const ac = new AbortController()
+          const timer = setTimeout(() => ac.abort(), SSR_TIMEOUT_MS)
+          res = await Promise.race([
+            ssrMod.default.fetch(req),
+            new Promise<never>((_, reject) => {
+              ac.signal.addEventListener('abort', () => {
+                reject(new DOMException('SSR request timed out', 'TimeoutError'))
+              })
+            }),
+          ])
+          clearTimeout(timer)
+        } else {
+          res = await ssrMod.default.fetch(req)
+        }
+
+        clearTimeout(diagTimer)
+        const elapsed = (performance.now() - start).toFixed(0)
+        if (Number(elapsed) > 100) {
+          console.log(`[req] ${req.method} ${url} — ${elapsed}ms`)
+        }
+        return safeSSRResponse(res)
       } catch (e) {
+        clearTimeout(diagTimer)
+        const elapsed = (performance.now() - start).toFixed(0)
+        if (e instanceof DOMException && e.name === 'TimeoutError') {
+          console.error(
+            `[err] SSR timeout (${elapsed}ms): ${req.method} ${url}`,
+          )
+          return new Response('Gateway Timeout', { status: 504 })
+        }
+        console.error(`[err] SSR failed (${elapsed}ms): ${req.method} ${url}`, e)
         return new Response('Internal Server Error', { status: 500 })
       }
     },
 
     error(e) {
-      if ((e as { name?: string }).name === 'AbortError') {
+      if (
+        e instanceof DOMException ||
+        (e as { name?: string }).name === 'AbortError'
+      ) {
         return new Response(null, { status: 499 })
       }
       console.error('[err]', e)
