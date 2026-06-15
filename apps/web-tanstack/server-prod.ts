@@ -22,8 +22,6 @@
  *   ASSET_PRELOAD_EXCLUDE       comma globs, e.g. "*.map"
  *   ASSET_PRELOAD_VERBOSE       "true" for per-file listing
  *   SSR_TIMEOUT_MS              SSR hard timeout (ms), default 55000
- *   SSR_DIAG_TIMEOUT_MS         diagnostic warning threshold (ms), default 15000
- *                                set to 0 to disable
  */
 
 import { join } from 'node:path'
@@ -40,8 +38,6 @@ const VERBOSE = process.env.ASSET_PRELOAD_VERBOSE === 'true'
 // Hard cap: abort the SSR promise if it hasn't resolved.
 // Set below React 19's internal 120s stream lifetime to preempt it.
 const SSR_TIMEOUT_MS = Number(process.env.SSR_TIMEOUT_MS ?? 55_000)
-// Soft threshold: print a warning if SSR is still rendering after this.
-const SSR_DIAG_TIMEOUT_MS = Number(process.env.SSR_DIAG_TIMEOUT_MS ?? 15_000)
 
 // ── Filter patterns ─────────────────────────────────
 const INCLUDE = (process.env.ASSET_PRELOAD_INCLUDE ?? '')
@@ -308,20 +304,6 @@ async function main(): Promise<void> {
       const handler = statics[fastPath(req.url)]
       if (handler) return handler(req)
 
-      const url = req.url
-      const start = performance.now()
-
-      // Diagnostic timer: warn if SSR is slow (non-blocking)
-      let diagTimer: ReturnType<typeof setTimeout> | undefined
-      if (SSR_DIAG_TIMEOUT_MS > 0) {
-        diagTimer = setTimeout(() => {
-          const elapsed = (performance.now() - start).toFixed(0)
-          console.warn(
-            `[warn] Slow SSR (${elapsed}ms): ${req.method} ${url}`,
-          )
-        }, SSR_DIAG_TIMEOUT_MS)
-      }
-
       try {
         let res: Response
         if (SSR_TIMEOUT_MS > 0) {
@@ -342,22 +324,12 @@ async function main(): Promise<void> {
           res = await ssrMod.default.fetch(req)
         }
 
-        clearTimeout(diagTimer)
-        const elapsed = (performance.now() - start).toFixed(0)
-        if (Number(elapsed) > 100) {
-          console.log(`[req] ${req.method} ${url} — ${elapsed}ms`)
-        }
         return safeSSRResponse(res)
       } catch (e) {
-        clearTimeout(diagTimer)
-        const elapsed = (performance.now() - start).toFixed(0)
         if (e instanceof DOMException && e.name === 'TimeoutError') {
-          console.error(
-            `[err] SSR timeout (${elapsed}ms): ${req.method} ${url}`,
-          )
           return new Response('Gateway Timeout', { status: 504 })
         }
-        console.error(`[err] SSR failed (${elapsed}ms): ${req.method} ${url}`, e)
+        console.error('[err]', e)
         return new Response('Internal Server Error', { status: 500 })
       }
     },
