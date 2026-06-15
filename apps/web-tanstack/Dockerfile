@@ -19,7 +19,7 @@ ENV NODE_ENV=production
 WORKDIR /app/apps/web-tanstack
 RUN bun --bun run build
 
-FROM oven/bun:distroless AS production
+FROM oven/bun:slim AS production
 
 WORKDIR /app
 
