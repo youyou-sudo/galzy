@@ -26,10 +26,34 @@ const paths = await Promise.all(
 
 const colors = ['blue', 'green', 'magenta', 'yellow', 'red']
 
-concurrently(
-  paths.map((path, index) => ({
-    name: path,
-    command: `cd ${path} && bun run ${command}`,
-    prefixColor: colors[index % colors.length],
-  })),
-).result.catch(() => {})
+try {
+  const results = await concurrently(
+    paths.map((path, index) => ({
+      name: path,
+      command: `cd ${path} && bun run ${command}`,
+      prefixColor: colors[index % colors.length],
+    })),
+  ).result
+
+  const failed = results.filter((r) => r.exitCode !== 0)
+  if (failed.length > 0) {
+    console.error(
+      'Failed commands:',
+      failed.map((r) => `${r.command.name} (exit ${r.exitCode})`).join(', '),
+    )
+    process.exit(1)
+  }
+} catch (err) {
+  const failed = Array.isArray(err)
+    ? err.filter((r) => r && r.exitCode !== 0)
+    : null
+  if (failed && failed.length > 0) {
+    console.error(
+      'Failed commands:',
+      failed.map((r) => `${r.command.name} (exit ${r.exitCode})`).join(', '),
+    )
+  } else {
+    console.error(err)
+  }
+  process.exit(1)
+}
