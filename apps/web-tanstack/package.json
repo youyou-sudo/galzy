@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --bun vite dev --port 3000",
-    "build": "bun --bun vite build",
+    "dev": "bunx --bun vite dev --port 3000",
+    "build": "bunx --bun vite build",
     "build:executables": "bun run build.ts",
     "preview": "bun --bun vite preview",
     "lint": "oxlint",

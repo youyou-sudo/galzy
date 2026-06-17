@@ -16,6 +16,8 @@ COPY packages packages
 ENV NODE_ENV=production
 
 WORKDIR /app/apps/web-tanstack
+RUN bun install
+RUN bun run build
 RUN bun run build:executables
 RUN ls -la /app/apps/web-tanstack/   # 调试
 FROM gcr.io/distroless/base
