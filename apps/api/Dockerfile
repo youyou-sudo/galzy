@@ -1,5 +1,5 @@
 # Build stage
-FROM oven/bun:1.3.5 AS build
+FROM oven/bun:canary-slim AS build
 
 WORKDIR /app
 
@@ -21,6 +21,7 @@ RUN ls -al /app/apps/api
 ENV NODE_ENV=production
 
 WORKDIR /app/apps/api
+RUN bun install
 RUN bun run build
 
 # Debug step: List files after build to check if 'server' is generated
