@@ -1,10 +1,9 @@
-FROM oven/bun:slim AS build
+FROM oven/bun:1.3.14 AS build
 
 WORKDIR /app
 
-COPY package.json ./
+COPY package.json package.json
 COPY apps/web-tanstack/package.json apps/web-tanstack/package.json
-COPY apps/api/package.json apps/api/package.json
 COPY packages/libs/package.json packages/libs/package.json
 COPY packages/config/package.json packages/config/package.json
 
@@ -17,20 +16,17 @@ COPY packages packages
 ENV NODE_ENV=production
 
 WORKDIR /app/apps/web-tanstack
-RUN bun --bun run build
-
-FROM oven/bun:slim AS production
-
+RUN bun run build:executables
+RUN ls -la /app/apps/web-tanstack/   # 调试
+FROM gcr.io/distroless/base
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-COPY --from=build /app/apps/web-tanstack/dist ./dist
-COPY --from=build /app/apps/web-tanstack/server-prod.ts ./
+COPY --from=build /app/apps/web-tanstack/server /app/server
 
-USER bun
-
+ENV NODE_ENV=production
 ENV HOSTNAME="0.0.0.0"
 EXPOSE 3000
 
-CMD ["bun", "--bun", "run", "server-prod.ts"]
+CMD ["./server"]

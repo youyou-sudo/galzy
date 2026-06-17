@@ -7,13 +7,15 @@
  * ultra variant, plus Brotli-first compression.
  *
  * ── Strategy ──
- *  1. Scan dist/client with Bun.Glob (parallel I/O via Promise.all).
- *  2. Files ≤ MAX_SIZE are preloaded into RAM with pre-built Response
+ *  1. Compiled mode: read dist-blob.data from Bun.embeddedFiles, parse
+ *     the binary bundle, build static route map from memory.
+ *  2. Disk mode: scan dist/client with Bun.Glob (parallel I/O).
+ *  3. Files ≤ MAX_SIZE are preloaded into RAM with pre-built Response
  *     init objects (no per-request allocations).
- *  3. Files > MAX_SIZE stay on disk – served on-demand via Bun.file.
- *  4. Pre-built compressed variants (.br / .gz) are picked up if they
+ *  4. Files > MAX_SIZE stay on disk / in bundle — served on-demand.
+ *  5. Pre-built compressed variants (.br / .gz) are picked up if they
  *     exist next to the source file (no runtime compression).
- *  5. ETag-based 304 responses avoid re-sending bodies.
+ *  6. ETag-based 304 responses avoid re-sending bodies.
  *
  * ── Env vars ──
  *   PORT                        default 3000
@@ -29,7 +31,6 @@ import { join } from 'node:path'
 // ── Config ──────────────────────────────────────────
 const PORT = Number(process.env.PORT ?? 3000)
 const CLIENT_DIR = './dist/client'
-const SSR_ENTRY = './dist/server/server.js'
 
 const MAX_BYTES = Number(process.env.ASSET_PRELOAD_MAX_SIZE ?? 5 * 1024 * 1024)
 const VERBOSE = process.env.ASSET_PRELOAD_VERBOSE === 'true'
@@ -109,7 +110,7 @@ function buildGlob(): Bun.Glob {
   return new Bun.Glob(`{${INCLUDE.join(',')}}`)
 }
 
-// ── Load static assets ──────────────────────────────
+// ── Load static assets from disk ────────────────────
 async function loadStatics(): Promise<void> {
   const files: string[] = []
   const glob = buildGlob()
@@ -224,6 +225,189 @@ async function loadStatics(): Promise<void> {
   )
 }
 
+// ── Load static assets from dist-blob.data (compiled mode) ─
+// The blob is a binary bundle created by build.ts containing
+// all dist/ files with their full paths.
+//
+// Blob format:
+//   [4 bytes: file count N, uint32 LE]
+//   For each file:
+//     [2 bytes: path length P, uint16 LE]
+//     [P bytes: UTF-8 path]
+//     [4 bytes: content length C, uint32 LE]
+//     [C bytes: raw content]
+//
+async function loadStaticsFromBundle(): Promise<void> {
+  const embedded: Blob[] = (Bun as any).embeddedFiles as Blob[] ?? []
+  if (embedded.length === 0) return
+
+  const bundle = embedded[0]
+  if (!bundle || bundle.size === 0) return
+
+  const data = new Uint8Array(await bundle.arrayBuffer())
+
+  // Manual binary reads (avoiding DataView quirks in compiled mode)
+  function u16(off: number): number {
+    return data[off] | (data[off + 1] << 8)
+  }
+  function u32(off: number): number {
+    return (
+      data[off] +
+      (data[off + 1] << 8) +
+      (data[off + 2] << 16) +
+      (data[off + 3] << 24)
+    ) >>> 0
+  }
+
+  const decoder = new TextDecoder()
+  let offset = 0
+
+  const fileCount = u32(offset)
+  offset += 4
+
+  // First pass: collect all entries
+  interface Entry { path: string; content: Uint8Array }
+  const entries: Entry[] = []
+  for (let i = 0; i < fileCount; i++) {
+    const pathLen = u16(offset)
+    offset += 2
+    const path = decoder.decode(data.subarray(offset, offset + pathLen))
+    offset += pathLen
+    const contentLen = u32(offset)
+    offset += 4
+    const content = data.subarray(offset, offset + contentLen)
+    offset += contentLen
+    entries.push({ path, content })
+  }
+
+  // Group client files by base URL path (stripping .br/.gz)
+  const CLIENT_PREFIX = 'dist/client/'
+  const grouped: Record<string, { raw?: Uint8Array; br?: Uint8Array; gz?: Uint8Array }> =
+    Object.create(null)
+
+  for (const { path, content } of entries) {
+    // Normalize Windows backslashes
+    const npath = path.replaceAll('\\', '/')
+    if (!npath.startsWith(CLIENT_PREFIX)) continue
+    if (content.length === 0) continue
+
+    const rel = npath.slice(CLIENT_PREFIX.length)
+    let base: string
+    let variant: 'raw' | 'br' | 'gz'
+
+    if (rel.endsWith('.br')) {
+      base = rel.slice(0, -3)
+      variant = 'br'
+    } else if (rel.endsWith('.gz')) {
+      base = rel.slice(0, -3)
+      variant = 'gz'
+    } else {
+      base = rel
+      variant = 'raw'
+    }
+
+    const entry = (grouped[base] ??= {})
+    entry[variant] = content
+  }
+
+  if (Object.keys(grouped).length === 0) return
+
+  // Build static handlers
+  let preloaded = 0
+  let preloadedBytes = 0
+  let onDemand = 0
+
+  for (const [rel, variants] of Object.entries(grouped)) {
+    const raw = variants.raw
+    if (!raw) continue
+
+    const route = '/' + rel.replaceAll('\\', '/')
+    const ct = mime(rel, 'application/octet-stream')
+    const size = raw.length
+
+    if (!eligible(rel, size)) {
+      statics[route] = () =>
+        new Response(raw, {
+          headers: { 'Content-Type': ct, 'Cache-Control': 'public, max-age=3600' },
+        })
+      onDemand++
+      if (VERBOSE) console.log(`  [demand] ${route}  (${(size / 1024).toFixed(1)} kB)`)
+      continue
+    }
+
+    // Preload — data already in memory
+    const etag = `W/"${Bun.hash(raw).toString(16)}-${raw.length}"`
+    const br = variants.br
+    const gz = variants.gz
+    const cache = 'public, max-age=31536000, immutable'
+
+    const hRaw = Object.freeze({
+      status: 200,
+      headers: Object.freeze({
+        'Content-Type': ct,
+        'Cache-Control': cache,
+        'Content-Length': String(raw.length),
+        ETag: etag,
+      } satisfies Record<string, string>),
+    })
+
+    const hBr = br
+      ? Object.freeze({
+          status: 200,
+          headers: Object.freeze({
+            'Content-Type': ct,
+            'Content-Encoding': 'br',
+            'Cache-Control': cache,
+            'Content-Length': String(br.length),
+            ETag: etag,
+            Vary: 'Accept-Encoding',
+          } satisfies Record<string, string>),
+        })
+      : undefined
+
+    const hGz = gz
+      ? Object.freeze({
+          status: 200,
+          headers: Object.freeze({
+            'Content-Type': ct,
+            'Content-Encoding': 'gzip',
+            'Cache-Control': cache,
+            'Content-Length': String(gz.length),
+            ETag: etag,
+            Vary: 'Accept-Encoding',
+          } satisfies Record<string, string>),
+        })
+      : undefined
+
+    statics[route] = (req: Request): Response => {
+      if (req.headers.get('if-none-match') === etag) {
+        return new Response(null, { status: 304 })
+      }
+      const ae = req.headers.get('accept-encoding')
+      if (ae) {
+        if (hBr && ae.includes('br')) return new Response(br!, hBr)
+        if (hGz && ae.includes('gzip')) return new Response(gz!, hGz)
+      }
+      return new Response(raw, hRaw)
+    }
+
+    preloaded++
+    preloadedBytes += raw.length
+    if (VERBOSE)
+      console.log(
+        `  [memory] ${route}  (${(raw.length / 1024).toFixed(1)} kB)` +
+          (br ? ` +br` : '') +
+          (gz ? ` +gz` : ''),
+      )
+  }
+
+  console.log(
+    `[ ok ] ${preloaded} file(s) preloaded from bundle  ` +
+      `(${(preloadedBytes / 1024 / 1024).toFixed(1)} MB RAM)` +
+      (onDemand ? `, ${onDemand} on-demand` : ''),
+  )
+}
+
 // ── Fast URL → path extraction ──────────────────────
 function fastPath(url: string): string {
   if (url.charCodeAt(0) === 47) return url
@@ -253,8 +437,6 @@ function safeSSRResponse(res: Response): Response {
         }
         controller.enqueue(value)
       } catch (e) {
-        // React 19 aborts the stream after 120s → DOMException AbortError.
-        // Also covers our own SSR_TIMEOUT_MS abort.
         if (e instanceof DOMException || (e as { name?: string }).name === 'AbortError') {
           try { controller.close() } catch {}
         } else {
@@ -275,6 +457,30 @@ function safeSSRResponse(res: Response): Response {
   })
 }
 
+// ── Healthcheck ─────────────────────────────────────
+async function healthcheck(): Promise<void> {
+  const HEALTH_PORT = Number(process.env.PORT ?? 3000)
+  const url = `http://localhost:${HEALTH_PORT}/api/health`
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+    if (!res.ok) {
+      console.error(`[err] Healthcheck failed: ${res.status} ${res.statusText}`)
+      process.exit(1)
+    }
+    const body = await res.json() as { ok?: boolean }
+    if (body.ok !== true) {
+      console.error('[err] Healthcheck failed: unexpected response body')
+      process.exit(1)
+    }
+    console.log('[ ok ] Healthcheck passed')
+    process.exit(0)
+  } catch (e) {
+    console.error('[err] Healthcheck failed:', (e as Error).message)
+    process.exit(1)
+  }
+}
+
 // ── Main ────────────────────────────────────────────
 async function main(): Promise<void> {
   console.log('[info] Starting production server …')
@@ -288,12 +494,18 @@ async function main(): Promise<void> {
     console.error('[err] unhandled rejection:', reason)
   })
 
+  // Detect compiled mode
+  const embedded = (Bun as any).embeddedFiles as Blob[] | undefined
+  const isCompiled = embedded !== undefined && embedded.length > 0
+
   // Load SSR handler and static assets in parallel
   const [ssrMod] = await Promise.all([
-    import(SSR_ENTRY) as Promise<{
+    import('./dist/server/server.js') as Promise<{
       default: { fetch: (req: Request) => Response | Promise<Response> }
     }>,
-    loadStatics(),
+    isCompiled
+      ? loadStaticsFromBundle()
+      : loadStatics(),
   ])
 
   Bun.serve({
@@ -307,8 +519,6 @@ async function main(): Promise<void> {
       try {
         let res: Response
         if (SSR_TIMEOUT_MS > 0) {
-          // Race the SSR call against a hard timeout so we preempt React's
-          // internal 120s stream lifetime and return a clean error response.
           const ac = new AbortController()
           const timer = setTimeout(() => ac.abort(), SSR_TIMEOUT_MS)
           res = await Promise.race([
@@ -349,7 +559,12 @@ async function main(): Promise<void> {
   console.log(`[ ok ] Listening on http://localhost:${PORT}`)
 }
 
-main().catch((e) => {
-  console.error('[err] Failed to start:', e)
-  process.exit(1)
-})
+const command = process.argv[2]
+if (command === 'healthcheck') {
+  healthcheck()
+} else {
+  main().catch((e) => {
+    console.error('[err] Failed to start:', e)
+    process.exit(1)
+  })
+}
