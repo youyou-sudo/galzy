@@ -4,7 +4,7 @@ type ImageParams = {
   height?: number | null
 }
 
-const BASE_URL = 'https://vndb-t.galzy.moe'
+const BASE_URL = process.env.VNDB_IMAGES_URL || 'https://vndb-t.galzy.moe'
 const PLACEHOLDER = '/No-Image-Placeholder.svg.webp'
 
 export const getImageUrl = ({
