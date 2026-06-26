@@ -49,7 +49,7 @@ function RouteComponent() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const verify = useMutation({
+  const seedVerificationEmail = useMutation({
     mutationFn: async () => {
       await authClient.emailopt.seedverificationemail({
         email: email,
@@ -66,7 +66,7 @@ function RouteComponent() {
     },
   })
 
-  const seedVerificationEmail = useMutation({
+  const verify = useMutation({
     mutationFn: async () => {
       await authClient.emailopt.emailverificationtop({
         email,
