@@ -27,6 +27,9 @@
  */
 
 import { join } from 'node:path'
+import { availableParallelism } from 'node:os'
+import { Readable } from 'node:stream'
+import { createGzip, createBrotliCompress } from 'node:zlib'
 
 // ── Config ──────────────────────────────────────────
 const PORT = Number(process.env.PORT ?? 3000)
@@ -34,6 +37,12 @@ const CLIENT_DIR = './dist/client'
 
 const MAX_BYTES = Number(process.env.ASSET_PRELOAD_MAX_SIZE ?? 5 * 1024 * 1024)
 const VERBOSE = process.env.ASSET_PRELOAD_VERBOSE === 'true'
+
+// ── Cluster ──────────────────────────────────────────
+const WORKER_ID = process.env.WORKER_ID
+const CLUSTER_WORKERS = Math.max(1,
+  Number(process.env.CLUSTER_WORKERS ?? availableParallelism()))
+const IS_COMPILED = ((Bun as any).embeddedFiles as Blob[] | undefined)?.length > 0
 
 // ── SSR timeout ────────────────────────────────────
 // Hard cap: abort the SSR promise if it hasn't resolved.
@@ -449,6 +458,55 @@ async function healthcheck(): Promise<void> {
   }
 }
 
+// ── SSR response compression (streaming) ────────────
+function compressStream(res: Response, ae: string): Response {
+  if (!res.body) return res
+  const ct = res.headers.get('content-type') ?? ''
+  if (!ct.startsWith('text/')) return res
+
+  let compressor: import('node:stream').Transform
+  let encoding: string
+  if (ae.includes('br')) {
+    compressor = createBrotliCompress()
+    encoding = 'br'
+  } else if (ae.includes('gzip')) {
+    compressor = createGzip()
+    encoding = 'gzip'
+  } else {
+    return res
+  }
+
+  const reader = res.body.getReader()
+  const nodeIn = new Readable({
+    async read() {
+      try {
+        const { done, value } = await reader.read()
+        this.push(done ? null : Buffer.from(value))
+      } catch (e) { this.destroy(e as Error) }
+    },
+  })
+
+  const nodeOut = nodeIn.pipe(compressor)
+  const webOut = new ReadableStream({
+    start(controller) {
+      nodeOut.on('data',  (c: Buffer) => controller.enqueue(new Uint8Array(c)))
+      nodeOut.on('end',   () => controller.close())
+      nodeOut.on('error', (e: Error) => controller.error(e))
+    },
+    cancel() { nodeIn.destroy(); compressor.destroy() },
+  })
+
+  return new Response(webOut, {
+    status: res.status,
+    statusText: res.statusText,
+    headers: {
+      ...Object.fromEntries(res.headers),
+      'Content-Encoding': encoding,
+      'Vary': 'Accept-Encoding',
+    },
+  })
+}
+
 // ── Main ────────────────────────────────────────────
 async function main(): Promise<void> {
   console.log('[info] Starting production server …')
@@ -462,22 +520,19 @@ async function main(): Promise<void> {
     console.error('[err] unhandled rejection:', reason)
   })
 
-  // Detect compiled mode
-  const embedded = (Bun as any).embeddedFiles as Blob[] | undefined
-  const isCompiled = embedded !== undefined && embedded.length > 0
-
   // Load SSR handler and static assets in parallel
   const [ssrMod] = await Promise.all([
     import('./dist/server/server.js') as Promise<{
       default: { fetch: (req: Request) => Response | Promise<Response> }
     }>,
-    isCompiled
+    IS_COMPILED
       ? loadStaticsFromBundle()
       : loadStatics(),
   ])
 
   Bun.serve({
     port: PORT,
+    reusePort: true,
     async fetch(req) {
       const handler = statics[fastPath(req.url)]
       if (handler) return handler(req)
@@ -500,7 +555,8 @@ async function main(): Promise<void> {
           res = await ssrMod.default.fetch(req)
         }
 
-        return safeSSRResponse(res)
+        const ae = req.headers.get('accept-encoding') ?? ''
+        return safeSSRResponse(compressStream(res, ae))
       } catch (e) {
         if (e instanceof DOMException && e.name === 'TimeoutError') {
           return new Response('Gateway Timeout', { status: 504 })
@@ -528,6 +584,18 @@ async function main(): Promise<void> {
 const command = process.argv[2]
 if (command === 'healthcheck') {
   await healthcheck()
+} else if (CLUSTER_WORKERS > 1 && WORKER_ID === undefined && !IS_COMPILED) {
+  const workers = []
+  for (let i = 0; i < CLUSTER_WORKERS; i++) {
+    workers.push(
+      Bun.spawn([process.argv[0], ...process.argv.slice(1)], {
+        env: { ...process.env, WORKER_ID: String(i) },
+        stdio: ['inherit', 'inherit', 'inherit'],
+      }),
+    )
+  }
+  const codes = await Promise.all(workers.map((w) => w.exited))
+  process.exit(codes.some((c) => c !== 0) ? 1 : 0)
 } else {
   main().catch((e) => {
     console.error('[err] Failed to start:', e)
