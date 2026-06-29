@@ -56,52 +56,118 @@ function globToRe(glob: string): RegExp {
   return new RegExp(`^${e}$`, 'i')
 }
 
-function matchesAny(name: string, patterns: readonly string[]): boolean {
+const INCLUDE_RE: readonly RegExp[] = INCLUDE.map(globToRe)
+const EXCLUDE_RE: readonly RegExp[] = EXCLUDE.map(globToRe)
+
+function matchesAny(name: string, patterns: readonly RegExp[]): boolean {
   for (let i = 0; i < patterns.length; i++) {
-    if (globToRe(patterns[i]).test(name)) return true
+    if (patterns[i].test(name)) return true
   }
   return false
 }
 
 function eligible(fileName: string, size: number): boolean {
   if (size > MAX_BYTES) return false
-  if (INCLUDE.length > 0 && !matchesAny(fileName, INCLUDE)) return false
-  if (EXCLUDE.length > 0 && matchesAny(fileName, EXCLUDE)) return false
+  if (INCLUDE.length > 0 && !matchesAny(fileName, INCLUDE_RE)) return false
+  if (EXCLUDE.length > 0 && matchesAny(fileName, EXCLUDE_RE)) return false
   return true
 }
 
 // ── MIME ────────────────────────────────────────────
+const MIME_MAP: Record<string, string> = Object.freeze({
+  html: 'text/html; charset=utf-8',
+  htm: 'text/html; charset=utf-8',
+  css: 'text/css; charset=utf-8',
+  js: 'application/javascript; charset=utf-8',
+  mjs: 'application/javascript; charset=utf-8',
+  json: 'application/json; charset=utf-8',
+  xml: 'application/xml; charset=utf-8',
+  svg: 'image/svg+xml',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  avif: 'image/avif',
+  ico: 'image/x-icon',
+  woff: 'font/woff',
+  woff2: 'font/woff2',
+  ttf: 'font/ttf',
+  eot: 'application/vnd.ms-fontobject',
+  txt: 'text/plain; charset=utf-8',
+  wasm: 'application/wasm',
+})
+
 function mime(fileName: string, fallback: string): string {
   const ext = fileName.slice(fileName.lastIndexOf('.') + 1).toLowerCase()
-  const map: Record<string, string> = {
-    html: 'text/html; charset=utf-8',
-    htm: 'text/html; charset=utf-8',
-    css: 'text/css; charset=utf-8',
-    js: 'application/javascript; charset=utf-8',
-    mjs: 'application/javascript; charset=utf-8',
-    json: 'application/json; charset=utf-8',
-    xml: 'application/xml; charset=utf-8',
-    svg: 'image/svg+xml',
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    gif: 'image/gif',
-    webp: 'image/webp',
-    avif: 'image/avif',
-    ico: 'image/x-icon',
-    woff: 'font/woff',
-    woff2: 'font/woff2',
-    ttf: 'font/ttf',
-    eot: 'application/vnd.ms-fontobject',
-    txt: 'text/plain; charset=utf-8',
-    wasm: 'application/wasm',
-  }
-  return map[ext] ?? fallback
+  return MIME_MAP[ext] ?? fallback
 }
 
 // ── Static route map ────────────────────────────────
 type Handler = (req: Request) => Response
 const statics: Record<string, Handler> = Object.create(null)
+
+// ── Shared asset handler factory ────────────────────
+function createAssetHandler(
+  raw: Uint8Array,
+  ct: string,
+  etag: string,
+  br?: Uint8Array,
+  gz?: Uint8Array,
+): Handler {
+  const cache = 'public, max-age=31536000, immutable'
+  const sl = String(raw.length)
+
+  const hRaw: ResponseInit = Object.freeze({
+    status: 200,
+    headers: Object.freeze({
+      'Content-Type': ct,
+      'Cache-Control': cache,
+      'Content-Length': sl,
+      ETag: etag,
+    }),
+  })
+
+  const hBr = br
+    ? Object.freeze({
+        status: 200,
+        headers: Object.freeze({
+          'Content-Type': ct,
+          'Content-Encoding': 'br',
+          'Cache-Control': cache,
+          'Content-Length': String(br.length),
+          ETag: etag,
+          Vary: 'Accept-Encoding',
+        }),
+      })
+    : undefined
+
+  const hGz = gz
+    ? Object.freeze({
+        status: 200,
+        headers: Object.freeze({
+          'Content-Type': ct,
+          'Content-Encoding': 'gzip',
+          'Cache-Control': cache,
+          'Content-Length': String(gz.length),
+          ETag: etag,
+          Vary: 'Accept-Encoding',
+        }),
+      })
+    : undefined
+
+  return (req: Request): Response => {
+    if (req.headers.get('if-none-match') === etag) {
+      return new Response(null, { status: 304 })
+    }
+    const ae = req.headers.get('accept-encoding')
+    if (ae) {
+      if (hBr && ae.includes('br')) return new Response(br!, hBr)
+      if (hGz && ae.includes('gzip')) return new Response(gz!, hGz)
+    }
+    return new Response(raw, hRaw)
+  }
+}
 
 // ── Build glob for scanning ─────────────────────────
 function buildGlob(): Bun.Glob {
@@ -131,7 +197,6 @@ async function loadStatics(): Promise<void> {
     const size = bf.size
 
     if (!eligible(rel, size)) {
-      // ── on-demand handler ──
       statics[route] = () =>
         new Response(Bun.file(abs), {
           headers: { 'Content-Type': ct, 'Cache-Control': 'public, max-age=3600' },
@@ -141,70 +206,16 @@ async function loadStatics(): Promise<void> {
       return
     }
 
-    // ── preload into memory ──
     const raw = new Uint8Array(await bf.arrayBuffer())
     const etag = `W/"${Bun.hash(raw).toString(16)}-${raw.length}"`
 
-    // Look for pre-compressed variants next to the original file
     let br: Uint8Array | undefined
     let gz: Uint8Array | undefined
     const [brFile, gzFile] = [Bun.file(abs + '.br'), Bun.file(abs + '.gz')]
     if (brFile.size > 0) br = new Uint8Array(await brFile.arrayBuffer())
     if (gzFile.size > 0) gz = new Uint8Array(await gzFile.arrayBuffer())
 
-    // Pre-build all response init objects (no per-request allocations)
-    const cache = 'public, max-age=31536000, immutable'
-
-    const hRaw = Object.freeze({
-      status: 200,
-      headers: Object.freeze({
-        'Content-Type': ct,
-        'Cache-Control': cache,
-        'Content-Length': String(raw.length),
-        ETag: etag,
-      } satisfies Record<string, string>),
-    })
-
-    const hBr = br
-      ? Object.freeze({
-          status: 200,
-          headers: Object.freeze({
-            'Content-Type': ct,
-            'Content-Encoding': 'br',
-            'Cache-Control': cache,
-            'Content-Length': String(br.length),
-            ETag: etag,
-            Vary: 'Accept-Encoding',
-          } satisfies Record<string, string>),
-        })
-      : undefined
-
-    const hGz = gz
-      ? Object.freeze({
-          status: 200,
-          headers: Object.freeze({
-            'Content-Type': ct,
-            'Content-Encoding': 'gzip',
-            'Cache-Control': cache,
-            'Content-Length': String(gz.length),
-            ETag: etag,
-            Vary: 'Accept-Encoding',
-          } satisfies Record<string, string>),
-        })
-      : undefined
-
-    // Each handler closes over the buffers + pre-built inits — zero allocs per call
-    statics[route] = (req: Request): Response => {
-      if (req.headers.get('if-none-match') === etag) {
-        return new Response(null, { status: 304 })
-      }
-      const ae = req.headers.get('accept-encoding')
-      if (ae) {
-        if (hBr && ae.includes('br')) return new Response(br!, hBr)
-        if (hGz && ae.includes('gzip')) return new Response(gz!, hGz)
-      }
-      return new Response(raw, hRaw)
-    }
+    statics[route] = createAssetHandler(raw, ct, etag, br, gz)
 
     preloaded++
     preloadedBytes += raw.length
@@ -310,9 +321,10 @@ async function loadStaticsFromBundle(): Promise<void> {
     entry[variant] = content
   }
 
-  if (Object.keys(grouped).length === 0) return
+  let groupedCount = 0
+  for (const _k in grouped) { groupedCount++; break }
+  if (groupedCount === 0) return
 
-  // Build static handlers
   let preloaded = 0
   let preloadedBytes = 0
   let onDemand = 0
@@ -335,61 +347,11 @@ async function loadStaticsFromBundle(): Promise<void> {
       continue
     }
 
-    // Preload — data already in memory
     const etag = `W/"${Bun.hash(raw).toString(16)}-${raw.length}"`
     const br = variants.br
     const gz = variants.gz
-    const cache = 'public, max-age=31536000, immutable'
 
-    const hRaw = Object.freeze({
-      status: 200,
-      headers: Object.freeze({
-        'Content-Type': ct,
-        'Cache-Control': cache,
-        'Content-Length': String(raw.length),
-        ETag: etag,
-      } satisfies Record<string, string>),
-    })
-
-    const hBr = br
-      ? Object.freeze({
-          status: 200,
-          headers: Object.freeze({
-            'Content-Type': ct,
-            'Content-Encoding': 'br',
-            'Cache-Control': cache,
-            'Content-Length': String(br.length),
-            ETag: etag,
-            Vary: 'Accept-Encoding',
-          } satisfies Record<string, string>),
-        })
-      : undefined
-
-    const hGz = gz
-      ? Object.freeze({
-          status: 200,
-          headers: Object.freeze({
-            'Content-Type': ct,
-            'Content-Encoding': 'gzip',
-            'Cache-Control': cache,
-            'Content-Length': String(gz.length),
-            ETag: etag,
-            Vary: 'Accept-Encoding',
-          } satisfies Record<string, string>),
-        })
-      : undefined
-
-    statics[route] = (req: Request): Response => {
-      if (req.headers.get('if-none-match') === etag) {
-        return new Response(null, { status: 304 })
-      }
-      const ae = req.headers.get('accept-encoding')
-      if (ae) {
-        if (hBr && ae.includes('br')) return new Response(br!, hBr)
-        if (hGz && ae.includes('gzip')) return new Response(gz!, hGz)
-      }
-      return new Response(raw, hRaw)
-    }
+    statics[route] = createAssetHandler(raw, ct, etag, br, gz)
 
     preloaded++
     preloadedBytes += raw.length
@@ -526,7 +488,7 @@ async function main(): Promise<void> {
             new Promise<never>((_, reject) => {
               ac.signal.addEventListener('abort', () => {
                 reject(new DOMException('SSR request timed out', 'TimeoutError'))
-              })
+              }, { once: true })
             }),
           ])
           clearTimeout(timer)
