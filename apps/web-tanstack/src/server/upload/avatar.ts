@@ -17,7 +17,7 @@ const uploadAvatarInputSchema = z.object({
   type: z.string(),
 })
 export const uploadAvatar = createServerFn({ method: 'POST' })
-  .inputValidator((formData: FormData) => {
+  .validator((formData: FormData) => {
     const name = formData.get('name')
     const type = formData.get('type')
     const image = formData.get('image')

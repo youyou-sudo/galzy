@@ -10,7 +10,7 @@ export const SearchSchema = z.object({
 })
 
 export const getSearch = createServerFn()
-  .inputValidator(SearchSchema)
+  .validator(SearchSchema)
   .handler(async ({ data }) => {
     const { data: gameListData, error } = await api.search.get({
       query: {

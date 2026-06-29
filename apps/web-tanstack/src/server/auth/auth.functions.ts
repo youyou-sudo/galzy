@@ -10,7 +10,7 @@ export const getSession = createServerFn({ method: 'GET' }).handler(
 )
 
 export const seedVerification = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ email: z.email() }))
+  .validator(z.object({ email: z.email() }))
   .handler(async ({ data }) => {
     const { data: res, error } =
       await authServerClient.emailopt.seedverificationemail({
@@ -34,7 +34,7 @@ export const listAccounts = createServerFn({ method: 'GET' }).handler(
 )
 
 export const getAccountInfo = createServerFn({ method: 'GET' })
-  .inputValidator(
+  .validator(
     z.object({
       accountId: z.string(),
     }),

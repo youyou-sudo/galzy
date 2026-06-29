@@ -32,7 +32,7 @@ export const getEmbedders = createServerFn({ method: 'GET' }).handler(
  * 更新 Embedders 配置
  */
 export const updateEmbedders = createServerFn({ method: 'POST' })
-  .inputValidator(
+  .validator(
     z.object({
       url: z.string().min(1, 'URL 不能为空'),
       embeddingApiKey: z.string(),
@@ -78,7 +78,7 @@ export const getSearchableAttributes = createServerFn({
  * 更新搜索属性
  */
 export const updateSearchableAttributes = createServerFn({ method: 'POST' })
-  .inputValidator(
+  .validator(
     z.object({
       fields: z.array(z.string()),
     }),

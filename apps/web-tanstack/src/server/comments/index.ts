@@ -5,7 +5,7 @@ import { cookiePass } from '@web/lib/cookie-pass'
 import z from 'zod'
 
 export const getCmments = createServerFn()
-  .inputValidator(
+  .validator(
     z.object({
       targetType: z.string(),
       targetId: z.string(),
@@ -32,7 +32,7 @@ export const getCmments = createServerFn()
   })
 
 export const createCmments = createServerFn()
-  .inputValidator(
+  .validator(
     z.object({
       targetType: z.string(),
       targetId: z.string(),

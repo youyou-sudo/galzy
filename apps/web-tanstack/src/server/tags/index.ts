@@ -4,7 +4,7 @@ import z from 'zod'
 import { elysiaErrorF } from '@web/lib'
 
 export const getTagData = createServerFn()
-  .inputValidator(
+  .validator(
     z.object({
       tagId: z.string(),
     }),
@@ -18,7 +18,7 @@ export const getTagData = createServerFn()
   })
 
 export const getVnListByTag = createServerFn()
-  .inputValidator(
+  .validator(
     z.object({
       tagId: z.string(),
       pageSize: z.number(),

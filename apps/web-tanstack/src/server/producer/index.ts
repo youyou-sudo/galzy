@@ -4,7 +4,7 @@ import { elysiaErrorF } from '@web/lib'
 import z from 'zod'
 
 export const producerInfo = createServerFn()
-  .inputValidator(z.object({ pid: z.string() }))
+  .validator(z.object({ pid: z.string() }))
   .handler(async ({ data }) => {
     const { data: producer, error } = await api.producer.info.get({
       query: { pid: data.pid },
@@ -14,7 +14,7 @@ export const producerInfo = createServerFn()
   })
 
 export const producerGameList = createServerFn()
-  .inputValidator(z.object({ pid: z.string() }))
+  .validator(z.object({ pid: z.string() }))
   .handler(async ({ data }) => {
     const { data: producer, error } = await api.producer.gamelists.get({
       query: { pid: data.pid },

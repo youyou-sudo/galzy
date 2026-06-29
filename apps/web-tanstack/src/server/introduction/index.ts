@@ -4,7 +4,7 @@ import z from 'zod'
 import { elysiaErrorF } from '@web/lib'
 
 export const getIntroductionArticle = createServerFn()
-  .inputValidator(
+  .validator(
     z.object({
       id: z.string(),
     }),
@@ -20,7 +20,7 @@ export const getIntroductionArticle = createServerFn()
   })
 
 export const getintroductionList = createServerFn()
-  .inputValidator(
+  .validator(
     z.object({
       id: z.string(),
     }),

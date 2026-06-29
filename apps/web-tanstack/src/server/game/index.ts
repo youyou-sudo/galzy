@@ -4,7 +4,7 @@ import { elysiaErrorF } from '@web/lib'
 import z from 'zod'
 
 export const getGameDetail = createServerFn()
-  .inputValidator(z.object({ id: z.string() }))
+  .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     const { data: getgame, error } = await api.games.get({
       query: {
@@ -16,7 +16,7 @@ export const getGameDetail = createServerFn()
   })
 
 export const getGameTags = createServerFn()
-  .inputValidator(z.object({ id: z.string() }))
+  .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     const { data: tags, error } = await api.tags.gametags.post({ id: data.id })
     elysiaErrorF(error)
@@ -24,7 +24,7 @@ export const getGameTags = createServerFn()
   })
 
 export const getFileList = createServerFn()
-  .inputValidator(z.object({ id: z.string() }))
+  .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     const { data: filelist, error } = await api.games.openlistfiles.get({
       query: {
@@ -38,7 +38,7 @@ export const getFileList = createServerFn()
   })
 
 export const translateData = createServerFn()
-  .inputValidator(
+  .validator(
     z.object({
       id: z.string(),
     }),
@@ -52,7 +52,7 @@ export const translateData = createServerFn()
   })
 
 export const dwAcConst = createServerFn()
-  .inputValidator(z.object({ path: z.string(), game_id: z.string() }))
+  .validator(z.object({ path: z.string(), game_id: z.string() }))
   .handler(async ({ data }) => {
     const { data: res, error } = await api.download.path.get({
       query: { path: data.path, game_id: data.game_id },
@@ -62,7 +62,7 @@ export const dwAcConst = createServerFn()
   })
 
 export const getGameList = createServerFn()
-  .inputValidator(
+  .validator(
     z
       .object({
         pageSize: z.number(),
