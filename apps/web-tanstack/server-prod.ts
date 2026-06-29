@@ -42,7 +42,7 @@ const VERBOSE = process.env.ASSET_PRELOAD_VERBOSE === 'true'
 const WORKER_ID = process.env.WORKER_ID
 const CLUSTER_WORKERS = Math.max(1,
   Number(process.env.CLUSTER_WORKERS ?? availableParallelism()))
-const IS_COMPILED = ((Bun as any).embeddedFiles as Blob[] | undefined)?.length > 0
+const IS_COMPILED = ((Bun as any).embeddedFiles as Blob[] | undefined)?.length ? true : false
 
 // ── SSR timeout ────────────────────────────────────
 // Hard cap: abort the SSR promise if it hasn't resolved.
@@ -171,10 +171,10 @@ function createAssetHandler(
     }
     const ae = req.headers.get('accept-encoding')
     if (ae) {
-      if (hBr && ae.includes('br')) return new Response(br!, hBr)
-      if (hGz && ae.includes('gzip')) return new Response(gz!, hGz)
+      if (hBr && ae.includes('br')) return new Response(br! as BodyInit, hBr)
+      if (hGz && ae.includes('gzip')) return new Response(gz! as BodyInit, hGz)
     }
-    return new Response(raw, hRaw)
+    return new Response(raw as BodyInit, hRaw)
   }
 }
 
@@ -358,7 +358,7 @@ async function loadStaticsFromBundle(): Promise<void> {
 
     if (!eligible(rel, size)) {
       statics[route] = () =>
-        new Response(raw, {
+        new Response(raw as BodyInit, {
           headers: { 'Content-Type': ct, 'Cache-Control': 'public, max-age=3600' },
         })
       onDemand++
