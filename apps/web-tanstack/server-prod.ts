@@ -99,7 +99,7 @@ const MIME_MAP: Record<string, string> = Object.freeze({
 })
 
 function mime(fileName: string, fallback: string): string {
-  const ext = fileName.slice(fileName.lastIndexOf('.') + 1).toLowerCase()
+  const ext = fileName.slice(fileName.lastIndexOf('.') + 1)
   return MIME_MAP[ext] ?? fallback
 }
 
@@ -186,48 +186,54 @@ async function loadStatics(): Promise<void> {
   let preloaded = 0
   let preloadedBytes = 0
   let onDemand = 0
+  let idx = 0
 
-  const tasks = files.map(async (rel) => {
-    const abs = join(CLIENT_DIR, rel)
-    const bf = Bun.file(abs)
-    if (bf.size === 0) return
+  const loadOne = async (): Promise<void> => {
+    while (idx < files.length) {
+      const rel = files[idx++]
+      const abs = join(CLIENT_DIR, rel)
+      const bf = Bun.file(abs)
+      if (bf.size === 0) continue
 
-    const route = '/' + rel.replaceAll('\\', '/')
-    const ct = mime(rel, bf.type || 'application/octet-stream')
-    const size = bf.size
+      const route = '/' + rel.replaceAll('\\', '/')
+      const ct = mime(rel, bf.type || 'application/octet-stream')
+      const size = bf.size
 
-    if (!eligible(rel, size)) {
-      statics[route] = () =>
-        new Response(Bun.file(abs), {
-          headers: { 'Content-Type': ct, 'Cache-Control': 'public, max-age=3600' },
-        })
-      onDemand++
-      if (VERBOSE) console.log(`  [demand] ${route}  (${(size / 1024).toFixed(1)} kB)`)
-      return
+      if (!eligible(rel, size)) {
+        statics[route] = () =>
+          new Response(Bun.file(abs), {
+            headers: { 'Content-Type': ct, 'Cache-Control': 'public, max-age=3600' },
+          })
+        onDemand++
+        if (VERBOSE) console.log(`  [demand] ${route}  (${(size / 1024).toFixed(1)} kB)`)
+        continue
+      }
+
+      const raw = await bf.bytes()
+      const etag = `W/"${Bun.hash(raw).toString(16)}-${raw.length}"`
+
+      let br: Uint8Array | undefined
+      let gz: Uint8Array | undefined
+      const [brFile, gzFile] = [Bun.file(abs + '.br'), Bun.file(abs + '.gz')]
+      if (brFile.size > 0) br = await brFile.bytes()
+      if (gzFile.size > 0) gz = await gzFile.bytes()
+
+      statics[route] = createAssetHandler(raw, ct, etag, br, gz)
+
+      preloaded++
+      preloadedBytes += raw.length
+      if (VERBOSE)
+        console.log(
+          `  [memory] ${route}  (${(raw.length / 1024).toFixed(1)} kB)` +
+            (br ? ` +br` : '') +
+            (gz ? ` +gz` : ''),
+        )
     }
+  }
 
-    const raw = new Uint8Array(await bf.arrayBuffer())
-    const etag = `W/"${Bun.hash(raw).toString(16)}-${raw.length}"`
-
-    let br: Uint8Array | undefined
-    let gz: Uint8Array | undefined
-    const [brFile, gzFile] = [Bun.file(abs + '.br'), Bun.file(abs + '.gz')]
-    if (brFile.size > 0) br = new Uint8Array(await brFile.arrayBuffer())
-    if (gzFile.size > 0) gz = new Uint8Array(await gzFile.arrayBuffer())
-
-    statics[route] = createAssetHandler(raw, ct, etag, br, gz)
-
-    preloaded++
-    preloadedBytes += raw.length
-    if (VERBOSE)
-      console.log(
-        `  [memory] ${route}  (${(raw.length / 1024).toFixed(1)} kB)` +
-          (br ? ` +br` : '') +
-          (gz ? ` +gz` : ''),
-      )
-  })
-
-  await Promise.all(tasks)
+  const CONCURRENCY = 16
+  const workers = Array.from({ length: Math.min(CONCURRENCY, files.length) }, () => loadOne())
+  await Promise.all(workers)
 
   console.log(
     `[ ok ] ${preloaded} file(s) preloaded  ` +
@@ -321,6 +327,9 @@ async function loadStaticsFromBundle(): Promise<void> {
     entry[variant] = content
   }
 
+  // Release index structures; content data stays alive via grouped
+  entries.length = 0
+
   let groupedCount = 0
   for (const _k in grouped) { groupedCount++; break }
   if (groupedCount === 0) return
@@ -329,7 +338,8 @@ async function loadStaticsFromBundle(): Promise<void> {
   let preloadedBytes = 0
   let onDemand = 0
 
-  for (const [rel, variants] of Object.entries(grouped)) {
+  for (const rel in grouped) {
+    const variants = grouped[rel]
     const raw = variants.raw
     if (!raw) continue
 
@@ -398,12 +408,8 @@ function safeSSRResponse(res: Response): Response {
           return
         }
         controller.enqueue(value)
-      } catch (e) {
-        if (e instanceof DOMException || (e as { name?: string }).name === 'AbortError') {
-          try { controller.close() } catch {}
-        } else {
-          try { controller.error(e as Error) } catch {}
-        }
+      } catch {
+        try { controller.close() } catch {}
         canceled = true
       }
     },
@@ -472,8 +478,6 @@ async function main(): Promise<void> {
 
   Bun.serve({
     port: PORT,
-    reusePort: true,
-
     async fetch(req) {
       const handler = statics[fastPath(req.url)]
       if (handler) return handler(req)
@@ -523,7 +527,7 @@ async function main(): Promise<void> {
 
 const command = process.argv[2]
 if (command === 'healthcheck') {
-  healthcheck()
+  await healthcheck()
 } else {
   main().catch((e) => {
     console.error('[err] Failed to start:', e)
