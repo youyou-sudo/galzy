@@ -21,8 +21,9 @@ export const getMeiliStats = createServerFn({ method: 'GET' }).handler(
  */
 export const getEmbedders = createServerFn({ method: 'GET' }).handler(
   async () => {
-    const { data, error } =
-      await api.search.meilisearchEmbeddersGet.get(cookiePass())
+    const { data, error } = await api.search.meilisearchEmbeddersGet.get(
+      cookiePass(),
+    )
     elysiaErrorF(error)
     return data
   },
@@ -55,8 +56,9 @@ export const updateEmbedders = createServerFn({ method: 'POST' })
  */
 export const getPropertyList = createServerFn({ method: 'GET' }).handler(
   async () => {
-    const { data, error } =
-      await api.search.meilisearchPropertylist.get(cookiePass())
+    const { data, error } = await api.search.meilisearchPropertylist.get(
+      cookiePass(),
+    )
     elysiaErrorF(error)
     return data
   },

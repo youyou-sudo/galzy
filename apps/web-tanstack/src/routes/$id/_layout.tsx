@@ -7,7 +7,6 @@ import { Card, CardContent } from '@web/components/ui/card'
 import { GameViewsTrackEvents } from '@web/components/umami/track-events'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { getGameDetail, getGameTags } from '@web/server/game'
-import { useState } from 'react'
 
 export const Route = createFileRoute('/$id/_layout')({
   component: RouteComponent,
@@ -65,7 +64,6 @@ export const Route = createFileRoute('/$id/_layout')({
 
 function RouteComponent() {
   const { game, id } = Route.useLoaderData()
-  const [currentTab, setCurrentTab] = useState('download')
   return (
     <div className="space-y-3">
       <Card className="overflow-hidden wrap-break-word border-0 pb-0 ">
@@ -75,7 +73,7 @@ function RouteComponent() {
         </CardContent>
       </Card>
 
-      <GameTabs id={id} currentTab={currentTab} setCurrentTab={setCurrentTab} />
+      <GameTabs id={id} />
       <Card className="p-1">
         <CardContent className="p-1">
           <Outlet />
