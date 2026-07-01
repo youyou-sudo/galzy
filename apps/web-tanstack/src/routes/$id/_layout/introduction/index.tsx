@@ -13,7 +13,7 @@ import { introductionEditActions } from '@web/stores/introductionStores'
 import { Loader2, NotepadText, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { CreateEditDialog } from './-CreateEditDialog'
+import { CreateEditDialog } from '../../../../components/-CreateEditDialog'
 
 export const Route = createFileRoute('/$id/_layout/introduction/')({
   component: RouteComponent,
@@ -71,8 +71,7 @@ function RouteComponent() {
     onSuccess: () => {
       toast.success('文章已删除～')
       router.invalidate({
-        filter: (match) =>
-          match.routeId === '/$id/_layout/introduction/',
+        filter: (match) => match.routeId === '/$id/_layout/introduction/',
       })
     },
     onError: (error: any) => {

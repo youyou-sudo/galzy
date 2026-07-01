@@ -21,7 +21,7 @@ import Markdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 import remarkGfm from 'remark-gfm'
 import { toast } from 'sonner'
-import { CreateEditDialog } from './-CreateEditDialog'
+import { CreateEditDialog } from '../../../../components/-CreateEditDialog'
 
 export const Route = createFileRoute('/$id/_layout/introduction/$articleId')({
   component: RouteComponent,

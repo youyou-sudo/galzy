@@ -24,6 +24,12 @@ const adminLinks = [
     title: 'Meilisearch 管理',
     description: '管理搜索引擎的配置、索引与属性',
   },
+  {
+    to: '/admin/comments',
+    icon: SearchIcon,
+    title: '评论管理',
+    description: '管理评论的删除、编辑、隐藏',
+  },
 ]
 
 function RouteComponent() {
