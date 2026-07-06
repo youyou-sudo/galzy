@@ -71,6 +71,35 @@ export const adminChangeCommentStatus = createServerFn({ method: 'POST' })
     return res
   })
 
+export const adminGetAllComments = createServerFn({ method: 'GET' })
+  .validator(
+    z.object({
+      page: z.optional(z.number()),
+      limit: z.optional(z.number()),
+      targetType: z.optional(z.string()),
+      targetId: z.optional(z.string()),
+      type: z.optional(z.string()),
+      status: z.optional(z.string()),
+      excludeReplies: z.optional(z.boolean()),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { data: res, error } = await api.comments.admin.get({
+      query: {
+        page: data.page,
+        limit: data.limit,
+        targetType: data.targetType,
+        targetId: data.targetId,
+        type: data.type,
+        status: data.status,
+        excludeReplies: data.excludeReplies,
+      },
+      ...cookiePass(),
+    })
+    elysiaErrorF(error)
+    return res
+  })
+
 export const adminTogglePin = createServerFn({ method: 'POST' })
   .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {

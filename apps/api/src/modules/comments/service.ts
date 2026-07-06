@@ -1,5 +1,8 @@
 import { db } from '@api/libs'
-import type { CommentStatus, CommentType } from '@api/libs/kysely/webData'
+import type {
+  CommentStatus,
+  CommentType,
+} from '@api/libs/kysely/webData'
 import { status } from 'elysia'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import type { CommentModel } from './model'
@@ -83,6 +86,82 @@ export const CommentService = {
     const [comments, countResult] = await Promise.all([
       query
         .orderBy('isPinned', 'desc')
+        .orderBy('createdAt', 'desc')
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .execute(),
+      query
+        .clearSelect()
+        .clearOrderBy()
+        .select(db.fn.countAll<number>().as('total'))
+        .executeTakeFirst(),
+    ])
+
+    const total = countResult?.total ?? 0
+
+    return {
+      comments,
+      total,
+      totalPages: Math.ceil(total / limit),
+    }
+  },
+
+  // 管理后台 - 获取所有评论（含回复，扁平化）
+  async getCommentsForAdmin({
+    targetType,
+    targetId,
+    page = 1,
+    limit = 20,
+    type,
+    status: statusFilter,
+    excludeReplies,
+  }: CommentModel.list) {
+    let query = db
+      .selectFrom('galrc_comments')
+      .selectAll('galrc_comments')
+      .select((eb) => [
+        jsonObjectFrom(
+          eb
+            .selectFrom('galrc_user')
+            .whereRef('galrc_user.id', '=', 'galrc_comments.userId')
+            .select([
+              'galrc_user.id',
+              'galrc_user.name',
+              'galrc_user.email',
+              'galrc_user.image',
+            ]),
+        ).as('user'),
+      ])
+      // No parentId/replyToUserId filter — admin sees ALL comments
+
+    if (excludeReplies) {
+      query = query.where('depth', '=', 0)
+    }
+    if (statusFilter) {
+      query = query.where(
+        'status',
+        '=',
+        statusFilter as CommentStatus,
+      )
+    } else {
+      // Admin can see all statuses by default
+    }
+    if (targetType) {
+      query = query.where(
+        'targetType',
+        '=',
+        targetType as 'post' | 'article' | 'game',
+      )
+    }
+    if (targetId) {
+      query = query.where('targetId', '=', targetId)
+    }
+    if (type) {
+      query = query.where('type', '=', type as CommentType)
+    }
+
+    const [comments, countResult] = await Promise.all([
+      query
         .orderBy('createdAt', 'desc')
         .offset((page - 1) * limit)
         .limit(limit)

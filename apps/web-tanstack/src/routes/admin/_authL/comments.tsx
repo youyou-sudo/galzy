@@ -24,18 +24,21 @@ import { Textarea } from '@web/components/ui/textarea'
 import {
   adminChangeCommentStatus,
   adminDeleteComment,
-  adminGetComments,
+  adminGetAllComments,
   adminTogglePin,
   adminUpdateComment,
 } from '@web/server/admin/comments'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
+  CornerDownRightIcon,
+  ExternalLinkIcon,
   Loader2Icon,
   MessageSquareIcon,
   PencilIcon,
   PinIcon,
   PinOffIcon,
+  ReplyIcon,
   SearchIcon,
   Trash2Icon,
 } from 'lucide-react'
@@ -53,15 +56,7 @@ interface CommentUser {
   image?: string | null
 }
 
-interface ReplyItem {
-  id: string
-  content: string
-  createdAt: Date
-  user?: CommentUser | null
-  reUser?: CommentUser | null
-}
-
-interface Comment {
+interface AdminComment {
   id: string
   targetType: string
   targetId: string
@@ -70,22 +65,25 @@ interface Comment {
   type: string
   status: string
   isPinned: boolean
+  parentId: string | null
+  rootId: string | null
+  depth: number
+  replyToUserId: string | null
   createdAt: Date
   updatedAt: Date
   user?: CommentUser | null
-  re?: ReplyItem[]
 }
 
-const PAGE_SIZE = 15
+const PAGE_SIZE = 20
 
 function RouteComponent() {
   return (
-    <div className="container mx-auto py-6 space-y-6 max-w-4xl">
+    <div className="container mx-auto py-6 space-y-6 max-4xl">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">评论管理</h1>
           <p className="text-muted-foreground mt-1">
-            管理全站评论，支持编辑、删除、状态变更与置顶操作
+            管理全站评论与回复，支持编辑、删除、状态变更与置顶操作
           </p>
         </div>
       </div>
@@ -95,36 +93,46 @@ function RouteComponent() {
   )
 }
 
+function getTargetUrl(comment: AdminComment): string | null {
+  if (comment.targetType === 'game') {
+    return `/${comment.targetId}`
+  }
+  return null
+}
+
 function CommentsTable() {
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
+  const [excludeReplies, setExcludeReplies] = useState(false)
   const [offset, setOffset] = useState(0)
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: [
-      'admin-comments',
+      'admin-all-comments',
       {
         searchValue: search,
         status: statusFilter,
         type: typeFilter,
+        excludeReplies,
         offset,
         limit: PAGE_SIZE,
       },
     ],
     queryFn: async () => {
-      const res = await adminGetComments({
+      const res = await adminGetAllComments({
         data: {
           page: Math.floor(offset / PAGE_SIZE) + 1,
           limit: PAGE_SIZE,
           targetId: search || undefined,
           status: statusFilter || undefined,
           type: typeFilter || undefined,
+          excludeReplies: excludeReplies || undefined,
         },
       })
       return res as unknown as {
-        comments: Comment[]
+        comments: AdminComment[]
         total: number
         totalPages: number
       }
@@ -230,6 +238,17 @@ function CommentsTable() {
               <SelectItem value="question">提问</SelectItem>
             </SelectContent>
           </Select>
+          <Button
+            variant={excludeReplies ? 'secondary' : 'outline'}
+            size="sm"
+            onClick={() => {
+              setExcludeReplies(!excludeReplies)
+              setOffset(0)
+            }}
+            className="whitespace-nowrap"
+          >
+            一级评论
+          </Button>
           <Button variant="outline" onClick={handleSearch} disabled={isLoading}>
             搜索
           </Button>
@@ -280,27 +299,63 @@ function CommentsTable() {
                     label: comment.status,
                     variant: 'secondary' as const,
                   }
+                  const isReply = comment.depth > 0
+                  const targetUrl = getTargetUrl(comment)
                   return (
                     <tr
                       key={comment.id}
-                      className="border-b last:border-0 hover:bg-muted/30 transition-colors"
+                      className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${
+                        isReply ? 'bg-muted/10' : ''
+                      }`}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
+                          {isReply && (
+                            <CornerDownRightIcon className="size-3.5 text-muted-foreground shrink-0" />
+                          )}
                           <span className="text-sm font-medium">
                             {comment.user?.name || '未知'}
                           </span>
                         </div>
+                        {isReply && (
+                          <span className="text-[11px] text-muted-foreground block mt-0.5">
+                            回复 #{comment.parentId?.slice(0, 8)}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 max-w-xs">
-                        <p className="text-sm text-muted-foreground truncate">
-                          {comment.content}
-                        </p>
+                        <div className="flex items-start gap-1">
+                          {isReply && (
+                            <ReplyIcon className="size-3 text-muted-foreground mt-1 shrink-0" />
+                          )}
+                          <p
+                            className={`text-sm truncate ${
+                              isReply
+                                ? 'text-muted-foreground'
+                                : 'text-foreground'
+                            }`}
+                          >
+                            {comment.content}
+                          </p>
+                        </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="text-xs text-muted-foreground">
-                          {comment.targetType}/{comment.targetId?.slice(0, 8)}
-                        </span>
+                        {targetUrl ? (
+                          <a
+                            href={targetUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-xs text-blue-500 underline hover:text-blue-700 hover:no-underline"
+                          >
+                            {comment.targetType}/
+                            {comment.targetId?.slice(0, 8)}
+                            <ExternalLinkIcon className="size-3 shrink-0" />
+                          </a>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            {comment.targetType}/{comment.targetId?.slice(0, 8)}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <Badge variant="secondary" className="text-xs">
@@ -321,7 +376,10 @@ function CommentsTable() {
                             comment={comment}
                             onDone={refresh}
                           />
-                          <TogglePinButton comment={comment} onDone={refresh} />
+                          <TogglePinButton
+                            comment={comment}
+                            onDone={refresh}
+                          />
                           {comment.status !== 'hidden' && (
                             <HideCommentButton
                               comment={comment}
@@ -352,7 +410,7 @@ function CommentsTable() {
       {total > PAGE_SIZE && (
         <div className="flex items-center justify-between px-4 py-3 border-t">
           <span className="text-xs text-muted-foreground">
-            共 {total} 条评论 · 第 {currentPage}/{totalPages} 页
+            共 {total} 条评论/回复 · 第 {currentPage}/{totalPages} 页
           </span>
           <div className="flex items-center gap-2">
             <Button
@@ -384,7 +442,7 @@ function EditCommentDialog({
   comment,
   onDone,
 }: {
-  comment: Comment
+  comment: AdminComment
   onDone: () => void
 }) {
   const [open, setOpen] = useState(false)
@@ -465,7 +523,7 @@ function TogglePinButton({
   comment,
   onDone,
 }: {
-  comment: Comment
+  comment: AdminComment
   onDone: () => void
 }) {
   const [loading, setLoading] = useState(false)
@@ -504,7 +562,7 @@ function HideCommentButton({
   comment,
   onDone,
 }: {
-  comment: Comment
+  comment: AdminComment
   onDone: () => void
 }) {
   const [loading, setLoading] = useState(false)
@@ -543,7 +601,7 @@ function UnhideCommentButton({
   comment,
   onDone,
 }: {
-  comment: Comment
+  comment: AdminComment
   onDone: () => void
 }) {
   const [loading, setLoading] = useState(false)
@@ -582,7 +640,7 @@ function DeleteCommentDialog({
   comment,
   onDone,
 }: {
-  comment: Comment
+  comment: AdminComment
   onDone: () => void
 }) {
   const [open, setOpen] = useState(false)

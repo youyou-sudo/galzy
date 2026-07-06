@@ -14,6 +14,16 @@ export const comments = new Elysia({ prefix: '/comments' })
       query: CommentModel.List,
     },
   )
+  .get(
+    '/admin',
+    async ({ query }) => {
+      return await CommentService.getCommentsForAdmin(query)
+    },
+    {
+      isAdmin: true,
+      query: CommentModel.List,
+    },
+  )
   .post(
     '/',
     async ({ body, user }) => {

@@ -8,6 +8,7 @@ export namespace CommentModel {
     limit: t.Optional(t.Number({ default: 20 })),
     type: t.Optional(t.String()),
     status: t.Optional(t.String()),
+    excludeReplies: t.Optional(t.Boolean()),
   })
 
   export const Create = t.Object({
