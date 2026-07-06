@@ -2,7 +2,7 @@ import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { useSelector } from '@tanstack/react-store'
-import MDEditor from '@uiw/react-md-editor'
+import { MarkdownEditor } from '@web/components/editor/MarkdownEditor'
 import { Button } from '@web/components/ui/button'
 import {
   Dialog,
@@ -24,13 +24,9 @@ import {
   introductionEditActions,
   introductionEditStore,
 } from '@web/stores/introductionStores'
-import { useTheme } from 'next-themes'
 import { useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import z from 'zod'
-
-// ── MDEditor 样式 ─────────────────────────────────────────────
-import '@uiw/react-md-editor/markdown-editor.css'
 
 // ── Props 接口（支持受控 / store / customSubmit 多模式） ──────────
 interface CreateEditDialogProps {
@@ -68,7 +64,6 @@ interface CreateEditDialogProps {
 export function CreateEditDialog(props?: CreateEditDialogProps) {
   const router = useRouter()
   const formId = 'CreateEdit'
-  const { resolvedTheme } = useTheme()
 
   // ── 使用 customSubmit 时无需 store / session ──────────────────
   const isCustom = !!props?.customSubmit
@@ -281,7 +276,7 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>{dialogDescription}</DialogDescription>
@@ -334,27 +329,13 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
                   field.state.meta.isTouched && !field.state.meta.isValid
                 return (
                   <Field data-invalid={isInvalid}>
-                    <div
-                      data-color-mode={
-                        resolvedTheme === 'dark' ? 'dark' : 'light'
-                      }
-                      className="w-full rounded-md border border-input overflow-hidden"
-                    >
-                      <MDEditor
-                        value={field.state.value}
-                        onChange={(val) => field.handleChange(val ?? '')}
-                        onKeyDown={handleKeyDown}
-                        preview="live"
-                        height={400}
-                        minHeight={250}
-                        visibleDragbar={false}
-                        textareaProps={{
-                          placeholder:
-                            '输入文章喵～ 支持 Markdown 语法（Ctrl+Enter 提交）',
-                          'aria-invalid': isInvalid,
-                        }}
-                      />
-                    </div>
+                    <MarkdownEditor
+                      value={field.state.value}
+                      onChange={(val) => field.handleChange(val ?? '')}
+                      onKeyDown={handleKeyDown}
+                      placeholder="输入文章喵～ 支持 Markdown 语法（Ctrl+Enter 提交）"
+                      aria-invalid={isInvalid}
+                    />
                     {isInvalid && (
                       <FieldError
                         className="text-xs"
