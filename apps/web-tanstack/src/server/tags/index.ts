@@ -17,6 +17,21 @@ export const getTagData = createServerFn()
     return res
   })
 
+export const SearchTagsSchema = z.object({
+  q: z.string().optional(),
+  limit: z.number().optional(),
+})
+
+export const getSearchTags = createServerFn()
+  .validator(SearchTagsSchema)
+  .handler(async ({ data }) => {
+    const { data: res, error } = await api.search.tags.get({
+      query: { q: data.q, limit: data.limit },
+    })
+    elysiaErrorF(error)
+    return res
+  })
+
 export const getVnListByTag = createServerFn()
   .validator(
     z.object({

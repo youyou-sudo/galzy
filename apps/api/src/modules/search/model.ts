@@ -19,6 +19,11 @@ export namespace SearchModel {
     fields: t.Array(t.String()),
   })
   export type tagAllReturn = Awaited<ReturnType<typeof Tags.tagAllGet>>
+  export const tagSearch = t.Object({
+    q: t.Optional(t.String()),
+    limit: t.Optional(t.Number({ minimum: 1, default: 50 })),
+  })
+  export type tagSearch = typeof tagSearch.static
   export type search = typeof search.static
   export type meilisearchEmbeddersUpdate =
     typeof meilisearchEmbeddersUpdate.static

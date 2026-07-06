@@ -123,6 +123,19 @@ export const Search = {
       throw status(500, error)
     }
   },
+  async searchTags({ q, limit }: SearchModel.tagSearch) {
+    const safeQ =
+      q?.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim() || ''
+    const result = await MeiliClient.index(
+      process.env.MEILISEARCH_TAG_INDEXNAME || '',
+    ).search(safeQ, {
+      limit: limit || 50,
+    })
+    return {
+      hits: result.hits,
+      totalHits: (result as { totalHits?: number }).totalHits ?? 0,
+    }
+  },
   async getStats() {
     const indexdata = await MeiliClient.getStats()
     return indexdata

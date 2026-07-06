@@ -42,7 +42,14 @@ export default function Header() {
                     <Link to="/">主页</Link>
                   </NavigationMenuLink>
                 </NavigationMenuItem>
-
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    asChild
+                    className={navigationMenuTriggerStyle()}
+                  >
+                    <Link to="/tags">标签</Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
                 <NavigationMenuItem>
                   <NavigationMenuLink
                     asChild

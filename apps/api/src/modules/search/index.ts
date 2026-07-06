@@ -38,6 +38,15 @@ export const search = new Elysia({ prefix: '/search' })
       body: SearchModel.meilisearchEmbeddersUpdate,
     },
   )
+  .get(
+    '/tags',
+    async ({ query: { q, limit } }) => {
+      return Search.searchTags({ q, limit })
+    },
+    {
+      query: SearchModel.tagSearch,
+    },
+  )
   .get('/getStats', async () => {
     return await Search.getStats()
   })
