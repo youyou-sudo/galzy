@@ -32,7 +32,7 @@ import z from 'zod'
 // ── MDEditor 样式 ─────────────────────────────────────────────
 import '@uiw/react-md-editor/markdown-editor.css'
 
-// ── Props 接口（支持受控 / store 双模式） ──────────────────────────
+// ── Props 接口（支持受控 / store / customSubmit 多模式） ──────────
 interface CreateEditDialogProps {
   /** 游戏 ID，覆写 store 中的值 */
   gameId?: string
@@ -44,19 +44,34 @@ interface CreateEditDialogProps {
   mode?: 'create' | 'edit'
   /** 初始数据 */
   initialData?: {
-    id: string
-    title: string
-    content: string
-    copyright: string
+    id?: string | number
+    title?: string
+    content?: string
+    copyright?: string
+    gameId?: string
   }
   /** 操作成功回调 */
   onSuccess?: () => void
+  /**
+   * 自定义提交函数（用于 admin 等非 introduction 场景）。
+   * 提供后跳过内置的 createIntroduction/updateIntroduction 与 session 获取。
+   * 接收表单值，应自行处理 loading/toast/错误。
+   */
+  customSubmit?: (values: {
+    id?: string | number
+    title: string
+    content: string
+    copyright?: string
+  }) => Promise<void>
 }
 
 export function CreateEditDialog(props?: CreateEditDialogProps) {
   const router = useRouter()
   const formId = 'CreateEdit'
   const { resolvedTheme } = useTheme()
+
+  // ── 使用 customSubmit 时无需 store / session ──────────────────
+  const isCustom = !!props?.customSubmit
 
   // ── 优先使用 props，否则 fallback 到 store ──────────────────
   const storeData = useSelector(introductionEditStore, (s) => s.data)
@@ -67,7 +82,7 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
   const mergedData = props?.initialData ?? storeData
   const isEdit = !!(props?.initialData?.id ?? mergedData?.id)
 
-  // ── 获取用户 session ─────────────────────────────────────────
+  // ── 获取用户 session（customSubmit 不需要） ──────────────────
   const { data: session } = useQuery({
     queryKey: ['auth'],
     queryFn: async () => {
@@ -75,12 +90,12 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
       elysiaErrorF(error)
       return res
     },
-    enabled: open,
+    enabled: open && !isCustom,
   })
 
-  const isAdmin = session?.user?.role === 'admin'
+  const isAdmin = session?.user?.role === 'admin' || isCustom
 
-  // ── Mutations ────────────────────────────────────────────────
+  // ── Mutations（customSubmit 时跳过） ──────────────────────────
   const createMutation = useMutation({
     mutationFn: createIntroduction,
     onSuccess: () => {
@@ -90,7 +105,7 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
       router.invalidate({
         filter: (match) => match.routeId === '/$id/_layout/introduction/',
       })
-      introductionEditActions.close()
+      handleClose()
       props?.onSuccess?.()
     },
     onError: (error: any) => {
@@ -111,7 +126,7 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
       router.invalidate({
         filter: (match) => match.routeId === '/$id/_layout/introduction/',
       })
-      introductionEditActions.close()
+      handleClose()
       props?.onSuccess?.()
     },
     onError: (error: any) => {
@@ -120,7 +135,7 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
   })
 
   // ── 校验 Schema ──────────────────────────────────────────────
-  const introductionFormSchema = z.object({
+  const formSchema = z.object({
     title: z.string().min(1, '需要一个标题喵'),
     content: z.string().min(1, '内容是空的喵？'),
     copyright: z.string(),
@@ -136,10 +151,22 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
       userid: session?.user?.id ?? '',
     },
     validators: {
-      onChange: introductionFormSchema,
-      onSubmit: introductionFormSchema,
+      onChange: formSchema,
+      onSubmit: formSchema,
     },
     onSubmit: async ({ value }) => {
+      // ── customSubmit 路径（admin 等） ─────────────────────────
+      if (isCustom) {
+        await props.customSubmit!({
+          id: mergedData?.id,
+          title: value.title.trim(),
+          content: value.content.trim(),
+          copyright: value.copyright?.trim() || undefined,
+        })
+        return
+      }
+
+      // ── 默认路径（introduction 模块） ─────────────────────────
       if (!session?.user?.id) {
         toast.error('请先登录喵～')
         return
@@ -176,6 +203,31 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
     },
   })
 
+  // ── Ctrl+Enter 提交快捷键 ─────────────────────────────────────
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault()
+      form.handleSubmit()
+    }
+  }
+
+  // ── 关闭（受控模式用 props，否则用 store） ────────────────────
+  const handleClose = () => {
+    if (isControlled) {
+      props?.onOpenChange?.(false)
+    } else {
+      introductionEditActions.close()
+    }
+  }
+
+  const handleOpenChange = (v: boolean) => {
+    if (isControlled) {
+      props?.onOpenChange?.(v)
+    } else {
+      introductionEditActions.onOpen()
+    }
+  }
+
   // ── 当 mergedData / session 变化时更新表单 ───────────────────
   const prevSnapshotRef = useRef('')
   useEffect(() => {
@@ -199,28 +251,40 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
     }
   }, [mergedData, session?.user?.id, props?.gameId])
 
-  const isSubmitting = createMutation.isPending || updateMutation.isPending
+  const isSubmitting =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    form.state.isSubmitting
+
+  // ── Dialog 标题文案 ───────────────────────────────────────────
+  const dialogTitle = isCustom
+    ? isEdit
+      ? '编辑文章'
+      : '创建文章'
+    : isEdit
+      ? isAdmin
+        ? '编辑文章'
+        : '编辑攻略文章'
+      : isAdmin
+        ? '创建文章'
+        : '提交攻略文章'
+
+  const dialogDescription = isCustom
+    ? isEdit
+      ? '修改文章标题与内容'
+      : '创建一篇新的文章'
+    : isEdit
+      ? '修改已有的攻略文章内容喵～'
+      : isAdmin
+        ? '创建一篇新的攻略文章'
+        : '提交攻略文章供管理员审核'
 
   return (
-    <Dialog open={open} onOpenChange={introductionEditActions.onOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {isEdit
-              ? isAdmin
-                ? '编辑文章'
-                : '编辑攻略文章'
-              : isAdmin
-                ? '创建文章'
-                : '提交攻略文章'}
-          </DialogTitle>
-          <DialogDescription>
-            {isEdit
-              ? '修改已有的攻略文章内容喵～'
-              : isAdmin
-                ? '创建一篇新的攻略文章'
-                : '提交攻略文章供管理员审核'}
-          </DialogDescription>
+          <DialogTitle>{dialogTitle}</DialogTitle>
+          <DialogDescription>{dialogDescription}</DialogDescription>
         </DialogHeader>
 
         <form
@@ -279,12 +343,14 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
                       <MDEditor
                         value={field.state.value}
                         onChange={(val) => field.handleChange(val ?? '')}
+                        onKeyDown={handleKeyDown}
                         preview="live"
                         height={400}
                         minHeight={250}
                         visibleDragbar={false}
                         textareaProps={{
-                          placeholder: '输入文章喵～ 支持 Markdown 语法',
+                          placeholder:
+                            '输入文章喵～ 支持 Markdown 语法（Ctrl+Enter 提交）',
                           'aria-invalid': isInvalid,
                         }}
                       />
@@ -334,13 +400,21 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
               form={formId}
               variant="outline"
               type="button"
-              onClick={() => introductionEditActions.close()}
+              onClick={handleClose}
               disabled={isSubmitting}
             >
               取消
             </Button>
             <Button form={formId} type="submit" disabled={isSubmitting}>
-              {isSubmitting ? '提交中...' : isEdit ? '保存' : '创建'}
+              {isSubmitting
+                ? '提交中...'
+                : isEdit
+                  ? '保存'
+                  : isCustom
+                    ? '创建'
+                    : isAdmin
+                      ? '创建'
+                      : '提交'}
             </Button>
           </DialogFooter>
         </form>

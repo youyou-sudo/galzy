@@ -12,7 +12,6 @@ import {
   DialogTitle,
 } from '@web/components/ui/dialog'
 import { Input } from '@web/components/ui/input'
-import { Label } from '@web/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -20,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@web/components/ui/select'
-import { Textarea } from '@web/components/ui/textarea'
+import { CreateEditDialog } from '@web/components/-CreateEditDialog'
 import {
   adminChangeArticleStatus,
   adminGetAllArticles,
@@ -304,7 +303,7 @@ function ArticlesTable() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          <EditArticleDialog
+                          <EditArticleCell
                             article={article}
                             onDone={refresh}
                           />
@@ -372,7 +371,7 @@ function ArticlesTable() {
   )
 }
 
-function EditArticleDialog({
+function EditArticleCell({
   article,
   onDone,
 }: {
@@ -380,92 +379,41 @@ function EditArticleDialog({
   onDone: () => void
 }) {
   const [open, setOpen] = useState(false)
-  const [title, setTitle] = useState(article.title ?? '')
-  const [content, setContent] = useState(article.content ?? '')
-  const [submitting, setSubmitting] = useState(false)
 
-  const handleEdit = async () => {
-    if (!title.trim() && !content.trim()) {
-      toast.error('标题和内容不能同时为空')
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      const res = await adminUpdateArticle({
-        data: {
-          id: article.id,
-          title: title.trim() || undefined,
-          content: content.trim() || undefined,
-        },
-      })
-      if (!res) {
-        toast.error('编辑文章失败')
-        return
-      }
-      toast.success('文章已更新')
-      setOpen(false)
-      onDone()
-    } catch {
-      toast.error('编辑文章出错')
-    } finally {
-      setSubmitting(false)
-    }
+  const handleCustomSubmit = async (values: {
+    id?: string | number
+    title: string
+    content: string
+    copyright?: string
+  }) => {
+    await adminUpdateArticle({
+      data: {
+        id: Number(values.id),
+        title: values.title,
+        content: values.content,
+      },
+    })
+    toast.success('文章已更新')
+    setOpen(false)
+    onDone()
   }
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(v) => {
-        setOpen(v)
-        if (v) {
-          setTitle(article.title ?? '')
-          setContent(article.content ?? '')
-        }
-      }}
-    >
+    <>
       <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
         <PencilIcon className="size-4" />
       </Button>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>编辑文章</DialogTitle>
-          <DialogDescription>修改文章标题与内容</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-title">标题</Label>
-            <Input
-              id="edit-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-content">内容</Label>
-            <Textarea
-              id="edit-content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={6}
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => setOpen(false)}
-            disabled={submitting}
-          >
-            取消
-          </Button>
-          <Button onClick={handleEdit} disabled={submitting}>
-            {submitting && <Loader2Icon className="size-4 animate-spin mr-1" />}
-            保存
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <CreateEditDialog
+        open={open}
+        onOpenChange={setOpen}
+        initialData={{
+          id: article.id,
+          title: article.title ?? '',
+          content: article.content ?? '',
+        }}
+        customSubmit={handleCustomSubmit}
+      />
+    </>
   )
 }
 
