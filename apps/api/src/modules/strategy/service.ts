@@ -146,4 +146,136 @@ export const Strategy = {
 
     await storeIdempotentResult(`strategyListDelete-${hash}`, '', 60)
   },
+  async adminListAll(
+    params: StrategyModel.adminArticleListQuery,
+  ): Promise<{
+    articles: any[]
+    total: number
+    totalPages: number
+  }> {
+    const page = params.page ?? 1
+    const limit = params.limit ?? 20
+    const offset = (page - 1) * limit
+
+    const cacheKey = `adminArticles:${JSON.stringify(params)}`
+    const redisData = await getKv(cacheKey)
+    if (redisData !== null && redisData !== undefined) {
+      return JSON.parse(redisData) as any
+    }
+
+    let countQuery = db.selectFrom('galrc_article')
+    let dataQuery = db.selectFrom('galrc_article')
+
+    if (params.status) {
+      countQuery = countQuery.where(
+        'status',
+        '=',
+        params.status as ArticlesStatus,
+      )
+      dataQuery = dataQuery.where(
+        'status',
+        '=',
+        params.status as ArticlesStatus,
+      )
+    }
+    if (params.type) {
+      countQuery = countQuery.where(
+        'type',
+        '=',
+        params.type as ArticleType,
+      )
+      dataQuery = dataQuery.where(
+        'type',
+        '=',
+        params.type as ArticleType,
+      )
+    }
+    if (params.search) {
+      countQuery = countQuery.where(
+        'title',
+        'ilike',
+        `%${params.search}%`,
+      )
+      dataQuery = dataQuery.where(
+        'title',
+        'ilike',
+        `%${params.search}%`,
+      )
+    }
+
+    const [countResult, articles] = await Promise.all([
+      countQuery
+        .select(db.fn.countAll<number>().as('count'))
+        .executeTakeFirst(),
+      dataQuery
+        .selectAll()
+        .select((eb) => [
+          jsonObjectFrom(
+            eb
+              .selectFrom('galrc_user')
+              .whereRef('galrc_user.id', '=', 'galrc_article.author')
+              .select(['id', 'name', 'image']),
+          ).as('user'),
+        ])
+        .orderBy('createdAt', 'desc')
+        .limit(limit)
+        .offset(offset)
+        .execute(),
+    ])
+
+    const total = Number(countResult?.count ?? 0)
+    const totalPages = Math.ceil(total / limit)
+
+    const result = { articles, total, totalPages }
+    void setKv(cacheKey, JSON.stringify(result), 60)
+    return result
+  },
+  async adminChangeStatus({
+    id,
+    status: newStatus,
+  }: StrategyModel.adminArticleStatus) {
+    const hash = generateIdempotentHash({ id, status: newStatus })
+    const cached = await getIdempotentResult(
+      `adminChangeStatus-${hash}`,
+    )
+    if (cached) {
+      return cached
+    }
+    const ok = await acquireIdempotentKey(
+      `adminChangeStatus-${hash}`,
+      10,
+    )
+    if (!ok) {
+      throw status(200, '重复请求')
+    }
+
+    const article = await db
+      .selectFrom('galrc_article')
+      .select(['id', 'vid', 'otherid'])
+      .where('id', '=', id)
+      .executeTakeFirst()
+
+    if (!article) {
+      throw status(404, '文章不存在')
+    }
+
+    await delKv(`strategy-${id}`)
+    if (article.vid) {
+      void delKv(`gameStrategys:${article.vid}`)
+    }
+    if (article.otherid) {
+      void delKv(`gameStrategys:${article.otherid}`)
+    }
+
+    await db
+      .updateTable('galrc_article')
+      .where('id', '=', id)
+      .set({ status: newStatus as ArticlesStatus })
+      .execute()
+
+    await storeIdempotentResult(`adminChangeStatus-${hash}`, '', 60)
+  },
 }
+
+type ArticlesStatus = 'published' | 'hidden' | 'deleted'
+type ArticleType = 'strategy' | 'blog' | 'tutorial'

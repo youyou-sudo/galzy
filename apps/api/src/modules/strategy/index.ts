@@ -51,3 +51,23 @@ export const strategy = new Elysia({ prefix: '/strategy' })
       body: StrategyModel.strategy,
     },
   )
+  .get(
+    '/admin/articles',
+    async ({ query }) => {
+      return await Strategy.adminListAll(query)
+    },
+    {
+      isAdmin: true,
+      query: StrategyModel.adminArticleListQuery,
+    },
+  )
+  .post(
+    '/admin/articles/status',
+    async ({ body: { id, status } }) => {
+      return await Strategy.adminChangeStatus({ id, status })
+    },
+    {
+      isAdmin: true,
+      body: StrategyModel.adminArticleStatus,
+    },
+  )

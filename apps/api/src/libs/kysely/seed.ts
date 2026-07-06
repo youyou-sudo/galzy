@@ -180,6 +180,9 @@ export const dbSeed = async () => {
     .addColumn('content', 'text')
     .addColumn('copyright', 'text')
     .addColumn('type', 'varchar(255)')
+    .addColumn('status', 'varchar(255)', (cb) =>
+      cb.notNull().defaultTo('published'),
+    )
     .addColumn('createdAt', sql`timestamp with time zone`, (cb) =>
       cb.defaultTo(sql`current_timestamp`),
     )

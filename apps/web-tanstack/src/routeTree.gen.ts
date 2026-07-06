@@ -34,6 +34,7 @@ import { Route as AuthSignupVerificationRouteImport } from './routes/auth/signup
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AdminAuthLUsersRouteImport } from './routes/admin/_authL/users'
 import { Route as AdminAuthLMeilisearchRouteImport } from './routes/admin/_authL/meilisearch'
+import { Route as AdminAuthLArticlesRouteImport } from './routes/admin/_authL/articles'
 import { Route as AdminAuthLCommentsRouteImport } from './routes/admin/_authL/comments'
 import { Route as IdLayoutTranslateRouteImport } from './routes/$id/_layout/translate'
 import { Route as IdLayoutCommentRouteImport } from './routes/$id/_layout/comment'
@@ -170,6 +171,11 @@ const AdminAuthLCommentsRoute = AdminAuthLCommentsRouteImport.update({
   path: '/comments',
   getParentRoute: () => AdminAuthLRoute,
 } as any)
+const AdminAuthLArticlesRoute = AdminAuthLArticlesRouteImport.update({
+  id: '/articles',
+  path: '/articles',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
 const IdLayoutTranslateRoute = IdLayoutTranslateRouteImport.update({
   id: '/translate',
   path: '/translate',
@@ -213,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/user/': typeof UserIndexRoute
   '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
+  '/admin/articles': typeof AdminAuthLArticlesRoute
   '/admin/comments': typeof AdminAuthLCommentsRoute
   '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
   '/admin/users': typeof AdminAuthLUsersRoute
@@ -243,6 +250,7 @@ export interface FileRoutesByTo {
   '/user': typeof UserIndexRoute
   '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
+  '/admin/articles': typeof AdminAuthLArticlesRoute
   '/admin/comments': typeof AdminAuthLCommentsRoute
   '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
   '/admin/users': typeof AdminAuthLUsersRoute
@@ -276,6 +284,7 @@ export interface FileRoutesById {
   '/user/': typeof UserIndexRoute
   '/$id/_layout/comment': typeof IdLayoutCommentRoute
   '/$id/_layout/translate': typeof IdLayoutTranslateRoute
+  '/admin/_authL/articles': typeof AdminAuthLArticlesRoute
   '/admin/_authL/comments': typeof AdminAuthLCommentsRoute
   '/admin/_authL/meilisearch': typeof AdminAuthLMeilisearchRoute
   '/admin/_authL/users': typeof AdminAuthLUsersRoute
@@ -310,6 +319,7 @@ export interface FileRouteTypes {
     | '/user/'
     | '/$id/comment'
     | '/$id/translate'
+    | '/admin/articles'
     | '/admin/comments'
     | '/admin/meilisearch'
     | '/admin/users'
@@ -340,6 +350,7 @@ export interface FileRouteTypes {
     | '/user'
     | '/$id/comment'
     | '/$id/translate'
+    | '/admin/articles'
     | '/admin/comments'
     | '/admin/meilisearch'
     | '/admin/users'
@@ -372,6 +383,7 @@ export interface FileRouteTypes {
     | '/user/'
     | '/$id/_layout/comment'
     | '/$id/_layout/translate'
+    | '/admin/_authL/articles'
     | '/admin/_authL/comments'
     | '/admin/_authL/meilisearch'
     | '/admin/_authL/users'
@@ -593,6 +605,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthLCommentsRouteImport
       parentRoute: typeof AdminAuthLRoute
     }
+    '/admin/_authL/articles': {
+      id: '/admin/_authL/articles'
+      path: '/articles'
+      fullPath: '/admin/articles'
+      preLoaderRoute: typeof AdminAuthLArticlesRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
     '/$id/_layout/translate': {
       id: '/$id/_layout/translate'
       path: '/translate'
@@ -645,6 +664,7 @@ const IdLayoutRouteWithChildren = IdLayoutRoute._addFileChildren(
 )
 
 interface AdminAuthLRouteChildren {
+  AdminAuthLArticlesRoute: typeof AdminAuthLArticlesRoute
   AdminAuthLCommentsRoute: typeof AdminAuthLCommentsRoute
   AdminAuthLMeilisearchRoute: typeof AdminAuthLMeilisearchRoute
   AdminAuthLUsersRoute: typeof AdminAuthLUsersRoute
@@ -652,6 +672,7 @@ interface AdminAuthLRouteChildren {
 }
 
 const AdminAuthLRouteChildren: AdminAuthLRouteChildren = {
+  AdminAuthLArticlesRoute: AdminAuthLArticlesRoute,
   AdminAuthLCommentsRoute: AdminAuthLCommentsRoute,
   AdminAuthLMeilisearchRoute: AdminAuthLMeilisearchRoute,
   AdminAuthLUsersRoute: AdminAuthLUsersRoute,

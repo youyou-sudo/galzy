@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@web/components/ui/card'
-import { SearchIcon, UsersIcon } from 'lucide-react'
+import { FileTextIcon, SearchIcon, UsersIcon } from 'lucide-react'
 
 export const Route = createFileRoute('/admin/_authL/')({
   component: RouteComponent,
@@ -29,6 +29,12 @@ const adminLinks = [
     icon: SearchIcon,
     title: '评论管理',
     description: '管理评论的删除、编辑、隐藏',
+  },
+  {
+    to: '/admin/articles',
+    icon: FileTextIcon,
+    title: '文章管理',
+    description: '管理全站攻略文章，支持审核、编辑、隐藏与删除操作',
   },
 ]
 

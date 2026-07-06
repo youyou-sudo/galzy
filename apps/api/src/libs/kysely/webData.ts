@@ -188,6 +188,8 @@ export interface CloudflareConfigTable {
 //  blog      : 博客
 //  tutorial  : 教程
 type ArticleType = 'strategy' | 'blog' | 'tutorial'
+// 文章状态：published(已发布/已审核) hidden(隐藏) deleted(已删除)
+type ArticleStatus = 'published' | 'hidden' | 'deleted'
 
 export interface ArticlesTable {
   id: Generated<number>
@@ -197,6 +199,7 @@ export interface ArticlesTable {
   title: string | null
   content: string | null
   type: ArticleType
+  status: ColumnType<ArticleStatus, string | undefined, ArticleStatus>
   copyright: string | null
   createdAt: ColumnType<Date, string | undefined, never>
   updatedAt: ColumnType<Date, string | undefined, never>
