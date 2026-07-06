@@ -3,6 +3,7 @@ import type {
   CommentStatus,
   CommentType,
 } from '@api/libs/kysely/webData'
+import { emailServer } from '@api/libs/seedMail'
 import { status } from 'elysia'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import type { CommentModel } from './model'
@@ -197,10 +198,19 @@ export const CommentService = {
     let depth = 0
     let rootId = null
 
+    let parent: {
+      id: string
+      rootId: string | null
+      depth: number
+      targetType: string
+      targetId: string
+      userId: string
+    } | undefined
+
     if (parentId) {
-      const parent = await db
+      parent = await db
         .selectFrom('galrc_comments')
-        .select(['id', 'rootId', 'depth', 'targetType', 'targetId'])
+        .select(['id', 'rootId', 'depth', 'targetType', 'targetId', 'userId'])
         .where('id', '=', parentId)
         .where('status', '=', 'normal')
         .executeTakeFirst()
@@ -255,6 +265,33 @@ export const CommentService = {
         .set({ lastReplyAt: now } as any)
         .where('id', '=', parentId)
         .execute()
+    }
+
+    // Fire-and-forget email notification to parent comment author
+    if (parentId && parent && parent.userId !== userId) {
+      ;(async () => {
+        try {
+          const parentUser = await db
+            .selectFrom('galrc_user')
+            .select(['email', 'name'])
+            .where('id', '=', parent.userId)
+            .executeTakeFirst()
+
+          if (!parentUser?.email) return
+
+          const commentUrl = `${process.env.WEB_HOST}/${parent.targetType}/${parent.targetId}`
+          const preview = content.length > 100 ? content.slice(0, 100) + '…' : content
+
+          await emailServer.send({
+            from: '紫缘社 <noreply@outbound.galzy.moe>',
+            to: parentUser.email,
+            subject: '你的评论收到了回复喵～',
+            text: `你好 ${parentUser.name}，你的评论收到了新的回复喵～\n\n回复内容：${preview}\n\n查看完整对话：${commentUrl}`,
+          })
+        } catch (err) {
+          console.error('发送回复通知邮件失败:', err)
+        }
+      })()
     }
 
     // Return the created comment with user info
