@@ -61,7 +61,7 @@ export const Route = createFileRoute('/tools/plate')({
       { title: `车牌号跳转工具 | ${seoTemplate.title}` },
       {
         name: 'description',
-        content: '输入车牌号，快速跳转到 nhentai、禁漫天堂、Hitomi.la 等网站',
+        content: '输入车牌号，快速跳转到 nhentai、禁漫天堂、Hitomi.la 喵～',
       },
     ],
   }),
@@ -83,9 +83,7 @@ function RouteComponent() {
         {/* Header */}
         <div className="text-center mb-6">
           <h1 className="text-3xl font-bold mb-2">车牌号跳转工具</h1>
-          <p className="text-muted-foreground">
-            输入车牌号，快速跳转到各大网站
-          </p>
+          <p className="text-muted-foreground">输入车牌号，直通车喵～</p>
         </div>
 
         {/* Prominent Input — THE primary action */}
@@ -101,14 +99,16 @@ function RouteComponent() {
 
         {/* Site Grid — always visible */}
         <h2 className="text-sm font-medium text-muted-foreground mb-3">
-          选择要跳转的网站
+          选择班次喵～
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {sites.map((site) => (
             <Card key={site.id}>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <span className={`inline-flex items-center justify-center size-6 rounded ${site.bg} ${site.color} text-xs font-bold`}>
+                  <span
+                    className={`inline-flex items-center justify-center size-6 rounded ${site.bg} ${site.color} text-xs font-bold`}
+                  >
                     {site.icon}
                   </span>
                   {site.name}
@@ -124,7 +124,9 @@ function RouteComponent() {
                       size="sm"
                       variant="outline"
                       className="w-full cursor-pointer"
-                      onClick={() => openSite(site.url.replace('{id}', plate.trim()))}
+                      onClick={() =>
+                        openSite(site.url.replace('{id}', plate.trim()))
+                      }
                     >
                       <ExternalLink data-icon="inline-start" />
                       打开
@@ -138,7 +140,7 @@ function RouteComponent() {
                     disabled
                   >
                     <ExternalLink data-icon="inline-start" />
-                    输入车牌号后可跳转
+                    输入车牌号后可上车喵～
                   </Button>
                 )}
               </CardContent>
