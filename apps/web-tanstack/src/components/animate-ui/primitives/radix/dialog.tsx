@@ -17,14 +17,14 @@ const [DialogProvider, useDialog] =
 type DialogProps = DialogPrimitive.Root.Props;
 
 function Dialog(props: DialogProps) {
-	const [isOpen, setIsOpen] = useControlledState<boolean>({
+	const [isOpen, setIsOpen] = useControlledState({
 		value: props?.open,
 		defaultValue: props?.defaultOpen,
-		onChange: props?.onOpenChange as ((value: boolean) => void) | undefined,
+		onChange: props?.onOpenChange,
 	});
 
 	return (
-		<DialogProvider value={{ isOpen, setIsOpen }}>
+		<DialogProvider value={{ isOpen, setIsOpen: setIsOpen as unknown as (isOpen: boolean) => void }}>
 			<DialogPrimitive.Root
 				data-slot="dialog"
 				{...props}

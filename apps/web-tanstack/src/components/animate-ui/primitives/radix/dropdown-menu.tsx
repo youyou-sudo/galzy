@@ -33,7 +33,7 @@ function DropdownMenu(props: DropdownMenuProps) {
 	});
 
 	return (
-		<DropdownMenuProvider value={{ isOpen, setIsOpen }}>
+		<DropdownMenuProvider value={{ isOpen, setIsOpen: setIsOpen as unknown as (o: boolean) => void }}>
 			<DropdownMenuPrimitive.Root
 				data-slot="dropdown-menu"
 				{...props}
@@ -80,7 +80,7 @@ function DropdownMenuSub(props: DropdownMenuSubProps) {
 	});
 
 	return (
-		<DropdownMenuSubProvider value={{ isOpen, setIsOpen }}>
+		<DropdownMenuSubProvider value={{ isOpen, setIsOpen: setIsOpen as unknown as (o: boolean) => void }}>
 			<DropdownMenuPrimitive.SubmenuRoot
 				data-slot="dropdown-menu-sub"
 				{...props}
