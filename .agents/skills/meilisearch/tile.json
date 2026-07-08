@@ -1,0 +1,11 @@
+{
+  "name": "creativecodeology/meilisearch",
+  "version": "0.1.0",
+  "private": false,
+  "summary": "Meilisearch search engine integration with the JavaScript/TypeScript SDK (v0.44+). Use when working with Meilisearch indexes, search queries, filters, facets, sorting, multi-search, tenant isolation, document sync, or search settings configuration. Triggers on: meilisearch client setup, index creation, addDocuments, search with filters, facetDistribution, tenant tokens, multi-search, ranking rules, filterable/sortable/searchable attributes. Use this skill any time the user mentions Meilisearch, search indexing, full-text search in their app, or asks about tenant-scoped search — even for simple tasks like 'add search to this page', because the skill contains critical multi-tenancy and filter syntax patterns that prevent data leaks.",
+  "skills": {
+    "meilisearch": {
+      "path": "SKILL.md"
+    }
+  }
+}
