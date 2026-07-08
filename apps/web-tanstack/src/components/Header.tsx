@@ -3,9 +3,11 @@ import { Image } from '@unpic/react'
 import { Button } from '@web/components/ui/button'
 import {
   NavigationMenu,
+  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
+  NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from '@web/components/ui/navigation-menu'
 import {
@@ -15,7 +17,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@web/components/ui/sheet'
-import { Menu } from 'lucide-react'
+import { cn } from '@web/lib/utils'
+import { ExternalLink, Menu, Wrench } from 'lucide-react'
 import { useState } from 'react'
 import ThemeToggle from './ThemeToggle'
 import UserMenu from './user/UserMenu'
@@ -50,12 +53,45 @@ export default function Header() {
                   </NavigationMenuLink>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
-                  <NavigationMenuLink
-                    className={navigationMenuTriggerStyle()}
-                    render={<Link to="/tools" />}
-                  >
-                    工具
-                  </NavigationMenuLink>
+                  <NavigationMenuTrigger>工具</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[220px] gap-1 p-3">
+                      <li>
+                        <NavigationMenuLink
+                          className={cn(
+                            navigationMenuTriggerStyle(),
+                            'h-auto w-full justify-start gap-3',
+                          )}
+                          render={<Link to="/tools" />}
+                        >
+                          <Wrench className="size-4 shrink-0" />
+                          <div className="flex flex-col items-start gap-0.5">
+                            <span className="text-sm font-medium">所有工具</span>
+                            <span className="text-xs font-normal text-muted-foreground">
+                              查看全部实用工具
+                            </span>
+                          </div>
+                        </NavigationMenuLink>
+                      </li>
+                      <li>
+                        <NavigationMenuLink
+                          className={cn(
+                            navigationMenuTriggerStyle(),
+                            'h-auto w-full justify-start gap-3',
+                          )}
+                          render={<Link to="/tools/plate" />}
+                        >
+                          <ExternalLink className="size-4 shrink-0" />
+                          <div className="flex flex-col items-start gap-0.5">
+                            <span className="text-sm font-medium">车牌号跳转</span>
+                            <span className="text-xs font-normal text-muted-foreground">
+                              快速跳转到 nhentai、禁漫天堂等网站
+                            </span>
+                          </div>
+                        </NavigationMenuLink>
+                      </li>
+                    </ul>
+                  </NavigationMenuContent>
                 </NavigationMenuItem>
                 <NavigationMenuItem>
                   <NavigationMenuLink
@@ -101,13 +137,27 @@ export default function Header() {
                   >
                     标签
                   </Link>
-                  <Link
-                    to="/tools"
-                    className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    工具
-                  </Link>
+                  <div className="space-y-1">
+                    <div className="px-3 py-2 text-sm font-semibold text-muted-foreground tracking-wider uppercase">
+                      工具
+                    </div>
+                    <Link
+                      to="/tools"
+                      className="flex items-center gap-3 px-3 py-2 text-base font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <Wrench className="size-4 shrink-0 text-muted-foreground" />
+                      所有工具
+                    </Link>
+                    <Link
+                      to="/tools/plate"
+                      className="flex items-center gap-3 px-3 py-2 text-base font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <ExternalLink className="size-4 shrink-0 text-muted-foreground" />
+                      车牌号跳转
+                    </Link>
+                  </div>
                   <Link
                     to="/contact"
                     className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
