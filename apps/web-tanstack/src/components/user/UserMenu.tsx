@@ -34,7 +34,12 @@ export default function UserMenu() {
 
   if (!session) {
     return (
-      <Button variant="outline" size="sm" nativeButton={false} render={<Link to="/auth/login" />}>
+      <Button
+        variant="outline"
+        size="sm"
+        nativeButton={false}
+        render={<Link to="/auth/login" />}
+      >
         <User className="size-3" />
         登录
       </Button>
@@ -45,31 +50,43 @@ export default function UserMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<button className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" />}>
+      <DropdownMenuTrigger
+        render={
+          <button className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+        }
+      >
         <AvatarComp name={user.name} image={user.image} editor={false} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuGroup>
-        <DropdownMenuLabel>账户</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <div className="px-1.5 py-2">
-          <UserHeader
-            name={user.name}
-            email={user.email}
-            image={user.image}
-            profileMenu={true}
-          />
-        </div>
+          <DropdownMenuLabel>账户</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <div className="px-1.5 py-2">
+            <UserHeader
+              name={user.name}
+              email={user.email}
+              image={user.image}
+              profileMenu={true}
+            />
+          </div>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link to="/user" />}>
           <UserCog className="size-4" />
           个人设置
         </DropdownMenuItem>
+
+        {user.role === 'admin' && (
+          <DropdownMenuItem render={<Link to="/admin" />}>
+            <UserCog className="size-4" />
+            后台管理
+          </DropdownMenuItem>
+        )}
+
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
-          onSelect={async () =>
+          onClick={async () =>
             await authClient.signOut({
               fetchOptions: {
                 onError: () => {

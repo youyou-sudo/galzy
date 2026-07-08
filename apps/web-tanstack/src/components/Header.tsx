@@ -30,7 +30,7 @@ export default function Header() {
           <Link to="/" className="flex items-center">
             <Image src="/favicon.ico" width={32} height={32} />
           </Link>
-          <div className="hidden md:block">
+          <div>
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
@@ -86,8 +86,13 @@ export default function Header() {
                   >
                     主页
                   </Link>
-                </div>
-                <div className="space-y-4">
+                  <Link
+                    to="/tags"
+                    className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    标签
+                  </Link>
                   <Link
                     to="/contact"
                     className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
