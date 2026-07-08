@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -33,11 +34,9 @@ export default function UserMenu() {
 
   if (!session) {
     return (
-      <Button asChild variant="outline" size="sm">
-        <Link to="/auth/login">
-          <User className="size-3" />
-          登录
-        </Link>
+      <Button variant="outline" size="sm" nativeButton={false} render={<Link to="/auth/login" />}>
+        <User className="size-3" />
+        登录
       </Button>
     )
   }
@@ -46,12 +45,11 @@ export default function UserMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <AvatarComp name={user.name} image={user.image} editor={false} />
-        </button>
+      <DropdownMenuTrigger render={<button className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" />}>
+        <AvatarComp name={user.name} image={user.image} editor={false} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuGroup>
         <DropdownMenuLabel>账户</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <div className="px-1.5 py-2">
@@ -62,12 +60,11 @@ export default function UserMenu() {
             profileMenu={true}
           />
         </div>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/user">
-            <UserCog className="size-4" />
-            个人设置
-          </Link>
+        <DropdownMenuItem render={<Link to="/user" />}>
+          <UserCog className="size-4" />
+          个人设置
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem

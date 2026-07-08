@@ -203,11 +203,9 @@ function RouteComponent() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* 返回链接 */}
-      <Button asChild variant="ghost" size="sm">
-        <Link to="/user">
-          <ArrowLeft className="size-4" />
-          返回个人主页
-        </Link>
+      <Button variant="ghost" size="sm" nativeButton={false} render={<Link to="/user" />}>
+        <ArrowLeft className="size-4" />
+        返回个人主页
       </Button>
 
       {/* 头像编辑卡片 */}

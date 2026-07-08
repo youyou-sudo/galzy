@@ -21,45 +21,37 @@ export function GameTabs({ id }: { id: string }) {
   return (
     <Tabs value={currentTab}>
       <TabsList>
-        <TabsTrigger value="download" asChild>
-          <Link
-            to="/$id"
-            params={{ id: id }}
-            resetScroll={false}
-          >
-            <ArrowDownToLine className="size-4" />
-            下载
-          </Link>
+        <TabsTrigger
+          value="download"
+          nativeButton={false}
+          render={<Link to="/$id" params={{ id: id }} resetScroll={false} />}
+        >
+          <ArrowDownToLine className="size-4" />
+          下载
         </TabsTrigger>
-        <TabsTrigger value="introduction" asChild>
-          <Link
-            to="/$id/introduction"
-            params={{ id: id }}
-            resetScroll={false}
-          >
-            <Swords />
-            攻略
-          </Link>
+        <TabsTrigger
+          value="introduction"
+          nativeButton={false}
+          render={<Link to="/$id/introduction" params={{ id: id }} resetScroll={false} />}
+        >
+          <Swords />
+          攻略
         </TabsTrigger>
-        <TabsTrigger value="comment" asChild>
-          <Link
-            to="/$id/comment"
-            params={{ id: id }}
-            resetScroll={false}
-          >
-            <MessageCircle />
-            讨论
-          </Link>
+        <TabsTrigger
+          value="comment"
+          nativeButton={false}
+          render={<Link to="/$id/comment" params={{ id: id }} resetScroll={false} />}
+        >
+          <MessageCircle />
+          讨论
         </TabsTrigger>
-        <TabsTrigger value="translate" asChild>
-          <Link
-            to="/$id/translate"
-            params={{ id: id }}
-            resetScroll={false}
-          >
-            <TrendingUp />
-            统计
-          </Link>
+        <TabsTrigger
+          value="translate"
+          nativeButton={false}
+          render={<Link to="/$id/translate" params={{ id: id }} resetScroll={false} />}
+        >
+          <TrendingUp />
+          统计
         </TabsTrigger>
       </TabsList>
     </Tabs>

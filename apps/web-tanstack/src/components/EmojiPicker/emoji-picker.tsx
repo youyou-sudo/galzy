@@ -25,6 +25,7 @@ import {
   Smile,
   Users,
 } from 'lucide-react'
+import * as React from 'react'
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
 
 const kaomojis = [
@@ -896,16 +897,18 @@ export default function KaomojiPicker({
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        {trigger || (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 w-8 bg-transparent p-0"
-          >
+      <PopoverTrigger
+        render={
+          React.isValidElement(trigger)
+            ? trigger
+            : <Button variant="outline" size="sm" className="h-8 w-8 bg-transparent p-0" />
+        }
+      >
+        {trigger ? null : (
+          <>
             <Smile className="h-4 w-4" />
             <span className="sr-only">打开颜文字选择器</span>
-          </Button>
+          </>
         )}
       </PopoverTrigger>
       <PopoverContent

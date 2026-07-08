@@ -240,10 +240,8 @@ function UsersTable() {
                     </td>
                     <td className="px-4 py-3">
                       <Tooltip delayDuration={300}>
-                        <TooltipTrigger asChild>
-                          <span className="text-sm text-muted-foreground break-all cursor-default">
-                            {user.email}
-                          </span>
+                        <TooltipTrigger render={<span className="text-sm text-muted-foreground break-all cursor-default" />}>
+                          {user.email}
                         </TooltipTrigger>
                         <TooltipContent>
                           <p>{user.email}</p>

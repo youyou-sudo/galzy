@@ -68,8 +68,7 @@ export default function ThemeToggle() {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<Button variant="outline" size="icon" className="rounded-full">
+			<DropdownMenuTrigger render={<Button variant="outline" size="icon" className="rounded-full" />}>
 					{mode === "light" ? (
 						<Sun className="size-[1.2rem] text-amber-500" />
 					) : mode === "dark" ? (
@@ -78,7 +77,6 @@ export default function ThemeToggle() {
 						<Monitor className="size-[1.2rem] text-zinc-500" />
 					)}
 					<span className="sr-only">主题</span>
-				</Button>
 			</DropdownMenuTrigger>
 
 			<DropdownMenuContent align="end" className="min-w-32 rounded-xl">

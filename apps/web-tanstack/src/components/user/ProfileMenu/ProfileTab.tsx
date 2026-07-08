@@ -193,10 +193,8 @@ export default function ProfileTab({
       <div className="space-y-2">
         <Label>邮箱</Label>
         <Tooltip delayDuration={300}>
-          <TooltipTrigger asChild>
-            <div className="flex min-h-8 w-full min-w-0 items-center rounded-lg border border-input bg-input/30 px-2.5 py-1 text-sm text-muted-foreground break-all dark:bg-input/80">
-              {user.email ?? '未设置邮箱'}
-            </div>
+          <TooltipTrigger render={<div className="flex min-h-8 w-full min-w-0 items-center rounded-lg border border-input bg-input/30 px-2.5 py-1 text-sm text-muted-foreground break-all dark:bg-input/80" />}>
+            {user.email ?? '未设置邮箱'}
           </TooltipTrigger>
           <TooltipContent>
             <p>{user.email}</p>

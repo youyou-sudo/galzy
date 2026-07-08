@@ -100,11 +100,9 @@ function RouteComponent() {
                 {user.email}
               </p>
             </div>
-            <Button asChild variant="outline" size="sm">
-              <Link to="/user/editor">
-                <Pencil className="size-4" />
-                编辑资料
-              </Link>
+            <Button variant="outline" size="sm" nativeButton={false} render={<Link to="/user/editor" />}>
+              <Pencil className="size-4" />
+              编辑资料
             </Button>
           </div>
         </CardContent>
