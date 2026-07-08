@@ -8,10 +8,9 @@ import {
 	motion,
 	type Transition,
 } from "motion/react";
-import { RadioGroup as RadioGroupPrimitive } from "radix-ui";
-import type * as React from "react";
+import { RadioGroup as RadioGroupPrimitive } from "@base-ui/react/radio-group";
 
-type RadioGroupProps = React.ComponentProps<typeof RadioGroupPrimitive.Root> & {
+type RadioGroupProps = RadioGroupPrimitive.Root.Props & {
 	transition?: Transition;
 };
 
@@ -25,9 +24,7 @@ function RadioGroup({ className, ...props }: RadioGroupProps) {
 	);
 }
 
-type RadioGroupIndicatorProps = React.ComponentProps<
-	typeof RadioGroupPrimitive.Indicator
-> & {
+type RadioGroupIndicatorProps = RadioGroupPrimitive.Indicator.Props & {
 	transition: Transition;
 };
 
@@ -58,9 +55,7 @@ function RadioGroupIndicator({
 	);
 }
 
-type RadioGroupItemProps = React.ComponentProps<
-	typeof RadioGroupPrimitive.Item
-> &
+type RadioGroupItemProps = RadioGroupPrimitive.Item.Props &
 	HTMLMotionProps<"button"> & {
 		transition?: Transition;
 	};
@@ -71,22 +66,24 @@ function RadioGroupItem({
 	...props
 }: RadioGroupItemProps) {
 	return (
-		<RadioGroupPrimitive.Item asChild {...props}>
-			<motion.button
-				data-slot="radio-group-item"
-				className={cn(
-					"aspect-square size-5 rounded-full flex items-center justify-center border border-input text-primary ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-					className,
-				)}
-				whileHover={{ scale: 1.05 }}
-				whileTap={{ scale: 0.95 }}
-				{...props}
-			>
-				<RadioGroupIndicator
-					data-slot="radio-group-item-indicator"
-					transition={transition}
+		<RadioGroupPrimitive.Item
+			render={
+				<motion.button
+					data-slot="radio-group-item"
+					className={cn(
+						"aspect-square size-5 rounded-full flex items-center justify-center border border-input text-primary ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+						className,
+					)}
+					whileHover={{ scale: 1.05 }}
+					whileTap={{ scale: 0.95 }}
 				/>
-			</motion.button>
+			}
+			{...props}
+		>
+			<RadioGroupIndicator
+				data-slot="radio-group-item-indicator"
+				transition={transition}
+			/>
 		</RadioGroupPrimitive.Item>
 	);
 }

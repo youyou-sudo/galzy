@@ -2,12 +2,11 @@
 
 import { cn } from "@web/lib/utils";
 import { motion, type Transition } from "motion/react";
-import { Progress as ProgressPrimitive } from "radix-ui";
-import type * as React from "react";
+import { Progress as ProgressPrimitive } from "@base-ui/react/progress";
 
 const MotionProgressIndicator = motion.create(ProgressPrimitive.Indicator);
 
-type ProgressProps = React.ComponentProps<typeof ProgressPrimitive.Root> & {
+type ProgressProps = ProgressPrimitive.Root.Props & {
 	transition?: Transition;
 };
 

@@ -6,7 +6,7 @@ import {
 	motion,
 	type Transition,
 } from "motion/react";
-import { Collapsible as CollapsiblePrimitive } from "radix-ui";
+import { Collapsible as CollapsiblePrimitive } from "@base-ui/react/collapsible";
 import * as React from "react";
 
 type CollapsibleContextType = {
@@ -25,7 +25,7 @@ const useCollapsible = (): CollapsibleContextType => {
 	return context;
 };
 
-type CollapsibleProps = React.ComponentProps<typeof CollapsiblePrimitive.Root>;
+type CollapsibleProps = CollapsiblePrimitive.Root.Props;
 
 function Collapsible({ children, ...props }: CollapsibleProps) {
 	const [isOpen, setIsOpen] = React.useState(
@@ -39,7 +39,7 @@ function Collapsible({ children, ...props }: CollapsibleProps) {
 	const handleOpenChange = React.useCallback(
 		(open: boolean) => {
 			setIsOpen(open);
-			props.onOpenChange?.(open);
+			props.onOpenChange?.(open, {} as any);
 		},
 		[props],
 	);
@@ -57,9 +57,7 @@ function Collapsible({ children, ...props }: CollapsibleProps) {
 	);
 }
 
-type CollapsibleTriggerProps = React.ComponentProps<
-	typeof CollapsiblePrimitive.Trigger
->;
+type CollapsibleTriggerProps = CollapsiblePrimitive.Trigger.Props;
 
 function CollapsibleTrigger(props: CollapsibleTriggerProps) {
 	return (
@@ -67,9 +65,7 @@ function CollapsibleTrigger(props: CollapsibleTriggerProps) {
 	);
 }
 
-type CollapsibleContentProps = React.ComponentProps<
-	typeof CollapsiblePrimitive.Content
-> &
+type CollapsibleContentProps = CollapsiblePrimitive.Panel.Props &
 	HTMLMotionProps<"div"> & {
 		transition?: Transition;
 	};
@@ -78,28 +74,30 @@ function CollapsibleContent({
 	className,
 	children,
 	transition = { type: "spring", stiffness: 150, damping: 22 },
-	...props
 }: CollapsibleContentProps) {
 	const { isOpen } = useCollapsible();
 
 	return (
 		<AnimatePresence>
 			{isOpen && (
-				<CollapsiblePrimitive.Content asChild forceMount {...props}>
-					<motion.div
-						key="collapsible-content"
-						data-slot="collapsible-content"
-						layout
-						initial={{ opacity: 0, height: 0, overflow: "hidden" }}
-						animate={{ opacity: 1, height: "auto", overflow: "hidden" }}
-						exit={{ opacity: 0, height: 0, overflow: "hidden" }}
-						transition={transition}
-						className={className}
-						{...props}
-					>
-						{children}
-					</motion.div>
-				</CollapsiblePrimitive.Content>
+				<CollapsiblePrimitive.Panel
+					keepMounted
+					render={(renderProps: any) => (
+						<motion.div
+							{...renderProps}
+							key="collapsible-content"
+							data-slot="collapsible-content"
+							layout
+							initial={{ opacity: 0, height: 0, overflow: "hidden" }}
+							animate={{ opacity: 1, height: "auto", overflow: "hidden" }}
+							exit={{ opacity: 0, height: 0, overflow: "hidden" }}
+							transition={transition}
+							className={className}
+						>
+							{children}
+						</motion.div>
+					)}
+				/>
 			)}
 		</AnimatePresence>
 	);

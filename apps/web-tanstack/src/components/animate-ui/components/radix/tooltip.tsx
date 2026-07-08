@@ -2,7 +2,7 @@
 
 import { cn } from "@web/lib/utils";
 import { AnimatePresence, motion, type Transition } from "motion/react";
-import { Tooltip as TooltipPrimitive } from "radix-ui";
+import { Tooltip as TooltipPrimitive } from "@base-ui/react/tooltip";
 import * as React from "react";
 
 type TooltipContextType = {
@@ -36,15 +36,13 @@ const getInitialPosition = (side: Side) => {
 	}
 };
 
-type TooltipProviderProps = React.ComponentProps<
-	typeof TooltipPrimitive.Provider
->;
+type TooltipProviderProps = TooltipPrimitive.Provider.Props;
 
 function TooltipProvider(props: TooltipProviderProps) {
 	return <TooltipPrimitive.Provider data-slot="tooltip-provider" {...props} />;
 }
 
-type TooltipProps = React.ComponentProps<typeof TooltipPrimitive.Root>;
+type TooltipProps = TooltipPrimitive.Root.Props;
 
 function Tooltip(props: TooltipProps) {
 	const [isOpen, setIsOpen] = React.useState(
@@ -58,7 +56,7 @@ function Tooltip(props: TooltipProps) {
 	const handleOpenChange = React.useCallback(
 		(open: boolean) => {
 			setIsOpen(open);
-			props.onOpenChange?.(open);
+			props.onOpenChange?.(open, {} as any);
 		},
 		[props],
 	);
@@ -74,17 +72,15 @@ function Tooltip(props: TooltipProps) {
 	);
 }
 
-type TooltipTriggerProps = React.ComponentProps<
-	typeof TooltipPrimitive.Trigger
->;
+type TooltipTriggerProps = TooltipPrimitive.Trigger.Props;
 
 function TooltipTrigger(props: TooltipTriggerProps) {
 	return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />;
 }
 
-type TooltipContentProps = React.ComponentProps<
-	typeof TooltipPrimitive.Content
-> & {
+type TooltipContentProps = TooltipPrimitive.Popup.Props & {
+	side?: "top" | "bottom" | "left" | "right";
+	sideOffset?: number;
 	transition?: Transition;
 	arrow?: boolean;
 };
@@ -104,35 +100,32 @@ function TooltipContent({
 	return (
 		<AnimatePresence>
 			{isOpen && (
-				<TooltipPrimitive.Portal forceMount data-slot="tooltip-portal">
-					<TooltipPrimitive.Content
-						forceMount
-						sideOffset={sideOffset}
-						className="z-50"
-						{...props}
-					>
-						<motion.div
-							key="tooltip-content"
-							data-slot="tooltip-content"
-							initial={{ opacity: 0, scale: 0, ...initialPosition }}
-							animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-							exit={{ opacity: 0, scale: 0, ...initialPosition }}
-							transition={transition}
-							className={cn(
-								"relative bg-primary text-primary-foreground shadow-md w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-sm text-balance",
-								className,
-							)}
-						>
-							{children}
+				<TooltipPrimitive.Portal keepMounted data-slot="tooltip-portal">
+					<TooltipPrimitive.Positioner side={side} sideOffset={sideOffset}>
+						<TooltipPrimitive.Popup className="z-50" {...props}>
+							<motion.div
+								key="tooltip-content"
+								data-slot="tooltip-content"
+								initial={{ opacity: 0, scale: 0, ...initialPosition }}
+								animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+								exit={{ opacity: 0, scale: 0, ...initialPosition }}
+								transition={transition}
+								className={cn(
+									"relative bg-primary text-primary-foreground shadow-md w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-sm text-balance",
+									className,
+								)}
+							>
+								{children}
 
-							{arrow && (
-								<TooltipPrimitive.Arrow
-									data-slot="tooltip-content-arrow"
-									className="bg-primary fill-primary z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-[2px]"
-								/>
-							)}
-						</motion.div>
-					</TooltipPrimitive.Content>
+								{arrow && (
+									<TooltipPrimitive.Arrow
+										data-slot="tooltip-content-arrow"
+										className="bg-primary fill-primary z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-[2px]"
+									/>
+								)}
+							</motion.div>
+						</TooltipPrimitive.Popup>
+					</TooltipPrimitive.Positioner>
 				</TooltipPrimitive.Portal>
 			)}
 		</AnimatePresence>

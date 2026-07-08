@@ -8,7 +8,7 @@ import {
 	motion,
 	type Transition,
 } from "motion/react";
-import { Accordion as AccordionPrimitive } from "radix-ui";
+import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion";
 import * as React from "react";
 
 type AccordionItemContextType = {
@@ -28,15 +28,13 @@ const useAccordionItem = (): AccordionItemContextType => {
 	return context;
 };
 
-type AccordionProps = React.ComponentProps<typeof AccordionPrimitive.Root>;
+type AccordionProps = AccordionPrimitive.Root.Props;
 
 function Accordion(props: AccordionProps) {
 	return <AccordionPrimitive.Root data-slot="accordion" {...props} />;
 }
 
-type AccordionItemProps = React.ComponentProps<
-	typeof AccordionPrimitive.Item
-> & {
+type AccordionItemProps = AccordionPrimitive.Item.Props & {
 	children: React.ReactNode;
 };
 
@@ -56,9 +54,7 @@ function AccordionItem({ className, children, ...props }: AccordionItemProps) {
 	);
 }
 
-type AccordionTriggerProps = React.ComponentProps<
-	typeof AccordionPrimitive.Trigger
-> & {
+type AccordionTriggerProps = AccordionPrimitive.Trigger.Props & {
 	transition?: Transition;
 	chevron?: boolean;
 };
@@ -125,9 +121,7 @@ function AccordionTrigger({
 	);
 }
 
-type AccordionContentProps = React.ComponentProps<
-	typeof AccordionPrimitive.Content
-> &
+type AccordionContentProps = AccordionPrimitive.Panel.Props &
 	HTMLMotionProps<"div"> & {
 		transition?: Transition;
 	};
@@ -136,33 +130,35 @@ function AccordionContent({
 	className,
 	children,
 	transition = { type: "spring", stiffness: 150, damping: 22 },
-	...props
 }: AccordionContentProps) {
 	const { isOpen } = useAccordionItem();
 
 	return (
 		<AnimatePresence>
 			{isOpen && (
-				<AccordionPrimitive.Content forceMount {...props}>
-					<motion.div
-						key="accordion-content"
-						data-slot="accordion-content"
-						initial={{ height: 0, opacity: 0, "--mask-stop": "0%" }}
-						animate={{ height: "auto", opacity: 1, "--mask-stop": "100%" }}
-						exit={{ height: 0, opacity: 0, "--mask-stop": "0%" }}
-						transition={transition}
-						style={{
-							maskImage:
-								"linear-gradient(black var(--mask-stop), transparent var(--mask-stop))",
-							WebkitMaskImage:
-								"linear-gradient(black var(--mask-stop), transparent var(--mask-stop))",
-						}}
-						className="overflow-hidden"
-						{...props}
-					>
-						<div className={cn("pb-4 pt-0 text-sm", className)}>{children}</div>
-					</motion.div>
-				</AccordionPrimitive.Content>
+				<AccordionPrimitive.Panel
+					keepMounted
+					render={(renderProps: any) => (
+						<motion.div
+							{...renderProps}
+							key="accordion-content"
+							data-slot="accordion-content"
+							initial={{ height: 0, opacity: 0, "--mask-stop": "0%" }}
+							animate={{ height: "auto", opacity: 1, "--mask-stop": "100%" }}
+							exit={{ height: 0, opacity: 0, "--mask-stop": "0%" }}
+							transition={transition}
+							style={{
+								maskImage:
+									"linear-gradient(black var(--mask-stop), transparent var(--mask-stop))",
+								WebkitMaskImage:
+									"linear-gradient(black var(--mask-stop), transparent var(--mask-stop))",
+							}}
+							className="overflow-hidden"
+						>
+							<div className={cn("pb-4 pt-0 text-sm", className)}>{children}</div>
+						</motion.div>
+					)}
+				/>
 			)}
 		</AnimatePresence>
 	);
