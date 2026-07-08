@@ -14,10 +14,12 @@ import { Route as FriendLinksRouteImport } from './routes/friend-links'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UserIndexRouteImport } from './routes/user/index'
+import { Route as ToolsIndexRouteImport } from './routes/tools/index'
 import { Route as TagsIndexRouteImport } from './routes/tags/index'
 import { Route as SearchIndexRouteImport } from './routes/search/index'
 import { Route as ProducerIndexRouteImport } from './routes/producer/index'
 import { Route as UserEditorRouteImport } from './routes/user/editor'
+import { Route as ToolsPlateRouteImport } from './routes/tools/plate'
 import { Route as TagsTagIdRouteImport } from './routes/tags/$tagId'
 import { Route as ProducerPidRouteImport } from './routes/producer/$pid'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
@@ -66,6 +68,11 @@ const UserIndexRoute = UserIndexRouteImport.update({
   path: '/user/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ToolsIndexRoute = ToolsIndexRouteImport.update({
+  id: '/tools/',
+  path: '/tools/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TagsIndexRoute = TagsIndexRouteImport.update({
   id: '/tags/',
   path: '/tags/',
@@ -84,6 +91,11 @@ const ProducerIndexRoute = ProducerIndexRouteImport.update({
 const UserEditorRoute = UserEditorRouteImport.update({
   id: '/user/editor',
   path: '/user/editor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsPlateRoute = ToolsPlateRouteImport.update({
+  id: '/tools/plate',
+  path: '/tools/plate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TagsTagIdRoute = TagsTagIdRouteImport.update({
@@ -212,10 +224,12 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AuthLoginRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
+  '/tools/plate': typeof ToolsPlateRoute
   '/user/editor': typeof UserEditorRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
+  '/tools/': typeof ToolsIndexRoute
   '/user/': typeof UserIndexRoute
   '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
@@ -243,10 +257,12 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
+  '/tools/plate': typeof ToolsPlateRoute
   '/user/editor': typeof UserEditorRoute
   '/producer': typeof ProducerIndexRoute
   '/search': typeof SearchIndexRoute
   '/tags': typeof TagsIndexRoute
+  '/tools': typeof ToolsIndexRoute
   '/user': typeof UserIndexRoute
   '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
@@ -277,10 +293,12 @@ export interface FileRoutesById {
   '/auth/login': typeof AuthLoginRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
+  '/tools/plate': typeof ToolsPlateRoute
   '/user/editor': typeof UserEditorRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
+  '/tools/': typeof ToolsIndexRoute
   '/user/': typeof UserIndexRoute
   '/$id/_layout/comment': typeof IdLayoutCommentRoute
   '/$id/_layout/translate': typeof IdLayoutTranslateRoute
@@ -312,10 +330,12 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/producer/$pid'
     | '/tags/$tagId'
+    | '/tools/plate'
     | '/user/editor'
     | '/producer/'
     | '/search/'
     | '/tags/'
+    | '/tools/'
     | '/user/'
     | '/$id/comment'
     | '/$id/translate'
@@ -343,10 +363,12 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/producer/$pid'
     | '/tags/$tagId'
+    | '/tools/plate'
     | '/user/editor'
     | '/producer'
     | '/search'
     | '/tags'
+    | '/tools'
     | '/user'
     | '/$id/comment'
     | '/$id/translate'
@@ -376,10 +398,12 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/producer/$pid'
     | '/tags/$tagId'
+    | '/tools/plate'
     | '/user/editor'
     | '/producer/'
     | '/search/'
     | '/tags/'
+    | '/tools/'
     | '/user/'
     | '/$id/_layout/comment'
     | '/$id/_layout/translate'
@@ -410,10 +434,12 @@ export interface RootRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
   ProducerPidRoute: typeof ProducerPidRoute
   TagsTagIdRoute: typeof TagsTagIdRoute
+  ToolsPlateRoute: typeof ToolsPlateRoute
   UserEditorRoute: typeof UserEditorRoute
   ProducerIndexRoute: typeof ProducerIndexRoute
   SearchIndexRoute: typeof SearchIndexRoute
   TagsIndexRoute: typeof TagsIndexRoute
+  ToolsIndexRoute: typeof ToolsIndexRoute
   UserIndexRoute: typeof UserIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   AuthSignupVerificationRoute: typeof AuthSignupVerificationRoute
@@ -458,6 +484,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UserIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tools/': {
+      id: '/tools/'
+      path: '/tools'
+      fullPath: '/tools/'
+      preLoaderRoute: typeof ToolsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tags/': {
       id: '/tags/'
       path: '/tags'
@@ -484,6 +517,13 @@ declare module '@tanstack/react-router' {
       path: '/user/editor'
       fullPath: '/user/editor'
       preLoaderRoute: typeof UserEditorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/plate': {
+      id: '/tools/plate'
+      path: '/tools/plate'
+      fullPath: '/tools/plate'
+      preLoaderRoute: typeof ToolsPlateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tags/$tagId': {
@@ -696,10 +736,12 @@ const rootRouteChildren: RootRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
   ProducerPidRoute: ProducerPidRoute,
   TagsTagIdRoute: TagsTagIdRoute,
+  ToolsPlateRoute: ToolsPlateRoute,
   UserEditorRoute: UserEditorRoute,
   ProducerIndexRoute: ProducerIndexRoute,
   SearchIndexRoute: SearchIndexRoute,
   TagsIndexRoute: TagsIndexRoute,
+  ToolsIndexRoute: ToolsIndexRoute,
   UserIndexRoute: UserIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   AuthSignupVerificationRoute: AuthSignupVerificationRoute,

@@ -52,6 +52,14 @@ export default function Header() {
                 <NavigationMenuItem>
                   <NavigationMenuLink
                     className={navigationMenuTriggerStyle()}
+                    render={<Link to="/tools" />}
+                  >
+                    工具
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    className={navigationMenuTriggerStyle()}
                     render={<Link to="/contact" />}
                   >
                     联系
@@ -92,6 +100,13 @@ export default function Header() {
                     onClick={() => setIsOpen(false)}
                   >
                     标签
+                  </Link>
+                  <Link
+                    to="/tools"
+                    className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    工具
                   </Link>
                   <Link
                     to="/contact"
