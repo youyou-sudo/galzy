@@ -61,6 +61,14 @@ const sites = [
     bg: 'bg-blue-500/10',
   },
   {
+    id: 'gelbooru',
+    name: 'Gelbooru',
+    url: 'https://gelbooru.com/index.php?page=post&s=view&id={id}',
+    icon: 'G',
+    color: 'text-orange-500',
+    bg: 'bg-orange-500/10',
+  },
+  {
     id: 'hitomi',
     name: 'Hitomi.la',
     url: 'https://hitomi.la/galleries/{id}.html',
