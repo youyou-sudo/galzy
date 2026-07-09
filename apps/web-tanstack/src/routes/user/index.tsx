@@ -1,6 +1,4 @@
-import { createFileRoute, Link, redirect } from '@tanstack/react-router'
-import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
-import { Button } from '@web/components/ui/button'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import {
   Card,
   CardContent,
@@ -13,12 +11,13 @@ import {
   TabsList,
   TabsTrigger,
 } from '@web/components/ui/tabs'
+import AvatarComp from '@web/components/user/ProfileMenu/AvatarEditor'
 import ProfileTab from '@web/components/user/ProfileMenu/ProfileTab'
 import SecurityTab from '@web/components/user/ProfileMenu/SecurityTab'
 import { elysiaErrorF } from '@web/lib'
 import { getSession, listAccounts } from '@web/server/auth/auth.functions'
 import { authClient } from '@web/server/auth/auth-client'
-import { Mail, Pencil, Shield, User } from 'lucide-react'
+import { Mail, Shield, User } from 'lucide-react'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -84,31 +83,24 @@ function RouteComponent() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-            <Avatar size="lg" className="size-20">
-              <AvatarImage
-                src={user.image ?? undefined}
-                alt={user.name ?? ''}
-              />
-              <AvatarFallback className="text-2xl">
-                {user.name?.charAt(0).toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 text-center sm:text-left">
-              <h2 className="text-xl font-semibold">{user.name}</h2>
+            <div className="flex flex-col items-center gap-1.5">
+              <AvatarComp name={user.name} image={user.image} editor />
+              <span className="text-xs text-muted-foreground/70 cursor-default select-none">
+                点击更换头像
+              </span>
+            </div>
+            <div className="flex-1 min-w-0 text-center sm:text-left">
+              <h2 className="text-xl font-semibold truncate">{user.name}</h2>
               <p className="text-sm text-muted-foreground flex items-center justify-center sm:justify-start gap-1 mt-1">
-                <Mail className="size-4" />
-                {user.email}
+                <Mail className="size-4 shrink-0" />
+                <span className="truncate">{user.email}</span>
               </p>
             </div>
-            <Button variant="outline" size="sm" nativeButton={false} render={<Link to="/user/editor" />}>
-              <Pencil className="size-4" />
-              编辑资料
-            </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* 标签页：个人资料 & 安全 */}
+      {/* 标签页：个人资料 & 安全 & 账户 */}
       <Tabs defaultValue="profile">
         <TabsList variant="line" className="w-full">
           <TabsTrigger value="profile" className="flex-1">

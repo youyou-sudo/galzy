@@ -18,7 +18,6 @@ import { Route as ToolsIndexRouteImport } from './routes/tools/index'
 import { Route as TagsIndexRouteImport } from './routes/tags/index'
 import { Route as SearchIndexRouteImport } from './routes/search/index'
 import { Route as ProducerIndexRouteImport } from './routes/producer/index'
-import { Route as UserEditorRouteImport } from './routes/user/editor'
 import { Route as ToolsPlateRouteImport } from './routes/tools/plate'
 import { Route as TagsTagIdRouteImport } from './routes/tags/$tagId'
 import { Route as ProducerPidRouteImport } from './routes/producer/$pid'
@@ -86,11 +85,6 @@ const SearchIndexRoute = SearchIndexRouteImport.update({
 const ProducerIndexRoute = ProducerIndexRouteImport.update({
   id: '/producer/',
   path: '/producer/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UserEditorRoute = UserEditorRouteImport.update({
-  id: '/user/editor',
-  path: '/user/editor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ToolsPlateRoute = ToolsPlateRouteImport.update({
@@ -225,7 +219,6 @@ export interface FileRoutesByFullPath {
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/tools/plate': typeof ToolsPlateRoute
-  '/user/editor': typeof UserEditorRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
@@ -258,7 +251,6 @@ export interface FileRoutesByTo {
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/tools/plate': typeof ToolsPlateRoute
-  '/user/editor': typeof UserEditorRoute
   '/producer': typeof ProducerIndexRoute
   '/search': typeof SearchIndexRoute
   '/tags': typeof TagsIndexRoute
@@ -294,7 +286,6 @@ export interface FileRoutesById {
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/tools/plate': typeof ToolsPlateRoute
-  '/user/editor': typeof UserEditorRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
@@ -331,7 +322,6 @@ export interface FileRouteTypes {
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/tools/plate'
-    | '/user/editor'
     | '/producer/'
     | '/search/'
     | '/tags/'
@@ -364,7 +354,6 @@ export interface FileRouteTypes {
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/tools/plate'
-    | '/user/editor'
     | '/producer'
     | '/search'
     | '/tags'
@@ -399,7 +388,6 @@ export interface FileRouteTypes {
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/tools/plate'
-    | '/user/editor'
     | '/producer/'
     | '/search/'
     | '/tags/'
@@ -435,7 +423,6 @@ export interface RootRouteChildren {
   ProducerPidRoute: typeof ProducerPidRoute
   TagsTagIdRoute: typeof TagsTagIdRoute
   ToolsPlateRoute: typeof ToolsPlateRoute
-  UserEditorRoute: typeof UserEditorRoute
   ProducerIndexRoute: typeof ProducerIndexRoute
   SearchIndexRoute: typeof SearchIndexRoute
   TagsIndexRoute: typeof TagsIndexRoute
@@ -510,13 +497,6 @@ declare module '@tanstack/react-router' {
       path: '/producer'
       fullPath: '/producer/'
       preLoaderRoute: typeof ProducerIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/user/editor': {
-      id: '/user/editor'
-      path: '/user/editor'
-      fullPath: '/user/editor'
-      preLoaderRoute: typeof UserEditorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tools/plate': {
@@ -737,7 +717,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProducerPidRoute: ProducerPidRoute,
   TagsTagIdRoute: TagsTagIdRoute,
   ToolsPlateRoute: ToolsPlateRoute,
-  UserEditorRoute: UserEditorRoute,
   ProducerIndexRoute: ProducerIndexRoute,
   SearchIndexRoute: SearchIndexRoute,
   TagsIndexRoute: TagsIndexRoute,
