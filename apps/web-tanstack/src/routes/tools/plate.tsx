@@ -29,14 +29,6 @@ const sites = [
     bg: 'bg-sky-500/10',
   },
   {
-    id: 'hitomi',
-    name: 'Hitomi.la',
-    url: 'https://hitomi.la/galleries/{id}.html',
-    icon: 'H',
-    color: 'text-violet-500',
-    bg: 'bg-violet-500/10',
-  },
-  {
     id: 'ehentai',
     name: 'E-Hentai',
     url: 'https://e-hentai.org/g/{id}/',
@@ -52,6 +44,30 @@ const sites = [
     color: 'text-amber-500',
     bg: 'bg-amber-500/10',
   },
+  {
+    id: 'pixiv-artwork',
+    name: 'Pixiv 作品',
+    url: 'https://www.pixiv.net/artworks/{id}/',
+    icon: '绘',
+    color: 'text-pink-500',
+    bg: 'bg-pink-500/10',
+  },
+  {
+    id: 'pixiv-author',
+    name: 'Pixiv 作者',
+    url: 'https://www.pixiv.net/users/{id}/',
+    icon: '人',
+    color: 'text-blue-500',
+    bg: 'bg-blue-500/10',
+  },
+  {
+    id: 'hitomi',
+    name: 'Hitomi.la',
+    url: 'https://hitomi.la/galleries/{id}.html',
+    icon: 'H',
+    color: 'text-violet-500',
+    bg: 'bg-violet-500/10',
+  },
 ]
 
 export const Route = createFileRoute('/tools/plate')({
@@ -61,7 +77,8 @@ export const Route = createFileRoute('/tools/plate')({
       { title: `车牌号跳转工具 | ${seoTemplate.title}` },
       {
         name: 'description',
-        content: '输入车牌号，快速跳转到 nhentai、禁漫天堂、Hitomi.la 喵～',
+        content:
+          '输入车牌号，快速跳转到 nhentai、禁漫天堂、Hitomi.la、Pixiv 等网站喵～',
       },
     ],
   }),
