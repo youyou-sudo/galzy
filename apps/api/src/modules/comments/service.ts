@@ -1,8 +1,5 @@
 import { db } from '@api/libs'
-import type {
-  CommentStatus,
-  CommentType,
-} from '@api/libs/kysely/webData'
+import type { CommentStatus, CommentType } from '@api/libs/kysely/webData'
 import { emailServer } from '@api/libs/seedMail'
 import { status } from 'elysia'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
@@ -133,17 +130,13 @@ export const CommentService = {
             ]),
         ).as('user'),
       ])
-      // No parentId/replyToUserId filter — admin sees ALL comments
+    // No parentId/replyToUserId filter — admin sees ALL comments
 
     if (excludeReplies) {
       query = query.where('depth', '=', 0)
     }
     if (statusFilter) {
-      query = query.where(
-        'status',
-        '=',
-        statusFilter as CommentStatus,
-      )
+      query = query.where('status', '=', statusFilter as CommentStatus)
     } else {
       // Admin can see all statuses by default
     }
@@ -198,14 +191,16 @@ export const CommentService = {
     let depth = 0
     let rootId = null
 
-    let parent: {
-      id: string
-      rootId: string | null
-      depth: number
-      targetType: string
-      targetId: string
-      userId: string
-    } | undefined
+    let parent:
+      | {
+          id: string
+          rootId: string | null
+          depth: number
+          targetType: string
+          targetId: string
+          userId: string
+        }
+      | undefined
 
     if (parentId) {
       parent = await db
@@ -280,7 +275,8 @@ export const CommentService = {
           if (!parentUser?.email) return
 
           const commentUrl = `${process.env.WEB_HOST}/${parent.targetType}/${parent.targetId}`
-          const preview = content.length > 100 ? content.slice(0, 100) + '…' : content
+          const preview =
+            content.length > 100 ? content.slice(0, 100) + '…' : content
 
           await emailServer.send({
             from: '紫缘社 <noreply@outbound.galzy.moe>',

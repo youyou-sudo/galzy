@@ -146,9 +146,7 @@ export const Strategy = {
 
     await storeIdempotentResult(`strategyListDelete-${hash}`, '', 60)
   },
-  async adminListAll(
-    params: StrategyModel.adminArticleListQuery,
-  ): Promise<{
+  async adminListAll(params: StrategyModel.adminArticleListQuery): Promise<{
     articles: any[]
     total: number
     totalPages: number
@@ -179,28 +177,12 @@ export const Strategy = {
       )
     }
     if (params.type) {
-      countQuery = countQuery.where(
-        'type',
-        '=',
-        params.type as ArticleType,
-      )
-      dataQuery = dataQuery.where(
-        'type',
-        '=',
-        params.type as ArticleType,
-      )
+      countQuery = countQuery.where('type', '=', params.type as ArticleType)
+      dataQuery = dataQuery.where('type', '=', params.type as ArticleType)
     }
     if (params.search) {
-      countQuery = countQuery.where(
-        'title',
-        'ilike',
-        `%${params.search}%`,
-      )
-      dataQuery = dataQuery.where(
-        'title',
-        'ilike',
-        `%${params.search}%`,
-      )
+      countQuery = countQuery.where('title', 'ilike', `%${params.search}%`)
+      dataQuery = dataQuery.where('title', 'ilike', `%${params.search}%`)
     }
 
     const [countResult, articles] = await Promise.all([
@@ -235,16 +217,11 @@ export const Strategy = {
     status: newStatus,
   }: StrategyModel.adminArticleStatus) {
     const hash = generateIdempotentHash({ id, status: newStatus })
-    const cached = await getIdempotentResult(
-      `adminChangeStatus-${hash}`,
-    )
+    const cached = await getIdempotentResult(`adminChangeStatus-${hash}`)
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(
-      `adminChangeStatus-${hash}`,
-      10,
-    )
+    const ok = await acquireIdempotentKey(`adminChangeStatus-${hash}`, 10)
     if (!ok) {
       throw status(200, '重复请求')
     }
