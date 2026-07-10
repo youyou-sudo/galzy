@@ -1,8 +1,5 @@
 'use client'
 
-import Markdown from 'react-markdown'
-import rehypeRaw from 'rehype-raw'
-import remarkGfm from 'remark-gfm'
 import { Button } from '@web/components/ui/button'
 import { ScrollArea } from '@web/components/ui/scroll-area'
 import { Separator } from '@web/components/ui/separator'
@@ -29,6 +26,9 @@ import {
   TextQuote,
 } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
+import Markdown from 'react-markdown'
+import rehypeRaw from 'rehype-raw'
+import remarkGfm from 'remark-gfm'
 
 // ---------------------------------------------------------------------------
 //  Props
@@ -248,7 +248,7 @@ export function MarkdownEditor({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           aria-invalid={ariaInvalid}
-          className="min-h-[250px] resize-y rounded-none border-0 focus-visible:ring-0"
+          className="min-h-62.5 resize-y rounded-none border-0 focus-visible:ring-0"
           style={{ minHeight }}
         />
       </TabsContent>
@@ -273,7 +273,7 @@ export function MarkdownEditor({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             aria-invalid={ariaInvalid}
-            className="h-full min-h-[250px] resize-none rounded-none border-0 focus-visible:ring-0"
+            className="h-full min-h-62.5 resize-none rounded-none border-0 focus-visible:ring-0"
           />
           <ScrollArea className="p-4">{renderPreview()}</ScrollArea>
         </div>
