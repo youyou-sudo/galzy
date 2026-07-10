@@ -198,7 +198,7 @@ export function MarkdownEditor({
       )}
     >
       {/* ── 工具栏 ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-0.5 px-1 py-1 border-b border-input bg-muted/30">
+      <div className="flex items-center gap-0.5 px-1 py-1 border-b border-input bg-muted/30 overflow-x-auto flex-nowrap">
         <ToolbarButton icon={Bold} label="粗体 (Ctrl+B)" onClick={bold} />
         <ToolbarButton icon={Italic} label="斜体 (Ctrl+I)" onClick={italic} />
 
@@ -263,7 +263,7 @@ export function MarkdownEditor({
       {/* ── 分屏（左编辑 / 右预览） ────────────────────────────────────── */}
       <TabsContent value="split" className="mt-0">
         <div
-          className="grid grid-cols-2 divide-x divide-border"
+          className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border"
           style={{ minHeight }}
         >
           <Textarea
