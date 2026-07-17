@@ -234,32 +234,21 @@ export interface CommentsTable {
   deletedAt: ColumnType<Date | null, Date | null, Date | null>
 }
 
-// vndb
-export interface TagsVnTable {
-  updatedAt: ColumnType<Date, string | undefined, never>
-  tag: string
-  vid: string
-  uid?: string | null
-  vote: number
-  spoiler?: number | null
-  ignore: boolean
-  lie?: boolean | null
-  notes: string
-}
-
-// VNDB data
+// VNDB data — local tables synced from VNDB API
 export interface VnTable {
   id: string
-  image: string | null // Deprecated, marked as nullable
-  c_image: string | null // vndbid(cv) - assuming cv means character varying
-  olang: language // language type
+  image: string | null
+  c_image: string | null
+  image_url: string | null
+  olang: language
   c_votecount: number
-  c_rating: number | null // smallint, nullable
-  c_average: number | null // smallint, nullable
-  length: number // smallint (0-5)
-  devstatus: number // smallint (0-2)
-  alias: string // text, nullable
-  description: string // text, nullable
+  c_rating: number | null
+  c_average: number | null
+  length: number
+  devstatus: number
+  alias: string | null
+  description: string | null
+  synced_at: Date | null
 }
 
 export type language =
@@ -324,10 +313,13 @@ export interface VnTitlesTable {
   official: boolean
   title: string
   latin: string | null
+  main: boolean
+  synced_at: Date | null
 }
 
 export interface ImagesTable {
   id: string
+  url: string | null
   width: number
   height: number
   c_votecount: number
@@ -336,6 +328,7 @@ export interface ImagesTable {
   c_violence_avg: number
   c_violence_stddev: number
   c_weight: number
+  synced_at: Date | null
 }
 
 type tag_category = 'cont' | 'ero' | 'tech'
@@ -343,12 +336,13 @@ type tag_category = 'cont' | 'ero' | 'tech'
 export interface TagsTable {
   id: string
   cat: tag_category
-  defaultspoil: number
+  defaultspoil: number | null
   searchable: boolean
   applicable: boolean
   name: string
   alias: string
   description: string
+  synced_at: Date | null
 }
 
 export interface TagsVnTable {
@@ -359,20 +353,21 @@ export interface TagsVnTable {
   spoiler?: number | null
   ignore: boolean
   lie?: boolean | null
-  notes: string
+  notes: string | null
+  synced_at: Date | null
 }
 
 export interface ReleasesTable {
   id: string
-  gtin: bigint
-  olang: language
-  released: number
-  voiced: number
-  reso_x: number
-  reso_y: number
+  gtin: bigint | null
+  olang: language | null
+  released: string | null
+  voiced: number | null
+  reso_x: number | null
+  reso_y: number | null
   minage: number | null
-  ani_story: number
-  ani_ero: number
+  ani_story: number | null
+  ani_ero: number | null
   ani_story_sp: number | null
   ani_story_cg: number | null
   ani_cutscene: number | null
@@ -380,66 +375,64 @@ export interface ReleasesTable {
   ani_ero_cg: number | null
   ani_bg: boolean | null
   ani_face: boolean | null
-  has_ero: boolean
-  patch: boolean
-  freeware: boolean
+  has_ero: boolean | null
+  patch: boolean | null
+  freeware: boolean | null
   uncensored: boolean | null
-  official: boolean
-  catalog: string
-  engine: string
-  notes: string
+  official: boolean | null
+  catalog: string | null
+  engine: string | null
+  notes: string | null
   title: string | null
+  synced_at: Date | null
 }
 
 export interface ReleasesVnTable {
   id: string
   vid: string
+  rtype: string | null
+  synced_at: Date | null
 }
 
 export interface ReleasesTitlesTable {
   id: string
-  lang: language // 语言代码（如 'en', 'ja' 等）
-  mtl: boolean // 是否为 machine-translated
-  title: string | null // 可为空
-  latin: string | null // 可为空
+  lang: language
+  mtl: boolean
+  title: string | null
+  latin: string | null
+  main: boolean
 }
 
 // vndb 条目组织关联表
 export interface ReleasesProducersTable {
-  id: string // 关联 VNDBID
-  pid: string // 组织 ID
-  developer: boolean // 是否为开发者
-  publisher: boolean // 是否为出版商
+  id: string
+  pid: string
+  developer: boolean
+  publisher: boolean
+  synced_at: Date | null
 }
 
 type ProducerType = 'co' | 'in' | 'ng'
 
-// 组织条目表
 export interface ProducersTable {
-  id: string // 组织 ID
-  type: ProducerType // 组织类型
-  lang: language // 语言（如 'en', 'ja' 等）
-  name: string // 组织名称
-  latin: string | null // 组织拉丁名（可为空）
-  alias: string | null // 组织别名（可为空）
-  description: string | null // 组织描述（可为空）
+  id: string
+  type: ProducerType | null
+  lang: language | null
+  name: string
+  latin: string | null
+  original: string | null
+  alias: string | null
+  description: string | null
+  synced_at: Date | null
 }
 
-type relation =
-  | 'old' // 旧组织 / 前身（pid 是 id 的旧版本）
-  | 'new' // 新组织 / 后继（pid 是 id 的新版本）
-  | 'sub' // 子组织（pid 是 id 的子公司 / 子品牌）
-  | 'par' // 母组织（pid 是 id 的母公司）
-  | 'imp' // 继承（pid 继承自 id，通常指资源/品牌等）
-  | 'ipa' // 被继承（pid 被 id 继承，imp 的反向）
-  | 'spa' // 分拆（pid 从 id 拆分出来）
-  | 'ori' // 原始来源（pid 源自 id，最初起点）
+type relation = 'old' | 'new' | 'sub' | 'par' | 'imp' | 'ipa' | 'spa' | 'ori'
 
-// 组织间关系表
 export interface ProducersRelationsTable {
-  id: string // 关联 VNDBID
-  pid: string // 组织 ID
+  id: string
+  pid: string
   relation: relation
+  synced_at: Date | null
 }
 
 export interface GameDownloadStats {

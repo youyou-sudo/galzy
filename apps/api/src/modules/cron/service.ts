@@ -1,5 +1,6 @@
 import { db, MeiliClient } from '@api/libs'
 import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
+import { VndbSync } from '@api/modules/vndb-sync/service'
 import { status } from 'elysia'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import { all } from 'radash'
@@ -223,6 +224,7 @@ export const CronService = {
       )
       if (trxError) throw `Error:${JSON.stringify(trxError)}`
       console.log('alistSyncScript 运行成功喵')
+      void VndbSync.syncDelta()
       await releaseLockKv(lockKey, lockValue)
     } catch (e) {
       console.error('alistSyncScript 运行失败喵', e)

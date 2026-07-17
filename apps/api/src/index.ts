@@ -15,6 +15,7 @@ import {
   strategy,
   tags,
   umami,
+  vndbSync,
 } from '@api/modules'
 import { OpenAPI } from '@api/modules/auth/service'
 import { setDeployStatus } from '@api/modules/status/service'
@@ -47,6 +48,7 @@ async function buildApp() {
     .use(media)
     .use(producer)
     .use(status)
+    .use(vndbSync)
 }
 
 export type app = Awaited<ReturnType<typeof buildApp>>

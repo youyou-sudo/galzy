@@ -1,4 +1,3 @@
-import { vndbDb } from './vndb'
 import { db, sql } from './webData'
 
 export const dbSeed = async () => {
@@ -253,62 +252,261 @@ export const dbSeed = async () => {
     .addColumn('deletedAt', 'timestamp')
     .execute()
 
-  await vndbDb.schema
+  // Drop old FDW foreign tables and server before creating local ones
+  await sql`DROP FOREIGN TABLE IF EXISTS vn CASCADE`.execute(db).catch(() => {})
+  await sql`DROP FOREIGN TABLE IF EXISTS vn_titles CASCADE`
+    .execute(db)
+    .catch(() => {})
+  await sql`DROP FOREIGN TABLE IF EXISTS images CASCADE`
+    .execute(db)
+    .catch(() => {})
+  await sql`DROP FOREIGN TABLE IF EXISTS tags CASCADE`
+    .execute(db)
+    .catch(() => {})
+  await sql`DROP FOREIGN TABLE IF EXISTS tags_vn CASCADE`
+    .execute(db)
+    .catch(() => {})
+  await sql`DROP FOREIGN TABLE IF EXISTS releases CASCADE`
+    .execute(db)
+    .catch(() => {})
+  await sql`DROP FOREIGN TABLE IF EXISTS releases_vn CASCADE`
+    .execute(db)
+    .catch(() => {})
+  await sql`DROP FOREIGN TABLE IF EXISTS releases_titles CASCADE`
+    .execute(db)
+    .catch(() => {})
+  await sql`DROP FOREIGN TABLE IF EXISTS producers CASCADE`
+    .execute(db)
+    .catch(() => {})
+  await sql`DROP FOREIGN TABLE IF EXISTS releases_producers CASCADE`
+    .execute(db)
+    .catch(() => {})
+  await sql`DROP FOREIGN TABLE IF EXISTS producers_relations CASCADE`
+    .execute(db)
+    .catch(() => {})
+  await sql`DROP SERVER IF EXISTS vndb_server CASCADE`
+    .execute(db)
+    .catch(() => {})
+  await sql`DROP USER MAPPING IF EXISTS FOR CURRENT_USER SERVER vndb_server`
+    .execute(db)
+    .catch(() => {})
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS vn (
+      id          text PRIMARY KEY,
+      image       text,
+      c_image     text,
+      image_url   text,
+      olang       text,
+      c_votecount integer,
+      c_rating    real,
+      c_average   real,
+      length      smallint,
+      devstatus   smallint,
+      alias       text,
+      description text,
+      synced_at   timestamp with time zone
+    )
+  `.execute(db)
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS vn_titles (
+      id       text,
+      lang     text,
+      official boolean,
+      title    text,
+      latin    text,
+      main     boolean,
+      synced_at timestamp with time zone
+    )
+  `.execute(db)
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS images (
+      id               text PRIMARY KEY,
+      url              text,
+      width            integer,
+      height           integer,
+      c_votecount      integer,
+      c_sexual_avg     real,
+      c_sexual_stddev  real,
+      c_violence_avg   real,
+      c_violence_stddev real,
+      c_weight         real,
+      synced_at        timestamp with time zone
+    )
+  `.execute(db)
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS tags (
+      id           text PRIMARY KEY,
+      cat          text,
+      defaultspoil smallint,
+      searchable   boolean,
+      applicable   boolean,
+      name         text,
+      alias        text,
+      description  text,
+      synced_at    timestamp with time zone
+    )
+  `.execute(db)
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS tags_vn (
+      tag         text,
+      vid         text,
+      uid         text,
+      vote        integer,
+      spoiler     integer,
+      ignore      boolean,
+      lie         boolean,
+      notes       text,
+      synced_at   timestamp with time zone
+    )
+  `.execute(db)
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS releases (
+      id             text PRIMARY KEY,
+      gtin           bigint,
+      olang          text,
+      released       text,
+      voiced         integer,
+      reso_x         integer,
+      reso_y         integer,
+      minage         smallint,
+      ani_story      smallint,
+      ani_ero        smallint,
+      ani_story_sp   smallint,
+      ani_story_cg   smallint,
+      ani_cutscene   smallint,
+      ani_ero_sp     smallint,
+      ani_ero_cg     smallint,
+      ani_bg         boolean,
+      ani_face       boolean,
+      has_ero        boolean,
+      patch          boolean,
+      freeware       boolean,
+      uncensored     boolean,
+      official       boolean,
+      catalog        text,
+      engine         text,
+      notes          text,
+      title          text,
+      synced_at      timestamp with time zone
+    )
+  `.execute(db)
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS releases_vn (
+      id         text,
+      vid        text,
+      rtype      text,
+      synced_at  timestamp with time zone
+    )
+  `.execute(db)
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS releases_titles (
+      id    text,
+      lang  text,
+      mtl   boolean,
+      title text,
+      latin text,
+      main  boolean
+    )
+  `.execute(db)
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS producers (
+      id            text PRIMARY KEY,
+      type          text,
+      lang          text,
+      name          text,
+      latin         text,
+      original      text,
+      alias         text,
+      description   text,
+      synced_at     timestamp with time zone
+    )
+  `.execute(db)
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS releases_producers (
+      id          text,
+      pid         text,
+      developer   boolean,
+      publisher   boolean,
+      synced_at   timestamp with time zone
+    )
+  `.execute(db)
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS producers_relations (
+      id          text,
+      pid         text,
+      relation    text,
+      synced_at   timestamp with time zone
+    )
+  `.execute(db)
+
+  // VNDB local table indexes
+  await db.schema
     .createIndex('tags_vn_tag_index')
     .ifNotExists()
     .on('tags_vn')
     .column('tag')
     .execute()
-  await vndbDb.schema
+  await db.schema
     .createIndex('vn_c_image_index')
     .ifNotExists()
     .on('vn')
     .column('c_image')
     .execute()
-  await vndbDb.schema
+  await db.schema
     .createIndex('releases_titles_index')
     .ifNotExists()
     .on('releases_titles')
     .column('id')
     .execute()
-  await vndbDb.schema
+  await db.schema
     .createIndex('vn_titles_index')
     .ifNotExists()
     .on('vn_titles')
     .column('id')
     .execute()
-  await vndbDb.schema
+  await db.schema
     .createIndex('tags_vn_vid_index')
     .ifNotExists()
     .on('tags_vn')
     .column('vid')
     .execute()
-  await vndbDb.schema
+  await db.schema
     .createIndex('tags_id_index')
     .ifNotExists()
     .on('tags')
     .column('id')
     .execute()
-  await vndbDb.schema
+  await db.schema
     .createIndex('releases_producers_index')
     .ifNotExists()
     .on('releases_producers')
     .column('id')
     .column('pid')
     .execute()
-  await vndbDb.schema
+  await db.schema
     .createIndex('releases_producers_pid_index')
     .ifNotExists()
     .on('releases_producers')
     .column('pid')
     .execute()
-  await vndbDb.schema
+  await db.schema
     .createIndex('producers_index')
     .ifNotExists()
     .on('producers')
     .column('id')
     .execute()
-  await vndbDb.schema
+  await db.schema
     .createIndex('producers_relations_index')
     .ifNotExists()
     .on('producers_relations')

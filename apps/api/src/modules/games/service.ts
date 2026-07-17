@@ -194,7 +194,7 @@ export const Game = {
                 pb.fn
                   .agg<boolean>('bool_or', ['releases.official'])
                   .as('official'),
-                pb.fn.min<number>('releases.released').as('first_release'),
+                pb.fn.min<string>('releases.released').as('first_release'),
               ])
 
               .orderBy('official', 'desc') // NOT bool_or(official)
