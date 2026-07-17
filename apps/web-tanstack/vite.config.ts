@@ -13,9 +13,9 @@ const config = defineConfig({
     dedupe: ['react', 'react-dom'],
   },
 
-  // ssr: {
-  //   noExternal: true,
-  // },
+  ssr: {
+    noExternal: true,
+  },
   build: {
     ssrManifest: true,
     ssr: true,
@@ -33,9 +33,9 @@ const config = defineConfig({
     viteCompression({ algorithm: 'gzip', ext: '.gz' }),
     viteCompression({ algorithm: 'brotliCompress', ext: '.br' }),
     babel({ presets: [reactCompilerPreset()] }),
-    // tanstackRouter({
-    //   autoCodeSplitting: true,
-    // }),
+    tanstackRouter({
+      autoCodeSplitting: true,
+    }),
   ],
 })
 
