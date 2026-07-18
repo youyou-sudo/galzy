@@ -226,6 +226,11 @@ const _authConfig = {
   ],
 
   basePath: '/auth',
+  advanced: {
+    ipAddress: {
+      ipAddressHeaders: ['CF-Connecting-IP', 'X-Forwarded-For'],
+    },
+  },
 } satisfies BetterAuthOptions
 
 export const auth = betterAuth(_authConfig)
