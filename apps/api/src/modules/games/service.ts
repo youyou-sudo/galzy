@@ -153,6 +153,7 @@ export const Game = {
             .selectFrom('releases_vn')
             .innerJoin('releases', 'releases.id', 'releases_vn.id')
             .whereRef('releases_vn.vid', '=', 'galrc_alistb.vid')
+            .where('releases.released', 'is not', null)
             .select('releases.released')
             .orderBy('releases.released', 'asc')
             .limit(1)
@@ -198,7 +199,7 @@ export const Game = {
               ])
 
               .orderBy('official', 'desc') // NOT bool_or(official)
-              .orderBy('first_release', 'asc'), // MIN(released)
+              .orderBy(sql`first_release asc nulls last`), // MIN(released)
           ).as('producers'),
           jsonObjectFrom(
             eb

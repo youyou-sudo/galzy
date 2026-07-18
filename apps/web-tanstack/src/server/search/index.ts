@@ -17,10 +17,10 @@ export const getSearch = createServerFn()
         q: data.q || '',
         limit: 100,
         startDate: data.startDate
-          ? format(parseISO(data.startDate), 'yyyyMMdd')
+          ? format(parseISO(data.startDate), 'yyyy-MM-dd')
           : undefined,
         endDate: data.endDate
-          ? format(parseISO(data.endDate), 'yyyyMMdd')
+          ? format(parseISO(data.endDate), 'yyyy-MM-dd')
           : undefined,
       },
     })
