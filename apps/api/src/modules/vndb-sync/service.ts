@@ -82,6 +82,20 @@ export const VndbSync = {
     console.log('✅ VNDB 全量同步完成')
   },
 
+  async syncProducersFromDb() {
+    console.log('🔄 开发者同步开始 (从现有 releases 数据)')
+    const rows = await db
+      .selectFrom('releases_producers')
+      .select('pid')
+      .distinct()
+      .execute()
+    const pids = rows.map((r) => r.pid)
+    console.log(`📦 从 releases_producers 找到 ${pids.length} 个开发者 ID`)
+    await this.syncProducersByIds(pids)
+    await this.invalidateCache()
+    console.log('✅ 开发者同步完成')
+  },
+
   async syncDelta() {
     const lockKey = 'vndb-sync-delta'
     const lockVal = crypto.randomUUID()
@@ -396,7 +410,17 @@ export const VndbSync = {
             oc.column('id').doUpdateSet({
               title: (eb) => eb.ref('excluded.title'),
               released: (eb) => eb.ref('excluded.released'),
+              minage: (eb) => eb.ref('excluded.minage'),
+              patch: (eb) => eb.ref('excluded.patch'),
+              freeware: (eb) => eb.ref('excluded.freeware'),
+              uncensored: (eb) => eb.ref('excluded.uncensored'),
               official: (eb) => eb.ref('excluded.official'),
+              has_ero: (eb) => eb.ref('excluded.has_ero'),
+              engine: (eb) => eb.ref('excluded.engine'),
+              voiced: (eb) => eb.ref('excluded.voiced'),
+              gtin: (eb) => eb.ref('excluded.gtin'),
+              catalog: (eb) => eb.ref('excluded.catalog'),
+              notes: (eb) => eb.ref('excluded.notes'),
               synced_at: (eb) => eb.ref('excluded.synced_at'),
             }),
           )
@@ -470,16 +494,7 @@ export const VndbSync = {
   async syncProducersByIds(pids: string[]) {
     if (pids.length === 0) return
 
-    const fields = [
-      'id',
-      'name',
-      'original',
-      'aliases',
-      'lang',
-      'type',
-      'description',
-      'relations{relation,id,name,original}',
-    ].join(',')
+    const fields = 'id,name,original,aliases,lang,type,description'
 
     for (let i = 0; i < pids.length; i += BATCH_SIZE) {
       const batch = pids.slice(i, i + BATCH_SIZE)
@@ -515,24 +530,6 @@ export const VndbSync = {
               }),
             )
             .execute()
-
-          if (prod.relations?.length) {
-            await db
-              .deleteFrom('producers_relations')
-              .where('id', '=', prod.id)
-              .execute()
-            await db
-              .insertInto('producers_relations')
-              .values(
-                prod.relations.map((r) => ({
-                  id: prod.id,
-                  pid: r.id,
-                  relation: r.relation as any,
-                  synced_at: new Date(),
-                })),
-              )
-              .execute()
-          }
         }
       }
       await new Promise((r) => setTimeout(r, 2000))

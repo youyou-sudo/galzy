@@ -121,12 +121,4 @@ export interface ProducerResult {
   lang: string
   type: 'co' | 'in' | 'ng'
   description: string | null
-  relations: ProducerRelation[]
-}
-
-export interface ProducerRelation {
-  relation: string
-  id: string
-  name: string
-  original: string | null
 }

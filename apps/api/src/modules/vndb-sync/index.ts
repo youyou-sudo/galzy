@@ -20,3 +20,11 @@ export const vndbSync = new Elysia({ prefix: '/vndb-sync' })
     },
     // { isAdmin: true },
   )
+  .post(
+    '/producers',
+    async () => {
+      void VndbSync.syncProducersFromDb()
+      return { ok: true, message: '开发者同步已触发' }
+    },
+    // { isAdmin: true },
+  )
