@@ -8,6 +8,8 @@ import { Search } from 'lucide-react'
 type GameData = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>
 
 export function GameInfo({ game }: { game: GameData }) {
+  console.log(game.released_first)
+  console.log(formatLooseDate(game.released_first ?? undefined))
   return (
     <>
       {/* 发行日期 */}
@@ -17,14 +19,14 @@ export function GameInfo({ game }: { game: GameData }) {
           <Link
             to="/search"
             search={{
-              startDate: `${formatLooseDate(String(game.released_first)).year}-01-01`,
-              endDate: `${formatLooseDate(String(game.released_first)).year}-12-31`,
+              startDate: `${formatLooseDate(game.released_first ?? undefined).year}-01-01`,
+              endDate: `${formatLooseDate(game.released_first ?? undefined).year}-12-31`,
             }}
             className="relative inline-flex items-center gap-0.5 text-cyan-600"
           >
             <span className="relative">
-              {formatLooseDate(String(game.released_first)).year}-
-              {formatLooseDate(String(game.released_first)).formatted}
+              {formatLooseDate(game.released_first ?? undefined).year}-
+              {formatLooseDate(game.released_first ?? undefined).formatted}
               <Search className="absolute -top-1 -right-3 size-3 text-zinc-400" />
             </span>
           </Link>
