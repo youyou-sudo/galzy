@@ -8,8 +8,6 @@ import { Search } from 'lucide-react'
 type GameData = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>
 
 export function GameInfo({ game }: { game: GameData }) {
-  console.log(game.released_first)
-  console.log(formatLooseDate(game.released_first ?? undefined))
   return (
     <>
       {/* 发行日期 */}
