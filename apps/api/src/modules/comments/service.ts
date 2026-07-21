@@ -1,8 +1,7 @@
-import { db } from '@api/libs'
-import type { CommentStatus, CommentType } from '@api/libs/kysely/webData'
+import { db, sql, comments, users } from '@api/libs'
 import { emailServer } from '@api/libs/seedMail'
 import { status } from 'elysia'
-import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
+import { eq, and, isNull, count, desc, getTableColumns } from 'drizzle-orm'
 import type { CommentModel } from './model'
 
 export const CommentService = {
@@ -15,90 +14,61 @@ export const CommentService = {
     type,
     status = 'normal',
   }: CommentModel.list) {
-    let query = db
-      .selectFrom('galrc_comments')
-      .selectAll('galrc_comments')
-      .where('status', '=', status as CommentStatus)
-      .where('parentId', 'is', null)
-      .where('replyToUserId', 'is', null)
-      .select((eb) => [
-        jsonObjectFrom(
-          eb
-            .selectFrom('galrc_user')
-            .whereRef('galrc_user.id', '=', 'galrc_comments.userId')
-            .select([
-              'galrc_user.id',
-              'galrc_user.name',
-              'galrc_user.email',
-              'galrc_user.image',
-            ]),
-        ).as('user'),
-
-        jsonArrayFrom(
-          eb
-            .selectFrom('galrc_comments as c')
-            .where('c.depth', '>', 0)
-            .whereRef('c.rootId', '=', 'galrc_comments.id')
-            .selectAll('c')
-            .select((eb) => [
-              jsonObjectFrom(
-                eb
-                  .selectFrom('galrc_user')
-                  .whereRef('galrc_user.id', '=', 'c.userId')
-                  .select([
-                    'galrc_user.id',
-                    'galrc_user.name',
-                    'galrc_user.email',
-                    'galrc_user.image',
-                  ]),
-              ).as('user'),
-              jsonObjectFrom(
-                eb
-                  .selectFrom('galrc_user as reUser')
-                  .whereRef('reUser.id', '=', 'c.replyToUserId')
-                  .select([
-                    'reUser.id',
-                    'reUser.name',
-                    'reUser.email',
-                    'reUser.image',
-                  ]),
-              ).as('reUser'),
-            ]),
-        ).as('re'),
-      ])
+    const conditions: any[] = [
+      eq(comments.status, status),
+      isNull(comments.parentId),
+      isNull(comments.replyToUserId),
+    ]
 
     if (targetType) {
-      query = query.where(
-        'targetType',
-        '=',
-        targetType as 'post' | 'article' | 'game',
-      )
+      conditions.push(eq(comments.targetType, targetType))
     }
     if (targetId) {
-      query = query.where('targetId', '=', targetId)
+      conditions.push(eq(comments.targetId, targetId))
     }
     if (type) {
-      query = query.where('type', '=', type as CommentType)
+      conditions.push(eq(comments.type, type))
     }
 
-    const [comments, countResult] = await Promise.all([
-      query
-        .orderBy('isPinned', 'desc')
-        .orderBy('createdAt', 'desc')
+    const whereClause = and(...conditions)
+
+    const [commentsData, countResult] = await Promise.all([
+      db
+        .select({
+          ...getTableColumns(comments),
+          user: sql<{ id: string; name: string; email: string; image: string }>`
+            (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = ${comments.userId}) "u")
+          `.as('user'),
+          re: sql<Array<Record<string, any>>>`
+            COALESCE(
+              (SELECT json_agg(row_to_json("c".*)) FROM (
+                SELECT
+                  "c".*,
+                  (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = "c"."userId") "u") AS "user",
+                  (SELECT row_to_json("ru".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = "c"."replyToUserId") "ru") AS "reUser"
+                FROM "galrc_comments" "c"
+                WHERE "c"."depth" > 0 AND "c"."rootId" = ${comments.id}
+              ) "c"),
+              '[]'::json
+            )
+          `.as('re'),
+        })
+        .from(comments)
+        .where(whereClause)
+        .orderBy(desc(comments.isPinned), desc(comments.createdAt))
         .offset((page - 1) * limit)
-        .limit(limit)
-        .execute(),
-      query
-        .clearSelect()
-        .clearOrderBy()
-        .select(db.fn.countAll<number>().as('total'))
-        .executeTakeFirst(),
+        .limit(limit),
+      db
+        .select({ total: count() })
+        .from(comments)
+        .where(whereClause)
+        .then((r) => r[0]),
     ])
 
-    const total = countResult?.total ?? 0
+    const total = Number(countResult?.total ?? 0)
 
     return {
-      comments,
+      comments: commentsData,
       total,
       totalPages: Math.ceil(total / limit),
     }
@@ -114,63 +84,50 @@ export const CommentService = {
     status: statusFilter,
     excludeReplies,
   }: CommentModel.list) {
-    let query = db
-      .selectFrom('galrc_comments')
-      .selectAll('galrc_comments')
-      .select((eb) => [
-        jsonObjectFrom(
-          eb
-            .selectFrom('galrc_user')
-            .whereRef('galrc_user.id', '=', 'galrc_comments.userId')
-            .select([
-              'galrc_user.id',
-              'galrc_user.name',
-              'galrc_user.email',
-              'galrc_user.image',
-            ]),
-        ).as('user'),
-      ])
-    // No parentId/replyToUserId filter — admin sees ALL comments
+    const conditions: any[] = []
 
     if (excludeReplies) {
-      query = query.where('depth', '=', 0)
+      conditions.push(eq(comments.depth, 0))
     }
     if (statusFilter) {
-      query = query.where('status', '=', statusFilter as CommentStatus)
-    } else {
-      // Admin can see all statuses by default
+      conditions.push(eq(comments.status, statusFilter))
     }
     if (targetType) {
-      query = query.where(
-        'targetType',
-        '=',
-        targetType as 'post' | 'article' | 'game',
-      )
+      conditions.push(eq(comments.targetType, targetType))
     }
     if (targetId) {
-      query = query.where('targetId', '=', targetId)
+      conditions.push(eq(comments.targetId, targetId))
     }
     if (type) {
-      query = query.where('type', '=', type as CommentType)
+      conditions.push(eq(comments.type, type))
     }
 
-    const [comments, countResult] = await Promise.all([
-      query
-        .orderBy('createdAt', 'desc')
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+
+    const [commentsData, countResult] = await Promise.all([
+      db
+        .select({
+          ...getTableColumns(comments),
+          user: sql<{ id: string; name: string; email: string; image: string }>`
+            (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = ${comments.userId}) "u")
+          `.as('user'),
+        })
+        .from(comments)
+        .where(whereClause)
+        .orderBy(desc(comments.createdAt))
         .offset((page - 1) * limit)
-        .limit(limit)
-        .execute(),
-      query
-        .clearSelect()
-        .clearOrderBy()
-        .select(db.fn.countAll<number>().as('total'))
-        .executeTakeFirst(),
+        .limit(limit),
+      db
+        .select({ total: count() })
+        .from(comments)
+        .where(whereClause)
+        .then((r) => r[0]),
     ])
 
-    const total = countResult?.total ?? 0
+    const total = Number(countResult?.total ?? 0)
 
     return {
-      comments,
+      comments: commentsData,
       total,
       totalPages: Math.ceil(total / limit),
     }
@@ -189,7 +146,7 @@ export const CommentService = {
   ) {
     const now = new Date()
     let depth = 0
-    let rootId = null
+    let rootId: string | null = null
 
     let parent:
       | {
@@ -204,11 +161,17 @@ export const CommentService = {
 
     if (parentId) {
       parent = await db
-        .selectFrom('galrc_comments')
-        .select(['id', 'rootId', 'depth', 'targetType', 'targetId', 'userId'])
-        .where('id', '=', parentId)
-        .where('status', '=', 'normal')
-        .executeTakeFirst()
+        .select({
+          id: comments.id,
+          rootId: comments.rootId,
+          depth: comments.depth,
+          targetType: comments.targetType,
+          targetId: comments.targetId,
+          userId: comments.userId,
+        })
+        .from(comments)
+        .where(and(eq(comments.id, parentId), eq(comments.status, 'normal')))
+        .then((r) => r[0])
 
       if (!parent) {
         throw status(404, '父评论不存在或已被删除')
@@ -218,14 +181,14 @@ export const CommentService = {
       rootId = parent.rootId
     }
 
-    const inserted = await db
-      .insertInto('galrc_comments')
+    const [inserted] = await db
+      .insert(comments)
       .values({
-        targetType: targetType as 'post' | 'article' | 'game',
+        targetType,
         targetId,
         userId,
         content,
-        type: type as CommentType,
+        type,
         parentId: parentId ?? null,
         rootId: rootId,
         depth,
@@ -236,30 +199,27 @@ export const CommentService = {
         isWhispers: false,
         lastReplyAt: now,
         meta: null,
-        createdAt: now.toISOString(),
-        updatedAt: now.toISOString(),
+        createdAt: now,
+        updatedAt: now,
         deletedAt: null,
-      })
-      .returning(['id'])
-      .executeTakeFirstOrThrow()
+      } as any)
+      .returning({ id: comments.id })
 
     // For top-level comments, set rootId to the generated id
     if (!parentId) {
       const idStr = String(inserted.id)
       await db
-        .updateTable('galrc_comments')
-        .set({ rootId: idStr } as any)
-        .where('id', '=', inserted.id)
-        .execute()
+        .update(comments)
+        .set({ rootId: idStr })
+        .where(eq(comments.id, inserted.id))
     }
 
     // Update parent's lastReplyAt
     if (parentId) {
       await db
-        .updateTable('galrc_comments')
-        .set({ lastReplyAt: now } as any)
-        .where('id', '=', parentId)
-        .execute()
+        .update(comments)
+        .set({ lastReplyAt: now })
+        .where(eq(comments.id, parentId))
     }
 
     // Fire-and-forget email notification to parent comment author
@@ -267,10 +227,10 @@ export const CommentService = {
       ;(async () => {
         try {
           const parentUser = await db
-            .selectFrom('galrc_user')
-            .select(['email', 'name'])
-            .where('id', '=', parent.userId)
-            .executeTakeFirst()
+            .select({ email: users.email, name: users.name })
+            .from(users)
+            .where(eq(users.id, parent.userId))
+            .then((r) => r[0])
 
           if (!parentUser?.email) return
 
@@ -291,21 +251,17 @@ export const CommentService = {
     }
 
     // Return the created comment with user info
-    const comment = await db
-      .selectFrom('galrc_comments')
-      .selectAll('galrc_comments')
-      .select((eb) => [
-        jsonObjectFrom(
-          eb
-            .selectFrom('galrc_user')
-            .whereRef('galrc_user.id', '=', 'galrc_comments.userId')
-            .select(['id', 'name', 'image']),
-        ).as('user'),
-      ])
-      .where('id', '=', inserted.id)
-      .executeTakeFirstOrThrow()
+    const [comment] = await db
+      .select({
+        ...getTableColumns(comments),
+        user: sql<{ id: string; name: string; image: string }>`
+          (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${comments.userId}) "u")
+        `.as('user'),
+      })
+      .from(comments)
+      .where(eq(comments.id, inserted.id))
 
-    return comment
+    return comment!
   },
 
   async updateComment(
@@ -316,12 +272,10 @@ export const CommentService = {
   ) {
     role = role ?? 'user'
 
-    const comment = await db
-      .selectFrom('galrc_comments')
-      .selectAll()
-      .where('id', '=', id)
-      .where('status', '=', 'normal' as CommentStatus)
-      .executeTakeFirst()
+    const [comment] = await db
+      .select()
+      .from(comments)
+      .where(and(eq(comments.id, id), eq(comments.status, 'normal')))
 
     if (!comment) {
       throw new Error('评论不存在或已被删除')
@@ -332,10 +286,9 @@ export const CommentService = {
     }
 
     await db
-      .updateTable('galrc_comments')
-      .set({ content } as any)
-      .where('id', '=', id)
-      .execute()
+      .update(comments)
+      .set({ content })
+      .where(eq(comments.id, id))
 
     return { success: true }
   },
@@ -345,12 +298,11 @@ export const CommentService = {
     userId: string,
     isAdmin: boolean,
   ) {
-    const comment = await db
-      .selectFrom('galrc_comments')
-      .selectAll()
-      .where('id', '=', id)
-      .where('status', '=', 'normal')
-      .executeTakeFirst()
+    const [comment] = await db
+      .select()
+      .from(comments)
+      .where(and(eq(comments.id, id), eq(comments.status, 'normal')))
+
     if (!comment) {
       throw new Error('评论不存在或已被删除')
     }
@@ -360,34 +312,30 @@ export const CommentService = {
     }
 
     await db
-      .updateTable('galrc_comments')
+      .update(comments)
       .set({
         status: 'deleted',
         deletedAt: new Date(),
-      } as any)
-      .where('id', '=', id)
-      .execute()
+      })
+      .where(eq(comments.id, id))
 
     return { success: true }
   },
 
   async togglePin({ id }: CommentModel.params) {
-    const comment = await db
-      .selectFrom('galrc_comments')
-      .selectAll()
-      .where('id', '=', id)
-      .where('status', '=', 'normal')
-      .executeTakeFirst()
+    const [comment] = await db
+      .select()
+      .from(comments)
+      .where(and(eq(comments.id, id), eq(comments.status, 'normal')))
 
     if (!comment) {
       throw status(404, '评论不存在或已被删除')
     }
 
     await db
-      .updateTable('galrc_comments')
-      .set({ isPinned: !comment.isPinned } as any)
-      .where('id', '=', id)
-      .execute()
+      .update(comments)
+      .set({ isPinned: !comment.isPinned })
+      .where(eq(comments.id, id))
 
     return { isPinned: !comment.isPinned }
   },
@@ -397,13 +345,12 @@ export const CommentService = {
     { status }: CommentModel.changeStatus,
   ) {
     await db
-      .updateTable('galrc_comments')
+      .update(comments)
       .set({
-        status: status as CommentStatus,
+        status,
         ...(status === 'deleted' ? { deletedAt: new Date() } : {}),
-      } as any)
-      .where('id', '=', id)
-      .execute()
+      })
+      .where(eq(comments.id, id))
 
     return { success: true }
   },

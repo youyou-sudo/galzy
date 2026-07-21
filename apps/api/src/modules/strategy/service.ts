@@ -1,4 +1,4 @@
-import { db } from '@api/libs'
+import { db, sql, articles } from '@api/libs'
 import {
   acquireIdempotentKey,
   delKv,
@@ -9,7 +9,7 @@ import {
   storeIdempotentResult,
 } from '@api/libs/redis'
 import { status } from 'elysia'
-import { jsonObjectFrom } from 'kysely/helpers/postgres'
+import { eq, and, desc, like, count, getTableColumns } from 'drizzle-orm'
 import { t } from 'try'
 import type { StrategyModel } from './model'
 
@@ -21,19 +21,15 @@ export const Strategy = {
     }
     const [, error, strategyContent] = t(
       await db
-        .selectFrom('galrc_article')
-        .selectAll()
-        .select((eb) => [
-          jsonObjectFrom(
-            eb
-              .selectFrom('galrc_user')
-              .whereRef('galrc_user.id', '=', 'galrc_article.author')
-              .select(['id', 'name', 'image']),
-            // .selectAll(),
-          ).as('user'),
-        ])
-        .where('id', '=', strategyId)
-        .executeTakeFirstOrThrow(),
+        .select({
+          ...getTableColumns(articles),
+          user: sql<{ id: string; name: string; image: string }>`
+            (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${articles.author}) "u")
+          `.as('user'),
+        })
+        .from(articles)
+        .where(eq(articles.id, strategyId))
+        .then((r) => r[0]),
     )
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
@@ -53,24 +49,21 @@ export const Strategy = {
     const isVNDB = /^v\d+$/.test(gameId)
     const [, error, data] = t(
       await db
-        .selectFrom('galrc_article')
-        .selectAll()
-        .where('type', '=', 'strategy')
+        .select({
+          ...getTableColumns(articles),
+          user: sql<Record<string, any>>`
+            (SELECT row_to_json("u".*) FROM (SELECT * FROM "galrc_user" WHERE "id" = ${articles.author}) "u")
+          `.as('user'),
+        })
+        .from(articles)
         .where(
-          isVNDB ? 'vid' : 'otherid',
-          '=',
-          isVNDB ? gameId : Number(gameId),
-        )
-        .select((eb) => [
-          jsonObjectFrom(
-            eb
-              .selectFrom('galrc_user')
-              .whereRef('galrc_user.id', '=', 'galrc_article.author')
-              // .select(['id', 'name', 'image']),
-              .selectAll(),
-          ).as('user'),
-        ])
-        .execute(),
+          and(
+            eq(articles.type, 'strategy'),
+            isVNDB
+              ? eq(articles.vid, gameId)
+              : eq(articles.otherid, Number(gameId)),
+          ),
+        ),
     )
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
@@ -91,10 +84,9 @@ export const Strategy = {
       throw status(200, '重复请求')
     }
     await db
-      .updateTable('galrc_article')
-      .where('id', '=', Number(id))
+      .update(articles)
       .set({ ...data })
-      .execute()
+      .where(eq(articles.id, Number(id)))
     await storeIdempotentResult(`strategyListUpdate-${hash}`, '', 60)
   },
   async strategyCreate({ id, data, userid }: StrategyModel.strategyListCreate) {
@@ -111,19 +103,17 @@ export const Strategy = {
     const isVNDB = /^v\d+$/.test(id)
     if (isVNDB) {
       await db
-        .insertInto('galrc_article')
+        .insert(articles)
         .values({ vid: id, ...data, type: 'strategy', author: userid })
-        .executeTakeFirstOrThrow()
     } else {
       await db
-        .insertInto('galrc_article')
+        .insert(articles)
         .values({
           otherid: Number(id),
           ...data,
           type: 'strategy',
           author: userid,
         })
-        .executeTakeFirstOrThrow()
     }
     await storeIdempotentResult(`strategyListCreate-${hash}`, '', 60)
   },
@@ -139,10 +129,8 @@ export const Strategy = {
       throw status(200, '重复请求')
     }
     await db
-      .deleteFrom('galrc_article')
-      .where('id', '=', Number(strategyId))
-      .returningAll()
-      .execute()
+      .delete(articles)
+      .where(eq(articles.id, Number(strategyId)))
 
     await storeIdempotentResult(`strategyListDelete-${hash}`, '', 60)
   },
@@ -161,54 +149,44 @@ export const Strategy = {
       return JSON.parse(redisData) as any
     }
 
-    let countQuery = db.selectFrom('galrc_article')
-    let dataQuery = db.selectFrom('galrc_article')
+    const conditions: any[] = []
 
     if (params.status) {
-      countQuery = countQuery.where(
-        'status',
-        '=',
-        params.status as ArticlesStatus,
-      )
-      dataQuery = dataQuery.where(
-        'status',
-        '=',
-        params.status as ArticlesStatus,
-      )
+      conditions.push(eq(articles.status, params.status))
     }
     if (params.type) {
-      countQuery = countQuery.where('type', '=', params.type as ArticleType)
-      dataQuery = dataQuery.where('type', '=', params.type as ArticleType)
+      conditions.push(eq(articles.type, params.type))
     }
     if (params.search) {
-      countQuery = countQuery.where('title', 'ilike', `%${params.search}%`)
-      dataQuery = dataQuery.where('title', 'ilike', `%${params.search}%`)
+      conditions.push(like(articles.title, `%${params.search}%`))
     }
 
-    const [countResult, articles] = await Promise.all([
-      countQuery
-        .select(db.fn.countAll<number>().as('count'))
-        .executeTakeFirst(),
-      dataQuery
-        .selectAll()
-        .select((eb) => [
-          jsonObjectFrom(
-            eb
-              .selectFrom('galrc_user')
-              .whereRef('galrc_user.id', '=', 'galrc_article.author')
-              .select(['id', 'name', 'image']),
-          ).as('user'),
-        ])
-        .orderBy('createdAt', 'desc')
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+
+    const [countResult, articlesData] = await Promise.all([
+      db
+        .select({ count: count() })
+        .from(articles)
+        .where(whereClause)
+        .then((r) => r[0]),
+      db
+        .select({
+          ...getTableColumns(articles),
+          user: sql<{ id: string; name: string; image: string }>`
+            (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${articles.author}) "u")
+          `.as('user'),
+        })
+        .from(articles)
+        .where(whereClause)
+        .orderBy(desc(articles.createdAt))
         .limit(limit)
-        .offset(offset)
-        .execute(),
+        .offset(offset),
     ])
 
     const total = Number(countResult?.count ?? 0)
     const totalPages = Math.ceil(total / limit)
 
-    const result = { articles, total, totalPages }
+    const result = { articles: articlesData, total, totalPages }
     void setKv(cacheKey, JSON.stringify(result), 60)
     return result
   },
@@ -226,11 +204,14 @@ export const Strategy = {
       throw status(200, '重复请求')
     }
 
-    const article = await db
-      .selectFrom('galrc_article')
-      .select(['id', 'vid', 'otherid'])
-      .where('id', '=', id)
-      .executeTakeFirst()
+    const [article] = await db
+      .select({
+        id: articles.id,
+        vid: articles.vid,
+        otherid: articles.otherid,
+      })
+      .from(articles)
+      .where(eq(articles.id, id))
 
     if (!article) {
       throw status(404, '文章不存在')
@@ -245,14 +226,10 @@ export const Strategy = {
     }
 
     await db
-      .updateTable('galrc_article')
-      .where('id', '=', id)
-      .set({ status: newStatus as ArticlesStatus })
-      .execute()
+      .update(articles)
+      .set({ status: newStatus })
+      .where(eq(articles.id, id))
 
     await storeIdempotentResult(`adminChangeStatus-${hash}`, '', 60)
   },
 }
-
-type ArticlesStatus = 'published' | 'hidden' | 'deleted'
-type ArticleType = 'strategy' | 'blog' | 'tutorial'

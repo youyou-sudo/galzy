@@ -1,4 +1,5 @@
 import { db, sql } from '@api/libs'
+import { alistb, vn, vnTitles, images, others, otherMedia, media, gameDownloadStats, releases, releasesVn, releasesProducers, producers } from '@api/libs'
 import {
   acquireIdempotentKey,
   delKv,
@@ -10,7 +11,7 @@ import {
   storeIdempotentResult,
 } from '@api/libs/redis'
 import { status } from 'elysia'
-import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
+import { eq, count as countAll, desc, asc, isNull, isNotNull, like, or, and } from 'drizzle-orm'
 import { t } from 'try'
 import type { GameModel } from './model'
 
@@ -21,16 +22,13 @@ export const Game = {
       return Number(redisData)
     }
     const [, error, totalCountResult] = t(
-      await db
-        .selectFrom('galrc_alistb')
-        .select(({ fn }) => [fn.countAll().as('count')])
-        .executeTakeFirst(),
+      await db.select({ count: countAll() }).from(alistb).then(r => r[0]),
     )
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
-    const count = Number(totalCountResult?.count || 0)
-    void setKv('gameCount', String(count), 60 * 30)
-    return count
+    const total = Number(totalCountResult?.count || 0)
+    void setKv('gameCount', String(total), 60 * 30)
+    return total
   },
   async List({ pageIndex, pageSize }: GameModel.gameList) {
     const redisData = await getKv(`gameList:${pageIndex}-${pageSize}`)
@@ -39,74 +37,52 @@ export const Game = {
     }
     const offset = pageIndex * pageSize
     const [, error, items] = await t(
-      db
-        .selectFrom('galrc_alistb')
-        .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
-        .select(['vn.id', 'vn.olang'])
-        .select((v) => [
-          'vn.id',
-          'vn.olang',
-          jsonArrayFrom(
-            v
-              .selectFrom('vn_titles')
-              .selectAll()
-              .whereRef('vn_titles.id', '=', 'vn.id'),
-          ).as('titles'),
-          jsonObjectFrom(
-            v
-              .selectFrom('images')
-              .select(['id', 'height', 'width'])
-              .whereRef('images.id', '=', 'vn.c_image'),
-          ).as('images'),
-        ])
-        .select((o) => [
-          'galrc_alistb.other',
-          jsonObjectFrom(
-            o
-              .selectFrom('galrc_other')
-              .whereRef('id', '=', 'galrc_alistb.other')
-              .selectAll()
-              .select((oc) => [
-                'galrc_alistb.other',
-                jsonArrayFrom(
-                  oc
-                    .selectFrom('galrc_other_media')
-                    .selectAll()
-                    .whereRef(
-                      'galrc_other_media.other_id',
-                      '=',
-                      'galrc_other.id',
-                    )
-                    .select((om) => [
-                      jsonObjectFrom(
-                        om
-                          .selectFrom('galrc_media')
-                          .selectAll()
-                          .whereRef(
-                            'galrc_media.hash',
-                            '=',
-                            'galrc_other_media.media_hash',
-                          ),
-                      ).as('media'),
-                    ]),
-                ).as('other_media'),
-              ]),
-          ).as('other_datas'),
-        ])
-        .orderBy('vn.id', 'desc')
-        .orderBy('galrc_alistb.other', 'desc')
+      (db
+        .select({
+          id: vn.id,
+          olang: vn.olang,
+          titles: sql`
+            COALESCE(
+              (SELECT json_agg(row_to_json(t.*)) FROM vn_titles t WHERE t.id = vn.id),
+              '[]'::json
+            )
+          `,
+          images: sql`
+            (SELECT row_to_json(i.*) FROM (SELECT id, height, width FROM images i WHERE i.id = vn.c_image) i)
+          `,
+          other: alistb.other,
+          other_datas: sql`
+            (SELECT row_to_json(o.*) FROM (
+              SELECT
+                o2.*,
+                galrc_alistb.other,
+                COALESCE(
+                  (SELECT json_agg(row_to_json(om_sub.*)) FROM (
+                    SELECT
+                      om.*,
+                      (SELECT row_to_json(m.*) FROM galrc_media m WHERE m.hash = om.media_hash) AS media
+                    FROM galrc_other_media om
+                    WHERE om.other_id = o2.id
+                  ) om_sub),
+                  '[]'::json
+                ) AS other_media
+              FROM galrc_other o2
+              WHERE o2.id = galrc_alistb.other
+            ) o)
+          `,
+        })
+        .from(alistb)
+        .innerJoin(vn, eq(alistb.vid, vn.id)) as any)
+        .orderBy(desc(vn.id))
+        .orderBy(desc(alistb.other))
         .limit(pageSize)
-        .offset(offset)
-        .execute(),
+        .offset(offset),
     )
     if (error) {
       throw status(500, `服务出错了喵~,Error:${JSON.stringify(error)}`)
     }
     const [, error1, totalCountResult] = t(
-      await db
-        .selectFrom('galrc_alistb')
-        .select(({ fn }) => [fn.countAll().as('count')])
-        .executeTakeFirst(),
+      await db.select({ count: countAll() }).from(alistb).then(r => r[0]),
     )
     if (error1) {
       throw status(500, `服务出错了喵~,Error:${JSON.stringify(error)}`)
@@ -142,120 +118,81 @@ export const Game = {
     const idIsNumber = /^\d+$/.test(id)
 
     const [, error, data] = t(
-      await db
-        .selectFrom('galrc_alistb')
-        .where((eb) =>
-          idIsNumber ? eb('other', '=', Number(id)) : eb('vid', '=', id),
-        )
-        .selectAll()
-        .select((eb) => [
-          eb
-            .selectFrom('releases_vn')
-            .innerJoin('releases', 'releases.id', 'releases_vn.id')
-            .whereRef('releases_vn.vid', '=', 'galrc_alistb.vid')
-            .where('releases.released', 'is not', null)
-            .select('releases.released')
-            .orderBy('releases.released', 'asc')
-            .limit(1)
-            .as('released_first'),
-          jsonArrayFrom(
-            eb
-              .selectFrom('releases_vn')
-              .innerJoin(
-                'releases_producers',
-                'releases_producers.id',
-                'releases_vn.id',
-              )
-              .innerJoin('releases', 'releases.id', 'releases_vn.id')
-              .innerJoin('producers', 'producers.id', 'releases_producers.pid')
-              .whereRef('releases_vn.vid', '=', 'galrc_alistb.vid')
-              .groupBy([
-                'producers.id',
-                'producers.name',
-                'producers.latin',
-                'producers.alias',
-                'producers.type',
-              ])
-              .select((pb) => [
-                'producers.id',
-                'producers.name',
-                'producers.latin',
-                'producers.alias',
-                'producers.type',
-
-                pb.fn.countAll().as('count'),
-
-                pb.fn
-                  .agg<boolean>('bool_or', ['releases_producers.developer'])
-                  .as('is_dev'),
-                pb.fn
-                  .agg<boolean>('bool_or', ['releases_producers.publisher'])
-                  .as('is_pub'),
-
-                pb.fn
-                  .agg<boolean>('bool_or', ['releases.official'])
-                  .as('official'),
-                pb.fn.min<string>('releases.released').as('first_release'),
-              ])
-
-              .orderBy('official', 'desc') // NOT bool_or(official)
-              .orderBy(sql`first_release asc nulls last`), // MIN(released)
-          ).as('producers'),
-          jsonObjectFrom(
-            eb
-              .selectFrom('vn')
-              .whereRef('vn.id', '=', 'galrc_alistb.vid')
-              .selectAll()
-              .select((vneb) => [
-                'vn.id',
-                jsonArrayFrom(
-                  vneb
-                    .selectFrom('vn_titles')
-                    .selectAll()
-                    .whereRef('vn_titles.id', '=', 'vn.id'),
-                ).as('titles'),
-                jsonObjectFrom(
-                  vneb
-                    .selectFrom('images')
-                    .select(['id', 'height', 'width'])
-                    .whereRef('images.id', '=', 'vn.c_image'),
-                ).as('images'),
-              ]),
-          ).as('vn_datas'),
-
-          jsonObjectFrom(
-            eb
-              .selectFrom('galrc_other')
-              .whereRef('galrc_other.id', '=', 'galrc_alistb.other')
-              .selectAll()
-              .select((other) => [
-                'id',
-                jsonArrayFrom(
-                  other
-                    .selectFrom('galrc_other_media')
-                    .whereRef(
-                      'galrc_other_media.other_id',
-                      '=',
-                      'galrc_other.id',
-                    )
-                    .select((media) => [
-                      'galrc_other_media.cover',
-                      jsonObjectFrom(
-                        media
-                          .selectFrom('galrc_media')
-                          .selectAll()
-                          .whereRef(
-                            'galrc_media.hash',
-                            '=',
-                            'galrc_other_media.media_hash',
-                          ),
-                      ).as('media_datas'),
-                    ]),
-                ).as('media'),
-              ]),
-          ).as('other_datas'),
-        ])
-        .executeTakeFirst(),
+      await (db
+        .select({
+          id: alistb.id,
+          vid: alistb.vid,
+          other: alistb.other,
+          path: alistb.path,
+          released_first: sql`
+            (SELECT releases.released FROM releases_vn
+             INNER JOIN releases ON releases.id = releases_vn.id
+             WHERE releases_vn.vid = galrc_alistb.vid
+               AND releases.released IS NOT NULL
+             ORDER BY releases.released ASC
+             LIMIT 1)
+          `,
+          producers: sql`
+            COALESCE(
+              (SELECT json_agg(row_to_json(pb.*)) FROM (
+                SELECT
+                  producers.id,
+                  producers.name,
+                  producers.latin,
+                  producers.alias,
+                  producers.type,
+                  COUNT(*)::int AS count,
+                  BOOL_OR(releases_producers.developer) AS is_dev,
+                  BOOL_OR(releases_producers.publisher) AS is_pub,
+                  BOOL_OR(releases.official) AS official,
+                  MIN(releases.released) AS first_release
+                FROM releases_vn
+                INNER JOIN releases_producers ON releases_producers.id = releases_vn.id
+                INNER JOIN releases ON releases.id = releases_vn.id
+                INNER JOIN producers ON producers.id = releases_producers.pid
+                WHERE releases_vn.vid = galrc_alistb.vid
+                GROUP BY producers.id, producers.name, producers.latin, producers.alias, producers.type
+                ORDER BY official DESC, first_release ASC NULLS LAST
+              ) pb),
+              '[]'::json
+            )
+          `,
+          vn_datas: sql`
+            (SELECT row_to_json(vn_sub.*) FROM (
+              SELECT
+                vn.*,
+                COALESCE(
+                  (SELECT json_agg(row_to_json(t.*)) FROM vn_titles t WHERE t.id = vn.id),
+                  '[]'::json
+                ) AS titles,
+                (SELECT row_to_json(i.*) FROM (SELECT id, height, width FROM images i WHERE i.id = vn.c_image) i) AS images
+              FROM vn
+              WHERE vn.id = galrc_alistb.vid
+            ) vn_sub)
+          `,
+          other_datas: sql`
+            (SELECT row_to_json(other_sub.*) FROM (
+              SELECT
+                galrc_other.*,
+                COALESCE(
+                  (SELECT json_agg(row_to_json(media_sub.*)) FROM (
+                    SELECT
+                      galrc_other_media.cover,
+                      (SELECT row_to_json(m.*) FROM galrc_media m WHERE m.hash = galrc_other_media.media_hash) AS media_datas
+                    FROM galrc_other_media
+                    WHERE galrc_other_media.other_id = galrc_other.id
+                  ) media_sub),
+                  '[]'::json
+                ) AS media
+              FROM galrc_other
+              WHERE galrc_other.id = galrc_alistb.other
+            ) other_sub)
+          `,
+        })
+        .from(alistb)
+        .where(idIsNumber ? eq(alistb.other, Number(id)) : eq(alistb.vid, id)) as any)
+        .limit(1)
+        .then((r: any) => r[0]),
     )
 
     if (error) {
@@ -286,10 +223,16 @@ export const Game = {
       }
     }
     const viddata = await db
-      .selectFrom('galrc_alistb')
-      .where('vid', '=', id)
-      .selectAll()
-      .executeTakeFirst()
+      .select({
+        id: alistb.id,
+        vid: alistb.vid,
+        other: alistb.other,
+        path: alistb.path,
+      })
+      .from(alistb)
+      .where(eq(alistb.vid, id))
+      .limit(1)
+      .then((r: any) => r[0]) as { id: string; vid: string | null; other: number | null; path: any } | undefined
 
     type RawItem = {
       name: string
@@ -402,30 +345,31 @@ export const Game = {
     const [, error, [onlyOther, bothExist, onlyVid, all]] = t(
       await Promise.all([
         db
-          .selectFrom('galrc_alistb')
-          .select(({ fn }) => [fn.countAll<number>().as('count')])
-          .where('galrc_alistb.other', 'is not', null)
-          .where('galrc_alistb.vid', 'is', null)
-          .executeTakeFirst(),
+          .select({ count: countAll() })
+          .from(alistb)
+          .where(and(isNotNull(alistb.other), isNull(alistb.vid)))
+          .limit(1)
+          .then(r => r[0]),
 
         db
-          .selectFrom('galrc_alistb')
-          .select(({ fn }) => [fn.countAll<number>().as('count')])
-          .where('galrc_alistb.vid', 'is not', null)
-          .where('galrc_alistb.other', 'is not', null)
-          .executeTakeFirst(),
+          .select({ count: countAll() })
+          .from(alistb)
+          .where(and(isNotNull(alistb.vid), isNotNull(alistb.other)))
+          .limit(1)
+          .then(r => r[0]),
 
         db
-          .selectFrom('galrc_alistb')
-          .select(({ fn }) => [fn.countAll<number>().as('count')])
-          .where('galrc_alistb.vid', 'is not', null)
-          .where('galrc_alistb.other', 'is', null)
-          .executeTakeFirst(),
+          .select({ count: countAll() })
+          .from(alistb)
+          .where(and(isNotNull(alistb.vid), isNull(alistb.other)))
+          .limit(1)
+          .then(r => r[0]),
 
         db
-          .selectFrom('galrc_alistb')
-          .select(({ fn }) => [fn.countAll<number>().as('count')])
-          .executeTakeFirst(),
+          .select({ count: countAll() })
+          .from(alistb)
+          .limit(1)
+          .then(r => r[0]),
       ]),
     )
     if (error)
@@ -455,66 +399,54 @@ export const Game = {
 
     const offset = (page - 1) * limit
 
-    const baseQuery = db.selectFrom('galrc_alistb')
-
     // [ ] [延后] 数据管理界面标题和别名搜索
 
-    let whereQuery = baseQuery
+    let whereConditions: any[] = []
     if (otherId != null && (vid == null || vid === undefined)) {
-      whereQuery = whereQuery
-        .where('galrc_alistb.other', 'is not', null)
-        .where('galrc_alistb.vid', 'is', null)
+      whereConditions = [isNotNull(alistb.other), isNull(alistb.vid)]
     } else if (vid != null && otherId != null) {
-      whereQuery = whereQuery
-        .where('galrc_alistb.vid', 'is not', null)
-        .where('galrc_alistb.other', 'is not', null)
+      whereConditions = [isNotNull(alistb.vid), isNotNull(alistb.other)]
     } else if (vid != null && (otherId == null || otherId === undefined)) {
-      whereQuery = whereQuery
-        .where('galrc_alistb.vid', 'is not', null)
-        .where('galrc_alistb.other', 'is', null)
+      whereConditions = [isNotNull(alistb.vid), isNull(alistb.other)]
     }
 
-    const totalResult = await whereQuery
-      .select(({ fn }) => [fn.countAll<number>().as('count')])
-      .executeTakeFirst()
+    const countFilter = whereConditions.length > 0 ? and(...whereConditions) : undefined
+    const totalResult = await db
+      .select({ count: countAll() })
+      .from(alistb)
+      .where(countFilter)
+      .limit(1)
+      .then(r => r[0])
 
     const total = totalResult?.count ?? 0
 
     const numQuery = extractNumber(query)
 
-    let dataQuery = whereQuery
-
+    let dataWhereConditions = [...whereConditions]
     if (numQuery !== null && numQuery !== undefined) {
-      dataQuery = dataQuery.where((eb) =>
-        eb.or([
-          eb('galrc_alistb.vid', 'like', query),
-          eb('galrc_alistb.other', '=', numQuery),
-        ]),
+      dataWhereConditions.push(
+        or(
+          like(alistb.vid, query),
+          eq(alistb.other, numQuery),
+        ),
       )
     }
 
-    dataQuery = dataQuery
-      .select((qb) => [
-        'galrc_alistb.id',
-        'galrc_alistb.vid',
-        'galrc_alistb.other',
-        jsonObjectFrom(
-          qb
-            .selectFrom('vn')
-            .selectAll()
-            .whereRef('vn.id', '=', 'galrc_alistb.vid'),
-        ).as('vndatas'),
-        jsonObjectFrom(
-          qb
-            .selectFrom('galrc_other')
-            .selectAll()
-            .whereRef('galrc_other.id', '=', 'galrc_alistb.other'),
-        ).as('otherdatas'),
-      ])
+    const dataFilter = dataWhereConditions.length > 0 ? and(...dataWhereConditions) : undefined
+    const dataQuery = (db
+      .select({
+        id: alistb.id,
+        vid: alistb.vid,
+        other: alistb.other,
+        vndatas: sql`(SELECT row_to_json(vn.*) FROM vn WHERE vn.id = galrc_alistb.vid)`,
+        otherdatas: sql`(SELECT row_to_json(o.*) FROM galrc_other o WHERE o.id = galrc_alistb.other)`,
+      })
+      .from(alistb)
+      .where(dataFilter) as any)
       .limit(limit)
       .offset(offset)
 
-    const [, error, data] = t(await dataQuery.execute())
+    const [, error, data] = t(await dataQuery)
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     return {
@@ -530,45 +462,35 @@ export const Game = {
   async VidassociationGet({ id }: GameModel.infoId) {
     if (id.startsWith('v')) {
       const fetchData = async () => {
-        return await db
-          .selectFrom('galrc_alistb')
-          .selectAll()
-          .where('vid', '=', id)
-          .select((eb) => [
-            'galrc_alistb.other',
-            jsonObjectFrom(
-              eb
-                .selectFrom('galrc_other')
-                .selectAll()
-                .whereRef('galrc_other.id', '=', 'galrc_alistb.other')
-                .select((other) => [
-                  'id',
-                  jsonArrayFrom(
-                    other
-                      .selectFrom('galrc_other_media')
-                      .whereRef(
-                        'galrc_other_media.other_id',
-                        '=',
-                        'galrc_other.id',
-                      )
-                      .select((media) => [
-                        'galrc_other_media.cover',
-                        jsonObjectFrom(
-                          media
-                            .selectFrom('galrc_media')
-                            .selectAll()
-                            .whereRef(
-                              'galrc_media.hash',
-                              '=',
-                              'galrc_other_media.media_hash',
-                            ),
-                        ).as('mediadata'),
-                      ]),
-                  ).as('othermedia'),
-                ]),
-            ).as('other_data'),
-          ])
-          .executeTakeFirst()
+        return await (db
+          .select({
+            id: alistb.id,
+            vid: alistb.vid,
+            other: alistb.other,
+            path: alistb.path,
+            other_data: sql`
+              (SELECT row_to_json(other_sub.*) FROM (
+                SELECT
+                  galrc_other.*,
+                  COALESCE(
+                    (SELECT json_agg(row_to_json(media_sub.*)) FROM (
+                      SELECT
+                        galrc_other_media.cover,
+                        (SELECT row_to_json(m.*) FROM galrc_media m WHERE m.hash = galrc_other_media.media_hash) AS mediadata
+                      FROM galrc_other_media
+                      WHERE galrc_other_media.other_id = galrc_other.id
+                    ) media_sub),
+                    '[]'::json
+                  ) AS othermedia
+                FROM galrc_other
+                WHERE galrc_other.id = galrc_alistb.other
+              ) other_sub)
+            `,
+          })
+          .from(alistb)
+          .where(eq(alistb.vid, id)) as any)
+          .limit(1)
+          .then((r: any) => r[0])
       }
       let [, error, data] = t(await fetchData())
       if (error)
@@ -576,19 +498,18 @@ export const Game = {
       if (data?.other_data === null) {
         const [, error, newOtherId] = t(
           await db
-            .insertInto('galrc_other')
+            .insert(others)
             .values({ status: 'draft' })
-            .returning('id')
-            .executeTakeFirstOrThrow(),
+            .returning({ id: others.id })
+            .then(r => r[0]),
         )
         if (error)
           throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
         const [, error1] = t(
           await db
-            .updateTable('galrc_alistb')
+            .update(alistb)
             .set({ other: newOtherId.id })
-            .where('vid', '=', id)
-            .execute(),
+            .where(eq(alistb.vid, id)),
         )
         if (error1)
           throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
@@ -599,33 +520,31 @@ export const Game = {
     }
     if (id.match(/^\d+$/)) {
       const fetchData = async () => {
-        return await db
-          .selectFrom('galrc_other')
-          .selectAll()
-          .where('galrc_other.id', '=', Number(id))
-          .select((other) => [
-            'id',
-            jsonArrayFrom(
-              other
-                .selectFrom('galrc_other_media')
-                .whereRef('galrc_other_media.other_id', '=', 'galrc_other.id')
-                .select((media) => [
-                  'galrc_other_media.cover',
-                  jsonObjectFrom(
-                    media
-                      .selectFrom('galrc_media')
-                      .selectAll()
-                      .whereRef(
-                        'galrc_media.hash',
-                        '=',
-                        'galrc_other_media.media_hash',
-                      ),
-                  ).as('mediadata'),
-                ])
-                .whereRef('galrc_other_media.other_id', '=', 'galrc_other.id'),
-            ).as('othermedia'),
-          ])
-          .executeTakeFirst()
+        return await (db
+          .select({
+            id: others.id,
+            title: others.title,
+            alias: others.alias,
+            introduction: others.introduction,
+            description: others.description,
+            status: others.status,
+            othermedia: sql`
+              COALESCE(
+                (SELECT json_agg(row_to_json(media_sub.*)) FROM (
+                  SELECT
+                    galrc_other_media.cover,
+                    (SELECT row_to_json(m.*) FROM galrc_media m WHERE m.hash = galrc_other_media.media_hash) AS mediadata
+                  FROM galrc_other_media
+                  WHERE galrc_other_media.other_id = galrc_other.id
+                ) media_sub),
+                '[]'::json
+              )
+            `,
+          })
+          .from(others)
+          .where(eq(others.id, Number(id))) as any)
+          .limit(1)
+          .then((r: any) => r[0])
       }
       let [, error, data] = t(await fetchData())
       if (error)
@@ -633,20 +552,19 @@ export const Game = {
       if (data === undefined) {
         const [, error, newOtherId] = t(
           await db
-            .insertInto('galrc_other')
+            .insert(others)
             .values({ status: 'draft' })
-            .returning('id')
-            .executeTakeFirstOrThrow(),
+            .returning({ id: others.id })
+            .then(r => r[0]),
         )
         if (error)
           throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
 
         const [, error1] = t(
           await db
-            .updateTable('galrc_alistb')
+            .update(alistb)
             .set({ other: newOtherId.id })
-            .where('other', '=', Number(id))
-            .execute(),
+            .where(eq(alistb.other, Number(id))),
         )
         if (error1)
           throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
@@ -670,14 +588,13 @@ export const Game = {
     const titleObject = Array.isArray(title) ? JSON.stringify(title) : title
     const [, error] = t(
       await db
-        .updateTable('galrc_other')
-        .where('id', '=', Number(id))
+        .update(others)
         .set({
           title: titleObject,
           description: description,
           alias: alias,
         })
-        .executeTakeFirstOrThrow(),
+        .where(eq(others.id, Number(id))),
     )
     let datas = {}
     if (error) {
@@ -707,20 +624,19 @@ export const Game = {
     if (!ok) {
       throw status(200, '重复请求')
     }
-    const otherId = await db.transaction().execute(async (trx) => {
-      const newOther = await trx
-        .insertInto('galrc_other')
+    const otherId = await db.transaction(async (tx) => {
+      const newOther = await tx
+        .insert(others)
         .values({ status: 'draft' })
-        .returning('id')
-        .executeTakeFirstOrThrow()
+        .returning({ id: others.id })
+        .then(r => r[0])
 
-      await trx
-        .insertInto('galrc_alistb')
+      await tx
+        .insert(alistb)
         .values({
           id: String(newOther.id),
           other: newOther.id,
         })
-        .execute()
 
       return newOther
     })
@@ -732,7 +648,7 @@ export const Game = {
   async gameTimeNumberGet({ id, time }: GameModel.gameTimeNumberGet) {
     const mode =
       time === 'week' ? 'week' : time === 'month' ? 'month' : 'quarter'
-    const res = await sql<any>`
+    const res = await db.execute(sql<any>`
   WITH series AS (
     SELECT generate_series(
       CASE
@@ -768,13 +684,14 @@ export const Game = {
 
   GROUP BY start
   ORDER BY start ASC;
-`.execute(db)
+`)
     const [, error, data] = t(
       await db
-        .selectFrom('galrc_gameDownloadStats')
-        .select(db.fn.count<number>('game_id').as('total'))
-        .where('game_id', '=', id)
-        .executeTakeFirst(),
+        .select({ total: countAll() })
+        .from(gameDownloadStats)
+        .where(eq(gameDownloadStats.gameId, id))
+        .limit(1)
+        .then(r => r[0]),
     )
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)

@@ -1,4 +1,5 @@
 import { db } from '@api/libs'
+import { media as mediaTable, otherMedia } from '@api/libs'
 import {
   acquireIdempotentKey,
   delKv,
@@ -8,7 +9,7 @@ import {
 } from '@api/libs/redis'
 import { S3Client } from 'bun'
 import { status } from 'elysia'
-import { jsonObjectFrom } from 'kysely/helpers/postgres'
+import { eq, and, sql } from 'drizzle-orm'
 import { t } from 'try'
 import { auth } from '../auth/service'
 import type { MediaModel } from './model'
@@ -41,10 +42,11 @@ export const Media = {
     }
     // 首先检查是否存在相同 hash 的记录
     const existingMedia = await db
-      .selectFrom('galrc_media')
-      .select('hash')
-      .where('hash', '=', media.hash)
-      .executeTakeFirst()
+      .select({ hash: mediaTable.hash })
+      .from(mediaTable)
+      .where(eq(mediaTable.hash, media.hash))
+      .limit(1)
+      .then((r) => r[0])
 
     let mediahash: string
 
@@ -53,42 +55,38 @@ export const Media = {
       mediahash = existingMedia.hash
     } else {
       // 如果不存在，则插入新记录
-      const insertedMedia = await db
-        .insertInto('galrc_media')
+      const [insertedMedia] = await db
+        .insert(mediaTable)
         .values(media)
-        .returning(['hash'])
-        .executeTakeFirstOrThrow()
-      mediahash = insertedMedia.hash
+        .returning({ hash: mediaTable.hash })
+      mediahash = insertedMedia!.hash
     }
 
     // 检查关联表中是否已存在这个关联
     const existingRelation = await db
-      .selectFrom('galrc_other_media')
-      .select('id')
-      .where('other_id', '=', entryId)
-      .where('media_hash', '=', mediahash)
-      .executeTakeFirst()
+      .select({ id: otherMedia.id })
+      .from(otherMedia)
+      .where(and(eq(otherMedia.otherId, entryId), eq(otherMedia.mediaHash, mediahash)))
+      .limit(1)
+      .then((r) => r[0])
 
     // 只有在关联不存在时才创建新的关联
     if (!existingRelation) {
-      await db.transaction().execute(async (trx) => {
+      await db.transaction(async (trx) => {
         if (cover) {
           await trx
-            .updateTable('galrc_other_media')
-            .where('other_id', '=', entryId)
-            .where('cover', '=', true)
+            .update(otherMedia)
             .set({ cover: false })
-            .execute()
+            .where(and(eq(otherMedia.otherId, entryId), eq(otherMedia.cover, true)))
         }
         await trx
-          .insertInto('galrc_other_media')
+          .insert(otherMedia)
           .values({
-            other_id: entryId,
-            media_hash: mediahash,
-            sort_order: sortOrder,
+            otherId: entryId,
+            mediaHash: mediahash,
+            sortOrder: sortOrder,
             cover: cover,
           })
-          .execute()
       })
 
       await delKv(`gameInfo:${entryId}`)
@@ -107,18 +105,17 @@ export const Media = {
     }
     // 删除 galrc_other_media 中的记录
     await db
-      .deleteFrom('galrc_other_media')
-      .where('other_id', '=', id)
-      .where('media_hash', '=', mediahash)
-      .execute()
+      .delete(otherMedia)
+      .where(and(eq(otherMedia.otherId, id), eq(otherMedia.mediaHash, mediahash)))
     const log = await db
-      .selectFrom('galrc_other_media')
-      .selectAll()
-      .where('media_hash', '=', mediahash)
-      .executeTakeFirst()
+      .select()
+      .from(otherMedia)
+      .where(eq(otherMedia.mediaHash, mediahash))
+      .limit(1)
+      .then((r) => r[0])
     if (log === undefined) {
       // 如果图片没有被其他条目使用，则删除 galrc_media 中的记录
-      await db.deleteFrom('galrc_media').where('hash', '=', mediahash).execute()
+      await db.delete(mediaTable).where(eq(mediaTable.hash, mediahash))
 
       const targetUrl = `${process.env.OPENLIST_HOST}/api/fs/remove`
       const authToken = process.env.OPENLIST_API_KEY
@@ -146,24 +143,20 @@ export const Media = {
     if (!ok) {
       throw status(200, '重复请求')
     }
-    const [, error, media] = t(
-      await db.transaction().execute(async (trx) => {
+    const [, error, mediaResult] = t(
+      await db.transaction(async (trx) => {
         // 清除当前其他所有封面
         await trx
-          .updateTable('galrc_other_media')
-          .where('other_id', '=', other)
-          .where('cover', '=', true)
+          .update(otherMedia)
           .set({ cover: false })
-          .execute()
+          .where(and(eq(otherMedia.otherId, other), eq(otherMedia.cover, true)))
 
         // 设置新封面
-        const updated = await trx
-          .updateTable('galrc_other_media')
-          .where('media_hash', '=', mediahash)
-          .where('other_id', '=', other)
+        const [updated] = await trx
+          .update(otherMedia)
           .set({ cover: true })
-          .returningAll()
-          .executeTakeFirst()
+          .where(and(eq(otherMedia.mediaHash, mediahash), eq(otherMedia.otherId, other)))
+          .returning()
 
         return updated
       }),
@@ -173,8 +166,8 @@ export const Media = {
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
 
     await delKv(`gameInfo:${other}`)
-    await storeIdempotentResult(`getMediaByCover-${hash}`, media, 60)
-    return media
+    await storeIdempotentResult(`getMediaByCover-${hash}`, mediaResult, 60)
+    return mediaResult
   },
   async getMedia({ other_id }: MediaModel.getMedia) {
     const hash = generateIdempotentHash({ other_id })
@@ -188,22 +181,13 @@ export const Media = {
     }
     const [, error, data] = t(
       await db
-        .selectFrom('galrc_other_media')
-        .where('other_id', '=', Number(other_id))
-        .select((media) => [
-          'galrc_other_media.cover',
-          jsonObjectFrom(
-            media
-              .selectFrom('galrc_media')
-              .selectAll()
-              .whereRef(
-                'galrc_media.hash',
-                '=',
-                'galrc_other_media.media_hash',
-              ),
-          ).as('mediadata'),
-        ])
-        .execute(),
+        .select({
+          cover: otherMedia.cover,
+          mediadata:
+            sql`(SELECT row_to_json(m.*) FROM (SELECT * FROM galrc_media WHERE hash = ${sql.identifier('galrc_other_media')}.${sql.identifier('media_hash')} LIMIT 1) m)`,
+        })
+        .from(otherMedia)
+        .where(eq(otherMedia.otherId, Number(other_id))),
     )
     if (error)
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)

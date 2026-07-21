@@ -54,8 +54,7 @@
         "useTemplate": "off",
         "noNonNullAssertion": "off",
         "useExponentiationOperator": "off"
-      },
-      "recommended": true
+      }
     }
   },
   "javascript": {

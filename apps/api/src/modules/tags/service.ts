@@ -1,9 +1,10 @@
 import { db } from '@api/libs'
 import { delKv, getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
-import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import { t } from 'try'
 import type { TagsModel } from './model'
+import { eq, and, or, like, count, desc, asc, sql, type SQL } from 'drizzle-orm'
+import { alistb, vn, vnTitles, images, others, otherMedia, media, zhtags, tags, tagsVn } from '@api/libs'
 
 export const Tags = {
   async gameTags({ id }: TagsModel.gameTags) {
@@ -26,45 +27,37 @@ export const Tags = {
     // 3. 查询数据库
     const [, error, items] = await t(
       db
-        .selectFrom('galrc_alistb')
-        .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
-        .where((eb) =>
+        .select({
+          tags: sql<Array<Record<string, any>>>`COALESCE(
+            (SELECT json_agg(row_to_json(sub.*))
+             FROM (
+               SELECT
+                 (SELECT row_to_json(tag_obj.*)
+                  FROM (
+                    SELECT t.id, t.name, t.description,
+                           z.name AS zht_name, z.description AS zht_description
+                    FROM ${tags} t
+                    INNER JOIN ${zhtags} z ON t.id = z.id
+                    WHERE t.id = tv.tag AND z.exhibition = TRUE
+                  ) tag_obj
+                 ) AS tag_data
+               FROM ${tagsVn} tv
+               WHERE tv.vid = ${vn.id} AND tv.vote > 0
+               GROUP BY tv.tag, tv.vid
+               HAVING AVG(tv.vote) > 1
+             ) sub
+            ), '[]'::json
+          )`,
+        })
+        .from(alistb)
+        .innerJoin(vn, eq(alistb.vid, vn.id))
+        .where(
           idIsNumber
-            ? eb.or([
-                eb('galrc_alistb.vid', '=', id),
-                eb('galrc_alistb.other', '=', Number(id)),
-              ])
-            : eb('vn.id', '=', id),
+            ? or(eq(alistb.vid, id), eq(alistb.other, Number(id)))
+            : eq(vn.id, id),
         )
-        .select((vneb) => [
-          jsonArrayFrom(
-            vneb
-              .selectFrom('tags_vn')
-              .whereRef('tags_vn.vid', '=', 'vn.id')
-              // 只考虑有正向投票的数据
-              .where('tags_vn.vote', '>', 0)
-              // 分组统计标签的平均分
-              .groupBy(['tags_vn.tag', 'tags_vn.vid'])
-              .having((eb) => eb.fn.avg('tags_vn.vote'), '>', 1)
-              .select((tagsVn) => [
-                jsonObjectFrom(
-                  tagsVn
-                    .selectFrom('tags')
-                    .innerJoin('galrc_zhtag', 'tags.id', 'galrc_zhtag.id')
-                    .whereRef('tags.id', '=', 'tags_vn.tag')
-                    .where('galrc_zhtag.exhibition', '=', true)
-                    .select([
-                      'tags.id',
-                      'tags.name',
-                      'tags.description',
-                      'galrc_zhtag.name as zht_name',
-                      'galrc_zhtag.description as zht_description',
-                    ]),
-                ).as('tag_data'),
-              ]),
-          ).as('tags'),
-        ])
-        .executeTakeFirst(),
+        .limit(1)
+        .then((r) => r[0]),
     )
 
     if (error) {
@@ -93,17 +86,18 @@ export const Tags = {
     }
     const [, error, items] = t(
       await db
-        .selectFrom('tags')
-        .innerJoin('galrc_zhtag', 'tags.id', 'galrc_zhtag.id')
-        .where('tags.id', '=', tagId)
-        .select([
-          'tags.id',
-          'tags.name',
-          'tags.description',
-          'galrc_zhtag.name as zht_name',
-          'galrc_zhtag.description as zht_description',
-        ])
-        .executeTakeFirst(),
+        .select({
+          id: tags.id,
+          name: tags.name,
+          description: tags.description,
+          zht_name: zhtags.name,
+          zht_description: zhtags.description,
+        })
+        .from(tags)
+        .innerJoin(zhtags, eq(tags.id, zhtags.id))
+        .where(eq(tags.id, tagId))
+        .limit(1)
+        .then((r) => r[0]),
     )
 
     if (!items) {
@@ -136,79 +130,54 @@ export const Tags = {
     // 并行执行 主查询 + 统计查询
     const [mainResult, countResult] = await Promise.all([
       db
-        .selectFrom('tags_vn')
-        .innerJoin('galrc_alistb', 'galrc_alistb.vid', 'tags_vn.vid')
-        .where('tags_vn.tag', '=', tagId)
-        .groupBy(['tags_vn.tag', 'tags_vn.vid'])
-        .select((tagsVn) => [
-          jsonObjectFrom(
-            tagsVn
-              .selectFrom('galrc_alistb')
-              .innerJoin('vn', 'galrc_alistb.vid', 'vn.id')
-              .select(['vn.id', 'vn.olang'])
-              .whereRef('galrc_alistb.vid', '=', 'tags_vn.vid')
-              .select((vneb) => [
-                'vn.id',
-                jsonArrayFrom(
-                  vneb
-                    .selectFrom('vn_titles')
-                    .selectAll()
-                    .whereRef('vn_titles.id', '=', 'vn.id'),
-                ).as('titles'),
-                jsonObjectFrom(
-                  vneb
-                    .selectFrom('images')
-                    .select(['height', 'id', 'width'])
-                    .whereRef('images.id', '=', 'vn.c_image'),
-                ).as('images'),
-              ])
-              .select((other) => [
-                'galrc_alistb.other',
-                jsonObjectFrom(
-                  other
-                    .selectFrom('galrc_other')
-                    .whereRef('id', '=', 'galrc_alistb.other')
-                    .selectAll()
-                    .select((other) => [
-                      'galrc_alistb.other',
-                      jsonArrayFrom(
-                        other
-                          .selectFrom('galrc_other_media')
-                          .selectAll()
-                          .whereRef(
-                            'galrc_other_media.other_id',
-                            '=',
-                            'galrc_other.id',
-                          )
-                          .select((om) => [
-                            jsonObjectFrom(
-                              om
-                                .selectFrom('galrc_media')
-                                .selectAll()
-                                .whereRef(
-                                  'galrc_media.hash',
-                                  '=',
-                                  'galrc_other_media.media_hash',
-                                ),
-                            ).as('media'),
-                          ]),
-                      ).as('other_media'),
-                    ]),
-                ).as('other_datas'),
-              ]),
-          ).as('datas'),
-        ])
-        .orderBy('tags_vn.vid', 'desc')
+        .select({
+          datas: sql<Record<string, any>>`(SELECT row_to_json(obj.*)
+            FROM (
+              SELECT vn.id, vn.olang,
+                COALESCE(
+                  (SELECT json_agg(row_to_json(vnt.*)) FROM ${vnTitles} vnt WHERE vnt.id = vn.id),
+                  '[]'::json
+                ) AS titles,
+                (SELECT row_to_json(img.*)
+                 FROM (SELECT id, height, width FROM ${images} img WHERE img.id = vn.c_image) img
+                ) AS images,
+                a2.other,
+                (SELECT row_to_json(od.*)
+                 FROM (
+                   SELECT o.*, a2.other,
+                     COALESCE(
+                       (SELECT json_agg(row_to_json(om_sub.*))
+                        FROM (
+                          SELECT om.*,
+                            (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media
+                          FROM ${otherMedia} om WHERE om.other_id = o.id
+                        ) om_sub
+                       ), '[]'::json
+                     ) AS other_media
+                   FROM ${others} o WHERE o.id = a2.other
+                 ) od
+                ) AS other_datas
+              FROM ${alistb} a2
+              INNER JOIN ${vn} ON a2.vid = vn.id
+              WHERE a2.vid = ${tagsVn.vid}
+            ) obj
+          )`,
+        })
+        .from(tagsVn)
+        .innerJoin(alistb, eq(alistb.vid, tagsVn.vid))
+        .where(eq(tagsVn.tag, tagId))
+        .groupBy(tagsVn.tag, tagsVn.vid)
+        .orderBy(desc(tagsVn.vid))
         .limit(pageSize)
-        .offset(offset)
-        .execute(),
+        .offset(offset),
 
       db
-        .selectFrom('tags_vn')
-        .innerJoin('galrc_alistb', 'galrc_alistb.vid', 'tags_vn.vid')
-        .where('tags_vn.tag', '=', tagId)
-        .select(({ fn }) => [fn.count('tags_vn.vid').distinct().as('count')])
-        .executeTakeFirst(),
+        .select({ count: sql<number>`count(DISTINCT ${tagsVn.vid})` })
+        .from(tagsVn)
+        .innerJoin(alistb, eq(alistb.vid, tagsVn.vid))
+        .where(eq(tagsVn.tag, tagId))
+        .limit(1)
+        .then((r) => r[0]),
     ])
 
     // main query 结果处理
@@ -233,57 +202,72 @@ export const Tags = {
   },
   async tagAllGet({ pageSize, pageIndex, keyword, id }: TagsModel.tagAll) {
     const offset = pageIndex * pageSize
-    // 1. 查询分页数据
+
+    // 构建 keyword 与 id 的组合条件，用于两个查询复用
+    const keywordConditions: SQL[] = []
+    if (keyword) {
+      // or() with 3 valid conditions never returns undefined
+      keywordConditions.push(
+        or(
+          like(zhtags.name, `%${keyword}%`),
+          like(zhtags.alias, `%${keyword}%`),
+          like(zhtags.description, `%${keyword}%`),
+        )!,
+      )
+    }
+    if (id) {
+      keywordConditions.push(like(tags.id, `%${id}%`))
+    }
+    const combinedFilter: SQL | undefined =
+      keywordConditions.length > 0
+        ? (keywordConditions.length === 1
+            ? keywordConditions[0]
+            : and(...keywordConditions))
+        : undefined
+
+    // 1. 查询分页数据（单次 .where() 调用）
+    const dataQuery = db
+      .select({
+        id: tags.id,
+        zh_name: zhtags.name,
+        zh_description: zhtags.description,
+        zh_alias: zhtags.alias,
+        exhibition: zhtags.exhibition,
+      })
+      .from(tags)
+      .innerJoin(zhtags, eq(tags.id, zhtags.id))
+
     const [, error, data] = t(
-      await db
-        .selectFrom('tags')
-        .innerJoin('galrc_zhtag', 'tags.id', 'galrc_zhtag.id')
-        .select([
-          'tags.id',
-          'galrc_zhtag.name as zh_name',
-          'galrc_zhtag.description as zh_description',
-          'galrc_zhtag.alias as zh_alias',
-          'galrc_zhtag.exhibition',
-        ])
-        // 模糊匹配 keyword
-        .$if(!!keyword, (qb) =>
-          qb.where((eb) =>
-            eb.or([
-              eb('galrc_zhtag.name', 'like', `%${keyword}%`),
-              eb('galrc_zhtag.alias', 'like', `%${keyword}%`),
-              eb('galrc_zhtag.description', 'like', `%${keyword}%`),
-            ]),
-          ),
-        )
-        // id 模糊匹配
-        .$if(!!id, (qb) => qb.where('tags.id', 'like', `%${id}%`))
-        .orderBy('tags.id', 'asc')
+      await (combinedFilter
+        ? dataQuery.where(combinedFilter)
+        : dataQuery
+      )
+        .orderBy(asc(tags.id))
         .limit(pageSize)
-        .offset(offset)
-        .execute(),
+        .offset(offset),
     )
     if (error) {
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     }
 
-    // 2. 查询总数
+    // 2. 查询总数（带 exhibition 过滤，单次 .where() 调用）
+    const countConditions: SQL[] = [eq(zhtags.exhibition, true)]
+    if (combinedFilter) {
+      countConditions.push(combinedFilter)
+    }
+    const countFilter: SQL =
+      countConditions.length === 1
+        ? countConditions[0]
+        : and(...countConditions)!
+
+    const countQuery = db
+      .select({ count: count() })
+      .from(tags)
+      .innerJoin(zhtags, eq(tags.id, zhtags.id))
+      .where(countFilter)
+
     const [, error1, totalCountResult] = t(
-      await db
-        .selectFrom('tags')
-        .innerJoin('galrc_zhtag', 'tags.id', 'galrc_zhtag.id')
-        .where('galrc_zhtag.exhibition', '=', true)
-        .$if(!!keyword, (qb) =>
-          qb.where((eb) =>
-            eb.or([
-              eb('galrc_zhtag.name', 'like', `%${keyword}%`),
-              eb('galrc_zhtag.alias', 'like', `%${keyword}%`),
-              eb('galrc_zhtag.description', 'like', `%${keyword}%`),
-            ]),
-          ),
-        )
-        .$if(!!id, (qb) => qb.where('tags.id', 'like', `%${id}%`))
-        .select(({ fn }) => [fn.countAll().as('count')])
-        .executeTakeFirst(),
+      await countQuery.limit(1).then((r) => r[0]),
     )
     if (error1) {
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error1)}`)
@@ -308,15 +292,14 @@ export const Tags = {
   }: TagsModel.tagEdit) {
     const [ok, error] = t(
       await db
-        .updateTable('galrc_zhtag')
+        .update(zhtags)
         .set({
           name: zh_name,
           exhibition,
           alias: zh_alias,
           description: zh_description,
         })
-        .where('id', '=', id)
-        .execute(),
+        .where(eq(zhtags.id, id)),
     )
     if (error) {
       return false
@@ -336,19 +319,17 @@ export const Tags = {
 
     const [, error] = await t(
       db
-        .insertInto('galrc_zhtag')
+        .insert(zhtags)
         .values(datass)
-        .onConflict((oc) =>
-          oc
-            .column('id') // 假设 id 是主键，用于检测冲突
-            .doUpdateSet({
-              name: (eb) => eb.ref('excluded.name'),
-              exhibition: (eb) => eb.ref('excluded.exhibition'),
-              alias: (eb) => eb.ref('excluded.alias'),
-              description: (eb) => eb.ref('excluded.description'),
-            }),
-        )
-        .execute(),
+        .onConflictDoUpdate({
+          target: zhtags.id,
+          set: {
+            name: sql`excluded.name`,
+            exhibition: sql`excluded.exhibition`,
+            alias: sql`excluded.alias`,
+            description: sql`excluded.description`,
+          },
+        }),
     )
 
     if (error) {
@@ -358,7 +339,7 @@ export const Tags = {
     return true
   },
   async tagAllFileDwn() {
-    const datas = await db.selectFrom('galrc_zhtag').selectAll().execute()
+    const datas = await db.select().from(zhtags)
     return datas
   },
 }

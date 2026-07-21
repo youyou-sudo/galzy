@@ -1,5 +1,7 @@
 import { db } from '@api/libs'
+import { cloudflare, gameDownloadStats } from '@api/libs'
 import { status } from 'elysia'
+import { eq } from 'drizzle-orm'
 import { t } from 'try'
 import type { AlistFsResponse, DownloadModel } from './model'
 
@@ -30,11 +32,10 @@ export const Download = {
 
       const [, error, workerList] = t(
         await db
-          .selectFrom('galrc_cloudflare')
-          .where('enable', '=', true)
-          .selectAll()
-          .orderBy('id')
-          .execute(),
+          .select()
+          .from(cloudflare)
+          .where(eq(cloudflare.enable, true))
+          .orderBy(cloudflare.id),
       )
 
       if (error || workerList.length === 0) {
@@ -44,17 +45,16 @@ export const Download = {
       const randomWorker =
         workerList[Math.floor(Math.random() * workerList.length)]
       await db
-        .insertInto('galrc_gameDownloadStats')
+        .insert(gameDownloadStats)
         .values({
-          game_id: game_id,
-          file_path: path,
-          created_at: new Date(),
+          gameId: game_id,
+          filePath: path,
+          createdAt: new Date(),
         })
-        .executeTakeFirst()
 
       return {
         success: true,
-        raw_url: `${randomWorker.url_endpoint}${path.split('/').map(encodeURIComponent).join('/')}?sign=${alistData.data?.sign}`,
+        raw_url: `${randomWorker.urlEndpoint}${path.split('/').map(encodeURIComponent).join('/')}?sign=${alistData.data?.sign}`,
         sign: alistData.data.sign,
       }
     }
@@ -68,10 +68,9 @@ export const Download = {
   async Worker() {
     const [, error, res] = t(
       await db
-        .selectFrom('galrc_cloudflare')
-        .selectAll()
-        .orderBy('id')
-        .execute(),
+        .select()
+        .from(cloudflare)
+        .orderBy(cloudflare.id),
     )
     if (error)
       throw status(401, `服务出错了喵~，Error:${JSON.stringify(error)}`)
@@ -89,26 +88,25 @@ export const Download = {
       if (id) {
         // 修改数据
         await db
-          .updateTable('galrc_cloudflare')
+          .update(cloudflare)
           .set({
-            a_email,
-            a_key,
-            account_id,
-            woker_name,
-            url_endpoint,
+            aEmail: a_email,
+            aKey: a_key,
+            accountId: account_id,
+            wokerName: woker_name,
+            urlEndpoint: url_endpoint,
           })
-          .where('id', '=', Number(id))
-          .executeTakeFirst()
+          .where(eq(cloudflare.id, Number(id)))
       } else {
         // 创建数据
         await db
-          .insertInto('galrc_cloudflare')
+          .insert(cloudflare)
           .values({
-            a_email,
-            a_key,
-            account_id,
-            woker_name,
-            url_endpoint,
+            aEmail: a_email,
+            aKey: a_key,
+            accountId: account_id,
+            wokerName: woker_name,
+            urlEndpoint: url_endpoint,
             state: false,
             enable: false,
             duration: 0,
@@ -118,7 +116,6 @@ export const Download = {
             subrequests: 0,
             updateTime: null,
           })
-          .executeTakeFirst()
       }
     } catch (error) {
       console.log(error)
@@ -128,9 +125,8 @@ export const Download = {
   async workerConfigFormDel({ id }: DownloadModel.workerConfigFormDel) {
     if (id) {
       await db
-        .deleteFrom('galrc_cloudflare')
-        .where('id', '=', id)
-        .executeTakeFirst()
+        .delete(cloudflare)
+        .where(eq(cloudflare.id, id))
     } else {
       return status(400, `未提供 ID 喵～`)
     }
@@ -138,12 +134,11 @@ export const Download = {
   async nodeEnaledAc({ nodeId, boole }: DownloadModel.nodeEnaledAc) {
     try {
       await db
-        .updateTable('galrc_cloudflare')
+        .update(cloudflare)
         .set({
           enable: boole,
         })
-        .where('id', '=', nodeId)
-        .execute()
+        .where(eq(cloudflare.id, nodeId))
     } catch (error) {
       console.log(error)
       throw status(400, `服务出错了喵~，Error:${JSON.stringify(error)}`)

@@ -1,7 +1,8 @@
 import { db } from '@api/libs'
+import { producers, releasesProducers, releasesVn, vn, images, vnTitles } from '@api/libs'
 import { delKv, getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
-import { jsonArrayFrom } from 'kysely/helpers/postgres'
+import { eq, and, sql, getTableColumns, inArray } from 'drizzle-orm'
 import { t } from 'try'
 import type { ProducerModel } from './model'
 
@@ -15,25 +16,15 @@ export const Producer = {
 
     const [, error, producer] = t(
       await db
-        .selectFrom('producers')
-        .where('producers.id', '=', pid)
-        .selectAll()
-        .select((eb) => [
-          jsonArrayFrom(
-            eb
-              .selectFrom('producers_relations')
-              .where('producers_relations.id', '=', pid)
-              .innerJoin('producers', 'producers.id', 'producers_relations.pid')
-              .select([
-                'producers_relations.id',
-                'producers_relations.pid',
-                'producers.alias',
-                'producers.name',
-                'producers_relations.relation',
-              ]),
-          ).as('producers_relations'),
-        ])
-        .executeTakeFirst(),
+        .select({
+          ...getTableColumns(producers),
+          producers_relations:
+            sql`(SELECT COALESCE(json_agg(row_to_json(t.*)), '[]'::json) FROM (SELECT pr.id, pr.pid, p.alias, p.name, pr.relation FROM producers_relations pr INNER JOIN producers p ON p.id = pr.pid WHERE pr.id = ${sql.identifier('producers')}.${sql.identifier('id')}) t)`,
+        })
+        .from(producers)
+        .where(eq(producers.id, pid))
+        .limit(1)
+        .then((r) => r[0]),
     )
 
     if (!producer) throw status(404, `未找到 pid 为 ${pid} 的 producer`)
@@ -60,43 +51,30 @@ export const Producer = {
 
     const [, error, producerGamelists] = t(
       await db
-        .selectFrom('releases_producers')
-        .innerJoin('releases_vn', 'releases_vn.id', 'releases_producers.id')
-        .innerJoin('vn', 'vn.id', 'releases_vn.vid')
-        .innerJoin('images', 'images.id', 'vn.c_image')
-        .where((eb) =>
-          eb.exists(
-            eb
-              .selectFrom('galrc_alistb')
-              .select('galrc_alistb.vid')
-              .whereRef('galrc_alistb.vid', '=', 'releases_vn.vid'),
-          ),
-        )
-        .distinctOn(['vn.id'])
-        .orderBy('vn.id')
-        .orderBy('releases_vn.vid')
-        .where('releases_producers.pid', '=', pid)
-        .select((eb) => [
-          'vn.id',
-          'vn.alias',
-          'vn.description',
-          'vn.olang',
-          'images.id as image_id',
-          'images.width as image_width',
-          'images.height as image_height',
-          jsonArrayFrom(
-            eb
-              .selectFrom('vn_titles')
-              .whereRef('vn_titles.id', '=', 'vn.id')
-              .select([
-                'vn_titles.lang',
-                'vn_titles.official',
-                'vn_titles.title',
-                'vn_titles.latin',
-              ]),
-          ).as('titles'),
-        ])
-        .execute(),
+        .select({
+          id: vn.id,
+          alias: vn.alias,
+          description: vn.description,
+          olang: vn.olang,
+          image_id: images.id,
+          image_width: images.width,
+          image_height: images.height,
+          titles:
+            sql`(SELECT COALESCE(json_agg(row_to_json(t.*)), '[]'::json) FROM (SELECT lang, official, title, latin FROM vn_titles WHERE id = ${vn.id}) t)`,
+        })
+        .from(vn)
+        .innerJoin(images, eq(images.id, vn.cImage))
+        .where(inArray(
+          vn.id,
+          db.select({ vid: releasesVn.vid })
+            .from(releasesProducers)
+            .innerJoin(releasesVn, eq(releasesVn.id, releasesProducers.id))
+            .where(and(
+              eq(releasesProducers.pid, pid),
+              sql`EXISTS (SELECT 1 FROM galrc_alistb WHERE vid = ${releasesVn.vid})`,
+            )),
+        ) as any)
+        .orderBy(vn.id),
     )
 
     type Producergamelists = typeof producerGamelists

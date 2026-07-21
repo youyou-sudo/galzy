@@ -1,9 +1,10 @@
 import { getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
-import { jsonArrayFrom } from 'kysely/helpers/postgres'
 import { unique } from 'radash'
 import { t } from 'try'
-import { db } from '../../libs'
+import { db, sql } from '@api/libs'
+import { vn, vnTitles } from '@api/libs'
+import { eq, inArray } from 'drizzle-orm'
 import type { UmamiModel } from './model'
 
 const now = new Date()
@@ -90,21 +91,15 @@ export const Umami = {
     }))
 
     const ids = parsed.map((item) => item.id)
-    const rows = await db
-      .selectFrom('vn')
-      .select((v) => [
-        'vn.id',
-        'vn.olang',
-        jsonArrayFrom(
-          v
-            .selectFrom('vn_titles')
-            .select(['vn_titles.lang', 'vn_titles.title'])
-            .whereRef('vn_titles.id', '=', 'vn.id'),
-        ).as('titles'),
-      ])
-      .where('id', 'in', ids)
-      .execute()
-    const rowsWithTitle = rows.map((row) => {
+    const rows = await (db
+      .select({
+        id: vn.id,
+        olang: vn.olang,
+        titles: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT lang, title FROM ${vnTitles} t WHERE t.id = ${sql.identifier('vn')}.${sql.identifier('id')}) t), '[]'::json)`,
+      })
+      .from(vn)
+      .where(inArray(vn.id, ids)) as any)
+    const rowsWithTitle = (rows as Array<{ id: string; olang: string | null; titles: Array<{ lang: string; title: string }> }>).map((row) => {
       const titleObj =
         row.titles.find((t) => t.lang === 'zh-Hans') ||
         row.titles.find((t) => t.lang === 'zh') ||

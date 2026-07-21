@@ -1,4 +1,4 @@
-import { db } from '@api/libs'
+import { db, alistb, vn, vnTitles, images, tags, tagsVn, releases, releasesVn, releasesTitles, releasesProducers, producers, zhtags } from '@api/libs'
 import { acquireLockKv, delKvPattern, releaseLockKv } from '@api/libs/redis'
 import { idOrFilter, VndbClient } from '@api/libs/vndb-api'
 import type {
@@ -7,6 +7,7 @@ import type {
   TagResult,
   VnResult,
 } from '@api/libs/vndb-api/types'
+import { eq, isNotNull } from 'drizzle-orm'
 
 const BATCH_SIZE = 100
 
@@ -85,11 +86,9 @@ export const VndbSync = {
   async syncProducersFromDb() {
     console.log('🔄 开发者同步开始 (从现有 releases 数据)')
     const rows = await db
-      .selectFrom('releases_producers')
-      .select('pid')
-      .distinct()
-      .execute()
-    const pids = rows.map((r) => r.pid)
+      .selectDistinct({ pid: releasesProducers.pid })
+      .from(releasesProducers)
+    const pids = rows.map((r) => r.pid).filter((p): p is string => p !== null)
     console.log(`📦 从 releases_producers 找到 ${pids.length} 个开发者 ID`)
     await this.syncProducersByIds(pids)
     await this.invalidateCache()
@@ -102,7 +101,7 @@ export const VndbSync = {
     if (!(await acquireLockKv(lockKey, lockVal, 600_000))) return
     try {
       const existingIds = new Set(
-        (await db.selectFrom('vn').select('id').execute()).map((r) => r.id),
+        (await db.select({ id: vn.id }).from(vn)).map((r) => r.id),
       )
       const newVids = (await this.getAlistbVids()).filter(
         (v) => !existingIds.has(v),
@@ -145,11 +144,9 @@ export const VndbSync = {
 
   async getAlistbVids(): Promise<string[]> {
     const rows = await db
-      .selectFrom('galrc_alistb')
-      .select('vid')
-      .where('vid', 'is not', null)
-      .distinct()
-      .execute()
+      .selectDistinct({ vid: alistb.vid })
+      .from(alistb)
+      .where(isNotNull(alistb.vid))
     return rows.map((r) => r.vid!)
   },
 
@@ -189,105 +186,103 @@ export const VndbSync = {
       idOrFilter(vids),
       BATCH_SIZE,
     )) {
-      for (const vn of results) {
+      for (const vnData of results) {
         await db
-          .insertInto('vn')
+          .insert(vn)
           .values({
-            id: vn.id,
-            olang: vn.olang as any,
-            c_votecount: vn.votecount,
-            c_rating: vn.rating == null ? null : Math.round(vn.rating),
-            c_average: vn.average == null ? null : Math.round(vn.average),
-            length: vn.length as any,
-            devstatus: vn.devstatus as any,
-            alias: vn.aliases?.[0] ?? null,
-            description: vn.description,
-            c_image: vn.image?.id ?? null,
-            image_url: vn.image?.url ?? null,
-            synced_at: new Date(),
+            id: vnData.id,
+            olang: vnData.olang as any,
+            cVotecount: vnData.votecount,
+            cRating: vnData.rating == null ? null : Math.round(vnData.rating),
+            cAverage: vnData.average == null ? null : Math.round(vnData.average),
+            length: vnData.length as any,
+            devstatus: vnData.devstatus as any,
+            alias: vnData.aliases?.[0] ?? null,
+            description: vnData.description,
+            cImage: vnData.image?.id ?? null,
+            imageUrl: vnData.image?.url ?? null,
+            syncedAt: new Date(),
           })
-          .onConflict((oc) =>
-            oc.column('id').doUpdateSet({
-              olang: (eb) => eb.ref('excluded.olang'),
-              c_votecount: (eb) => eb.ref('excluded.c_votecount'),
-              c_rating: (eb) => eb.ref('excluded.c_rating'),
-              c_average: (eb) => eb.ref('excluded.c_average'),
-              length: (eb) => eb.ref('excluded.length'),
-              devstatus: (eb) => eb.ref('excluded.devstatus'),
-              alias: (eb) => eb.ref('excluded.alias'),
-              description: (eb) => eb.ref('excluded.description'),
-              c_image: (eb) => eb.ref('excluded.c_image'),
-              image_url: (eb) => eb.ref('excluded.image_url'),
-              synced_at: (eb) => eb.ref('excluded.synced_at'),
-            }),
-          )
-          .execute()
+          .onConflictDoUpdate({
+            target: vn.id,
+            set: {
+              olang: vnData.olang as any,
+              cVotecount: vnData.votecount,
+              cRating: vnData.rating == null ? null : Math.round(vnData.rating),
+              cAverage: vnData.average == null ? null : Math.round(vnData.average),
+              length: vnData.length as any,
+              devstatus: vnData.devstatus as any,
+              alias: vnData.aliases?.[0] ?? null,
+              description: vnData.description,
+              cImage: vnData.image?.id ?? null,
+              imageUrl: vnData.image?.url ?? null,
+              syncedAt: new Date(),
+            },
+          })
 
-        if (vn.titles?.length) {
-          await db.deleteFrom('vn_titles').where('id', '=', vn.id).execute()
+        if (vnData.titles?.length) {
+          await db.delete(vnTitles).where(eq(vnTitles.id, vnData.id))
           await db
-            .insertInto('vn_titles')
+            .insert(vnTitles)
             .values(
-              vn.titles.map((t) => ({
-                id: vn.id,
+              vnData.titles.map((t) => ({
+                id: vnData.id,
                 lang: t.lang as any,
                 official: t.official,
                 title: t.title,
                 latin: t.latin,
                 main: t.main,
-                synced_at: new Date(),
+                syncedAt: new Date(),
               })),
             )
-            .execute()
         }
 
-        if (vn.image?.id) {
+        if (vnData.image?.id) {
           await db
-            .insertInto('images')
+            .insert(images)
             .values({
-              id: vn.image.id,
-              url: vn.image.url,
-              width: vn.image.dims[0],
-              height: vn.image.dims[1],
-              c_votecount: vn.image.votecount,
-              c_sexual_avg: vn.image.sexual,
-              c_violence_avg: vn.image.violence,
-              c_weight: 0,
-              c_sexual_stddev: 0,
-              c_violence_stddev: 0,
-              synced_at: new Date(),
+              id: vnData.image.id,
+              url: vnData.image.url,
+              width: vnData.image.dims[0],
+              height: vnData.image.dims[1],
+              cVotecount: vnData.image.votecount,
+              cSexualAvg: vnData.image.sexual,
+              cViolenceAvg: vnData.image.violence,
+              cWeight: 0,
+              cSexualStddev: 0,
+              cViolenceStddev: 0,
+              syncedAt: new Date(),
             })
-            .onConflict((oc) =>
-              oc.column('id').doUpdateSet({
-                url: (eb) => eb.ref('excluded.url'),
-                width: (eb) => eb.ref('excluded.width'),
-                height: (eb) => eb.ref('excluded.height'),
-                c_votecount: (eb) => eb.ref('excluded.c_votecount'),
-                c_sexual_avg: (eb) => eb.ref('excluded.c_sexual_avg'),
-                c_violence_avg: (eb) => eb.ref('excluded.c_violence_avg'),
-                synced_at: (eb) => eb.ref('excluded.synced_at'),
-              }),
-            )
-            .execute()
+            .onConflictDoUpdate({
+              target: images.id,
+              set: {
+                url: vnData.image.url,
+                width: vnData.image.dims[0],
+                height: vnData.image.dims[1],
+                cVotecount: vnData.image.votecount,
+                cSexualAvg: vnData.image.sexual,
+                cViolenceAvg: vnData.image.violence,
+                syncedAt: new Date(),
+              },
+            })
         }
 
-        if (vn.tags?.length) {
-          for (const tag of vn.tags) tagIds.add(tag.id)
-          await db.deleteFrom('tags_vn').where('vid', '=', vn.id).execute()
+        if (vnData.tags?.length) {
+          for (const tag of vnData.tags) tagIds.add(tag.id)
+          await db.delete(tagsVn).where(eq(tagsVn.vid, vnData.id))
           await db
-            .insertInto('tags_vn')
+            .insert(tagsVn)
             .values(
-              vn.tags.map((t) => ({
+              vnData.tags.map((t) => ({
                 tag: t.id,
-                vid: vn.id,
+                vid: vnData.id,
                 vote: t.rating,
                 spoiler: t.spoiler,
                 lie: t.lie,
                 ignore: false,
-                synced_at: new Date(),
+                syncedAt: new Date(),
               })),
             )
-            .execute()
         }
       }
       console.log(`  → transaction done, sleeping 2s...`)
@@ -303,8 +298,8 @@ export const VndbSync = {
     if (tagIds.length === 0) return
 
     // Also include tags referenced by galrc_zhtag
-    const zhtags = await db.selectFrom('galrc_zhtag').select('id').execute()
-    const allIds = [...new Set([...tagIds, ...zhtags.map((z) => z.id)])]
+    const zhTagRows = await db.select({ id: zhtags.id }).from(zhtags)
+    const allIds = [...new Set([...tagIds, ...zhTagRows.map((z) => z.id)])]
 
     const fields =
       'id,name,aliases,description,category,searchable,applicable,vn_count'
@@ -319,7 +314,7 @@ export const VndbSync = {
       )) {
         for (const tag of results) {
           await db
-            .insertInto('tags')
+            .insert(tags)
             .values({
               id: tag.id,
               cat: tag.category,
@@ -328,20 +323,20 @@ export const VndbSync = {
               description: tag.description,
               searchable: tag.searchable,
               applicable: tag.applicable,
-              synced_at: new Date(),
+              syncedAt: new Date(),
             })
-            .onConflict((oc) =>
-              oc.column('id').doUpdateSet({
-                cat: (eb) => eb.ref('excluded.cat'),
-                name: (eb) => eb.ref('excluded.name'),
-                alias: (eb) => eb.ref('excluded.alias'),
-                description: (eb) => eb.ref('excluded.description'),
-                searchable: (eb) => eb.ref('excluded.searchable'),
-                applicable: (eb) => eb.ref('excluded.applicable'),
-                synced_at: (eb) => eb.ref('excluded.synced_at'),
-              }),
-            )
-            .execute()
+            .onConflictDoUpdate({
+              target: tags.id,
+              set: {
+                cat: tag.category,
+                name: tag.name,
+                alias: tag.aliases?.join(',') ?? null,
+                description: tag.description,
+                searchable: tag.searchable,
+                applicable: tag.applicable,
+                syncedAt: new Date(),
+              },
+            })
         }
       }
       await new Promise((r) => setTimeout(r, 2000))
@@ -388,7 +383,7 @@ export const VndbSync = {
       console.log(`  → release page: ${results.length} results`)
       for (const rel of results) {
         await db
-          .insertInto('releases')
+          .insert(releases)
           .values({
             id: rel.id,
             title: rel.title,
@@ -398,56 +393,54 @@ export const VndbSync = {
             freeware: rel.freeware,
             uncensored: rel.uncensored,
             official: rel.official,
-            has_ero: rel.has_ero,
+            hasEro: rel.has_ero,
             engine: rel.engine,
             voiced: rel.voiced,
-            gtin: rel.gtin ? BigInt(rel.gtin) : null,
+            gtin: rel.gtin ? Number(rel.gtin) : null,
             catalog: rel.catalog,
             notes: rel.notes,
-            synced_at: new Date(),
+            syncedAt: new Date(),
           })
-          .onConflict((oc) =>
-            oc.column('id').doUpdateSet({
-              title: (eb) => eb.ref('excluded.title'),
-              released: (eb) => eb.ref('excluded.released'),
-              minage: (eb) => eb.ref('excluded.minage'),
-              patch: (eb) => eb.ref('excluded.patch'),
-              freeware: (eb) => eb.ref('excluded.freeware'),
-              uncensored: (eb) => eb.ref('excluded.uncensored'),
-              official: (eb) => eb.ref('excluded.official'),
-              has_ero: (eb) => eb.ref('excluded.has_ero'),
-              engine: (eb) => eb.ref('excluded.engine'),
-              voiced: (eb) => eb.ref('excluded.voiced'),
-              gtin: (eb) => eb.ref('excluded.gtin'),
-              catalog: (eb) => eb.ref('excluded.catalog'),
-              notes: (eb) => eb.ref('excluded.notes'),
-              synced_at: (eb) => eb.ref('excluded.synced_at'),
-            }),
-          )
-          .execute()
+          .onConflictDoUpdate({
+            target: releases.id,
+            set: {
+              title: rel.title,
+              released: rel.released,
+              minage: rel.minage,
+              patch: rel.patch,
+              freeware: rel.freeware,
+              uncensored: rel.uncensored,
+              official: rel.official,
+              hasEro: rel.has_ero,
+              engine: rel.engine,
+              voiced: rel.voiced,
+              gtin: rel.gtin ? Number(rel.gtin) : null,
+              catalog: rel.catalog,
+              notes: rel.notes,
+              syncedAt: new Date(),
+            },
+          })
 
         if (rel.vns?.length) {
-          await db.deleteFrom('releases_vn').where('id', '=', rel.id).execute()
+          await db.delete(releasesVn).where(eq(releasesVn.id, rel.id))
           await db
-            .insertInto('releases_vn')
+            .insert(releasesVn)
             .values(
               rel.vns.map((v) => ({
                 id: rel.id,
                 vid: v.id,
                 rtype: v.rtype,
-                synced_at: new Date(),
+                syncedAt: new Date(),
               })),
             )
-            .execute()
         }
 
         if (rel.languages?.length) {
           await db
-            .deleteFrom('releases_titles')
-            .where('id', '=', rel.id)
-            .execute()
+            .delete(releasesTitles)
+            .where(eq(releasesTitles.id, rel.id))
           await db
-            .insertInto('releases_titles')
+            .insert(releasesTitles)
             .values(
               rel.languages.map((l) => ({
                 id: rel.id,
@@ -458,27 +451,24 @@ export const VndbSync = {
                 main: l.main,
               })),
             )
-            .execute()
         }
 
         if (rel.producers?.length) {
           for (const p of rel.producers) producerIds.add(p.id)
           await db
-            .deleteFrom('releases_producers')
-            .where('id', '=', rel.id)
-            .execute()
+            .delete(releasesProducers)
+            .where(eq(releasesProducers.id, rel.id))
           await db
-            .insertInto('releases_producers')
+            .insert(releasesProducers)
             .values(
               rel.producers.map((p) => ({
                 id: rel.id,
                 pid: p.id,
                 developer: p.developer,
                 publisher: p.publisher,
-                synced_at: new Date(),
+                syncedAt: new Date(),
               })),
             )
-            .execute()
         }
       }
       await new Promise((r) => setTimeout(r, 2000))
@@ -506,7 +496,7 @@ export const VndbSync = {
       )) {
         for (const prod of results) {
           await db
-            .insertInto('producers')
+            .insert(producers)
             .values({
               id: prod.id,
               type: prod.type as any,
@@ -516,20 +506,20 @@ export const VndbSync = {
               latin: prod.original,
               alias: prod.aliases?.join(',') ?? null,
               description: prod.description,
-              synced_at: new Date(),
+              syncedAt: new Date(),
             })
-            .onConflict((oc) =>
-              oc.column('id').doUpdateSet({
-                type: (eb) => eb.ref('excluded.type'),
-                name: (eb) => eb.ref('excluded.name'),
-                original: (eb) => eb.ref('excluded.original'),
-                latin: (eb) => eb.ref('excluded.latin'),
-                alias: (eb) => eb.ref('excluded.alias'),
-                description: (eb) => eb.ref('excluded.description'),
-                synced_at: (eb) => eb.ref('excluded.synced_at'),
-              }),
-            )
-            .execute()
+            .onConflictDoUpdate({
+              target: producers.id,
+              set: {
+                type: prod.type as any,
+                name: prod.name,
+                original: prod.original,
+                latin: prod.original,
+                alias: prod.aliases?.join(',') ?? null,
+                description: prod.description,
+                syncedAt: new Date(),
+              },
+            })
         }
       }
       await new Promise((r) => setTimeout(r, 2000))
