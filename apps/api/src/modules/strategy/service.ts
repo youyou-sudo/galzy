@@ -10,7 +10,6 @@ import {
 } from '@api/libs/redis'
 import { status } from 'elysia'
 import { eq, and, desc, like, count, getTableColumns } from 'drizzle-orm'
-import { t } from 'try'
 import type { StrategyModel } from './model'
 
 export const Strategy = {
@@ -19,20 +18,16 @@ export const Strategy = {
     if (redisData !== null && redisData !== undefined) {
       return JSON.parse(redisData) as StrategyContent
     }
-    const [, error, strategyContent] = t(
-      await db
-        .select({
-          ...getTableColumns(articles),
-          user: sql<{ id: string; name: string; image: string }>`
-            (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${articles.author}) "u")
-          `.as('user'),
-        })
-        .from(articles)
-        .where(eq(articles.id, strategyId))
-        .then((r) => r[0]),
-    )
-    if (error)
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+    const strategyContent = await db
+      .select({
+        ...getTableColumns(articles),
+        user: sql<{ id: string; name: string; image: string }>`
+          (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${articles.author}) "u")
+        `.as('user'),
+      })
+      .from(articles)
+      .where(eq(articles.id, strategyId))
+      .then((r) => r[0])
     void setKv(
       `strategy-${strategyId}`,
       JSON.stringify(strategyContent),
@@ -47,26 +42,22 @@ export const Strategy = {
       return JSON.parse(redisData) as StrategyContent
     }
     const isVNDB = /^v\d+$/.test(gameId)
-    const [, error, data] = t(
-      await db
-        .select({
-          ...getTableColumns(articles),
-          user: sql<Record<string, any>>`
-            (SELECT row_to_json("u".*) FROM (SELECT * FROM "galrc_user" WHERE "id" = ${articles.author}) "u")
-          `.as('user'),
-        })
-        .from(articles)
-        .where(
-          and(
-            eq(articles.type, 'strategy'),
-            isVNDB
-              ? eq(articles.vid, gameId)
-              : eq(articles.otherid, Number(gameId)),
-          ),
+    const data = await db
+      .select({
+        ...getTableColumns(articles),
+        user: sql<Record<string, any>>`
+          (SELECT row_to_json("u".*) FROM (SELECT * FROM "galrc_user" WHERE "id" = ${articles.author}) "u")
+        `.as('user'),
+      })
+      .from(articles)
+      .where(
+        and(
+          eq(articles.type, 'strategy'),
+          isVNDB
+            ? eq(articles.vid, gameId)
+            : eq(articles.otherid, Number(gameId)),
         ),
-    )
-    if (error)
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+      )
     void setKv(`gameStrategys:${gameId}`, JSON.stringify(data), 60 * 60 * 1)
     type StrategyContent = typeof data
     return data

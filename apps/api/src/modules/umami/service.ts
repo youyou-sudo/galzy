@@ -59,9 +59,10 @@ export const Umami = {
 
     const uniqueById = unique(data, (item) => item.tag)
 
-    void setKv('remfTag', JSON.stringify(uniqueById), 60 * 15)
-    type RemfTag = typeof uniqueById
-    return uniqueById
+    const result = structuredClone(uniqueById)
+    void setKv('remfTag', JSON.stringify(result), 60 * 15)
+    type RemfTag = typeof result
+    return result
   },
   // Game 统计
   async remfGameGet() {
@@ -118,11 +119,12 @@ export const Umami = {
       title: titleMap.get(item.id) ?? item.title ?? null,
     }))
 
-    void setKv('remfGame', JSON.stringify(result), 60 * 15)
+    const cloned = structuredClone(result)
+    void setKv('remfGame', JSON.stringify(cloned), 60 * 15)
 
-    type RemfGame = typeof result
+    type RemfGame = typeof cloned
 
-    return result
+    return cloned
   },
   async gameDloadNuber({ vid }: UmamiModel.gameDloadNuber) {
     const redisData = await getKv(`gameDloadNuber-${vid}`)

@@ -12,7 +12,6 @@ import {
 } from '@api/libs/redis'
 import { status } from 'elysia'
 import { eq, count as countAll, desc, asc, isNull, isNotNull, like, or, and } from 'drizzle-orm'
-import { t } from 'try'
 import type { GameModel } from './model'
 
 export const Game = {
@@ -21,11 +20,7 @@ export const Game = {
     if (redisData !== null && redisData !== undefined) {
       return Number(redisData)
     }
-    const [, error, totalCountResult] = t(
-      await db.select({ count: countAll() }).from(alistb).then(r => r[0]),
-    )
-    if (error)
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+    const totalCountResult = await db.select({ count: countAll() }).from(alistb).then(r => r[0])
     const total = Number(totalCountResult?.count || 0)
     void setKv('gameCount', String(total), 60 * 30)
     return total
@@ -36,8 +31,7 @@ export const Game = {
       return JSON.parse(redisData) as GameList
     }
     const offset = pageIndex * pageSize
-    const [, error, items] = await t(
-      (db
+    const items = await (db
         .select({
           id: vn.id,
           olang: vn.olang,
@@ -76,17 +70,8 @@ export const Game = {
         .orderBy(desc(vn.id))
         .orderBy(desc(alistb.other))
         .limit(pageSize)
-        .offset(offset),
-    )
-    if (error) {
-      throw status(500, `服务出错了喵~,Error:${JSON.stringify(error)}`)
-    }
-    const [, error1, totalCountResult] = t(
-      await db.select({ count: countAll() }).from(alistb).then(r => r[0]),
-    )
-    if (error1) {
-      throw status(500, `服务出错了喵~,Error:${JSON.stringify(error)}`)
-    }
+        .offset(offset)
+    const totalCountResult = await db.select({ count: countAll() }).from(alistb).then(r => r[0])
     const totalCount = Number(totalCountResult?.count || 0)
     const totalPages = Math.ceil(totalCount / pageSize)
     const datas = {
@@ -95,13 +80,14 @@ export const Game = {
       totalPages,
       totalCount,
     }
+    const result = JSON.parse(JSON.stringify(datas, (key, value) => typeof value === 'bigint' ? Number(value) : value))
     void setKv(
       `gameList:${pageIndex}-${pageSize}`,
-      JSON.stringify(datas),
+      JSON.stringify(result),
       60 * 60 * 2,
     )
-    type GameList = typeof datas
-    return datas
+    type GameList = typeof result
+    return result
   },
   async InfoGet({ id }: GameModel.infoId) {
     const cacheKey = `gameInfo:${id}`
@@ -117,8 +103,7 @@ export const Game = {
 
     const idIsNumber = /^\d+$/.test(id)
 
-    const [, error, data] = t(
-      await (db
+    const data = await (db
         .select({
           id: alistb.id,
           vid: alistb.vid,
@@ -192,18 +177,13 @@ export const Game = {
         .from(alistb)
         .where(idIsNumber ? eq(alistb.other, Number(id)) : eq(alistb.vid, id)) as any)
         .limit(1)
-        .then((r: any) => r[0]),
-    )
-
-    if (error) {
-      throw status(500, `服务出错了喵~ Error: ${JSON.stringify(error)}`)
-    }
+        .then((r: any) => r[0])
 
     if (!data) {
       throw status(404, `未找到 id=${id} 对应的游戏信息`)
     }
 
-    const result = structuredClone(data)
+    const result = JSON.parse(JSON.stringify(data, (key, value) => typeof value === 'bigint' ? Number(value) : value))
     void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 6)
 
     type GameInfo = typeof result
@@ -342,38 +322,34 @@ export const Game = {
     return data
   },
   async DataFilteringStats() {
-    const [, error, [onlyOther, bothExist, onlyVid, all]] = t(
-      await Promise.all([
-        db
-          .select({ count: countAll() })
-          .from(alistb)
-          .where(and(isNotNull(alistb.other), isNull(alistb.vid)))
-          .limit(1)
-          .then(r => r[0]),
+    const [onlyOther, bothExist, onlyVid, all] = await Promise.all([
+      db
+        .select({ count: countAll() })
+        .from(alistb)
+        .where(and(isNotNull(alistb.other), isNull(alistb.vid)))
+        .limit(1)
+        .then(r => r[0]),
 
-        db
-          .select({ count: countAll() })
-          .from(alistb)
-          .where(and(isNotNull(alistb.vid), isNotNull(alistb.other)))
-          .limit(1)
-          .then(r => r[0]),
+      db
+        .select({ count: countAll() })
+        .from(alistb)
+        .where(and(isNotNull(alistb.vid), isNotNull(alistb.other)))
+        .limit(1)
+        .then(r => r[0]),
 
-        db
-          .select({ count: countAll() })
-          .from(alistb)
-          .where(and(isNotNull(alistb.vid), isNull(alistb.other)))
-          .limit(1)
-          .then(r => r[0]),
+      db
+        .select({ count: countAll() })
+        .from(alistb)
+        .where(and(isNotNull(alistb.vid), isNull(alistb.other)))
+        .limit(1)
+        .then(r => r[0]),
 
-        db
-          .select({ count: countAll() })
-          .from(alistb)
-          .limit(1)
-          .then(r => r[0]),
-      ]),
-    )
-    if (error)
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+      db
+        .select({ count: countAll() })
+        .from(alistb)
+        .limit(1)
+        .then(r => r[0]),
+    ])
     const data = {
       onlyOther: onlyOther?.count ?? 0,
       bothExist: bothExist?.count ?? 0,
@@ -446,9 +422,7 @@ export const Game = {
       .limit(limit)
       .offset(offset)
 
-    const [, error, data] = t(await dataQuery)
-    if (error)
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+    const data = await dataQuery
     return {
       data,
       pagination: {
@@ -492,27 +466,17 @@ export const Game = {
           .limit(1)
           .then((r: any) => r[0])
       }
-      let [, error, data] = t(await fetchData())
-      if (error)
-        throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+      let data = await fetchData()
       if (data?.other_data === null) {
-        const [, error, newOtherId] = t(
-          await db
-            .insert(others)
-            .values({ status: 'draft' })
-            .returning({ id: others.id })
-            .then(r => r[0]),
-        )
-        if (error)
-          throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
-        const [, error1] = t(
-          await db
-            .update(alistb)
-            .set({ other: newOtherId.id })
-            .where(eq(alistb.vid, id)),
-        )
-        if (error1)
-          throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+        const newOtherId = await db
+          .insert(others)
+          .values({ status: 'draft' })
+          .returning({ id: others.id })
+          .then(r => r[0])
+        await db
+          .update(alistb)
+          .set({ other: newOtherId.id })
+          .where(eq(alistb.vid, id))
         data = await fetchData()
       }
       const datas = data!.other_data
@@ -546,28 +510,18 @@ export const Game = {
           .limit(1)
           .then((r: any) => r[0])
       }
-      let [, error, data] = t(await fetchData())
-      if (error)
-        throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+      let data = await fetchData()
       if (data === undefined) {
-        const [, error, newOtherId] = t(
-          await db
-            .insert(others)
-            .values({ status: 'draft' })
-            .returning({ id: others.id })
-            .then(r => r[0]),
-        )
-        if (error)
-          throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+        const newOtherId = await db
+          .insert(others)
+          .values({ status: 'draft' })
+          .returning({ id: others.id })
+          .then(r => r[0])
 
-        const [, error1] = t(
-          await db
-            .update(alistb)
-            .set({ other: newOtherId.id })
-            .where(eq(alistb.other, Number(id))),
-        )
-        if (error1)
-          throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+        await db
+          .update(alistb)
+          .set({ other: newOtherId.id })
+          .where(eq(alistb.other, Number(id)))
 
         data = await fetchData()
       }
@@ -586,25 +540,15 @@ export const Game = {
     }
     const { title, description, alias } = data
     const titleObject = Array.isArray(title) ? JSON.stringify(title) : title
-    const [, error] = t(
-      await db
-        .update(others)
-        .set({
-          title: titleObject,
-          description: description,
-          alias: alias,
-        })
-        .where(eq(others.id, Number(id))),
-    )
-    let datas = {}
-    if (error) {
-      datas = {
-        message: '更新 galrc_other 失败',
-        status: 'error',
-        error: error,
-      }
-    }
-    datas = {
+    await db
+      .update(others)
+      .set({
+        title: titleObject,
+        description: description,
+        alias: alias,
+      })
+      .where(eq(others.id, Number(id)))
+    let datas = {
       message: '更新 galrc_other 成功',
       status: 'success',
     }
@@ -685,16 +629,12 @@ export const Game = {
   GROUP BY start
   ORDER BY start ASC;
 `)
-    const [, error, data] = t(
-      await db
-        .select({ total: countAll() })
-        .from(gameDownloadStats)
-        .where(eq(gameDownloadStats.gameId, id))
-        .limit(1)
-        .then(r => r[0]),
-    )
-    if (error)
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+    const data = await db
+      .select({ total: countAll() })
+      .from(gameDownloadStats)
+      .where(eq(gameDownloadStats.gameId, id))
+      .limit(1)
+      .then(r => r[0])
     return { total: data?.total, res }
   },
 }

@@ -5,7 +5,6 @@ import { VndbSync } from '@api/modules/vndb-sync/service'
 import { status } from 'elysia'
 import { eq, and, desc, asc, count, lt, gt, gte, lte, like, isNull, isNotNull, inArray, notInArray } from 'drizzle-orm'
 import { all } from 'radash'
-import { t } from 'try'
 import { processData } from './lib'
 
 export const CronService = {
@@ -121,26 +120,22 @@ export const CronService = {
     if (!lock) return null
 
     try {
-      const [, error, [alistUpInfo, alistUpTime]] = t(
-        await Promise.all([
-          fetch(`${process.env.OPENLIST_HOST}/api/admin/index/progress`, {
-            method: 'GET',
-            headers: {
-              Authorization: `${process.env.OPENLIST_API_KEY}`,
-            },
-          }),
-          db
-            .select()
-            .from(siteConfig)
-            .where(eq(siteConfig.key, 'alistUpTime'))
-            .limit(1)
-            .then(r => r[0]),
-        ]),
-      )
+      const [alistUpInfo, alistUpTime] = await Promise.all([
+        fetch(`${process.env.OPENLIST_HOST}/api/admin/index/progress`, {
+          method: 'GET',
+          headers: {
+            Authorization: `${process.env.OPENLIST_API_KEY}`,
+          },
+        }),
+        db
+          .select()
+          .from(siteConfig)
+          .where(eq(siteConfig.key, 'alistUpTime'))
+          .limit(1)
+          .then(r => r[0]),
+      ])
 
       const alistUp = await alistUpInfo.json()
-
-      if (error) throw `Error:${JSON.stringify(error)}`
 
       if (!alistUp) return
       if (alistUp.is_done === false) return
@@ -174,55 +169,52 @@ export const CronService = {
       const data = await openlistdatas.json()
       const processedData = processData(data.data.content)
 
-      const [, trxError] = t(
-        await db.transaction(async (trx) => {
-          // 使用 UPSERT 替代全量删除，避免数据丢失
-          for (const result of processedData) {
-            await trx
-              .insert(alistb)
-              .values({
-                id: result.id,
+      await db.transaction(async (trx) => {
+        // 使用 UPSERT 替代全量删除，避免数据丢失
+        for (const result of processedData) {
+          await trx
+            .insert(alistb)
+            .values({
+              id: result.id,
+              vid: result.vid,
+              other: result.other != null ? Number(result.other) : null,
+              path: result.path,
+            })
+            .onConflictDoUpdate({
+              target: alistb.id,
+              set: {
                 vid: result.vid,
                 other: result.other != null ? Number(result.other) : null,
                 path: result.path,
-              })
-              .onConflictDoUpdate({
-                target: alistb.id,
-                set: {
-                  vid: result.vid,
-                  other: result.other != null ? Number(result.other) : null,
-                  path: result.path,
-                },
-              })
-          }
+              },
+            })
+        }
 
-          // 删除不再存在的记录
-          const currentIds = processedData.map((r) => r.vid)
-          if (currentIds.length > 0) {
-            await trx
-              .delete(alistb)
-              .where(notInArray(alistb.vid, currentIds))
-          }
-
+        // 删除不再存在的记录
+        const currentIds = processedData.map((r) => r.vid)
+        if (currentIds.length > 0) {
           await trx
-            .insert(siteConfig)
-            .values({
-              key: 'alistUpTime',
+            .delete(alistb)
+            .where(notInArray(alistb.vid, currentIds))
+        }
+
+        await trx
+          .insert(siteConfig)
+          .values({
+            key: 'alistUpTime',
+            config: JSON.stringify({
+              lastUpdate: alistUp.last_done_time,
+            }),
+          })
+          .onConflictDoUpdate({
+            target: siteConfig.key,
+            set: {
               config: JSON.stringify({
                 lastUpdate: alistUp.last_done_time,
               }),
-            })
-            .onConflictDoUpdate({
-              target: siteConfig.key,
-              set: {
-                config: JSON.stringify({
-                  lastUpdate: alistUp.last_done_time,
-                }),
-              },
-            })
-        }),
-      )
-      if (trxError) throw `Error:${JSON.stringify(trxError)}`
+            },
+          })
+      })
       console.log('alistSyncScript 运行成功喵')
       void VndbSync.syncDelta()
       await releaseLockKv(lockKey, lockValue)

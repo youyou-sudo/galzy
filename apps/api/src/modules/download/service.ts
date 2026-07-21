@@ -30,15 +30,13 @@ export const Download = {
 
       if (alisterror) throw status(500, `Error:${JSON.stringify(alisterror)}`)
 
-      const [, error, workerList] = t(
-        await db
-          .select()
-          .from(cloudflare)
-          .where(eq(cloudflare.enable, true))
-          .orderBy(cloudflare.id),
-      )
+      const workerList = await db
+        .select()
+        .from(cloudflare)
+        .where(eq(cloudflare.enable, true))
+        .orderBy(cloudflare.id)
 
-      if (error || workerList.length === 0) {
+      if (workerList.length === 0) {
         throw status(500, '没有可用的下载节点喵~')
       }
 
@@ -66,14 +64,10 @@ export const Download = {
     return res
   },
   async Worker() {
-    const [, error, res] = t(
-      await db
-        .select()
-        .from(cloudflare)
-        .orderBy(cloudflare.id),
-    )
-    if (error)
-      throw status(401, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+    const res = await db
+      .select()
+      .from(cloudflare)
+      .orderBy(cloudflare.id)
     return res
   },
   async workerConfigFormPut({

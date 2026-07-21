@@ -1,7 +1,6 @@
 import { db } from '@api/libs'
 import { delKv, getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
-import { t } from 'try'
 import type { TagsModel } from './model'
 import { eq, and, or, like, count, desc, asc, sql, type SQL } from 'drizzle-orm'
 import { alistb, vn, vnTitles, images, others, otherMedia, media, zhtags, tags, tagsVn } from '@api/libs'
@@ -25,44 +24,38 @@ export const Tags = {
     const idIsNumber = /^\d+$/.test(id)
 
     // 3. 查询数据库
-    const [, error, items] = await t(
-      db
-        .select({
-          tags: sql<Array<Record<string, any>>>`COALESCE(
-            (SELECT json_agg(row_to_json(sub.*))
-             FROM (
-               SELECT
-                 (SELECT row_to_json(tag_obj.*)
-                  FROM (
-                    SELECT t.id, t.name, t.description,
-                           z.name AS zht_name, z.description AS zht_description
-                    FROM ${tags} t
-                    INNER JOIN ${zhtags} z ON t.id = z.id
-                    WHERE t.id = tv.tag AND z.exhibition = TRUE
-                  ) tag_obj
-                 ) AS tag_data
-               FROM ${tagsVn} tv
-               WHERE tv.vid = ${vn.id} AND tv.vote > 0
-               GROUP BY tv.tag, tv.vid
-               HAVING AVG(tv.vote) > 1
-             ) sub
-            ), '[]'::json
-          )`,
-        })
-        .from(alistb)
-        .innerJoin(vn, eq(alistb.vid, vn.id))
-        .where(
-          idIsNumber
-            ? or(eq(alistb.vid, id), eq(alistb.other, Number(id)))
-            : eq(vn.id, id),
-        )
-        .limit(1)
-        .then((r) => r[0]),
-    )
-
-    if (error) {
-      throw status(500, `服务出错了喵~ Error:${JSON.stringify(error)}`)
-    }
+    const items = await db
+      .select({
+        tags: sql<Array<Record<string, any>>>`COALESCE(
+          (SELECT json_agg(row_to_json(sub.*))
+           FROM (
+             SELECT
+               (SELECT row_to_json(tag_obj.*)
+                FROM (
+                  SELECT t.id, t.name, t.description,
+                         z.name AS zht_name, z.description AS zht_description
+                  FROM ${tags} t
+                  INNER JOIN ${zhtags} z ON t.id = z.id
+                  WHERE t.id = tv.tag AND z.exhibition = TRUE
+                ) tag_obj
+               ) AS tag_data
+             FROM ${tagsVn} tv
+             WHERE tv.vid = ${vn.id} AND tv.vote > 0
+             GROUP BY tv.tag, tv.vid
+             HAVING AVG(tv.vote) > 1
+           ) sub
+          ), '[]'::json
+        )`,
+      })
+      .from(alistb)
+      .innerJoin(vn, eq(alistb.vid, vn.id))
+      .where(
+        idIsNumber
+          ? or(eq(alistb.vid, id), eq(alistb.other, Number(id)))
+          : eq(vn.id, id),
+      )
+      .limit(1)
+      .then((r) => r[0])
 
     if (!items) {
       throw status(404, `没有找到数据: id=${id}`)
@@ -84,30 +77,25 @@ export const Tags = {
     if (redisdata !== null && redisdata !== undefined) {
       return JSON.parse(redisdata) as Tag
     }
-    const [, error, items] = t(
-      await db
-        .select({
-          id: tags.id,
-          name: tags.name,
-          description: tags.description,
-          zht_name: zhtags.name,
-          zht_description: zhtags.description,
-        })
-        .from(tags)
-        .innerJoin(zhtags, eq(tags.id, zhtags.id))
-        .where(eq(tags.id, tagId))
-        .limit(1)
-        .then((r) => r[0]),
-    )
+    const items = await db
+      .select({
+        id: tags.id,
+        name: tags.name,
+        description: tags.description,
+        zht_name: zhtags.name,
+        zht_description: zhtags.description,
+      })
+      .from(tags)
+      .innerJoin(zhtags, eq(tags.id, zhtags.id))
+      .where(eq(tags.id, tagId))
+      .limit(1)
+      .then((r) => r[0])
 
     if (!items) {
       throw status(404, `Tag ${tagId} 不存在`)
     }
 
     const result = structuredClone(items)
-    if (error) {
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
-    }
     void setKv(`tag:${tagId}`, JSON.stringify(result), 60 * 60 * 1)
     type Tag = typeof result
     return result
@@ -237,18 +225,13 @@ export const Tags = {
       .from(tags)
       .innerJoin(zhtags, eq(tags.id, zhtags.id))
 
-    const [, error, data] = t(
-      await (combinedFilter
-        ? dataQuery.where(combinedFilter)
-        : dataQuery
-      )
-        .orderBy(asc(tags.id))
-        .limit(pageSize)
-        .offset(offset),
+    const data = await (combinedFilter
+      ? dataQuery.where(combinedFilter)
+      : dataQuery
     )
-    if (error) {
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
-    }
+      .orderBy(asc(tags.id))
+      .limit(pageSize)
+      .offset(offset)
 
     // 2. 查询总数（带 exhibition 过滤，单次 .where() 调用）
     const countConditions: SQL[] = [eq(zhtags.exhibition, true)]
@@ -266,12 +249,7 @@ export const Tags = {
       .innerJoin(zhtags, eq(tags.id, zhtags.id))
       .where(countFilter)
 
-    const [, error1, totalCountResult] = t(
-      await countQuery.limit(1).then((r) => r[0]),
-    )
-    if (error1) {
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error1)}`)
-    }
+    const totalCountResult = await countQuery.limit(1).then((r) => r[0])
 
     const totalCount = Number(totalCountResult?.count || 0)
     const totalPages = Math.ceil(totalCount / pageSize)
@@ -290,7 +268,7 @@ export const Tags = {
     zh_description,
     id,
   }: TagsModel.tagEdit) {
-    const [ok, error] = t(
+    try {
       await db
         .update(zhtags)
         .set({
@@ -299,12 +277,11 @@ export const Tags = {
           alias: zh_alias,
           description: zh_description,
         })
-        .where(eq(zhtags.id, id)),
-    )
-    if (error) {
+        .where(eq(zhtags.id, id))
+      return true
+    } catch {
       return false
     }
-    if (ok) return true
   },
   async tagFileAdd({ file }: TagsModel.tagFileAdd) {
     const text = await file.text()
@@ -317,24 +294,18 @@ export const Tags = {
       description: item.description,
     }))
 
-    const [, error] = await t(
-      db
-        .insert(zhtags)
-        .values(datass)
-        .onConflictDoUpdate({
-          target: zhtags.id,
-          set: {
-            name: sql`excluded.name`,
-            exhibition: sql`excluded.exhibition`,
-            alias: sql`excluded.alias`,
-            description: sql`excluded.description`,
-          },
-        }),
-    )
-
-    if (error) {
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
-    }
+    await db
+      .insert(zhtags)
+      .values(datass)
+      .onConflictDoUpdate({
+        target: zhtags.id,
+        set: {
+          name: sql`excluded.name`,
+          exhibition: sql`excluded.exhibition`,
+          alias: sql`excluded.alias`,
+          description: sql`excluded.description`,
+        },
+      })
 
     return true
   },

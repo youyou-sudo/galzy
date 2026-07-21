@@ -10,7 +10,6 @@ import {
 import { S3Client } from 'bun'
 import { status } from 'elysia'
 import { eq, and, sql } from 'drizzle-orm'
-import { t } from 'try'
 import { auth } from '../auth/service'
 import type { MediaModel } from './model'
 
@@ -143,27 +142,22 @@ export const Media = {
     if (!ok) {
       throw status(200, '重复请求')
     }
-    const [, error, mediaResult] = t(
-      await db.transaction(async (trx) => {
-        // 清除当前其他所有封面
-        await trx
-          .update(otherMedia)
-          .set({ cover: false })
-          .where(and(eq(otherMedia.otherId, other), eq(otherMedia.cover, true)))
+    const mediaResult = await db.transaction(async (trx) => {
+      // 清除当前其他所有封面
+      await trx
+        .update(otherMedia)
+        .set({ cover: false })
+        .where(and(eq(otherMedia.otherId, other), eq(otherMedia.cover, true)))
 
-        // 设置新封面
-        const [updated] = await trx
-          .update(otherMedia)
-          .set({ cover: true })
-          .where(and(eq(otherMedia.mediaHash, mediahash), eq(otherMedia.otherId, other)))
-          .returning()
+      // 设置新封面
+      const [updated] = await trx
+        .update(otherMedia)
+        .set({ cover: true })
+        .where(and(eq(otherMedia.mediaHash, mediahash), eq(otherMedia.otherId, other)))
+        .returning()
 
-        return updated
-      }),
-    )
-
-    if (error)
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+      return updated
+    })
 
     await delKv(`gameInfo:${other}`)
     await storeIdempotentResult(`getMediaByCover-${hash}`, mediaResult, 60)
@@ -179,18 +173,14 @@ export const Media = {
     if (!ok) {
       throw status(200, '重复请求')
     }
-    const [, error, data] = t(
-      await db
-        .select({
-          cover: otherMedia.cover,
-          mediadata:
-            sql`(SELECT row_to_json(m.*) FROM (SELECT * FROM galrc_media WHERE hash = ${sql.identifier('galrc_other_media')}.${sql.identifier('media_hash')} LIMIT 1) m)`,
-        })
-        .from(otherMedia)
-        .where(eq(otherMedia.otherId, Number(other_id))),
-    )
-    if (error)
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
+    const data = await db
+      .select({
+        cover: otherMedia.cover,
+        mediadata:
+          sql`(SELECT row_to_json(m.*) FROM (SELECT * FROM galrc_media WHERE hash = ${sql.identifier('galrc_other_media')}.${sql.identifier('media_hash')} LIMIT 1) m)`,
+      })
+      .from(otherMedia)
+      .where(eq(otherMedia.otherId, Number(other_id)))
 
     await storeIdempotentResult(`getMedia-${hash}`, data, 60)
     return data
