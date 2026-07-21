@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, boolean, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, varchar, boolean, timestamp, index } from 'drizzle-orm/pg-core'
 
 // galrc_user — Better Auth users table
 export const users = pgTable('galrc_user', {
@@ -13,7 +13,10 @@ export const users = pgTable('galrc_user', {
   banExpires: timestamp('ban_expires'),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
-})
+}, (table) => ({
+  roleIdx: index('idx_galrc_user_role').on(table.role),
+  createdAtIdx: index('idx_galrc_user_created_at').on(table.createdAt),
+}))
 
 // galrc_session
 export const sessions = pgTable('galrc_session', {
@@ -26,7 +29,10 @@ export const sessions = pgTable('galrc_session', {
   impersonatedBy: text('impersonatedBy'),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
-})
+}, (table) => ({
+  userIdIdx: index('idx_galrc_session_user_id').on(table.userId),
+  createdAtIdx: index('idx_galrc_session_created_at').on(table.createdAt),
+}))
 
 // galrc_account
 export const accounts = pgTable('galrc_account', {
@@ -43,7 +49,11 @@ export const accounts = pgTable('galrc_account', {
   password: text('password'),
   createdAt: timestamp('createdAt').defaultNow().notNull(),
   updatedAt: timestamp('updatedAt').defaultNow().notNull(),
-})
+}, (table) => ({
+  userIdIdx: index('idx_galrc_account_user_id').on(table.userId),
+  providerIdIdx: index('idx_galrc_account_provider_id').on(table.providerId),
+  createdAtIdx: index('idx_galrc_account_created_at').on(table.createdAt),
+}))
 
 // galrc_verification
 export const verifications = pgTable('galrc_verification', {
@@ -53,4 +63,7 @@ export const verifications = pgTable('galrc_verification', {
   expiresAt: timestamp('expiresAt').notNull(),
   createdAt: timestamp('createdAt').defaultNow().notNull(),
   updatedAt: timestamp('updatedAt').defaultNow().notNull(),
-})
+}, (table) => ({
+  identifierIdx: index('idx_galrc_verification_identifier').on(table.identifier),
+  createdAtIdx: index('idx_galrc_verification_created_at').on(table.createdAt),
+}))

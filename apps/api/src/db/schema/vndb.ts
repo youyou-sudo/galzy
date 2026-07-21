@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, real, timestamp, smallint, bigint } from 'drizzle-orm/pg-core'
+import { pgTable, text, integer, boolean, real, timestamp, smallint, bigint, index } from 'drizzle-orm/pg-core'
 
 // vn — 视觉小说
 export const vn = pgTable('vn', {
@@ -15,7 +15,10 @@ export const vn = pgTable('vn', {
   alias: text('alias'),
   description: text('description'),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
-})
+}, (table) => ({
+  olangIdx: index('idx_vn_olang').on(table.olang),
+  devstatusIdx: index('idx_vn_devstatus').on(table.devstatus),
+}))
 
 // vn_titles
 export const vnTitles = pgTable('vn_titles', {
@@ -26,7 +29,11 @@ export const vnTitles = pgTable('vn_titles', {
   latin: text('latin'),
   main: boolean('main'),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
-})
+}, (table) => ({
+  idIdx: index('idx_vn_titles_id').on(table.id),
+  langIdx: index('idx_vn_titles_lang').on(table.lang),
+  mainIdx: index('idx_vn_titles_main').on(table.main),
+}))
 
 // images
 export const images = pgTable('images', {
@@ -54,7 +61,9 @@ export const tags = pgTable('tags', {
   alias: text('alias'),
   description: text('description'),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
-})
+}, (table) => ({
+  catIdx: index('idx_tags_cat').on(table.cat),
+}))
 
 // tags_vn
 export const tagsVn = pgTable('tags_vn', {
@@ -67,7 +76,11 @@ export const tagsVn = pgTable('tags_vn', {
   lie: boolean('lie'),
   notes: text('notes'),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
-})
+}, (table) => ({
+  tagIdx: index('idx_tags_vn_tag').on(table.tag),
+  vidIdx: index('idx_tags_vn_vid').on(table.vid),
+  uidIdx: index('idx_tags_vn_uid').on(table.uid),
+}))
 
 // releases
 export const releases = pgTable('releases', {
@@ -98,7 +111,9 @@ export const releases = pgTable('releases', {
   notes: text('notes'),
   title: text('title'),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
-})
+}, (table) => ({
+  olangIdx: index('idx_releases_olang').on(table.olang),
+}))
 
 // releases_vn
 export const releasesVn = pgTable('releases_vn', {
@@ -106,7 +121,10 @@ export const releasesVn = pgTable('releases_vn', {
   vid: text('vid'),
   rtype: text('rtype'),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
-})
+}, (table) => ({
+  idIdx: index('idx_releases_vn_id').on(table.id),
+  vidIdx: index('idx_releases_vn_vid').on(table.vid),
+}))
 
 // releases_titles
 export const releasesTitles = pgTable('releases_titles', {
@@ -116,7 +134,10 @@ export const releasesTitles = pgTable('releases_titles', {
   title: text('title'),
   latin: text('latin'),
   main: boolean('main'),
-})
+}, (table) => ({
+  idIdx: index('idx_releases_titles_id').on(table.id),
+  langIdx: index('idx_releases_titles_lang').on(table.lang),
+}))
 
 // releases_producers
 export const releasesProducers = pgTable('releases_producers', {
@@ -125,7 +146,10 @@ export const releasesProducers = pgTable('releases_producers', {
   developer: boolean('developer'),
   publisher: boolean('publisher'),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
-})
+}, (table) => ({
+  idIdx: index('idx_releases_producers_id').on(table.id),
+  pidIdx: index('idx_releases_producers_pid').on(table.pid),
+}))
 
 // producers
 export const producers = pgTable('producers', {
@@ -138,7 +162,10 @@ export const producers = pgTable('producers', {
   alias: text('alias'),
   description: text('description'),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
-})
+}, (table) => ({
+  typeIdx: index('idx_producers_type').on(table.type),
+  langIdx: index('idx_producers_lang').on(table.lang),
+}))
 
 // producers_relations
 export const producersRelations = pgTable('producers_relations', {
@@ -146,7 +173,10 @@ export const producersRelations = pgTable('producers_relations', {
   pid: text('pid'),
   relation: text('relation'),
   syncedAt: timestamp('synced_at', { withTimezone: true }),
-})
+}, (table) => ({
+  idIdx: index('idx_producers_relations_id').on(table.id),
+  pidIdx: index('idx_producers_relations_pid').on(table.pid),
+}))
 
 import { relations } from 'drizzle-orm'
 

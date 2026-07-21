@@ -1,4 +1,4 @@
-import { pgTable, text, varchar, integer, boolean, timestamp, jsonb, serial, bigint } from 'drizzle-orm/pg-core'
+import { pgTable, text, varchar, integer, boolean, timestamp, jsonb, serial, bigint, index } from 'drizzle-orm/pg-core'
 import { sql, relations } from 'drizzle-orm'
 import { vn } from './vndb'
 
@@ -10,7 +10,9 @@ export const others = pgTable('galrc_other', {
   introduction: text('introduction'),
   description: text('description'),
   status: text('status'),
-})
+}, (table) => ({
+  statusIdx: index('idx_galrc_other_status').on(table.status),
+}))
 
 // galrc_media — 媒体文件
 export const media = pgTable('galrc_media', {
@@ -22,7 +24,10 @@ export const media = pgTable('galrc_media', {
   type: varchar('type', { length: 255 }).notNull(),
   cover: boolean('cover').notNull().default(false),
   thumbHash: text('thumb_hash'),
-})
+}, (table) => ({
+  typeIdx: index('idx_galrc_media_type').on(table.type),
+  coverIdx: index('idx_galrc_media_cover').on(table.cover),
+}))
 
 // galrc_other_media — 条目-媒体关联
 export const otherMedia = pgTable('galrc_other_media', {
@@ -33,7 +38,12 @@ export const otherMedia = pgTable('galrc_other_media', {
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
   cover: boolean('cover').notNull().default(false),
-})
+}, (table) => ({
+  otherIdIdx: index('idx_galrc_other_media_other_id').on(table.otherId),
+  mediaHashIdx: index('idx_galrc_other_media_media_hash').on(table.mediaHash),
+  sortOrderIdx: index('idx_galrc_other_media_sort_order').on(table.sortOrder),
+  createdAtIdx: index('idx_galrc_other_media_created_at').on(table.createdAt),
+}))
 
 // galrc_alistb — Alist条目关联
 export const alistb = pgTable('galrc_alistb', {
@@ -41,7 +51,10 @@ export const alistb = pgTable('galrc_alistb', {
   vid: varchar('vid', { length: 255 }),
   other: bigint('other', { mode: 'number' }),
   path: jsonb('path'),
-})
+}, (table) => ({
+  vidIdx: index('idx_galrc_alistb_vid').on(table.vid),
+  otherIdx: index('idx_galrc_alistb_other').on(table.other),
+}))
 
 // galrc_article — 文章
 export const articles = pgTable('galrc_article', {
@@ -56,7 +69,14 @@ export const articles = pgTable('galrc_article', {
   status: varchar('status', { length: 255 }).notNull().default('published'),
   createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
-})
+}, (table) => ({
+  vidIdx: index('idx_galrc_article_vid').on(table.vid),
+  otheridIdx: index('idx_galrc_article_otherid').on(table.otherid),
+  authorIdx: index('idx_galrc_article_author').on(table.author),
+  typeIdx: index('idx_galrc_article_type').on(table.type),
+  statusIdx: index('idx_galrc_article_status').on(table.status),
+  createdAtIdx: index('idx_galrc_article_created_at').on(table.createdAt),
+}))
 
 // galrc_zhtag — 中文标签
 export const zhtags = pgTable('galrc_zhtag', {
@@ -65,7 +85,9 @@ export const zhtags = pgTable('galrc_zhtag', {
   alias: text('alias'),
   description: text('description'),
   exhibition: boolean('exhibition').notNull().default(true),
-})
+}, (table) => ({
+  exhibitionIdx: index('idx_galrc_zhtag_exhibition').on(table.exhibition),
+}))
 
 // galrc_comments — 评论
 export const comments = pgTable('galrc_comments', {
@@ -88,7 +110,14 @@ export const comments = pgTable('galrc_comments', {
   createdAt: timestamp('createdAt').notNull(),
   updatedAt: timestamp('updatedAt').notNull(),
   deletedAt: timestamp('deletedAt'),
-})
+}, (table) => ({
+  targetIdx: index('idx_galrc_comments_target').on(table.targetType, table.targetId),
+  userIdIdx: index('idx_galrc_comments_user_id').on(table.userId),
+  parentIdIdx: index('idx_galrc_comments_parent_id').on(table.parentId),
+  rootIdIdx: index('idx_galrc_comments_root_id').on(table.rootId),
+  statusIdx: index('idx_galrc_comments_status').on(table.status),
+  createdAtIdx: index('idx_galrc_comments_created_at').on(table.createdAt),
+}))
 
 export const alistbRelations = relations(alistb, ({ one }) => ({
   vn: one(vn, {
