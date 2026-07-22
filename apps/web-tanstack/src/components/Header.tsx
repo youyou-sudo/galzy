@@ -17,14 +17,22 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@web/components/ui/sheet'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@web/components/ui/tooltip'
 import { cn } from '@web/lib/utils'
-import { ExternalLink, Menu, Wrench } from 'lucide-react'
+import { useSelector } from '@tanstack/react-store'
+import { r18Actions, r18Store } from '@web/stores/r18Store'
+import { Eye, EyeOff, ExternalLink, Menu, Wrench } from 'lucide-react'
 import { useState } from 'react'
 import ThemeToggle from './ThemeToggle'
 import UserMenu from './user/UserMenu'
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
+  const blurEnabled = useSelector(r18Store, (s) => s.blurEnabled)
   return (
     <div className="mx-auto w-full max-w-7xl border-b bg-background px-4 py-2 lg:my-4 rounded-full lg:border dark:opacity-70">
       <div className="flex items-center justify-between">
@@ -108,6 +116,33 @@ export default function Header() {
 
         {/* Right block */}
         <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    'gap-1 px-1.5 min-w-0',
+                    blurEnabled
+                      ? 'text-pink-500 hover:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/20'
+                      : 'text-green-500 hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20',
+                  )}
+                  onClick={r18Actions.toggle}
+                >
+                  {blurEnabled ? (
+                    <EyeOff className="size-4 shrink-0" />
+                  ) : (
+                    <Eye className="size-4 shrink-0" />
+                  )}
+                  <span className="text-[10px] font-bold leading-none">R18</span>
+                </Button>
+              }
+            />
+            <TooltipContent>
+              {blurEnabled ? '点击关闭 R18 模糊' : '点击开启 R18 模糊'}
+            </TooltipContent>
+          </Tooltip>
           <ThemeToggle />
           <div className="md:hidden">
             <Sheet open={isOpen} onOpenChange={setIsOpen}>

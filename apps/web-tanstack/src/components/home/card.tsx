@@ -1,9 +1,11 @@
 import { Link } from '@tanstack/react-router'
+import { useSelector } from '@tanstack/react-store'
 import { Image, type ImageProps } from '@unpic/react'
 import { AspectRatio } from '@web/components/ui/aspect-ratio'
-import { Skeleton } from '@web/components/ui/skeleton'
-import { useState, type ComponentProps } from 'react'
 import { Button } from '@web/components/ui/button'
+import { Skeleton } from '@web/components/ui/skeleton'
+import { r18Store } from '@web/stores/r18Store'
+import { useState, type ComponentProps } from 'react'
 
 function IdGameCardSkeleton({ ref, ...props }: ComponentProps<'div'>) {
   return (
@@ -43,7 +45,8 @@ function GameSkeleton({ ref, ...props }: ComponentProps<'div'>) {
 
 export function Images({ className, cSexualAvg, ...props }: ImageProps & { cSexualAvg?: number | null }) {
   const THRESHOLD = 1.0
-  const isSensitive = (cSexualAvg ?? 0) >= THRESHOLD
+  const blurEnabled = useSelector(r18Store, (s) => s.blurEnabled)
+  const isSensitive = blurEnabled && (cSexualAvg ?? 0) >= THRESHOLD
   const [revealed, setRevealed] = useState(false)
 
   return (
@@ -54,7 +57,7 @@ export function Images({ className, cSexualAvg, ...props }: ImageProps & { cSexu
       <div className="relative w-full h-full">
         <Image
           {...props}
-          className={`w-full h-full object-cover ${isSensitive && !revealed ? 'blur-xl' : ''} ${className ?? ''}`}
+          className={`w-full h-full object-cover transition-[filter] duration-300 ${isSensitive && !revealed ? 'blur-xl' : ''} ${className ?? ''}`}
         />
         {isSensitive && !revealed && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
@@ -70,7 +73,8 @@ export function Images({ className, cSexualAvg, ...props }: ImageProps & { cSexu
 
 function SensitiveImage({ cSexualAvg, className, ...imageProps }: ImageProps & { cSexualAvg?: number | null }) {
   const THRESHOLD = 1.0
-  const isSensitive = (cSexualAvg ?? 0) >= THRESHOLD
+  const blurEnabled = useSelector(r18Store, (s) => s.blurEnabled)
+  const isSensitive = blurEnabled && (cSexualAvg ?? 0) >= THRESHOLD
   const [revealed, setRevealed] = useState(false)
 
   const w = (imageProps as Record<string, unknown>).width as number | undefined
@@ -82,7 +86,7 @@ function SensitiveImage({ cSexualAvg, className, ...imageProps }: ImageProps & {
       <div className="relative w-full h-full">
         <Image
           {...imageProps}
-          className={`w-full h-full object-cover ${isSensitive && !revealed ? 'blur-xl' : ''} ${className ?? ''}`}
+          className={`w-full h-full object-cover transition-[filter] duration-300 ${isSensitive && !revealed ? 'blur-xl' : ''} ${className ?? ''}`}
         />
         {isSensitive && !revealed && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
@@ -112,7 +116,8 @@ function Item({
   cSexualAvg?: number | null
 }) {
   const THRESHOLD = 1.0
-  const isSensitive = (cSexualAvg ?? 0) >= THRESHOLD
+  const blurEnabled = useSelector(r18Store, (s) => s.blurEnabled)
+  const isSensitive = blurEnabled && (cSexualAvg ?? 0) >= THRESHOLD
   const [revealed, setRevealed] = useState(false)
 
   return (
@@ -131,7 +136,7 @@ function Item({
             decoding="async"
             src={src}
             alt={title || ' '}
-            className={`absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-200${isSensitive && !revealed ? ' blur-xl' : ''}`}
+            className={`absolute inset-0 w-full h-full object-cover hover:scale-105 transition-[transform,filter] duration-200${isSensitive && !revealed ? ' blur-xl' : ''}`}
           />
           {isSensitive && !revealed && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
