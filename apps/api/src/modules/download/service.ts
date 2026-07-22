@@ -30,7 +30,10 @@ export const Download = {
       if (alisterror) throw status(500, `Error:${JSON.stringify(alisterror)}`)
 
       const workerList = await db
-        .select()
+        .select({
+          id: cloudflare.id,
+          urlEndpoint: cloudflare.urlEndpoint,
+        })
         .from(cloudflare)
         .where(eq(cloudflare.enable, true))
         .orderBy(cloudflare.id)
@@ -61,7 +64,24 @@ export const Download = {
     return res
   },
   async Worker() {
-    const res = await db.select().from(cloudflare).orderBy(cloudflare.id)
+    const res = await db
+      .select({
+        id: cloudflare.id,
+        aEmail: cloudflare.aEmail,
+        accountId: cloudflare.accountId,
+        wokerName: cloudflare.wokerName,
+        urlEndpoint: cloudflare.urlEndpoint,
+        state: cloudflare.state,
+        enable: cloudflare.enable,
+        duration: cloudflare.duration,
+        errors: cloudflare.errors,
+        requests: cloudflare.requests,
+        responseBodySize: cloudflare.responseBodySize,
+        subrequests: cloudflare.subrequests,
+        updateTime: cloudflare.updateTime,
+      })
+      .from(cloudflare)
+      .orderBy(cloudflare.id)
     return res
   },
   async workerConfigFormPut({

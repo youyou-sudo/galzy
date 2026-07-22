@@ -173,7 +173,6 @@ export const Tags = {
         .from(tagsVn)
         .innerJoin(alistb, eq(alistb.vid, tagsVn.vid))
         .where(eq(tagsVn.tag, tagId))
-        .limit(1)
         .then((r) => r[0]),
     ])
 
@@ -258,7 +257,7 @@ export const Tags = {
       .innerJoin(zhtags, eq(tags.id, zhtags.id))
       .where(countFilter)
 
-    const totalCountResult = await countQuery.limit(1).then((r) => r[0])
+    const totalCountResult = await countQuery.then((r) => r[0])
 
     const totalCount = Number(totalCountResult?.count || 0)
     const totalPages = Math.ceil(totalCount / pageSize)
@@ -319,7 +318,15 @@ export const Tags = {
     return true
   },
   async tagAllFileDwn() {
-    const datas = await db.select().from(zhtags)
+    const datas = await db
+      .select({
+        id: zhtags.id,
+        name: zhtags.name,
+        exhibition: zhtags.exhibition,
+        alias: zhtags.alias,
+        description: zhtags.description,
+      })
+      .from(zhtags)
     return datas
   },
 }

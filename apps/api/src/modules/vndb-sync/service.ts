@@ -26,6 +26,8 @@ import { eq, isNotNull } from 'drizzle-orm'
 
 const BATCH_SIZE = 100
 
+let _progressCache: SyncProgress | null = null
+
 interface SyncProgress {
   status: 'idle' | 'running' | 'completed' | 'failed'
   type: 'full' | 'delta' | 'producers' | null
@@ -453,12 +455,13 @@ export const VndbSync = {
   // ========== Progress Tracking ==========
 
   async updateProgress(partial: Partial<SyncProgress>) {
-    const current = await this.getProgress()
+    _progressCache ??= await this.getProgress()
     const updated: SyncProgress = {
-      ...current,
+      ..._progressCache,
       ...partial,
       lastUpdated: new Date().toISOString(),
     }
+    _progressCache = updated
     await db
       .insert(siteConfig)
       .values({ key: 'vndbSyncProgress', config: updated as any })
@@ -562,26 +565,11 @@ export const VndbSync = {
       BATCH_SIZE,
     )) {
       for (const vnData of results) {
-        await db
-          .insert(vn)
-          .values({
-            id: vnData.id,
-            olang: vnData.olang as any,
-            cVotecount: vnData.votecount,
-            cRating: vnData.rating == null ? null : Math.round(vnData.rating),
-            cAverage:
-              vnData.average == null ? null : Math.round(vnData.average),
-            length: vnData.length as any,
-            devstatus: vnData.devstatus as any,
-            alias: vnData.aliases?.[0] ?? null,
-            description: vnData.description,
-            cImage: vnData.image?.id ?? null,
-            imageUrl: vnData.image?.url ?? null,
-            syncedAt: new Date(),
-          })
-          .onConflictDoUpdate({
-            target: vn.id,
-            set: {
+        await db.transaction(async (trx) => {
+          await trx
+            .insert(vn)
+            .values({
+              id: vnData.id,
               olang: vnData.olang as any,
               cVotecount: vnData.votecount,
               cRating: vnData.rating == null ? null : Math.round(vnData.rating),
@@ -594,69 +582,87 @@ export const VndbSync = {
               cImage: vnData.image?.id ?? null,
               imageUrl: vnData.image?.url ?? null,
               syncedAt: new Date(),
-            },
-          })
-
-        if (vnData.titles?.length) {
-          await db.delete(vnTitles).where(eq(vnTitles.id, vnData.id))
-          await db.insert(vnTitles).values(
-            vnData.titles.map((t) => ({
-              id: vnData.id,
-              lang: t.lang as any,
-              official: t.official,
-              title: t.title,
-              latin: t.latin,
-              main: t.main,
-              syncedAt: new Date(),
-            })),
-          )
-        }
-
-        if (vnData.image?.id) {
-          await db
-            .insert(images)
-            .values({
-              id: vnData.image.id,
-              url: vnData.image.url,
-              width: vnData.image.dims[0],
-              height: vnData.image.dims[1],
-              cVotecount: vnData.image.votecount,
-              cSexualAvg: vnData.image.sexual,
-              cViolenceAvg: vnData.image.violence,
-              cWeight: 0,
-              cSexualStddev: 0,
-              cViolenceStddev: 0,
-              syncedAt: new Date(),
             })
             .onConflictDoUpdate({
-              target: images.id,
+              target: vn.id,
               set: {
+                olang: vnData.olang as any,
+                cVotecount: vnData.votecount,
+                cRating:
+                  vnData.rating == null ? null : Math.round(vnData.rating),
+                cAverage:
+                  vnData.average == null ? null : Math.round(vnData.average),
+                length: vnData.length as any,
+                devstatus: vnData.devstatus as any,
+                alias: vnData.aliases?.[0] ?? null,
+                description: vnData.description,
+                cImage: vnData.image?.id ?? null,
+                imageUrl: vnData.image?.url ?? null,
+                syncedAt: new Date(),
+              },
+            })
+
+          if (vnData.titles?.length) {
+            await trx.delete(vnTitles).where(eq(vnTitles.id, vnData.id))
+            await trx.insert(vnTitles).values(
+              vnData.titles.map((t) => ({
+                id: vnData.id,
+                lang: t.lang as any,
+                official: t.official,
+                title: t.title,
+                latin: t.latin,
+                main: t.main,
+                syncedAt: new Date(),
+              })),
+            )
+          }
+
+          if (vnData.image?.id) {
+            await trx
+              .insert(images)
+              .values({
+                id: vnData.image.id,
                 url: vnData.image.url,
                 width: vnData.image.dims[0],
                 height: vnData.image.dims[1],
                 cVotecount: vnData.image.votecount,
                 cSexualAvg: vnData.image.sexual,
                 cViolenceAvg: vnData.image.violence,
+                cWeight: 0,
+                cSexualStddev: 0,
+                cViolenceStddev: 0,
                 syncedAt: new Date(),
-              },
-            })
-        }
+              })
+              .onConflictDoUpdate({
+                target: images.id,
+                set: {
+                  url: vnData.image.url,
+                  width: vnData.image.dims[0],
+                  height: vnData.image.dims[1],
+                  cVotecount: vnData.image.votecount,
+                  cSexualAvg: vnData.image.sexual,
+                  cViolenceAvg: vnData.image.violence,
+                  syncedAt: new Date(),
+                },
+              })
+          }
 
-        if (vnData.tags?.length) {
-          for (const tag of vnData.tags) tagIds.add(tag.id)
-          await db.delete(tagsVn).where(eq(tagsVn.vid, vnData.id))
-          await db.insert(tagsVn).values(
-            vnData.tags.map((t) => ({
-              tag: t.id,
-              vid: vnData.id,
-              vote: t.rating,
-              spoiler: t.spoiler,
-              lie: t.lie,
-              ignore: false,
-              syncedAt: new Date(),
-            })),
-          )
-        }
+          if (vnData.tags?.length) {
+            for (const tag of vnData.tags) tagIds.add(tag.id)
+            await trx.delete(tagsVn).where(eq(tagsVn.vid, vnData.id))
+            await trx.insert(tagsVn).values(
+              vnData.tags.map((t) => ({
+                tag: t.id,
+                vid: vnData.id,
+                vote: t.rating,
+                spoiler: t.spoiler,
+                lie: t.lie,
+                ignore: false,
+                syncedAt: new Date(),
+              })),
+            )
+          }
+        })
       }
       console.log(`  → transaction done, sleeping 2s...`)
       await new Promise((r) => setTimeout(r, 2000))
@@ -763,28 +769,11 @@ export const VndbSync = {
     )) {
       console.log(`  → release page: ${results.length} results`)
       for (const rel of results) {
-        await db
-          .insert(releases)
-          .values({
-            id: rel.id,
-            title: rel.title,
-            released: rel.released,
-            minage: rel.minage,
-            patch: rel.patch,
-            freeware: rel.freeware,
-            uncensored: rel.uncensored,
-            official: rel.official,
-            hasEro: rel.has_ero,
-            engine: rel.engine,
-            voiced: rel.voiced,
-            gtin: rel.gtin ? Number(rel.gtin) : null,
-            catalog: rel.catalog,
-            notes: rel.notes,
-            syncedAt: new Date(),
-          })
-          .onConflictDoUpdate({
-            target: releases.id,
-            set: {
+        await db.transaction(async (trx) => {
+          await trx
+            .insert(releases)
+            .values({
+              id: rel.id,
               title: rel.title,
               released: rel.released,
               minage: rel.minage,
@@ -799,50 +788,71 @@ export const VndbSync = {
               catalog: rel.catalog,
               notes: rel.notes,
               syncedAt: new Date(),
-            },
-          })
+            })
+            .onConflictDoUpdate({
+              target: releases.id,
+              set: {
+                title: rel.title,
+                released: rel.released,
+                minage: rel.minage,
+                patch: rel.patch,
+                freeware: rel.freeware,
+                uncensored: rel.uncensored,
+                official: rel.official,
+                hasEro: rel.has_ero,
+                engine: rel.engine,
+                voiced: rel.voiced,
+                gtin: rel.gtin ? Number(rel.gtin) : null,
+                catalog: rel.catalog,
+                notes: rel.notes,
+                syncedAt: new Date(),
+              },
+            })
 
-        if (rel.vns?.length) {
-          await db.delete(releasesVn).where(eq(releasesVn.id, rel.id))
-          await db.insert(releasesVn).values(
-            rel.vns.map((v) => ({
-              id: rel.id,
-              vid: v.id,
-              rtype: v.rtype,
-              syncedAt: new Date(),
-            })),
-          )
-        }
+          if (rel.vns?.length) {
+            await trx.delete(releasesVn).where(eq(releasesVn.id, rel.id))
+            await trx.insert(releasesVn).values(
+              rel.vns.map((v) => ({
+                id: rel.id,
+                vid: v.id,
+                rtype: v.rtype,
+                syncedAt: new Date(),
+              })),
+            )
+          }
 
-        if (rel.languages?.length) {
-          await db.delete(releasesTitles).where(eq(releasesTitles.id, rel.id))
-          await db.insert(releasesTitles).values(
-            rel.languages.map((l) => ({
-              id: rel.id,
-              lang: l.lang as any,
-              title: l.title,
-              latin: l.latin,
-              mtl: l.mtl,
-              main: l.main,
-            })),
-          )
-        }
+          if (rel.languages?.length) {
+            await trx
+              .delete(releasesTitles)
+              .where(eq(releasesTitles.id, rel.id))
+            await trx.insert(releasesTitles).values(
+              rel.languages.map((l) => ({
+                id: rel.id,
+                lang: l.lang as any,
+                title: l.title,
+                latin: l.latin,
+                mtl: l.mtl,
+                main: l.main,
+              })),
+            )
+          }
 
-        if (rel.producers?.length) {
-          for (const p of rel.producers) producerIds.add(p.id)
-          await db
-            .delete(releasesProducers)
-            .where(eq(releasesProducers.id, rel.id))
-          await db.insert(releasesProducers).values(
-            rel.producers.map((p) => ({
-              id: rel.id,
-              pid: p.id,
-              developer: p.developer,
-              publisher: p.publisher,
-              syncedAt: new Date(),
-            })),
-          )
-        }
+          if (rel.producers?.length) {
+            for (const p of rel.producers) producerIds.add(p.id)
+            await trx
+              .delete(releasesProducers)
+              .where(eq(releasesProducers.id, rel.id))
+            await trx.insert(releasesProducers).values(
+              rel.producers.map((p) => ({
+                id: rel.id,
+                pid: p.id,
+                developer: p.developer,
+                publisher: p.publisher,
+                syncedAt: new Date(),
+              })),
+            )
+          }
+        })
       }
       await new Promise((r) => setTimeout(r, 2000))
     }

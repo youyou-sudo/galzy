@@ -52,7 +52,15 @@ export const CronService = {
     }
 
     try {
-      const data = await db.select().from(cloudflare)
+      const data = await db
+        .select({
+          id: cloudflare.id,
+          accountId: cloudflare.accountId,
+          aEmail: cloudflare.aEmail,
+          aKey: cloudflare.aKey,
+          wokerName: cloudflare.wokerName,
+        })
+        .from(cloudflare)
 
       await all(
         data.map(async (item) => {
@@ -161,7 +169,7 @@ export const CronService = {
           },
         }),
         db
-          .select()
+          .select({ config: siteConfig.config })
           .from(siteConfig)
           .where(eq(siteConfig.key, 'alistUpTime'))
           .limit(1)
@@ -413,7 +421,6 @@ export const CronService = {
     const totalCountResult = await db
       .select({ count: count() })
       .from(alistb)
-      .limit(1)
       .then((r) => r[0])
 
     const totalCount = Number(totalCountResult?.count || 0)
@@ -428,7 +435,6 @@ export const CronService = {
       .from(tags)
       .innerJoin(zhtags, eq(tags.id, zhtags.id))
       .where(eq(zhtags.exhibition, true))
-      .limit(1)
       .then((r) => r[0])
 
     const totalCount = Number(totalCountResult?.count || 0)

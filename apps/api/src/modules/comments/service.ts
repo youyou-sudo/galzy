@@ -181,46 +181,50 @@ export const CommentService = {
       rootId = parent.rootId
     }
 
-    const [inserted] = await db
-      .insert(comments)
-      .values({
-        targetType,
-        targetId,
-        userId,
-        content,
-        type,
-        parentId: parentId ?? null,
-        rootId: rootId,
-        depth,
-        replyToUserId: replyToUserId ?? null,
-        status: 'normal',
-        feedbackStatus: null,
-        isPinned: false,
-        isWhispers: false,
-        lastReplyAt: now,
-        meta: null,
-        createdAt: now,
-        updatedAt: now,
-        deletedAt: null,
-      } as any)
-      .returning({ id: comments.id })
+    const [inserted] = await db.transaction(async (trx) => {
+      const [result] = await trx
+        .insert(comments)
+        .values({
+          targetType,
+          targetId,
+          userId,
+          content,
+          type,
+          parentId: parentId ?? null,
+          rootId: rootId,
+          depth,
+          replyToUserId: replyToUserId ?? null,
+          status: 'normal',
+          feedbackStatus: null,
+          isPinned: false,
+          isWhispers: false,
+          lastReplyAt: now,
+          meta: null,
+          createdAt: now,
+          updatedAt: now,
+          deletedAt: null,
+        } as any)
+        .returning({ id: comments.id })
 
-    // For top-level comments, set rootId to the generated id
-    if (!parentId) {
-      const idStr = String(inserted.id)
-      await db
-        .update(comments)
-        .set({ rootId: idStr })
-        .where(eq(comments.id, inserted.id))
-    }
+      // For top-level comments, set rootId to the generated id
+      if (!parentId) {
+        const idStr = String(result.id)
+        await trx
+          .update(comments)
+          .set({ rootId: idStr })
+          .where(eq(comments.id, result.id))
+      }
 
-    // Update parent's lastReplyAt
-    if (parentId) {
-      await db
-        .update(comments)
-        .set({ lastReplyAt: now })
-        .where(eq(comments.id, parentId))
-    }
+      // Update parent's lastReplyAt
+      if (parentId) {
+        await trx
+          .update(comments)
+          .set({ lastReplyAt: now })
+          .where(eq(comments.id, parentId))
+      }
+
+      return [result]
+    })
 
     // Fire-and-forget email notification to parent comment author
     if (parentId && parent && parent.userId !== userId) {
@@ -273,7 +277,11 @@ export const CommentService = {
     role = role ?? 'user'
 
     const [comment] = await db
-      .select()
+      .select({
+        id: comments.id,
+        userId: comments.userId,
+        status: comments.status,
+      })
       .from(comments)
       .where(and(eq(comments.id, id), eq(comments.status, 'normal')))
 
@@ -296,7 +304,11 @@ export const CommentService = {
     isAdmin: boolean,
   ) {
     const [comment] = await db
-      .select()
+      .select({
+        id: comments.id,
+        userId: comments.userId,
+        status: comments.status,
+      })
       .from(comments)
       .where(and(eq(comments.id, id), eq(comments.status, 'normal')))
 
@@ -321,7 +333,10 @@ export const CommentService = {
 
   async togglePin({ id }: CommentModel.params) {
     const [comment] = await db
-      .select()
+      .select({
+        isPinned: comments.isPinned,
+        status: comments.status,
+      })
       .from(comments)
       .where(and(eq(comments.id, id), eq(comments.status, 'normal')))
 

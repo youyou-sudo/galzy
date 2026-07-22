@@ -127,7 +127,7 @@ export const Media = {
         and(eq(otherMedia.otherId, id), eq(otherMedia.mediaHash, mediahash)),
       )
     const log = await db
-      .select()
+      .select({ id: otherMedia.id })
       .from(otherMedia)
       .where(eq(otherMedia.mediaHash, mediahash))
       .limit(1)

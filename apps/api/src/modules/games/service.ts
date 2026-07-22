@@ -101,11 +101,7 @@ export const Game = {
       .orderBy(desc(alistb.other))
       .limit(pageSize)
       .offset(offset)
-    const totalCountResult = await db
-      .select({ count: countAll() })
-      .from(alistb)
-      .then((r) => r[0])
-    const totalCount = Number(totalCountResult?.count || 0)
+    const totalCount = await this.Count()
     const totalPages = Math.ceil(totalCount / pageSize)
     const datas = {
       items,
@@ -411,27 +407,23 @@ export const Game = {
         .select({ count: countAll() })
         .from(alistb)
         .where(and(isNotNull(alistb.other), isNull(alistb.vid)))
-        .limit(1)
         .then((r) => r[0]),
 
       db
         .select({ count: countAll() })
         .from(alistb)
         .where(and(isNotNull(alistb.vid), isNotNull(alistb.other)))
-        .limit(1)
         .then((r) => r[0]),
 
       db
         .select({ count: countAll() })
         .from(alistb)
         .where(and(isNotNull(alistb.vid), isNull(alistb.other)))
-        .limit(1)
         .then((r) => r[0]),
 
       db
         .select({ count: countAll() })
         .from(alistb)
-        .limit(1)
         .then((r) => r[0]),
     ])
     const data = {
@@ -476,7 +468,6 @@ export const Game = {
       .select({ count: countAll() })
       .from(alistb)
       .where(countFilter)
-      .limit(1)
       .then((r) => r[0])
 
     const total = totalResult?.count ?? 0
@@ -734,7 +725,6 @@ export const Game = {
       .select({ total: countAll() })
       .from(gameDownloadStats)
       .where(eq(gameDownloadStats.gameId, id))
-      .limit(1)
       .then((r) => r[0])
     return { total: data?.total, res }
   },
