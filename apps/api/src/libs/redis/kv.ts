@@ -97,7 +97,7 @@ export const getKv = async (key: string) => {
       const start = Date.now()
       const value = await client.get(key)
       const elapsed = Date.now() - start
-      console.log(`[Redis] getKv(${key}) ${value !== null ? 'HIT' : 'MISS'} (${elapsed}ms)`)
+      console.debug(`[Redis] getKv(${key}) ${value !== null ? 'HIT' : 'MISS'} (${elapsed}ms)`)
       return value
     },
     null,
@@ -132,7 +132,7 @@ export const delKvPattern = async (pattern: string) => {
           deletedCount += (await client.del(...keys)) as number
         }
       } while (cursor !== '0')
-      console.log(`[Redis] delKvPattern(${pattern}) completed: deleted ${deletedCount} keys`)
+      console.debug(`[Redis] delKvPattern(${pattern}) completed: deleted ${deletedCount} keys`)
       return deletedCount
     },
     0,
@@ -162,7 +162,7 @@ export const acquireLockKv = async (
         'NX',
       ])
       const success = result === 'OK'
-      console.log(`[Redis] acquireLockKv(${lockKey}) ${success ? 'acquired' : 'failed'}`)
+      console.debug(`[Redis] acquireLockKv(${lockKey}) ${success ? 'acquired' : 'failed'}`)
       return success
     },
     false,
@@ -182,14 +182,14 @@ export const releaseLockKv = async (key: string, value: string) => {
       try {
         const result = await client.send('EVALSHA', [LOCK_RELEASE_SCRIPT_SHA1, '1', key, value])
         const ok = result === 1 || result === 1n
-        console.log(`[Redis] releaseLockKv(${key}) ${ok ? 'released' : 'failed (value mismatch)'}`)
+        console.debug(`[Redis] releaseLockKv(${key}) ${ok ? 'released' : 'failed (value mismatch)'}`)
         return ok
       } catch (innerErr: any) {
         if (String(innerErr).includes('NOSCRIPT')) {
           // LUA script not cached on this server node, fall back to EVAL
           const result = await client.send('EVAL', [LOCK_RELEASE_SCRIPT, '1', key, value])
           const ok = result === 1 || result === 1n
-          console.log(`[Redis] releaseLockKv(${key}) ${ok ? 'released' : 'failed (value mismatch)'}`)
+          console.debug(`[Redis] releaseLockKv(${key}) ${ok ? 'released' : 'failed (value mismatch)'}`)
           return ok
         }
         throw innerErr
@@ -214,7 +214,7 @@ export async function acquireIdempotentKey(
     async (client) => {
       const result = await client.send('SET', [key, 'LOCKED', 'EX', ttl.toString(), 'NX'])
       const success = result === 'OK'
-      console.log(`[Redis] acquireIdempotentKey(${key}) ${success ? 'acquired' : 'already locked'}`)
+      console.debug(`[Redis] acquireIdempotentKey(${key}) ${success ? 'acquired' : 'already locked'}`)
       return success
     },
     false,
