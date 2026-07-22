@@ -9,7 +9,7 @@ import { processData } from './lib'
 
 export const CronService = {
   async workerDataPull() {
-    const lockKey = 'workerDataCorn'
+    const lockKey = 'galzy:lock:cron:workerDataCorn'
     const lockValue = crypto.randomUUID()
     const lockTimeout = 120000
 
@@ -112,7 +112,7 @@ export const CronService = {
   },
 
   async alistSyncScript() {
-    const lockKey = 'runAlistData'
+    const lockKey = 'galzy:lock:cron:runAlistData'
     const lockValue = crypto.randomUUID()
     const lockTimeout = 120000
 

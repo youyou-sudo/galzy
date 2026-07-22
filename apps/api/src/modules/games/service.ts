@@ -2,11 +2,13 @@ import { db, sql } from '@api/libs'
 import { alistb, vn, vnTitles, images, others, otherMedia, media, gameDownloadStats, releases, releasesVn, releasesProducers, producers } from '@api/libs'
 import {
   acquireIdempotentKey,
+  acquireLockKv,
   delKv,
   delKvPattern,
   generateIdempotentHash,
   getIdempotentResult,
   getKv,
+  releaseLockKv,
   setKv,
   storeIdempotentResult,
 } from '@api/libs/redis'
@@ -16,17 +18,17 @@ import type { GameModel } from './model'
 
 export const Game = {
   async Count() {
-    const redisData = await getKv('gameCount')
+    const redisData = await getKv('galzy:game:count')
     if (redisData !== null && redisData !== undefined) {
       return Number(redisData)
     }
     const totalCountResult = await db.select({ count: countAll() }).from(alistb).then(r => r[0])
     const total = Number(totalCountResult?.count || 0)
-    void setKv('gameCount', String(total), 60 * 30)
+    void setKv('galzy:game:count', String(total), 60 * 30)
     return total
   },
   async List({ pageIndex, pageSize }: GameModel.gameList) {
-    const redisData = await getKv(`gameList:${pageIndex}-${pageSize}`)
+    const redisData = await getKv(`galzy:game:list:${pageIndex}:${pageSize}`)
     if (redisData !== null && redisData !== undefined) {
       return JSON.parse(redisData) as GameList
     }
@@ -80,9 +82,9 @@ export const Game = {
       totalPages,
       totalCount,
     }
-    const result = JSON.parse(JSON.stringify(datas, (key, value) => typeof value === 'bigint' ? Number(value) : value))
+    const result = structuredClone(datas)
     void setKv(
-      `gameList:${pageIndex}-${pageSize}`,
+      `galzy:game:list:${pageIndex}:${pageSize}`,
       JSON.stringify(result),
       60 * 60 * 2,
     )
@@ -90,12 +92,12 @@ export const Game = {
     return result
   },
   async InfoGet({ id }: GameModel.infoId) {
-    const cacheKey = `gameInfo:${id}`
+    const cacheKey = `galzy:game:info:${id}`
     const redisData = await getKv(cacheKey)
 
     if (redisData) {
       try {
-        return JSON.parse(redisData) as GameInfo
+        return JSON.parse(redisData)
       } catch {
         await delKv(cacheKey)
       }
@@ -103,91 +105,128 @@ export const Game = {
 
     const idIsNumber = /^\d+$/.test(id)
 
-    const data = await (db
-        .select({
-          id: alistb.id,
-          vid: alistb.vid,
-          other: alistb.other,
-          path: alistb.path,
-          released_first: sql`
-            (SELECT releases.released FROM releases_vn
-             INNER JOIN releases ON releases.id = releases_vn.id
-             WHERE releases_vn.vid = galrc_alistb.vid
-               AND releases.released IS NOT NULL
-             ORDER BY releases.released ASC
-             LIMIT 1)
-          `,
-          producers: sql`
-            COALESCE(
-              (SELECT json_agg(row_to_json(pb.*)) FROM (
+    const queryDb = async () => {
+      const data = await (db
+          .select({
+            id: alistb.id,
+            vid: alistb.vid,
+            other: alistb.other,
+            path: alistb.path,
+            released_first: sql`
+              (SELECT releases.released FROM releases_vn
+               INNER JOIN releases ON releases.id = releases_vn.id
+               WHERE releases_vn.vid = galrc_alistb.vid
+                 AND releases.released IS NOT NULL
+               ORDER BY releases.released ASC
+               LIMIT 1)
+            `,
+            producers: sql`
+              COALESCE(
+                (SELECT json_agg(row_to_json(pb.*)) FROM (
+                  SELECT
+                    producers.id,
+                    producers.name,
+                    producers.latin,
+                    producers.alias,
+                    producers.type,
+                    COUNT(*)::int AS count,
+                    BOOL_OR(releases_producers.developer) AS is_dev,
+                    BOOL_OR(releases_producers.publisher) AS is_pub,
+                    BOOL_OR(releases.official) AS official,
+                    MIN(releases.released) AS first_release
+                  FROM releases_vn
+                  INNER JOIN releases_producers ON releases_producers.id = releases_vn.id
+                  INNER JOIN releases ON releases.id = releases_vn.id
+                  INNER JOIN producers ON producers.id = releases_producers.pid
+                  WHERE releases_vn.vid = galrc_alistb.vid
+                  GROUP BY producers.id, producers.name, producers.latin, producers.alias, producers.type
+                  ORDER BY official DESC, first_release ASC NULLS LAST
+                ) pb),
+                '[]'::json
+              )
+            `,
+            vn_datas: sql`
+              (SELECT row_to_json(vn_sub.*) FROM (
                 SELECT
-                  producers.id,
-                  producers.name,
-                  producers.latin,
-                  producers.alias,
-                  producers.type,
-                  COUNT(*)::int AS count,
-                  BOOL_OR(releases_producers.developer) AS is_dev,
-                  BOOL_OR(releases_producers.publisher) AS is_pub,
-                  BOOL_OR(releases.official) AS official,
-                  MIN(releases.released) AS first_release
-                FROM releases_vn
-                INNER JOIN releases_producers ON releases_producers.id = releases_vn.id
-                INNER JOIN releases ON releases.id = releases_vn.id
-                INNER JOIN producers ON producers.id = releases_producers.pid
-                WHERE releases_vn.vid = galrc_alistb.vid
-                GROUP BY producers.id, producers.name, producers.latin, producers.alias, producers.type
-                ORDER BY official DESC, first_release ASC NULLS LAST
-              ) pb),
-              '[]'::json
-            )
-          `,
-          vn_datas: sql`
-            (SELECT row_to_json(vn_sub.*) FROM (
-              SELECT
-                vn.*,
-                COALESCE(
-                  (SELECT json_agg(row_to_json(t.*)) FROM vn_titles t WHERE t.id = vn.id),
-                  '[]'::json
-                ) AS titles,
-                (SELECT row_to_json(i.*) FROM (SELECT id, height, width FROM images i WHERE i.id = vn.c_image) i) AS images
-              FROM vn
-              WHERE vn.id = galrc_alistb.vid
-            ) vn_sub)
-          `,
-          other_datas: sql`
-            (SELECT row_to_json(other_sub.*) FROM (
-              SELECT
-                galrc_other.*,
-                COALESCE(
-                  (SELECT json_agg(row_to_json(media_sub.*)) FROM (
-                    SELECT
-                      galrc_other_media.cover,
-                      (SELECT row_to_json(m.*) FROM galrc_media m WHERE m.hash = galrc_other_media.media_hash) AS media_datas
-                    FROM galrc_other_media
-                    WHERE galrc_other_media.other_id = galrc_other.id
-                  ) media_sub),
-                  '[]'::json
-                ) AS media
-              FROM galrc_other
-              WHERE galrc_other.id = galrc_alistb.other
-            ) other_sub)
-          `,
-        })
-        .from(alistb)
-        .where(idIsNumber ? eq(alistb.other, Number(id)) : eq(alistb.vid, id)) as any)
-        .limit(1)
-        .then((r: any) => r[0])
+                  vn.*,
+                  COALESCE(
+                    (SELECT json_agg(row_to_json(t.*)) FROM vn_titles t WHERE t.id = vn.id),
+                    '[]'::json
+                  ) AS titles,
+                  (SELECT row_to_json(i.*) FROM (SELECT id, height, width FROM images i WHERE i.id = vn.c_image) i) AS images
+                FROM vn
+                WHERE vn.id = galrc_alistb.vid
+              ) vn_sub)
+            `,
+            other_datas: sql`
+              (SELECT row_to_json(other_sub.*) FROM (
+                SELECT
+                  galrc_other.*,
+                  COALESCE(
+                    (SELECT json_agg(row_to_json(media_sub.*)) FROM (
+                      SELECT
+                        galrc_other_media.cover,
+                        (SELECT row_to_json(m.*) FROM galrc_media m WHERE m.hash = galrc_other_media.media_hash) AS media_datas
+                      FROM galrc_other_media
+                      WHERE galrc_other_media.other_id = galrc_other.id
+                    ) media_sub),
+                    '[]'::json
+                  ) AS media
+                FROM galrc_other
+                WHERE galrc_other.id = galrc_alistb.other
+              ) other_sub)
+            `,
+          })
+          .from(alistb)
+          .where(idIsNumber ? eq(alistb.other, Number(id)) : eq(alistb.vid, id)) as any)
+          .limit(1)
+          .then((r: any) => r[0])
 
-    if (!data) {
-      throw status(404, `未找到 id=${id} 对应的游戏信息`)
+      if (!data) {
+        throw status(404, `未找到 id=${id} 对应的游戏信息`)
+      }
+
+      return data
     }
 
-    const result = JSON.parse(JSON.stringify(data, (key, value) => typeof value === 'bigint' ? Number(value) : value))
-    void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 6)
+    const lockKey = `lock:${cacheKey}`
+    const lockVal = crypto.randomUUID()
+    const locked = await acquireLockKv(lockKey, lockVal, 5000)
+    if (locked) {
+      try {
+        const doubleCheck = await getKv(cacheKey)
+        if (doubleCheck) {
+          try {
+            return JSON.parse(doubleCheck)
+          } catch {
+            await delKv(cacheKey)
+          }
+        }
 
-    type GameInfo = typeof result
-    return result
+        const data = await queryDb()
+        const result = structuredClone(data)
+        void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 6)
+
+        type GameInfo = typeof result
+        return result
+      } finally {
+        void releaseLockKv(lockKey, lockVal)
+      }
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      const retryData = await getKv(cacheKey)
+      if (retryData) {
+        try {
+          return JSON.parse(retryData)
+        } catch {
+          await delKv(cacheKey)
+        }
+      }
+
+      const data = await queryDb()
+      type GameInfo = typeof data
+      return data
+    }
   },
   async OpenListFiles({
     id,
@@ -530,11 +569,11 @@ export const Game = {
   },
   async vidassociationUpdate({ id, data }: GameModel.vidassociationUpdate) {
     const hash = generateIdempotentHash({ id, data })
-    const cached = await getIdempotentResult(`vidassociationUpdate-${hash}`)
+    const cached = await getIdempotentResult(`galzy:idempotent:vidassociationUpdate:${hash}`)
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`vidassociationUpdate-${hash}`, 60)
+    const ok = await acquireIdempotentKey(`galzy:idempotent:vidassociationUpdate:${hash}`, 60)
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -552,19 +591,19 @@ export const Game = {
       message: '更新 galrc_other 成功',
       status: 'success',
     }
-    await delKv(`gameInfo:${id}`)
-    await delKv(`vidassociation-${id}`)
-    await delKvPattern('gameList')
-    await delKv('gameCount')
-    await storeIdempotentResult(`vidassociationUpdate-${hash}`, datas, 60)
+    await delKv(`galzy:game:info:${id}`)
+    await delKv(`galzy:game:vidassociation:${id}`)
+    await delKvPattern('galzy:game:list*')
+    await delKv('galzy:game:count')
+    await storeIdempotentResult(`galzy:idempotent:vidassociationUpdate:${hash}`, datas, 60)
     return datas
   },
   async vidassociationCreate() {
-    const cached = await getIdempotentResult(`vidassociationCreate:action`)
+    const cached = await getIdempotentResult(`galzy:idempotent:vidassociationCreate:action`)
     if (cached) {
       return cached as OtherId
     }
-    const ok = await acquireIdempotentKey(`vidassociationCreate:action`, 2)
+    const ok = await acquireIdempotentKey(`galzy:idempotent:vidassociationCreate:action`, 2)
     if (!ok) {
       throw status(200, '重复请求')
     }

@@ -1,4 +1,4 @@
-import { getKv, setKv } from '@api/libs/redis'
+import { delKv, getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
 import { unique } from 'radash'
 import { t } from 'try'
@@ -26,7 +26,7 @@ const startAt = startOfWeek.getTime()
 export const Umami = {
   // Tag 统计
   async remfTagGet() {
-    const redisData = await getKv('remfTag')
+    const redisData = await getKv('galzy:tag:remf')
     if (redisData !== null && redisData !== undefined) {
       return JSON.parse(redisData) as RemfTag
     }
@@ -60,13 +60,13 @@ export const Umami = {
     const uniqueById = unique(data, (item) => item.tag)
 
     const result = structuredClone(uniqueById)
-    void setKv('remfTag', JSON.stringify(result), 60 * 15)
+    void setKv('galzy:tag:remf', JSON.stringify(result), 60 * 15)
     type RemfTag = typeof result
     return result
   },
   // Game 统计
   async remfGameGet() {
-    const redisData = await getKv('remfGame')
+    const redisData = await getKv('galzy:game:remf')
     if (redisData !== null && redisData !== undefined) {
       return JSON.parse(redisData) as RemfGame
     }
@@ -120,16 +120,21 @@ export const Umami = {
     }))
 
     const cloned = structuredClone(result)
-    void setKv('remfGame', JSON.stringify(cloned), 60 * 15)
+    void setKv('galzy:game:remf', JSON.stringify(cloned), 60 * 15)
 
     type RemfGame = typeof cloned
 
     return cloned
   },
   async gameDloadNuber({ vid }: UmamiModel.gameDloadNuber) {
-    const redisData = await getKv(`gameDloadNuber-${vid}`)
+    const redisData = await getKv(`galzy:game:download:${vid}`)
     if (redisData !== null && redisData !== undefined) {
-      return JSON.parse(redisData) as number
+      const parsed = JSON.parse(redisData)
+      if (typeof parsed !== 'number') {
+        await delKv(`galzy:game:download:${vid}`)
+      } else {
+        return parsed as number
+      }
     }
     const [, error, token] = t(await umamiTokenGet())
     if (error)
@@ -157,7 +162,7 @@ export const Umami = {
       (a, b) => a + b,
       0,
     )
-    void setKv(`gameDloadNuber-${vid}`, JSON.stringify(totalDownloads), 60 * 15)
+    void setKv(`galzy:game:download:${vid}`, JSON.stringify(totalDownloads), 60 * 15)
     return totalDownloads
   },
 }

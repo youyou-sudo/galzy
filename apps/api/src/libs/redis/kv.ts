@@ -1,93 +1,54 @@
 import { createHash } from 'node:crypto'
 import { redis } from 'bun'
 
+// ============================================================
+// Redis client factory (configurable, mockable in tests)
+// ============================================================
+
+let activeClient: typeof redis | null = null
+
 /**
- * 设置 Key-Value 对，并可选设置过期时间
- * @param key 键
- * @param value 值
- * @param time 过期时间（秒），如果不传则永久有效
- * @returns Redis 操作结果
+ * 获取 Redis 客户端实例
+ * 默认返回 Bun 内置的默认客户端；可通过 setRedisClient 在测试时替换
  */
-export const setKv = async (key: string, value: string, time?: number) => {
-  if (!redis) return
-  return time ? redis.setex(key, time, value) : redis.set(key, value)
+export function getRedisClient(): typeof redis {
+  return activeClient ?? redis
 }
 
 /**
- * 获取 Key 对应 TTL
- * @param key 键
- * @returns TTl
+ * 设置自定义 Redis 客户端（用于测试 mock）
  */
-export const getKvTime = async (key: string) => {
-  if (!redis) return
-  return redis.ttl(key)
+export function setRedisClient(client: typeof redis | null): void {
+  activeClient = client
 }
 
-/**
- * 获取 Key 对应的值
- * @param key 键
- * @returns 对应的值，如果 Key 不存在则返回 null
- */
-export const getKv = async (key: string) => {
-  if (!redis) return null
-  return redis.get(key)
-}
+// ============================================================
+// Safe operation helper
+// ============================================================
 
-/**
- * 删除 Key
- * @param key 键
- * @returns 被删除的 Key 数量
- */
-export const delKv = async (key: string) => {
-  if (!redis) return
-  return redis.del(key)
-}
-
-/**
- * 根据模式删除 Key
- * @param pattern 模式，例如 "session:*" 将删除所有以 "session:" 开头的 Key
- * @returns 被删除的 Key 数量
- */
-export const delKvPattern = async (pattern: string) => {
-  if (!redis) return
-  const keys = await redis.keys(pattern)
-  if (keys.length > 0) {
-    return redis.del(...keys)
+const safeRedisOp = async <T>(
+  op: (client: typeof redis) => Promise<T>,
+  fallback: T,
+  operationName: string,
+): Promise<T> => {
+  const client = getRedisClient()
+  if (!client) {
+    console.warn(`[Redis] ${operationName} skipped: redis client not initialized`)
+    return fallback
   }
-  return 0
+  try {
+    return await op(client)
+  } catch (err) {
+    console.error(`[Redis] ${operationName} failed:`, err)
+    return fallback
+  }
 }
 
-/**
- * 尝试获取分布式锁
- * @param lockKey 锁的 Key
- * @param lockValue 锁的值（通常是唯一标识）
- * @param lockTimeout 锁的过期时间（毫秒）
- * @returns 是否成功获取锁
- */
-export const acquireLockKv = async (
-  lockKey: string,
-  lockValue: string,
-  lockTimeout: number,
-) => {
-  const result = await redis.send('SET', [
-    lockKey,
-    lockValue,
-    'PX',
-    lockTimeout.toString(),
-    'NX',
-  ])
+// ============================================================
+// Lua script: atomically release a lock only if value matches
+// ============================================================
 
-  return result === 'OK'
-}
-
-/**
- * 释放分布式锁
- * @param lockKey 锁的 Key
- * @param lockValue 锁的值（必须与获取锁时使用的值相同）
- * @returns 是否成功释放锁
- */
-export const releaseLockKv = async (key: string, value: string) => {
-  const script = `
+const LOCK_RELEASE_SCRIPT = `
 if redis.call("get", KEYS[1]) == ARGV[1]
 then
   return redis.call("del", KEYS[1])
@@ -96,7 +57,147 @@ else
 end
 `
 
-  return redis.send('EVAL', [script, '1', key, value])
+const LOCK_RELEASE_SCRIPT_SHA1 = createHash('sha1').update(LOCK_RELEASE_SCRIPT).digest('hex')
+
+// ============================================================
+// KV operations
+// ============================================================
+
+/**
+ * 设置 Key-Value 对，并可选设置过期时间
+ * @param key 键
+ * @param value 值
+ * @param time 过期时间（秒），如果不传则永久有效
+ */
+export const setKv = async (key: string, value: string, time?: number) => {
+  const truncatedKey = key.length > 64 ? `${key.slice(0, 64)}...` : key
+  return safeRedisOp(
+    (client) => (time ? client.setex(key, time, value) : client.set(key, value)) as Promise<string | undefined>,
+    undefined,
+    `setKv(${truncatedKey})`,
+  )
+}
+
+/**
+ * 获取 Key 对应 TTL
+ * @param key 键
+ */
+export const getKvTime = async (key: string) => {
+  return safeRedisOp((client) => client.ttl(key) as Promise<number>, undefined, `getKvTime(${key})`)
+}
+
+/**
+ * 获取 Key 对应的值
+ * @param key 键
+ * @returns 对应的值，如果 Key 不存在则返回 null
+ */
+export const getKv = async (key: string) => {
+  return safeRedisOp(
+    async (client) => {
+      const start = Date.now()
+      const value = await client.get(key)
+      const elapsed = Date.now() - start
+      console.log(`[Redis] getKv(${key}) ${value !== null ? 'HIT' : 'MISS'} (${elapsed}ms)`)
+      return value
+    },
+    null,
+    `getKv(${key})`,
+  )
+}
+
+/**
+ * 删除 Key
+ * @param key 键
+ * @returns 被删除的 Key 数量
+ */
+export const delKv = async (key: string) => {
+  return safeRedisOp((client) => client.del(key) as Promise<number>, 0, `delKv(${key})`)
+}
+
+/**
+ * 根据模式删除 Key（基于 SCAN 迭代，避免生产环境阻塞）
+ * @param pattern 模式，例如 "session:*" 将删除所有以 "session:" 开头的 Key
+ * @returns 被删除的 Key 数量
+ */
+export const delKvPattern = async (pattern: string) => {
+  return safeRedisOp(
+    async (client) => {
+      let cursor = '0'
+      let deletedCount = 0
+      do {
+        const result = await client.send('SCAN', [cursor, 'MATCH', pattern, 'COUNT', '100'])
+        const [nextCursor, keys] = result as [string, string[]]
+        cursor = nextCursor
+        if (keys.length > 0) {
+          deletedCount += (await client.del(...keys)) as number
+        }
+      } while (cursor !== '0')
+      console.log(`[Redis] delKvPattern(${pattern}) completed: deleted ${deletedCount} keys`)
+      return deletedCount
+    },
+    0,
+    `delKvPattern(${pattern})`,
+  )
+}
+
+/**
+ * 尝试获取分布式锁
+ * @param lockKey 锁的 Key
+ * @param lockValue 锁的值（通常是唯一标识）
+ * @param lockTimeoutMs 锁的过期时间（毫秒）
+ * @returns 是否成功获取锁
+ */
+export const acquireLockKv = async (
+  lockKey: string,
+  lockValue: string,
+  lockTimeoutMs: number,
+) => {
+  return safeRedisOp(
+    async (client) => {
+      const result = await client.send('SET', [
+        lockKey,
+        lockValue,
+        'PX',
+        lockTimeoutMs.toString(),
+        'NX',
+      ])
+      const success = result === 'OK'
+      console.log(`[Redis] acquireLockKv(${lockKey}) ${success ? 'acquired' : 'failed'}`)
+      return success
+    },
+    false,
+    `acquireLockKv(${lockKey})`,
+  )
+}
+
+/**
+ * 释放分布式锁（EVALSHA 优先，失败时回退 EVAL）
+ * @param key 锁的 Key
+ * @param value 锁的值（必须与获取锁时使用的值相同）
+ * @returns 是否成功释放锁
+ */
+export const releaseLockKv = async (key: string, value: string) => {
+  return safeRedisOp(
+    async (client) => {
+      try {
+        const result = await client.send('EVALSHA', [LOCK_RELEASE_SCRIPT_SHA1, '1', key, value])
+        const ok = result === 1 || result === 1n
+        console.log(`[Redis] releaseLockKv(${key}) ${ok ? 'released' : 'failed (value mismatch)'}`)
+        return ok
+      } catch (innerErr: any) {
+        if (String(innerErr).includes('NOSCRIPT')) {
+          // LUA script not cached on this server node, fall back to EVAL
+          const result = await client.send('EVAL', [LOCK_RELEASE_SCRIPT, '1', key, value])
+          const ok = result === 1 || result === 1n
+          console.log(`[Redis] releaseLockKv(${key}) ${ok ? 'released' : 'failed (value mismatch)'}`)
+          return ok
+        }
+        throw innerErr
+      }
+    },
+    false,
+    `releaseLockKv(${key})`,
+  )
 }
 
 /**
@@ -109,17 +210,16 @@ export async function acquireIdempotentKey(
   key: string,
   ttl: number,
 ): Promise<boolean> {
-  if (!redis) throw new Error('Redis client not initialized')
-
-  const result = await redis.send('SET', [
-    key,
-    'LOCKED',
-    'EX',
-    ttl.toString(),
-    'NX',
-  ])
-
-  return result === 'OK'
+  return safeRedisOp(
+    async (client) => {
+      const result = await client.send('SET', [key, 'LOCKED', 'EX', ttl.toString(), 'NX'])
+      const success = result === 'OK'
+      console.log(`[Redis] acquireIdempotentKey(${key}) ${success ? 'acquired' : 'already locked'}`)
+      return success
+    },
+    false,
+    `acquireIdempotentKey(${key})`,
+  )
 }
 
 /**
@@ -133,8 +233,11 @@ export async function storeIdempotentResult<T>(
   result: T,
   ttl: number,
 ): Promise<void> {
-  if (!redis) return
-  await redis.set(key, JSON.stringify(result), 'EX', ttl)
+  await safeRedisOp(
+    (client) => client.set(key, JSON.stringify(result), 'EX', ttl) as Promise<unknown>,
+    undefined,
+    `storeIdempotentResult(${key})`,
+  )
 }
 
 /**
@@ -142,9 +245,14 @@ export async function storeIdempotentResult<T>(
  * @param key 幂等 Key
  */
 export async function getIdempotentResult<T>(key: string): Promise<T | null> {
-  if (!redis) return null
-  const res = await redis.get(key)
-  return res ? (JSON.parse(res) as T) : null
+  return safeRedisOp(
+    async (client) => {
+      const res = await client.get(key)
+      return res ? (JSON.parse(res) as T) : null
+    },
+    null,
+    `getIdempotentResult(${key})`,
+  )
 }
 
 /**

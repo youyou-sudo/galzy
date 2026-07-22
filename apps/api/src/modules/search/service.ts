@@ -1,5 +1,5 @@
 import { MeiliClient } from '@api/libs'
-import { getKv, setKv } from '@api/libs/redis'
+import { getKv, setKv, delKv } from '@api/libs/redis'
 import { status } from 'elysia'
 import { t } from 'try'
 import type { SearchModel } from './model'
@@ -7,13 +7,16 @@ import type { SearchModel } from './model'
 export const Search = {
   async get({ q, limit, startDate, endDate }: SearchModel.search) {
     const safeQ = q?.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim()
-    const redisData = await getKv(
-      `Search:${safeQ}-${limit}-${startDate}-${endDate}`,
-    )
+    const cacheKey = `galzy:search:${safeQ}:${limit}:${startDate ?? ''}:${endDate ?? ''}`
+    const redisData = await getKv(cacheKey)
 
     if (redisData) {
-      const parsed = JSON.parse(redisData)
-      return parsed as SearchReturn
+      try {
+        const parsed = JSON.parse(redisData)
+        return parsed as SearchReturn
+      } catch {
+        await delKv(cacheKey)
+      }
     }
     const filters: string[] = []
 
@@ -49,7 +52,7 @@ export const Search = {
         ? (topTag as SearchModel.tagAllReturn['items'][0])
         : undefined,
     }
-    void setKv(`Search:${safeQ}-${limit}`, JSON.stringify(data), 60 * 60 * 1)
+    void setKv(cacheKey, JSON.stringify(data), 60 * 60 * 1)
     type SearchReturn = typeof data
     return data
   },

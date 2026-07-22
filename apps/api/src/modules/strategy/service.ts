@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { db, sql, articles } from '@api/libs'
 import {
   acquireIdempotentKey,
@@ -14,7 +15,7 @@ import type { StrategyModel } from './model'
 
 export const Strategy = {
   async strategy({ strategyId }: StrategyModel.strategy) {
-    const redisData = await getKv(`strategy-${strategyId}`)
+    const redisData = await getKv(`galzy:strategy:${strategyId}`)
     if (redisData !== null && redisData !== undefined) {
       return JSON.parse(redisData) as StrategyContent
     }
@@ -29,7 +30,7 @@ export const Strategy = {
       .where(eq(articles.id, strategyId))
       .then((r) => r[0])
     void setKv(
-      `strategy-${strategyId}`,
+      `galzy:strategy:${strategyId}`,
       JSON.stringify(strategyContent),
       60 * 60 * 1,
     )
@@ -37,7 +38,7 @@ export const Strategy = {
     return strategyContent
   },
   async gameStrategys({ gameId }: StrategyModel.gameStrategys) {
-    const redisData = await getKv(`gameStrategys:${gameId}`)
+    const redisData = await getKv(`galzy:game:strategys:${gameId}`)
     if (redisData !== null && redisData !== undefined) {
       return JSON.parse(redisData) as StrategyContent
     }
@@ -58,19 +59,19 @@ export const Strategy = {
             : eq(articles.otherid, Number(gameId)),
         ),
       )
-    void setKv(`gameStrategys:${gameId}`, JSON.stringify(data), 60 * 60 * 1)
+    void setKv(`galzy:game:strategys:${gameId}`, JSON.stringify(data), 60 * 60 * 1)
     type StrategyContent = typeof data
     return data
   },
   async strategyUpdate({ id, data }: StrategyModel.strategyListUpdate) {
-    await delKv(`gameStrategys:${id}`)
-    await delKv(`strategy-${id}`)
+    await delKv(`galzy:game:strategys:${id}`)
+    await delKv(`galzy:strategy:${id}`)
     const hash = generateIdempotentHash({ id, data })
-    const cached = await getIdempotentResult(`strategyListUpdate-${hash}`)
+    const cached = await getIdempotentResult(`galzy:idempotent:strategyListUpdate:${hash}`)
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`strategyListUpdate-${hash}`, 10)
+    const ok = await acquireIdempotentKey(`galzy:idempotent:strategyListUpdate:${hash}`, 10)
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -78,16 +79,16 @@ export const Strategy = {
       .update(articles)
       .set({ ...data })
       .where(eq(articles.id, Number(id)))
-    await storeIdempotentResult(`strategyListUpdate-${hash}`, '', 60)
+    await storeIdempotentResult(`galzy:idempotent:strategyListUpdate:${hash}`, '', 60)
   },
   async strategyCreate({ id, data, userid }: StrategyModel.strategyListCreate) {
-    await delKv(`gameStrategys:${id}`)
+    await delKv(`galzy:game:strategys:${id}`)
     const hash = generateIdempotentHash({ id, data })
-    const cached = await getIdempotentResult(`strategyListCreate-${hash}`)
+    const cached = await getIdempotentResult(`galzy:idempotent:strategyListCreate:${hash}`)
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`strategyListCreate-${hash}`, 10)
+    const ok = await acquireIdempotentKey(`galzy:idempotent:strategyListCreate:${hash}`, 10)
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -106,16 +107,16 @@ export const Strategy = {
           author: userid,
         })
     }
-    await storeIdempotentResult(`strategyListCreate-${hash}`, '', 60)
+    await storeIdempotentResult(`galzy:idempotent:strategyListCreate:${hash}`, '', 60)
   },
   async strategyDelete({ strategyId, gameId }: StrategyModel.strategy) {
-    await delKv(`gameStrategys:${gameId}`)
+    await delKv(`galzy:game:strategys:${gameId}`)
     const hash = generateIdempotentHash({ strategyId })
-    const cached = await getIdempotentResult(`strategyListDelete-${hash}`)
+    const cached = await getIdempotentResult(`galzy:idempotent:strategyListDelete:${hash}`)
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`strategyListDelete-${hash}`, 10)
+    const ok = await acquireIdempotentKey(`galzy:idempotent:strategyListDelete:${hash}`, 10)
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -123,7 +124,7 @@ export const Strategy = {
       .delete(articles)
       .where(eq(articles.id, Number(strategyId)))
 
-    await storeIdempotentResult(`strategyListDelete-${hash}`, '', 60)
+    await storeIdempotentResult(`galzy:idempotent:strategyListDelete:${hash}`, '', 60)
   },
   async adminListAll(params: StrategyModel.adminArticleListQuery): Promise<{
     articles: any[]
@@ -134,7 +135,7 @@ export const Strategy = {
     const limit = params.limit ?? 20
     const offset = (page - 1) * limit
 
-    const cacheKey = `adminArticles:${JSON.stringify(params)}`
+    const cacheKey = `galzy:strategy:admin:articles:${createHash('md5').update(JSON.stringify(params)).digest('hex')}`
     const redisData = await getKv(cacheKey)
     if (redisData !== null && redisData !== undefined) {
       return JSON.parse(redisData) as any
@@ -186,11 +187,11 @@ export const Strategy = {
     status: newStatus,
   }: StrategyModel.adminArticleStatus) {
     const hash = generateIdempotentHash({ id, status: newStatus })
-    const cached = await getIdempotentResult(`adminChangeStatus-${hash}`)
+    const cached = await getIdempotentResult(`galzy:idempotent:adminChangeStatus:${hash}`)
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`adminChangeStatus-${hash}`, 10)
+    const ok = await acquireIdempotentKey(`galzy:idempotent:adminChangeStatus:${hash}`, 10)
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -208,12 +209,12 @@ export const Strategy = {
       throw status(404, '文章不存在')
     }
 
-    await delKv(`strategy-${id}`)
+    await delKv(`galzy:strategy:${id}`)
     if (article.vid) {
-      void delKv(`gameStrategys:${article.vid}`)
+      void delKv(`galzy:game:strategys:${article.vid}`)
     }
     if (article.otherid) {
-      void delKv(`gameStrategys:${article.otherid}`)
+      void delKv(`galzy:game:strategys:${article.otherid}`)
     }
 
     await db
@@ -221,6 +222,6 @@ export const Strategy = {
       .set({ status: newStatus })
       .where(eq(articles.id, id))
 
-    await storeIdempotentResult(`adminChangeStatus-${hash}`, '', 60)
+    await storeIdempotentResult(`galzy:idempotent:adminChangeStatus:${hash}`, '', 60)
   },
 }

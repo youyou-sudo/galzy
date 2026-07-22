@@ -20,7 +20,7 @@ export const emailOtpPlugin = () =>
         },
         async (ctx) => {
           const { email, type } = ctx.body
-          const kvKey = `${type}-${email}`
+          const kvKey = `galzy:auth:emailOtp:${type}:${email}`
           const ttl = await getKvTime(kvKey)
           if (ttl && ttl > 0) {
             throw new APIError('TOO_MANY_REQUESTS', {
@@ -72,7 +72,7 @@ export const emailOtpPlugin = () =>
         async (ctx) => {
           const { email, type, otp } = ctx.body
 
-          const kvKey = `${type}-${email}`
+          const kvKey = `galzy:auth:emailOtp:${type}:${email}`
 
           const isValid =
             await ctx.context.internalAdapter.findVerificationValue(kvKey)

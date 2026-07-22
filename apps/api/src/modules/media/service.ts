@@ -31,11 +31,11 @@ export const Media = {
     cover,
   }: MediaModel.insertmediatoentry) {
     const hash = generateIdempotentHash({ entryId, media, sortOrder, cover })
-    const cached = await getIdempotentResult(`insertmediatoentry-${hash}`)
+    const cached = await getIdempotentResult(`galzy:idempotent:insertmediatoentry:${hash}`)
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`insertmediatoentry-${hash}`, 60)
+    const ok = await acquireIdempotentKey(`galzy:idempotent:insertmediatoentry:${hash}`, 60)
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -88,17 +88,17 @@ export const Media = {
           })
       })
 
-      await delKv(`gameInfo:${entryId}`)
-      await storeIdempotentResult(`insertmediatoentry-${hash}`, '', 60)
+      await delKv(`galzy:game:info:${entryId}`)
+      await storeIdempotentResult(`galzy:idempotent:insertmediatoentry:${hash}`, '', 60)
     }
   },
   async delemediatoentry({ id, mediahash, name }: MediaModel.delemediatoentry) {
     const hash = generateIdempotentHash({ id, mediahash, name })
-    const cached = await getIdempotentResult(`delemediatoentry-${hash}`)
+    const cached = await getIdempotentResult(`galzy:idempotent:delemediatoentry:${hash}`)
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`delemediatoentry-${hash}`, 60)
+    const ok = await acquireIdempotentKey(`galzy:idempotent:delemediatoentry:${hash}`, 60)
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -130,15 +130,15 @@ export const Media = {
       })
     }
 
-    await storeIdempotentResult(`delemediatoentry-${hash}`, '', 60)
+    await storeIdempotentResult(`galzy:idempotent:delemediatoentry:${hash}`, '', 60)
   },
   async getMediaByCover({ other, mediahash }: MediaModel.getMediaByCover) {
     const hash = generateIdempotentHash({ other, mediahash })
-    const cached = await getIdempotentResult(`getMediaByCover-${hash}`)
+    const cached = await getIdempotentResult(`galzy:idempotent:getMediaByCover:${hash}`)
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`getMediaByCover-${hash}`, 60)
+    const ok = await acquireIdempotentKey(`galzy:idempotent:getMediaByCover:${hash}`, 60)
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -159,17 +159,17 @@ export const Media = {
       return updated
     })
 
-    await delKv(`gameInfo:${other}`)
-    await storeIdempotentResult(`getMediaByCover-${hash}`, mediaResult, 60)
+    await delKv(`galzy:game:info:${other}`)
+    await storeIdempotentResult(`galzy:idempotent:getMediaByCover:${hash}`, mediaResult, 60)
     return mediaResult
   },
   async getMedia({ other_id }: MediaModel.getMedia) {
     const hash = generateIdempotentHash({ other_id })
-    const cached = await getIdempotentResult(`getMedia-${hash}`)
+    const cached = await getIdempotentResult(`galzy:idempotent:getMedia:${hash}`)
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`getMedia-${hash}`, 60)
+    const ok = await acquireIdempotentKey(`galzy:idempotent:getMedia:${hash}`, 60)
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -182,7 +182,7 @@ export const Media = {
       .from(otherMedia)
       .where(eq(otherMedia.otherId, Number(other_id)))
 
-    await storeIdempotentResult(`getMedia-${hash}`, data, 60)
+    await storeIdempotentResult(`galzy:idempotent:getMedia:${hash}`, data, 60)
     return data
   },
   async uploadAvatar({

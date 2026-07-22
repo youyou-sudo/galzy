@@ -19,17 +19,20 @@ export const dbAction = async () => {
   console.log('✅ Database connection test successful')
   setDeployStatus('ready')
 
-  redis.ping().then((pong) => {
+  try {
+    const pong = await redis.ping()
     if (pong === 'PONG') {
       console.log('✅ Redis connection test successful')
     } else {
       setDeployStatus('error')
       console.error('❌ Redis connection test failed')
+      throw new Error('Redis ping returned non-PONG response')
     }
-  }).catch((e) => {
+  } catch (e) {
     setDeployStatus('error')
     console.error('❌ Redis connection test failed:', e)
-  })
+    throw e
+  }
 
   console.log('🎉 Database loading complete')
 }

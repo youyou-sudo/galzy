@@ -514,12 +514,12 @@ export const VndbSync = {
   },
 
   async invalidateCache() {
-    await delKvPattern('gameList:*').catch(() => {})
-    await delKvPattern('gameInfo:*').catch(() => {})
-    await delKvPattern('gameTags:*').catch(() => {})
-    await delKvPattern('tagGames:*').catch(() => {})
-    await delKvPattern('Producer*').catch(() => {})
-    await delKvPattern('gameCount').catch(() => {})
+    await delKvPattern('galzy:game:list*').catch(e => console.warn('[Cache] gameList invalidation failed:', e))
+    await delKvPattern('galzy:game:info*').catch(e => console.warn('[Cache] gameInfo invalidation failed:', e))
+    await delKvPattern('galzy:game:tags*').catch(e => console.warn('[Cache] gameTags invalidation failed:', e))
+    await delKvPattern('galzy:tag:games*').catch(e => console.warn('[Cache] tagGames invalidation failed:', e))
+    await delKvPattern('galzy:producer*').catch(e => console.warn('[Cache] Producer* invalidation failed:', e))
+    await delKvPattern('galzy:game:count').catch(e => console.warn('[Cache] gameCount invalidation failed:', e))
   },
 
   // ========== VN Sync ==========

@@ -7,7 +7,7 @@ import { alistb, vn, vnTitles, images, others, otherMedia, media, zhtags, tags, 
 
 export const Tags = {
   async gameTags({ id }: TagsModel.gameTags) {
-    const cacheKey = `gameTags:${id}`
+    const cacheKey = `galzy:game:tags:${id}`
 
     // 1. 尝试从缓存读取
     const redisData = await getKv(cacheKey)
@@ -16,7 +16,7 @@ export const Tags = {
         return JSON.parse(redisData) as Tag
       } catch {
         // 缓存损坏 → 删除并继续查库
-        await delKv(cacheKey).catch(() => {})
+        await delKv(cacheKey)
       }
     }
 
@@ -64,16 +64,14 @@ export const Tags = {
     const result = structuredClone(items)
 
     // 写入缓存（失败时只记录，不影响结果返回）
-    setKv(cacheKey, JSON.stringify(result), 60 * 60).catch(() => {
-      console.warn(`缓存写入失败: ${cacheKey}`)
-    })
+    void setKv(cacheKey, JSON.stringify(result), 60 * 60)
 
     // 类型定义：保证 result 不会是 undefined
     type Tag = NonNullable<typeof result>
     return result
   },
   async tag({ tagId }: TagsModel.tagId) {
-    const redisdata = await getKv(`tag:${tagId}`)
+    const redisdata = await getKv(`galzy:tag:${tagId}`)
     if (redisdata !== null && redisdata !== undefined) {
       return JSON.parse(redisdata) as Tag
     }
@@ -96,12 +94,12 @@ export const Tags = {
     }
 
     const result = structuredClone(items)
-    void setKv(`tag:${tagId}`, JSON.stringify(result), 60 * 60 * 1)
+    void setKv(`galzy:tag:${tagId}`, JSON.stringify(result), 60 * 60 * 1)
     type Tag = typeof result
     return result
   },
   async tagGames({ tagId, pageSize, pageIndex }: TagsModel.tagGames) {
-    const cacheKey = `tagGames:${tagId}:${pageSize}:${pageIndex}`
+    const cacheKey = `galzy:tag:games:${tagId}:${pageSize}:${pageIndex}`
 
     // 先查缓存
     const redisData = await getKv(cacheKey)
