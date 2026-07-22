@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@web/components/ui/card'
-import { FileTextIcon, SearchIcon, UsersIcon } from 'lucide-react'
+import { DatabaseIcon, FileTextIcon, SearchIcon, UsersIcon } from 'lucide-react'
 
 export const Route = createFileRoute('/admin/_authL/')({
   component: RouteComponent,
@@ -35,6 +35,12 @@ const adminLinks = [
     icon: FileTextIcon,
     title: '文章管理',
     description: '管理全站攻略文章，支持审核、编辑、隐藏与删除操作',
+  },
+  {
+    to: '/admin/vndb-sync',
+    icon: DatabaseIcon,
+    title: 'VNDB 数据同步',
+    description: '管理 VNDB 全量/增量数据同步与监控',
   },
 ]
 

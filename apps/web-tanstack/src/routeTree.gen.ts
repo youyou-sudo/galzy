@@ -33,6 +33,7 @@ import { Route as AdminAuthLIndexRouteImport } from './routes/admin/_authL/index
 import { Route as IdLayoutIndexRouteImport } from './routes/$id/_layout/index'
 import { Route as AuthSignupVerificationRouteImport } from './routes/auth/signup/Verification'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AdminAuthLVndbSyncRouteImport } from './routes/admin/_authL/vndb-sync'
 import { Route as AdminAuthLUsersRouteImport } from './routes/admin/_authL/users'
 import { Route as AdminAuthLMeilisearchRouteImport } from './routes/admin/_authL/meilisearch'
 import { Route as AdminAuthLCommentsRouteImport } from './routes/admin/_authL/comments'
@@ -162,6 +163,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAuthLVndbSyncRoute = AdminAuthLVndbSyncRouteImport.update({
+  id: '/vndb-sync',
+  path: '/vndb-sync',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
 const AdminAuthLUsersRoute = AdminAuthLUsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -230,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/admin/comments': typeof AdminAuthLCommentsRoute
   '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
   '/admin/users': typeof AdminAuthLUsersRoute
+  '/admin/vndb-sync': typeof AdminAuthLVndbSyncRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
   '/$id/': typeof IdLayoutIndexRoute
@@ -262,6 +269,7 @@ export interface FileRoutesByTo {
   '/admin/comments': typeof AdminAuthLCommentsRoute
   '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
   '/admin/users': typeof AdminAuthLUsersRoute
+  '/admin/vndb-sync': typeof AdminAuthLVndbSyncRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
   '/$id': typeof IdLayoutIndexRoute
@@ -297,6 +305,7 @@ export interface FileRoutesById {
   '/admin/_authL/comments': typeof AdminAuthLCommentsRoute
   '/admin/_authL/meilisearch': typeof AdminAuthLMeilisearchRoute
   '/admin/_authL/users': typeof AdminAuthLUsersRoute
+  '/admin/_authL/vndb-sync': typeof AdminAuthLVndbSyncRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
   '/$id/_layout/': typeof IdLayoutIndexRoute
@@ -333,6 +342,7 @@ export interface FileRouteTypes {
     | '/admin/comments'
     | '/admin/meilisearch'
     | '/admin/users'
+    | '/admin/vndb-sync'
     | '/api/auth/$'
     | '/auth/signup/Verification'
     | '/$id/'
@@ -365,6 +375,7 @@ export interface FileRouteTypes {
     | '/admin/comments'
     | '/admin/meilisearch'
     | '/admin/users'
+    | '/admin/vndb-sync'
     | '/api/auth/$'
     | '/auth/signup/Verification'
     | '/$id'
@@ -399,6 +410,7 @@ export interface FileRouteTypes {
     | '/admin/_authL/comments'
     | '/admin/_authL/meilisearch'
     | '/admin/_authL/users'
+    | '/admin/_authL/vndb-sync'
     | '/api/auth/$'
     | '/auth/signup/Verification'
     | '/$id/_layout/'
@@ -604,6 +616,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/_authL/vndb-sync': {
+      id: '/admin/_authL/vndb-sync'
+      path: '/vndb-sync'
+      fullPath: '/admin/vndb-sync'
+      preLoaderRoute: typeof AdminAuthLVndbSyncRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
     '/admin/_authL/users': {
       id: '/admin/_authL/users'
       path: '/users'
@@ -688,6 +707,7 @@ interface AdminAuthLRouteChildren {
   AdminAuthLCommentsRoute: typeof AdminAuthLCommentsRoute
   AdminAuthLMeilisearchRoute: typeof AdminAuthLMeilisearchRoute
   AdminAuthLUsersRoute: typeof AdminAuthLUsersRoute
+  AdminAuthLVndbSyncRoute: typeof AdminAuthLVndbSyncRoute
   AdminAuthLIndexRoute: typeof AdminAuthLIndexRoute
 }
 
@@ -696,6 +716,7 @@ const AdminAuthLRouteChildren: AdminAuthLRouteChildren = {
   AdminAuthLCommentsRoute: AdminAuthLCommentsRoute,
   AdminAuthLMeilisearchRoute: AdminAuthLMeilisearchRoute,
   AdminAuthLUsersRoute: AdminAuthLUsersRoute,
+  AdminAuthLVndbSyncRoute: AdminAuthLVndbSyncRoute,
   AdminAuthLIndexRoute: AdminAuthLIndexRoute,
 }
 
