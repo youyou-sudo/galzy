@@ -269,13 +269,13 @@ export const Game = {
     const cacheKey = `OpenListFiles:${id}`
     const redisData = await getKv(cacheKey)
 
-    // if (redisData) {
-    //   try {
-    //     return JSON.parse(redisData) as DataType
-    //   } catch {
-    //     await delKv(cacheKey)
-    //   }
-    // }
+    if (redisData) {
+      try {
+        return JSON.parse(redisData) as DataType
+      } catch {
+        await delKv(cacheKey)
+      }
+    }
     const viddata = (await db
       .select({
         id: alistb.id,
@@ -314,7 +314,6 @@ export const Game = {
       })
 
       const json = await res.json()
-      console.log(json)
       return json.data?.content || []
     }
 
