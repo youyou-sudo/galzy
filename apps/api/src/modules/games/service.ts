@@ -71,7 +71,7 @@ export const Game = {
             )
           `,
           images: sql`
-            (SELECT row_to_json(i.*) FROM (SELECT id, height, width, c_sexual_avg FROM images i WHERE i.id = vn.c_image) i)
+            (SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM images i WHERE i.id = vn.c_image) i)
           `,
           other: alistb.other,
           other_datas: sql`
@@ -190,7 +190,7 @@ export const Game = {
                     (SELECT json_agg(row_to_json(t.*)) FROM vn_titles t WHERE t.id = vn.id),
                     '[]'::json
                   ) AS titles,
-                  (SELECT row_to_json(i.*) FROM (SELECT id, height, width, c_sexual_avg FROM images i WHERE i.id = vn.c_image) i) AS images
+                  (SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM images i WHERE i.id = vn.c_image) i) AS images
                 FROM vn
                 WHERE vn.id = galrc_alistb.vid
               ) vn_sub)
