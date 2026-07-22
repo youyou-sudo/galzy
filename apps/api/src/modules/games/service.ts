@@ -1,5 +1,19 @@
-import { db, sql } from '@api/libs'
-import { alistb, vn, vnTitles, images, others, otherMedia, media, gameDownloadStats, releases, releasesVn, releasesProducers, producers } from '@api/libs'
+import {
+  alistb,
+  db,
+  gameDownloadStats,
+  images,
+  media,
+  otherMedia,
+  others,
+  producers,
+  releases,
+  releasesProducers,
+  releasesVn,
+  sql,
+  vn,
+  vnTitles,
+} from '@api/libs'
 import {
   acquireIdempotentKey,
   acquireLockKv,
@@ -12,8 +26,17 @@ import {
   setKv,
   storeIdempotentResult,
 } from '@api/libs/redis'
+import {
+  and,
+  count as countAll,
+  desc,
+  eq,
+  isNotNull,
+  isNull,
+  like,
+  or,
+} from 'drizzle-orm'
 import { status } from 'elysia'
-import { eq, count as countAll, desc, asc, isNull, isNotNull, like, or, and } from 'drizzle-orm'
 import type { GameModel } from './model'
 
 export const Game = {
@@ -22,7 +45,10 @@ export const Game = {
     if (redisData !== null && redisData !== undefined) {
       return Number(redisData)
     }
-    const totalCountResult = await db.select({ count: countAll() }).from(alistb).then(r => r[0])
+    const totalCountResult = await db
+      .select({ count: countAll() })
+      .from(alistb)
+      .then((r) => r[0])
     const total = Number(totalCountResult?.count || 0)
     void setKv('galzy:game:count', String(total), 60 * 30)
     return total
@@ -33,7 +59,8 @@ export const Game = {
       return JSON.parse(redisData) as GameList
     }
     const offset = pageIndex * pageSize
-    const items = await (db
+    const items = await (
+      db
         .select({
           id: vn.id,
           olang: vn.olang,
@@ -68,12 +95,16 @@ export const Game = {
           `,
         })
         .from(alistb)
-        .innerJoin(vn, eq(alistb.vid, vn.id)) as any)
-        .orderBy(desc(vn.id))
-        .orderBy(desc(alistb.other))
-        .limit(pageSize)
-        .offset(offset)
-    const totalCountResult = await db.select({ count: countAll() }).from(alistb).then(r => r[0])
+        .innerJoin(vn, eq(alistb.vid, vn.id)) as any
+    )
+      .orderBy(desc(vn.id))
+      .orderBy(desc(alistb.other))
+      .limit(pageSize)
+      .offset(offset)
+    const totalCountResult = await db
+      .select({ count: countAll() })
+      .from(alistb)
+      .then((r) => r[0])
     const totalCount = Number(totalCountResult?.count || 0)
     const totalPages = Math.ceil(totalCount / pageSize)
     const datas = {
@@ -106,7 +137,8 @@ export const Game = {
     const idIsNumber = /^\d+$/.test(id)
 
     const queryDb = async () => {
-      const data = await (db
+      const data = await (
+        db
           .select({
             id: alistb.id,
             vid: alistb.vid,
@@ -178,9 +210,12 @@ export const Game = {
             `,
           })
           .from(alistb)
-          .where(idIsNumber ? eq(alistb.other, Number(id)) : eq(alistb.vid, id)) as any)
-          .limit(1)
-          .then((r: any) => r[0])
+          .where(
+            idIsNumber ? eq(alistb.other, Number(id)) : eq(alistb.vid, id),
+          ) as any
+      )
+        .limit(1)
+        .then((r: any) => r[0])
 
       if (!data) {
         throw status(404, `未找到 id=${id} 对应的游戏信息`)
@@ -213,7 +248,7 @@ export const Game = {
         void releaseLockKv(lockKey, lockVal)
       }
     } else {
-      await new Promise(resolve => setTimeout(resolve, 100))
+      await new Promise((resolve) => setTimeout(resolve, 100))
       const retryData = await getKv(cacheKey)
       if (retryData) {
         try {
@@ -234,14 +269,14 @@ export const Game = {
     const cacheKey = `OpenListFiles:${id}`
     const redisData = await getKv(cacheKey)
 
-    if (redisData) {
-      try {
-        return JSON.parse(redisData) as DataType
-      } catch {
-        await delKv(cacheKey)
-      }
-    }
-    const viddata = await db
+    // if (redisData) {
+    //   try {
+    //     return JSON.parse(redisData) as DataType
+    //   } catch {
+    //     await delKv(cacheKey)
+    //   }
+    // }
+    const viddata = (await db
       .select({
         id: alistb.id,
         vid: alistb.vid,
@@ -251,7 +286,9 @@ export const Game = {
       .from(alistb)
       .where(eq(alistb.vid, id))
       .limit(1)
-      .then((r: any) => r[0]) as { id: string; vid: string | null; other: number | null; path: any } | undefined
+      .then((r: any) => r[0])) as
+      | { id: string; vid: string | null; other: number | null; path: any }
+      | undefined
 
     type RawItem = {
       name: string
@@ -265,18 +302,19 @@ export const Game = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `${process.env.OPENLIST_API_KEY}`,
+          Authorization: process.env.OPENLIST_API_KEY!,
         },
         body: JSON.stringify({
           path: parent,
           password: '',
           refresh: false,
           page: 1,
-          per_page: 100000,
+          per_page: 0,
         }),
       })
 
       const json = await res.json()
+      console.log(json)
       return json.data?.content || []
     }
 
@@ -367,27 +405,27 @@ export const Game = {
         .from(alistb)
         .where(and(isNotNull(alistb.other), isNull(alistb.vid)))
         .limit(1)
-        .then(r => r[0]),
+        .then((r) => r[0]),
 
       db
         .select({ count: countAll() })
         .from(alistb)
         .where(and(isNotNull(alistb.vid), isNotNull(alistb.other)))
         .limit(1)
-        .then(r => r[0]),
+        .then((r) => r[0]),
 
       db
         .select({ count: countAll() })
         .from(alistb)
         .where(and(isNotNull(alistb.vid), isNull(alistb.other)))
         .limit(1)
-        .then(r => r[0]),
+        .then((r) => r[0]),
 
       db
         .select({ count: countAll() })
         .from(alistb)
         .limit(1)
-        .then(r => r[0]),
+        .then((r) => r[0]),
     ])
     const data = {
       onlyOther: onlyOther?.count ?? 0,
@@ -425,39 +463,40 @@ export const Game = {
       whereConditions = [isNotNull(alistb.vid), isNull(alistb.other)]
     }
 
-    const countFilter = whereConditions.length > 0 ? and(...whereConditions) : undefined
+    const countFilter =
+      whereConditions.length > 0 ? and(...whereConditions) : undefined
     const totalResult = await db
       .select({ count: countAll() })
       .from(alistb)
       .where(countFilter)
       .limit(1)
-      .then(r => r[0])
+      .then((r) => r[0])
 
     const total = totalResult?.count ?? 0
 
     const numQuery = extractNumber(query)
 
-    let dataWhereConditions = [...whereConditions]
+    const dataWhereConditions = [...whereConditions]
     if (numQuery !== null && numQuery !== undefined) {
       dataWhereConditions.push(
-        or(
-          like(alistb.vid, query),
-          eq(alistb.other, numQuery),
-        ),
+        or(like(alistb.vid, query), eq(alistb.other, numQuery)),
       )
     }
 
-    const dataFilter = dataWhereConditions.length > 0 ? and(...dataWhereConditions) : undefined
-    const dataQuery = (db
-      .select({
-        id: alistb.id,
-        vid: alistb.vid,
-        other: alistb.other,
-        vndatas: sql`(SELECT row_to_json(vn.*) FROM vn WHERE vn.id = galrc_alistb.vid)`,
-        otherdatas: sql`(SELECT row_to_json(o.*) FROM galrc_other o WHERE o.id = galrc_alistb.other)`,
-      })
-      .from(alistb)
-      .where(dataFilter) as any)
+    const dataFilter =
+      dataWhereConditions.length > 0 ? and(...dataWhereConditions) : undefined
+    const dataQuery = (
+      db
+        .select({
+          id: alistb.id,
+          vid: alistb.vid,
+          other: alistb.other,
+          vndatas: sql`(SELECT row_to_json(vn.*) FROM vn WHERE vn.id = galrc_alistb.vid)`,
+          otherdatas: sql`(SELECT row_to_json(o.*) FROM galrc_other o WHERE o.id = galrc_alistb.other)`,
+        })
+        .from(alistb)
+        .where(dataFilter) as any
+    )
       .limit(limit)
       .offset(offset)
 
@@ -475,13 +514,14 @@ export const Game = {
   async VidassociationGet({ id }: GameModel.infoId) {
     if (id.startsWith('v')) {
       const fetchData = async () => {
-        return await (db
-          .select({
-            id: alistb.id,
-            vid: alistb.vid,
-            other: alistb.other,
-            path: alistb.path,
-            other_data: sql`
+        return await (
+          db
+            .select({
+              id: alistb.id,
+              vid: alistb.vid,
+              other: alistb.other,
+              path: alistb.path,
+              other_data: sql`
               (SELECT row_to_json(other_sub.*) FROM (
                 SELECT
                   galrc_other.*,
@@ -499,9 +539,10 @@ export const Game = {
                 WHERE galrc_other.id = galrc_alistb.other
               ) other_sub)
             `,
-          })
-          .from(alistb)
-          .where(eq(alistb.vid, id)) as any)
+            })
+            .from(alistb)
+            .where(eq(alistb.vid, id)) as any
+        )
           .limit(1)
           .then((r: any) => r[0])
       }
@@ -511,7 +552,7 @@ export const Game = {
           .insert(others)
           .values({ status: 'draft' })
           .returning({ id: others.id })
-          .then(r => r[0])
+          .then((r) => r[0])
         await db
           .update(alistb)
           .set({ other: newOtherId.id })
@@ -523,15 +564,16 @@ export const Game = {
     }
     if (id.match(/^\d+$/)) {
       const fetchData = async () => {
-        return await (db
-          .select({
-            id: others.id,
-            title: others.title,
-            alias: others.alias,
-            introduction: others.introduction,
-            description: others.description,
-            status: others.status,
-            othermedia: sql`
+        return await (
+          db
+            .select({
+              id: others.id,
+              title: others.title,
+              alias: others.alias,
+              introduction: others.introduction,
+              description: others.description,
+              status: others.status,
+              othermedia: sql`
               COALESCE(
                 (SELECT json_agg(row_to_json(media_sub.*)) FROM (
                   SELECT
@@ -543,9 +585,10 @@ export const Game = {
                 '[]'::json
               )
             `,
-          })
-          .from(others)
-          .where(eq(others.id, Number(id))) as any)
+            })
+            .from(others)
+            .where(eq(others.id, Number(id))) as any
+        )
           .limit(1)
           .then((r: any) => r[0])
       }
@@ -555,7 +598,7 @@ export const Game = {
           .insert(others)
           .values({ status: 'draft' })
           .returning({ id: others.id })
-          .then(r => r[0])
+          .then((r) => r[0])
 
         await db
           .update(alistb)
@@ -569,11 +612,16 @@ export const Game = {
   },
   async vidassociationUpdate({ id, data }: GameModel.vidassociationUpdate) {
     const hash = generateIdempotentHash({ id, data })
-    const cached = await getIdempotentResult(`galzy:idempotent:vidassociationUpdate:${hash}`)
+    const cached = await getIdempotentResult(
+      `galzy:idempotent:vidassociationUpdate:${hash}`,
+    )
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`galzy:idempotent:vidassociationUpdate:${hash}`, 60)
+    const ok = await acquireIdempotentKey(
+      `galzy:idempotent:vidassociationUpdate:${hash}`,
+      60,
+    )
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -587,7 +635,7 @@ export const Game = {
         alias: alias,
       })
       .where(eq(others.id, Number(id)))
-    let datas = {
+    const datas = {
       message: '更新 galrc_other 成功',
       status: 'success',
     }
@@ -595,15 +643,24 @@ export const Game = {
     await delKv(`galzy:game:vidassociation:${id}`)
     await delKvPattern('galzy:game:list*')
     await delKv('galzy:game:count')
-    await storeIdempotentResult(`galzy:idempotent:vidassociationUpdate:${hash}`, datas, 60)
+    await storeIdempotentResult(
+      `galzy:idempotent:vidassociationUpdate:${hash}`,
+      datas,
+      60,
+    )
     return datas
   },
   async vidassociationCreate() {
-    const cached = await getIdempotentResult(`galzy:idempotent:vidassociationCreate:action`)
+    const cached = await getIdempotentResult(
+      `galzy:idempotent:vidassociationCreate:action`,
+    )
     if (cached) {
       return cached as OtherId
     }
-    const ok = await acquireIdempotentKey(`galzy:idempotent:vidassociationCreate:action`, 2)
+    const ok = await acquireIdempotentKey(
+      `galzy:idempotent:vidassociationCreate:action`,
+      2,
+    )
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -612,14 +669,12 @@ export const Game = {
         .insert(others)
         .values({ status: 'draft' })
         .returning({ id: others.id })
-        .then(r => r[0])
+        .then((r) => r[0])
 
-      await tx
-        .insert(alistb)
-        .values({
-          id: String(newOther.id),
-          other: newOther.id,
-        })
+      await tx.insert(alistb).values({
+        id: String(newOther.id),
+        other: newOther.id,
+      })
 
       return newOther
     })
@@ -673,7 +728,7 @@ export const Game = {
       .from(gameDownloadStats)
       .where(eq(gameDownloadStats.gameId, id))
       .limit(1)
-      .then(r => r[0])
+      .then((r) => r[0])
     return { total: data?.total, res }
   },
 }
