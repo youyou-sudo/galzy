@@ -1,15 +1,11 @@
-import { createFileRoute, Outlet } from '@tanstack/react-router'
-import { GameHeader } from '@web/components/home/game/GameHeader'
-import { GameInfo } from '@web/components/home/game/GameInfo'
-import { GameTabs } from '@web/components/home/game/GameTabs'
-import { Glgczujm } from '@web/components/home/game/tips'
-import { Card, CardContent } from '@web/components/ui/card'
-import { GameViewsTrackEvents } from '@web/components/umami/track-events'
+import { createFileRoute } from '@tanstack/react-router'
+import { lazy, Suspense } from 'react'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { getGameDetail, getGameTags } from '@web/server/game'
 
+const GameLayoutPage = lazy(() => import('@web/components/game/game-layout-page'))
+
 export const Route = createFileRoute('/$id/_layout')({
-  component: RouteComponent,
   params: {
     parse: ({ id }) => {
       const match = id.match(/^([vd])(\d+)$/)
@@ -60,27 +56,13 @@ export const Route = createFileRoute('/$id/_layout')({
   }),
   staleTime: 60_000, // Consider data fresh for 60 seconds on client
   gcTime: 5 * 60_000, // Keep in memory for 5 minutes
+
+  component: () => {
+    const loaderData = Route.useLoaderData()
+    return (
+      <Suspense fallback={<div>加载中...</div>}>
+        <GameLayoutPage {...loaderData} />
+      </Suspense>
+    )
+  },
 })
-
-function RouteComponent() {
-  const { game, id } = Route.useLoaderData()
-  return (
-    <div className="space-y-3">
-      <Card className="overflow-hidden wrap-break-word border-0 pb-0 ">
-        <CardContent>
-          <GameHeader game={game} />
-          <GameInfo game={game} />
-        </CardContent>
-      </Card>
-
-      <GameTabs id={id} />
-      <Card className="p-1">
-        <CardContent className="p-1">
-          <Outlet />
-          <Glgczujm />
-        </CardContent>
-      </Card>
-      <GameViewsTrackEvents idtitle={id} />
-    </div>
-  )
-}

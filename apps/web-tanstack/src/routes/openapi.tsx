@@ -1,11 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MarkdownAsync } from "@web/components/markdownAync";
-import { Card, CardContent } from "@web/components/ui/card";
+import { lazy, Suspense } from "react";
 import { seoTemplate } from "@web/config/seoTemplate";
-import openapiDoc from "@web/markdown/openapi.md?raw";
+
+const OpenapiPage = lazy(() => import("@web/components/openapi-page"));
 
 export const Route = createFileRoute("/openapi")({
-	component: RouteComponent,
+	component: () => (
+		<Suspense fallback={<div>加载中...</div>}>
+			<OpenapiPage />
+		</Suspense>
+	),
 	head: () => ({
 		meta: [
 			{
@@ -19,13 +23,3 @@ export const Route = createFileRoute("/openapi")({
 			"public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
 	}),
 });
-
-function RouteComponent() {
-	return (
-		<Card>
-			<CardContent className="space-y-6 px-3">
-				<MarkdownAsync readmedata={openapiDoc} />
-			</CardContent>
-		</Card>
-	);
-}
