@@ -30,10 +30,10 @@ export function ChartAreaLinear() {
         <CardTitle>总下载量: {translateData?.total}</CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer className="max-h-50 w-full" config={chartConfig}>
+        <ChartContainer className="max-h-52 w-full" config={chartConfig}>
           <AreaChart
             accessibilityLayer
-            data={translateData?.res.rows}
+            data={translateData?.res}
             margin={{
               left: 12,
               right: 12,
