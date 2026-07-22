@@ -61,7 +61,7 @@ export function Images({ className, cSexualAvg, ...props }: ImageProps & { cSexu
         />
         {isSensitive && !revealed && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
-            <span className="text-white text-2xl font-bold">R18</span>
+            <span className="text-white text-2xl font-bold">涩！</span>
             <span className="text-white/70 text-xs mt-1">图片包含不宜在公共场合查看的内容喵～</span>
             <Button size="sm" className="absolute bottom-2 right-2" onClick={() => setRevealed(true)}>显示</Button>
           </div>
@@ -90,7 +90,7 @@ function SensitiveImage({ cSexualAvg, className, ...imageProps }: ImageProps & {
         />
         {isSensitive && !revealed && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
-            <span className="text-white text-2xl font-bold">R18</span>
+            <span className="text-white text-2xl font-bold">涩！</span>
             <span className="text-white/70 text-xs mt-1">图片包含不宜在公共场合查看的内容喵～</span>
             <Button size="sm" className="absolute bottom-2 right-2" onClick={() => setRevealed(true)}>显示</Button>
           </div>
@@ -140,7 +140,7 @@ function Item({
           />
           {isSensitive && !revealed && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
-              <span className="text-white text-2xl font-bold">R18</span>
+              <span className="text-white text-2xl font-bold">涩！</span>
               <span className="text-white/70 text-xs mt-1">图片包含不宜在公共场合查看的内容喵～</span>
               <Button size="sm" className="absolute bottom-2 right-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRevealed(true) }}>显示</Button>
             </div>

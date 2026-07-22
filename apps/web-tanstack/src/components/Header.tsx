@@ -135,12 +135,12 @@ export default function Header() {
                   ) : (
                     <Eye className="size-4 shrink-0" />
                   )}
-                  <span className="text-[10px] font-bold leading-none">R18</span>
+                  <span className="text-[10px] font-bold leading-none">涩！</span>
                 </Button>
               }
             />
             <TooltipContent>
-              {blurEnabled ? '点击关闭 R18 模糊' : '点击开启 R18 模糊'}
+              {blurEnabled ? '点击关闭涩！模糊' : '点击开启涩！模糊'}
             </TooltipContent>
           </Tooltip>
           <ThemeToggle />
