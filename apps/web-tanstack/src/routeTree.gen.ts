@@ -9,48 +9,43 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as FriendLinksRouteImport } from './routes/friend-links'
 import { Route as OpenapiRouteImport } from './routes/openapi'
-import { Route as IdLayoutRouteImport } from './routes/$id/_layout'
-import { Route as AdminAuthLRouteImport } from './routes/admin/_authL'
-import { Route as ApiGameRouteImport } from './routes/api/game'
-import { Route as ApiHealthRouteImport } from './routes/api/health'
-import { Route as ApiSearchRouteImport } from './routes/api/search'
-import { Route as AuthLoginRouteImport } from './routes/auth/login'
-import { Route as ProducerIndexRouteImport } from './routes/producer/index'
-import { Route as ProducerPidRouteImport } from './routes/producer/$pid'
-import { Route as SearchIndexRouteImport } from './routes/search/index'
-import { Route as TagsIndexRouteImport } from './routes/tags/index'
-import { Route as TagsTagIdRouteImport } from './routes/tags/$tagId'
-import { Route as ToolsIndexRouteImport } from './routes/tools/index'
-import { Route as ToolsPlateRouteImport } from './routes/tools/plate'
+import { Route as FriendLinksRouteImport } from './routes/friend-links'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as UserIndexRouteImport } from './routes/user/index'
-import { Route as IdLayoutIndexRouteImport } from './routes/$id/_layout/index'
-import { Route as IdLayoutCommentRouteImport } from './routes/$id/_layout/comment'
-import { Route as IdLayoutTranslateRouteImport } from './routes/$id/_layout/translate'
-import { Route as AdminAuthLIndexRouteImport } from './routes/admin/_authL/index'
-import { Route as AdminAuthLArticlesRouteImport } from './routes/admin/_authL/articles'
-import { Route as AdminAuthLCommentsRouteImport } from './routes/admin/_authL/comments'
-import { Route as AdminAuthLMeilisearchRouteImport } from './routes/admin/_authL/meilisearch'
-import { Route as AdminAuthLUsersRouteImport } from './routes/admin/_authL/users'
-import { Route as AdminAuthLVndbSyncRouteImport } from './routes/admin/_authL/vndb-sync'
-import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as ApiUploadIndexRouteImport } from './routes/api/upload/index'
+import { Route as ToolsIndexRouteImport } from './routes/tools/index'
+import { Route as TagsIndexRouteImport } from './routes/tags/index'
+import { Route as SearchIndexRouteImport } from './routes/search/index'
+import { Route as ProducerIndexRouteImport } from './routes/producer/index'
+import { Route as ToolsPlateRouteImport } from './routes/tools/plate'
+import { Route as TagsTagIdRouteImport } from './routes/tags/$tagId'
+import { Route as ProducerPidRouteImport } from './routes/producer/$pid'
+import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiGameRouteImport } from './routes/api/game'
+import { Route as AdminAuthLRouteImport } from './routes/admin/_authL'
+import { Route as IdLayoutRouteImport } from './routes/$id/_layout'
 import { Route as AuthSignupIndexRouteImport } from './routes/auth/signup/index'
+import { Route as ApiUploadIndexRouteImport } from './routes/api/upload/index'
+import { Route as AdminAuthLIndexRouteImport } from './routes/admin/_authL/index'
+import { Route as IdLayoutIndexRouteImport } from './routes/$id/_layout/index'
 import { Route as AuthSignupVerificationRouteImport } from './routes/auth/signup/Verification'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AdminAuthLVndbSyncRouteImport } from './routes/admin/_authL/vndb-sync'
+import { Route as AdminAuthLUsersRouteImport } from './routes/admin/_authL/users'
+import { Route as AdminAuthLMeilisearchRouteImport } from './routes/admin/_authL/meilisearch'
+import { Route as AdminAuthLCommentsRouteImport } from './routes/admin/_authL/comments'
+import { Route as AdminAuthLArticlesRouteImport } from './routes/admin/_authL/articles'
+import { Route as IdLayoutTranslateRouteImport } from './routes/$id/_layout/translate'
+import { Route as IdLayoutCommentRouteImport } from './routes/$id/_layout/comment'
 import { Route as IdLayoutIntroductionIndexRouteImport } from './routes/$id/_layout/introduction/index'
 import { Route as IdLayoutIntroductionArticleIdRouteImport } from './routes/$id/_layout/introduction/$articleId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
+const OpenapiRoute = OpenapiRouteImport.update({
+  id: '/openapi',
+  path: '/openapi',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FriendLinksRoute = FriendLinksRouteImport.update({
@@ -58,74 +53,14 @@ const FriendLinksRoute = FriendLinksRouteImport.update({
   path: '/friend-links',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OpenapiRoute = OpenapiRouteImport.update({
-  id: '/openapi',
-  path: '/openapi',
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IdLayoutRoute = IdLayoutRouteImport.update({
-  id: '/$id/_layout',
-  path: '/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminAuthLRoute = AdminAuthLRouteImport.update({
-  id: '/admin/_authL',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiGameRoute = ApiGameRouteImport.update({
-  id: '/api/game',
-  path: '/api/game',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiHealthRoute = ApiHealthRouteImport.update({
-  id: '/api/health',
-  path: '/api/health',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSearchRoute = ApiSearchRouteImport.update({
-  id: '/api/search',
-  path: '/api/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: '/auth/login',
-  path: '/auth/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProducerIndexRoute = ProducerIndexRouteImport.update({
-  id: '/producer/',
-  path: '/producer/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProducerPidRoute = ProducerPidRouteImport.update({
-  id: '/producer/$pid',
-  path: '/producer/$pid',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SearchIndexRoute = SearchIndexRouteImport.update({
-  id: '/search/',
-  path: '/search/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TagsIndexRoute = TagsIndexRouteImport.update({
-  id: '/tags/',
-  path: '/tags/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TagsTagIdRoute = TagsTagIdRouteImport.update({
-  id: '/tags/$tagId',
-  path: '/tags/$tagId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ToolsIndexRoute = ToolsIndexRouteImport.update({
-  id: '/tools/',
-  path: '/tools/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ToolsPlateRoute = ToolsPlateRouteImport.update({
-  id: '/tools/plate',
-  path: '/tools/plate',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UserIndexRoute = UserIndexRouteImport.update({
@@ -133,59 +68,69 @@ const UserIndexRoute = UserIndexRouteImport.update({
   path: '/user/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IdLayoutIndexRoute = IdLayoutIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => IdLayoutRoute,
-} as any)
-const IdLayoutCommentRoute = IdLayoutCommentRouteImport.update({
-  id: '/comment',
-  path: '/comment',
-  getParentRoute: () => IdLayoutRoute,
-} as any)
-const IdLayoutTranslateRoute = IdLayoutTranslateRouteImport.update({
-  id: '/translate',
-  path: '/translate',
-  getParentRoute: () => IdLayoutRoute,
-} as any)
-const AdminAuthLIndexRoute = AdminAuthLIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminAuthLRoute,
-} as any)
-const AdminAuthLArticlesRoute = AdminAuthLArticlesRouteImport.update({
-  id: '/articles',
-  path: '/articles',
-  getParentRoute: () => AdminAuthLRoute,
-} as any)
-const AdminAuthLCommentsRoute = AdminAuthLCommentsRouteImport.update({
-  id: '/comments',
-  path: '/comments',
-  getParentRoute: () => AdminAuthLRoute,
-} as any)
-const AdminAuthLMeilisearchRoute = AdminAuthLMeilisearchRouteImport.update({
-  id: '/meilisearch',
-  path: '/meilisearch',
-  getParentRoute: () => AdminAuthLRoute,
-} as any)
-const AdminAuthLUsersRoute = AdminAuthLUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AdminAuthLRoute,
-} as any)
-const AdminAuthLVndbSyncRoute = AdminAuthLVndbSyncRouteImport.update({
-  id: '/vndb-sync',
-  path: '/vndb-sync',
-  getParentRoute: () => AdminAuthLRoute,
-} as any)
-const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
+const ToolsIndexRoute = ToolsIndexRouteImport.update({
+  id: '/tools/',
+  path: '/tools/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiUploadIndexRoute = ApiUploadIndexRouteImport.update({
-  id: '/api/upload/',
-  path: '/api/upload/',
+const TagsIndexRoute = TagsIndexRouteImport.update({
+  id: '/tags/',
+  path: '/tags/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchIndexRoute = SearchIndexRouteImport.update({
+  id: '/search/',
+  path: '/search/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProducerIndexRoute = ProducerIndexRouteImport.update({
+  id: '/producer/',
+  path: '/producer/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolsPlateRoute = ToolsPlateRouteImport.update({
+  id: '/tools/plate',
+  path: '/tools/plate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TagsTagIdRoute = TagsTagIdRouteImport.update({
+  id: '/tags/$tagId',
+  path: '/tags/$tagId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProducerPidRoute = ProducerPidRouteImport.update({
+  id: '/producer/$pid',
+  path: '/producer/$pid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSearchRoute = ApiSearchRouteImport.update({
+  id: '/api/search',
+  path: '/api/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGameRoute = ApiGameRouteImport.update({
+  id: '/api/game',
+  path: '/api/game',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAuthLRoute = AdminAuthLRouteImport.update({
+  id: '/admin/_authL',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IdLayoutRoute = IdLayoutRouteImport.update({
+  id: '/$id/_layout',
+  path: '/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSignupIndexRoute = AuthSignupIndexRouteImport.update({
@@ -193,10 +138,65 @@ const AuthSignupIndexRoute = AuthSignupIndexRouteImport.update({
   path: '/auth/signup/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiUploadIndexRoute = ApiUploadIndexRouteImport.update({
+  id: '/api/upload/',
+  path: '/api/upload/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAuthLIndexRoute = AdminAuthLIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
+const IdLayoutIndexRoute = IdLayoutIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => IdLayoutRoute,
+} as any)
 const AuthSignupVerificationRoute = AuthSignupVerificationRouteImport.update({
   id: '/auth/signup/Verification',
   path: '/auth/signup/Verification',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAuthLVndbSyncRoute = AdminAuthLVndbSyncRouteImport.update({
+  id: '/vndb-sync',
+  path: '/vndb-sync',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
+const AdminAuthLUsersRoute = AdminAuthLUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
+const AdminAuthLMeilisearchRoute = AdminAuthLMeilisearchRouteImport.update({
+  id: '/meilisearch',
+  path: '/meilisearch',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
+const AdminAuthLCommentsRoute = AdminAuthLCommentsRouteImport.update({
+  id: '/comments',
+  path: '/comments',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
+const AdminAuthLArticlesRoute = AdminAuthLArticlesRouteImport.update({
+  id: '/articles',
+  path: '/articles',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
+const IdLayoutTranslateRoute = IdLayoutTranslateRouteImport.update({
+  id: '/translate',
+  path: '/translate',
+  getParentRoute: () => IdLayoutRoute,
+} as any)
+const IdLayoutCommentRoute = IdLayoutCommentRouteImport.update({
+  id: '/comment',
+  path: '/comment',
+  getParentRoute: () => IdLayoutRoute,
 } as any)
 const IdLayoutIntroductionIndexRoute =
   IdLayoutIntroductionIndexRouteImport.update({
@@ -448,18 +448,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
+    '/openapi': {
+      id: '/openapi'
+      path: '/openapi'
+      fullPath: '/openapi'
+      preLoaderRoute: typeof OpenapiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/friend-links': {
@@ -469,102 +462,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FriendLinksRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/openapi': {
-      id: '/openapi'
-      path: '/openapi'
-      fullPath: '/openapi'
-      preLoaderRoute: typeof OpenapiRouteImport
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$id/_layout': {
-      id: '/$id/_layout'
-      path: '/$id'
-      fullPath: '/$id'
-      preLoaderRoute: typeof IdLayoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/_authL': {
-      id: '/admin/_authL'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminAuthLRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/game': {
-      id: '/api/game'
-      path: '/api/game'
-      fullPath: '/api/game'
-      preLoaderRoute: typeof ApiGameRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/health': {
-      id: '/api/health'
-      path: '/api/health'
-      fullPath: '/api/health'
-      preLoaderRoute: typeof ApiHealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/search': {
-      id: '/api/search'
-      path: '/api/search'
-      fullPath: '/api/search'
-      preLoaderRoute: typeof ApiSearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/login': {
-      id: '/auth/login'
-      path: '/auth/login'
-      fullPath: '/auth/login'
-      preLoaderRoute: typeof AuthLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/producer/': {
-      id: '/producer/'
-      path: '/producer'
-      fullPath: '/producer/'
-      preLoaderRoute: typeof ProducerIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/producer/$pid': {
-      id: '/producer/$pid'
-      path: '/producer/$pid'
-      fullPath: '/producer/$pid'
-      preLoaderRoute: typeof ProducerPidRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/search/': {
-      id: '/search/'
-      path: '/search'
-      fullPath: '/search/'
-      preLoaderRoute: typeof SearchIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tags/': {
-      id: '/tags/'
-      path: '/tags'
-      fullPath: '/tags/'
-      preLoaderRoute: typeof TagsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tags/$tagId': {
-      id: '/tags/$tagId'
-      path: '/tags/$tagId'
-      fullPath: '/tags/$tagId'
-      preLoaderRoute: typeof TagsTagIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tools/': {
-      id: '/tools/'
-      path: '/tools'
-      fullPath: '/tools/'
-      preLoaderRoute: typeof ToolsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/tools/plate': {
-      id: '/tools/plate'
-      path: '/tools/plate'
-      fullPath: '/tools/plate'
-      preLoaderRoute: typeof ToolsPlateRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/user/': {
@@ -574,81 +483,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UserIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/$id/_layout/': {
-      id: '/$id/_layout/'
-      path: '/'
-      fullPath: '/$id/'
-      preLoaderRoute: typeof IdLayoutIndexRouteImport
-      parentRoute: typeof IdLayoutRoute
-    }
-    '/$id/_layout/comment': {
-      id: '/$id/_layout/comment'
-      path: '/comment'
-      fullPath: '/$id/comment'
-      preLoaderRoute: typeof IdLayoutCommentRouteImport
-      parentRoute: typeof IdLayoutRoute
-    }
-    '/$id/_layout/translate': {
-      id: '/$id/_layout/translate'
-      path: '/translate'
-      fullPath: '/$id/translate'
-      preLoaderRoute: typeof IdLayoutTranslateRouteImport
-      parentRoute: typeof IdLayoutRoute
-    }
-    '/admin/_authL/': {
-      id: '/admin/_authL/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminAuthLIndexRouteImport
-      parentRoute: typeof AdminAuthLRoute
-    }
-    '/admin/_authL/articles': {
-      id: '/admin/_authL/articles'
-      path: '/articles'
-      fullPath: '/admin/articles'
-      preLoaderRoute: typeof AdminAuthLArticlesRouteImport
-      parentRoute: typeof AdminAuthLRoute
-    }
-    '/admin/_authL/comments': {
-      id: '/admin/_authL/comments'
-      path: '/comments'
-      fullPath: '/admin/comments'
-      preLoaderRoute: typeof AdminAuthLCommentsRouteImport
-      parentRoute: typeof AdminAuthLRoute
-    }
-    '/admin/_authL/meilisearch': {
-      id: '/admin/_authL/meilisearch'
-      path: '/meilisearch'
-      fullPath: '/admin/meilisearch'
-      preLoaderRoute: typeof AdminAuthLMeilisearchRouteImport
-      parentRoute: typeof AdminAuthLRoute
-    }
-    '/admin/_authL/users': {
-      id: '/admin/_authL/users'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AdminAuthLUsersRouteImport
-      parentRoute: typeof AdminAuthLRoute
-    }
-    '/admin/_authL/vndb-sync': {
-      id: '/admin/_authL/vndb-sync'
-      path: '/vndb-sync'
-      fullPath: '/admin/vndb-sync'
-      preLoaderRoute: typeof AdminAuthLVndbSyncRouteImport
-      parentRoute: typeof AdminAuthLRoute
-    }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatRouteImport
+    '/tools/': {
+      id: '/tools/'
+      path: '/tools'
+      fullPath: '/tools/'
+      preLoaderRoute: typeof ToolsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/upload/': {
-      id: '/api/upload/'
-      path: '/api/upload'
-      fullPath: '/api/upload/'
-      preLoaderRoute: typeof ApiUploadIndexRouteImport
+    '/tags/': {
+      id: '/tags/'
+      path: '/tags'
+      fullPath: '/tags/'
+      preLoaderRoute: typeof TagsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search/': {
+      id: '/search/'
+      path: '/search'
+      fullPath: '/search/'
+      preLoaderRoute: typeof SearchIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/producer/': {
+      id: '/producer/'
+      path: '/producer'
+      fullPath: '/producer/'
+      preLoaderRoute: typeof ProducerIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tools/plate': {
+      id: '/tools/plate'
+      path: '/tools/plate'
+      fullPath: '/tools/plate'
+      preLoaderRoute: typeof ToolsPlateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tags/$tagId': {
+      id: '/tags/$tagId'
+      path: '/tags/$tagId'
+      fullPath: '/tags/$tagId'
+      preLoaderRoute: typeof TagsTagIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/producer/$pid': {
+      id: '/producer/$pid'
+      path: '/producer/$pid'
+      fullPath: '/producer/$pid'
+      preLoaderRoute: typeof ProducerPidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/search': {
+      id: '/api/search'
+      path: '/api/search'
+      fullPath: '/api/search'
+      preLoaderRoute: typeof ApiSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/game': {
+      id: '/api/game'
+      path: '/api/game'
+      fullPath: '/api/game'
+      preLoaderRoute: typeof ApiGameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/_authL': {
+      id: '/admin/_authL'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminAuthLRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$id/_layout': {
+      id: '/$id/_layout'
+      path: '/$id'
+      fullPath: '/$id'
+      preLoaderRoute: typeof IdLayoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/signup/': {
@@ -658,12 +581,89 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSignupIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/upload/': {
+      id: '/api/upload/'
+      path: '/api/upload'
+      fullPath: '/api/upload/'
+      preLoaderRoute: typeof ApiUploadIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/_authL/': {
+      id: '/admin/_authL/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminAuthLIndexRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
+    '/$id/_layout/': {
+      id: '/$id/_layout/'
+      path: '/'
+      fullPath: '/$id/'
+      preLoaderRoute: typeof IdLayoutIndexRouteImport
+      parentRoute: typeof IdLayoutRoute
+    }
     '/auth/signup/Verification': {
       id: '/auth/signup/Verification'
       path: '/auth/signup/Verification'
       fullPath: '/auth/signup/Verification'
       preLoaderRoute: typeof AuthSignupVerificationRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/_authL/vndb-sync': {
+      id: '/admin/_authL/vndb-sync'
+      path: '/vndb-sync'
+      fullPath: '/admin/vndb-sync'
+      preLoaderRoute: typeof AdminAuthLVndbSyncRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
+    '/admin/_authL/users': {
+      id: '/admin/_authL/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminAuthLUsersRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
+    '/admin/_authL/meilisearch': {
+      id: '/admin/_authL/meilisearch'
+      path: '/meilisearch'
+      fullPath: '/admin/meilisearch'
+      preLoaderRoute: typeof AdminAuthLMeilisearchRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
+    '/admin/_authL/comments': {
+      id: '/admin/_authL/comments'
+      path: '/comments'
+      fullPath: '/admin/comments'
+      preLoaderRoute: typeof AdminAuthLCommentsRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
+    '/admin/_authL/articles': {
+      id: '/admin/_authL/articles'
+      path: '/articles'
+      fullPath: '/admin/articles'
+      preLoaderRoute: typeof AdminAuthLArticlesRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
+    '/$id/_layout/translate': {
+      id: '/$id/_layout/translate'
+      path: '/translate'
+      fullPath: '/$id/translate'
+      preLoaderRoute: typeof IdLayoutTranslateRouteImport
+      parentRoute: typeof IdLayoutRoute
+    }
+    '/$id/_layout/comment': {
+      id: '/$id/_layout/comment'
+      path: '/comment'
+      fullPath: '/$id/comment'
+      preLoaderRoute: typeof IdLayoutCommentRouteImport
+      parentRoute: typeof IdLayoutRoute
     }
     '/$id/_layout/introduction/': {
       id: '/$id/_layout/introduction/'
@@ -751,3 +751,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
