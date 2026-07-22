@@ -13,9 +13,9 @@ const config = defineConfig({
     dedupe: ['react', 'react-dom'],
   },
 
-  ssr: {
-    noExternal: true,
-  },
+  // ssr: {
+  //   noExternal: true,
+  // },
   build: {
     ssrManifest: true,
     ssr: true,
@@ -23,6 +23,30 @@ const config = defineConfig({
     modulePreload: false,
     rolldownOptions: {
       treeshake: true,
+      output: {
+        manualChunks(id) {
+          const nid = id.replaceAll('\\', '/')
+          if (nid.includes('node_modules/react/') || nid.includes('node_modules/react-dom/') || nid.includes('node_modules/scheduler/')) {
+            return 'react-vendor'
+          }
+          if (nid.includes('node_modules/@tanstack/')) {
+            return 'tanstack-vendor'
+          }
+          if (
+            nid.includes('node_modules/@radix-ui/') ||
+            nid.includes('node_modules/lucide-react/') ||
+            nid.includes('node_modules/motion/') ||
+            nid.includes('node_modules/class-variance-authority/') ||
+            nid.includes('node_modules/clsx/') ||
+            nid.includes('node_modules/tailwind-merge/')
+          ) {
+            return 'ui-vendor'
+          }
+          if (nid.includes('node_modules/better-auth/')) {
+            return 'better-auth-vendor'
+          }
+        },
+      },
     },
   },
   plugins: [
@@ -33,9 +57,9 @@ const config = defineConfig({
     viteCompression({ algorithm: 'gzip', ext: '.gz' }),
     viteCompression({ algorithm: 'brotliCompress', ext: '.br' }),
     babel({ presets: [reactCompilerPreset()] }),
-    tanstackRouter({
-      autoCodeSplitting: true,
-    }),
+    // tanstackRouter({
+    //   autoCodeSplitting: true,
+    // }),
   ],
 })
 
