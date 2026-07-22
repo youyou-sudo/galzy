@@ -10,7 +10,9 @@ type Provider = 'github' | 'linuxdo' | 'discord' | 'kungal' | 'twitter'
 
 export const OauthButton = () => {
   const [loading, setLoading] = useState<Provider | null>(null)
-  const params = new URLSearchParams(window.location.search)
+  const params = new URLSearchParams(
+    typeof window !== 'undefined' ? window.location.search : '',
+  )
 
   const return_toss = params.get('return_to')
   const return_to = `${return_toss ? return_toss : ''}`
