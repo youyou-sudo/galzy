@@ -1,15 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { lazy, Suspense } from 'react'
+import FriendLinksPage from '@web/components/friend-links-page'
 import { seoTemplate } from '@web/config/seoTemplate'
 
-const FriendLinksPage = lazy(() => import('@web/components/friend-links-page'))
-
 export const Route = createFileRoute('/friend-links')({
-  component: () => (
-    <Suspense fallback={<div>加载中...</div>}>
-      <FriendLinksPage />
-    </Suspense>
-  ),
+  component: FriendLinksPage,
   head: () => ({
     meta: [
       { title: `友情链接 | ${seoTemplate.title}` },

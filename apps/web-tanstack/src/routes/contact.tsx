@@ -1,15 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { lazy, Suspense } from 'react'
+import ContactPage from '@web/components/contact-page'
 import { seoTemplate } from '@web/config/seoTemplate'
 
-const ContactPage = lazy(() => import('@web/components/contact-page'))
-
 export const Route = createFileRoute('/contact')({
-  component: () => (
-    <Suspense fallback={<div>加载中...</div>}>
-      <ContactPage />
-    </Suspense>
-  ),
+  component: ContactPage,
   head: () => ({
     meta: [{ title: `联系喵喵们 | ${seoTemplate.title}` }],
   }),

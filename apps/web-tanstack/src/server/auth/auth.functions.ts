@@ -48,3 +48,25 @@ export const getAccountInfo = createServerFn({ method: 'GET' })
       error: error,
     }
   })
+
+export const adminListUsers = createServerFn({ method: 'GET' })
+  .validator(
+    z.object({
+      limit: z.optional(z.number()),
+      offset: z.optional(z.number()),
+      searchValue: z.optional(z.string()),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const res = await authServerClient.admin.listUsers({
+      query: {
+        limit: data.limit ?? 15,
+        offset: data.offset ?? 0,
+        searchValue: data.searchValue,
+        sortBy: 'createdAt',
+        sortDirection: 'desc',
+      },
+    })
+    if (res.error) throw new Error(res.error.message || '获取用户列表失败')
+    return res.data
+  })

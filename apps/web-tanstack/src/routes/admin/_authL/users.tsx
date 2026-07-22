@@ -1,12 +1,18 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { lazy, Suspense } from 'react'
-
-const UsersPage = lazy(() => import('@web/components/admin/users-page'))
+import UsersPage from '@web/components/admin/users-page'
+import { adminListUsers } from '@web/server/auth/auth.functions'
 
 export const Route = createFileRoute('/admin/_authL/users')({
-  component: () => (
-    <Suspense fallback={<div>加载中...</div>}>
-      <UsersPage />
-    </Suspense>
-  ),
+  loader: async ({ context }) => {
+    await context.queryClient.ensureQueryData({
+      queryKey: [
+        'admin-users',
+        { searchValue: '', offset: 0, limit: 15 },
+      ],
+      queryFn: async () => {
+        return await adminListUsers({ data: { limit: 15, offset: 0 } })
+      },
+    })
+  },
+  component: UsersPage,
 })

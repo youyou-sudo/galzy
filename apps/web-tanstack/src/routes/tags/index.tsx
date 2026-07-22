@@ -1,20 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { lazy, Suspense } from 'react'
+import TagsPage from '@web/components/tags/tags-page'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { getSearchTags, SearchTagsSchema } from '@web/server/tags'
-
-const TagsPage = lazy(() => import('@web/components/tags/tags-page'))
 
 export const Route = createFileRoute('/tags/')({
   component: () => {
     const { tags, q } = Route.useLoaderData()
     return (
-      <Suspense fallback={<div>加载中...</div>}>
-        <TagsPage
-          tags={tags as { hits: Array<{ id: string; name: string; zh_name?: string }>; totalHits: number } | null | undefined}
-          q={q}
-        />
-      </Suspense>
+      <TagsPage
+        tags={tags as { hits: Array<{ id: string; name: string; zh_name?: string }>; totalHits: number } | null | undefined}
+        q={q}
+      />
     )
   },
   validateSearch: SearchTagsSchema,

@@ -1,12 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { lazy, Suspense } from 'react'
-
-const VndbSyncPage = lazy(() => import('@web/components/admin/vndb-sync-page'))
+import VndbSyncPage from '@web/components/admin/vndb-sync-page'
+import { getSyncProgress } from '@web/server/admin/vndb-sync'
 
 export const Route = createFileRoute('/admin/_authL/vndb-sync')({
-  component: () => (
-    <Suspense fallback={<div>加载中...</div>}>
-      <VndbSyncPage />
-    </Suspense>
-  ),
+  loader: async ({ context }) => {
+    await context.queryClient.ensureQueryData({
+      queryKey: ['admin', 'vndb-sync', 'progress'],
+      queryFn: () => getSyncProgress(),
+    })
+  },
+  component: VndbSyncPage,
 })

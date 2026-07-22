@@ -1,15 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { lazy, Suspense } from 'react'
+import ToolsPage from '@web/components/tools/tools-page'
 import { seoTemplate } from '@web/config/seoTemplate'
 
-const ToolsPage = lazy(() => import('@web/components/tools/tools-page'))
-
 export const Route = createFileRoute('/tools/')({
-  component: () => (
-    <Suspense fallback={<div>加载中...</div>}>
-      <ToolsPage />
-    </Suspense>
-  ),
+  component: ToolsPage,
   head: () => ({
     meta: [
       { title: `工具箱 | ${seoTemplate.title}` },

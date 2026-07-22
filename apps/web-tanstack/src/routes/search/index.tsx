@@ -1,5 +1,6 @@
-import { createFileRoute, lazyRouteComponent } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { seoTemplate } from '@web/config/seoTemplate'
+import SearchPage from '@web/components/search/search-page'
 import { getSearch, SearchSchema } from '@web/server/search'
 
 export const Route = createFileRoute('/search/')({
@@ -27,7 +28,5 @@ export const Route = createFileRoute('/search/')({
   }),
   staleTime: 1000 * 30,
 
-  component: lazyRouteComponent(
-    () => import('@web/components/search/search-page'),
-  ),
+  component: SearchPage,
 })

@@ -1,9 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { lazy, Suspense } from 'react'
+import TagDetailPage from '@web/components/tags/tag-detail-page'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { getTagData, getVnListByTag } from '@web/server/tags'
-
-const TagDetailPage = lazy(() => import('@web/components/tags/tag-detail-page'))
 
 export const Route = createFileRoute('/tags/$tagId')({
   loader: async ({ params }) => {
@@ -39,10 +37,6 @@ export const Route = createFileRoute('/tags/$tagId')({
 
   component: () => {
     const loaderData = Route.useLoaderData()
-    return (
-      <Suspense fallback={<div>加载中...</div>}>
-        <TagDetailPage {...loaderData} />
-      </Suspense>
-    )
+    return <TagDetailPage {...loaderData} />
   },
 })

@@ -1,10 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { lazy, Suspense } from 'react'
+import IntroductionPage from '@web/components/introduction/introduction-page'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { getGameDetail } from '@web/server/game'
 import { getintroductionList } from '@web/server/introduction'
-
-const IntroductionPage = lazy(() => import('@web/components/introduction/introduction-page'))
 
 export const Route = createFileRoute('/$id/_layout/introduction/')({
   loader: async ({ params }) => {
@@ -32,16 +30,11 @@ export const Route = createFileRoute('/$id/_layout/introduction/')({
     'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
   }),
 
-  // Client-side caching (via TanStack Router)
-  staleTime: 60_000, // Consider data fresh for 60 seconds on client
-  gcTime: 5 * 60_000, // Keep in memory for 5 minutes
+  staleTime: 60_000,
+  gcTime: 5 * 60_000,
 
   component: () => {
     const loaderData = Route.useLoaderData()
-    return (
-      <Suspense fallback={<div>加载中...</div>}>
-        <IntroductionPage {...loaderData} />
-      </Suspense>
-    )
+    return <IntroductionPage {...loaderData} />
   },
 })

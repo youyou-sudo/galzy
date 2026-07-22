@@ -1,15 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense } from "react";
+import OpenapiPage from "@web/components/openapi-page";
 import { seoTemplate } from "@web/config/seoTemplate";
 
-const OpenapiPage = lazy(() => import("@web/components/openapi-page"));
-
 export const Route = createFileRoute("/openapi")({
-	component: () => (
-		<Suspense fallback={<div>加载中...</div>}>
-			<OpenapiPage />
-		</Suspense>
-	),
+	component: OpenapiPage,
 	head: () => ({
 		meta: [
 			{

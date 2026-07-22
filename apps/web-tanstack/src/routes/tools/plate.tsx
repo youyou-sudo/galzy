@@ -1,15 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { lazy, Suspense } from 'react'
+import PlatePage from '@web/components/tools/plate-page'
 import { seoTemplate } from '@web/config/seoTemplate'
 
-const PlatePage = lazy(() => import('@web/components/tools/plate-page'))
-
 export const Route = createFileRoute('/tools/plate')({
-  component: () => (
-    <Suspense fallback={<div>加载中...</div>}>
-      <PlatePage />
-    </Suspense>
-  ),
+  component: PlatePage,
   head: () => ({
     meta: [
       { title: `车牌号跳转工具 | ${seoTemplate.title}` },

@@ -1,10 +1,8 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { lazy, Suspense } from 'react'
+import UserPage from '@web/components/user/user-page'
 import { elysiaErrorF } from '@web/lib'
 import { getSession, listAccounts } from '@web/server/auth/auth.functions'
 import { z } from 'zod'
-
-const UserPage = lazy(() => import('@web/components/user/user-page'))
 
 const UserSearchSchema = z.object({
   error: z.string().optional(),
@@ -15,11 +13,7 @@ export const Route = createFileRoute('/user/')({
   component: () => {
     const session = Route.useLoaderData()
     const { error, error_description } = Route.useSearch()
-    return (
-      <Suspense fallback={<div>加载中...</div>}>
-        <UserPage session={session} error={error} error_description={error_description} />
-      </Suspense>
-    )
+    return <UserPage session={session} error={error} error_description={error_description} />
   },
   validateSearch: UserSearchSchema,
   loader: async ({ context }) => {
