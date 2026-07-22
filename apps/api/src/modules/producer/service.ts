@@ -52,6 +52,7 @@ export const Producer = {
         image_id: images.id,
         image_width: images.width,
         image_height: images.height,
+        c_sexual_avg: images.cSexualAvg,
         titles:
           sql`(SELECT COALESCE(json_agg(row_to_json(t.*)), '[]'::json) FROM (SELECT lang, official, title, latin FROM vn_titles WHERE id = ${vn.id}) t)`,
       })

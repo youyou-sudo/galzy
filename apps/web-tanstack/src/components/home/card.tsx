@@ -2,7 +2,8 @@ import { Link } from '@tanstack/react-router'
 import { Image, type ImageProps } from '@unpic/react'
 import { AspectRatio } from '@web/components/ui/aspect-ratio'
 import { Skeleton } from '@web/components/ui/skeleton'
-import type { ComponentProps } from 'react'
+import { useState, type ComponentProps } from 'react'
+import { Button } from '@web/components/ui/button'
 
 function IdGameCardSkeleton({ ref, ...props }: ComponentProps<'div'>) {
   return (
@@ -40,16 +41,57 @@ function GameSkeleton({ ref, ...props }: ComponentProps<'div'>) {
   )
 }
 
-export function Images({ className, ...props }: ImageProps) {
+export function Images({ className, cSexualAvg, ...props }: ImageProps & { cSexualAvg?: number | null }) {
+  const THRESHOLD = 1.0
+  const isSensitive = (cSexualAvg ?? 0) >= THRESHOLD
+  const [revealed, setRevealed] = useState(false)
+
   return (
     <AspectRatio
       ratio={9 / 12}
       className="w-full overflow-hidden rounded-lg border bg-muted shadow"
     >
-      <Image
-        {...props}
-        className={`w-full h-full object-cover ${className ?? ''}`}
-      />
+      <div className="relative w-full h-full">
+        <Image
+          {...props}
+          className={`w-full h-full object-cover ${isSensitive && !revealed ? 'blur-xl' : ''} ${className ?? ''}`}
+        />
+        {isSensitive && !revealed && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
+            <span className="text-white text-2xl font-bold">R18</span>
+            <span className="text-white/70 text-xs mt-1">图片包含不宜在公共场合查看的内容喵～</span>
+            <Button size="sm" className="absolute bottom-2 right-2" onClick={() => setRevealed(true)}>显示</Button>
+          </div>
+        )}
+      </div>
+    </AspectRatio>
+  )
+}
+
+function SensitiveImage({ cSexualAvg, className, ...imageProps }: ImageProps & { cSexualAvg?: number | null }) {
+  const THRESHOLD = 1.0
+  const isSensitive = (cSexualAvg ?? 0) >= THRESHOLD
+  const [revealed, setRevealed] = useState(false)
+
+  const w = (imageProps as Record<string, unknown>).width as number | undefined
+  const h = (imageProps as Record<string, unknown>).height as number | undefined
+  const ratio = (w && h && h > 0) ? w / h : 9 / 12
+
+  return (
+    <AspectRatio ratio={ratio} className="w-full overflow-hidden rounded-lg">
+      <div className="relative w-full h-full">
+        <Image
+          {...imageProps}
+          className={`w-full h-full object-cover ${isSensitive && !revealed ? 'blur-xl' : ''} ${className ?? ''}`}
+        />
+        {isSensitive && !revealed && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
+            <span className="text-white text-2xl font-bold">R18</span>
+            <span className="text-white/70 text-xs mt-1">图片包含不宜在公共场合查看的内容喵～</span>
+            <Button size="sm" className="absolute bottom-2 right-2" onClick={() => setRevealed(true)}>显示</Button>
+          </div>
+        )}
+      </div>
     </AspectRatio>
   )
 }
@@ -60,13 +102,19 @@ function Item({
   width,
   height,
   src,
+  cSexualAvg,
 }: {
   gameid: string
   title: string
   width?: number
   height?: number
   src: string
+  cSexualAvg?: number | null
 }) {
+  const THRESHOLD = 1.0
+  const isSensitive = (cSexualAvg ?? 0) >= THRESHOLD
+  const [revealed, setRevealed] = useState(false)
+
   return (
     <Link to="/$id" params={{ id: gameid }}>
       <AspectRatio
@@ -75,15 +123,24 @@ function Item({
         style={{ contentVisibility: 'auto' }}
       >
         <Skeleton className="absolute inset-0 w-full h-full" />
-        <Image
-          width={width ?? 200}
-          height={height ?? 300}
-          loading="lazy"
-          decoding="async"
-          src={src}
-          alt={title || ' '}
-          className="absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-        />
+        <div className="relative w-full h-full">
+          <Image
+            width={width ?? 200}
+            height={height ?? 300}
+            loading="lazy"
+            decoding="async"
+            src={src}
+            alt={title || ' '}
+            className={`absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-200${isSensitive && !revealed ? ' blur-xl' : ''}`}
+          />
+          {isSensitive && !revealed && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
+              <span className="text-white text-2xl font-bold">R18</span>
+              <span className="text-white/70 text-xs mt-1">图片包含不宜在公共场合查看的内容喵～</span>
+              <Button size="sm" className="absolute bottom-2 right-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setRevealed(true) }}>显示</Button>
+            </div>
+          )}
+        </div>
       </AspectRatio>
       <p className="text-sm truncate w-full text-center px-2 pt-2">{title}</p>
     </Link>
@@ -92,7 +149,7 @@ function Item({
 
 export const GameCard = {
   ListSkeleton: GameSkeleton,
-  Image,
+  Image: SensitiveImage,
   IdGameCardSkeleton,
   Item,
 }

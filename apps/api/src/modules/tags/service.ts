@@ -124,8 +124,8 @@ export const Tags = {
                   (SELECT json_agg(row_to_json(vnt.*)) FROM ${vnTitles} vnt WHERE vnt.id = vn.id),
                   '[]'::json
                 ) AS titles,
-                (SELECT row_to_json(img.*)
-                 FROM (SELECT id, height, width FROM ${images} img WHERE img.id = vn.c_image) img
+(SELECT row_to_json(img.*)
+                  FROM (SELECT id, height, width, c_sexual_avg FROM ${images} img WHERE img.id = vn.c_image) img
                 ) AS images,
                 a2.other,
                 (SELECT row_to_json(od.*)

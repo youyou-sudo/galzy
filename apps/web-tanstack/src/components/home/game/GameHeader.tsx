@@ -35,7 +35,8 @@ export function GameHeader({ game }: { game: GameData }) {
                 height: game?.vn_datas?.images?.height,
               })}
               alt={olangTitle || 'null'}
-              className="rounded-lg inset-0 w-full h-full object-cover relative"
+              cSexualAvg={game?.vn_datas?.images?.c_sexual_avg}
+              className="rounded-lg w-full h-full object-cover"
             />
           </div>
         </div>

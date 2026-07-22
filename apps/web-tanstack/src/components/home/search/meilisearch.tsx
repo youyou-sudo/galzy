@@ -41,6 +41,7 @@ const SearchlistComponent = () => {
 						width={imagesData?.width ?? 200}
 						height={imagesData?.height ?? 300}
 						src={imagess}
+						cSexualAvg={imagesData?.c_sexual_avg}
 						title={
 							item.other_datas?.title?.length
 								? (item.other_datas.title.find(

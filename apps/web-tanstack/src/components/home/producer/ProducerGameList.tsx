@@ -43,6 +43,7 @@ export const ProducerGamelist = () => {
                       width: item.image_width,
                       height: item.image_height,
                     })}
+                    cSexualAvg={item.c_sexual_avg}
                     title={title}
                   />
                 )
