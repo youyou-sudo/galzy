@@ -18,11 +18,11 @@ export const Route = createFileRoute('/$id/_layout')({
   },
   loader: async ({ params }) => {
     const { id } = params
-    return {
-      game: await getGameDetail({ data: { id } }),
-      tags: getGameTags({ data: { id } }),
-      id,
-    }
+    const [game, tags] = await Promise.all([
+      getGameDetail({ data: { id } }),
+      getGameTags({ data: { id } }),
+    ])
+    return { game, tags, id }
   },
   head: ({ loaderData }) => ({
     meta: [
