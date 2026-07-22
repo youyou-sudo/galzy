@@ -1,9 +1,42 @@
-import { db, sql, MeiliClient } from '@api/libs'
-import { cloudflare, siteConfig, alistb, vn, vnTitles, images, tags, tagsVn, releases, releasesVn, releasesTitles, others, otherMedia, media, zhtags } from '@api/libs'
+import {
+  alistb,
+  cloudflare,
+  db,
+  images,
+  MeiliClient,
+  media,
+  otherMedia,
+  others,
+  releases,
+  releasesTitles,
+  releasesVn,
+  siteConfig,
+  sql,
+  tags,
+  tagsVn,
+  vn,
+  vnTitles,
+  zhtags,
+} from '@api/libs'
 import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
 import { VndbSync } from '@api/modules/vndb-sync/service'
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNotNull,
+  isNull,
+  like,
+  lt,
+  lte,
+  notInArray,
+} from 'drizzle-orm'
 import { status } from 'elysia'
-import { eq, and, desc, asc, count, lt, gt, gte, lte, like, isNull, isNotNull, inArray, notInArray } from 'drizzle-orm'
 import { all } from 'radash'
 import { processData } from './lib'
 
@@ -132,14 +165,16 @@ export const CronService = {
           .from(siteConfig)
           .where(eq(siteConfig.key, 'alistUpTime'))
           .limit(1)
-          .then(r => r[0]),
+          .then((r) => r[0]),
       ])
 
       const alistUp = await alistUpInfo.json()
 
       if (!alistUp) return
       if (alistUp.is_done === false) return
-      const lastUpdate = (alistUpTime?.config as { lastUpdate?: number } | undefined)?.lastUpdate
+      const lastUpdate = (
+        alistUpTime?.config as { lastUpdate?: number } | undefined
+      )?.lastUpdate
       if ((lastUpdate || 0) === alistUp.last_done_time)
         return console.log(
           'alistUp.last_done_time',
@@ -193,9 +228,7 @@ export const CronService = {
         // 删除不再存在的记录
         const currentIds = processedData.map((r) => r.vid)
         if (currentIds.length > 0) {
-          await trx
-            .delete(alistb)
-            .where(notInArray(alistb.vid, currentIds))
+          await trx.delete(alistb).where(notInArray(alistb.vid, currentIds))
         }
 
         await trx
@@ -381,7 +414,7 @@ export const CronService = {
       .select({ count: count() })
       .from(alistb)
       .limit(1)
-      .then(r => r[0])
+      .then((r) => r[0])
 
     const totalCount = Number(totalCountResult?.count || 0)
     const totalPages = Math.ceil(totalCount / 500)
@@ -396,7 +429,7 @@ export const CronService = {
       .innerJoin(zhtags, eq(tags.id, zhtags.id))
       .where(eq(zhtags.exhibition, true))
       .limit(1)
-      .then(r => r[0])
+      .then((r) => r[0])
 
     const totalCount = Number(totalCountResult?.count || 0)
     const totalPages = Math.ceil(totalCount / 500)
@@ -408,21 +441,23 @@ export const CronService = {
 const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
   const offset = pageIndex * pageSize
 
-  const items = await (db
-    .select({
-      released_first: sql`(SELECT ${releases.released} FROM ${releasesVn} INNER JOIN ${releases} ON ${releases.id} = ${releasesVn.id} WHERE ${releasesVn.vid} = ${alistb.vid} AND ${releases.released} IS NOT NULL ORDER BY ${releases.released} ASC LIMIT 1)`,
-      titles: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT title, latin, lang FROM ${vnTitles} t WHERE t.id = ${vn.id}) t), '[]'::json)`,
-      images: sql`(SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM ${images} i WHERE i.id = ${vn.cImage}) i)`,
-      vn_releases: sql`COALESCE((SELECT json_agg(row_to_json(rel.*)) FROM (SELECT COALESCE((SELECT json_agg(row_to_json(rt.*)) FROM ${releasesTitles} rt WHERE rt.id = r.id), '[]'::json) AS titles FROM ${releasesVn} rv INNER JOIN ${releases} r ON r.id = rv.id WHERE rv.vid = ${vn.id}) rel), '[]'::json)`,
-      other: alistb.other,
-      other_datas: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, ${alistb.other} AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o WHERE o.id = ${alistb.other}) other_sub)`,
-      tags: sql`COALESCE((SELECT json_agg(row_to_json(tag.*)) FROM (SELECT DISTINCT z.alias, z.name, z.id FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE) tag), '[]'::json)`,
-      alias: vn.alias,
-      id: vn.id,
-      olang: vn.olang,
-    })
-    .from(alistb)
-    .innerJoin(vn, eq(alistb.vid, vn.id)) as any)
+  const items = await (
+    db
+      .select({
+        released_first: sql`(SELECT ${releases.released} FROM ${releasesVn} INNER JOIN ${releases} ON ${releases.id} = ${releasesVn.id} WHERE ${releasesVn.vid} = ${alistb.vid} AND ${releases.released} IS NOT NULL ORDER BY ${releases.released} ASC LIMIT 1)`,
+        titles: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT title, latin, lang FROM ${vnTitles} t WHERE t.id = ${vn.id}) t), '[]'::json)`,
+        images: sql`(SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM ${images} i WHERE i.id = ${vn.cImage}) i)`,
+        vn_releases: sql`COALESCE((SELECT json_agg(row_to_json(rel.*)) FROM (SELECT COALESCE((SELECT json_agg(row_to_json(rt.*)) FROM ${releasesTitles} rt WHERE rt.id = r.id), '[]'::json) AS titles FROM ${releasesVn} rv INNER JOIN ${releases} r ON r.id = rv.id WHERE rv.vid = ${vn.id}) rel), '[]'::json)`,
+        other: alistb.other,
+        other_datas: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, ${alistb.other} AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o WHERE o.id = ${alistb.other}) other_sub)`,
+        tags: sql`COALESCE((SELECT json_agg(row_to_json(tag.*)) FROM (SELECT DISTINCT z.alias, z.name, z.id FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE) tag), '[]'::json)`,
+        alias: vn.alias,
+        id: vn.id,
+        olang: vn.olang,
+      })
+      .from(alistb)
+      .innerJoin(vn, eq(alistb.vid, vn.id)) as any
+  )
     .orderBy(desc(vn.id))
     .orderBy(desc(alistb.other))
     .limit(pageSize)

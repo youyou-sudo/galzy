@@ -40,12 +40,16 @@ export default function SecurityTab() {
       onChange: passwordSchema,
     },
     onSubmit: async ({ value }) => {
-      await authClient.changePassword({
-        currentPassword: value.currentPassword,
-        newPassword: value.newPassword,
-      })
-      toast.success('密码修改成功')
-      form.reset()
+      try {
+        await authClient.changePassword({
+          currentPassword: value.currentPassword,
+          newPassword: value.newPassword,
+        })
+        toast.success('密码修改成功')
+        form.reset()
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : '密码修改失败')
+      }
     },
   })
 

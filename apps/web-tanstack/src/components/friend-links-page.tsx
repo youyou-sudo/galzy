@@ -69,7 +69,7 @@ export default function RouteComponent() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ">
           <MotionHighlight hover className="rounded-xl">
             {linksList.map((item) => (
-              <a href={item.href} key={item.href} target="_blank">
+              <a href={item.href} key={item.href} target="_blank" rel="noopener noreferrer">
                 <div className="h-32 flex flex-col border rounded-md p-4">
                   <div className="flex gap-5">
                     <Avatar className="flex">

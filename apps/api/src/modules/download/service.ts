@@ -1,7 +1,6 @@
-import { db } from '@api/libs'
-import { cloudflare, gameDownloadStats } from '@api/libs'
-import { status } from 'elysia'
+import { cloudflare, db, gameDownloadStats } from '@api/libs'
 import { eq } from 'drizzle-orm'
+import { status } from 'elysia'
 import { t } from 'try'
 import type { AlistFsResponse, DownloadModel } from './model'
 
@@ -42,13 +41,11 @@ export const Download = {
 
       const randomWorker =
         workerList[Math.floor(Math.random() * workerList.length)]
-      await db
-        .insert(gameDownloadStats)
-        .values({
-          gameId: game_id,
-          filePath: path,
-          createdAt: new Date(),
-        })
+      await db.insert(gameDownloadStats).values({
+        gameId: game_id,
+        filePath: path,
+        createdAt: new Date(),
+      })
 
       return {
         success: true,
@@ -64,10 +61,7 @@ export const Download = {
     return res
   },
   async Worker() {
-    const res = await db
-      .select()
-      .from(cloudflare)
-      .orderBy(cloudflare.id)
+    const res = await db.select().from(cloudflare).orderBy(cloudflare.id)
     return res
   },
   async workerConfigFormPut({
@@ -93,23 +87,21 @@ export const Download = {
           .where(eq(cloudflare.id, Number(id)))
       } else {
         // 创建数据
-        await db
-          .insert(cloudflare)
-          .values({
-            aEmail: a_email,
-            aKey: a_key,
-            accountId: account_id,
-            wokerName: woker_name,
-            urlEndpoint: url_endpoint,
-            state: false,
-            enable: false,
-            duration: 0,
-            errors: 0,
-            requests: 0,
-            responseBodySize: 0,
-            subrequests: 0,
-            updateTime: null,
-          })
+        await db.insert(cloudflare).values({
+          aEmail: a_email,
+          aKey: a_key,
+          accountId: account_id,
+          wokerName: woker_name,
+          urlEndpoint: url_endpoint,
+          state: false,
+          enable: false,
+          duration: 0,
+          errors: 0,
+          requests: 0,
+          responseBodySize: 0,
+          subrequests: 0,
+          updateTime: null,
+        })
       }
     } catch (error) {
       console.log(error)
@@ -118,9 +110,7 @@ export const Download = {
   },
   async workerConfigFormDel({ id }: DownloadModel.workerConfigFormDel) {
     if (id) {
-      await db
-        .delete(cloudflare)
-        .where(eq(cloudflare.id, id))
+      await db.delete(cloudflare).where(eq(cloudflare.id, id))
     } else {
       return status(400, `未提供 ID 喵～`)
     }

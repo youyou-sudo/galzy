@@ -36,7 +36,7 @@ import {
   Trash2Icon,
   Undo2Icon,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 interface AdminArticleUser {
@@ -115,9 +115,11 @@ function ArticlesTable() {
     },
   })
 
-  if (error) {
-    toast.error(error instanceof Error ? error.message : '获取文章列表出错')
-  }
+  useEffect(() => {
+    if (error) {
+      toast.error(error instanceof Error ? error.message : '获取文章列表出错')
+    }
+  }, [error])
 
   const articles = data?.articles ?? []
   const total = data?.total ?? 0
@@ -380,16 +382,20 @@ function EditArticleCell({
     content: string
     copyright?: string
   }) => {
-    await adminUpdateArticle({
-      data: {
-        id: Number(values.id),
-        title: values.title,
-        content: values.content,
-      },
-    })
-    toast.success('文章已更新')
-    setOpen(false)
-    onDone()
+    try {
+      await adminUpdateArticle({
+        data: {
+          id: Number(values.id),
+          title: values.title,
+          content: values.content,
+        },
+      })
+      toast.success('文章已更新')
+      setOpen(false)
+      onDone()
+    } catch {
+      toast.error('文章更新失败')
+    }
   }
 
   return (

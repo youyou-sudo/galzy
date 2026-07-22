@@ -1,9 +1,20 @@
-import { db } from '@api/libs'
+import {
+  alistb,
+  db,
+  images,
+  media,
+  otherMedia,
+  others,
+  tags,
+  tagsVn,
+  vn,
+  vnTitles,
+  zhtags,
+} from '@api/libs'
 import { delKv, getKv, setKv } from '@api/libs/redis'
+import { and, asc, count, desc, eq, like, or, type SQL, sql } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { TagsModel } from './model'
-import { eq, and, or, like, count, desc, asc, sql, type SQL } from 'drizzle-orm'
-import { alistb, vn, vnTitles, images, others, otherMedia, media, zhtags, tags, tagsVn } from '@api/libs'
 
 export const Tags = {
   async gameTags({ id }: TagsModel.gameTags) {
@@ -206,9 +217,9 @@ export const Tags = {
     }
     const combinedFilter: SQL | undefined =
       keywordConditions.length > 0
-        ? (keywordConditions.length === 1
-            ? keywordConditions[0]
-            : and(...keywordConditions))
+        ? keywordConditions.length === 1
+          ? keywordConditions[0]
+          : and(...keywordConditions)
         : undefined
 
     // 1. 查询分页数据（单次 .where() 调用）

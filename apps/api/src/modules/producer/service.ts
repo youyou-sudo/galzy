@@ -1,8 +1,15 @@
-import { db } from '@api/libs'
-import { producers, releasesProducers, releasesVn, vn, images, vnTitles } from '@api/libs'
+import {
+  db,
+  images,
+  producers,
+  releasesProducers,
+  releasesVn,
+  vn,
+  vnTitles,
+} from '@api/libs'
 import { delKv, getKv, setKv } from '@api/libs/redis'
+import { and, eq, getTableColumns, inArray, sql } from 'drizzle-orm'
 import { status } from 'elysia'
-import { eq, and, sql, getTableColumns, inArray } from 'drizzle-orm'
 import type { ProducerModel } from './model'
 
 export const Producer = {
@@ -16,8 +23,7 @@ export const Producer = {
     const producer = await db
       .select({
         ...getTableColumns(producers),
-        producers_relations:
-          sql`(SELECT COALESCE(json_agg(row_to_json(t.*)), '[]'::json) FROM (SELECT pr.id, pr.pid, p.alias, p.name, pr.relation FROM producers_relations pr INNER JOIN producers p ON p.id = pr.pid WHERE pr.id = ${sql.identifier('producers')}.${sql.identifier('id')}) t)`,
+        producers_relations: sql`(SELECT COALESCE(json_agg(row_to_json(t.*)), '[]'::json) FROM (SELECT pr.id, pr.pid, p.alias, p.name, pr.relation FROM producers_relations pr INNER JOIN producers p ON p.id = pr.pid WHERE pr.id = ${sql.identifier('producers')}.${sql.identifier('id')}) t)`,
       })
       .from(producers)
       .where(eq(producers.id, pid))
@@ -53,21 +59,25 @@ export const Producer = {
         image_width: images.width,
         image_height: images.height,
         c_sexual_avg: images.cSexualAvg,
-        titles:
-          sql`(SELECT COALESCE(json_agg(row_to_json(t.*)), '[]'::json) FROM (SELECT lang, official, title, latin FROM vn_titles WHERE id = ${vn.id}) t)`,
+        titles: sql`(SELECT COALESCE(json_agg(row_to_json(t.*)), '[]'::json) FROM (SELECT lang, official, title, latin FROM vn_titles WHERE id = ${vn.id}) t)`,
       })
       .from(vn)
       .innerJoin(images, eq(images.id, vn.cImage))
-      .where(inArray(
-        vn.id,
-        db.select({ vid: releasesVn.vid })
-          .from(releasesProducers)
-          .innerJoin(releasesVn, eq(releasesVn.id, releasesProducers.id))
-          .where(and(
-            eq(releasesProducers.pid, pid),
-            sql`EXISTS (SELECT 1 FROM galrc_alistb WHERE vid = ${releasesVn.vid})`,
-          )),
-      ) as any)
+      .where(
+        inArray(
+          vn.id,
+          db
+            .select({ vid: releasesVn.vid })
+            .from(releasesProducers)
+            .innerJoin(releasesVn, eq(releasesVn.id, releasesProducers.id))
+            .where(
+              and(
+                eq(releasesProducers.pid, pid),
+                sql`EXISTS (SELECT 1 FROM galrc_alistb WHERE vid = ${releasesVn.vid})`,
+              ),
+            ),
+        ) as any,
+      )
       .orderBy(vn.id)
 
     type Producergamelists = typeof producerGamelists

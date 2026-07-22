@@ -290,7 +290,7 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
             if (errors.length > 0) {
               console.log('form validation errors:', errors)
             }
-            form.handleSubmit()
+            void form.handleSubmit()
           }}
         >
           <FieldGroup className="gap-3">

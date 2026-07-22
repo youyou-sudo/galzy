@@ -1,6 +1,6 @@
 import { setDeployStatus } from '@api/modules/status/service'
-import { db, sql } from './client'
 import { redis } from 'bun'
+import { db, sql } from './client'
 
 export const dbAction = async () => {
   console.log('⌛ Running database migration check...')

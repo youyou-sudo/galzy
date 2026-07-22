@@ -124,7 +124,7 @@ export default function ProfileTab({
       await authClient.updateUser({ name })
       onProfileUpdated()
     } catch {
-      // Error is handled by better-auth
+      toast.error('保存失败，请重试')
     } finally {
       setIsSaving(false)
     }

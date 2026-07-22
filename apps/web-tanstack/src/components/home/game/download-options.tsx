@@ -227,7 +227,7 @@ export const DownCardDialog = () => {
       toast.error('下载请求失败喵～')
     }
     if (log?.raw_url) {
-      window.open(log.raw_url, '_blank')
+      window.open(log.raw_url, '_blank', 'noopener,noreferrer')
       toast.success('已成功请求下载喵～')
     } else {
       toast.error('下载 URL 找不到喵～')

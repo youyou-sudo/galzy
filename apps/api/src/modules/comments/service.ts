@@ -1,7 +1,7 @@
-import { db, sql, comments, users } from '@api/libs'
+import { comments, db, sql, users } from '@api/libs'
 import { emailServer } from '@api/libs/seedMail'
+import { and, count, desc, eq, getTableColumns, isNull } from 'drizzle-orm'
 import { status } from 'elysia'
-import { eq, and, isNull, count, desc, getTableColumns } from 'drizzle-orm'
 import type { CommentModel } from './model'
 
 export const CommentService = {
@@ -285,10 +285,7 @@ export const CommentService = {
       throw new Error('无权编辑该评论')
     }
 
-    await db
-      .update(comments)
-      .set({ content })
-      .where(eq(comments.id, id))
+    await db.update(comments).set({ content }).where(eq(comments.id, id))
 
     return { success: true }
   },

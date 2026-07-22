@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { db, sql, articles } from '@api/libs'
+import { articles, db, sql } from '@api/libs'
 import {
   acquireIdempotentKey,
   delKv,
@@ -9,8 +9,8 @@ import {
   setKv,
   storeIdempotentResult,
 } from '@api/libs/redis'
+import { and, count, desc, eq, getTableColumns, like } from 'drizzle-orm'
 import { status } from 'elysia'
-import { eq, and, desc, like, count, getTableColumns } from 'drizzle-orm'
 import type { StrategyModel } from './model'
 
 export const Strategy = {
@@ -59,7 +59,11 @@ export const Strategy = {
             : eq(articles.otherid, Number(gameId)),
         ),
       )
-    void setKv(`galzy:game:strategys:${gameId}`, JSON.stringify(data), 60 * 60 * 1)
+    void setKv(
+      `galzy:game:strategys:${gameId}`,
+      JSON.stringify(data),
+      60 * 60 * 1,
+    )
     type StrategyContent = typeof data
     return data
   },
@@ -67,11 +71,16 @@ export const Strategy = {
     await delKv(`galzy:game:strategys:${id}`)
     await delKv(`galzy:strategy:${id}`)
     const hash = generateIdempotentHash({ id, data })
-    const cached = await getIdempotentResult(`galzy:idempotent:strategyListUpdate:${hash}`)
+    const cached = await getIdempotentResult(
+      `galzy:idempotent:strategyListUpdate:${hash}`,
+    )
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`galzy:idempotent:strategyListUpdate:${hash}`, 10)
+    const ok = await acquireIdempotentKey(
+      `galzy:idempotent:strategyListUpdate:${hash}`,
+      10,
+    )
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -79,16 +88,25 @@ export const Strategy = {
       .update(articles)
       .set({ ...data })
       .where(eq(articles.id, Number(id)))
-    await storeIdempotentResult(`galzy:idempotent:strategyListUpdate:${hash}`, '', 60)
+    await storeIdempotentResult(
+      `galzy:idempotent:strategyListUpdate:${hash}`,
+      '',
+      60,
+    )
   },
   async strategyCreate({ id, data, userid }: StrategyModel.strategyListCreate) {
     await delKv(`galzy:game:strategys:${id}`)
     const hash = generateIdempotentHash({ id, data })
-    const cached = await getIdempotentResult(`galzy:idempotent:strategyListCreate:${hash}`)
+    const cached = await getIdempotentResult(
+      `galzy:idempotent:strategyListCreate:${hash}`,
+    )
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`galzy:idempotent:strategyListCreate:${hash}`, 10)
+    const ok = await acquireIdempotentKey(
+      `galzy:idempotent:strategyListCreate:${hash}`,
+      10,
+    )
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -98,33 +116,42 @@ export const Strategy = {
         .insert(articles)
         .values({ vid: id, ...data, type: 'strategy', author: userid })
     } else {
-      await db
-        .insert(articles)
-        .values({
-          otherid: Number(id),
-          ...data,
-          type: 'strategy',
-          author: userid,
-        })
+      await db.insert(articles).values({
+        otherid: Number(id),
+        ...data,
+        type: 'strategy',
+        author: userid,
+      })
     }
-    await storeIdempotentResult(`galzy:idempotent:strategyListCreate:${hash}`, '', 60)
+    await storeIdempotentResult(
+      `galzy:idempotent:strategyListCreate:${hash}`,
+      '',
+      60,
+    )
   },
   async strategyDelete({ strategyId, gameId }: StrategyModel.strategy) {
     await delKv(`galzy:game:strategys:${gameId}`)
     const hash = generateIdempotentHash({ strategyId })
-    const cached = await getIdempotentResult(`galzy:idempotent:strategyListDelete:${hash}`)
+    const cached = await getIdempotentResult(
+      `galzy:idempotent:strategyListDelete:${hash}`,
+    )
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`galzy:idempotent:strategyListDelete:${hash}`, 10)
+    const ok = await acquireIdempotentKey(
+      `galzy:idempotent:strategyListDelete:${hash}`,
+      10,
+    )
     if (!ok) {
       throw status(200, '重复请求')
     }
-    await db
-      .delete(articles)
-      .where(eq(articles.id, Number(strategyId)))
+    await db.delete(articles).where(eq(articles.id, Number(strategyId)))
 
-    await storeIdempotentResult(`galzy:idempotent:strategyListDelete:${hash}`, '', 60)
+    await storeIdempotentResult(
+      `galzy:idempotent:strategyListDelete:${hash}`,
+      '',
+      60,
+    )
   },
   async adminListAll(params: StrategyModel.adminArticleListQuery): Promise<{
     articles: any[]
@@ -187,11 +214,16 @@ export const Strategy = {
     status: newStatus,
   }: StrategyModel.adminArticleStatus) {
     const hash = generateIdempotentHash({ id, status: newStatus })
-    const cached = await getIdempotentResult(`galzy:idempotent:adminChangeStatus:${hash}`)
+    const cached = await getIdempotentResult(
+      `galzy:idempotent:adminChangeStatus:${hash}`,
+    )
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`galzy:idempotent:adminChangeStatus:${hash}`, 10)
+    const ok = await acquireIdempotentKey(
+      `galzy:idempotent:adminChangeStatus:${hash}`,
+      10,
+    )
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -222,6 +254,10 @@ export const Strategy = {
       .set({ status: newStatus })
       .where(eq(articles.id, id))
 
-    await storeIdempotentResult(`galzy:idempotent:adminChangeStatus:${hash}`, '', 60)
+    await storeIdempotentResult(
+      `galzy:idempotent:adminChangeStatus:${hash}`,
+      '',
+      60,
+    )
   },
 }

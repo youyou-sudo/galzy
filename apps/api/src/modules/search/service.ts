@@ -1,5 +1,5 @@
 import { MeiliClient } from '@api/libs'
-import { getKv, setKv, delKv } from '@api/libs/redis'
+import { delKv, getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
 import { t } from 'try'
 import type { SearchModel } from './model'

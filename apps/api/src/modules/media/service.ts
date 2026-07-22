@@ -1,5 +1,4 @@
-import { db } from '@api/libs'
-import { media as mediaTable, otherMedia } from '@api/libs'
+import { db, media as mediaTable, otherMedia } from '@api/libs'
 import {
   acquireIdempotentKey,
   delKv,
@@ -8,8 +7,8 @@ import {
   storeIdempotentResult,
 } from '@api/libs/redis'
 import { S3Client } from 'bun'
+import { and, eq, sql } from 'drizzle-orm'
 import { status } from 'elysia'
-import { eq, and, sql } from 'drizzle-orm'
 import { auth } from '../auth/service'
 import type { MediaModel } from './model'
 
@@ -31,11 +30,16 @@ export const Media = {
     cover,
   }: MediaModel.insertmediatoentry) {
     const hash = generateIdempotentHash({ entryId, media, sortOrder, cover })
-    const cached = await getIdempotentResult(`galzy:idempotent:insertmediatoentry:${hash}`)
+    const cached = await getIdempotentResult(
+      `galzy:idempotent:insertmediatoentry:${hash}`,
+    )
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`galzy:idempotent:insertmediatoentry:${hash}`, 60)
+    const ok = await acquireIdempotentKey(
+      `galzy:idempotent:insertmediatoentry:${hash}`,
+      60,
+    )
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -65,7 +69,12 @@ export const Media = {
     const existingRelation = await db
       .select({ id: otherMedia.id })
       .from(otherMedia)
-      .where(and(eq(otherMedia.otherId, entryId), eq(otherMedia.mediaHash, mediahash)))
+      .where(
+        and(
+          eq(otherMedia.otherId, entryId),
+          eq(otherMedia.mediaHash, mediahash),
+        ),
+      )
       .limit(1)
       .then((r) => r[0])
 
@@ -76,36 +85,47 @@ export const Media = {
           await trx
             .update(otherMedia)
             .set({ cover: false })
-            .where(and(eq(otherMedia.otherId, entryId), eq(otherMedia.cover, true)))
+            .where(
+              and(eq(otherMedia.otherId, entryId), eq(otherMedia.cover, true)),
+            )
         }
-        await trx
-          .insert(otherMedia)
-          .values({
-            otherId: entryId,
-            mediaHash: mediahash,
-            sortOrder: sortOrder,
-            cover: cover,
-          })
+        await trx.insert(otherMedia).values({
+          otherId: entryId,
+          mediaHash: mediahash,
+          sortOrder: sortOrder,
+          cover: cover,
+        })
       })
 
       await delKv(`galzy:game:info:${entryId}`)
-      await storeIdempotentResult(`galzy:idempotent:insertmediatoentry:${hash}`, '', 60)
+      await storeIdempotentResult(
+        `galzy:idempotent:insertmediatoentry:${hash}`,
+        '',
+        60,
+      )
     }
   },
   async delemediatoentry({ id, mediahash, name }: MediaModel.delemediatoentry) {
     const hash = generateIdempotentHash({ id, mediahash, name })
-    const cached = await getIdempotentResult(`galzy:idempotent:delemediatoentry:${hash}`)
+    const cached = await getIdempotentResult(
+      `galzy:idempotent:delemediatoentry:${hash}`,
+    )
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`galzy:idempotent:delemediatoentry:${hash}`, 60)
+    const ok = await acquireIdempotentKey(
+      `galzy:idempotent:delemediatoentry:${hash}`,
+      60,
+    )
     if (!ok) {
       throw status(200, '重复请求')
     }
     // 删除 galrc_other_media 中的记录
     await db
       .delete(otherMedia)
-      .where(and(eq(otherMedia.otherId, id), eq(otherMedia.mediaHash, mediahash)))
+      .where(
+        and(eq(otherMedia.otherId, id), eq(otherMedia.mediaHash, mediahash)),
+      )
     const log = await db
       .select()
       .from(otherMedia)
@@ -130,15 +150,24 @@ export const Media = {
       })
     }
 
-    await storeIdempotentResult(`galzy:idempotent:delemediatoentry:${hash}`, '', 60)
+    await storeIdempotentResult(
+      `galzy:idempotent:delemediatoentry:${hash}`,
+      '',
+      60,
+    )
   },
   async getMediaByCover({ other, mediahash }: MediaModel.getMediaByCover) {
     const hash = generateIdempotentHash({ other, mediahash })
-    const cached = await getIdempotentResult(`galzy:idempotent:getMediaByCover:${hash}`)
+    const cached = await getIdempotentResult(
+      `galzy:idempotent:getMediaByCover:${hash}`,
+    )
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`galzy:idempotent:getMediaByCover:${hash}`, 60)
+    const ok = await acquireIdempotentKey(
+      `galzy:idempotent:getMediaByCover:${hash}`,
+      60,
+    )
     if (!ok) {
       throw status(200, '重复请求')
     }
@@ -153,31 +182,44 @@ export const Media = {
       const [updated] = await trx
         .update(otherMedia)
         .set({ cover: true })
-        .where(and(eq(otherMedia.mediaHash, mediahash), eq(otherMedia.otherId, other)))
+        .where(
+          and(
+            eq(otherMedia.mediaHash, mediahash),
+            eq(otherMedia.otherId, other),
+          ),
+        )
         .returning()
 
       return updated
     })
 
     await delKv(`galzy:game:info:${other}`)
-    await storeIdempotentResult(`galzy:idempotent:getMediaByCover:${hash}`, mediaResult, 60)
+    await storeIdempotentResult(
+      `galzy:idempotent:getMediaByCover:${hash}`,
+      mediaResult,
+      60,
+    )
     return mediaResult
   },
   async getMedia({ other_id }: MediaModel.getMedia) {
     const hash = generateIdempotentHash({ other_id })
-    const cached = await getIdempotentResult(`galzy:idempotent:getMedia:${hash}`)
+    const cached = await getIdempotentResult(
+      `galzy:idempotent:getMedia:${hash}`,
+    )
     if (cached) {
       return cached
     }
-    const ok = await acquireIdempotentKey(`galzy:idempotent:getMedia:${hash}`, 60)
+    const ok = await acquireIdempotentKey(
+      `galzy:idempotent:getMedia:${hash}`,
+      60,
+    )
     if (!ok) {
       throw status(200, '重复请求')
     }
     const data = await db
       .select({
         cover: otherMedia.cover,
-        mediadata:
-          sql`(SELECT row_to_json(m.*) FROM (SELECT * FROM galrc_media WHERE hash = ${sql.identifier('galrc_other_media')}.${sql.identifier('media_hash')} LIMIT 1) m)`,
+        mediadata: sql`(SELECT row_to_json(m.*) FROM (SELECT * FROM galrc_media WHERE hash = ${sql.identifier('galrc_other_media')}.${sql.identifier('media_hash')} LIMIT 1) m)`,
       })
       .from(otherMedia)
       .where(eq(otherMedia.otherId, Number(other_id)))

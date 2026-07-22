@@ -33,7 +33,9 @@ const safeRedisOp = async <T>(
 ): Promise<T> => {
   const client = getRedisClient()
   if (!client) {
-    console.warn(`[Redis] ${operationName} skipped: redis client not initialized`)
+    console.warn(
+      `[Redis] ${operationName} skipped: redis client not initialized`,
+    )
     return fallback
   }
   try {
@@ -57,7 +59,9 @@ else
 end
 `
 
-const LOCK_RELEASE_SCRIPT_SHA1 = createHash('sha1').update(LOCK_RELEASE_SCRIPT).digest('hex')
+const LOCK_RELEASE_SCRIPT_SHA1 = createHash('sha1')
+  .update(LOCK_RELEASE_SCRIPT)
+  .digest('hex')
 
 // ============================================================
 // KV operations
@@ -72,7 +76,10 @@ const LOCK_RELEASE_SCRIPT_SHA1 = createHash('sha1').update(LOCK_RELEASE_SCRIPT).
 export const setKv = async (key: string, value: string, time?: number) => {
   const truncatedKey = key.length > 64 ? `${key.slice(0, 64)}...` : key
   return safeRedisOp(
-    (client) => (time ? client.setex(key, time, value) : client.set(key, value)) as Promise<string | undefined>,
+    (client) =>
+      (time
+        ? client.setex(key, time, value)
+        : client.set(key, value)) as Promise<string | undefined>,
     undefined,
     `setKv(${truncatedKey})`,
   )
@@ -83,7 +90,11 @@ export const setKv = async (key: string, value: string, time?: number) => {
  * @param key 键
  */
 export const getKvTime = async (key: string) => {
-  return safeRedisOp((client) => client.ttl(key) as Promise<number>, undefined, `getKvTime(${key})`)
+  return safeRedisOp(
+    (client) => client.ttl(key) as Promise<number>,
+    undefined,
+    `getKvTime(${key})`,
+  )
 }
 
 /**
@@ -97,7 +108,9 @@ export const getKv = async (key: string) => {
       const start = Date.now()
       const value = await client.get(key)
       const elapsed = Date.now() - start
-      console.debug(`[Redis] getKv(${key}) ${value !== null ? 'HIT' : 'MISS'} (${elapsed}ms)`)
+      console.debug(
+        `[Redis] getKv(${key}) ${value !== null ? 'HIT' : 'MISS'} (${elapsed}ms)`,
+      )
       return value
     },
     null,
@@ -111,7 +124,11 @@ export const getKv = async (key: string) => {
  * @returns 被删除的 Key 数量
  */
 export const delKv = async (key: string) => {
-  return safeRedisOp((client) => client.del(key) as Promise<number>, 0, `delKv(${key})`)
+  return safeRedisOp(
+    (client) => client.del(key) as Promise<number>,
+    0,
+    `delKv(${key})`,
+  )
 }
 
 /**
@@ -125,14 +142,22 @@ export const delKvPattern = async (pattern: string) => {
       let cursor = '0'
       let deletedCount = 0
       do {
-        const result = await client.send('SCAN', [cursor, 'MATCH', pattern, 'COUNT', '100'])
+        const result = await client.send('SCAN', [
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          '100',
+        ])
         const [nextCursor, keys] = result as [string, string[]]
         cursor = nextCursor
         if (keys.length > 0) {
           deletedCount += (await client.del(...keys)) as number
         }
       } while (cursor !== '0')
-      console.debug(`[Redis] delKvPattern(${pattern}) completed: deleted ${deletedCount} keys`)
+      console.debug(
+        `[Redis] delKvPattern(${pattern}) completed: deleted ${deletedCount} keys`,
+      )
       return deletedCount
     },
     0,
@@ -162,7 +187,9 @@ export const acquireLockKv = async (
         'NX',
       ])
       const success = result === 'OK'
-      console.debug(`[Redis] acquireLockKv(${lockKey}) ${success ? 'acquired' : 'failed'}`)
+      console.debug(
+        `[Redis] acquireLockKv(${lockKey}) ${success ? 'acquired' : 'failed'}`,
+      )
       return success
     },
     false,
@@ -180,16 +207,30 @@ export const releaseLockKv = async (key: string, value: string) => {
   return safeRedisOp(
     async (client) => {
       try {
-        const result = await client.send('EVALSHA', [LOCK_RELEASE_SCRIPT_SHA1, '1', key, value])
+        const result = await client.send('EVALSHA', [
+          LOCK_RELEASE_SCRIPT_SHA1,
+          '1',
+          key,
+          value,
+        ])
         const ok = result === 1 || result === 1n
-        console.debug(`[Redis] releaseLockKv(${key}) ${ok ? 'released' : 'failed (value mismatch)'}`)
+        console.debug(
+          `[Redis] releaseLockKv(${key}) ${ok ? 'released' : 'failed (value mismatch)'}`,
+        )
         return ok
       } catch (innerErr: any) {
         if (String(innerErr).includes('NOSCRIPT')) {
           // LUA script not cached on this server node, fall back to EVAL
-          const result = await client.send('EVAL', [LOCK_RELEASE_SCRIPT, '1', key, value])
+          const result = await client.send('EVAL', [
+            LOCK_RELEASE_SCRIPT,
+            '1',
+            key,
+            value,
+          ])
           const ok = result === 1 || result === 1n
-          console.debug(`[Redis] releaseLockKv(${key}) ${ok ? 'released' : 'failed (value mismatch)'}`)
+          console.debug(
+            `[Redis] releaseLockKv(${key}) ${ok ? 'released' : 'failed (value mismatch)'}`,
+          )
           return ok
         }
         throw innerErr
@@ -212,9 +253,17 @@ export async function acquireIdempotentKey(
 ): Promise<boolean> {
   return safeRedisOp(
     async (client) => {
-      const result = await client.send('SET', [key, 'LOCKED', 'EX', ttl.toString(), 'NX'])
+      const result = await client.send('SET', [
+        key,
+        'LOCKED',
+        'EX',
+        ttl.toString(),
+        'NX',
+      ])
       const success = result === 'OK'
-      console.debug(`[Redis] acquireIdempotentKey(${key}) ${success ? 'acquired' : 'already locked'}`)
+      console.debug(
+        `[Redis] acquireIdempotentKey(${key}) ${success ? 'acquired' : 'already locked'}`,
+      )
       return success
     },
     false,
@@ -234,7 +283,8 @@ export async function storeIdempotentResult<T>(
   ttl: number,
 ): Promise<void> {
   await safeRedisOp(
-    (client) => client.set(key, JSON.stringify(result), 'EX', ttl) as Promise<unknown>,
+    (client) =>
+      client.set(key, JSON.stringify(result), 'EX', ttl) as Promise<unknown>,
     undefined,
     `storeIdempotentResult(${key})`,
   )

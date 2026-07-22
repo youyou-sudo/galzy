@@ -4,8 +4,20 @@ type BBCodeRendererProps = {
 	text: string;
 };
 
+// HTML 实体转义
+const escapeHTML = (str: string): string => {
+	return str
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+};
+
 // 解析 BBCode
 const bbcodeParser = (bbcode: string): string => {
+	// 先转义 HTML 实体，防止 XSS 攻击
+	bbcode = escapeHTML(bbcode);
 	// 解析 [b] 和 [/b] 标签 (支持大小写)
 	bbcode = bbcode.replace(/\[b\](.*?)\[\/b\]/gi, "<strong>$1</strong>");
 

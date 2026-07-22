@@ -1,10 +1,9 @@
+import { db, sql, vn, vnTitles } from '@api/libs'
 import { delKv, getKv, setKv } from '@api/libs/redis'
+import { eq, inArray } from 'drizzle-orm'
 import { status } from 'elysia'
 import { unique } from 'radash'
 import { t } from 'try'
-import { db, sql } from '@api/libs'
-import { vn, vnTitles } from '@api/libs'
-import { eq, inArray } from 'drizzle-orm'
 import type { UmamiModel } from './model'
 
 const now = new Date()
@@ -100,7 +99,13 @@ export const Umami = {
       })
       .from(vn)
       .where(inArray(vn.id, ids)) as any)
-    const rowsWithTitle = (rows as Array<{ id: string; olang: string | null; titles: Array<{ lang: string; title: string }> }>).map((row) => {
+    const rowsWithTitle = (
+      rows as Array<{
+        id: string
+        olang: string | null
+        titles: Array<{ lang: string; title: string }>
+      }>
+    ).map((row) => {
       const titleObj =
         row.titles.find((t) => t.lang === 'zh-Hans') ||
         row.titles.find((t) => t.lang === 'zh') ||
@@ -162,7 +167,11 @@ export const Umami = {
       (a, b) => a + b,
       0,
     )
-    void setKv(`galzy:game:download:${vid}`, JSON.stringify(totalDownloads), 60 * 15)
+    void setKv(
+      `galzy:game:download:${vid}`,
+      JSON.stringify(totalDownloads),
+      60 * 15,
+    )
     return totalDownloads
   },
 }

@@ -11,7 +11,7 @@ export default function SearchPage() {
       </div>
 
       <div className="mx-auto md:w-1/2 items-center justify-center my-2">
-        <SearchInput />
+        <SearchInput liveSearch />
       </div>
 
       <div className="grid grid-cols-3 gap-4 md:grid-cols-6">

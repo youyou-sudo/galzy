@@ -111,6 +111,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 data-umami-event-name="dzmm"
                 data-umami-event-position="Banner-dzmm"
                 target="_blank"
+                rel="noopener noreferrer"
                 href="https://www.aikda.com/?rf=876926e5"
               >
                 <div

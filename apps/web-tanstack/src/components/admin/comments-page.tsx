@@ -41,7 +41,7 @@ import {
   SearchIcon,
   Trash2Icon,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 interface CommentUser {
@@ -134,9 +134,11 @@ function CommentsTable() {
     },
   })
 
-  if (error) {
-    toast.error(error instanceof Error ? error.message : '获取评论列表出错')
-  }
+  useEffect(() => {
+    if (error) {
+      toast.error(error instanceof Error ? error.message : '获取评论列表出错')
+    }
+  }, [error])
 
   const comments = data?.comments ?? []
   const total = data?.total ?? 0

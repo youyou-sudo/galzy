@@ -19,7 +19,7 @@ import {
 import { seedVerification } from '@web/server/auth/auth.functions'
 import { authClient } from '@web/server/auth/auth-client'
 import { RefreshCwIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import z from 'zod'
 
@@ -88,9 +88,11 @@ function RouteComponent() {
     },
   })
 
-  if (seedS?.error) {
-    toast.error(seedS.error.message)
-  }
+  useEffect(() => {
+    if (seedS?.error) {
+      toast.error(seedS.error.message)
+    }
+  }, [seedS?.error])
 
   return (
     <div className="flex justify-center">
@@ -111,6 +113,7 @@ function RouteComponent() {
               <Button
                 variant="outline"
                 size="xs"
+                disabled={seedVerificationEmail.isPending}
                 onClick={() => seedVerificationEmail.mutate()}
               >
                 {seedVerificationEmail.isPending ? (

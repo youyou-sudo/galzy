@@ -26,10 +26,12 @@ import {
 
 interface SearchInputProps {
   placeholder?: string
+  liveSearch?: boolean
 }
 
 export default function SearchInput({
   placeholder = '标题、标签、回车，喵喵喵～🐾',
+  liveSearch = false,
 }: SearchInputProps) {
   const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -72,6 +74,8 @@ export default function SearchInput({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setInputValue(value)
+
+    if (!liveSearch) return
 
     if (debounceRef.current) {
       clearTimeout(debounceRef.current)
