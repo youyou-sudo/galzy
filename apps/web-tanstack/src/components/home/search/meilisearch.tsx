@@ -13,8 +13,8 @@ const SearchlistComponent = () => {
 			const imageFilter = () => {
 				const images =
 					item.other &&
-					item.other_datas?.other_media.some((item: any) => item.cover === true)
-						? item.other_datas.other_media.find(
+					item.otherData?.other_media.some((item: any) => item.cover === true)
+						? item.otherData.other_media.find(
 								(item: any) => item.cover === true,
 							)?.media
 						: item.images;
@@ -43,10 +43,10 @@ const SearchlistComponent = () => {
 						src={imagess}
 						cSexualAvg={imagesData?.c_sexual_avg}
 						title={
-							item.other_datas?.title?.length
-								? (item.other_datas.title.find(
+							item.otherData?.title?.length
+								? (item.otherData.title.find(
 										(it: { lang: string }) => it.lang === "zh-Hans",
-									)?.title ?? item.other_datas.title[0]?.title)
+									)?.title ?? item.otherData.title[0]?.title)
 								: item.titles.find(
 										(it: { lang: string }) => it.lang === item.olang,
 									)?.title
