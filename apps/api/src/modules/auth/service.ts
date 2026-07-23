@@ -198,21 +198,21 @@ const _authConfig = {
   },
   socialProviders: {
     github: {
-      clientId: process.env.GITHUB_CLIENT_ID as string,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
       redirectURI: process.env.WEB_HOST + '/api/auth/callback/github',
     },
     discord: {
-      clientId: process.env.DISCORD_CLIENT_ID as string,
-      clientSecret: process.env.DISCORD_CLIENT_SECRET as string,
+      clientId: process.env.DISCORD_CLIENT_ID,
+      clientSecret: process.env.DISCORD_CLIENT_SECRET,
       redirectURI: process.env.WEB_HOST + '/api/auth/callback/discord',
       mapProfileToUser: (profile) => ({
         email: profile.email ?? `${profile.id}@discord.placeholder.local`,
       }),
     },
     twitter: {
-      clientId: process.env.TWITTER_CLIENT_ID as string,
-      clientSecret: process.env.TWITTER_CLIENT_SECRET as string,
+      clientId: process.env.TWITTER_CLIENT_ID,
+      clientSecret: process.env.TWITTER_CLIENT_SECRET,
       redirectURI: process.env.WEB_HOST + '/api/auth/callback/twitter',
     },
   },

@@ -15,7 +15,7 @@ export const Download = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: process.env.OPENLIST_API_KEY as string,
+            Authorization: process.env.OPENLIST_API_KEY,
           },
           body: JSON.stringify({ path }),
         }),

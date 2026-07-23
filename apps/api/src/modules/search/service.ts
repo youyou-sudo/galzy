@@ -64,7 +64,7 @@ export const Search = {
     documentTemplate,
   }: SearchModel.meilisearchEmbeddersUpdate) {
     const indexdata = await MeiliClient.index(
-      process.env.MEILISEARCH_INDEXNAME!,
+      process.env.MEILISEARCH_INDEXNAME,
     ).updateEmbedders({
       body: {
         source: 'rest',
@@ -88,13 +88,13 @@ export const Search = {
   },
   async meilisearchEmbeddersGet() {
     const indexdata = await MeiliClient.index(
-      process.env.MEILISEARCH_INDEXNAME!,
+      process.env.MEILISEARCH_INDEXNAME,
     ).getEmbedders()
     return indexdata
   },
   async meilisearchPropertylist() {
     const indexdata = await MeiliClient.index(
-      process.env.MEILISEARCH_INDEXNAME!,
+      process.env.MEILISEARCH_INDEXNAME,
     ).getDocuments({ limit: 1 })
     if (indexdata.results && indexdata.results.length > 0) {
       return Object.keys(indexdata.results[0])
@@ -102,7 +102,7 @@ export const Search = {
     return []
   },
   async meilisearcSearchableAttributeshGet() {
-    const index = MeiliClient.index(process.env.MEILISEARCH_INDEXNAME!)
+    const index = MeiliClient.index(process.env.MEILISEARCH_INDEXNAME)
 
     const searchable = await index.getSearchableAttributes()
 
@@ -119,7 +119,7 @@ export const Search = {
     fields,
   }: SearchModel.meilisearcSearchableAttributeshUpdate) {
     try {
-      const index = MeiliClient.index(process.env.MEILISEARCH_INDEXNAME!)
+      const index = MeiliClient.index(process.env.MEILISEARCH_INDEXNAME)
       await index.updateSearchableAttributes(fields)
       return { code: 200 }
     } catch (error) {

@@ -3,7 +3,7 @@ import resend from 'unemail/driver/resend'
 
 const emailServer = createEmail({
   driver: resend({
-    apiKey: process.env.EMAIL_KEY!,
+    apiKey: process.env.EMAIL_KEY,
   }),
 })
 

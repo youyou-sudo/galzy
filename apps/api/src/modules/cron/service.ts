@@ -165,7 +165,7 @@ export const CronService = {
         fetch(`${process.env.OPENLIST_HOST}/api/admin/index/progress`, {
           method: 'GET',
           headers: {
-            Authorization: process.env.OPENLIST_API_KEY as string,
+            Authorization: process.env.OPENLIST_API_KEY,
           },
         }),
         db
@@ -197,7 +197,7 @@ export const CronService = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: process.env.OPENLIST_API_KEY as string,
+            Authorization: process.env.OPENLIST_API_KEY,
           },
           body: JSON.stringify({
             parent: '/',
@@ -317,7 +317,7 @@ export const CronService = {
 
   async meiliSearchAddIndex() {
     try {
-      const index = await MeiliClient.index(process.env.MEILISEARCH_INDEXNAME!)
+      const index = await MeiliClient.index(process.env.MEILISEARCH_INDEXNAME)
 
       // 先清空索引，然后并行处理分页数据
       await index.deleteAllDocuments()
@@ -369,7 +369,7 @@ export const CronService = {
   async meiliSearchAddTag() {
     try {
       const index = await MeiliClient.index(
-        process.env.MEILISEARCH_TAG_INDEXNAME!,
+        process.env.MEILISEARCH_TAG_INDEXNAME,
       )
       await index.deleteAllDocuments()
 
