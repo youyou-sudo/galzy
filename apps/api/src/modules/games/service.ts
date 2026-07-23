@@ -59,46 +59,51 @@ export const Game = {
       return JSON.parse(redisData) as GameList
     }
     const offset = pageIndex * pageSize
-    const items = await (
-      db
-        .select({
-          id: vn.id,
-          olang: vn.olang,
-          titles: sql`
-            COALESCE(
-              (SELECT json_agg(row_to_json(t.*)) FROM vn_titles t WHERE t.id = vn.id),
-              '[]'::json
-            )
-          `,
-          images: sql`
-            (SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM images i WHERE i.id = vn.c_image) i)
-          `,
-          other: alistb.other,
-          other_datas: sql`
-            (SELECT row_to_json(o.*) FROM (
-              SELECT
-                o2.*,
-                galrc_alistb.other,
-                COALESCE(
-                  (SELECT json_agg(row_to_json(om_sub.*)) FROM (
-                    SELECT
-                      om.*,
-                      (SELECT row_to_json(m.*) FROM galrc_media m WHERE m.hash = om.media_hash) AS media
-                    FROM galrc_other_media om
-                    WHERE om.other_id = o2.id
-                  ) om_sub),
-                  '[]'::json
-                ) AS other_media
-              FROM galrc_other o2
-              WHERE o2.id = galrc_alistb.other
-            ) o)
-          `,
-        })
-        .from(alistb)
-        .innerJoin(vn, eq(alistb.vid, vn.id)) as any
-    )
-      .orderBy(desc(vn.id))
-      .orderBy(desc(alistb.other))
+    interface ListRow {
+      id: string
+      olang: string | null
+      titles: unknown
+      images: unknown
+      other: number | null
+      other_datas: unknown
+    }
+    const items = await db
+      .select({
+        id: vn.id,
+        olang: vn.olang,
+        titles: sql`
+          COALESCE(
+            (SELECT json_agg(row_to_json(t.*)) FROM vn_titles t WHERE t.id = vn.id),
+            '[]'::json
+          )
+        `,
+        images: sql`
+          (SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM images i WHERE i.id = vn.c_image) i)
+        `,
+        other: alistb.other,
+        other_datas: sql`
+          (SELECT row_to_json(o.*) FROM (
+            SELECT
+              o2.*,
+              galrc_alistb.other,
+              COALESCE(
+                (SELECT json_agg(row_to_json(om_sub.*)) FROM (
+                  SELECT
+                    om.*,
+                    (SELECT row_to_json(m.*) FROM galrc_media m WHERE m.hash = om.media_hash) AS media
+                  FROM galrc_other_media om
+                  WHERE om.other_id = o2.id
+                ) om_sub),
+                '[]'::json
+              ) AS other_media
+            FROM galrc_other o2
+            WHERE o2.id = galrc_alistb.other
+          ) o)
+        `,
+      })
+      .from(alistb)
+      .innerJoin(vn, eq(alistb.vid, vn.id))
+      .orderBy(desc(vn.id), desc(alistb.other))
       .limit(pageSize)
       .offset(offset)
     const totalCount = await this.Count()
