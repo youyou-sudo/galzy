@@ -237,6 +237,7 @@ export const vnRelations = relations(vn, ({ many, one }) => ({
     references: [images.id],
     relationName: 'vnImage',
   }),
+  releasesVn: many(releasesVn),
 }))
 
 export const vnTitlesRelations = relations(vnTitles, ({ one }) => ({
@@ -245,4 +246,39 @@ export const vnTitlesRelations = relations(vnTitles, ({ one }) => ({
     references: [vn.id],
     relationName: 'vnTitles',
   }),
+}))
+
+// releases_vn — 关联到 releases（通过 id）、vn（通过 vid）、以及 releases_producers
+export const releasesVnRelations = relations(releasesVn, ({ one, many }) => ({
+  vn: one(vn, {
+    fields: [releasesVn.vid],
+    references: [vn.id],
+  }),
+  release: one(releases, {
+    fields: [releasesVn.id],
+    references: [releases.id],
+  }),
+  producers: many(releasesProducers),
+}))
+
+// releases — 反向关联到 releases_vn
+export const releasesRelations = relations(releases, ({ many }) => ({
+  vnEntries: many(releasesVn),
+}))
+
+// releases_producers — 关联到 releases_vn（通过 id）和 producers（通过 pid）
+export const releasesProducersRelations = relations(releasesProducers, ({ one }) => ({
+  releaseVn: one(releasesVn, {
+    fields: [releasesProducers.id],
+    references: [releasesVn.id],
+  }),
+  producer: one(producers, {
+    fields: [releasesProducers.pid],
+    references: [producers.id],
+  }),
+}))
+
+// producers — 反向关联到 releases_producers
+export const producersTableRelations = relations(producers, ({ many }) => ({
+  releases: many(releasesProducers),
 }))

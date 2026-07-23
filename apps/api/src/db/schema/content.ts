@@ -170,7 +170,7 @@ export const alistbRelations = relations(alistb, ({ one }) => ({
     fields: [alistb.vid],
     references: [vn.id],
   }),
-  other: one(others, {
+  otherData: one(others, {
     fields: [alistb.other],
     references: [others.id],
   }),

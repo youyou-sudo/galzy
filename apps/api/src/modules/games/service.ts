@@ -141,91 +141,96 @@ export const Game = {
     const idIsNumber = /^\d+$/.test(id)
 
     const queryDb = async () => {
-      const data = await (
-        db
-          .select({
-            id: alistb.id,
-            vid: alistb.vid,
-            other: alistb.other,
-            path: alistb.path,
-            released_first: sql`
-              (SELECT releases.released FROM releases_vn
-               INNER JOIN releases ON releases.id = releases_vn.id
-               WHERE releases_vn.vid = galrc_alistb.vid
-                 AND releases.released IS NOT NULL
-               ORDER BY releases.released ASC
-               LIMIT 1)
-            `,
-            producers: sql`
-              COALESCE(
-                (SELECT json_agg(row_to_json(pb.*)) FROM (
-                  SELECT
-                    producers.id,
-                    producers.name,
-                    producers.latin,
-                    producers.alias,
-                    producers.type,
-                    COUNT(*)::int AS count,
-                    BOOL_OR(releases_producers.developer) AS is_dev,
-                    BOOL_OR(releases_producers.publisher) AS is_pub,
-                    BOOL_OR(releases.official) AS official,
-                    MIN(releases.released) AS first_release
-                  FROM releases_vn
-                  INNER JOIN releases_producers ON releases_producers.id = releases_vn.id
-                  INNER JOIN releases ON releases.id = releases_vn.id
-                  INNER JOIN producers ON producers.id = releases_producers.pid
-                  WHERE releases_vn.vid = galrc_alistb.vid
-                  GROUP BY producers.id, producers.name, producers.latin, producers.alias, producers.type
-                  ORDER BY official DESC, first_release ASC NULLS LAST
-                ) pb),
-                '[]'::json
-              )
-            `,
-            vn_datas: sql`
-              (SELECT row_to_json(vn_sub.*) FROM (
-                SELECT
-                  vn.*,
-                  COALESCE(
-                    (SELECT json_agg(row_to_json(t.*)) FROM vn_titles t WHERE t.id = vn.id),
-                    '[]'::json
-                  ) AS titles,
-                  (SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM images i WHERE i.id = vn.c_image) i) AS images
-                FROM vn
-                WHERE vn.id = galrc_alistb.vid
-              ) vn_sub)
-            `,
-            other_datas: sql`
-              (SELECT row_to_json(other_sub.*) FROM (
-                SELECT
-                  galrc_other.*,
-                  COALESCE(
-                    (SELECT json_agg(row_to_json(media_sub.*)) FROM (
-                      SELECT
-                        galrc_other_media.cover,
-                        (SELECT row_to_json(m.*) FROM galrc_media m WHERE m.hash = galrc_other_media.media_hash) AS media_datas
-                      FROM galrc_other_media
-                      WHERE galrc_other_media.other_id = galrc_other.id
-                    ) media_sub),
-                    '[]'::json
-                  ) AS media
-                FROM galrc_other
-                WHERE galrc_other.id = galrc_alistb.other
-              ) other_sub)
-            `,
-          })
-          .from(alistb)
-          .where(
-            idIsNumber ? eq(alistb.other, Number(id)) : eq(alistb.vid, id),
-          ) as any
-      )
-        .limit(1)
-        .then((r: any) => r[0])
+      const data = await db.query.alistb.findFirst({
+        columns: { id: true, vid: true, other: true, path: true },
+        with: {
+          vn: {
+            with: {
+              titles: true,
+              image: true,
+              releasesVn: {
+                with: {
+                  release: true,
+                },
+              },
+            },
+          },
+          otherData: {
+            with: {
+              media: {
+                with: {
+                  media: true,
+                },
+              },
+            },
+          },
+        },
+        where: idIsNumber ? eq(alistb.other, Number(id)) : eq(alistb.vid, id),
+      })
 
       if (!data) {
         throw status(404, `未找到 id=${id} 对应的游戏信息`)
       }
 
-      return data
+      // released_first: 从 releasesVn 中计算最早的 release 日期
+      const releasesDates = data.vn?.releasesVn
+        ?.map((rv) => rv.release?.released)
+        ?.filter((r): r is string => r !== null && r !== undefined)
+      const released_first =
+        releasesDates && releasesDates.length > 0
+          ? releasesDates.sort((a, b) => a.localeCompare(b))[0]
+          : null
+
+      // producers: 分组聚合无法用 Drizzle relations API 表达，保留独立查询
+      const vid = data.vid
+      let producersData: {
+        id: string
+        name: string | null
+        latin: string | null
+        alias: string | null
+        type: string | null
+        count: number
+        is_dev: boolean
+        is_pub: boolean
+        official: boolean
+        first_release: string | null
+      }[] = []
+      if (vid) {
+        producersData = await db
+          .select({
+            id: producers.id,
+            name: producers.name,
+            latin: producers.latin,
+            alias: producers.alias,
+            type: producers.type,
+            count: countAll(),
+            is_dev: sql<boolean>`BOOL_OR(${releasesProducers.developer})`,
+            is_pub: sql<boolean>`BOOL_OR(${releasesProducers.publisher})`,
+            official: sql<boolean>`BOOL_OR(${releases.official})`,
+            first_release: sql<string | null>`MIN(${releases.released})`,
+          })
+          .from(releasesVn)
+          .innerJoin(releasesProducers, eq(releasesProducers.id, releasesVn.id))
+          .innerJoin(releases, eq(releases.id, releasesVn.id))
+          .innerJoin(producers, eq(producers.id, releasesProducers.pid))
+          .where(eq(releasesVn.vid, vid))
+          .groupBy(
+            producers.id,
+            producers.name,
+            producers.latin,
+            producers.alias,
+            producers.type,
+          )
+          .orderBy(
+            sql`official DESC, first_release ASC NULLS LAST`,
+          )
+      }
+
+      return {
+        ...data,
+        released_first,
+        producers: producersData,
+      }
     }
 
     const lockKey = `lock:${cacheKey}`
@@ -483,22 +488,13 @@ export const Game = {
 
     const dataFilter =
       dataWhereConditions.length > 0 ? and(...dataWhereConditions) : undefined
-    const dataQuery = (
-      db
-        .select({
-          id: alistb.id,
-          vid: alistb.vid,
-          other: alistb.other,
-          vndatas: sql`(SELECT row_to_json(vn.*) FROM vn WHERE vn.id = galrc_alistb.vid)`,
-          otherdatas: sql`(SELECT row_to_json(o.*) FROM galrc_other o WHERE o.id = galrc_alistb.other)`,
-        })
-        .from(alistb)
-        .where(dataFilter) as any
-    )
-      .limit(limit)
-      .offset(offset)
-
-    const data = await dataQuery
+    const data = await db.query.alistb.findMany({
+      columns: { id: true, vid: true, other: true },
+      with: { vn: true, otherData: true },
+      where: dataFilter,
+      limit,
+      offset,
+    })
     return {
       data,
       pagination: {
@@ -512,40 +508,24 @@ export const Game = {
   async VidassociationGet({ id }: GameModel.infoId) {
     if (id.startsWith('v')) {
       const fetchData = async () => {
-        return await (
-          db
-            .select({
-              id: alistb.id,
-              vid: alistb.vid,
-              other: alistb.other,
-              path: alistb.path,
-              other_data: sql`
-              (SELECT row_to_json(other_sub.*) FROM (
-                SELECT
-                  galrc_other.*,
-                  COALESCE(
-                    (SELECT json_agg(row_to_json(media_sub.*)) FROM (
-                      SELECT
-                        galrc_other_media.cover,
-                        (SELECT row_to_json(m.*) FROM galrc_media m WHERE m.hash = galrc_other_media.media_hash) AS mediadata
-                      FROM galrc_other_media
-                      WHERE galrc_other_media.other_id = galrc_other.id
-                    ) media_sub),
-                    '[]'::json
-                  ) AS othermedia
-                FROM galrc_other
-                WHERE galrc_other.id = galrc_alistb.other
-              ) other_sub)
-            `,
-            })
-            .from(alistb)
-            .where(eq(alistb.vid, id)) as any
-        )
-          .limit(1)
-          .then((r: any) => r[0])
+        return await db.query.alistb.findFirst({
+          columns: { id: true, vid: true, other: true, path: true },
+          with: {
+            otherData: {
+              with: {
+                media: {
+                  with: {
+                    media: true,
+                  },
+                },
+              },
+            },
+          },
+          where: eq(alistb.vid, id),
+        })
       }
       let data = await fetchData()
-      if (data?.other_data === null) {
+      if (data?.otherData === null) {
         const newOtherId = await db
           .insert(others)
           .values({ status: 'draft' })
@@ -557,38 +537,21 @@ export const Game = {
           .where(eq(alistb.vid, id))
         data = await fetchData()
       }
-      const datas = data!.other_data
+      const datas = data!.otherData
       return datas
     }
     if (id.match(/^\d+$/)) {
       const fetchData = async () => {
-        return await (
-          db
-            .select({
-              id: others.id,
-              title: others.title,
-              alias: others.alias,
-              introduction: others.introduction,
-              description: others.description,
-              status: others.status,
-              othermedia: sql`
-              COALESCE(
-                (SELECT json_agg(row_to_json(media_sub.*)) FROM (
-                  SELECT
-                    galrc_other_media.cover,
-                    (SELECT row_to_json(m.*) FROM galrc_media m WHERE m.hash = galrc_other_media.media_hash) AS mediadata
-                  FROM galrc_other_media
-                  WHERE galrc_other_media.other_id = galrc_other.id
-                ) media_sub),
-                '[]'::json
-              )
-            `,
-            })
-            .from(others)
-            .where(eq(others.id, Number(id))) as any
-        )
-          .limit(1)
-          .then((r: any) => r[0])
+        return await db.query.others.findFirst({
+          with: {
+            media: {
+              with: {
+                media: true,
+              },
+            },
+          },
+          where: eq(others.id, Number(id)),
+        })
       }
       let data = await fetchData()
       if (data === undefined) {
