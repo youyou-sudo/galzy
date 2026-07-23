@@ -12,7 +12,14 @@ export function getContext() {
 		return context;
 	}
 
-	const queryClient = new QueryClient();
+	const queryClient = new QueryClient({
+		defaultOptions: {
+			queries: {
+				gcTime: 60_000,
+				staleTime: 30_000,
+			},
+		},
+	});
 
 	context = {
 		queryClient,

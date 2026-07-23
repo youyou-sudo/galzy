@@ -16,7 +16,7 @@
 import { Glob } from 'bun'
 
 // ── Scan dist/ ──────────────────────────────────────────
-const glob = new Glob('dist/**/*')
+const glob = new Glob('dist/client/**/*')
 const distFiles: string[] = []
 for await (const file of glob.scan('.')) {
   distFiles.push(file)

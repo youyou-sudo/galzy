@@ -19,7 +19,7 @@
  *
  * ── Env vars ──
  *   PORT                        default 3000
- *   ASSET_PRELOAD_MAX_SIZE      bytes, default 5 MB
+ *   ASSET_PRELOAD_MAX_SIZE      bytes, default 512 kB
  *   ASSET_PRELOAD_INCLUDE       comma globs, e.g. "*.js,*.css"
  *   ASSET_PRELOAD_EXCLUDE       comma globs, e.g. "*.map"
  *   ASSET_PRELOAD_VERBOSE       "true" for per-file listing
@@ -35,7 +35,7 @@ import { createGzip, createBrotliCompress } from 'node:zlib'
 const PORT = Number(process.env.PORT ?? 3000)
 const CLIENT_DIR = './dist/client'
 
-const MAX_BYTES = Number(process.env.ASSET_PRELOAD_MAX_SIZE ?? 5 * 1024 * 1024)
+const MAX_BYTES = Number(process.env.ASSET_PRELOAD_MAX_SIZE ?? 512 * 1024)
 const VERBOSE = process.env.ASSET_PRELOAD_VERBOSE === 'true'
 
 // ── Cluster ──────────────────────────────────────────
@@ -336,7 +336,7 @@ async function loadStaticsFromBundle(): Promise<void> {
     entry[variant] = content
   }
 
-  // Release index structures; content data stays alive via grouped
+  // Release index structures; content data stays alive via grouped views
   entries.length = 0
 
   let groupedCount = 0
@@ -529,6 +529,19 @@ async function main(): Promise<void> {
       ? loadStaticsFromBundle()
       : loadStatics(),
   ])
+
+  // Log memory usage every 5 minutes
+  if (!WORKER_ID) {
+    setInterval(() => {
+      const m = process.memoryUsage()
+      console.log(
+        `[mem] rss=${(m.rss / 1024 / 1024).toFixed(1)}MiB  ` +
+        `heapUsed=${(m.heapUsed / 1024 / 1024).toFixed(1)}MiB  ` +
+        `heapTotal=${(m.heapTotal / 1024 / 1024).toFixed(1)}MiB  ` +
+        `external=${(m.external / 1024 / 1024).toFixed(1)}MiB`,
+      )
+    }, 300_000).unref()
+  }
 
   Bun.serve({
     port: PORT,
