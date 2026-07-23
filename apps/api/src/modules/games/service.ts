@@ -31,6 +31,7 @@ import {
   isNotNull,
   isNull,
   like,
+  min,
   or,
 } from 'drizzle-orm'
 import { status } from 'elysia'
@@ -198,6 +199,9 @@ export const Game = {
         first_release: string | null
       }[] = []
       if (vid) {
+        const officialExpr = sql<boolean>`BOOL_OR(${releases.official})`
+        const firstReleaseExpr = min(releases.released)
+
         producersData = await db
           .select({
             id: producers.id,
@@ -208,8 +212,8 @@ export const Game = {
             count: countAll(),
             is_dev: sql<boolean>`BOOL_OR(${releasesProducers.developer})`,
             is_pub: sql<boolean>`BOOL_OR(${releasesProducers.publisher})`,
-            official: sql<boolean>`BOOL_OR(${releases.official})`,
-            first_release: sql<string | null>`MIN(${releases.released})`,
+            official: officialExpr,
+            first_release: firstReleaseExpr,
           })
           .from(releasesVn)
           .innerJoin(releasesProducers, eq(releasesProducers.id, releasesVn.id))
@@ -223,10 +227,7 @@ export const Game = {
             producers.alias,
             producers.type,
           )
-          .orderBy(
-            desc(sql`official`),
-            sql`${asc(sql`first_release`)} NULLS LAST`,
-          )
+          .orderBy(desc(officialExpr), sql`${asc(firstReleaseExpr)} NULLS LAST`)
       }
 
       return {
