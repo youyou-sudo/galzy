@@ -35,7 +35,7 @@ export function GameHeader({ game }: { game: GameData }) {
                 height: game?.vn?.image?.height,
               })}
               alt={olangTitle || 'null'}
-              cSexualAvg={game?.vn?.image?.c_sexual_avg}
+              cSexualAvg={game?.vn?.image?.cSexualAvg}
               className="rounded-lg w-full h-full object-cover"
             />
           </div>
@@ -61,8 +61,7 @@ export function GameHeader({ game }: { game: GameData }) {
               .filter(
                 (s) =>
                   s !==
-                  game?.vn?.titles?.find((t) => t.lang === 'zh-Hans')
-                    ?.title,
+                  game?.vn?.titles?.find((t) => t.lang === 'zh-Hans')?.title,
               )
               .join(', ')}
           </div>
