@@ -128,7 +128,10 @@ export const Game = {
     if (redisData) {
       try {
         const cached = JSON.parse(redisData)
-        if (!cached?.vn || (cached?.vn?.image && !('c_sexual_avg' in cached.vn.image))) {
+        if (
+          !cached?.vn ||
+          (cached?.vn?.image && !('c_sexual_avg' in cached.vn.image))
+        ) {
           await delKv(cacheKey)
         } else {
           return cached
