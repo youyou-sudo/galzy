@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useRouter } from '@tanstack/react-router'
+import { CreateEditDialog } from '@web/components/-CreateEditDialog'
 import { Button } from '@web/components/ui/button'
 import {
   Card,
@@ -15,9 +16,9 @@ import { ArrowLeft, Loader2, Pencil, Trash2, User } from 'lucide-react'
 import { useState } from 'react'
 import Markdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
+import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 import { toast } from 'sonner'
-import { CreateEditDialog } from '@web/components/-CreateEditDialog'
 
 export default function ArticlePage({
   article,
@@ -142,7 +143,10 @@ export default function ArticlePage({
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <Markdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
+            <Markdown
+              rehypePlugins={[rehypeRaw]}
+              remarkPlugins={[remarkGfm, remarkBreaks]}
+            >
               {article?.content}
             </Markdown>
           </div>
