@@ -1,6 +1,16 @@
 import { createHash } from 'node:crypto'
 import { redis } from 'bun'
 
+const isProduction = process.env.NODE_ENV === 'production'
+
+const redisLog = {
+  debug: (...args: unknown[]) => {
+    if (!isProduction) console.debug(...args)
+  },
+  warn: (...args: unknown[]) => console.warn(...args),
+  error: (...args: unknown[]) => console.error(...args),
+}
+
 // ============================================================
 // Redis client factory (configurable, mockable in tests)
 // ============================================================
@@ -33,7 +43,7 @@ const safeRedisOp = async <T>(
 ): Promise<T> => {
   const client = getRedisClient()
   if (!client) {
-    console.warn(
+    redisLog.warn(
       `[Redis] ${operationName} skipped: redis client not initialized`,
     )
     return fallback
@@ -41,7 +51,7 @@ const safeRedisOp = async <T>(
   try {
     return await op(client)
   } catch (err) {
-    console.error(`[Redis] ${operationName} failed:`, err)
+    redisLog.error(`[Redis] ${operationName} failed:`, err)
     return fallback
   }
 }
@@ -108,7 +118,7 @@ export const getKv = async (key: string) => {
       const start = Date.now()
       const value = await client.get(key)
       const elapsed = Date.now() - start
-      console.debug(
+      redisLog.debug(
         `[Redis] getKv(${key}) ${value !== null ? 'HIT' : 'MISS'} (${elapsed}ms)`,
       )
       return value
@@ -155,7 +165,7 @@ export const delKvPattern = async (pattern: string) => {
           deletedCount += (await client.del(...keys)) as number
         }
       } while (cursor !== '0')
-      console.debug(
+      redisLog.debug(
         `[Redis] delKvPattern(${pattern}) completed: deleted ${deletedCount} keys`,
       )
       return deletedCount
@@ -187,7 +197,7 @@ export const acquireLockKv = async (
         'NX',
       ])
       const success = result === 'OK'
-      console.debug(
+      redisLog.debug(
         `[Redis] acquireLockKv(${lockKey}) ${success ? 'acquired' : 'failed'}`,
       )
       return success
@@ -214,7 +224,7 @@ export const releaseLockKv = async (key: string, value: string) => {
           value,
         ])
         const ok = result === 1 || result === 1n
-        console.debug(
+        redisLog.debug(
           `[Redis] releaseLockKv(${key}) ${ok ? 'released' : 'failed (value mismatch)'}`,
         )
         return ok
@@ -228,7 +238,7 @@ export const releaseLockKv = async (key: string, value: string) => {
             value,
           ])
           const ok = result === 1 || result === 1n
-          console.debug(
+          redisLog.debug(
             `[Redis] releaseLockKv(${key}) ${ok ? 'released' : 'failed (value mismatch)'}`,
           )
           return ok
@@ -261,7 +271,7 @@ export async function acquireIdempotentKey(
         'NX',
       ])
       const success = result === 'OK'
-      console.debug(
+      redisLog.debug(
         `[Redis] acquireIdempotentKey(${key}) ${success ? 'acquired' : 'already locked'}`,
       )
       return success
