@@ -1,4 +1,5 @@
 import {
+  alistb,
   db,
   images,
   producers,
@@ -8,7 +9,7 @@ import {
   vnTitles,
 } from '@api/libs'
 import { delKv, getKv, setKv } from '@api/libs/redis'
-import { and, eq, getTableColumns, inArray, sql } from 'drizzle-orm'
+import { and, eq, exists, getTableColumns, inArray, sql } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { ProducerModel } from './model'
 
@@ -73,7 +74,12 @@ export const Producer = {
             .where(
               and(
                 eq(releasesProducers.pid, pid),
-                sql`EXISTS (SELECT 1 FROM galrc_alistb WHERE vid = ${releasesVn.vid})`,
+                exists(
+                  db
+                    .select()
+                    .from(alistb)
+                    .where(eq(alistb.vid, releasesVn.vid)),
+                ),
               ),
             ),
         ) as any,

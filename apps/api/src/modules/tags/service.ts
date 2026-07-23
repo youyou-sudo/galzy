@@ -12,7 +12,18 @@ import {
   zhtags,
 } from '@api/libs'
 import { delKv, getKv, setKv } from '@api/libs/redis'
-import { and, asc, count, desc, eq, like, or, type SQL, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  count,
+  countDistinct,
+  desc,
+  eq,
+  like,
+  or,
+  type SQL,
+  sql,
+} from 'drizzle-orm'
 import { status } from 'elysia'
 import type { TagsModel } from './model'
 
@@ -169,7 +180,7 @@ export const Tags = {
         .offset(offset),
 
       db
-        .select({ count: sql<number>`count(DISTINCT ${tagsVn.vid})` })
+        .select({ count: countDistinct(tagsVn.vid) })
         .from(tagsVn)
         .innerJoin(alistb, eq(alistb.vid, tagsVn.vid))
         .where(eq(tagsVn.tag, tagId))
@@ -308,10 +319,10 @@ export const Tags = {
       .onConflictDoUpdate({
         target: zhtags.id,
         set: {
-          name: sql`excluded.name`,
-          exhibition: sql`excluded.exhibition`,
-          alias: sql`excluded.alias`,
-          description: sql`excluded.description`,
+          name: zhtags.name,
+          exhibition: zhtags.exhibition,
+          alias: zhtags.alias,
+          description: zhtags.description,
         },
       })
 

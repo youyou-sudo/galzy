@@ -267,16 +267,19 @@ export const releasesRelations = relations(releases, ({ many }) => ({
 }))
 
 // releases_producers — 关联到 releases_vn（通过 id）和 producers（通过 pid）
-export const releasesProducersRelations = relations(releasesProducers, ({ one }) => ({
-  releaseVn: one(releasesVn, {
-    fields: [releasesProducers.id],
-    references: [releasesVn.id],
+export const releasesProducersRelations = relations(
+  releasesProducers,
+  ({ one }) => ({
+    releaseVn: one(releasesVn, {
+      fields: [releasesProducers.id],
+      references: [releasesVn.id],
+    }),
+    producer: one(producers, {
+      fields: [releasesProducers.pid],
+      references: [producers.id],
+    }),
   }),
-  producer: one(producers, {
-    fields: [releasesProducers.pid],
-    references: [producers.id],
-  }),
-}))
+)
 
 // producers — 反向关联到 releases_producers
 export const producersTableRelations = relations(producers, ({ many }) => ({

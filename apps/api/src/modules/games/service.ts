@@ -2,9 +2,6 @@ import {
   alistb,
   db,
   gameDownloadStats,
-  images,
-  media,
-  otherMedia,
   others,
   producers,
   releases,
@@ -12,7 +9,6 @@ import {
   releasesVn,
   sql,
   vn,
-  vnTitles,
 } from '@api/libs'
 import {
   acquireIdempotentKey,
@@ -28,6 +24,7 @@ import {
 } from '@api/libs/redis'
 import {
   and,
+  asc,
   count as countAll,
   desc,
   eq,
@@ -227,7 +224,8 @@ export const Game = {
             producers.type,
           )
           .orderBy(
-            sql`official DESC, first_release ASC NULLS LAST`,
+            desc(sql`official`),
+            sql`${asc(sql`first_release`)} NULLS LAST`,
           )
       }
 
