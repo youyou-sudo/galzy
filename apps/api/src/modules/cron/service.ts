@@ -40,6 +40,22 @@ import { status } from 'elysia'
 import { all } from 'radash'
 import { processData } from './lib'
 
+interface MeiliProgress {
+  status: 'idle' | 'running' | 'completed' | 'failed'
+  type: 'game' | 'tag' | null
+  startedAt: string | null
+  completedAt: string | null
+  totalPages: number
+  processedPages: number
+  errors: number
+  logs: Array<{
+    time: string
+    level: 'info' | 'error' | 'success'
+    message: string
+  }>
+  lastUpdated: string
+}
+
 export const CronService = {
   async workerDataPull() {
     const lockKey = 'galzy:lock:cron:workerDataCorn'
@@ -315,29 +331,108 @@ export const CronService = {
     return Array.from(dedupedMap.values())
   },
 
+  async updateMeiliProgress(type: 'game' | 'tag', partial: Partial<MeiliProgress>) {
+    const key = type === 'game' ? 'meiliSearchProgress_game' : 'meiliSearchProgress_tag'
+    const current = await this.getMeiliProgress(type)
+    const updated: MeiliProgress = {
+      ...current,
+      ...partial,
+      lastUpdated: new Date().toISOString(),
+    }
+    await db
+      .insert(siteConfig)
+      .values({ key, config: updated as any })
+      .onConflictDoUpdate({
+        target: siteConfig.key,
+        set: { config: updated as any },
+      })
+  },
+
+  async getMeiliProgress(type: 'game' | 'tag'): Promise<MeiliProgress> {
+    const key = type === 'game' ? 'meiliSearchProgress_game' : 'meiliSearchProgress_tag'
+    const row = await db
+      .select({ config: siteConfig.config })
+      .from(siteConfig)
+      .where(eq(siteConfig.key, key))
+      .limit(1)
+    return (
+      (row[0]?.config as MeiliProgress) ?? {
+        status: 'idle',
+        type: null,
+        startedAt: null,
+        completedAt: null,
+        totalPages: 0,
+        processedPages: 0,
+        errors: 0,
+        logs: [],
+        lastUpdated: new Date().toISOString(),
+      }
+    )
+  },
+
+  async addMeiliLog(type: 'game' | 'tag', level: MeiliProgress['logs'][0]['level'], message: string) {
+    const current = await this.getMeiliProgress(type)
+    const logs = [
+      ...current.logs,
+      { time: new Date().toISOString(), level, message },
+    ].slice(-100)
+    await this.updateMeiliProgress(type, { logs })
+  },
+
   async meiliSearchAddIndex() {
     try {
-      const index = await MeiliClient.index(process.env.MEILISEARCH_INDEXNAME)
-
-      // 先清空索引，然后并行处理分页数据
-      await index.deleteAllDocuments()
-
       const { totalPages } = await this.getMeiliSearchDataInfo()
-      const pageSize = 500
 
-      // 并行处理所有分页，但限制并发数量避免过载
-      const concurrencyLimit = 3 // 降低并发数以减少负载
+      await this.updateMeiliProgress('game', {
+        status: 'running',
+        type: 'game',
+        startedAt: new Date().toISOString(),
+        completedAt: null,
+        totalPages,
+        processedPages: 0,
+        errors: 0,
+        logs: [{
+          time: new Date().toISOString(),
+          level: 'info',
+          message: `游戏索引重建开始: ${totalPages} 页`,
+        }],
+      })
+
+      const index = await MeiliClient.index(process.env.MEILISEARCH_INDEXNAME)
+      await index.deleteAllDocuments()
+      await this.addMeiliLog('game', 'info', '已清空现有索引')
+
+      const pageSize = 500
+      const concurrencyLimit = 3
+
       for (let i = 0; i < totalPages; i += concurrencyLimit) {
         const batch = []
         for (let j = 0; j < concurrencyLimit && i + j < totalPages; j++) {
           batch.push(this.indexPageWithRetry(index, pageSize, i + j))
         }
         await Promise.all(batch)
+        const processed = Math.min(i + concurrencyLimit, totalPages)
+        await this.updateMeiliProgress('game', { processedPages: processed })
+        await this.addMeiliLog('game', 'info', `索引进度: ${processed}/${totalPages} 页`)
       }
+
       await index.updateFilterableAttributes(['released_first'])
+      await this.addMeiliLog('game', 'success', '已更新可筛选属性')
+
+      await this.updateMeiliProgress('game', {
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+      })
+      await this.addMeiliLog('game', 'success', '游戏索引重建完成')
       return { code: 200 }
     } catch (e) {
       console.error('meiliSearchAddIndex 运行失败喵', e)
+      await this.updateMeiliProgress('game', {
+        status: 'failed',
+        completedAt: new Date().toISOString(),
+        errors: (await this.getMeiliProgress('game')).errors + 1,
+      })
+      await this.addMeiliLog('game', 'error', `重建失败: ${String(e)}`)
       throw status(500, `meiliSearchAddIndex 运行失败喵 ${e}`)
     }
   },
@@ -368,26 +463,55 @@ export const CronService = {
 
   async meiliSearchAddTag() {
     try {
-      const index = await MeiliClient.index(
-        process.env.MEILISEARCH_TAG_INDEXNAME,
-      )
-      await index.deleteAllDocuments()
-
       const { totalPages } = await this.getTagDataInfo()
-      const pageSize = 500
 
-      // 并行处理所有分页，限制并发数量
+      await this.updateMeiliProgress('tag', {
+        status: 'running',
+        type: 'tag',
+        startedAt: new Date().toISOString(),
+        completedAt: null,
+        totalPages,
+        processedPages: 0,
+        errors: 0,
+        logs: [{
+          time: new Date().toISOString(),
+          level: 'info',
+          message: `标签索引重建开始: ${totalPages} 页`,
+        }],
+      })
+
+      const index = await MeiliClient.index(process.env.MEILISEARCH_TAG_INDEXNAME)
+      await index.deleteAllDocuments()
+      await this.addMeiliLog('tag', 'info', '已清空现有索引')
+
+      const pageSize = 500
       const concurrencyLimit = 3
+
       for (let i = 0; i < totalPages; i += concurrencyLimit) {
         const batch = []
         for (let j = 0; j < concurrencyLimit && i + j < totalPages; j++) {
           batch.push(this.indexTagPageWithRetry(index, pageSize, i + j))
         }
         await Promise.all(batch)
+        const processed = Math.min(i + concurrencyLimit, totalPages)
+        await this.updateMeiliProgress('tag', { processedPages: processed })
+        await this.addMeiliLog('tag', 'info', `索引进度: ${processed}/${totalPages} 页`)
       }
+
+      await this.updateMeiliProgress('tag', {
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+      })
+      await this.addMeiliLog('tag', 'success', '标签索引重建完成')
       return { code: 200 }
     } catch (e) {
       console.error('meiliSearchAddTag 运行失败喵', e)
+      await this.updateMeiliProgress('tag', {
+        status: 'failed',
+        completedAt: new Date().toISOString(),
+        errors: (await this.getMeiliProgress('tag')).errors + 1,
+      })
+      await this.addMeiliLog('tag', 'error', `重建失败: ${String(e)}`)
       throw status(500, `meiliSearchAddTag 运行失败喵 ${e}`)
     }
   },

@@ -17,9 +17,9 @@ export const Route = createFileRoute('/$id/_layout/introduction/')({
     meta: [
       {
         title: `${
-          loaderData?.game?.vn_datas?.titles?.find(
+          loaderData?.game?.vn?.titles?.find(
             (t) =>
-              t.lang === loaderData?.game?.vn_datas?.olang &&
+              t.lang === loaderData?.game?.vn?.olang &&
               t.title.trim() !== '',
           )?.title || 'Galgame'
         } 攻略文章列表 | ${seoTemplate.title}`,

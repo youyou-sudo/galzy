@@ -1,16 +1,29 @@
 import { CronService } from '@api/modules/cron/service'
 import { Cron } from 'croner'
-import { Elysia } from 'elysia'
+import { Elysia, t } from 'elysia'
 
 export const cronServer = new Elysia()
   .get('/task/meiliSearchAddIndex', () => {
     console.log('[Cron Trigger] meiliSearchAddIndex 手动触发')
-    return CronService.meiliSearchAddIndex()
+    void CronService.meiliSearchAddIndex()
+    return { ok: true, message: '游戏索引重建已触发' }
   })
   .get('/task/meiliSearchAddTag', () => {
     console.log('[Cron Trigger] meiliSearchAddTag 手动触发')
-    return CronService.meiliSearchAddTag()
+    void CronService.meiliSearchAddTag()
+    return { ok: true, message: '标签索引重建已触发' }
   })
+  .get(
+    '/task/meiliSearchProgress',
+    async ({ query: { type } }) => {
+      return await CronService.getMeiliProgress(type as 'game' | 'tag')
+    },
+    {
+      query: t.Object({
+        type: t.String(),
+      }),
+    },
+  )
   .get('/task/alistSyncScript', () => {
     console.log('[Cron Trigger] alistSyncScript 手动触发')
     return CronService.alistSyncScript()

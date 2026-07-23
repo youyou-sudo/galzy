@@ -4,6 +4,21 @@ import { elysiaErrorF } from '@web/lib'
 import { cookiePass } from '@web/lib/cookie-pass'
 import z from 'zod'
 
+export const getMeiliSearchProgress = createServerFn({ method: 'GET' })
+  .validator(
+    z.object({
+      type: z.enum(['game', 'tag']),
+    }),
+  )
+  .handler(async ({ data: { type } }) => {
+    const { data, error } = await api.task.meiliSearchProgress.get({
+      query: { type },
+      headers: cookiePass().headers,
+    })
+    elysiaErrorF(error)
+    return data
+  })
+
 /**
  * 获取 Meilisearch 实例统计信息
  */

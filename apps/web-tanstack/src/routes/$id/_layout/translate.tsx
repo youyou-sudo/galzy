@@ -16,9 +16,9 @@ export const Route = createFileRoute('/$id/_layout/translate')({
     meta: [
       {
         title: `${
-          loaderData?.game?.vn_datas?.titles?.find(
+          loaderData?.game?.vn?.titles?.find(
             (t) =>
-              t.lang === loaderData?.game?.vn_datas?.olang &&
+              t.lang === loaderData?.game?.vn?.olang &&
               t.title.trim() !== '',
           )?.title || 'Galgame'
         } 下载统计 | ${seoTemplate.title}`,

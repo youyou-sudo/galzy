@@ -86,14 +86,14 @@ export function GameInfo({ game }: { game: GameData }) {
       )}
 
       {/* Description */}
-      {(game?.other_datas?.description || game?.vn_datas?.description) && (
+      {(game?.otherData?.description || game?.vn?.description) && (
         <div className="mt-2">
           <div className="text-xs text-zinc-500 uppercase mb-1">游戏简介</div>
           <div className="text-sm line-clamp-6 leading-relaxed text-zinc-800 dark:text-zinc-200">
             <BBCodeRenderer
               text={
-                game?.other_datas?.description ||
-                game?.vn_datas?.description ||
+                game?.otherData?.description ||
+                game?.vn?.description ||
                 ''
               }
             />

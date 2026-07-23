@@ -32,11 +32,11 @@ async function getData(vid: string) {
 
 	const datas = gameResp.data;
 	const titlesData =
-		datas?.vn_datas?.titles?.find(
-			(t) => t.lang === datas.vn_datas?.olang && t.title.trim() !== "",
+		datas?.vn?.titles?.find(
+			(t) => t.lang === datas.vn?.olang && t.title.trim() !== "",
 		)?.title || "null";
 
-	const aliasData = datas?.vn_datas?.alias
+	const aliasData = datas?.vn?.alias
 		?.split("\n")
 		.map((s) => s.trim())
 		.filter((s) => s && s !== titlesData)
@@ -50,10 +50,10 @@ async function getData(vid: string) {
 		code: 200,
 		message: "success",
 		data: {
-			vid: datas?.vn_datas?.id,
+			vid: datas?.vn?.id,
 			title: titlesData,
 			alias: aliasData,
-			description: datas?.vn_datas?.description,
+			description: datas?.vn?.description,
 			filelist: groupSplitArchives(openlist[0].children),
 			strategy: strategyList.data?.map(({ user, ...rest }) => ({
 				...rest,
