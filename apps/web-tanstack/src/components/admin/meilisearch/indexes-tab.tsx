@@ -63,7 +63,7 @@ export function IndexesTab() {
               </div>
               <Button
                 variant="default"
-                onClick={() => rebuildGame.mutate}
+                onClick={() => rebuildGame.mutate()}
                 disabled={isRebuilding}
               >
                 {rebuildGame.isPending ? (
@@ -84,7 +84,7 @@ export function IndexesTab() {
               </div>
               <Button
                 variant="default"
-                onClick={() => rebuildTag.mutate}
+                onClick={() => rebuildTag.mutate()}
                 disabled={isRebuilding}
               >
                 {rebuildTag.isPending ? (
