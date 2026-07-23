@@ -165,7 +165,7 @@ export const CronService = {
         fetch(`${process.env.OPENLIST_HOST}/api/admin/index/progress`, {
           method: 'GET',
           headers: {
-            Authorization: process.env.OPENLIST_API_KEY,
+            Authorization: process.env.OPENLIST_API_KEY as string,
           },
         }),
         db
@@ -197,7 +197,7 @@ export const CronService = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: process.env.OPENLIST_API_KEY,
+            Authorization: process.env.OPENLIST_API_KEY as string,
           },
           body: JSON.stringify({
             parent: '/',
