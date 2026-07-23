@@ -57,7 +57,7 @@ export function Images({ className, cSexualAvg, ...props }: ImageProps & { cSexu
       <div className="relative w-full h-full">
         <Image
           {...props}
-          className={`w-full h-full object-cover transition-[filter] duration-300 ${isSensitive && !revealed ? 'blur-xl' : ''} ${className ?? ''}`}
+          className={`w-full h-full object-cover transition-[filter] duration-500 ease-out ${isSensitive && !revealed ? 'blur-xl' : ''} ${className ?? ''}`}
         />
         {isSensitive && !revealed && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
@@ -86,7 +86,7 @@ function SensitiveImage({ cSexualAvg, className, ...imageProps }: ImageProps & {
       <div className="relative w-full h-full">
         <Image
           {...imageProps}
-          className={`w-full h-full object-cover transition-[filter] duration-300 ${isSensitive && !revealed ? 'blur-xl' : ''} ${className ?? ''}`}
+          className={`w-full h-full object-cover transition-[filter] duration-500 ease-out ${isSensitive && !revealed ? 'blur-xl' : ''} ${className ?? ''}`}
         />
         {isSensitive && !revealed && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
@@ -136,7 +136,7 @@ function Item({
             decoding="async"
             src={src}
             alt={title || ' '}
-            className={`absolute inset-0 w-full h-full object-cover hover:scale-105 transition-[transform,filter] duration-200${isSensitive && !revealed ? ' blur-xl' : ''}`}
+            className={`absolute inset-0 w-full h-full object-cover hover:scale-105 transition duration-500 ease-out${isSensitive && !revealed ? ' blur-xl' : ''}`}
           />
           {isSensitive && !revealed && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
