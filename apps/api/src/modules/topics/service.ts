@@ -1,5 +1,5 @@
 import { db, topicFavorites, topicLikes, topics, users } from '@api/libs'
-import { and, count, desc, eq, inArray } from 'drizzle-orm'
+import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { TopicModel } from './model'
 
@@ -19,7 +19,17 @@ export const TopicService = {
 
     const [topicsData, countResult] = await Promise.all([
       db
-        .select()
+        .select({
+          id: topics.id,
+          userId: topics.userId,
+          title: topics.title,
+          status: topics.status,
+          createdAt: topics.createdAt,
+          updatedAt: topics.updatedAt,
+          summary: sql<string>`substring(${topics.content}, 1, 400)`.as(
+            'summary',
+          ),
+        })
         .from(topics)
         .where(whereClause)
         .orderBy(desc(topics.createdAt))

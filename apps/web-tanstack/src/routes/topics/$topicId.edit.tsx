@@ -30,17 +30,21 @@ function RouteComponent() {
 	});
 
 	const handleSubmit = async (values: { title: string; content: string }) => {
-		await updateTopic({
-			data: {
-				id: Number(topicId),
-				title: values.title,
-				content: values.content,
-			},
-		});
-		queryClient.invalidateQueries({ queryKey: ["topic", topicId] });
-		queryClient.invalidateQueries({ queryKey: ["topics"] });
-		toast.success("更新成功喵～");
-		navigate({ to: "/topics/$topicId", params: { topicId } });
+		try {
+			await updateTopic({
+				data: {
+					id: Number(topicId),
+					title: values.title,
+					content: values.content,
+				},
+			});
+			queryClient.invalidateQueries({ queryKey: ["topic", topicId] });
+			queryClient.invalidateQueries({ queryKey: ["topics"] });
+			toast.success("更新成功喵～");
+			navigate({ to: "/topics/$topicId", params: { topicId } });
+		} catch (error: any) {
+			toast.error(error?.message || "更新失败，请稍后重试");
+		}
 	};
 
 	if (!topic) {
