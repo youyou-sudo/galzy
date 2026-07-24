@@ -331,8 +331,12 @@ export const CronService = {
     return Array.from(dedupedMap.values())
   },
 
-  async updateMeiliProgress(type: 'game' | 'tag', partial: Partial<MeiliProgress>) {
-    const key = type === 'game' ? 'meiliSearchProgress_game' : 'meiliSearchProgress_tag'
+  async updateMeiliProgress(
+    type: 'game' | 'tag',
+    partial: Partial<MeiliProgress>,
+  ) {
+    const key =
+      type === 'game' ? 'meiliSearchProgress_game' : 'meiliSearchProgress_tag'
     const current = await this.getMeiliProgress(type)
     const updated: MeiliProgress = {
       ...current,
@@ -349,7 +353,8 @@ export const CronService = {
   },
 
   async getMeiliProgress(type: 'game' | 'tag'): Promise<MeiliProgress> {
-    const key = type === 'game' ? 'meiliSearchProgress_game' : 'meiliSearchProgress_tag'
+    const key =
+      type === 'game' ? 'meiliSearchProgress_game' : 'meiliSearchProgress_tag'
     const row = await db
       .select({ config: siteConfig.config })
       .from(siteConfig)
@@ -370,7 +375,11 @@ export const CronService = {
     )
   },
 
-  async addMeiliLog(type: 'game' | 'tag', level: MeiliProgress['logs'][0]['level'], message: string) {
+  async addMeiliLog(
+    type: 'game' | 'tag',
+    level: MeiliProgress['logs'][0]['level'],
+    message: string,
+  ) {
     const current = await this.getMeiliProgress(type)
     const logs = [
       ...current.logs,
@@ -391,11 +400,13 @@ export const CronService = {
         totalPages,
         processedPages: 0,
         errors: 0,
-        logs: [{
-          time: new Date().toISOString(),
-          level: 'info',
-          message: `游戏索引重建开始: ${totalPages} 页`,
-        }],
+        logs: [
+          {
+            time: new Date().toISOString(),
+            level: 'info',
+            message: `游戏索引重建开始: ${totalPages} 页`,
+          },
+        ],
       })
 
       const index = await MeiliClient.index(process.env.MEILISEARCH_INDEXNAME)
@@ -413,7 +424,11 @@ export const CronService = {
         await Promise.all(batch)
         const processed = Math.min(i + concurrencyLimit, totalPages)
         await this.updateMeiliProgress('game', { processedPages: processed })
-        await this.addMeiliLog('game', 'info', `索引进度: ${processed}/${totalPages} 页`)
+        await this.addMeiliLog(
+          'game',
+          'info',
+          `索引进度: ${processed}/${totalPages} 页`,
+        )
       }
 
       await index.updateFilterableAttributes(['released_first'])
@@ -473,14 +488,18 @@ export const CronService = {
         totalPages,
         processedPages: 0,
         errors: 0,
-        logs: [{
-          time: new Date().toISOString(),
-          level: 'info',
-          message: `标签索引重建开始: ${totalPages} 页`,
-        }],
+        logs: [
+          {
+            time: new Date().toISOString(),
+            level: 'info',
+            message: `标签索引重建开始: ${totalPages} 页`,
+          },
+        ],
       })
 
-      const index = await MeiliClient.index(process.env.MEILISEARCH_TAG_INDEXNAME)
+      const index = await MeiliClient.index(
+        process.env.MEILISEARCH_TAG_INDEXNAME,
+      )
       await index.deleteAllDocuments()
       await this.addMeiliLog('tag', 'info', '已清空现有索引')
 
@@ -495,7 +514,11 @@ export const CronService = {
         await Promise.all(batch)
         const processed = Math.min(i + concurrencyLimit, totalPages)
         await this.updateMeiliProgress('tag', { processedPages: processed })
-        await this.addMeiliLog('tag', 'info', `索引进度: ${processed}/${totalPages} 页`)
+        await this.addMeiliLog(
+          'tag',
+          'info',
+          `索引进度: ${processed}/${totalPages} 页`,
+        )
       }
 
       await this.updateMeiliProgress('tag', {

@@ -1,40 +1,39 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { ChartAreaLinear } from '@web/components/home/game/translate/chart-area-linear'
-import { seoTemplate } from '@web/config/seoTemplate'
-import { getGameDetail, translateData } from '@web/server/game'
+import { createFileRoute } from "@tanstack/react-router";
+import { ChartAreaLinear } from "@web/components/home/game/translate/chart-area-linear";
+import { seoTemplate } from "@web/config/seoTemplate";
+import { getGameDetail, translateData } from "@web/server/game";
 
-export const Route = createFileRoute('/$id/_layout/translate')({
-  component: RouteComponent,
-  loader: async ({ params }) => {
-    const { id } = params
-    return {
-      translateData: await translateData({ data: { id } }),
-      game: await getGameDetail({ data: { id } }),
-    }
-  },
-  head: ({ loaderData }) => ({
-    meta: [
-      {
-        title: `${
-          loaderData?.game?.vn?.titles?.find(
-            (t) =>
-              t.lang === loaderData?.game?.vn?.olang &&
-              t.title.trim() !== '',
-          )?.title || 'Galgame'
-        } 下载统计 | ${seoTemplate.title}`,
-      },
-    ],
-  }),
-  headers: () => ({
-    // Cache at CDN for 1 hour, allow stale content for up to 1 day
-    'Cache-Control': 'public, max-age=300, stale-while-revalidate=600',
-  }),
+export const Route = createFileRoute("/$id/_layout/translate")({
+	component: RouteComponent,
+	loader: async ({ params }) => {
+		const { id } = params;
+		return {
+			translateData: await translateData({ data: { id } }),
+			game: await getGameDetail({ data: { id } }),
+		};
+	},
+	head: ({ loaderData }) => ({
+		meta: [
+			{
+				title: `${
+					loaderData?.game?.vn?.titles?.find(
+						(t) =>
+							t.lang === loaderData?.game?.vn?.olang && t.title.trim() !== "",
+					)?.title || "Galgame"
+				} 下载统计 | ${seoTemplate.title}`,
+			},
+		],
+	}),
+	headers: () => ({
+		// Cache at CDN for 1 hour, allow stale content for up to 1 day
+		"Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+	}),
 
-  // Client-side caching (via TanStack Router)
-  staleTime: 60_000, // Consider data fresh for 60 seconds on client
-  gcTime: 5 * 60_000, // Keep in memory for 5 minutes
-})
+	// Client-side caching (via TanStack Router)
+	staleTime: 60_000, // Consider data fresh for 60 seconds on client
+	gcTime: 5 * 60_000, // Keep in memory for 5 minutes
+});
 
 function RouteComponent() {
-  return <ChartAreaLinear />
+	return <ChartAreaLinear />;
 }

@@ -1,66 +1,66 @@
-import { getRouteApi } from '@tanstack/react-router'
+import { getRouteApi } from "@tanstack/react-router";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@web/components/ui/card'
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@web/components/ui/card";
 import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@web/components/ui/chart'
-import { Area, AreaChart, CartesianGrid, XAxis } from 'recharts'
+	type ChartConfig,
+	ChartContainer,
+	ChartTooltip,
+	ChartTooltipContent,
+} from "@web/components/ui/chart";
+import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
 
 const chartConfig = {
-  desktop: {
-    label: 'Desktop',
-    color: 'var(--chart-1)',
-  },
-} satisfies ChartConfig
+	desktop: {
+		label: "Desktop",
+		color: "var(--chart-1)",
+	},
+} satisfies ChartConfig;
 
-const apiroute = getRouteApi('/$id/_layout/translate')
+const apiroute = getRouteApi("/$id/_layout/translate");
 
 export function ChartAreaLinear() {
-  const { translateData } = apiroute.useLoaderData()
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>总下载量: {translateData?.total}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer className="max-h-52 w-full" config={chartConfig}>
-          <AreaChart
-            accessibilityLayer
-            data={translateData?.res}
-            margin={{
-              left: 12,
-              right: 12,
-            }}
-          >
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="label"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tickFormatter={(value: any) => value.slice(0, 3)}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent indicator="dot" hideLabel />}
-            />
-            <Area
-              dataKey="total"
-              type="linear"
-              fill="var(--color-desktop)"
-              fillOpacity={0.4}
-              stroke="var(--color-desktop)"
-            />
-          </AreaChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
-  )
+	const { translateData } = apiroute.useLoaderData();
+	return (
+		<Card>
+			<CardHeader>
+				<CardTitle>总下载量: {translateData?.total}</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<ChartContainer className="max-h-52 w-full" config={chartConfig}>
+					<AreaChart
+						accessibilityLayer
+						data={translateData?.res}
+						margin={{
+							left: 12,
+							right: 12,
+						}}
+					>
+						<CartesianGrid vertical={false} />
+						<XAxis
+							dataKey="label"
+							tickLine={false}
+							axisLine={false}
+							tickMargin={8}
+							tickFormatter={(value: any) => value.slice(0, 3)}
+						/>
+						<ChartTooltip
+							cursor={false}
+							content={<ChartTooltipContent indicator="dot" hideLabel />}
+						/>
+						<Area
+							dataKey="total"
+							type="linear"
+							fill="var(--color-desktop)"
+							fillOpacity={0.4}
+							stroke="var(--color-desktop)"
+						/>
+					</AreaChart>
+				</ChartContainer>
+			</CardContent>
+		</Card>
+	);
 }

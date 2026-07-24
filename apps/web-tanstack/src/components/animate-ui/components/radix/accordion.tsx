@@ -155,7 +155,9 @@ function AccordionContent({
 							}}
 							className="overflow-hidden"
 						>
-							<div className={cn("pb-4 pt-0 text-sm", className)}>{children}</div>
+							<div className={cn("pb-4 pt-0 text-sm", className)}>
+								{children}
+							</div>
 						</motion.div>
 					)}
 				/>

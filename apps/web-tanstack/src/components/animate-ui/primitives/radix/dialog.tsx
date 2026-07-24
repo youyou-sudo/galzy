@@ -24,7 +24,12 @@ function Dialog(props: DialogProps) {
 	});
 
 	return (
-		<DialogProvider value={{ isOpen, setIsOpen: setIsOpen as unknown as (isOpen: boolean) => void }}>
+		<DialogProvider
+			value={{
+				isOpen,
+				setIsOpen: setIsOpen as unknown as (isOpen: boolean) => void,
+			}}
+		>
 			<DialogPrimitive.Root
 				data-slot="dialog"
 				{...props}

@@ -22,11 +22,6 @@ export const Route = createFileRoute("/topics/")({
 function RouteComponent() {
 	const { page } = Route.useSearch();
 	const navigate = useNavigate();
-	const { data: topicData } = useQuery({
-		queryKey: ["topics", page],
-		queryFn: async () => await getTopics({ data: { page, limit: 20 } }),
-		initialData: Route.useLoaderData(),
-	});
 	const { data: session } = useQuery({
 		queryKey: ["auth"],
 		queryFn: async () => {
@@ -34,6 +29,11 @@ function RouteComponent() {
 			elysiaErrorF(error);
 			return res;
 		},
+	});
+	const { data: topicData } = useQuery({
+		queryKey: ["topics", page],
+		queryFn: async () => await getTopics({ data: { page, limit: 20 } }),
+		initialData: Route.useLoaderData(),
 	});
 
 	return (

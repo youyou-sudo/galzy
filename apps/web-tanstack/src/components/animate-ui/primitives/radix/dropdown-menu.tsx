@@ -33,7 +33,12 @@ function DropdownMenu(props: DropdownMenuProps) {
 	});
 
 	return (
-		<DropdownMenuProvider value={{ isOpen, setIsOpen: setIsOpen as unknown as (o: boolean) => void }}>
+		<DropdownMenuProvider
+			value={{
+				isOpen,
+				setIsOpen: setIsOpen as unknown as (o: boolean) => void,
+			}}
+		>
 			<DropdownMenuPrimitive.Root
 				data-slot="dropdown-menu"
 				{...props}
@@ -80,7 +85,12 @@ function DropdownMenuSub(props: DropdownMenuSubProps) {
 	});
 
 	return (
-		<DropdownMenuSubProvider value={{ isOpen, setIsOpen: setIsOpen as unknown as (o: boolean) => void }}>
+		<DropdownMenuSubProvider
+			value={{
+				isOpen,
+				setIsOpen: setIsOpen as unknown as (o: boolean) => void,
+			}}
+		>
 			<DropdownMenuPrimitive.SubmenuRoot
 				data-slot="dropdown-menu-sub"
 				{...props}
@@ -327,10 +337,7 @@ function DropdownMenuHighlight({
 	);
 }
 
-type DropdownMenuItemProps = Omit<
-	DropdownMenuPrimitive.Item.Props,
-	"asChild"
-> &
+type DropdownMenuItemProps = Omit<DropdownMenuPrimitive.Item.Props, "asChild"> &
 	HTMLMotionProps<"div">;
 
 function DropdownMenuItem({
@@ -415,7 +422,10 @@ type DropdownMenuLabelProps = DropdownMenuPrimitive.GroupLabel.Props;
 
 function DropdownMenuLabel(props: DropdownMenuLabelProps) {
 	return (
-		<DropdownMenuPrimitive.GroupLabel data-slot="dropdown-menu-label" {...props} />
+		<DropdownMenuPrimitive.GroupLabel
+			data-slot="dropdown-menu-label"
+			{...props}
+		/>
 	);
 }
 
