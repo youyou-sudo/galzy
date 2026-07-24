@@ -8,7 +8,7 @@ export const topics = new Elysia({ prefix: '/topics' })
   .get(
     '/',
     async ({ query }) => {
-      return await TopicService.getTopics(query)
+      return await TopicService.getTopics(query, query?.userId)
     },
     {
       query: TopicModel.List,

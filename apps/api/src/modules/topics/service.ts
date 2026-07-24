@@ -1,53 +1,25 @@
-import { db, sql, topicFavorites, topicLikes, topics } from '@api/libs'
-import { and, count, desc, eq, getTableColumns } from 'drizzle-orm'
+import { db, topicFavorites, topicLikes, topics, users } from '@api/libs'
+import { and, count, desc, eq, inArray } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { TopicModel } from './model'
 
 export const TopicService = {
-  async getTopics({
-    page = 1,
-    limit = 20,
-    status: statusFilter = 'published',
-    userId,
-  }: TopicModel.list & { userId?: string }) {
+  async getTopics(
+    {
+      page = 1,
+      limit = 20,
+      status: statusFilter = 'published',
+    }: TopicModel.list,
+    userId?: string,
+  ) {
     const offset = (page - 1) * limit
 
-    const conditions: any[] = []
-
-    if (statusFilter) {
-      conditions.push(eq(topics.status, statusFilter))
-    }
-
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined
+    const conditions = [eq(topics.status, statusFilter)]
+    const whereClause = and(...conditions)
 
     const [topicsData, countResult] = await Promise.all([
       db
-        .select({
-          ...getTableColumns(topics),
-          user: sql<{ id: string; name: string; image: string }>`
-            (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${topics.userId}) "u")
-          `.as('user'),
-          likeCount:
-            sql<number>`COALESCE((SELECT COUNT(*) FROM "galrc_topic_likes" WHERE "topicId" = ${topics.id}), 0)`.as(
-              'likeCount',
-            ),
-          favoriteCount:
-            sql<number>`COALESCE((SELECT COUNT(*) FROM "galrc_topic_favorites" WHERE "topicId" = ${topics.id}), 0)`.as(
-              'favoriteCount',
-            ),
-          ...(userId
-            ? {
-                isLiked:
-                  sql<boolean>`EXISTS(SELECT 1 FROM "galrc_topic_likes" WHERE "topicId" = ${topics.id} AND "userId" = ${userId})`.as(
-                    'isLiked',
-                  ),
-                isFavorited:
-                  sql<boolean>`EXISTS(SELECT 1 FROM "galrc_topic_favorites" WHERE "topicId" = ${topics.id} AND "userId" = ${userId})`.as(
-                    'isFavorited',
-                  ),
-              }
-            : {}),
-        })
+        .select()
         .from(topics)
         .where(whereClause)
         .orderBy(desc(topics.createdAt))
@@ -60,10 +32,75 @@ export const TopicService = {
         .then((r) => r[0]),
     ])
 
-    const total = Number(countResult?.total ?? 0)
+    if (topicsData.length === 0) {
+      return { topics: [], total: 0, totalPages: 0 }
+    }
 
+    const topicIds = topicsData.map((t) => t.id)
+    const userIds = [...new Set(topicsData.map((t) => t.userId))]
+
+    const [usersData, likesData, favsData, userLikes, userFavs] =
+      await Promise.all([
+        db
+          .select({ id: users.id, name: users.name, image: users.image })
+          .from(users)
+          .where(inArray(users.id, userIds)),
+        db
+          .select({ topicId: topicLikes.topicId, count: count() })
+          .from(topicLikes)
+          .where(inArray(topicLikes.topicId, topicIds))
+          .groupBy(topicLikes.topicId),
+        db
+          .select({ topicId: topicFavorites.topicId, count: count() })
+          .from(topicFavorites)
+          .where(inArray(topicFavorites.topicId, topicIds))
+          .groupBy(topicFavorites.topicId),
+        userId
+          ? db
+              .select({ topicId: topicLikes.topicId })
+              .from(topicLikes)
+              .where(
+                and(
+                  inArray(topicLikes.topicId, topicIds),
+                  eq(topicLikes.userId, userId),
+                ),
+              )
+          : Promise.resolve([]),
+        userId
+          ? db
+              .select({ topicId: topicFavorites.topicId })
+              .from(topicFavorites)
+              .where(
+                and(
+                  inArray(topicFavorites.topicId, topicIds),
+                  eq(topicFavorites.userId, userId),
+                ),
+              )
+          : Promise.resolve([]),
+      ])
+
+    const userMap = new Map(usersData.map((u) => [u.id, u]))
+    const likeCountMap = new Map(
+      likesData.map((l) => [l.topicId, Number(l.count)]),
+    )
+    const favCountMap = new Map(
+      favsData.map((f) => [f.topicId, Number(f.count)]),
+    )
+    const userLikeSet = new Set(userLikes.map((l) => l.topicId))
+    const userFavSet = new Set(userFavs.map((f) => f.topicId))
+
+    const enrichedTopics = topicsData.map((t) => ({
+      ...t,
+      user: userMap.get(t.userId) ?? null,
+      likeCount: likeCountMap.get(t.id) ?? 0,
+      favoriteCount: favCountMap.get(t.id) ?? 0,
+      isLiked: userLikeSet.has(t.id),
+      isFavorited: userFavSet.has(t.id),
+    }))
+
+    const total = Number(countResult?.total ?? 0)
     return {
-      topics: topicsData,
+      topics: enrichedTopics,
       total,
       totalPages: Math.ceil(total / limit),
     }
@@ -73,32 +110,7 @@ export const TopicService = {
     const numericId = Number(id)
 
     const [topic] = await db
-      .select({
-        ...getTableColumns(topics),
-        user: sql<{ id: string; name: string; image: string }>`
-          (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${topics.userId}) "u")
-        `.as('user'),
-        likeCount:
-          sql<number>`COALESCE((SELECT COUNT(*) FROM "galrc_topic_likes" WHERE "topicId" = ${topics.id}), 0)`.as(
-            'likeCount',
-          ),
-        favoriteCount:
-          sql<number>`COALESCE((SELECT COUNT(*) FROM "galrc_topic_favorites" WHERE "topicId" = ${topics.id}), 0)`.as(
-            'favoriteCount',
-          ),
-        ...(userId
-          ? {
-              isLiked:
-                sql<boolean>`EXISTS(SELECT 1 FROM "galrc_topic_likes" WHERE "topicId" = ${topics.id} AND "userId" = ${userId})`.as(
-                  'isLiked',
-                ),
-              isFavorited:
-                sql<boolean>`EXISTS(SELECT 1 FROM "galrc_topic_favorites" WHERE "topicId" = ${topics.id} AND "userId" = ${userId})`.as(
-                  'isFavorited',
-                ),
-            }
-          : {}),
-      })
+      .select()
       .from(topics)
       .where(eq(topics.id, numericId))
 
@@ -106,7 +118,59 @@ export const TopicService = {
       throw status(404, '帖子不存在')
     }
 
-    return topic
+    const [
+      [topicUser],
+      [likeCountResult],
+      [favCountResult],
+      isLikedRow,
+      isFavoritedRow,
+    ] = await Promise.all([
+      db
+        .select({ id: users.id, name: users.name, image: users.image })
+        .from(users)
+        .where(eq(users.id, topic.userId)),
+      db
+        .select({ count: count() })
+        .from(topicLikes)
+        .where(eq(topicLikes.topicId, numericId)),
+      db
+        .select({ count: count() })
+        .from(topicFavorites)
+        .where(eq(topicFavorites.topicId, numericId)),
+      userId
+        ? db
+            .select({ id: topicLikes.id })
+            .from(topicLikes)
+            .where(
+              and(
+                eq(topicLikes.topicId, numericId),
+                eq(topicLikes.userId, userId),
+              ),
+            )
+            .then((r) => r[0])
+        : Promise.resolve(undefined),
+      userId
+        ? db
+            .select({ id: topicFavorites.id })
+            .from(topicFavorites)
+            .where(
+              and(
+                eq(topicFavorites.topicId, numericId),
+                eq(topicFavorites.userId, userId),
+              ),
+            )
+            .then((r) => r[0])
+        : Promise.resolve(undefined),
+    ])
+
+    return {
+      ...topic,
+      user: topicUser ?? null,
+      likeCount: Number(likeCountResult?.count ?? 0),
+      favoriteCount: Number(favCountResult?.count ?? 0),
+      isLiked: !!isLikedRow,
+      isFavorited: !!isFavoritedRow,
+    }
   },
 
   async createTopic({ title, content }: TopicModel.create, userId: string) {
@@ -125,16 +189,23 @@ export const TopicService = {
       .returning({ id: topics.id })
 
     const [topic] = await db
-      .select({
-        ...getTableColumns(topics),
-        user: sql<{ id: string; name: string; image: string }>`
-          (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${topics.userId}) "u")
-        `.as('user'),
-      })
+      .select()
       .from(topics)
       .where(eq(topics.id, inserted.id))
 
-    return topic!
+    const [topicUser] = await db
+      .select({ id: users.id, name: users.name, image: users.image })
+      .from(users)
+      .where(eq(users.id, userId))
+
+    return {
+      ...topic!,
+      user: topicUser ?? null,
+      likeCount: 0,
+      favoriteCount: 0,
+      isLiked: false,
+      isFavorited: false,
+    }
   },
 
   async updateTopic(
@@ -174,16 +245,23 @@ export const TopicService = {
     await db.update(topics).set(updateData).where(eq(topics.id, numericId))
 
     const [updated] = await db
-      .select({
-        ...getTableColumns(topics),
-        user: sql<{ id: string; name: string; image: string }>`
-          (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${topics.userId}) "u")
-        `.as('user'),
-      })
+      .select()
       .from(topics)
       .where(eq(topics.id, numericId))
 
-    return updated!
+    const [topicUser] = await db
+      .select({ id: users.id, name: users.name, image: users.image })
+      .from(users)
+      .where(eq(users.id, updated!.userId))
+
+    return {
+      ...updated!,
+      user: topicUser ?? null,
+      likeCount: 0,
+      favoriteCount: 0,
+      isLiked: false,
+      isFavorited: false,
+    }
   },
 
   async toggleLike({ id }: TopicModel.params, userId: string) {

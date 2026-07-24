@@ -63,18 +63,19 @@ const typeLabelMap: Record<
 export const Route = createFileRoute("/topics/$topicId")({
 	component: RouteComponent,
 	loader: async ({ params }) => {
-		const data = await getTopic({ data: { id: Number(params.topicId) } });
-		return data;
+		const topic = await getTopic({ data: { id: Number(params.topicId) } });
+		return { topic };
 	},
 });
 
 function RouteComponent() {
 	const { topicId } = Route.useParams();
 	const navigate = useNavigate();
+	const loaderData = Route.useLoaderData();
 	const { data: topic } = useQuery({
 		queryKey: ["topic", topicId],
 		queryFn: async () => await getTopic({ data: { id: Number(topicId) } }),
-		initialData: Route.useLoaderData(),
+		initialData: loaderData.topic,
 	});
 	const { data: session } = useQuery({
 		queryKey: ["auth"],
