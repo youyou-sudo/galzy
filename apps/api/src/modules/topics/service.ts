@@ -38,11 +38,11 @@ export const TopicService = {
           ...(userId
             ? {
                 isLiked:
-                  sql<boolean>`COALESCE((SELECT true FROM "galrc_topic_likes" WHERE "topicId" = ${topics.id} AND "userId" = ${userId}), false)`.as(
+                  sql<boolean>`EXISTS(SELECT 1 FROM "galrc_topic_likes" WHERE "topicId" = ${topics.id} AND "userId" = ${userId})`.as(
                     'isLiked',
                   ),
                 isFavorited:
-                  sql<boolean>`COALESCE((SELECT true FROM "galrc_topic_favorites" WHERE "topicId" = ${topics.id} AND "userId" = ${userId}), false)`.as(
+                  sql<boolean>`EXISTS(SELECT 1 FROM "galrc_topic_favorites" WHERE "topicId" = ${topics.id} AND "userId" = ${userId})`.as(
                     'isFavorited',
                   ),
               }
@@ -89,11 +89,11 @@ export const TopicService = {
         ...(userId
           ? {
               isLiked:
-                sql<boolean>`COALESCE((SELECT true FROM "galrc_topic_likes" WHERE "topicId" = ${topics.id} AND "userId" = ${userId}), false)`.as(
+                sql<boolean>`EXISTS(SELECT 1 FROM "galrc_topic_likes" WHERE "topicId" = ${topics.id} AND "userId" = ${userId})`.as(
                   'isLiked',
                 ),
               isFavorited:
-                sql<boolean>`COALESCE((SELECT true FROM "galrc_topic_favorites" WHERE "topicId" = ${topics.id} AND "userId" = ${userId}), false)`.as(
+                sql<boolean>`EXISTS(SELECT 1 FROM "galrc_topic_favorites" WHERE "topicId" = ${topics.id} AND "userId" = ${userId})`.as(
                   'isFavorited',
                 ),
             }
