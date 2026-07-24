@@ -14,6 +14,7 @@ import {
   status,
   strategy,
   tags,
+  topics,
   umami,
   vndbSync,
 } from '@api/modules'
@@ -48,6 +49,7 @@ async function buildApp() {
     .use(media)
     .use(producer)
     .use(status)
+    .use(topics)
     .use(vndbSync)
 }
 

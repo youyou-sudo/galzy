@@ -15,6 +15,13 @@
       "when": 1784627845869,
       "tag": "0001_tired_dazzler",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784896200057,
+      "tag": "0002_goofy_boom_boom",
+      "breakpoints": true
     }
   ]
 }

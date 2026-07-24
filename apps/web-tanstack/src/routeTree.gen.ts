@@ -14,10 +14,13 @@ import { Route as FriendLinksRouteImport } from './routes/friend-links'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UserIndexRouteImport } from './routes/user/index'
+import { Route as TopicsIndexRouteImport } from './routes/topics/index'
 import { Route as ToolsIndexRouteImport } from './routes/tools/index'
 import { Route as TagsIndexRouteImport } from './routes/tags/index'
 import { Route as SearchIndexRouteImport } from './routes/search/index'
 import { Route as ProducerIndexRouteImport } from './routes/producer/index'
+import { Route as TopicsCreateRouteImport } from './routes/topics/create'
+import { Route as TopicsTopicIdRouteImport } from './routes/topics/$topicId'
 import { Route as ToolsPlateRouteImport } from './routes/tools/plate'
 import { Route as TagsTagIdRouteImport } from './routes/tags/$tagId'
 import { Route as ProducerPidRouteImport } from './routes/producer/$pid'
@@ -31,6 +34,7 @@ import { Route as AuthSignupIndexRouteImport } from './routes/auth/signup/index'
 import { Route as ApiUploadIndexRouteImport } from './routes/api/upload/index'
 import { Route as AdminAuthLIndexRouteImport } from './routes/admin/_authL/index'
 import { Route as IdLayoutIndexRouteImport } from './routes/$id/_layout/index'
+import { Route as TopicsTopicIdEditRouteImport } from './routes/topics/$topicId.edit'
 import { Route as AuthSignupVerificationRouteImport } from './routes/auth/signup/Verification'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AdminAuthLVndbSyncRouteImport } from './routes/admin/_authL/vndb-sync'
@@ -68,6 +72,11 @@ const UserIndexRoute = UserIndexRouteImport.update({
   path: '/user/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TopicsIndexRoute = TopicsIndexRouteImport.update({
+  id: '/topics/',
+  path: '/topics/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ToolsIndexRoute = ToolsIndexRouteImport.update({
   id: '/tools/',
   path: '/tools/',
@@ -86,6 +95,16 @@ const SearchIndexRoute = SearchIndexRouteImport.update({
 const ProducerIndexRoute = ProducerIndexRouteImport.update({
   id: '/producer/',
   path: '/producer/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TopicsCreateRoute = TopicsCreateRouteImport.update({
+  id: '/topics/create',
+  path: '/topics/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TopicsTopicIdRoute = TopicsTopicIdRouteImport.update({
+  id: '/topics/$topicId',
+  path: '/topics/$topicId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ToolsPlateRoute = ToolsPlateRouteImport.update({
@@ -152,6 +171,11 @@ const IdLayoutIndexRoute = IdLayoutIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => IdLayoutRoute,
+} as any)
+const TopicsTopicIdEditRoute = TopicsTopicIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => TopicsTopicIdRoute,
 } as any)
 const AuthSignupVerificationRoute = AuthSignupVerificationRouteImport.update({
   id: '/auth/signup/Verification',
@@ -225,10 +249,13 @@ export interface FileRoutesByFullPath {
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/tools/plate': typeof ToolsPlateRoute
+  '/topics/$topicId': typeof TopicsTopicIdRouteWithChildren
+  '/topics/create': typeof TopicsCreateRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
   '/tools/': typeof ToolsIndexRoute
+  '/topics/': typeof TopicsIndexRoute
   '/user/': typeof UserIndexRoute
   '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
@@ -239,6 +266,7 @@ export interface FileRoutesByFullPath {
   '/admin/vndb-sync': typeof AdminAuthLVndbSyncRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
+  '/topics/$topicId/edit': typeof TopicsTopicIdEditRoute
   '/$id/': typeof IdLayoutIndexRoute
   '/admin/': typeof AdminAuthLIndexRoute
   '/api/upload/': typeof ApiUploadIndexRoute
@@ -258,10 +286,13 @@ export interface FileRoutesByTo {
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/tools/plate': typeof ToolsPlateRoute
+  '/topics/$topicId': typeof TopicsTopicIdRouteWithChildren
+  '/topics/create': typeof TopicsCreateRoute
   '/producer': typeof ProducerIndexRoute
   '/search': typeof SearchIndexRoute
   '/tags': typeof TagsIndexRoute
   '/tools': typeof ToolsIndexRoute
+  '/topics': typeof TopicsIndexRoute
   '/user': typeof UserIndexRoute
   '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
@@ -272,6 +303,7 @@ export interface FileRoutesByTo {
   '/admin/vndb-sync': typeof AdminAuthLVndbSyncRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
+  '/topics/$topicId/edit': typeof TopicsTopicIdEditRoute
   '/$id': typeof IdLayoutIndexRoute
   '/admin': typeof AdminAuthLIndexRoute
   '/api/upload': typeof ApiUploadIndexRoute
@@ -294,10 +326,13 @@ export interface FileRoutesById {
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/tools/plate': typeof ToolsPlateRoute
+  '/topics/$topicId': typeof TopicsTopicIdRouteWithChildren
+  '/topics/create': typeof TopicsCreateRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
   '/tools/': typeof ToolsIndexRoute
+  '/topics/': typeof TopicsIndexRoute
   '/user/': typeof UserIndexRoute
   '/$id/_layout/comment': typeof IdLayoutCommentRoute
   '/$id/_layout/translate': typeof IdLayoutTranslateRoute
@@ -308,6 +343,7 @@ export interface FileRoutesById {
   '/admin/_authL/vndb-sync': typeof AdminAuthLVndbSyncRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
+  '/topics/$topicId/edit': typeof TopicsTopicIdEditRoute
   '/$id/_layout/': typeof IdLayoutIndexRoute
   '/admin/_authL/': typeof AdminAuthLIndexRoute
   '/api/upload/': typeof ApiUploadIndexRoute
@@ -331,10 +367,13 @@ export interface FileRouteTypes {
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/tools/plate'
+    | '/topics/$topicId'
+    | '/topics/create'
     | '/producer/'
     | '/search/'
     | '/tags/'
     | '/tools/'
+    | '/topics/'
     | '/user/'
     | '/$id/comment'
     | '/$id/translate'
@@ -345,6 +384,7 @@ export interface FileRouteTypes {
     | '/admin/vndb-sync'
     | '/api/auth/$'
     | '/auth/signup/Verification'
+    | '/topics/$topicId/edit'
     | '/$id/'
     | '/admin/'
     | '/api/upload/'
@@ -364,10 +404,13 @@ export interface FileRouteTypes {
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/tools/plate'
+    | '/topics/$topicId'
+    | '/topics/create'
     | '/producer'
     | '/search'
     | '/tags'
     | '/tools'
+    | '/topics'
     | '/user'
     | '/$id/comment'
     | '/$id/translate'
@@ -378,6 +421,7 @@ export interface FileRouteTypes {
     | '/admin/vndb-sync'
     | '/api/auth/$'
     | '/auth/signup/Verification'
+    | '/topics/$topicId/edit'
     | '/$id'
     | '/admin'
     | '/api/upload'
@@ -399,10 +443,13 @@ export interface FileRouteTypes {
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/tools/plate'
+    | '/topics/$topicId'
+    | '/topics/create'
     | '/producer/'
     | '/search/'
     | '/tags/'
     | '/tools/'
+    | '/topics/'
     | '/user/'
     | '/$id/_layout/comment'
     | '/$id/_layout/translate'
@@ -413,6 +460,7 @@ export interface FileRouteTypes {
     | '/admin/_authL/vndb-sync'
     | '/api/auth/$'
     | '/auth/signup/Verification'
+    | '/topics/$topicId/edit'
     | '/$id/_layout/'
     | '/admin/_authL/'
     | '/api/upload/'
@@ -435,10 +483,13 @@ export interface RootRouteChildren {
   ProducerPidRoute: typeof ProducerPidRoute
   TagsTagIdRoute: typeof TagsTagIdRoute
   ToolsPlateRoute: typeof ToolsPlateRoute
+  TopicsTopicIdRoute: typeof TopicsTopicIdRouteWithChildren
+  TopicsCreateRoute: typeof TopicsCreateRoute
   ProducerIndexRoute: typeof ProducerIndexRoute
   SearchIndexRoute: typeof SearchIndexRoute
   TagsIndexRoute: typeof TagsIndexRoute
   ToolsIndexRoute: typeof ToolsIndexRoute
+  TopicsIndexRoute: typeof TopicsIndexRoute
   UserIndexRoute: typeof UserIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   AuthSignupVerificationRoute: typeof AuthSignupVerificationRoute
@@ -483,6 +534,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UserIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/topics/': {
+      id: '/topics/'
+      path: '/topics'
+      fullPath: '/topics/'
+      preLoaderRoute: typeof TopicsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/tools/': {
       id: '/tools/'
       path: '/tools'
@@ -509,6 +567,20 @@ declare module '@tanstack/react-router' {
       path: '/producer'
       fullPath: '/producer/'
       preLoaderRoute: typeof ProducerIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/topics/create': {
+      id: '/topics/create'
+      path: '/topics/create'
+      fullPath: '/topics/create'
+      preLoaderRoute: typeof TopicsCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/topics/$topicId': {
+      id: '/topics/$topicId'
+      path: '/topics/$topicId'
+      fullPath: '/topics/$topicId'
+      preLoaderRoute: typeof TopicsTopicIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tools/plate': {
@@ -601,6 +673,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$id/'
       preLoaderRoute: typeof IdLayoutIndexRouteImport
       parentRoute: typeof IdLayoutRoute
+    }
+    '/topics/$topicId/edit': {
+      id: '/topics/$topicId/edit'
+      path: '/edit'
+      fullPath: '/topics/$topicId/edit'
+      preLoaderRoute: typeof TopicsTopicIdEditRouteImport
+      parentRoute: typeof TopicsTopicIdRoute
     }
     '/auth/signup/Verification': {
       id: '/auth/signup/Verification'
@@ -724,6 +803,18 @@ const AdminAuthLRouteWithChildren = AdminAuthLRoute._addFileChildren(
   AdminAuthLRouteChildren,
 )
 
+interface TopicsTopicIdRouteChildren {
+  TopicsTopicIdEditRoute: typeof TopicsTopicIdEditRoute
+}
+
+const TopicsTopicIdRouteChildren: TopicsTopicIdRouteChildren = {
+  TopicsTopicIdEditRoute: TopicsTopicIdEditRoute,
+}
+
+const TopicsTopicIdRouteWithChildren = TopicsTopicIdRoute._addFileChildren(
+  TopicsTopicIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ContactRoute: ContactRoute,
@@ -738,10 +829,13 @@ const rootRouteChildren: RootRouteChildren = {
   ProducerPidRoute: ProducerPidRoute,
   TagsTagIdRoute: TagsTagIdRoute,
   ToolsPlateRoute: ToolsPlateRoute,
+  TopicsTopicIdRoute: TopicsTopicIdRouteWithChildren,
+  TopicsCreateRoute: TopicsCreateRoute,
   ProducerIndexRoute: ProducerIndexRoute,
   SearchIndexRoute: SearchIndexRoute,
   TagsIndexRoute: TagsIndexRoute,
   ToolsIndexRoute: ToolsIndexRoute,
+  TopicsIndexRoute: TopicsIndexRoute,
   UserIndexRoute: UserIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   AuthSignupVerificationRoute: AuthSignupVerificationRoute,

@@ -194,6 +194,25 @@ export const otherMediaRelations = relations(otherMedia, ({ one }) => ({
   }),
 }))
 
+// galrc_topics — 主题帖子
+export const topics = pgTable(
+  'galrc_topics',
+  {
+    id: serial('id').primaryKey(),
+    userId: varchar('userId', { length: 255 }).notNull(),
+    title: varchar('title', { length: 255 }).notNull(),
+    content: text('content').notNull(),
+    status: varchar('status', { length: 255 }).notNull().default('published'),
+    createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    userIdIdx: index('idx_galrc_topics_user_id').on(table.userId),
+    statusIdx: index('idx_galrc_topics_status').on(table.status),
+    createdAtIdx: index('idx_galrc_topics_created_at').on(table.createdAt),
+  }),
+)
+
 export const mediaRelations = relations(media, ({ many }) => ({
   otherMediaEntries: many(otherMedia),
 }))
