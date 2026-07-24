@@ -28,7 +28,6 @@ import {
 import { useCallback, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
-import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 
 // ---------------------------------------------------------------------------
@@ -179,10 +178,7 @@ export function MarkdownEditor({
   const renderPreview = () =>
     value ? (
       <div className="overflow-x-auto">
-        <Markdown
-          rehypePlugins={[rehypeRaw]}
-          remarkPlugins={[remarkGfm, remarkBreaks]}
-        >
+        <Markdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
           {value}
         </Markdown>
       </div>
