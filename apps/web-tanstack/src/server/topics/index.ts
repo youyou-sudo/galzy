@@ -2,6 +2,7 @@ import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import { cookiePass } from "@web/lib/cookie-pass";
+import { authServerClient } from "@web/server/auth/auth.server";
 import z from "zod";
 
 export const getTopics = createServerFn()
@@ -13,11 +14,13 @@ export const getTopics = createServerFn()
 		}),
 	)
 	.handler(async ({ data }) => {
+		const { data: session } = await authServerClient.getSession();
 		const { data: res, error } = await api.topics.get({
 			query: {
 				page: data.page,
 				limit: data.limit,
 				status: data.status,
+				userId: session?.user?.id,
 			},
 			...cookiePass(),
 		});
@@ -32,7 +35,11 @@ export const getTopic = createServerFn()
 		}),
 	)
 	.handler(async ({ data }) => {
+		const { data: session } = await authServerClient.getSession();
 		const { data: res, error } = await api.topics({ id: data.id }).get({
+			query: {
+				userId: session?.user?.id,
+			},
 			...cookiePass(),
 		});
 		elysiaErrorF(error);
@@ -76,6 +83,34 @@ export const updateTopic = createServerFn()
 			},
 			cookiePass(),
 		);
+		elysiaErrorF(error);
+		return res;
+	});
+
+export const toggleTopicLike = createServerFn()
+	.validator(
+		z.object({
+			id: z.number(),
+		}),
+	)
+	.handler(async ({ data }) => {
+		const { data: res, error } = await api
+			.topics({ id: data.id })
+			.like.post(undefined, cookiePass());
+		elysiaErrorF(error);
+		return res;
+	});
+
+export const toggleTopicFavorite = createServerFn()
+	.validator(
+		z.object({
+			id: z.number(),
+		}),
+	)
+	.handler(async ({ data }) => {
+		const { data: res, error } = await api
+			.topics({ id: data.id })
+			.favorite.post(undefined, cookiePass());
 		elysiaErrorF(error);
 		return res;
 	});

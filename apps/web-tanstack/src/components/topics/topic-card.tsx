@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@web/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@web/components/ui/card";
+import { Heart } from "lucide-react";
 
 function formatTime(dateStr: string) {
 	const date = new Date(dateStr);
@@ -23,6 +24,7 @@ interface TopicCardProps {
 		title: string;
 		content: string;
 		createdAt: string;
+		likeCount?: number;
 		user: {
 			id: string;
 			name: string;
@@ -59,6 +61,10 @@ export function TopicCard({ topic }: TopicCardProps) {
 					<p className="text-sm text-muted-foreground line-clamp-2">
 						{topic.content}
 					</p>
+					<div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+						<Heart className="size-3.5" />
+						<span>{topic.likeCount ?? 0}</span>
+					</div>
 				</CardContent>
 			</Card>
 		</Link>

@@ -9,6 +9,7 @@ import {
   serial,
   text,
   timestamp,
+  uniqueIndex,
   varchar,
 } from 'drizzle-orm/pg-core'
 import { vn } from './vndb'
@@ -210,6 +211,42 @@ export const topics = pgTable(
     userIdIdx: index('idx_galrc_topics_user_id').on(table.userId),
     statusIdx: index('idx_galrc_topics_status').on(table.status),
     createdAtIdx: index('idx_galrc_topics_created_at').on(table.createdAt),
+  }),
+)
+
+export const topicLikes = pgTable(
+  'galrc_topic_likes',
+  {
+    id: serial('id').primaryKey(),
+    topicId: integer('topicId').notNull(),
+    userId: varchar('userId', { length: 255 }).notNull(),
+    createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    topicIdIdx: index('idx_galrc_topic_likes_topic_id').on(table.topicId),
+    userIdIdx: index('idx_galrc_topic_likes_user_id').on(table.userId),
+    uniqueLike: uniqueIndex('idx_galrc_topic_likes_unique').on(
+      table.topicId,
+      table.userId,
+    ),
+  }),
+)
+
+export const topicFavorites = pgTable(
+  'galrc_topic_favorites',
+  {
+    id: serial('id').primaryKey(),
+    topicId: integer('topicId').notNull(),
+    userId: varchar('userId', { length: 255 }).notNull(),
+    createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    topicIdIdx: index('idx_galrc_topic_favorites_topic_id').on(table.topicId),
+    userIdIdx: index('idx_galrc_topic_favorites_user_id').on(table.userId),
+    uniqueFav: uniqueIndex('idx_galrc_topic_favorites_unique').on(
+      table.topicId,
+      table.userId,
+    ),
   }),
 )
 

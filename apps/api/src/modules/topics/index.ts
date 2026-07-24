@@ -16,11 +16,12 @@ export const topics = new Elysia({ prefix: '/topics' })
   )
   .get(
     '/:id',
-    async ({ params }) => {
-      return await TopicService.getTopic(params)
+    async ({ params, query }) => {
+      return await TopicService.getTopic(params, query?.userId)
     },
     {
       params: TopicModel.Params,
+      query: TopicModel.LikeStatus,
     },
   )
   .post(
@@ -52,5 +53,27 @@ export const topics = new Elysia({ prefix: '/topics' })
     {
       auth: true,
       params: TopicModel.Params,
+    },
+  )
+  .post(
+    '/:id/like',
+    async ({ params, user }) => {
+      return await TopicService.toggleLike(params, user.id)
+    },
+    {
+      auth: true,
+      params: TopicModel.Params,
+      body: TopicModel.LikeToggle,
+    },
+  )
+  .post(
+    '/:id/favorite',
+    async ({ params, user }) => {
+      return await TopicService.toggleFavorite(params, user.id)
+    },
+    {
+      auth: true,
+      params: TopicModel.Params,
+      body: TopicModel.LikeToggle,
     },
   )

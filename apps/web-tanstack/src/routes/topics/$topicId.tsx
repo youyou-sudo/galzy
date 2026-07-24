@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@web/components/ui/avatar";
 import { Badge } from "@web/components/ui/badge";
@@ -7,11 +7,13 @@ import { Card, CardContent, CardHeader } from "@web/components/ui/card";
 import { Separator } from "@web/components/ui/separator";
 import { authClient } from "@web/server/auth/auth-client";
 import { getCmments } from "@web/server/comments";
-import { deleteTopic, getTopic } from "@web/server/topics";
+import { deleteTopic, getTopic, toggleTopicFavorite, toggleTopicLike } from "@web/server/topics";
 import { ReplyEidtInput } from "@web/components/cmments/reply-edit-input";
 import { replycardActions } from "@web/stores/reply-edit-input";
 import {
+	Bookmark,
 	FileText,
+	Heart,
 	Pencil,
 	Trash2,
 	MessageCircleQuestionMark,
@@ -158,6 +160,12 @@ function RouteComponent() {
 					<p className="whitespace-pre-wrap text-foreground/80">
 						{(topic as any).content}
 					</p>
+					{session && (
+						<div className="flex items-center gap-4 mt-4 pt-3 border-t">
+							<LikeButton topic={topic as any} />
+							<FavoriteButton topic={topic as any} />
+						</div>
+					)}
 				</CardContent>
 			</Card>
 
@@ -172,6 +180,54 @@ function RouteComponent() {
 				/>
 			</div>
 		</div>
+	);
+}
+
+function LikeButton({ topic }: { topic: any }) {
+	const queryClient = useQueryClient();
+	const { topicId } = Route.useParams();
+
+	const handleToggle = async () => {
+		await toggleTopicLike({ data: { id: Number(topicId) } });
+		queryClient.invalidateQueries({ queryKey: ["topic", topicId] });
+	};
+
+	return (
+		<Button
+			variant="ghost"
+			size="sm"
+			className={`gap-1 ${topic.isLiked ? "text-red-500" : "text-muted-foreground"}`}
+			onClick={handleToggle}
+		>
+			<Heart
+				className={`size-4 ${topic.isLiked ? "fill-red-500" : ""}`}
+			/>
+			<span>{topic.likeCount ?? 0}</span>
+		</Button>
+	);
+}
+
+function FavoriteButton({ topic }: { topic: any }) {
+	const queryClient = useQueryClient();
+	const { topicId } = Route.useParams();
+
+	const handleToggle = async () => {
+		await toggleTopicFavorite({ data: { id: Number(topicId) } });
+		queryClient.invalidateQueries({ queryKey: ["topic", topicId] });
+	};
+
+	return (
+		<Button
+			variant="ghost"
+			size="sm"
+			className={`gap-1 ${topic.isFavorited ? "text-yellow-500" : "text-muted-foreground"}`}
+			onClick={handleToggle}
+		>
+			<Bookmark
+				className={`size-4 ${topic.isFavorited ? "fill-yellow-500" : ""}`}
+			/>
+			<span>{topic.favoriteCount ?? 0}</span>
+		</Button>
 	);
 }
 

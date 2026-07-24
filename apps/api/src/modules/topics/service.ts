@@ -1,4 +1,4 @@
-import { db, sql, topics } from '@api/libs'
+import { db, sql, topicFavorites, topicLikes, topics } from '@api/libs'
 import { and, count, desc, eq, getTableColumns } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { TopicModel } from './model'
@@ -8,7 +8,8 @@ export const TopicService = {
     page = 1,
     limit = 20,
     status: statusFilter = 'published',
-  }: TopicModel.list) {
+    userId,
+  }: TopicModel.list & { userId?: string }) {
     const offset = (page - 1) * limit
 
     const conditions: any[] = []
@@ -26,6 +27,26 @@ export const TopicService = {
           user: sql<{ id: string; name: string; image: string }>`
             (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${topics.userId}) "u")
           `.as('user'),
+          likeCount:
+            sql<number>`COALESCE((SELECT COUNT(*) FROM "galrc_topic_likes" WHERE "topicId" = ${topics.id}), 0)`.as(
+              'likeCount',
+            ),
+          favoriteCount:
+            sql<number>`COALESCE((SELECT COUNT(*) FROM "galrc_topic_favorites" WHERE "topicId" = ${topics.id}), 0)`.as(
+              'favoriteCount',
+            ),
+          ...(userId
+            ? {
+                isLiked:
+                  sql<boolean>`COALESCE((SELECT true FROM "galrc_topic_likes" WHERE "topicId" = ${topics.id} AND "userId" = ${userId}), false)`.as(
+                    'isLiked',
+                  ),
+                isFavorited:
+                  sql<boolean>`COALESCE((SELECT true FROM "galrc_topic_favorites" WHERE "topicId" = ${topics.id} AND "userId" = ${userId}), false)`.as(
+                    'isFavorited',
+                  ),
+              }
+            : {}),
         })
         .from(topics)
         .where(whereClause)
@@ -48,7 +69,7 @@ export const TopicService = {
     }
   },
 
-  async getTopic({ id }: TopicModel.params) {
+  async getTopic({ id }: TopicModel.params, userId?: string) {
     const numericId = Number(id)
 
     const [topic] = await db
@@ -57,6 +78,26 @@ export const TopicService = {
         user: sql<{ id: string; name: string; image: string }>`
           (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${topics.userId}) "u")
         `.as('user'),
+        likeCount:
+          sql<number>`COALESCE((SELECT COUNT(*) FROM "galrc_topic_likes" WHERE "topicId" = ${topics.id}), 0)`.as(
+            'likeCount',
+          ),
+        favoriteCount:
+          sql<number>`COALESCE((SELECT COUNT(*) FROM "galrc_topic_favorites" WHERE "topicId" = ${topics.id}), 0)`.as(
+            'favoriteCount',
+          ),
+        ...(userId
+          ? {
+              isLiked:
+                sql<boolean>`COALESCE((SELECT true FROM "galrc_topic_likes" WHERE "topicId" = ${topics.id} AND "userId" = ${userId}), false)`.as(
+                  'isLiked',
+                ),
+              isFavorited:
+                sql<boolean>`COALESCE((SELECT true FROM "galrc_topic_favorites" WHERE "topicId" = ${topics.id} AND "userId" = ${userId}), false)`.as(
+                  'isFavorited',
+                ),
+            }
+          : {}),
       })
       .from(topics)
       .where(eq(topics.id, numericId))
@@ -143,6 +184,92 @@ export const TopicService = {
       .where(eq(topics.id, numericId))
 
     return updated!
+  },
+
+  async toggleLike({ id }: TopicModel.params, userId: string) {
+    const numericId = Number(id)
+
+    const [topic] = await db
+      .select({ id: topics.id })
+      .from(topics)
+      .where(eq(topics.id, numericId))
+
+    if (!topic) {
+      throw status(404, '帖子不存在')
+    }
+
+    const [existing] = await db
+      .select({ id: topicLikes.id })
+      .from(topicLikes)
+      .where(
+        and(eq(topicLikes.topicId, numericId), eq(topicLikes.userId, userId)),
+      )
+
+    if (existing) {
+      await db
+        .delete(topicLikes)
+        .where(
+          and(eq(topicLikes.topicId, numericId), eq(topicLikes.userId, userId)),
+        )
+    } else {
+      await db.insert(topicLikes).values({ topicId: numericId, userId })
+    }
+
+    const [countResult] = await db
+      .select({ count: count() })
+      .from(topicLikes)
+      .where(eq(topicLikes.topicId, numericId))
+
+    return {
+      liked: !existing,
+      likeCount: Number(countResult?.count ?? 0),
+    }
+  },
+
+  async toggleFavorite({ id }: TopicModel.params, userId: string) {
+    const numericId = Number(id)
+
+    const [topic] = await db
+      .select({ id: topics.id })
+      .from(topics)
+      .where(eq(topics.id, numericId))
+
+    if (!topic) {
+      throw status(404, '帖子不存在')
+    }
+
+    const [existing] = await db
+      .select({ id: topicFavorites.id })
+      .from(topicFavorites)
+      .where(
+        and(
+          eq(topicFavorites.topicId, numericId),
+          eq(topicFavorites.userId, userId),
+        ),
+      )
+
+    if (existing) {
+      await db
+        .delete(topicFavorites)
+        .where(
+          and(
+            eq(topicFavorites.topicId, numericId),
+            eq(topicFavorites.userId, userId),
+          ),
+        )
+    } else {
+      await db.insert(topicFavorites).values({ topicId: numericId, userId })
+    }
+
+    const [countResult] = await db
+      .select({ count: count() })
+      .from(topicFavorites)
+      .where(eq(topicFavorites.topicId, numericId))
+
+    return {
+      favorited: !existing,
+      favoriteCount: Number(countResult?.count ?? 0),
+    }
   },
 
   async deleteTopic(
