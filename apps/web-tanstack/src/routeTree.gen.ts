@@ -39,6 +39,7 @@ import { Route as AuthSignupVerificationRouteImport } from './routes/auth/signup
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AdminAuthLVndbSyncRouteImport } from './routes/admin/_authL/vndb-sync'
 import { Route as AdminAuthLUsersRouteImport } from './routes/admin/_authL/users'
+import { Route as AdminAuthLTopicsRouteImport } from './routes/admin/_authL/topics'
 import { Route as AdminAuthLMeilisearchRouteImport } from './routes/admin/_authL/meilisearch'
 import { Route as AdminAuthLCommentsRouteImport } from './routes/admin/_authL/comments'
 import { Route as AdminAuthLArticlesRouteImport } from './routes/admin/_authL/articles'
@@ -197,6 +198,11 @@ const AdminAuthLUsersRoute = AdminAuthLUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AdminAuthLRoute,
 } as any)
+const AdminAuthLTopicsRoute = AdminAuthLTopicsRouteImport.update({
+  id: '/topics',
+  path: '/topics',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
 const AdminAuthLMeilisearchRoute = AdminAuthLMeilisearchRouteImport.update({
   id: '/meilisearch',
   path: '/meilisearch',
@@ -262,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/admin/articles': typeof AdminAuthLArticlesRoute
   '/admin/comments': typeof AdminAuthLCommentsRoute
   '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
+  '/admin/topics': typeof AdminAuthLTopicsRoute
   '/admin/users': typeof AdminAuthLUsersRoute
   '/admin/vndb-sync': typeof AdminAuthLVndbSyncRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -299,6 +306,7 @@ export interface FileRoutesByTo {
   '/admin/articles': typeof AdminAuthLArticlesRoute
   '/admin/comments': typeof AdminAuthLCommentsRoute
   '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
+  '/admin/topics': typeof AdminAuthLTopicsRoute
   '/admin/users': typeof AdminAuthLUsersRoute
   '/admin/vndb-sync': typeof AdminAuthLVndbSyncRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -339,6 +347,7 @@ export interface FileRoutesById {
   '/admin/_authL/articles': typeof AdminAuthLArticlesRoute
   '/admin/_authL/comments': typeof AdminAuthLCommentsRoute
   '/admin/_authL/meilisearch': typeof AdminAuthLMeilisearchRoute
+  '/admin/_authL/topics': typeof AdminAuthLTopicsRoute
   '/admin/_authL/users': typeof AdminAuthLUsersRoute
   '/admin/_authL/vndb-sync': typeof AdminAuthLVndbSyncRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -380,6 +389,7 @@ export interface FileRouteTypes {
     | '/admin/articles'
     | '/admin/comments'
     | '/admin/meilisearch'
+    | '/admin/topics'
     | '/admin/users'
     | '/admin/vndb-sync'
     | '/api/auth/$'
@@ -417,6 +427,7 @@ export interface FileRouteTypes {
     | '/admin/articles'
     | '/admin/comments'
     | '/admin/meilisearch'
+    | '/admin/topics'
     | '/admin/users'
     | '/admin/vndb-sync'
     | '/api/auth/$'
@@ -456,6 +467,7 @@ export interface FileRouteTypes {
     | '/admin/_authL/articles'
     | '/admin/_authL/comments'
     | '/admin/_authL/meilisearch'
+    | '/admin/_authL/topics'
     | '/admin/_authL/users'
     | '/admin/_authL/vndb-sync'
     | '/api/auth/$'
@@ -709,6 +721,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthLUsersRouteImport
       parentRoute: typeof AdminAuthLRoute
     }
+    '/admin/_authL/topics': {
+      id: '/admin/_authL/topics'
+      path: '/topics'
+      fullPath: '/admin/topics'
+      preLoaderRoute: typeof AdminAuthLTopicsRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
     '/admin/_authL/meilisearch': {
       id: '/admin/_authL/meilisearch'
       path: '/meilisearch'
@@ -785,6 +804,7 @@ interface AdminAuthLRouteChildren {
   AdminAuthLArticlesRoute: typeof AdminAuthLArticlesRoute
   AdminAuthLCommentsRoute: typeof AdminAuthLCommentsRoute
   AdminAuthLMeilisearchRoute: typeof AdminAuthLMeilisearchRoute
+  AdminAuthLTopicsRoute: typeof AdminAuthLTopicsRoute
   AdminAuthLUsersRoute: typeof AdminAuthLUsersRoute
   AdminAuthLVndbSyncRoute: typeof AdminAuthLVndbSyncRoute
   AdminAuthLIndexRoute: typeof AdminAuthLIndexRoute
@@ -794,6 +814,7 @@ const AdminAuthLRouteChildren: AdminAuthLRouteChildren = {
   AdminAuthLArticlesRoute: AdminAuthLArticlesRoute,
   AdminAuthLCommentsRoute: AdminAuthLCommentsRoute,
   AdminAuthLMeilisearchRoute: AdminAuthLMeilisearchRoute,
+  AdminAuthLTopicsRoute: AdminAuthLTopicsRoute,
   AdminAuthLUsersRoute: AdminAuthLUsersRoute,
   AdminAuthLVndbSyncRoute: AdminAuthLVndbSyncRoute,
   AdminAuthLIndexRoute: AdminAuthLIndexRoute,
