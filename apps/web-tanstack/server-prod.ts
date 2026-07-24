@@ -405,33 +405,26 @@ function fastPath(url: string): string {
 function safeSSRResponse(res: Response): Response {
   if (!res.body) return res
   const reader = res.body.getReader()
-  let done = false
-  const doneOnce = (fn: () => void) => {
-    if (done) return
-    done = true
-    fn()
-  }
+  let canceled = false
   const stream = new ReadableStream({
     async pull(controller) {
-      if (done) return
+      if (canceled) return
       try {
-        const { done: isDone, value } = await reader.read()
-        if (isDone) {
-          doneOnce(() => controller.close())
+        const { done, value } = await reader.read()
+        if (done) {
+          canceled = true
+          controller.close()
           return
         }
         controller.enqueue(value)
       } catch {
-        doneOnce(() => {
-          try { controller.close() } catch {}
-          reader.cancel().catch(() => {})
-        })
+        try { controller.close() } catch {}
+        canceled = true
       }
     },
     cancel() {
-      doneOnce(() => {
-        reader.cancel().catch(() => {})
-      })
+      canceled = true
+      reader.cancel().catch(() => {})
     },
   })
   return new Response(stream, {
@@ -484,60 +477,23 @@ function compressStream(res: Response, ae: string): Response {
   }
 
   const reader = res.body.getReader()
-  let closed = false
-
-  const cleanup = () => {
-    if (closed) return
-    closed = true
-    compressor.destroy()
-    reader.cancel().catch(() => {})
-  }
-
   const nodeIn = new Readable({
     async read() {
-      if (closed) return
       try {
         const { done, value } = await reader.read()
-        if (closed) return
-        if (done) {
-          this.push(null)
-          return
-        }
-        this.push(Buffer.from(value))
-      } catch {
-        if (!closed) this.destroy()
-      }
-    },
-    destroy(_err, cb) {
-      cleanup()
-      if (cb) cb(null)
+        this.push(done ? null : Buffer.from(value))
+      } catch (e) { this.destroy(e as Error) }
     },
   })
 
-  nodeIn.pipe(compressor)
-
+  const nodeOut = nodeIn.pipe(compressor)
   const webOut = new ReadableStream({
     start(controller) {
-      const onData = (c: Buffer) => {
-        try { controller.enqueue(new Uint8Array(c)) } catch {}
-      }
-      const onEnd = () => {
-        compressor.removeListener('data', onData)
-        try { controller.close() } catch {}
-        cleanup()
-      }
-      const onError = (e: Error) => {
-        compressor.removeListener('data', onData)
-        try { controller.error(e) } catch {}
-        cleanup()
-      }
-      compressor.on('data', onData)
-      compressor.once('end', onEnd)
-      compressor.once('error', onError)
+      nodeOut.on('data',  (c: Buffer) => controller.enqueue(new Uint8Array(c)))
+      nodeOut.on('end',   () => controller.close())
+      nodeOut.on('error', (e: Error) => controller.error(e))
     },
-    cancel() {
-      cleanup()
-    },
+    cancel() { nodeIn.destroy(); compressor.destroy() },
   })
 
   return new Response(webOut, {
