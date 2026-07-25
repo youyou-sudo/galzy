@@ -1,3 +1,6 @@
+/**
+ * @CLIENT_ONLY — 纯客户端 UI 状态，SSR 只读默认值。
+ */
 import { createStore } from "@tanstack/react-store";
 
 type ModalState<T = any> = {

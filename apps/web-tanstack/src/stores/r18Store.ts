@@ -1,3 +1,8 @@
+/**
+ * @CLIENT_ONLY — 引用 localStorage，仅浏览器可用。
+ * SSR 期间不调用 toggle（Header 的按钮需要用户点击），
+ * getDefaultR18BlurEnabled 在无 localStorage 时默认 true。
+ */
 import { createStore } from "@tanstack/react-store";
 
 function getDefaultR18BlurEnabled(): boolean {
