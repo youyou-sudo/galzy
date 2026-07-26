@@ -100,3 +100,10 @@ export const game = new Elysia({ prefix: '/games' })
     },
     { query: GameModel.gameTimeNumberGet },
   )
+  .get(
+    '/quick-search',
+    async ({ query }) => {
+      return await Game.quickSearch(query as any)
+    },
+    { query: GameModel.QuickSearch },
+  )

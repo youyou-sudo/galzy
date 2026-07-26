@@ -26,6 +26,10 @@ export namespace GameModel {
     id: t.Union([t.Number(), t.Null(), t.Undefined()]),
     data: t.Any(),
   })
+  export const QuickSearch = t.Object({
+    q: t.String({ minLength: 1 }),
+    limit: t.Optional(t.Number({ default: 20, minimum: 1, maximum: 50 })),
+  })
   export type TreeNode = {
     id: string
     name: string

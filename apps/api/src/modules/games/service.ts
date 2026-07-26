@@ -9,6 +9,7 @@ import {
   releasesVn,
   sql,
   vn,
+  vnTitles,
 } from '@api/libs'
 import {
   acquireIdempotentKey,
@@ -28,6 +29,7 @@ import {
   count as countAll,
   desc,
   eq,
+  ilike,
   isNotNull,
   isNull,
   like,
@@ -694,5 +696,23 @@ export const Game = {
       .where(eq(gameDownloadStats.gameId, id))
       .then((r) => r[0])
     return { total: data?.total, res }
+  },
+  async quickSearch({ q, limit = 20 }: { q: string; limit?: number }) {
+    const results = await db
+      .selectDistinctOn([vn.id], {
+        id: vn.id,
+        alias: vn.alias,
+      })
+      .from(vn)
+      .leftJoin(vnTitles, eq(vnTitles.id, vn.id))
+      .where(
+        or(
+          ilike(vn.id, `%${q}%`),
+          ilike(vn.alias, `%${q}%`),
+          ilike(vnTitles.title, `%${q}%`),
+        ),
+      )
+      .limit(limit)
+    return results
   },
 }
