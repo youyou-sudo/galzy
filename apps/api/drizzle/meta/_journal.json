@@ -29,6 +29,20 @@
       "when": 1784897947802,
       "tag": "0003_high_redwing",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785051955684,
+      "tag": "0004_collections_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785053556211,
+      "tag": "0005_worried_magdalene",
+      "breakpoints": true
     }
   ]
 }

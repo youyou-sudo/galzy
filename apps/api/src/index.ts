@@ -1,6 +1,7 @@
 import { dbAction, initValidationError } from '@api/libs'
 import {
   betterAuth,
+  collections,
   comments,
   cronServer,
   download,
@@ -39,6 +40,7 @@ async function buildApp() {
     .use(betterAuth)
     .use(health)
     .use(game)
+    .use(collections)
     .use(comments)
     .use(cronServer)
     .use(umami)

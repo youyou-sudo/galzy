@@ -9,6 +9,7 @@ import {
 	DatabaseIcon,
 	FileTextIcon,
 	MessageSquareTextIcon,
+	PackageIcon,
 	SearchIcon,
 	UsersIcon,
 } from "lucide-react";
@@ -47,6 +48,12 @@ const adminLinks = [
 		icon: MessageSquareTextIcon,
 		title: "话题管理",
 		description: "管理论坛话题，支持审核、编辑、隐藏与删除操作",
+	},
+	{
+		to: "/admin/collections",
+		icon: PackageIcon,
+		title: "合集管理",
+		description: "管理游戏合集，支持手动选品与会社绑定",
 	},
 	{
 		to: "/admin/vndb-sync",

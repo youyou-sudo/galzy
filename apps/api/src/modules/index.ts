@@ -1,4 +1,5 @@
 export * from './auth'
+export * from './collections'
 export * from './comments'
 export * from './cron'
 export * from './download'

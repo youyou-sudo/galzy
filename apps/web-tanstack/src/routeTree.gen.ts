@@ -19,11 +19,13 @@ import { Route as ToolsIndexRouteImport } from './routes/tools/index'
 import { Route as TagsIndexRouteImport } from './routes/tags/index'
 import { Route as SearchIndexRouteImport } from './routes/search/index'
 import { Route as ProducerIndexRouteImport } from './routes/producer/index'
+import { Route as CollectionsIndexRouteImport } from './routes/collections/index'
 import { Route as TopicsCreateRouteImport } from './routes/topics/create'
 import { Route as TopicsTopicIdRouteImport } from './routes/topics/$topicId'
 import { Route as ToolsPlateRouteImport } from './routes/tools/plate'
 import { Route as TagsTagIdRouteImport } from './routes/tags/$tagId'
 import { Route as ProducerPidRouteImport } from './routes/producer/$pid'
+import { Route as CollectionsIdRouteImport } from './routes/collections/$id'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
@@ -42,6 +44,7 @@ import { Route as AdminAuthLUsersRouteImport } from './routes/admin/_authL/users
 import { Route as AdminAuthLTopicsRouteImport } from './routes/admin/_authL/topics'
 import { Route as AdminAuthLMeilisearchRouteImport } from './routes/admin/_authL/meilisearch'
 import { Route as AdminAuthLCommentsRouteImport } from './routes/admin/_authL/comments'
+import { Route as AdminAuthLCollectionsRouteImport } from './routes/admin/_authL/collections'
 import { Route as AdminAuthLArticlesRouteImport } from './routes/admin/_authL/articles'
 import { Route as IdLayoutTranslateRouteImport } from './routes/$id/_layout/translate'
 import { Route as IdLayoutCommentRouteImport } from './routes/$id/_layout/comment'
@@ -98,6 +101,11 @@ const ProducerIndexRoute = ProducerIndexRouteImport.update({
   path: '/producer/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CollectionsIndexRoute = CollectionsIndexRouteImport.update({
+  id: '/collections/',
+  path: '/collections/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TopicsCreateRoute = TopicsCreateRouteImport.update({
   id: '/topics/create',
   path: '/topics/create',
@@ -121,6 +129,11 @@ const TagsTagIdRoute = TagsTagIdRouteImport.update({
 const ProducerPidRoute = ProducerPidRouteImport.update({
   id: '/producer/$pid',
   path: '/producer/$pid',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CollectionsIdRoute = CollectionsIdRouteImport.update({
+  id: '/collections/$id',
+  path: '/collections/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
@@ -213,6 +226,11 @@ const AdminAuthLCommentsRoute = AdminAuthLCommentsRouteImport.update({
   path: '/comments',
   getParentRoute: () => AdminAuthLRoute,
 } as any)
+const AdminAuthLCollectionsRoute = AdminAuthLCollectionsRouteImport.update({
+  id: '/collections',
+  path: '/collections',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
 const AdminAuthLArticlesRoute = AdminAuthLArticlesRouteImport.update({
   id: '/articles',
   path: '/articles',
@@ -252,11 +270,13 @@ export interface FileRoutesByFullPath {
   '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/auth/login': typeof AuthLoginRoute
+  '/collections/$id': typeof CollectionsIdRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/tools/plate': typeof ToolsPlateRoute
   '/topics/$topicId': typeof TopicsTopicIdRouteWithChildren
   '/topics/create': typeof TopicsCreateRoute
+  '/collections/': typeof CollectionsIndexRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
@@ -266,6 +286,7 @@ export interface FileRoutesByFullPath {
   '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
   '/admin/articles': typeof AdminAuthLArticlesRoute
+  '/admin/collections': typeof AdminAuthLCollectionsRoute
   '/admin/comments': typeof AdminAuthLCommentsRoute
   '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
   '/admin/topics': typeof AdminAuthLTopicsRoute
@@ -290,11 +311,13 @@ export interface FileRoutesByTo {
   '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/auth/login': typeof AuthLoginRoute
+  '/collections/$id': typeof CollectionsIdRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/tools/plate': typeof ToolsPlateRoute
   '/topics/$topicId': typeof TopicsTopicIdRouteWithChildren
   '/topics/create': typeof TopicsCreateRoute
+  '/collections': typeof CollectionsIndexRoute
   '/producer': typeof ProducerIndexRoute
   '/search': typeof SearchIndexRoute
   '/tags': typeof TagsIndexRoute
@@ -304,6 +327,7 @@ export interface FileRoutesByTo {
   '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
   '/admin/articles': typeof AdminAuthLArticlesRoute
+  '/admin/collections': typeof AdminAuthLCollectionsRoute
   '/admin/comments': typeof AdminAuthLCommentsRoute
   '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
   '/admin/topics': typeof AdminAuthLTopicsRoute
@@ -331,11 +355,13 @@ export interface FileRoutesById {
   '/api/health': typeof ApiHealthRoute
   '/api/search': typeof ApiSearchRoute
   '/auth/login': typeof AuthLoginRoute
+  '/collections/$id': typeof CollectionsIdRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/tools/plate': typeof ToolsPlateRoute
   '/topics/$topicId': typeof TopicsTopicIdRouteWithChildren
   '/topics/create': typeof TopicsCreateRoute
+  '/collections/': typeof CollectionsIndexRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
@@ -345,6 +371,7 @@ export interface FileRoutesById {
   '/$id/_layout/comment': typeof IdLayoutCommentRoute
   '/$id/_layout/translate': typeof IdLayoutTranslateRoute
   '/admin/_authL/articles': typeof AdminAuthLArticlesRoute
+  '/admin/_authL/collections': typeof AdminAuthLCollectionsRoute
   '/admin/_authL/comments': typeof AdminAuthLCommentsRoute
   '/admin/_authL/meilisearch': typeof AdminAuthLMeilisearchRoute
   '/admin/_authL/topics': typeof AdminAuthLTopicsRoute
@@ -373,11 +400,13 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/api/search'
     | '/auth/login'
+    | '/collections/$id'
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/tools/plate'
     | '/topics/$topicId'
     | '/topics/create'
+    | '/collections/'
     | '/producer/'
     | '/search/'
     | '/tags/'
@@ -387,6 +416,7 @@ export interface FileRouteTypes {
     | '/$id/comment'
     | '/$id/translate'
     | '/admin/articles'
+    | '/admin/collections'
     | '/admin/comments'
     | '/admin/meilisearch'
     | '/admin/topics'
@@ -411,11 +441,13 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/api/search'
     | '/auth/login'
+    | '/collections/$id'
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/tools/plate'
     | '/topics/$topicId'
     | '/topics/create'
+    | '/collections'
     | '/producer'
     | '/search'
     | '/tags'
@@ -425,6 +457,7 @@ export interface FileRouteTypes {
     | '/$id/comment'
     | '/$id/translate'
     | '/admin/articles'
+    | '/admin/collections'
     | '/admin/comments'
     | '/admin/meilisearch'
     | '/admin/topics'
@@ -451,11 +484,13 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/api/search'
     | '/auth/login'
+    | '/collections/$id'
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/tools/plate'
     | '/topics/$topicId'
     | '/topics/create'
+    | '/collections/'
     | '/producer/'
     | '/search/'
     | '/tags/'
@@ -465,6 +500,7 @@ export interface FileRouteTypes {
     | '/$id/_layout/comment'
     | '/$id/_layout/translate'
     | '/admin/_authL/articles'
+    | '/admin/_authL/collections'
     | '/admin/_authL/comments'
     | '/admin/_authL/meilisearch'
     | '/admin/_authL/topics'
@@ -492,11 +528,13 @@ export interface RootRouteChildren {
   ApiHealthRoute: typeof ApiHealthRoute
   ApiSearchRoute: typeof ApiSearchRoute
   AuthLoginRoute: typeof AuthLoginRoute
+  CollectionsIdRoute: typeof CollectionsIdRoute
   ProducerPidRoute: typeof ProducerPidRoute
   TagsTagIdRoute: typeof TagsTagIdRoute
   ToolsPlateRoute: typeof ToolsPlateRoute
   TopicsTopicIdRoute: typeof TopicsTopicIdRouteWithChildren
   TopicsCreateRoute: typeof TopicsCreateRoute
+  CollectionsIndexRoute: typeof CollectionsIndexRoute
   ProducerIndexRoute: typeof ProducerIndexRoute
   SearchIndexRoute: typeof SearchIndexRoute
   TagsIndexRoute: typeof TagsIndexRoute
@@ -581,6 +619,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProducerIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/collections/': {
+      id: '/collections/'
+      path: '/collections'
+      fullPath: '/collections/'
+      preLoaderRoute: typeof CollectionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/topics/create': {
       id: '/topics/create'
       path: '/topics/create'
@@ -614,6 +659,13 @@ declare module '@tanstack/react-router' {
       path: '/producer/$pid'
       fullPath: '/producer/$pid'
       preLoaderRoute: typeof ProducerPidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/collections/$id': {
+      id: '/collections/$id'
+      path: '/collections/$id'
+      fullPath: '/collections/$id'
+      preLoaderRoute: typeof CollectionsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/login': {
@@ -742,6 +794,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthLCommentsRouteImport
       parentRoute: typeof AdminAuthLRoute
     }
+    '/admin/_authL/collections': {
+      id: '/admin/_authL/collections'
+      path: '/collections'
+      fullPath: '/admin/collections'
+      preLoaderRoute: typeof AdminAuthLCollectionsRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
     '/admin/_authL/articles': {
       id: '/admin/_authL/articles'
       path: '/articles'
@@ -802,6 +861,7 @@ const IdLayoutRouteWithChildren = IdLayoutRoute._addFileChildren(
 
 interface AdminAuthLRouteChildren {
   AdminAuthLArticlesRoute: typeof AdminAuthLArticlesRoute
+  AdminAuthLCollectionsRoute: typeof AdminAuthLCollectionsRoute
   AdminAuthLCommentsRoute: typeof AdminAuthLCommentsRoute
   AdminAuthLMeilisearchRoute: typeof AdminAuthLMeilisearchRoute
   AdminAuthLTopicsRoute: typeof AdminAuthLTopicsRoute
@@ -812,6 +872,7 @@ interface AdminAuthLRouteChildren {
 
 const AdminAuthLRouteChildren: AdminAuthLRouteChildren = {
   AdminAuthLArticlesRoute: AdminAuthLArticlesRoute,
+  AdminAuthLCollectionsRoute: AdminAuthLCollectionsRoute,
   AdminAuthLCommentsRoute: AdminAuthLCommentsRoute,
   AdminAuthLMeilisearchRoute: AdminAuthLMeilisearchRoute,
   AdminAuthLTopicsRoute: AdminAuthLTopicsRoute,
@@ -847,11 +908,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiHealthRoute: ApiHealthRoute,
   ApiSearchRoute: ApiSearchRoute,
   AuthLoginRoute: AuthLoginRoute,
+  CollectionsIdRoute: CollectionsIdRoute,
   ProducerPidRoute: ProducerPidRoute,
   TagsTagIdRoute: TagsTagIdRoute,
   ToolsPlateRoute: ToolsPlateRoute,
   TopicsTopicIdRoute: TopicsTopicIdRouteWithChildren,
   TopicsCreateRoute: TopicsCreateRoute,
+  CollectionsIndexRoute: CollectionsIndexRoute,
   ProducerIndexRoute: ProducerIndexRoute,
   SearchIndexRoute: SearchIndexRoute,
   TagsIndexRoute: TagsIndexRoute,

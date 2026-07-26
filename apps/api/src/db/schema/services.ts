@@ -1,3 +1,4 @@
+import { relations } from 'drizzle-orm'
 import {
   bigint,
   boolean,
@@ -66,22 +67,43 @@ export const gameDownloadStats = pgTable(
 export const collections = pgTable('galrc_collections', {
   id: serial('id').notNull().primaryKey(),
   title: varchar('title', { length: 255 }).notNull(),
-  alias: varchar('alias', { length: 255 }).notNull(),
   description: text('description'),
+  type: varchar('type', { length: 20 }).notNull().default('manual'), // 'manual' | 'producer'
+  producerIds: jsonb('producer_ids'), // array of producer IDs, e.g. ["p1","p2"]
+  status: varchar('status', { length: 255 }).notNull().default('published'),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 })
 
-// galrc_collectionsItems
-export const collectionsItems = pgTable(
-  'galrc_collectionsItems',
+// galrc_collection_entries
+export const collectionEntries = pgTable(
+  'galrc_collection_entries',
   {
     id: serial('id').notNull().primaryKey(),
-    collectionId: bigint('collection_id', { mode: 'number' }).notNull(),
-    gameId: varchar('game_id', { length: 255 }).notNull(),
+    collectionId: integer('collection_id').notNull(),
+    vid: varchar('vid', { length: 255 }).notNull(),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   },
   (table) => ({
-    collectionIdIdx: index('idx_galrc_collections_items_collection_id').on(
+    collectionIdIdx: index('idx_collection_entries_collection_id').on(
       table.collectionId,
     ),
-    gameIdIdx: index('idx_galrc_collections_items_game_id').on(table.gameId),
+    vidIdx: index('idx_collection_entries_vid').on(table.vid),
+  }),
+)
+
+export const collectionsRelations = relations(collections, ({ many }) => ({
+  entries: many(collectionEntries),
+}))
+
+export const collectionEntriesRelations = relations(
+  collectionEntries,
+  ({ one }) => ({
+    collection: one(collections, {
+      fields: [collectionEntries.collectionId],
+      references: [collections.id],
+    }),
   }),
 )
