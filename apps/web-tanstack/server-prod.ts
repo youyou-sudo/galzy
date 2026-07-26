@@ -511,12 +511,21 @@ function compressStream(res: Response, ae: string): Response {
 async function main(): Promise<void> {
   console.log('[info] Starting production server …')
 
-  process.on('unhandledRejection', (reason) => {
+  function isAbortError(reason: unknown): boolean {
+    if (reason instanceof DOMException && reason.name === 'AbortError') return true
+    if ((reason as { name?: string }).name === 'AbortError') return true
     if (
-      reason instanceof DOMException ||
-      (reason as { name?: string }).name === 'AbortError'
+      typeof reason === 'object' &&
+      reason !== null &&
+      'cause' in reason &&
+      isAbortError((reason as { cause: unknown }).cause)
     )
-      return
+      return true
+    return false
+  }
+
+  process.on('unhandledRejection', (reason) => {
+    if (isAbortError(reason)) return
     console.error('[err] unhandled rejection:', reason)
   })
 
@@ -572,6 +581,10 @@ async function main(): Promise<void> {
         return safeSSRResponse(compressStream(res, ae))
       } catch (e) {
         if (e instanceof DOMException && e.name === 'TimeoutError') {
+          return new Response('Gateway Timeout', { status: 504 })
+        }
+        if (isAbortError(e)) {
+          console.warn('[warn] SSR downstream timeout:', (e as Error).message)
           return new Response('Gateway Timeout', { status: 504 })
         }
         console.error('[err]', e)
