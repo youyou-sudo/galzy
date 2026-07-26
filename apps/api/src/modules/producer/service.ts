@@ -9,7 +9,16 @@ import {
   vnTitles,
 } from '@api/libs'
 import { delKv, getKv, setKv } from '@api/libs/redis'
-import { and, eq, exists, getTableColumns, inArray, sql } from 'drizzle-orm'
+import {
+  and,
+  eq,
+  exists,
+  getTableColumns,
+  ilike,
+  inArray,
+  or,
+  sql,
+} from 'drizzle-orm'
 import { status } from 'elysia'
 import type { ProducerModel } from './model'
 
@@ -93,5 +102,24 @@ export const Producer = {
     void setKv(redisKey, JSON.stringify(producerGamelists), 60 * 30)
 
     return producerGamelists
+  },
+  async search({ q, limit = 20 }: ProducerModel.search) {
+    const results = await db
+      .select({
+        id: producers.id,
+        name: producers.name,
+        latin: producers.latin,
+      })
+      .from(producers)
+      .where(
+        or(
+          ilike(producers.name, `%${q}%`),
+          ilike(producers.latin, `%${q}%`),
+          eq(producers.id, q),
+        ),
+      )
+      .limit(limit)
+      .orderBy(producers.name)
+    return results
   },
 }

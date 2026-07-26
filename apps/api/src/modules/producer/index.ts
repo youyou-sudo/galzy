@@ -21,3 +21,12 @@ export const producer = new Elysia({ prefix: '/producer' })
       query: ProducerModel.producerGet,
     },
   )
+  .get(
+    '/search',
+    async ({ query }) => {
+      return await Producer.search(query as any)
+    },
+    {
+      query: ProducerModel.Search,
+    },
+  )
