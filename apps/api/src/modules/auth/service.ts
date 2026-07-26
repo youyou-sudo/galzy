@@ -256,6 +256,7 @@ const _authConfig = {
   advanced: {
     ipAddress: {
       ipAddressHeaders: ['CF-Connecting-IP', 'X-Forwarded-For'],
+      trustedProxies: ['::1', '127.0.0.1'],
     },
   },
 } satisfies BetterAuthOptions

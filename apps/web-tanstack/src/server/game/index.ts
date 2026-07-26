@@ -84,12 +84,24 @@ export const getGameList = createServerFn()
 	});
 
 export const getCritical = createServerFn().handler(async () => {
-	const [
-		{ data: gameRes, error: gameReserror },
-		{ data: tagRes, error: tagReserror },
-	] = await Promise.all([api.umami.remfGame.get(), api.umami.remfTag.get()]);
-	elysiaErrorF(gameReserror);
-	elysiaErrorF(tagReserror);
+	const [gameResult, tagResult] = await Promise.allSettled([
+		api.umami.remfGame.get(),
+		api.umami.remfTag.get(),
+	]);
+
+	let gameRes: unknown = null
+	let tagRes: unknown = null
+
+	if (gameResult.status === 'fulfilled') {
+		const { data, error } = gameResult.value
+		if (!error) gameRes = data
+	}
+
+	if (tagResult.status === 'fulfilled') {
+		const { data, error } = tagResult.value
+		if (!error) tagRes = data
+	}
+
 	return {
 		game: gameRes,
 		tag: tagRes,
