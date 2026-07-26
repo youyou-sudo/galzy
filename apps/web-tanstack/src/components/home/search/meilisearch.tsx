@@ -56,7 +56,6 @@ const SearchlistComponent = () => {
 			);
 		});
 	};
-	const tagtitle = `[tag:${searchdata?.topTag?.id}]-[${searchdata?.topTag?.zh_name}]`;
 	if ((searchdata?.hits ?? []).length === 0) {
 		return (
 			<div className="flex text-center font-bold justify-center items-center">
@@ -67,7 +66,7 @@ const SearchlistComponent = () => {
 	return (
 		<>
 			{gameList()}
-			{searchdata?.topTag && <TagViewsTrackEvents tagtitle={tagtitle} />}
+			{searchdata?.topTag && <TagViewsTrackEvents tagId={searchdata.topTag.id} />}
 		</>
 	);
 };

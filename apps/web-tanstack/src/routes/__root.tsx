@@ -49,11 +49,6 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 		],
 		scripts: [
 			{
-				src: process.env.UMAMI_SCRIPT_URL,
-				defer: true,
-				"data-website-id": process.env.UMAMI_DATA_WEBSITE_ID,
-			},
-			{
 				type: "application/ld+json",
 				children: JSON.stringify({
 					"@context": "https://schema.org",

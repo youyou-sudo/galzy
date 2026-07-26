@@ -94,6 +94,27 @@ export const collectionEntries = pgTable(
   }),
 )
 
+// galrc_event_views — 页面访问事件（替代 Umami）
+export const eventViews = pgTable(
+  'galrc_event_views',
+  {
+    id: serial('id').primaryKey().notNull(),
+    eventType: varchar('event_type', { length: 20 }).notNull(),
+    targetId: varchar('target_id', { length: 255 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => ({
+    eventTypeCreatedAtIdx: index('idx_galrc_event_views_type_created').on(
+      table.eventType,
+      table.createdAt,
+    ),
+    eventTypeTargetIdx: index('idx_galrc_event_views_type_target').on(
+      table.eventType,
+      table.targetId,
+    ),
+  }),
+)
+
 export const collectionsRelations = relations(collections, ({ many }) => ({
   entries: many(collectionEntries),
 }))

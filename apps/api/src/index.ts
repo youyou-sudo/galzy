@@ -16,7 +16,7 @@ import {
   strategy,
   tags,
   topics,
-  umami,
+  views,
   vndbSync,
 } from '@api/modules'
 import { OpenAPI } from '@api/modules/auth/service'
@@ -43,7 +43,7 @@ async function buildApp() {
     .use(collections)
     .use(comments)
     .use(cronServer)
-    .use(umami)
+    .use(views)
     .use(tags)
     .use(download)
     .use(search)

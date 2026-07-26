@@ -85,25 +85,22 @@ export const getGameList = createServerFn()
 
 export const getCritical = createServerFn().handler(async () => {
 	const [gameResult, tagResult] = await Promise.allSettled([
-		api.umami.remfGame.get(),
-		api.umami.remfTag.get(),
+		api.views.hot.game.get(),
+		api.views.hot.tag.get(),
 	]);
 
-	let gameRes: unknown = null
-	let tagRes: unknown = null
+	const gameRes: Array<{ id: string; title: string | null; total: number }> | null =
+		gameResult.status === 'fulfilled' && !gameResult.value.error
+			? (gameResult.value.data ?? null)
+			: null
 
-	if (gameResult.status === 'fulfilled') {
-		const { data, error } = gameResult.value
-		if (!error) gameRes = data
-	}
-
-	if (tagResult.status === 'fulfilled') {
-		const { data, error } = tagResult.value
-		if (!error) tagRes = data
-	}
+	const tagRes: Array<{ tag: string; title: string | null; total: number }> | null =
+		tagResult.status === 'fulfilled' && !tagResult.value.error
+			? (tagResult.value.data ?? null)
+			: null
 
 	return {
 		game: gameRes,
 		tag: tagRes,
-	};
+	}
 });

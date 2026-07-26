@@ -43,6 +43,13 @@
       "when": 1785053556211,
       "tag": "0005_worried_magdalene",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785071861404,
+      "tag": "0006_conscious_warstar",
+      "breakpoints": true
     }
   ]
 }

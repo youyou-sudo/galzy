@@ -3,7 +3,7 @@ import { getRouteApi, Link } from "@tanstack/react-router";
 interface Item {
 	id?: string;
 	tag?: string;
-	title: string;
+	title: string | null;
 }
 
 interface RankingListProps {

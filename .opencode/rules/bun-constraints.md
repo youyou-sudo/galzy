@@ -38,6 +38,21 @@
 - 如需创建新项目，使用 `bun create <template>`
 - 不要建议 `npm init` 或 `npx create-*`
 
+### 6. Drizzle Migration 工作流
+
+数据库在 `apps/api/` 下，与 Coolify 等系统共用同一个 PostgreSQL 实例。
+
+| 操作 | 命令 | 说明 |
+|------|------|------|
+| 生成 Migration | `cd apps/api && bun run db:generate` | 根据 schema 变更生成 SQL 文件 |
+| 应用 Migration | `cd apps/api && bun run db:up` | 应用到数据库（**禁止**用 `db:push`） |
+| 验证一致性 | `cd apps/api && bun run db:check` | 检查 schema 与数据库是否一致 |
+
+**红线：**
+- **禁止**使用 `drizzle-kit push` 或 `bun run db:push` — 它会拉全库比对，这个库有其他服务的表，push 会提示删表
+- **禁止**使用 `drizzle-kit migrate` — 这版本有 bug 一直转圈不返回
+- 正确的流程：`generate` → `up` → `check`
+
 ## 检查方式
 
 如果对某个命令是否应使用 bun 有疑问，检查：

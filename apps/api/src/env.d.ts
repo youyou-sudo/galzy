@@ -25,10 +25,6 @@ declare module 'bun' {
     S3_SECRET_ACCESS_KEY: string
     TWITTER_CLIENT_ID: string
     TWITTER_CLIENT_SECRET: string
-    UMAMI_DATA_PASSWORD: string
-    UMAMI_DATA_USER: string
-    UMAMI_DATA_WEBSITE_ID: string
-    UMAMI_LOCAL_URL: string
     VNDB_API_TOKEN: string
     WEB_HOST: string
   }
