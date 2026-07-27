@@ -11,6 +11,14 @@ export namespace ViewsModel {
   })
   export type recordTagView = typeof RecordTagView.static
 
-  export type GameRankingItem = { id: string; title: string | null; total: number }
-  export type TagRankingItem = { tag: string; title: string | null; total: number }
+  export type GameRankingItem = {
+    id: string
+    title: string | null
+    total: number
+  }
+  export type TagRankingItem = {
+    tag: string
+    title: string | null
+    total: number
+  }
 }

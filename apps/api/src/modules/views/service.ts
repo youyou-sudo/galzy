@@ -9,9 +9,60 @@ function getWeekStart(): Date {
   const now = new Date()
   const day = now.getDay()
   const diff = day === 0 ? 6 : day - 1
-  const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diff)
+  const weekStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - diff,
+  )
   weekStart.setHours(0, 0, 0, 0)
   return weekStart
+}
+
+// 周一始终展示上周数据，周二起展示本周数据
+function getEffectiveWeekStart(): Date {
+  if (new Date().getDay() === 1) {
+    const ws = getWeekStart()
+    const prev = new Date(ws)
+    prev.setDate(prev.getDate() - 7)
+    return prev
+  }
+  return getWeekStart()
+}
+
+async function queryGameRankings(weekStart: Date) {
+  return db
+    .select({
+      id: eventViews.targetId,
+      total: count().mapWith(Number).as('total'),
+    })
+    .from(eventViews)
+    .where(
+      and(
+        eq(eventViews.eventType, 'game_view'),
+        gte(eventViews.createdAt, weekStart),
+      ),
+    )
+    .groupBy(eventViews.targetId)
+    .orderBy(desc(sql`count(*)`))
+    .limit(30)
+}
+
+async function queryTagRankings(weekStart: Date) {
+  return db
+    .select({
+      targetId: eventViews.targetId,
+      total: count().mapWith(Number).as('total'),
+    })
+    .from(eventViews)
+    .where(
+      and(
+        eq(eventViews.eventType, 'tag_view'),
+        gte(eventViews.createdAt, weekStart),
+      ),
+    )
+    .groupBy(eventViews.targetId)
+    .orderBy(desc(sql`count(*)`))
+    .limit(30)
 }
 
 export const ViewsService = {
@@ -32,27 +83,13 @@ export const ViewsService = {
   },
 
   async getHotGames(): Promise<ViewsModel.GameRankingItem[]> {
-    const cacheKey = 'galzy:views:hot:game'
+    const weekStart = getEffectiveWeekStart()
+    const weekKey = weekStart.toISOString().slice(0, 10)
+    const cacheKey = `galzy:views:hot:game:${weekKey}`
     const cached = await getKv(cacheKey)
     if (cached) return JSON.parse(cached) as ViewsModel.GameRankingItem[]
 
-    const weekStart = getWeekStart()
-
-    const rows = await db
-      .select({
-        id: eventViews.targetId,
-        total: count().mapWith(Number).as('total'),
-      })
-      .from(eventViews)
-      .where(
-        and(
-          eq(eventViews.eventType, 'game_view'),
-          gte(eventViews.createdAt, weekStart),
-        ),
-      )
-      .groupBy(eventViews.targetId)
-      .orderBy(desc(sql`count(*)`))
-      .limit(30)
+    const rows = await queryGameRankings(weekStart)
 
     if (rows.length === 0) {
       void setKv(cacheKey, JSON.stringify([]), WEEK_CACHE_TTL)
@@ -94,27 +131,13 @@ export const ViewsService = {
   },
 
   async getHotTags(): Promise<ViewsModel.TagRankingItem[]> {
-    const cacheKey = 'galzy:views:hot:tag'
+    const weekStart = getEffectiveWeekStart()
+    const weekKey = weekStart.toISOString().slice(0, 10)
+    const cacheKey = `galzy:views:hot:tag:${weekKey}`
     const cached = await getKv(cacheKey)
     if (cached) return JSON.parse(cached) as ViewsModel.TagRankingItem[]
 
-    const weekStart = getWeekStart()
-
-    const rows = await db
-      .select({
-        targetId: eventViews.targetId,
-        total: count().mapWith(Number).as('total'),
-      })
-      .from(eventViews)
-      .where(
-        and(
-          eq(eventViews.eventType, 'tag_view'),
-          gte(eventViews.createdAt, weekStart),
-        ),
-      )
-      .groupBy(eventViews.targetId)
-      .orderBy(desc(sql`count(*)`))
-      .limit(30)
+    const rows = await queryTagRankings(weekStart)
 
     if (rows.length === 0) {
       void setKv(cacheKey, JSON.stringify([]), WEEK_CACHE_TTL)
