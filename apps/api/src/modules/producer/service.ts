@@ -12,7 +12,6 @@ import { delKv, getKv, setKv } from '@api/libs/redis'
 import {
   and,
   eq,
-  exists,
   getTableColumns,
   ilike,
   inArray,
@@ -80,17 +79,8 @@ export const Producer = {
             .select({ vid: releasesVn.vid })
             .from(releasesProducers)
             .innerJoin(releasesVn, eq(releasesVn.id, releasesProducers.id))
-            .where(
-              and(
-                eq(releasesProducers.pid, pid),
-                exists(
-                  db
-                    .select()
-                    .from(alistb)
-                    .where(eq(alistb.vid, releasesVn.vid)),
-                ),
-              ),
-            ),
+            .innerJoin(alistb, eq(alistb.vid, releasesVn.vid))
+            .where(eq(releasesProducers.pid, pid)),
         ) as any,
       )
       .orderBy(vn.id)

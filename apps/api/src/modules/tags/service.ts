@@ -252,23 +252,16 @@ export const Tags = {
       .limit(pageSize)
       .offset(offset)
 
-    // 2. 查询总数（带 exhibition 过滤，单次 .where() 调用）
-    const countConditions: SQL[] = [eq(zhtags.exhibition, true)]
-    if (combinedFilter) {
-      countConditions.push(combinedFilter)
-    }
-    const countFilter: SQL =
-      countConditions.length === 1
-        ? countConditions[0]
-        : and(...countConditions)!
-
+    // 2. 查询总数（与 data 查询使用相同过滤条件）
     const countQuery = db
       .select({ count: count() })
       .from(tags)
       .innerJoin(zhtags, eq(tags.id, zhtags.id))
-      .where(countFilter)
 
-    const totalCountResult = await countQuery.then((r) => r[0])
+    const totalCountResult = await (combinedFilter
+      ? countQuery.where(combinedFilter)
+      : countQuery
+    ).then((r) => r[0])
 
     const totalCount = Number(totalCountResult?.count || 0)
     const totalPages = Math.ceil(totalCount / pageSize)

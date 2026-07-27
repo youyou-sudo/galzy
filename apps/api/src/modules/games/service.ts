@@ -48,6 +48,7 @@ export const Game = {
     const totalCountResult = await db
       .select({ count: countAll() })
       .from(alistb)
+      .innerJoin(vn, eq(alistb.vid, vn.id))
       .then((r) => r[0])
     const total = Number(totalCountResult?.count || 0)
     void setKv('galzy:game:count', String(total), 60 * 30)
@@ -144,34 +145,95 @@ export const Game = {
     }
 
     const idIsNumber = /^\d+$/.test(id)
-
     const queryDb = async () => {
-      const data = await db.query.alistb.findFirst({
-        columns: { id: true, vid: true, other: true, path: true },
-        with: {
-          vn: {
-            with: {
-              titles: true,
-              image: true,
-              releasesVn: {
-                with: {
-                  release: true,
+      // Determine VNDB vid from the input early, so we can parallelize
+      let lookupVid: string | null = null
+      if (!idIsNumber) {
+        lookupVid = id
+      } else {
+        // Resolve vid from alistb first (single indexed lookup)
+        const row = await db
+          .select({ vid: alistb.vid })
+          .from(alistb)
+          .where(eq(alistb.other, Number(id)))
+          .limit(1)
+          .then((r) => r[0])
+        lookupVid = row?.vid ?? null
+      }
+
+      // Run main data fetch and producer query in parallel
+      const officialExpr = sql<boolean>`BOOL_OR(${releases.official})`
+      const firstReleaseExpr = min(releases.released)
+
+      const producersPromise = lookupVid
+        ? db
+            .select({
+              id: producers.id,
+              name: producers.name,
+              latin: producers.latin,
+              alias: producers.alias,
+              type: producers.type,
+              count: countAll(),
+              is_dev: sql<boolean>`BOOL_OR(${releasesProducers.developer})`,
+              is_pub: sql<boolean>`BOOL_OR(${releasesProducers.publisher})`,
+              official: officialExpr,
+              first_release: firstReleaseExpr,
+            })
+            .from(releasesVn)
+            .innerJoin(releasesProducers, eq(releasesProducers.id, releasesVn.id))
+            .innerJoin(releases, eq(releases.id, releasesVn.id))
+            .innerJoin(producers, eq(producers.id, releasesProducers.pid))
+            .where(eq(releasesVn.vid, lookupVid))
+            .groupBy(
+              producers.id,
+              producers.name,
+              producers.latin,
+              producers.alias,
+              producers.type,
+            )
+            .orderBy(desc(officialExpr), sql`${asc(firstReleaseExpr)} NULLS LAST`)
+        : Promise.resolve([] as {
+            id: string
+            name: string | null
+            latin: string | null
+            alias: string | null
+            type: string | null
+            count: number
+            is_dev: boolean
+            is_pub: boolean
+            official: boolean
+            first_release: string | null
+          }[])
+
+      const [data, producersData] = await Promise.all([
+        db.query.alistb.findFirst({
+          columns: { id: true, vid: true, other: true, path: true },
+          with: {
+            vn: {
+              with: {
+                titles: true,
+                image: true,
+                releasesVn: {
+                  with: {
+                    release: true,
+                  },
+                },
+              },
+            },
+            otherData: {
+              with: {
+                media: {
+                  with: {
+                    media: true,
+                  },
                 },
               },
             },
           },
-          otherData: {
-            with: {
-              media: {
-                with: {
-                  media: true,
-                },
-              },
-            },
-          },
-        },
-        where: idIsNumber ? eq(alistb.other, Number(id)) : eq(alistb.vid, id),
-      })
+          where: idIsNumber ? eq(alistb.other, Number(id)) : eq(alistb.vid, id),
+        }),
+        producersPromise,
+      ])
 
       if (!data) {
         throw status(404, `未找到 id=${id} 对应的游戏信息`)
@@ -185,52 +247,6 @@ export const Game = {
         releasesDates && releasesDates.length > 0
           ? releasesDates.sort((a, b) => a.localeCompare(b))[0]
           : null
-
-      // producers: 分组聚合无法用 Drizzle relations API 表达，保留独立查询
-      const vid = data.vid
-      let producersData: {
-        id: string
-        name: string | null
-        latin: string | null
-        alias: string | null
-        type: string | null
-        count: number
-        is_dev: boolean
-        is_pub: boolean
-        official: boolean
-        first_release: string | null
-      }[] = []
-      if (vid) {
-        const officialExpr = sql<boolean>`BOOL_OR(${releases.official})`
-        const firstReleaseExpr = min(releases.released)
-
-        producersData = await db
-          .select({
-            id: producers.id,
-            name: producers.name,
-            latin: producers.latin,
-            alias: producers.alias,
-            type: producers.type,
-            count: countAll(),
-            is_dev: sql<boolean>`BOOL_OR(${releasesProducers.developer})`,
-            is_pub: sql<boolean>`BOOL_OR(${releasesProducers.publisher})`,
-            official: officialExpr,
-            first_release: firstReleaseExpr,
-          })
-          .from(releasesVn)
-          .innerJoin(releasesProducers, eq(releasesProducers.id, releasesVn.id))
-          .innerJoin(releases, eq(releases.id, releasesVn.id))
-          .innerJoin(producers, eq(producers.id, releasesProducers.pid))
-          .where(eq(releasesVn.vid, vid))
-          .groupBy(
-            producers.id,
-            producers.name,
-            producers.latin,
-            producers.alias,
-            producers.type,
-          )
-          .orderBy(desc(officialExpr), sql`${asc(firstReleaseExpr)} NULLS LAST`)
-      }
 
       return {
         ...data,
@@ -413,37 +429,20 @@ export const Game = {
     return data
   },
   async DataFilteringStats() {
-    const [onlyOther, bothExist, onlyVid, all] = await Promise.all([
-      db
-        .select({ count: countAll() })
-        .from(alistb)
-        .where(and(isNotNull(alistb.other), isNull(alistb.vid)))
-        .then((r) => r[0]),
-
-      db
-        .select({ count: countAll() })
-        .from(alistb)
-        .where(and(isNotNull(alistb.vid), isNotNull(alistb.other)))
-        .then((r) => r[0]),
-
-      db
-        .select({ count: countAll() })
-        .from(alistb)
-        .where(and(isNotNull(alistb.vid), isNull(alistb.other)))
-        .then((r) => r[0]),
-
-      db
-        .select({ count: countAll() })
-        .from(alistb)
-        .then((r) => r[0]),
-    ])
-    const data = {
-      onlyOther: onlyOther?.count ?? 0,
-      bothExist: bothExist?.count ?? 0,
-      onlyVid: onlyVid?.count ?? 0,
-      all: all?.count ?? 0,
+    const [result] = await db
+      .select({
+        onlyOther: sql<number>`count(*) filter (where ${alistb.other} is not null and ${alistb.vid} is null)`,
+        bothExist: sql<number>`count(*) filter (where ${alistb.vid} is not null and ${alistb.other} is not null)`,
+        onlyVid: sql<number>`count(*) filter (where ${alistb.vid} is not null and ${alistb.other} is null)`,
+        all: countAll(),
+      })
+      .from(alistb)
+    return {
+      onlyOther: Number(result.onlyOther) ?? 0,
+      bothExist: Number(result.bothExist) ?? 0,
+      onlyVid: Number(result.onlyVid) ?? 0,
+      all: Number(result.all) ?? 0,
     }
-    return data
   },
   async DataFiltering({
     vid,

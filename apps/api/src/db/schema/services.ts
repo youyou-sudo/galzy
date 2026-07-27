@@ -64,17 +64,26 @@ export const gameDownloadStats = pgTable(
 )
 
 // galrc_collections
-export const collections = pgTable('galrc_collections', {
-  id: serial('id').notNull().primaryKey(),
-  title: varchar('title', { length: 255 }).notNull(),
-  description: text('description'),
-  type: varchar('type', { length: 20 }).notNull().default('manual'), // 'manual' | 'producer'
-  producerIds: jsonb('producer_ids'), // array of producer IDs, e.g. ["p1","p2"]
-  status: varchar('status', { length: 255 }).notNull().default('published'),
-  sortOrder: integer('sort_order').notNull().default(0),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-})
+export const collections = pgTable(
+  'galrc_collections',
+  {
+    id: serial('id').notNull().primaryKey(),
+    title: varchar('title', { length: 255 }).notNull(),
+    description: text('description'),
+    type: varchar('type', { length: 20 }).notNull().default('manual'), // 'manual' | 'producer'
+    producerIds: jsonb('producer_ids'), // array of producer IDs, e.g. ["p1","p2"]
+    status: varchar('status', { length: 255 }).notNull().default('published'),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    sortCreatedIdx: index('idx_galrc_collections_sort_created').on(
+      table.sortOrder,
+      table.createdAt,
+    ),
+  }),
+)
 
 // galrc_collection_entries
 export const collectionEntries = pgTable(

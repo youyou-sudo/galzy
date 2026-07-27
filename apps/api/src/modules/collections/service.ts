@@ -56,17 +56,26 @@ export const CollectionService = {
       }
     }
 
-    // Count distinct VNs for producer collections
-    for (const item of items.filter((i) => i.type === 'producer')) {
-      const pIds = item.producerIds as string[] | null
-      if (pIds && pIds.length > 0) {
-        const [result] = await db
-          .select({ count: countDistinct(vn.id) })
-          .from(releasesProducers)
-          .innerJoin(releasesVn, eq(releasesVn.id, releasesProducers.id))
-          .innerJoin(vn, eq(vn.id, releasesVn.vid))
-          .where(inArray(releasesProducers.pid, pIds))
-        countMap.set(item.id, result.count)
+    // Count distinct VNs for producer collections — run all in parallel
+    const producerItems = items.filter((i) => i.type === 'producer')
+    if (producerItems.length > 0) {
+      const producerCounts = await Promise.all(
+        producerItems.map(async (item) => {
+          const pIds = item.producerIds as string[] | null
+          if (pIds && pIds.length > 0) {
+            const [result] = await db
+              .select({ count: countDistinct(vn.id) })
+              .from(releasesProducers)
+              .innerJoin(releasesVn, eq(releasesVn.id, releasesProducers.id))
+              .innerJoin(vn, eq(vn.id, releasesVn.vid))
+              .where(inArray(releasesProducers.pid, pIds))
+            return { id: item.id, count: result.count }
+          }
+          return { id: item.id, count: 0 }
+        }),
+      )
+      for (const { id, count } of producerCounts) {
+        countMap.set(id, count)
       }
     }
 

@@ -1,0 +1,2 @@
+CREATE INDEX "idx_galrc_alistb_vid_other" ON "galrc_alistb" USING btree ("vid","other");--> statement-breakpoint
+CREATE INDEX "idx_galrc_collections_sort_created" ON "galrc_collections" USING btree ("sort_order","created_at");

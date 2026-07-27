@@ -1,6 +1,6 @@
 import { comments, db, sql, users } from '@api/libs'
 import { emailServer } from '@api/libs/seedMail'
-import { and, count, desc, eq, getTableColumns, isNull } from 'drizzle-orm'
+import { and, asc, count, desc, eq, getTableColumns, gt, inArray, isNull } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { CommentModel } from './model'
 
@@ -39,19 +39,6 @@ export const CommentService = {
           user: sql<{ id: string; name: string; email: string; image: string }>`
             (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = ${comments.userId}) "u")
           `.as('user'),
-          re: sql<Array<Record<string, any>>>`
-            COALESCE(
-              (SELECT json_agg(row_to_json("c".*)) FROM (
-                SELECT
-                  "c".*,
-                  (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = "c"."userId") "u") AS "user",
-                  (SELECT row_to_json("ru".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = "c"."replyToUserId") "ru") AS "reUser"
-                FROM "galrc_comments" "c"
-                WHERE "c"."depth" > 0 AND "c"."rootId" = ${comments.id}
-              ) "c"),
-              '[]'::json
-            )
-          `.as('re'),
         })
         .from(comments)
         .where(whereClause)
@@ -65,10 +52,39 @@ export const CommentService = {
         .then((r) => r[0]),
     ])
 
+    // Batch-fetch all replies for this page of comments (2nd query, not N)
+    let repliesByRoot = new Map<string, any[]>()
+    if (commentsData.length > 0) {
+      const rootIds = commentsData.map((c) => c.id)
+      const replies = await db
+        .select({
+          ...getTableColumns(comments),
+          user: sql<{ id: string; name: string; email: string; image: string }>`
+            (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = ${comments.userId}) "u")
+          `.as('user'),
+          reUser: sql<{ id: string; name: string; email: string; image: string }>`
+            (SELECT row_to_json("ru".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = ${comments.replyToUserId}) "ru")
+          `.as('reUser'),
+        })
+        .from(comments)
+        .where(and(gt(comments.depth, 0), inArray(comments.rootId, rootIds)))
+        .orderBy(asc(comments.createdAt))
+      for (const reply of replies) {
+        const rootId = reply.rootId!
+        if (!repliesByRoot.has(rootId)) repliesByRoot.set(rootId, [])
+        repliesByRoot.get(rootId)!.push(reply)
+      }
+    }
+
+    const enriched = commentsData.map((c) => ({
+      ...c,
+      re: repliesByRoot.get(c.id) ?? [],
+    }))
+
     const total = Number(countResult?.total ?? 0)
 
     return {
-      comments: commentsData,
+      comments: enriched,
       total,
       totalPages: Math.ceil(total / limit),
     }

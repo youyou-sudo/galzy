@@ -186,7 +186,7 @@ export const TopicService = {
   async createTopic({ title, content }: TopicModel.create, userId: string) {
     const now = new Date()
 
-    const [inserted] = await db
+    const [topic] = await db
       .insert(topics)
       .values({
         userId,
@@ -196,12 +196,8 @@ export const TopicService = {
         createdAt: now,
         updatedAt: now,
       } as any)
-      .returning({ id: topics.id })
+      .returning()
 
-    const [topic] = await db
-      .select()
-      .from(topics)
-      .where(eq(topics.id, inserted.id))
 
     const [topicUser] = await db
       .select({ id: users.id, name: users.name, image: users.image })

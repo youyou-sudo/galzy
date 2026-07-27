@@ -85,6 +85,7 @@ export const alistb = pgTable(
   (table) => ({
     vidIdx: index('idx_galrc_alistb_vid').on(table.vid),
     otherIdx: index('idx_galrc_alistb_other').on(table.other),
+    vidOtherIdx: index('idx_galrc_alistb_vid_other').on(table.vid, table.other),
   }),
 )
 
