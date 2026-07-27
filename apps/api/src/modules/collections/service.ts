@@ -1,5 +1,5 @@
 import { collectionEntries, collections, db, images, releasesProducers, releasesVn, vn } from '@api/libs'
-import { and, asc, count, desc, eq, inArray } from 'drizzle-orm'
+import { and, asc, count, countDistinct, desc, eq, inArray } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { CollectionModel } from './model'
 
@@ -26,7 +26,50 @@ export const CollectionService = {
         .where(and(...conditions)),
     ])
 
-    return { items, total: total[0].count, page, limit }
+    // Compute entryCount per collection
+    const countMap = new Map<number, number>()
+    for (const item of items) {
+      countMap.set(item.id, 0)
+    }
+
+    // Batch count for manual collections
+    const manualIds = items
+      .filter((i) => i.type === 'manual')
+      .map((i) => i.id)
+    if (manualIds.length > 0) {
+      const manualCounts = await db
+        .select({
+          collectionId: collectionEntries.collectionId,
+          count: count(),
+        })
+        .from(collectionEntries)
+        .where(inArray(collectionEntries.collectionId, manualIds))
+        .groupBy(collectionEntries.collectionId)
+      for (const row of manualCounts) {
+        countMap.set(row.collectionId, row.count)
+      }
+    }
+
+    // Count distinct VNs for producer collections
+    for (const item of items.filter((i) => i.type === 'producer')) {
+      const pIds = item.producerIds as string[] | null
+      if (pIds && pIds.length > 0) {
+        const [result] = await db
+          .select({ count: countDistinct(vn.id) })
+          .from(releasesProducers)
+          .innerJoin(releasesVn, eq(releasesVn.id, releasesProducers.id))
+          .innerJoin(vn, eq(vn.id, releasesVn.vid))
+          .where(inArray(releasesProducers.pid, pIds))
+        countMap.set(item.id, result.count)
+      }
+    }
+
+    const itemsWithCount = items.map((item) => ({
+      ...item,
+      entryCount: countMap.get(item.id) ?? 0,
+    }))
+
+    return { items: itemsWithCount, total: total[0].count, page, limit }
   },
 
   // 获取合集详情（含条目）
