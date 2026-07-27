@@ -2,8 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Badge } from '@web/components/ui/badge'
 import { Card, CardContent, CardHeader } from '@web/components/ui/card'
-import { getCollectionById, getCollectionPreview } from '@web/server/collections'
 import { getImageUrl } from '@web/lib/image-url'
+import {
+  getCollectionById,
+  getCollectionPreview,
+} from '@web/server/collections'
 import { Loader2Icon, Package } from 'lucide-react'
 
 export const Route = createFileRoute('/collections/$id')({
@@ -11,7 +14,9 @@ export const Route = createFileRoute('/collections/$id')({
   loader: async ({ params }) => {
     const [collection, previews] = await Promise.all([
       getCollectionById({ data: { id: params.id } }),
-      getCollectionPreview({ data: { id: params.id, limit: 50 } }).catch(() => []),
+      getCollectionPreview({ data: { id: params.id, limit: 50 } }).catch(
+        () => [],
+      ),
     ])
     return { collection, previews }
   },
@@ -27,7 +32,8 @@ function RouteComponent() {
   })
   const { data: previews } = useQuery({
     queryKey: ['collection-preview', id],
-    queryFn: async () => await getCollectionPreview({ data: { id, limit: 50 } }).catch(() => []),
+    queryFn: async () =>
+      await getCollectionPreview({ data: { id, limit: 50 } }).catch(() => []),
     initialData: loaderData.previews,
   })
 
@@ -112,7 +118,11 @@ function RouteComponent() {
                   <div className="aspect-[9/13] rounded-lg overflow-hidden bg-base-300 shadow-md group-hover:shadow-lg transition-shadow">
                     {game.imageId ? (
                       <img
-                        src={getImageUrl({ imageId: game.imageId, width: game.imageWidth, height: game.imageHeight })}
+                        src={getImageUrl({
+                          imageId: game.imageId,
+                          width: game.imageWidth,
+                          height: game.imageHeight,
+                        })}
                         alt={game.alias || game.id}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                         loading="lazy"

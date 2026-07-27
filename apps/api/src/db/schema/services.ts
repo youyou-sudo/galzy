@@ -101,7 +101,9 @@ export const eventViews = pgTable(
     id: serial('id').primaryKey().notNull(),
     eventType: varchar('event_type', { length: 20 }).notNull(),
     targetId: varchar('target_id', { length: 255 }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
   },
   (table) => ({
     eventTypeCreatedAtIdx: index('idx_galrc_event_views_type_created').on(

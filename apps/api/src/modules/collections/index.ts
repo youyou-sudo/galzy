@@ -23,7 +23,10 @@ export const collections = new Elysia({ prefix: '/collections' })
   .get(
     '/:id/preview',
     async ({ params, query }) => {
-      return CollectionService.preview(Number(params.id), Number((query as any).limit ?? 6))
+      return CollectionService.preview(
+        Number(params.id),
+        Number((query as any).limit ?? 6),
+      )
     },
     { params: CollectionModel.Params },
   )

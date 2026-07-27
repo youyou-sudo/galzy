@@ -12,11 +12,11 @@ export const Route = createFileRoute('/collections/')({
   }),
   loaderDeps: ({ search: { page } }) => ({ page }),
   loader: async ({ deps: { page } }) => {
-    const data = await getCollections({ data: { page, limit: 10 } })
+    const data = await getCollections({ data: { page, limit: 14 } })
     const items = (data as any).items ?? []
     const previews = await Promise.all(
       items.map((c: any) =>
-        getCollectionPreview({ data: { id: String(c.id), limit: 10 } }).catch(
+        getCollectionPreview({ data: { id: String(c.id), limit: 14 } }).catch(
           () => [],
         ),
       ),
@@ -32,11 +32,11 @@ function RouteComponent() {
   const { data: collectionData } = useQuery({
     queryKey: ['collections', page],
     queryFn: async () => {
-      const data = await getCollections({ data: { page, limit: 10 } })
+      const data = await getCollections({ data: { page, limit: 14 } })
       const items = (data as any).items ?? []
       const previews = await Promise.all(
         items.map((c: any) =>
-          getCollectionPreview({ data: { id: String(c.id), limit: 10 } }).catch(
+          getCollectionPreview({ data: { id: String(c.id), limit: 14 } }).catch(
             () => [],
           ),
         ),
@@ -68,7 +68,9 @@ function RouteComponent() {
             key={collection.id}
             collection={collection}
             previews={(previews[index] as any[]) ?? []}
-            totalCount={collection.entryCount ?? (previews[index] as any[])?.length ?? 0}
+            totalCount={
+              collection.entryCount ?? (previews[index] as any[])?.length ?? 0
+            }
           />
         ))}
         {items.length === 0 && (

@@ -1,4 +1,12 @@
-import { collectionEntries, collections, db, images, releasesProducers, releasesVn, vn } from '@api/libs'
+import {
+  collectionEntries,
+  collections,
+  db,
+  images,
+  releasesProducers,
+  releasesVn,
+  vn,
+} from '@api/libs'
 import { and, asc, count, countDistinct, desc, eq, inArray } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { CollectionModel } from './model'
@@ -33,9 +41,7 @@ export const CollectionService = {
     }
 
     // Batch count for manual collections
-    const manualIds = items
-      .filter((i) => i.type === 'manual')
-      .map((i) => i.id)
+    const manualIds = items.filter((i) => i.type === 'manual').map((i) => i.id)
     if (manualIds.length > 0) {
       const manualCounts = await db
         .select({
@@ -166,7 +172,10 @@ export const CollectionService = {
     }
 
     // producer 模式：查 producer 关联的游戏
-    if (collection.producerIds && (collection.producerIds as string[]).length > 0) {
+    if (
+      collection.producerIds &&
+      (collection.producerIds as string[]).length > 0
+    ) {
       const results = await db
         .selectDistinctOn([vn.id], {
           id: vn.id,
@@ -180,7 +189,9 @@ export const CollectionService = {
         .innerJoin(releasesVn, eq(releasesVn.id, releasesProducers.id))
         .innerJoin(vn, eq(vn.id, releasesVn.vid))
         .leftJoin(images, eq(images.id, vn.cImage))
-        .where(inArray(releasesProducers.pid, collection.producerIds as string[]))
+        .where(
+          inArray(releasesProducers.pid, collection.producerIds as string[]),
+        )
         .limit(limit)
       return results
     }
