@@ -119,18 +119,62 @@ export const CollectionService = {
     // Batch-embed VN previews when requested — avoids N+1 /preview calls
     const previewMap = new Map<number, Array<{ id: string; alias: string | null; title: string; imageId: string | null; imageWidth: number | null; imageHeight: number | null; cSexualAvg: number | null }>>()
     if (includePreview > 0) {
-      // Collect first N VN ids per collection (deduplicated globally)
       const vidSet = new Set<string>()
       const perCollection: Map<number, string[]> = new Map()
+
+      // Manual collections: use entriesMap (already populated above)
       for (const item of itemsWithCount) {
-        const vids = (entriesMap.get(item.id) ?? [])
-          .slice(0, includePreview)
-          .map((e) => e.vid)
-        if (vids.length > 0) {
-          perCollection.set(item.id, vids)
-          for (const v of vids) vidSet.add(v)
+        if (item.type === 'manual') {
+          const vids = (entriesMap.get(item.id) ?? [])
+            .slice(0, includePreview)
+            .map((e) => e.vid)
+          if (vids.length > 0) {
+            perCollection.set(item.id, vids)
+            for (const v of vids) vidSet.add(v)
+          }
         }
       }
+
+      // Producer collections: batch-query VN ids from releasesProducers
+      const pItems = itemsWithCount.filter((i) => i.type === 'producer')
+      if (pItems.length > 0) {
+        const allPIds = [
+          ...new Set(
+            pItems.flatMap(
+              (item) => (item.producerIds as string[] | null) ?? [],
+            ),
+          ),
+        ]
+        if (allPIds.length > 0) {
+          const pvRows = await db
+            .select({
+              pid: releasesProducers.pid,
+              vid: releasesVn.vid,
+            })
+            .from(releasesProducers)
+            .innerJoin(releasesVn, eq(releasesVn.id, releasesProducers.id))
+            .where(inArray(releasesProducers.pid, allPIds))
+          // Group VN ids by pid
+          const pidVids = new Map<string, string[]>()
+          for (const r of pvRows) {
+            const list = pidVids.get(r.pid) ?? []
+            list.push(r.vid)
+            pidVids.set(r.pid, list)
+          }
+          // Assign to each producer collection
+          for (const item of pItems) {
+            const pIds = (item.producerIds as string[] | null) ?? []
+            const vids = pIds
+              .flatMap((pid) => pidVids.get(pid) ?? [])
+              .slice(0, includePreview)
+            if (vids.length > 0) {
+              perCollection.set(item.id, vids)
+              for (const v of vids) vidSet.add(v)
+            }
+          }
+        }
+      }
+
       const allVids = [...vidSet]
 
       if (allVids.length > 0) {
