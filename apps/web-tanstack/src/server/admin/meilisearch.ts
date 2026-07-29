@@ -13,7 +13,7 @@ export const getMeiliSearchProgress = createServerFn({ method: "GET" })
 	.handler(async ({ data: { type } }) => {
 		const { data, error } = await api.task.meiliSearchProgress.get({
 			query: { type },
-			headers: cookiePass().headers,
+			...cookiePass(),
 		});
 		elysiaErrorF(error);
 		return data;
@@ -69,27 +69,48 @@ export const updateEmbedders = createServerFn({ method: "POST" })
 /**
  * 获取属性列表
  */
-export const getPropertyList = createServerFn({ method: "GET" }).handler(
-	async () => {
-		const { data, error } = await api.search.meilisearchPropertylist.get(
-			cookiePass(),
-		);
+export const getPropertyList = createServerFn({ method: "GET" })
+	.validator(
+		z.object({
+			indexType: z.enum(["game", "tag"]).optional().default("game"),
+		}),
+	)
+	.handler(async ({ data }) => {
+		const indexName =
+			data?.indexType === "tag"
+				? process.env.MEILISEARCH_TAG_INDEXNAME
+				: process.env.MEILISEARCH_INDEXNAME;
+		const { data: result, error } =
+			await api.search.meilisearchPropertylist.get({
+				query: { indexName },
+				fetch: cookiePass().fetch,
+			});
 		elysiaErrorF(error);
-		return data;
-	},
-);
+		return result;
+	});
 
 /**
  * 获取搜索属性
  */
-export const getSearchableAttributes = createServerFn({
-	method: "GET",
-}).handler(async () => {
-	const { data, error } =
-		await api.search.meilisearcSearchableAttributeshGet.get(cookiePass());
-	elysiaErrorF(error);
-	return data;
-});
+export const getSearchableAttributes = createServerFn({ method: "GET" })
+	.validator(
+		z.object({
+			indexType: z.enum(["game", "tag"]).optional().default("game"),
+		}),
+	)
+	.handler(async ({ data }) => {
+		const indexName =
+			data?.indexType === "tag"
+				? process.env.MEILISEARCH_TAG_INDEXNAME
+				: process.env.MEILISEARCH_INDEXNAME;
+		const { data: result, error } =
+			await api.search.meilisearchSearchableAttributesGet.get({
+				query: { indexName },
+				fetch: cookiePass().fetch,
+			});
+		elysiaErrorF(error);
+		return result;
+	});
 
 /**
  * 更新搜索属性
@@ -98,12 +119,17 @@ export const updateSearchableAttributes = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			fields: z.array(z.string()),
+			indexType: z.enum(["game", "tag"]).optional().default("game"),
 		}),
 	)
-	.handler(async ({ data: body }) => {
+	.handler(async ({ data: { fields, indexType } }) => {
+		const indexName =
+			indexType === "tag"
+				? process.env.MEILISEARCH_TAG_INDEXNAME
+				: process.env.MEILISEARCH_INDEXNAME;
 		const { data, error } =
-			await api.search.meilisearcSearchableAttributeshUpdate.post(
-				body,
+			await api.search.meilisearchSearchableAttributesUpdate.post(
+				{ fields, indexName },
 				cookiePass(),
 			);
 		elysiaErrorF(error);

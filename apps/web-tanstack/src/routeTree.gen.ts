@@ -19,6 +19,7 @@ import { Route as ToolsIndexRouteImport } from './routes/tools/index'
 import { Route as TagsIndexRouteImport } from './routes/tags/index'
 import { Route as SearchIndexRouteImport } from './routes/search/index'
 import { Route as ProducerIndexRouteImport } from './routes/producer/index'
+import { Route as GamesIndexRouteImport } from './routes/games/index'
 import { Route as CollectionsIndexRouteImport } from './routes/collections/index'
 import { Route as TopicsCreateRouteImport } from './routes/topics/create'
 import { Route as TopicsTopicIdRouteImport } from './routes/topics/$topicId'
@@ -99,6 +100,11 @@ const SearchIndexRoute = SearchIndexRouteImport.update({
 const ProducerIndexRoute = ProducerIndexRouteImport.update({
   id: '/producer/',
   path: '/producer/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesIndexRoute = GamesIndexRouteImport.update({
+  id: '/games/',
+  path: '/games/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CollectionsIndexRoute = CollectionsIndexRouteImport.update({
@@ -277,6 +283,7 @@ export interface FileRoutesByFullPath {
   '/topics/$topicId': typeof TopicsTopicIdRouteWithChildren
   '/topics/create': typeof TopicsCreateRoute
   '/collections/': typeof CollectionsIndexRoute
+  '/games/': typeof GamesIndexRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
@@ -318,6 +325,7 @@ export interface FileRoutesByTo {
   '/topics/$topicId': typeof TopicsTopicIdRouteWithChildren
   '/topics/create': typeof TopicsCreateRoute
   '/collections': typeof CollectionsIndexRoute
+  '/games': typeof GamesIndexRoute
   '/producer': typeof ProducerIndexRoute
   '/search': typeof SearchIndexRoute
   '/tags': typeof TagsIndexRoute
@@ -362,6 +370,7 @@ export interface FileRoutesById {
   '/topics/$topicId': typeof TopicsTopicIdRouteWithChildren
   '/topics/create': typeof TopicsCreateRoute
   '/collections/': typeof CollectionsIndexRoute
+  '/games/': typeof GamesIndexRoute
   '/producer/': typeof ProducerIndexRoute
   '/search/': typeof SearchIndexRoute
   '/tags/': typeof TagsIndexRoute
@@ -407,6 +416,7 @@ export interface FileRouteTypes {
     | '/topics/$topicId'
     | '/topics/create'
     | '/collections/'
+    | '/games/'
     | '/producer/'
     | '/search/'
     | '/tags/'
@@ -448,6 +458,7 @@ export interface FileRouteTypes {
     | '/topics/$topicId'
     | '/topics/create'
     | '/collections'
+    | '/games'
     | '/producer'
     | '/search'
     | '/tags'
@@ -491,6 +502,7 @@ export interface FileRouteTypes {
     | '/topics/$topicId'
     | '/topics/create'
     | '/collections/'
+    | '/games/'
     | '/producer/'
     | '/search/'
     | '/tags/'
@@ -535,6 +547,7 @@ export interface RootRouteChildren {
   TopicsTopicIdRoute: typeof TopicsTopicIdRouteWithChildren
   TopicsCreateRoute: typeof TopicsCreateRoute
   CollectionsIndexRoute: typeof CollectionsIndexRoute
+  GamesIndexRoute: typeof GamesIndexRoute
   ProducerIndexRoute: typeof ProducerIndexRoute
   SearchIndexRoute: typeof SearchIndexRoute
   TagsIndexRoute: typeof TagsIndexRoute
@@ -617,6 +630,13 @@ declare module '@tanstack/react-router' {
       path: '/producer'
       fullPath: '/producer/'
       preLoaderRoute: typeof ProducerIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/': {
+      id: '/games/'
+      path: '/games'
+      fullPath: '/games/'
+      preLoaderRoute: typeof GamesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collections/': {
@@ -915,6 +935,7 @@ const rootRouteChildren: RootRouteChildren = {
   TopicsTopicIdRoute: TopicsTopicIdRouteWithChildren,
   TopicsCreateRoute: TopicsCreateRoute,
   CollectionsIndexRoute: CollectionsIndexRoute,
+  GamesIndexRoute: GamesIndexRoute,
   ProducerIndexRoute: ProducerIndexRoute,
   SearchIndexRoute: SearchIndexRoute,
   TagsIndexRoute: TagsIndexRoute,

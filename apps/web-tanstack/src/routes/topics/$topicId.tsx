@@ -6,6 +6,14 @@ import {
   useMatches,
   useNavigate,
 } from '@tanstack/react-router'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@web/components/ui/breadcrumb'
 import { ReplyEidtInput } from '@web/components/cmments/reply-edit-input'
 import {
   AlertDialog,
@@ -109,6 +117,16 @@ function RouteComponent() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-4">
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem><BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem><BreadcrumbLink render={<Link to="/topics" />}>论坛</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem><BreadcrumbPage>{(topic as any).title}</BreadcrumbPage></BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <Link
         to="/topics"
         className="text-sm text-muted-foreground hover:text-foreground"

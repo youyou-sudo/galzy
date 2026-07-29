@@ -46,16 +46,16 @@ export function startCronTasks() {
   //   console.log('[Cron] alistSyncScript 定时执行')
   // })
 
-  // 每12小时执行一次
-  new Cron('0 */12 * * *', () => {
+  // Weekly full rebuild as safety net (Sunday 3:00 AM)
+  new Cron('0 3 * * 0', () => {
     CronService.meiliSearchAddIndex()
-    console.log('[Cron] meiliSearchAddIndex 定时执行')
+    console.log('[Cron] meiliSearchAddIndex weekly full rebuild')
   })
 
-  // 每12小时执行一次
-  new Cron('0 */12 * * *', () => {
+  // Weekly full rebuild as safety net
+  new Cron('0 3 * * 0', () => {
     CronService.meiliSearchAddTag()
-    console.log('[Cron] meiliSearchAddTag 定时执行')
+    console.log('[Cron] meiliSearchAddTag weekly full rebuild')
   })
 
   console.log('✅️ Cron tasks started.')

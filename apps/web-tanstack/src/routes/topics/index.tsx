@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { TopicCard } from '@web/components/topics/topic-card'
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@web/components/ui/breadcrumb'
 import { Button } from '@web/components/ui/button'
 import { elysiaErrorF } from '@web/lib'
 import { authClient } from '@web/server/auth/auth-client'
@@ -38,6 +39,14 @@ function RouteComponent() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-4">
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem><BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem><BreadcrumbPage>论坛</BreadcrumbPage></BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <FileText className="size-6" />

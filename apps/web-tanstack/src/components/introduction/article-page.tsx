@@ -11,7 +11,7 @@ import {
 import { elysiaErrorF } from "@web/lib";
 import { authClient } from "@web/server/auth/auth-client";
 import { deleteIntroduction } from "@web/server/introduction";
-import { ArrowLeft, Loader2, Pencil, Trash2, User } from "lucide-react";
+import { Loader2, Pencil, Trash2, User } from "lucide-react";
 import { useState } from "react";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
@@ -77,49 +77,35 @@ export default function ArticlePage({
 				match.routeId === "/$id/_layout/introduction/$articleId",
 		});
 	};
-
 	return (
 		<section>
 			<Card>
 				<CardHeader>
-					<div className="flex items-center justify-between">
-						<Link
-							to="/$id/introduction"
-							params={{ id: gameId }}
-							resetScroll={false}
-							className="flex items-center pl-3 gap-1 underline opacity-50 hover:opacity-100"
-						>
-							<ArrowLeft className="size-4" />
-							返回
-						</Link>
-
-						{/* Admin action buttons */}
-						{isAdmin && (
-							<div className="flex items-center gap-1">
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => setDialogOpen(true)}
-								>
-									<Pencil className="size-4 mr-1" />
-									编辑
-								</Button>
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={handleDelete}
-									disabled={deleteMutation.isPending}
-								>
-									{deleteMutation.isPending ? (
-										<Loader2 className="size-4 mr-1 animate-spin" />
-									) : (
-										<Trash2 className="size-4 mr-1 text-destructive" />
-									)}
-									删除
-								</Button>
-							</div>
-						)}
-					</div>
+					{isAdmin && (
+						<div className="flex items-center justify-end gap-1 mb-2">
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => setDialogOpen(true)}
+							>
+								<Pencil className="size-4 mr-1" />
+								编辑
+							</Button>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={handleDelete}
+								disabled={deleteMutation.isPending}
+							>
+								{deleteMutation.isPending ? (
+									<Loader2 className="size-4 mr-1 animate-spin" />
+								) : (
+									<Trash2 className="size-4 mr-1 text-destructive" />
+								)}
+								删除
+							</Button>
+						</div>
+					)}
 					<CardTitle className="text-2xl items-center text-center">
 						{article?.title}
 					</CardTitle>

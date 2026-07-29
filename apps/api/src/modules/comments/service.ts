@@ -1,6 +1,16 @@
 import { comments, db, sql, users } from '@api/libs'
 import { emailServer } from '@api/libs/seedMail'
-import { and, asc, count, desc, eq, getTableColumns, gt, inArray, isNull } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  gt,
+  inArray,
+  isNull,
+} from 'drizzle-orm'
 import { status } from 'elysia'
 import type { CommentModel } from './model'
 
@@ -53,7 +63,7 @@ export const CommentService = {
     ])
 
     // Batch-fetch all replies for this page of comments (2nd query, not N)
-    let repliesByRoot = new Map<string, any[]>()
+    const repliesByRoot = new Map<string, any[]>()
     if (commentsData.length > 0) {
       const rootIds = commentsData.map((c) => c.id)
       const replies = await db
@@ -62,7 +72,12 @@ export const CommentService = {
           user: sql<{ id: string; name: string; email: string; image: string }>`
             (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = ${comments.userId}) "u")
           `.as('user'),
-          reUser: sql<{ id: string; name: string; email: string; image: string }>`
+          reUser: sql<{
+            id: string
+            name: string
+            email: string
+            image: string
+          }>`
             (SELECT row_to_json("ru".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = ${comments.replyToUserId}) "ru")
           `.as('reUser'),
         })

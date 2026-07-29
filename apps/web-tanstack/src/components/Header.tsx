@@ -34,7 +34,7 @@ export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
   const blurEnabled = useSelector(r18Store, (s) => s.blurEnabled)
   return (
-    <div className="mx-auto w-full max-w-7xl border-b bg-background px-4 py-2 lg:my-4 rounded-full lg:border dark:opacity-70">
+    <div className="sticky top-0 z-50 mx-auto w-full max-w-7xl border-b bg-background/95 backdrop-blur-sm px-4 py-2 lg:mb-4 rounded-full lg:border dark:opacity-70">
       <div className="flex items-center justify-between">
         {/* Left block */}
         <div className="flex items-center">

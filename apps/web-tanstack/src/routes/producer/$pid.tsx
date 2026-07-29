@@ -1,5 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import ProducerDetailPage from "@web/components/producer/producer-detail-page";
+import {
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink,
+  BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator,
+} from "@web/components/ui/breadcrumb";
 import { producerGameList, producerInfo } from "@web/server/producer";
 
 export const Route = createFileRoute("/producer/$pid")({
@@ -17,6 +21,20 @@ export const Route = createFileRoute("/producer/$pid")({
 
 	component: () => {
 		const loaderData = Route.useLoaderData();
-		return <ProducerDetailPage {...loaderData} />;
+		const producerName = loaderData.producer?.name || "厂商";
+		return (
+			<div className="max-w-7xl mx-auto py-6 px-4 sm:px-0">
+				<Breadcrumb className="mb-4">
+					<BreadcrumbList>
+						<BreadcrumbItem><BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink></BreadcrumbItem>
+						<BreadcrumbSeparator />
+						<BreadcrumbItem><BreadcrumbLink render={<Link to="/producer" />}>厂商</BreadcrumbLink></BreadcrumbItem>
+						<BreadcrumbSeparator />
+						<BreadcrumbItem><BreadcrumbPage>{producerName}</BreadcrumbPage></BreadcrumbItem>
+					</BreadcrumbList>
+				</Breadcrumb>
+				<ProducerDetailPage {...loaderData} />
+			</div>
+		);
 	},
 });

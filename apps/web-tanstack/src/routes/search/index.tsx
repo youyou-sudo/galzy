@@ -1,32 +1,17 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { seoTemplate } from "@web/config/seoTemplate";
-import SearchPage from "@web/components/search/search-page";
-import { getSearch, SearchSchema } from "@web/server/search";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { SearchSchema } from "@web/server/search";
+import type { z } from "zod";
+
+type SearchParams = z.infer<typeof SearchSchema>;
 
 export const Route = createFileRoute("/search/")({
 	validateSearch: SearchSchema,
-	loaderDeps: ({ search: { q, startDate, endDate } }) => ({
-		q,
-		startDate,
-		endDate,
-	}),
-	loader: async ({ deps }) => {
-		return { searchdata: await getSearch({ data: deps }), q: deps.q };
+	loader: async ({ search }) => {
+		const { q, startDate, endDate } = search as SearchParams;
+		throw redirect({
+			to: "/games",
+			search: { q, startDate, endDate },
+			replace: true,
+		});
 	},
-	head: ({ loaderData }) => ({
-		meta: [
-			{ title: `搜索 -  ${loaderData?.q || "游戏"} | ${seoTemplate.title}` },
-			{
-				name: "description",
-				content: `搜索 - ${loaderData?.q || "游戏"} 搜索结果`,
-			},
-		],
-	}),
-	headers: () => ({
-		"Cache-Control": "public, max-age=300",
-		Vary: "Accept, Accept-Encoding",
-	}),
-	staleTime: 1000 * 30,
-
-	component: SearchPage,
 });

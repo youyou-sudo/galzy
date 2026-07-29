@@ -17,10 +17,12 @@ export const game = new Elysia({ prefix: '/games' })
   })
   .get(
     '/gamelist',
-    async ({ query: { pageIndex, pageSize } }) => {
+    async ({ query: { pageIndex, pageSize, sortBy, order } }) => {
       return await Game.List({
         pageIndex,
         pageSize,
+        sortBy,
+        order,
       })
     },
     {

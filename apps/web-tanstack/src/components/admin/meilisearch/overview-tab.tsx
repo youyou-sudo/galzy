@@ -1,108 +1,175 @@
-import { useQuery } from "@tanstack/react-query";
-import { Badge } from "@web/components/ui/badge";
+import { useQuery } from '@tanstack/react-query';
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@web/components/ui/card";
-import { getMeiliStats } from "@web/server/admin/meilisearch";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@web/components/ui/card';
+import { Separator } from '@web/components/ui/separator';
+import { getMeiliStats } from '@web/server/admin/meilisearch';
 import {
-	ErrorDisplay,
-	formatBytes,
-	ignoreAbort,
-	LoadingSpinner,
-	StatItem,
-} from "./shared";
+  ClockIcon,
+  DatabaseIcon,
+  FileTextIcon,
+  HardDriveIcon,
+} from 'lucide-react';
+import type { MeiliStats } from './types';
+import {
+  CardSkeleton,
+  EmptyState,
+  ErrorDisplay,
+  extractError,
+  formatBytes,
+  formatNumber,
+  formatTime,
+  ignoreAbort,
+  indexIcon,
+  relativeTime,
+  StatCard,
+  StatSkeleton,
+  StatusBadge,
+} from './shared';
 
 export function OverviewTab() {
-	const {
-		data,
-		isLoading: loading,
-		error,
-		refetch,
-	} = useQuery({
-		queryKey: ["meiliStats"],
-		queryFn: ignoreAbort(getMeiliStats),
-	});
+  const {
+    data: raw,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['meiliStats'],
+    queryFn: ignoreAbort(getMeiliStats),
+    staleTime: 30_000,
+  });
 
-	const errMsg = error && error instanceof Error ? error.message : "加载失败";
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="pt-6">
+            <StatSkeleton />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardSkeleton rows={2} />
+        </Card>
+      </div>
+    );
+  }
 
-	if (loading) return <LoadingSpinner text="正在获取统计信息..." />;
-	if (error) return <ErrorDisplay message={errMsg} onRetry={() => refetch()} />;
-	if (!data) return null;
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <ErrorDisplay
+            message={extractError(error)}
+            onRetry={() => refetch()}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
-	return (
-		<div className="space-y-4">
-			<Card>
-				<CardHeader>
-					<CardTitle>实例统计</CardTitle>
-					<CardDescription>Meilisearch 实例整体运行状态</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-						<StatItem
-							label="数据库大小"
-							value={formatBytes(data.databaseSize)}
-						/>
-						<StatItem
-							label="最后更新"
-							value={
-								data.lastUpdate
-									? new Date(data.lastUpdate).toLocaleString()
-									: "-"
-							}
-						/>
-						<StatItem
-							label="索引数量"
-							value={Object.keys(data.indexes ?? {}).length}
-						/>
-						<StatItem
-							label="总文档数"
-							value={Object.values(data.indexes ?? {}).reduce(
-								(sum: number, idx: any) => sum + (idx.numberOfDocuments ?? 0),
-								0,
-							)}
-						/>
-					</div>
-				</CardContent>
-			</Card>
+  const stats = raw as MeiliStats | undefined;
+  if (!stats) return null;
 
-			<Card>
-				<CardHeader>
-					<CardTitle>索引详情</CardTitle>
-					<CardDescription>各索引的文档数与字段分布</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div className="space-y-3">
-						{Object.entries(data.indexes ?? {}).map(
-							([name, idx]: [string, any]) => (
-								<div
-									key={name}
-									className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
-								>
-									<div>
-										<p className="font-medium">{name}</p>
-										<p className="text-xs text-muted-foreground">
-											{idx.numberOfDocuments ?? 0} 文档
-											{idx.isIndexing ? " · 正在索引中" : ""}
-										</p>
-									</div>
-									<Badge variant={idx.isIndexing ? "default" : "secondary"}>
-										{idx.isIndexing ? "索引中" : "就绪"}
-									</Badge>
-								</div>
-							),
-						)}
-						{Object.keys(data.indexes ?? {}).length === 0 && (
-							<p className="text-muted-foreground text-center py-4">
-								暂无索引数据
-							</p>
-						)}
-					</div>
-				</CardContent>
-			</Card>
-		</div>
-	);
+  const indexes = stats.indexes ?? {};
+  const indexEntries = Object.entries(indexes);
+  const totalDocs = indexEntries.reduce(
+    (sum, [, idx]) => sum + (idx.numberOfDocuments ?? 0),
+    0,
+  );
+  const indexingCount = indexEntries.filter(
+    ([, idx]) => idx.isIndexing,
+  ).length;
+
+  return (
+    <div className="space-y-6">
+      {/* Hero Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard
+          icon={HardDriveIcon}
+          label="数据库大小"
+          value={formatBytes(stats.databaseSize)}
+        />
+        <StatCard
+          icon={FileTextIcon}
+          label="总文档数"
+          value={formatNumber(totalDocs)}
+          description={
+            indexingCount > 0 ? `${indexingCount} 个索引进行中` : undefined
+          }
+        />
+        <StatCard
+          icon={DatabaseIcon}
+          label="索引数量"
+          value={indexEntries.length}
+          description={
+            indexEntries.length > 0
+              ? `${indexEntries.filter(([, i]) => i.numberOfDocuments > 0).length} 个有数据`
+              : undefined
+          }
+        />
+        <StatCard
+          icon={ClockIcon}
+          label="最后更新"
+          value={relativeTime(stats.lastUpdate) || '-'}
+          description={stats.lastUpdate ? formatTime(stats.lastUpdate) : undefined}
+        />
+      </div>
+
+      {/* Index Detail Cards */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">索引详情</CardTitle>
+          <CardDescription>
+            各索引的文档数、字段分布与运行状态
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {indexEntries.length === 0 ? (
+            <EmptyState
+              icon={DatabaseIcon}
+              text="暂无索引数据"
+              description="Meilisearch 实例中尚未创建任何索引"
+            />
+          ) : (
+            <div className="space-y-2">
+              {indexEntries.map(([name, idx], i) => {
+                const Icon = indexIcon(name);
+                const fieldCount = Object.keys(
+                  idx.fieldDistribution ?? {},
+                ).length;
+                return (
+                  <div key={name}>
+                    {i > 0 && <Separator className="my-2" />}
+                    <div className="flex items-center justify-between gap-4 py-1">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex items-center justify-center size-9 rounded-lg bg-muted/50 shrink-0">
+                          <Icon className="size-4 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatNumber(idx.numberOfDocuments)} 文档
+                            {fieldCount > 0 && ` · ${fieldCount} 字段`}
+                          </p>
+                        </div>
+                      </div>
+                      <StatusBadge
+                        status={idx.isIndexing ? 'running' : 'idle'}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

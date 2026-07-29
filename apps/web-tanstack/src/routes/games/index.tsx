@@ -1,0 +1,228 @@
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { GameCard } from "@web/components/home/card";
+import SearchInput from "@web/components/home/search/Search";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from "@web/components/ui/breadcrumb";
+import { Button } from "@web/components/ui/button";
+import { getImageUrl } from "@web/lib/image-url";
+import { getGameList } from "@web/server/game";
+import { ArrowUpDown, Flame, ListFilter } from "lucide-react";
+import { z } from "zod";
+
+const searchSchema = z.object({
+	q: z.string().optional().default(""),
+	startDate: z.string().optional(),
+	endDate: z.string().optional(),
+	sortBy: z.string().optional().default("released"),
+	order: z.string().optional().default("desc"),
+});
+
+export const Route = createFileRoute("/games/")({
+	component: RouteComponent,
+	validateSearch: searchSchema,
+	loaderDeps: ({ search: { q, startDate, endDate, sortBy, order } }) => ({
+		q,
+		startDate,
+		endDate,
+		sortBy,
+		order,
+	}),
+	loader: async ({ deps: { q, startDate, endDate, sortBy, order } }) => {
+		const { gamelist } = await getGameList({
+			data: {
+				pageIndex: 0,
+				pageSize: 24,
+				sortBy,
+				order,
+				q,
+				startDate,
+				endDate,
+			},
+		});
+		return { initialData: gamelist };
+	},
+});
+
+function RouteComponent() {
+	const { q, startDate, endDate, sortBy, order } = Route.useSearch();
+	const { initialData } = Route.useLoaderData();
+	const navigate = useNavigate();
+
+	const {
+		data: gameListData,
+		isLoading,
+		isFetchingNextPage,
+		fetchNextPage,
+		hasNextPage,
+	} = useInfiniteQuery({
+		queryKey: ["gameList", q, startDate, endDate, sortBy, order],
+		queryFn: async ({ pageParam }) => {
+			const { gamelist } = await getGameList({
+				data: {
+					pageIndex: pageParam,
+					pageSize: 24,
+					sortBy,
+					order,
+					q,
+					startDate,
+					endDate,
+				},
+			});
+			return gamelist ?? null;
+		},
+		initialPageParam: 1,
+		initialData: initialData
+			? { pages: [initialData], pageParams: [0] }
+			: undefined,
+		getNextPageParam: (lastPage) =>
+			lastPage && lastPage.currentPage < lastPage.totalPages
+				? lastPage.currentPage + 1
+				: null,
+	});
+
+	const gameList = gameListData?.pages.flatMap((page) =>
+		page?.items?.map((item) => (
+			<GameCard.Item
+				key={item.id}
+				gameid={String(item.id)}
+				width={item.images?.width ?? 200}
+				height={item.images?.height ?? 300}
+				src={getImageUrl({
+					imageId: item.images?.id,
+					width: item.images?.width,
+					height: item.images?.height,
+				})}
+				cSexualAvg={item.images?.c_sexual_avg}
+				title={
+					item?.titles_obj?.find(
+						(t) => t.lang === item.olang && t.title.trim() !== "",
+					)?.title || "null"
+				}
+			/>
+		)),
+	);
+
+	return (
+		<div className="mx-auto w-full max-w-7xl px-3 md:px-6 py-6">
+			<Breadcrumb className="mb-4">
+				<BreadcrumbList>
+					<BreadcrumbItem>
+						<BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
+					</BreadcrumbItem>
+					<BreadcrumbSeparator />
+					<BreadcrumbItem>
+						<BreadcrumbPage>全部游戏</BreadcrumbPage>
+					</BreadcrumbItem>
+				</BreadcrumbList>
+			</Breadcrumb>
+
+			<div className="mb-6">
+				<h1 className="text-2xl font-semibold">全部游戏</h1>
+				<p className="text-sm text-muted-foreground mt-1">
+					浏览所有收录的 Galgame 作品
+				</p>
+			</div>
+
+			<div className="mx-auto w-full max-w-lg mb-6">
+				<SearchInput />
+			</div>
+
+			<div className="flex flex-wrap items-center gap-2 mb-6 pb-4 border-b">
+				<ListFilter className="size-4 text-muted-foreground shrink-0" />
+				<span className="text-sm text-muted-foreground shrink-0">排序：</span>
+				<Button
+					variant={sortBy === "released" ? "default" : "outline"}
+					size="sm"
+					onClick={() =>
+						navigate({
+							search: { q, startDate, endDate, sortBy: "released", order },
+						})
+					}
+				>
+					发布时间
+				</Button>
+				<Button
+					variant={sortBy === "downloads" ? "default" : "outline"}
+					size="sm"
+					onClick={() =>
+						navigate({
+							search: { q, startDate, endDate, sortBy: "downloads", order },
+						})
+					}
+				>
+					下载量
+				</Button>
+				<Button
+					variant={sortBy === "views" ? "default" : "outline"}
+					size="sm"
+					onClick={() =>
+						navigate({
+							search: { q, startDate, endDate, sortBy: "views", order },
+						})
+					}
+				>
+					浏览量
+				</Button>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() =>
+						navigate({
+							search: {
+								q,
+								startDate,
+								endDate,
+								sortBy,
+								order: order === "desc" ? "asc" : "desc",
+							},
+						})
+					}
+					className="ml-auto"
+				>
+					<ArrowUpDown className="size-3.5 mr-1" />
+					{order === "desc" ? "降序" : "升序"}
+				</Button>
+			</div>
+
+			<div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+				{gameList}
+				{isLoading || isFetchingNextPage ? (
+					<>
+						<GameCard.ListSkeleton />
+						<GameCard.ListSkeleton />
+						<GameCard.ListSkeleton />
+						<GameCard.ListSkeleton />
+						<GameCard.ListSkeleton />
+						<GameCard.ListSkeleton />
+					</>
+				) : null}
+			</div>
+
+			{hasNextPage && (
+				<div className="flex justify-center mt-8">
+					<Button
+						size="lg"
+						onClick={() => fetchNextPage()}
+						disabled={isFetchingNextPage}
+					>
+						{isFetchingNextPage ? "加载中..." : "加载更多"}
+					</Button>
+				</div>
+			)}
+
+			{!isLoading && (!gameList || gameList.length === 0) && (
+				<div className="text-center py-20 text-muted-foreground">
+					<Flame className="size-12 mx-auto mb-3 opacity-30" />
+					<p>暂无游戏数据</p>
+				</div>
+			)}
+		</div>
+	);
+}

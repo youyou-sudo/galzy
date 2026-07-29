@@ -14,6 +14,7 @@ import {
   vnTitles,
   zhtags,
 } from '@api/libs'
+import { MeiliClient } from '@api/libs/meilisearch'
 import { acquireLockKv, delKvPattern, releaseLockKv } from '@api/libs/redis'
 import { idOrFilter, VndbClient } from '@api/libs/vndb-api'
 import type {
@@ -558,6 +559,9 @@ export const VndbSync = {
 
     const tagIds = new Set<string>()
 
+    // Collect docs for incremental Meilisearch sync
+    const meiliDocs: Record<string, unknown>[] = []
+
     for await (const results of VndbClient.paginateAll<VnResult>(
       'vn',
       fields,
@@ -663,10 +667,36 @@ export const VndbSync = {
             )
           }
         })
+
+        // Build partial Meilisearch doc from VNDB API data
+        meiliDocs.push({
+          id: vnData.id,
+          alias: vnData.aliases?.[0] ?? null,
+          olang: vnData.olang,
+          devstatus: vnData.devstatus,
+          rating: vnData.rating == null ? null : Math.round(vnData.rating),
+          votecount: vnData.votecount,
+          description: vnData.description,
+          titles: vnData.titles?.map((t) => t.title) ?? [],
+        })
       }
       console.log(`  → transaction done, sleeping 2s...`)
       await new Promise((r) => setTimeout(r, 2000))
     }
+
+    // Push to Meilisearch incrementally
+    if (meiliDocs.length > 0) {
+      try {
+        const index = MeiliClient.index(
+          process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
+        )
+        await index.updateDocuments(meiliDocs, { primaryKey: 'id' })
+        console.log(`  → MeiliSearch 增量更新: ${meiliDocs.length} docs`)
+      } catch (e) {
+        console.error('  → MeiliSearch 增量更新失败:', e)
+      }
+    }
+
     console.log(`  ← syncVnBatch returning ${tagIds.size} tagIds`)
     return [...tagIds]
   },

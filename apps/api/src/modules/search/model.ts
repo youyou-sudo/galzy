@@ -8,6 +8,31 @@ export namespace SearchModel {
     startDate: t.Optional(t.String()),
     endDate: t.Optional(t.String()),
   })
+
+  // Unified game search params — full-text + sort + filter + facets
+  export const gameSearch = t.Object({
+    q: t.Optional(t.String({ default: '' })),
+    page: t.Optional(t.Number({ minimum: 1, default: 1 })),
+    hitsPerPage: t.Optional(
+      t.Number({ minimum: 1, maximum: 100, default: 24 }),
+    ),
+    sortBy: t.Optional(
+      t.Union([
+        t.Literal('released_first'),
+        t.Literal('rating'),
+        t.Literal('votecount'),
+        t.Literal('dl_count'),
+        t.Literal('vw_count'),
+        t.Literal('id'),
+      ]),
+    ),
+    order: t.Optional(t.Union([t.Literal('asc'), t.Literal('desc')])),
+    olang: t.Optional(t.String()),
+    tags: t.Optional(t.Union([t.String(), t.Array(t.String())])),
+    startDate: t.Optional(t.String()),
+    endDate: t.Optional(t.String()),
+  })
+
   export const meilisearchEmbeddersUpdate = t.Object({
     url: t.String(),
     embeddingApiKey: t.String(),
@@ -15,8 +40,9 @@ export namespace SearchModel {
     documentTemplateMaxBytes: t.Number(),
     documentTemplate: t.String(),
   })
-  export const meilisearcSearchableAttributeshUpdate = t.Object({
+  export const meilisearchSearchableAttributesUpdate = t.Object({
     fields: t.Array(t.String()),
+    indexName: t.Optional(t.String()),
   })
   export type tagAllReturn = Awaited<ReturnType<typeof Tags.tagAllGet>>
   export const tagSearch = t.Object({
@@ -25,8 +51,9 @@ export namespace SearchModel {
   })
   export type tagSearch = typeof tagSearch.static
   export type search = typeof search.static
+  export type gameSearch = typeof gameSearch.static
   export type meilisearchEmbeddersUpdate =
     typeof meilisearchEmbeddersUpdate.static
-  export type meilisearcSearchableAttributeshUpdate =
-    typeof meilisearcSearchableAttributeshUpdate.static
+  export type meilisearchSearchableAttributesUpdate =
+    typeof meilisearchSearchableAttributesUpdate.static
 }

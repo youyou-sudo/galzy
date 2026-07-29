@@ -198,7 +198,6 @@ export const TopicService = {
       } as any)
       .returning()
 
-
     const [topicUser] = await db
       .select({ id: users.id, name: users.name, image: users.image })
       .from(users)

@@ -1,72 +1,82 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <any> */
 import { getRouteApi } from "@tanstack/react-router";
-import { TagViewsTrackEvents } from "@web/components/umami/track-events";
 import { getImageUrl } from "@web/lib/image-url";
 import { GameCard } from "../card";
 
 const routeApi = getRouteApi("/search/");
 
+interface HitDoc {
+	id: string;
+	olang: string | null;
+	titles_obj?: Array<{ title: string; latin: string | null; lang: string }>;
+	images?: {
+		id: string;
+		width: number;
+		height: number;
+		c_sexual_avg: number;
+	} | null;
+	otherData?: {
+		id: number;
+		other: number;
+		title?: Array<{ lang: string; title: string }>;
+		alias?: string;
+		other_media?: Array<{
+			cover?: boolean;
+			media?: { id: string; width: number; height: number };
+		}>;
+	};
+}
+
 const SearchlistComponent = () => {
 	const { searchdata } = routeApi.useLoaderData();
-	const gameList = () => {
-		return searchdata?.hits.map((item) => {
-			const imageFilter = () => {
-				const images =
-					item.other &&
-					item.otherData?.other_media.some((item: any) => item.cover === true)
-						? item.otherData.other_media.find(
-								(item: any) => item.cover === true,
-							)?.media
-						: item.images;
-				return images;
-			};
-			const imagesData = imageFilter();
-			let imagess = "/No-Image-Placeholder.svg.webp";
+	const hits = (searchdata?.hits ?? []) as HitDoc[];
 
-			if (imagesData) {
-				if (imagesData.id && imagesData.width && imagesData.height) {
-					imagess = getImageUrl({
-						imageId: imagesData.id,
-						width: imagesData.width,
-						height: imagesData.height,
-					});
-				}
-			}
-			return (
-				<div key={item.id}>
-					{/* [x] VNDB 来源图片进行缓存以防止滥用 VNDB 服务
-					 */}
-					<GameCard.Item
-						gameid={item.id}
-						width={imagesData?.width ?? 200}
-						height={imagesData?.height ?? 300}
-						src={imagess}
-						cSexualAvg={imagesData?.c_sexual_avg}
-						title={
-							item.otherData?.title?.length
-								? (item.otherData.title.find(
-										(it: { lang: string }) => it.lang === "zh-Hans",
-									)?.title ?? item.otherData.title[0]?.title)
-								: item.titles.find(
-										(it: { lang: string }) => it.lang === item.olang,
-									)?.title
-						}
-					/>
-				</div>
-			);
-		});
-	};
-	if ((searchdata?.hits ?? []).length === 0) {
+	if (hits.length === 0) {
 		return (
 			<div className="flex text-center font-bold justify-center items-center">
 				喵~没有找到哦 🐾，可以尝试其他关键字喵～💕
 			</div>
 		);
 	}
+
 	return (
 		<>
-			{gameList()}
-			{searchdata?.topTag && <TagViewsTrackEvents tagId={searchdata.topTag.id} />}
+			{hits.map((item) => {
+				const imagesData = item.otherData?.other_media?.some(
+					(m: any) => m.cover === true,
+				)
+					? item.otherData.other_media.find((m: any) => m.cover === true)?.media
+					: item.images;
+
+				let imagess = "/No-Image-Placeholder.svg.webp";
+				if (imagesData?.id && imagesData.width && imagesData.height) {
+					imagess = getImageUrl({
+						imageId: imagesData.id,
+						width: imagesData.width,
+						height: imagesData.height,
+					});
+				}
+
+				const titleObj = item.titles_obj;
+				const displayTitle =
+					item.otherData?.title?.find((it) => it.lang === "zh-Hans")?.title ??
+					item.otherData?.title?.[0]?.title ??
+					titleObj?.find((it) => it.lang === item.olang)?.title ??
+					titleObj?.[0]?.title;
+
+				return (
+					<div key={item.id}>
+						<GameCard.Item
+							gameid={item.id}
+							width={imagesData?.width ?? 200}
+							height={imagesData?.height ?? 300}
+							src={imagess}
+							cSexualAvg={imagesData?.c_sexual_avg}
+							title={displayTitle}
+						/>
+					</div>
+				);
+			})}
 		</>
 	);
 };

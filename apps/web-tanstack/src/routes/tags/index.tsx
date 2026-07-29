@@ -1,5 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import TagsPage from "@web/components/tags/tags-page";
+import {
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink,
+  BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator,
+} from "@web/components/ui/breadcrumb";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { getSearchTags, SearchTagsSchema } from "@web/server/tags";
 
@@ -7,18 +11,27 @@ export const Route = createFileRoute("/tags/")({
 	component: () => {
 		const { tags, q } = Route.useLoaderData();
 		return (
-			<TagsPage
-				tags={
-					tags as
-						| {
-								hits: Array<{ id: string; name: string; zh_name?: string }>;
-								totalHits: number;
-						  }
-						| null
-						| undefined
-				}
-				q={q}
-			/>
+			<div className="max-w-7xl mx-auto py-6 px-4 sm:px-0">
+				<Breadcrumb className="mb-4">
+					<BreadcrumbList>
+						<BreadcrumbItem><BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink></BreadcrumbItem>
+						<BreadcrumbSeparator />
+						<BreadcrumbItem><BreadcrumbPage>标签</BreadcrumbPage></BreadcrumbItem>
+					</BreadcrumbList>
+				</Breadcrumb>
+				<TagsPage
+					tags={
+						tags as
+							| {
+									hits: Array<{ id: string; name: string; zh_name?: string }>;
+									totalHits: number;
+							  }
+							| null
+							| undefined
+					}
+					q={q}
+				/>
+			</div>
 		);
 	},
 	validateSearch: SearchTagsSchema,

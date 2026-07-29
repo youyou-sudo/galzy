@@ -1,10 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { CollectionCard } from '@web/components/collections/collection-card'
 import { Button } from '@web/components/ui/button'
+import {
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink,
+  BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator,
+} from '@web/components/ui/breadcrumb'
 import { getCollectionPreview, getCollections } from '@web/server/collections'
 import { Package } from 'lucide-react'
-
 export const Route = createFileRoute('/collections/')({
   component: RouteComponent,
   validateSearch: (search: Record<string, unknown>) => ({
@@ -54,6 +57,13 @@ function RouteComponent() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 py-6 px-4 sm:px-0">
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem><BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem><BreadcrumbPage>合集</BreadcrumbPage></BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Package className="size-6" />

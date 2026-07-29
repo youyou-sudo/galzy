@@ -1,4 +1,4 @@
-import { Elysia } from 'elysia'
+import { Elysia, t } from 'elysia'
 import { betterAuth } from '../auth'
 import { SearchModel } from './model'
 import { Search } from './service'
@@ -12,6 +12,15 @@ export const search = new Elysia({ prefix: '/search' })
     },
     {
       query: SearchModel.search,
+    },
+  )
+  .get(
+    '/games',
+    async ({ query }) => {
+      return Search.searchGames(query)
+    },
+    {
+      query: SearchModel.gameSearch,
     },
   )
   .post(
@@ -61,29 +70,34 @@ export const search = new Elysia({ prefix: '/search' })
   )
   .get(
     '/meilisearchPropertylist',
-    async () => {
-      return await Search.meilisearchPropertylist()
+    async ({ query: { indexName } }) => {
+      return await Search.meilisearchPropertylist(indexName)
     },
     {
       isAdmin: true,
+      query: t.Object({ indexName: t.Optional(t.String()) }),
     },
   )
   .get(
-    '/meilisearcSearchableAttributeshGet',
-    async () => {
-      return await Search.meilisearcSearchableAttributeshGet()
+    '/meilisearchSearchableAttributesGet',
+    async ({ query: { indexName } }) => {
+      return await Search.meilisearchSearchableAttributesGet(indexName)
     },
     {
       isAdmin: true,
+      query: t.Object({ indexName: t.Optional(t.String()) }),
     },
   )
   .post(
-    '/meilisearcSearchableAttributeshUpdate',
-    async ({ body: { fields } }) => {
-      return await Search.meilisearcSearchableAttributeshUpdate({ fields })
+    '/meilisearchSearchableAttributesUpdate',
+    async ({ body: { fields, indexName } }) => {
+      return await Search.meilisearchSearchableAttributesUpdate({
+        fields,
+        indexName,
+      })
     },
     {
       isAdmin: true,
-      body: SearchModel.meilisearcSearchableAttributeshUpdate,
+      body: SearchModel.meilisearchSearchableAttributesUpdate,
     },
   )

@@ -1,7 +1,9 @@
 import {
   alistb,
   db,
+  eventViews,
   gameDownloadStats,
+  MeiliClient,
   others,
   producers,
   releases,
@@ -29,7 +31,6 @@ import {
   count as countAll,
   desc,
   eq,
-  ilike,
   isNotNull,
   isNull,
   like,
@@ -54,10 +55,14 @@ export const Game = {
     void setKv('galzy:game:count', String(total), 60 * 30)
     return total
   },
-  async List({ pageIndex, pageSize }: GameModel.gameList) {
-    const redisData = await getKv(`galzy:game:list:${pageIndex}:${pageSize}`)
-    if (redisData !== null && redisData !== undefined) {
-      return JSON.parse(redisData) as GameList
+  async List({ pageIndex, pageSize, sortBy, order }: GameModel.gameList) {
+    const useCache = !sortBy || sortBy === 'id'
+    const cacheKey = `galzy:game:list:${pageIndex}:${pageSize}${useCache ? '' : `:${sortBy}:${order}`}`
+    if (useCache) {
+      const redisData = await getKv(cacheKey)
+      if (redisData !== null && redisData !== undefined) {
+        return JSON.parse(redisData) as GameList
+      }
     }
     const offset = pageIndex * pageSize
     interface ListRow {
@@ -68,6 +73,24 @@ export const Game = {
       other: number | null
       other_datas: unknown
     }
+    const dir = order === 'asc' ? 'ASC' : 'DESC'
+    let orderClause
+    if (sortBy === 'released') {
+      orderClause = sql.raw(
+        `(SELECT MIN(r.released) FROM releases_vn rv JOIN releases r ON r.id = rv.id WHERE rv.vid = vn.id) ${dir} NULLS LAST, vn.id ${dir}`,
+      )
+    } else if (sortBy === 'downloads') {
+      orderClause = sql.raw(
+        `(SELECT COUNT(*) FROM "galrc_gameDownloadStats" WHERE game_id = vn.id) ${dir} NULLS LAST, vn.id ${dir}`,
+      )
+    } else if (sortBy === 'views') {
+      orderClause = sql.raw(
+        `(SELECT COUNT(*) FROM "galrc_event_views" WHERE event_type = 'game_view' AND target_id = vn.id) ${dir} NULLS LAST, vn.id ${dir}`,
+      )
+    } else {
+      orderClause = sql.raw(`vn.id ${dir}, galrc_alistb.other ${dir}`)
+    }
+
     const items = await db
       .select({
         id: vn.id,
@@ -101,10 +124,16 @@ export const Game = {
             WHERE o2.id = galrc_alistb.other
           ) o)
         `,
+        dl_count: sql.raw(
+          '(SELECT COUNT(*)::int FROM "galrc_gameDownloadStats" WHERE game_id = vn.id)',
+        ),
+        vw_count: sql.raw(
+          '(SELECT COUNT(*)::int FROM "galrc_event_views" WHERE event_type = \'game_view\' AND target_id = vn.id)',
+        ),
       })
       .from(alistb)
       .innerJoin(vn, eq(alistb.vid, vn.id))
-      .orderBy(desc(vn.id), desc(alistb.other))
+      .orderBy(orderClause)
       .limit(pageSize)
       .offset(offset)
     const totalCount = await this.Count()
@@ -116,11 +145,9 @@ export const Game = {
       totalCount,
     }
     const result = structuredClone(datas)
-    void setKv(
-      `galzy:game:list:${pageIndex}:${pageSize}`,
-      JSON.stringify(result),
-      60 * 60 * 2,
-    )
+    if (useCache) {
+      void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 2)
+    }
     type GameList = typeof result
     return result
   },
@@ -180,7 +207,10 @@ export const Game = {
               first_release: firstReleaseExpr,
             })
             .from(releasesVn)
-            .innerJoin(releasesProducers, eq(releasesProducers.id, releasesVn.id))
+            .innerJoin(
+              releasesProducers,
+              eq(releasesProducers.id, releasesVn.id),
+            )
             .innerJoin(releases, eq(releases.id, releasesVn.id))
             .innerJoin(producers, eq(producers.id, releasesProducers.pid))
             .where(eq(releasesVn.vid, lookupVid))
@@ -191,19 +221,24 @@ export const Game = {
               producers.alias,
               producers.type,
             )
-            .orderBy(desc(officialExpr), sql`${asc(firstReleaseExpr)} NULLS LAST`)
-        : Promise.resolve([] as {
-            id: string
-            name: string | null
-            latin: string | null
-            alias: string | null
-            type: string | null
-            count: number
-            is_dev: boolean
-            is_pub: boolean
-            official: boolean
-            first_release: string | null
-          }[])
+            .orderBy(
+              desc(officialExpr),
+              sql`${asc(firstReleaseExpr)} NULLS LAST`,
+            )
+        : Promise.resolve(
+            [] as {
+              id: string
+              name: string | null
+              latin: string | null
+              alias: string | null
+              type: string | null
+              count: number
+              is_dev: boolean
+              is_pub: boolean
+              official: boolean
+              first_release: string | null
+            }[],
+          )
 
       const [data, producersData] = await Promise.all([
         db.query.alistb.findFirst({
@@ -697,21 +732,21 @@ export const Game = {
     return { total: data?.total, res }
   },
   async quickSearch({ q, limit = 20 }: { q: string; limit?: number }) {
-    const results = await db
-      .selectDistinctOn([vn.id], {
-        id: vn.id,
-        alias: vn.alias,
-      })
-      .from(vn)
-      .leftJoin(vnTitles, eq(vnTitles.id, vn.id))
-      .where(
-        or(
-          ilike(vn.id, `%${q}%`),
-          ilike(vn.alias, `%${q}%`),
-          ilike(vnTitles.title, `%${q}%`),
-        ),
-      )
-      .limit(limit)
-    return results
+    const safeQ =
+      q?.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim() ?? ''
+    const index = MeiliClient.index(
+      process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
+    )
+    const result = await index.search(safeQ || '', {
+      limit,
+      attributesToRetrieve: ['id', 'alias', 'titles_obj', 'olang', 'images'],
+    })
+    return result.hits.map((hit) => ({
+      id: hit.id,
+      alias: hit.alias,
+      titles_obj: hit.titles_obj,
+      olang: hit.olang,
+      images: hit.images,
+    }))
   },
 }

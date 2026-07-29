@@ -59,11 +59,13 @@ export default function SearchInput({
 			if (isSame) return;
 
 			navigate({
-				to: "/search",
+				to: "/games",
 				search: {
 					q: trimmed || undefined,
 					startDate: startDate || undefined,
 					endDate: endDate || undefined,
+					sortBy: params.get("sortBy") || "released",
+					order: params.get("order") || "desc",
 				},
 				replace: true,
 			});
@@ -111,8 +113,8 @@ export default function SearchInput({
 		}
 		inputRef.current?.focus();
 		navigate({
-			to: "/search",
-			search: {},
+			to: "/games",
+			search: { sortBy: "released", order: "desc" },
 			replace: true,
 		});
 	};

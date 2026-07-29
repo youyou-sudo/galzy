@@ -12,10 +12,10 @@ export const SearchSchema = z.object({
 export const getSearch = createServerFn()
 	.validator(SearchSchema)
 	.handler(async ({ data }) => {
-		const { data: gameListData, error } = await api.search.get({
+		const { data: result, error } = await api.search.games.get({
 			query: {
 				q: data.q || "",
-				limit: 100,
+				hitsPerPage: 100,
 				startDate: data.startDate
 					? format(parseISO(data.startDate), "yyyy-MM-dd")
 					: undefined,
@@ -25,5 +25,5 @@ export const getSearch = createServerFn()
 			},
 		});
 		elysiaErrorF(error);
-		return gameListData;
+		return result;
 	});

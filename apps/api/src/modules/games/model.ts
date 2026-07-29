@@ -4,6 +4,8 @@ export namespace GameModel {
   export const gameList = t.Object({
     pageSize: t.Number({ minimum: 1 }),
     pageIndex: t.Number({ minimum: 0 }),
+    sortBy: t.Optional(t.String({ default: 'id' })),
+    order: t.Optional(t.String({ default: 'desc' })),
   })
   export const infoId = t.Object({
     id: t.String({ minLength: 1 }),

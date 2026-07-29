@@ -9,15 +9,7 @@ import {
   vnTitles,
 } from '@api/libs'
 import { delKv, getKv, setKv } from '@api/libs/redis'
-import {
-  and,
-  eq,
-  getTableColumns,
-  ilike,
-  inArray,
-  or,
-  sql,
-} from 'drizzle-orm'
+import { and, eq, getTableColumns, ilike, inArray, or, sql } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { ProducerModel } from './model'
 

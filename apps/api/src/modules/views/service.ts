@@ -1,4 +1,12 @@
-import { db, eventViews, sql, vn, vnTitles, zhtags } from '@api/libs'
+import {
+  db,
+  eventViews,
+  gameDownloadStats,
+  sql,
+  vn,
+  vnTitles,
+  zhtags,
+} from '@api/libs'
 import { getKv, setKv } from '@api/libs/redis'
 import { and, count, desc, eq, gte, inArray } from 'drizzle-orm'
 import type { ViewsModel } from './model'
@@ -30,21 +38,23 @@ function getEffectiveWeekStart(): Date {
 }
 
 async function queryGameRankings(weekStart: Date) {
-  return db
-    .select({
-      id: eventViews.targetId,
-      total: count().mapWith(Number).as('total'),
-    })
-    .from(eventViews)
-    .where(
-      and(
-        eq(eventViews.eventType, 'game_view'),
-        gte(eventViews.createdAt, weekStart),
-      ),
-    )
-    .groupBy(eventViews.targetId)
-    .orderBy(desc(sql`count(*)`))
-    .limit(30)
+  const result = await db.execute(sql`
+    SELECT id, SUM(score)::int AS total FROM (
+      SELECT target_id AS id, COUNT(*) * 1 AS score
+      FROM galrc_event_views
+      WHERE event_type = 'game_view' AND created_at >= ${weekStart}
+      GROUP BY target_id
+      UNION ALL
+      SELECT game_id AS id, COUNT(*) * 3 AS score
+      FROM "galrc_gameDownloadStats"
+      WHERE created_at >= ${weekStart}
+      GROUP BY game_id
+    ) combined
+    GROUP BY id
+    ORDER BY total DESC
+    LIMIT 30
+  `)
+  return result as unknown as Array<{ id: string; total: number }>
 }
 
 async function queryTagRankings(weekStart: Date) {
@@ -80,6 +90,17 @@ export const ViewsService = {
       targetId: tagId,
       createdAt: new Date(),
     })
+  },
+
+  async recordTagViews(tagIds: string[]) {
+    if (tagIds.length === 0) return
+    await db.insert(eventViews).values(
+      tagIds.map((tagId) => ({
+        eventType: 'tag_view' as const,
+        targetId: tagId,
+        createdAt: new Date(),
+      })),
+    )
   },
 
   async getHotGames(): Promise<ViewsModel.GameRankingItem[]> {

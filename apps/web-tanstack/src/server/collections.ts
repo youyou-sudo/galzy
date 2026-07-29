@@ -40,3 +40,29 @@ export const getCollectionPreview = createServerFn()
     elysiaErrorF(error)
     return res
   })
+
+export const getCollectionsWithPreview = createServerFn()
+  .validator(
+    z.object({
+      limit: z.optional(z.number().default(6)),
+      previewLimit: z.optional(z.number().default(4)),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { data: listRes, error: listErr } = await api.collections.get({
+      query: { status: 'published', limit: data.limit },
+    })
+    elysiaErrorF(listErr)
+    if (!listRes?.items?.length) return []
+
+    const enriched = await Promise.all(
+      listRes.items.map(async (col) => {
+        const { data: preview, error: prevErr } = await api
+          .collections({ id: String(col.id) })
+          .preview.get({ query: { limit: data.previewLimit } })
+        elysiaErrorF(prevErr)
+        return { ...col, previews: preview ?? [] }
+      }),
+    )
+    return enriched
+  })

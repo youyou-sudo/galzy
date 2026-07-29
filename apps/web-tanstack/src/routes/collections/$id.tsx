@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Badge } from '@web/components/ui/badge'
+import {
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink,
+  BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator,
+} from '@web/components/ui/breadcrumb'
 import { Card, CardContent, CardHeader } from '@web/components/ui/card'
 import { getImageUrl } from '@web/lib/image-url'
 import {
@@ -56,37 +59,24 @@ function RouteComponent() {
     )
   }
 
-  const typeLabel: Record<string, string> = {
-    manual: '手动选择',
-    producer: '会社绑定',
-  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 py-6 px-4 sm:px-0">
-      <Link
-        to="/collections"
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← 返回合集
-      </Link>
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem><BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem><BreadcrumbLink render={<Link to="/collections" />}>合集</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem><BreadcrumbPage>{coll.title}</BreadcrumbPage></BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Package className="size-5 text-muted-foreground" />
-              <h1 className="text-2xl font-bold">{coll.title}</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary">
-                {typeLabel[coll.type] ?? coll.type}
-              </Badge>
-              <Badge
-                variant={coll.status === 'published' ? 'outline' : 'secondary'}
-              >
-                {coll.status === 'published' ? '已发布' : '已隐藏'}
-              </Badge>
-            </div>
+          <div className="flex items-center gap-2">
+            <Package className="size-5 text-muted-foreground" />
+            <h1 className="text-2xl font-bold">{coll.title}</h1>
           </div>
           {coll.description && (
             <p className="text-muted-foreground mt-2">{coll.description}</p>
