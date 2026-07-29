@@ -59,26 +59,9 @@ export const getCollectionsWithPreview = createServerFn()
         page: data.page,
         limit: data.limit,
         type: data.type,
+        includePreview: data.previewLimit,
       },
     })
     elysiaErrorF(listErr)
-    if (!listRes?.items?.length) return { items: [], total: 0, page: data.page, limit: data.limit }
-
-    // Fetch previews in batches of 6 to avoid overwhelming the API
-    const enriched: Array<typeof listRes.items[number] & { previews: unknown[] }> = []
-    const batchSize = 6
-    for (let i = 0; i < listRes.items.length; i += batchSize) {
-      const batch = listRes.items.slice(i, i + batchSize)
-      const results = await Promise.all(
-        batch.map(async (col) => {
-          const { data: preview, error: prevErr } = await api
-            .collections({ id: String(col.id) })
-            .preview.get({ query: { limit: data.previewLimit } })
-          elysiaErrorF(prevErr)
-          return { ...col, previews: preview ?? [] }
-        }),
-      )
-      enriched.push(...results)
-    }
-    return { items: enriched, total: listRes.total, page: listRes.page, limit: listRes.limit }
+    return listRes ?? { items: [], total: 0, page: data.page, limit: data.limit }
   })

@@ -16,7 +16,7 @@ import type { CollectionModel } from './model'
 export const CollectionService = {
   // 获取合集列表（传 status 则按状态过滤，不传则返回全部）
   async list(params: CollectionModel.list) {
-    const { page = 1, limit = 20, type } = params
+    const { page = 1, limit = 20, type, includePreview = 0 } = params
     const offset = (page - 1) * limit
     const conditions = []
     if (params.status) conditions.push(eq(collections.status, params.status))
@@ -116,7 +116,88 @@ export const CollectionService = {
       entries: entriesMap.get(item.id) ?? [],
     }))
 
-    return { items: itemsWithCount, total: total[0].count, page, limit }
+    // Batch-embed VN previews when requested — avoids N+1 /preview calls
+    const previewMap = new Map<number, Array<{ id: string; alias: string | null; title: string; imageId: string | null; imageWidth: number | null; imageHeight: number | null; cSexualAvg: number | null }>>()
+    if (includePreview > 0) {
+      // Collect first N VN ids per collection (deduplicated globally)
+      const vidSet = new Set<string>()
+      const perCollection: Map<number, string[]> = new Map()
+      for (const item of itemsWithCount) {
+        const vids = (entriesMap.get(item.id) ?? [])
+          .slice(0, includePreview)
+          .map((e) => e.vid)
+        if (vids.length > 0) {
+          perCollection.set(item.id, vids)
+          for (const v of vids) vidSet.add(v)
+        }
+      }
+      const allVids = [...vidSet]
+
+      if (allVids.length > 0) {
+        // Single batch: VN + image data
+        const vnRows = await db
+          .select({
+            id: vn.id,
+            alias: vn.alias,
+            olang: vn.olang,
+            imageId: images.id,
+            imageWidth: images.width,
+            imageHeight: images.height,
+            cSexualAvg: images.cSexualAvg,
+          })
+          .from(vn)
+          .leftJoin(images, eq(images.id, vn.cImage))
+          .where(inArray(vn.id, allVids))
+
+        // Single batch: titles
+        const titleRows = await db
+          .select({
+            id: vn.id,
+            titles: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT lang, title FROM ${vnTitles} t WHERE t.id = ${sql.identifier('vn')}.${sql.identifier('id')}) t), '[]'::json)`,
+          })
+          .from(vn)
+          .where(inArray(vn.id, allVids))
+
+        const vnMap = new Map(vnRows.map((r) => [r.id, r]))
+        const titleMap = new Map<string, string>()
+        for (const r of titleRows) {
+          const titles = (r.titles as Array<{ lang: string; title: string }>) ?? []
+          const best =
+            titles.find((t) => t.lang === 'zh-Hans') ??
+            titles.find((t) => t.lang === 'zh') ??
+            titles.find((t) => t.lang === (vnMap.get(r.id)?.olang ?? null))
+          if (best) titleMap.set(r.id, best.title)
+        }
+
+        // Assemble previews per collection
+        for (const [colId, vids] of perCollection) {
+          previewMap.set(
+            colId,
+            vids.map((vid) => {
+              const v = vnMap.get(vid)
+              return {
+                id: vid,
+                alias: v?.alias ?? null,
+                title: titleMap.get(vid) ?? v?.alias ?? vid,
+                imageId: v?.imageId ?? null,
+                imageWidth: v?.imageWidth ?? null,
+                imageHeight: v?.imageHeight ?? null,
+                cSexualAvg: v?.cSexualAvg ?? null,
+              }
+            }),
+          )
+        }
+      }
+    }
+
+    const resultItems = includePreview > 0
+      ? itemsWithCount.map((item) => ({
+          ...item,
+          previews: previewMap.get(item.id) ?? [],
+        }))
+      : itemsWithCount
+
+    return { items: resultItems, total: total[0].count, page, limit }
   },
 
   // 获取合集详情（含条目）

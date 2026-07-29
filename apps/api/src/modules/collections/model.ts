@@ -6,6 +6,7 @@ export namespace CollectionModel {
     limit: t.Optional(t.Number({ default: 20, minimum: 1, maximum: 100 })),
     status: t.Optional(t.String()),
     type: t.Optional(t.String()), // 'manual' | 'producer'
+    includePreview: t.Optional(t.Number({ default: 0, maximum: 20 })), // 嵌入前N个VN预览
   })
 
   export const Params = t.Object({
