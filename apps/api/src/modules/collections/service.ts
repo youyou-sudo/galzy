@@ -5,7 +5,9 @@ import {
   images,
   releasesProducers,
   releasesVn,
+  sql,
   vn,
+  vnTitles,
 } from '@api/libs'
 import { and, asc, count, countDistinct, desc, eq, inArray } from 'drizzle-orm'
 import { status } from 'elysia'
@@ -160,12 +162,22 @@ export const CollectionService = {
       .limit(1)
     if (!collection) throw status(404, '合集不存在')
 
+    let entries: Array<{
+      id: string
+      alias: string | null
+      olang: string | null
+      imageId: string | null
+      imageWidth: number | null
+      imageHeight: number | null
+      cSexualAvg: number | null
+    }>
+
     if (collection.type === 'manual') {
-      // 手动模式：查 collection_entries 关联的 vn
-      const entries = await db
+      entries = await db
         .select({
           id: vn.id,
           alias: vn.alias,
+          olang: vn.olang,
           imageId: images.id,
           imageWidth: images.width,
           imageHeight: images.height,
@@ -177,18 +189,15 @@ export const CollectionService = {
         .where(eq(collectionEntries.collectionId, id))
         .orderBy(asc(collectionEntries.sortOrder))
         .limit(limit)
-      return entries
-    }
-
-    // producer 模式：查 producer 关联的游戏
-    if (
+    } else if (
       collection.producerIds &&
       (collection.producerIds as string[]).length > 0
     ) {
-      const results = await db
+      entries = (await db
         .selectDistinctOn([vn.id], {
           id: vn.id,
           alias: vn.alias,
+          olang: vn.olang,
           imageId: images.id,
           imageWidth: images.width,
           imageHeight: images.height,
@@ -201,10 +210,44 @@ export const CollectionService = {
         .where(
           inArray(releasesProducers.pid, collection.producerIds as string[]),
         )
-        .limit(limit)
-      return results
+        .limit(limit)) as typeof entries
+    } else {
+      return []
     }
-    return []
+
+    if (entries.length === 0) return []
+
+    // Resolve Chinese-preferred titles
+    const ids = entries.map((e) => e.id)
+    const titleRows = await db
+      .select({
+        id: vn.id,
+        titles: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT lang, title FROM ${vnTitles} t WHERE t.id = ${sql.identifier('vn')}.${sql.identifier('id')}) t), '[]'::json)`,
+      })
+      .from(vn)
+      .where(inArray(vn.id, ids))
+
+    const titleMap = new Map<string, string>()
+    for (const r of titleRows) {
+      const titles = (r.titles as Array<{ lang: string; title: string }>) ?? []
+      const titleObj =
+        titles.find((t) => t.lang === 'zh-Hans') ||
+        titles.find((t) => t.lang === 'zh') ||
+        titles.find(
+          (t) => t.lang === (entries.find((e) => e.id === r.id)?.olang ?? null),
+        )
+      if (titleObj) titleMap.set(r.id, titleObj.title)
+    }
+
+    return entries.map((e) => ({
+      id: e.id,
+      alias: e.alias,
+      title: titleMap.get(e.id) ?? e.alias ?? e.id,
+      imageId: e.imageId,
+      imageWidth: e.imageWidth,
+      imageHeight: e.imageHeight,
+      cSexualAvg: e.cSexualAvg,
+    }))
   },
 
   // 删除合集

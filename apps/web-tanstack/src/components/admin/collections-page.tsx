@@ -29,6 +29,7 @@ import {
   adminUpdateCollection,
   adminUpdateCollectionEntries,
 } from '@web/server/admin/collections'
+import { getCollectionById } from '@web/server/collections'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -404,10 +405,12 @@ function ProducerSearch({ selectedIds, onToggle }: ProducerSearchProps) {
     </div>
   )
 }
-
 interface GameInfo {
   id: string
   alias: string | null
+  title: string | null
+  olang: string | null
+  titles_obj?: Array<{ lang: string; title: string; latin?: string }>
 }
 
 function GameSearch({
@@ -432,19 +435,22 @@ function GameSearch({
     setSearching(true)
     try {
       const res = await adminSearchGames({ data: { q: q.trim(), limit: 20 } })
-      setResults((res ?? []) as GameInfo[])
+      const games = (res ?? []) as GameInfo[]
+      // Compute display title: zh-Hans > zh > olang > alias > id
+      setResults(games.map((g) => {
+        const titles = g.titles_obj ?? []
+        const titleObj =
+          titles.find((t) => t.lang === 'zh-Hans') ||
+          titles.find((t) => t.lang === 'zh') ||
+          titles.find((t) => t.lang === g.olang)
+        return { ...g, title: titleObj?.title ?? null }
+      }))
     } catch {
       setResults([])
     } finally {
       setSearching(false)
     }
   }, [])
-
-  const handleInput = (value: string) => {
-    setQuery(value)
-    clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => doSearch(value), 300)
-  }
 
   return (
     <div className="space-y-2">
@@ -493,7 +499,7 @@ function GameSearch({
             >
               <div className="flex-1 min-w-0">
                 <span className="text-sm block truncate">
-                  {g.alias || g.id}
+                  {g.title || g.alias || g.id}
                 </span>
               </div>
               <span className="text-xs font-mono text-muted-foreground shrink-0">
@@ -707,22 +713,31 @@ function EditCollectionDialog({
     entries: collection.entries ?? [],
   })
   const [vidInput, setVidInput] = useState('')
+  const [loadingEntries, setLoadingEntries] = useState(false)
 
   useEffect(() => {
-    if (open) {
-      setForm({
-        title: collection.title,
-        description: collection.description ?? '',
-        type: collection.type,
-        producerIds: collection.producerIds ?? [],
-        status: collection.status,
-        entries: collection.entries ?? [],
-      })
+    if (!open) return
+    setForm({
+      title: collection.title,
+      description: collection.description ?? '',
+      type: collection.type,
+      producerIds: collection.producerIds ?? [],
+      status: collection.status,
+      entries: collection.entries ?? [],
+    })
+    // Fetch full collection with entries for manual type
+    if (collection.type === 'manual') {
+      setLoadingEntries(true)
+      getCollectionById({ data: { id: String(collection.id) } })
+        .then((full) => {
+          const fullColl = full as Record<string, unknown>
+          const entries = (fullColl.entries as Array<{ vid: string; sortOrder: number }>) ?? []
+          setForm((prev) => ({ ...prev, entries }))
+        })
+        .catch(() => {})
+        .finally(() => setLoadingEntries(false))
     }
   }, [open, collection])
-
-  const handleSubmit = async () => {
-    if (!form.title.trim()) {
       toast.error('请输入合集名称')
       return
     }
@@ -838,6 +853,12 @@ function EditCollectionDialog({
               />
             )}
 
+            {form.type === 'manual' && loadingEntries && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <Loader2Icon className="size-4 animate-spin" />
+                正在加载游戏条目...
+              </div>
+            )}
             {form.type === 'manual' && (
               <GameSearch
                 selectedVids={form.entries.map((e) => e.vid)}

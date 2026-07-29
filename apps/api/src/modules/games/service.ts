@@ -734,6 +734,26 @@ export const Game = {
   async quickSearch({ q, limit = 20 }: { q: string; limit?: number }) {
     const safeQ =
       q?.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim() ?? ''
+
+    // Exact VID match via DB fallback (e.g. v123, d456)
+    const vidMatch = safeQ.match(/^([vd]\d+)$/i)
+    if (vidMatch) {
+      const vid = vidMatch[1].toLowerCase()
+      const rows = await db
+        .select({
+          id: vn.id,
+          alias: vn.alias,
+          olang: vn.olang,
+          titles_obj: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT title, latin, lang FROM ${vnTitles} t WHERE t.id = ${sql.identifier('vn')}.${sql.identifier('id')}) t), '[]'::json)`,
+          images: sql`(SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM ${sql.identifier('images')} i WHERE i.id = ${sql.identifier('vn')}.${sql.identifier('c_image')}) i)`,
+        })
+        .from(vn)
+        .where(eq(vn.id, vid))
+        .limit(1)
+      if (rows.length > 0) return rows
+      // Fall through to Meilisearch for fuzzy partial matches
+    }
+
     const index = MeiliClient.index(
       process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
     )

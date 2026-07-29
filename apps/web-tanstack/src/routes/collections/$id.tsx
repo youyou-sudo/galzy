@@ -113,18 +113,18 @@ function RouteComponent() {
                           width: game.imageWidth,
                           height: game.imageHeight,
                         })}
-                        alt={game.alias || game.id}
+                        alt={game.title || game.alias || game.id}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                         loading="lazy"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
-                        {game.alias || game.id}
+                        {game.title || game.alias || game.id}
                       </div>
                     )}
                   </div>
                   <p className="mt-1.5 text-sm truncate group-hover:text-blue-500 transition-colors">
-                    {game.alias || game.id}
+                    {game.title || game.alias || game.id}
                   </p>
                 </Link>
               ))}
