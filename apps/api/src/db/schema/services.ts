@@ -60,6 +60,10 @@ export const gameDownloadStats = pgTable(
     createdAtIdx: index('idx_galrc_game_download_stats_created_at').on(
       table.createdAt,
     ),
+    createdAtGameIdIdx: index('idx_galrc_game_download_stats_created_game').on(
+      table.createdAt,
+      table.gameId,
+    ),
   }),
 )
 

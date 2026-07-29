@@ -17,29 +17,30 @@ import {
 import { Skeleton } from '@web/components/ui/skeleton'
 import { getSession } from '@web/server/auth/auth.functions'
 import { getCollectionsWithPreview } from '@web/server/collections'
-import { getCritical, getGameImages } from '@web/server/game'
+import { getCritical, getTotalCount } from '@web/server/game'
 import { Gamepad2, Tags } from 'lucide-react'
 
 export const Route = createFileRoute('/')({
   component: App,
   loader: async ({ context }) => {
-    const rankings = await getCritical()
-    const hotIds = (rankings.game ?? []).slice(0, 12).map((g) => g.id)
-    // Prefetch all non-critical data in parallel
-    await Promise.all([
-      context.queryClient.ensureQueryData({
-        queryKey: ['auth'],
-        queryFn: getSession,
-      }),
-      context.queryClient.ensureQueryData({
-        queryKey: ['homeCollections'],
-        queryFn: () =>
-          getCollectionsWithPreview({ data: { limit: 5, previewLimit: 3 } }),
-      }),
-      context.queryClient.ensureQueryData({
-        queryKey: ['hotGameImages', hotIds],
-        queryFn: () => getGameImages({ data: { ids: hotIds } }),
-      }),
+    // getCritical + all prefetches run in parallel
+    const [rankings] = await Promise.all([
+      getCritical(),
+      Promise.all([
+        context.queryClient.ensureQueryData({
+          queryKey: ['auth'],
+          queryFn: getSession,
+        }),
+        context.queryClient.ensureQueryData({
+          queryKey: ['homeCollections'],
+          queryFn: () =>
+            getCollectionsWithPreview({ data: { limit: 5, previewLimit: 3 } }),
+        }),
+        context.queryClient.ensureQueryData({
+          queryKey: ['totalCount'],
+          queryFn: () => getTotalCount(),
+        }),
+      ]),
     ])
     return { rankings }
   },

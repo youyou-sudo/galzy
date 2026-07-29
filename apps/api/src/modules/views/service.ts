@@ -2,6 +2,7 @@ import {
   db,
   eventViews,
   gameDownloadStats,
+  images,
   sql,
   vn,
   vnTitles,
@@ -118,34 +119,65 @@ export const ViewsService = {
     }
 
     const ids = rows.map((r) => r.id)
+    // Single query: titles + image data via LEFT JOIN on images
     const titleRows = (await (db
       .select({
         id: vn.id,
         olang: vn.olang,
+        imageId: images.id,
+        imageWidth: images.width,
+        imageHeight: images.height,
+        cSexualAvg: images.cSexualAvg,
         titles: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT lang, title FROM ${vnTitles} t WHERE t.id = ${sql.identifier('vn')}.${sql.identifier('id')}) t), '[]'::json)`,
       })
       .from(vn)
+      .leftJoin(images, eq(vn.cImage, images.id))
       .where(inArray(vn.id, ids)) as any)) as Array<{
       id: string
       olang: string | null
+      imageId: string | null
+      imageWidth: number | null
+      imageHeight: number | null
+      cSexualAvg: number | null
       titles: Array<{ lang: string; title: string }>
     }>
 
-    const titleMap = new Map(
-      titleRows.map((r) => {
-        const titleObj =
-          r.titles.find((t) => t.lang === 'zh-Hans') ||
-          r.titles.find((t) => t.lang === 'zh') ||
-          r.titles.find((t) => t.lang === r.olang)
-        return [r.id, titleObj?.title ?? null] as const
-      }),
-    )
+    const titleMap = new Map<string, string | null>()
+    const imageMap = new Map<
+      string,
+      {
+        imageId: string | null
+        imageWidth: number | null
+        imageHeight: number | null
+        cSexualAvg: number | null
+      }
+    >()
+    for (const r of titleRows) {
+      const titleObj =
+        r.titles.find((t) => t.lang === 'zh-Hans') ||
+        r.titles.find((t) => t.lang === 'zh') ||
+        r.titles.find((t) => t.lang === r.olang)
+      titleMap.set(r.id, titleObj?.title ?? null)
+      imageMap.set(r.id, {
+        imageId: r.imageId,
+        imageWidth: r.imageWidth,
+        imageHeight: r.imageHeight,
+        cSexualAvg: r.cSexualAvg,
+      })
+    }
 
-    const result = rows.map((r) => ({
-      id: r.id,
-      title: titleMap.get(r.id) ?? null,
-      total: r.total,
-    }))
+    const result: ViewsModel.GameRankingItem[] = rows.map((r) => {
+      const img = imageMap.get(r.id)
+      return {
+        id: r.id,
+        title: titleMap.get(r.id) ?? null,
+        total: r.total,
+        imageId: img?.imageId ?? null,
+        imageWidth: img?.imageWidth ?? null,
+        imageHeight: img?.imageHeight ?? null,
+        cSexualAvg: img?.cSexualAvg ?? null,
+      }
+    })
 
     void setKv(cacheKey, JSON.stringify(result), WEEK_CACHE_TTL)
     return result

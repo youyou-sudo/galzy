@@ -119,6 +119,11 @@ export const getGameList = createServerFn()
     }
   })
 
+export const getTotalCount = createServerFn().handler(async () => {
+  const { data: totalRes, error } = await api.games.count.get()
+  elysiaErrorF(error)
+  return totalRes
+})
 export const getCritical = createServerFn().handler(async () => {
   const [gameResult, tagResult] = await Promise.allSettled([
     api.views.hot.game.get(),
@@ -148,31 +153,3 @@ export const getCritical = createServerFn().handler(async () => {
     tag: tagRes,
   }
 })
-
-export const getGameImages = createServerFn()
-  .validator(z.object({ ids: z.array(z.string()) }))
-  .handler(async ({ data }) => {
-    const results = await Promise.all(
-      data.ids.slice(0, 12).map(async (id) => {
-        const { data: game, error } = await api.games.get({ query: { id } })
-        elysiaErrorF(error)
-        if (!game?.vn?.image) return null
-        return {
-          id,
-          imageId: game.vn.image.id as string | null,
-          imageWidth: game.vn.image.width as number | null,
-          imageHeight: game.vn.image.height as number | null,
-          cSexualAvg: (game.vn.image as Record<string, unknown>).cSexualAvg as
-            | number
-            | null,
-        }
-      }),
-    )
-    return results.filter(Boolean) as Array<{
-      id: string
-      imageId: string | null
-      imageWidth: number | null
-      imageHeight: number | null
-      cSexualAvg: number | null
-    }>
-  })

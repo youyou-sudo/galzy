@@ -1,14 +1,16 @@
-import { useSuspenseQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { GameCard } from '@web/components/home/card'
 import { getImageUrl } from '@web/lib/image-url'
-import { getGameImages } from '@web/server/game'
 import { Flame, TrendingUp } from 'lucide-react'
 
 interface HotGame {
   id: string
   title: string | null
   total: number
+  imageId: string | null
+  imageWidth: number | null
+  imageHeight: number | null
+  cSexualAvg: number | null
 }
 
 interface HotGamesSectionProps {
@@ -16,16 +18,6 @@ interface HotGamesSectionProps {
 }
 
 export function HotGamesSection({ games }: HotGamesSectionProps) {
-  const ids = (games ?? []).slice(0, 12).map((g) => g.id)
-
-  const { data: imageMap } = useSuspenseQuery({
-    queryKey: ['hotGameImages', ids],
-    queryFn: () => getGameImages({ data: { ids } }),
-    staleTime: 5 * 60_000,
-  })
-
-  const imageById = new Map((imageMap ?? []).map((img) => [img.id, img]))
-
   if (!games || games.length === 0) return null
 
   const displayGames = games.slice(0, 12)
@@ -47,28 +39,25 @@ export function HotGamesSection({ games }: HotGamesSectionProps) {
         </Link>
       </div>
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-        {displayGames.map((game, index) => {
-          const img = imageById.get(game.id)
-          return (
-            <div key={game.id} className="relative">
-              <GameCard.Item
-                gameid={game.id}
-                title={game.title || '未知游戏'}
-                width={img?.imageWidth ?? 200}
-                height={img?.imageHeight ?? 300}
-                src={getImageUrl({
-                  imageId: img?.imageId ?? null,
-                  width: img?.imageWidth ?? null,
-                  height: img?.imageHeight ?? null,
-                })}
-                cSexualAvg={img?.cSexualAvg ?? null}
-              />
-              <span className="absolute top-1.5 left-1.5 z-20 flex size-5 items-center justify-center rounded-full bg-background/80 text-xs font-bold text-foreground backdrop-blur-sm pointer-events-none">
-                {index + 1}
-              </span>
-            </div>
-          )
-        })}
+        {displayGames.map((game, index) => (
+          <div key={game.id} className="relative">
+            <GameCard.Item
+              gameid={game.id}
+              title={game.title || '未知游戏'}
+              width={game.imageWidth ?? 200}
+              height={game.imageHeight ?? 300}
+              src={getImageUrl({
+                imageId: game.imageId ?? null,
+                width: game.imageWidth ?? null,
+                height: game.imageHeight ?? null,
+              })}
+              cSexualAvg={game.cSexualAvg ?? null}
+            />
+            <span className="absolute top-1.5 left-1.5 z-20 flex size-5 items-center justify-center rounded-full bg-background/80 text-xs font-bold text-foreground backdrop-blur-sm pointer-events-none">
+              {index + 1}
+            </span>
+          </div>
+        ))}
       </div>
     </section>
   )
