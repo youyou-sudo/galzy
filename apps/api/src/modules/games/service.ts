@@ -364,23 +364,27 @@ export const Game = {
     }
 
     const fetchList = async (parent: string): Promise<RawItem[]> => {
-      const res = await fetch(`${process.env.OPENLIST_HOST}/api/fs/list`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: process.env.OPENLIST_API_KEY,
-        },
-        body: JSON.stringify({
-          path: parent,
-          password: '',
-          refresh: false,
-          page: 1,
-          per_page: 0,
-        }),
-      })
-
-      const json = await res.json()
-      return json.data?.content || []
+      try {
+        const res = await fetch(`${process.env.OPENLIST_HOST}/api/fs/list`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: process.env.OPENLIST_API_KEY,
+          },
+          body: JSON.stringify({
+            path: parent,
+            password: '',
+            refresh: false,
+            page: 1,
+            per_page: 0,
+          }),
+          signal: AbortSignal.timeout(15_000),
+        })
+        const json = await res.json()
+        return json.data?.content || []
+      } catch {
+        return []
+      }
     }
 
     // 简单 size 格式化

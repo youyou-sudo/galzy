@@ -28,7 +28,7 @@ export const Route = createFileRoute("/$id/_layout")({
 		}
 		return {
 			game: await getGameDetail({ data: { id } }),
-			tags: getGameTags({ data: { id } }),
+			tags: await getGameTags({ data: { id } }),
 			id,
 		};
 	},

@@ -15,9 +15,9 @@ import {
   CardTitle,
 } from '@web/components/ui/card'
 import { Skeleton } from '@web/components/ui/skeleton'
+import { getSession } from '@web/server/auth/auth.functions'
 import { getCollectionsWithPreview } from '@web/server/collections'
 import { getCritical, getGameImages } from '@web/server/game'
-import { getSession } from '@web/server/auth/auth.functions'
 import { Gamepad2, Tags } from 'lucide-react'
 
 export const Route = createFileRoute('/')({
@@ -27,9 +27,19 @@ export const Route = createFileRoute('/')({
     const hotIds = (rankings.game ?? []).slice(0, 12).map((g) => g.id)
     // Prefetch all non-critical data in parallel
     await Promise.all([
-      context.queryClient.ensureQueryData({ queryKey: ['auth'], queryFn: getSession }),
-      context.queryClient.ensureQueryData({ queryKey: ['homeCollections'], queryFn: () => getCollectionsWithPreview({ data: { limit: 5, previewLimit: 3 } }) }),
-      context.queryClient.ensureQueryData({ queryKey: ['hotGameImages', hotIds], queryFn: () => getGameImages({ data: { ids: hotIds } }) }),
+      context.queryClient.ensureQueryData({
+        queryKey: ['auth'],
+        queryFn: getSession,
+      }),
+      context.queryClient.ensureQueryData({
+        queryKey: ['homeCollections'],
+        queryFn: () =>
+          getCollectionsWithPreview({ data: { limit: 5, previewLimit: 3 } }),
+      }),
+      context.queryClient.ensureQueryData({
+        queryKey: ['hotGameImages', hotIds],
+        queryFn: () => getGameImages({ data: { ids: hotIds } }),
+      }),
     ])
     return { rankings }
   },

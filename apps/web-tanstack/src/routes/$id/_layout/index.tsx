@@ -6,10 +6,8 @@ export const Route = createFileRoute("/$id/_layout/")({
 	component: DownloadComponent,
 	loader: async ({ params }) => {
 		const { id } = params;
-		const filelist = getFileList({ data: { id } });
-		return {
-			filelist,
-		};
+		const filelist = await getFileList({ data: { id } });
+		return { filelist };
 	},
 	headers: () => ({
 		// Cache at CDN for 1 hour, allow stale content for up to 1 day
