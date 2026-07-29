@@ -115,12 +115,14 @@ export const CronService = {
                 },
                 body: raw,
                 redirect: 'follow',
+                signal: AbortSignal.timeout(30_000),
               }),
               fetch(
                 `https://api.cloudflare.com/client/v4/accounts/${item.accountId}/workers/services/${item.wokerName}/environments/production?expand=routes`,
                 {
                   method: 'GET',
                   headers: commonHeaders,
+                  signal: AbortSignal.timeout(30_000),
                 },
               ),
             ])
@@ -176,7 +178,6 @@ export const CronService = {
 
     const lock = await acquireLockKv(lockKey, lockValue, lockTimeout)
     if (!lock) return null
-
     try {
       const [alistUpInfo, alistUpTime] = await Promise.all([
         fetch(`${process.env.OPENLIST_HOST}/api/admin/index/progress`, {
@@ -184,6 +185,7 @@ export const CronService = {
           headers: {
             Authorization: process.env.OPENLIST_API_KEY,
           },
+          signal: AbortSignal.timeout(30_000),
         }),
         db
           .select({ config: siteConfig.config })
@@ -223,10 +225,10 @@ export const CronService = {
             page: 1,
             per_page: 1000000,
           }),
+          signal: AbortSignal.timeout(30_000),
         },
       )
-
-      const data = await openlistdatas.json()
+      const data = await openlistdatas.json() as { data: { content: Array<{ parent: string; name: string; is_dir: boolean; size: number; type: number }> } }
       const processedData = processData(data.data.content)
 
       await db.transaction(async (trx) => {

@@ -81,7 +81,7 @@ async function startServer() {
   dbAction()
   if (process.env.NODE_ENV === 'production') startCronTasks()
 
-  const app = (await buildApp()).listen(Bun.env.PORT ?? 3001)
+  const app = (await buildApp()).listen(Number(process.env.PORT) || 3001)
 
   process.on('beforeExit', app.stop)
 
@@ -91,7 +91,7 @@ async function startServer() {
 }
 
 async function healthcheck() {
-  const port = Number(Bun.env.PORT ?? 3001)
+  const port = Number(process.env.PORT) || 3001
   const url = `http://localhost:${port}/health`
 
   try {

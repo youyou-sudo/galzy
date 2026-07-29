@@ -157,6 +157,7 @@ export const CollectionService = {
           // Group VN ids by pid
           const pidVids = new Map<string, string[]>()
           for (const r of pvRows) {
+            if (!r.pid || !r.vid) continue
             const list = pidVids.get(r.pid) ?? []
             list.push(r.vid)
             pidVids.set(r.pid, list)
