@@ -1,239 +1,112 @@
-import { useNavigate } from '@tanstack/react-router'
-import { AspectRatio } from '@web/components/ui/aspect-ratio'
-import { Card, CardContent } from '@web/components/ui/card'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@web/components/ui/sheet'
-import { useIsMobile } from '@web/hooks/use-mobile'
+import { Link } from '@tanstack/react-router'
+import { cn } from '@web/lib/utils'
 import { getImageUrl } from '@web/lib/image-url'
-import { useEffect, useRef, useState } from 'react'
+import type { CollectionWithPreviews, CollectionPreviewGame } from '@web/lib/collections'
+import { Library, Layers } from 'lucide-react'
 
-interface PreviewItem {
-  id: string
-  alias: string
-  imageId: string
-  imageWidth: number
-  imageHeight: number
-  cSexualAvg: number | null
-}
-
-interface CollectionCardProps {
-  collection: {
-    id: number
-    title: string
-    description?: string | null
-    type: string
-    status: string
-  }
-  previews: PreviewItem[]
-  totalCount: number
-}
+// ── Cover Stack ───────────────────────────────────────────────
 
 function CoverStack({
   previews,
-  totalCount,
+  count,
 }: {
-  previews: PreviewItem[]
-  totalCount: number
+  previews: CollectionPreviewGame[]
+  count: number
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [isOverflowing, setIsOverflowing] = useState(false)
+  const items = previews.slice(0, 3)
 
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const check = () => setIsOverflowing(el.scrollWidth > el.clientWidth)
-    check()
-    const observer = new ResizeObserver(check)
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [previews])
-
-  if (previews.length === 0) {
+  if (items.length === 0) {
     return (
-      <div className="flex items-center justify-center h-24 w-full border-2 border-dashed border-muted-foreground/30 rounded-lg">
-        <span className="text-sm text-muted-foreground">暂无预览</span>
+      <div className="aspect-[2/3] flex items-center justify-center rounded-xl bg-muted/40">
+        <Library className="size-8 text-muted-foreground/25" />
       </div>
     )
   }
 
-  const renderCover = (game: PreviewItem) => (
-    <div className="shrink-0" key={game.id}>
-      <div className="w-16 h-24 sm:w-20 sm:h-28 rounded-lg shadow-lg border overflow-hidden bg-muted">
-        {game.imageId ? (
+  const layers = [
+    { rotate: -5, x: 8, y: 4, z: 0, scale: 0.82 },
+    { rotate: 2, x: -2, y: 0, z: 10, scale: 0.9 },
+    { rotate: 7, x: -10, y: 4, z: 20, scale: 1 },
+  ]
+
+  const hoverOut = [
+    'group-hover:rotate-[-8deg] group-hover:translate-x-[14px] group-hover:translate-y-[5px]',
+    'group-hover:rotate-[3deg] group-hover:-translate-x-[5px] group-hover:-translate-y-[2px]',
+    'group-hover:rotate-[10deg] group-hover:-translate-x-[16px] group-hover:translate-y-[5px]',
+  ]
+
+  return (
+    <div className="relative aspect-[2/3] w-full">
+      {items.map((item, i) => {
+        const layer = layers[i]
+        return (
           <img
+            key={item.id}
             src={getImageUrl({
-              imageId: game.imageId,
-              width: game.imageWidth,
-              height: game.imageHeight,
+              imageId: item.imageId,
+              width: item.imageWidth,
+              height: item.imageHeight,
             })}
-            alt={game.alias || game.id}
-            className="w-full h-full object-cover"
+            alt=""
+            style={{
+              transform: `translate(-50%, -50%) rotate(${layer.rotate}deg) translate(${layer.x}px, ${layer.y}px) scale(${layer.scale})`,
+              zIndex: layer.z,
+            }}
+            className={cn(
+              'absolute top-1/2 left-1/2',
+              'w-[72%] aspect-[2/3] rounded-lg border-[3px] border-background',
+              'shadow-lg shadow-black/20 dark:shadow-black/40',
+              'object-cover transition-all duration-400 ease-out',
+              hoverOut[i],
+            )}
             loading="lazy"
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-            {game.alias || game.id}
-          </div>
-        )}
-      </div>
-    </div>
-  )
+        )
+      })}
 
-  const countOverlay = (
-    <div className="shrink-0 relative w-16 h-24 sm:w-20 sm:h-28 rounded-lg overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-black/0 via-black/40 to-black/70" />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-white text-xs font-medium whitespace-nowrap">
-          共 {totalCount} 部
-        </span>
-      </div>
-    </div>
-  )
+      {/* Bottom gradient for count badge */}
+      <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/50 to-transparent rounded-lg pointer-events-none" />
 
-  if (isOverflowing) {
-    return (
-      <div className="relative w-full">
-        <div
-          ref={scrollRef}
-          className="flex items-center gap-1.5 overflow-hidden pr-1 sm:pr-22"
-        >
-          {previews.map(renderCover)}
-        </div>
-        <div className="absolute sm:right-4 right-4 top-0">{countOverlay}</div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="relative w-full">
-      <div ref={scrollRef} className="flex items-center gap-1.5">
-        {previews.map(renderCover)}
-        {countOverlay}
+      {/* Count badge */}
+      <div
+        style={{ zIndex: 30 }}
+        className="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-white/90 dark:bg-black/55 backdrop-blur-sm px-2 py-0.5 text-[10px] font-medium text-foreground shadow-sm"
+      >
+        <Layers className="size-2.5" />
+        {count} 部
       </div>
     </div>
   )
 }
 
-function MobileSheet({
-  open,
-  onOpenChange,
-  collection,
-  previews,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  collection: CollectionCardProps['collection']
-  previews: PreviewItem[]
-}) {
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{collection.title}</SheetTitle>
-        </SheetHeader>
-        <div className="px-4 pb-6">
-          <p className="text-sm text-muted-foreground mb-4">作品：</p>
-          {previews.length > 0 ? (
-            <div className="grid grid-cols-3 gap-3">
-              {previews.slice(0, 50).map((game) => (
-                <div key={game.id} className="group block">
-                  <AspectRatio
-                    ratio={9 / 13}
-                    className="overflow-hidden rounded-lg bg-muted"
-                  >
-                    {game.imageId ? (
-                      <img
-                        src={getImageUrl({
-                          imageId: game.imageId,
-                          width: game.imageWidth,
-                          height: game.imageHeight,
-                        })}
-                        alt={game.alias || game.id}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                        {game.alias || game.id}
-                      </div>
-                    )}
-                  </AspectRatio>
-                  <p className="text-xs truncate w-full text-center mt-1">
-                    {game.alias || game.id}
-                  </p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-8 text-center text-muted-foreground text-sm">
-              暂无作品
-            </div>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
-  )
-}
+// ── Main Card ─────────────────────────────────────────────────
 
-export function CollectionCard({
-  collection,
-  previews,
-  totalCount,
-}: CollectionCardProps) {
-  const isMobile = useIsMobile()
-  const navigate = useNavigate()
-  const [sheetOpen, setSheetOpen] = useState(false)
-
-  const handleClick = () => {
-    if (isMobile) {
-      setSheetOpen(true)
-    } else {
-      navigate({
-        to: '/collections/$id',
-        params: { id: String(collection.id) },
-      })
-    }
-  }
-
-  if (isMobile) {
-    return (
-      <>
-        <Card
-          className="cursor-pointer hover:bg-accent/50 transition-colors pt-0"
-          onClick={handleClick}
-        >
-          <CardContent className="flex flex-col items-start gap-3 pt-4">
-            <h3 className="font-semibold truncate w-full">
-              {collection.title}
-            </h3>
-            <CoverStack previews={previews} totalCount={totalCount} />
-          </CardContent>
-        </Card>
-        <MobileSheet
-          open={sheetOpen}
-          onOpenChange={setSheetOpen}
-          collection={collection}
-          previews={previews}
-        />
-      </>
-    )
-  }
+export function CollectionCard({ collection }: { collection: CollectionWithPreviews }) {
+  const { id, title, entryCount, previews } = collection
+  const gameCount = entryCount ?? previews?.length ?? 0
 
   return (
-    <Card
-      className="cursor-pointer transition-all duration-500"
-      onClick={handleClick}
+    <Link
+      to="/collections/$id"
+      params={{ id: String(id) }}
+      className="group block"
     >
-      <CardContent className="flex flex-col items-start gap-3">
-        <h3 className="font-semibold text-xl truncate w-full">
-          {collection.title}
-        </h3>
-        <CoverStack previews={previews} totalCount={totalCount} />
-      </CardContent>
-    </Card>
+      <CoverStack previews={previews ?? []} count={gameCount} />
+
+      <h3 className="mt-2 text-sm font-medium text-center leading-snug line-clamp-1 group-hover:text-primary transition-colors px-0.5">
+        {title}
+      </h3>
+    </Link>
+  )
+}
+
+// ── Skeleton ──────────────────────────────────────────────────
+
+export function CollectionCardSkeleton() {
+  return (
+    <div>
+      <div className="aspect-[2/3] rounded-xl bg-muted animate-pulse" />
+      <div className="mt-2 h-4 w-3/4 mx-auto rounded bg-muted animate-pulse" />
+    </div>
   )
 }

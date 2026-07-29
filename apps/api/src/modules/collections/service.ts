@@ -16,11 +16,11 @@ import type { CollectionModel } from './model'
 export const CollectionService = {
   // 获取合集列表（传 status 则按状态过滤，不传则返回全部）
   async list(params: CollectionModel.list) {
-    const { page = 1, limit = 20 } = params
+    const { page = 1, limit = 20, type } = params
     const offset = (page - 1) * limit
-    const conditions = params.status
-      ? [eq(collections.status, params.status)]
-      : []
+    const conditions = []
+    if (params.status) conditions.push(eq(collections.status, params.status))
+    if (type) conditions.push(eq(collections.type, type))
 
     const [items, total] = await Promise.all([
       db

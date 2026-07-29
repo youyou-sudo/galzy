@@ -5,6 +5,7 @@ export namespace CollectionModel {
     page: t.Optional(t.Number({ default: 1, minimum: 1 })),
     limit: t.Optional(t.Number({ default: 20, minimum: 1, maximum: 100 })),
     status: t.Optional(t.String()),
+    type: t.Optional(t.String()), // 'manual' | 'producer'
   })
 
   export const Params = t.Object({

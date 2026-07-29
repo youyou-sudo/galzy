@@ -46,25 +46,39 @@ export const getCollectionPreview = createServerFn()
 export const getCollectionsWithPreview = createServerFn()
   .validator(
     z.object({
-      limit: z.optional(z.number().default(6)),
+      page: z.optional(z.number().default(1)),
+      limit: z.optional(z.number().default(12)),
       previewLimit: z.optional(z.number().default(4)),
+      type: z.optional(z.enum(['manual', 'producer'])),
     }),
   )
   .handler(async ({ data }) => {
     const { data: listRes, error: listErr } = await api.collections.get({
-      query: { status: 'published', limit: data.limit },
+      query: {
+        status: 'published',
+        page: data.page,
+        limit: data.limit,
+        type: data.type,
+      },
     })
     elysiaErrorF(listErr)
-    if (!listRes?.items?.length) return []
+    if (!listRes?.items?.length) return { items: [], total: 0, page: data.page, limit: data.limit }
 
-    const enriched = await Promise.all(
-      listRes.items.map(async (col) => {
-        const { data: preview, error: prevErr } = await api
-          .collections({ id: String(col.id) })
-          .preview.get({ query: { limit: data.previewLimit } })
-        elysiaErrorF(prevErr)
-        return { ...col, previews: preview ?? [] }
-      }),
-    )
-    return enriched
+    // Fetch previews in batches of 6 to avoid overwhelming the API
+    const enriched: Array<typeof listRes.items[number] & { previews: unknown[] }> = []
+    const batchSize = 6
+    for (let i = 0; i < listRes.items.length; i += batchSize) {
+      const batch = listRes.items.slice(i, i + batchSize)
+      const results = await Promise.all(
+        batch.map(async (col) => {
+          const { data: preview, error: prevErr } = await api
+            .collections({ id: String(col.id) })
+            .preview.get({ query: { limit: data.previewLimit } })
+          elysiaErrorF(prevErr)
+          return { ...col, previews: preview ?? [] }
+        }),
+      )
+      enriched.push(...results)
+    }
+    return { items: enriched, total: listRes.total, page: listRes.page, limit: listRes.limit }
   })

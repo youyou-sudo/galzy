@@ -8,7 +8,7 @@ export function CollectionsSection() {
   const { data: collections } = useSuspenseQuery({
     queryKey: ['homeCollections'],
     queryFn: () =>
-      getCollectionsWithPreview({ data: { limit: 5, previewLimit: 3 } }),
+      getCollectionsWithPreview({ data: { limit: 5, previewLimit: 3 } }).then(r => r.items),
     staleTime: 5 * 60_000,
   })
 
