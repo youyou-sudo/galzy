@@ -86,6 +86,15 @@ export const Producer = {
     return producerGamelists
   },
   async search({ q, limit = 20 }: ProducerModel.search) {
+    const cacheKey = `galzy:producer:search:${q}:${limit}`
+    const cached = await getKv(cacheKey)
+    if (cached)
+      return JSON.parse(cached) as Array<{
+        id: string
+        name: string | null
+        latin: string | null
+      }>
+
     const results = await db
       .select({
         id: producers.id,
@@ -102,6 +111,8 @@ export const Producer = {
       )
       .limit(limit)
       .orderBy(producers.name)
+
+    void setKv(cacheKey, JSON.stringify(results), 60)
     return results
   },
 }

@@ -684,6 +684,8 @@ export const Game = {
     })
 
     await storeIdempotentResult(`vidassociationCreate:action`, otherId, 2)
+    await delKvPattern('galzy:game:list*')
+    await delKv('galzy:game:count')
     type OtherId = typeof otherId
     return otherId
   },

@@ -46,11 +46,20 @@ export const CommentService = {
       db
         .select({
           ...getTableColumns(comments),
-          user: sql<{ id: string; name: string; email: string; image: string }>`
-            (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = ${comments.userId}) "u")
+          user: sql<{
+            id: string
+            name: string
+            email: string
+            image: string
+          } | null>`
+            CASE WHEN ${users.id} IS NOT NULL
+              THEN json_build_object('id', ${users.id}, 'name', ${users.name}, 'email', ${users.email}, 'image', ${users.image})
+              ELSE NULL
+            END
           `.as('user'),
         })
         .from(comments)
+        .leftJoin(users, eq(comments.userId, users.id))
         .where(whereClause)
         .orderBy(desc(comments.isPinned), desc(comments.createdAt))
         .offset((page - 1) * limit)
@@ -69,19 +78,31 @@ export const CommentService = {
       const replies = await db
         .select({
           ...getTableColumns(comments),
-          user: sql<{ id: string; name: string; email: string; image: string }>`
-            (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = ${comments.userId}) "u")
+          user: sql<{
+            id: string
+            name: string
+            email: string
+            image: string
+          } | null>`
+            CASE WHEN ${users.id} IS NOT NULL
+              THEN json_build_object('id', ${users.id}, 'name', ${users.name}, 'email', ${users.email}, 'image', ${users.image})
+              ELSE NULL
+            END
           `.as('user'),
           reUser: sql<{
             id: string
             name: string
             email: string
             image: string
-          }>`
-            (SELECT row_to_json("ru".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = ${comments.replyToUserId}) "ru")
+          } | null>`
+            CASE WHEN ${comments.replyToUserId} IS NOT NULL
+              THEN (SELECT row_to_json("ru".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = ${comments.replyToUserId}) "ru")
+              ELSE NULL
+            END
           `.as('reUser'),
         })
         .from(comments)
+        .leftJoin(users, eq(comments.userId, users.id))
         .where(and(gt(comments.depth, 0), inArray(comments.rootId, rootIds)))
         .orderBy(asc(comments.createdAt))
       for (const reply of replies) {
@@ -139,11 +160,20 @@ export const CommentService = {
       db
         .select({
           ...getTableColumns(comments),
-          user: sql<{ id: string; name: string; email: string; image: string }>`
-            (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = ${comments.userId}) "u")
+          user: sql<{
+            id: string
+            name: string
+            email: string
+            image: string
+          } | null>`
+            CASE WHEN ${users.id} IS NOT NULL
+              THEN json_build_object('id', ${users.id}, 'name', ${users.name}, 'email', ${users.email}, 'image', ${users.image})
+              ELSE NULL
+            END
           `.as('user'),
         })
         .from(comments)
+        .leftJoin(users, eq(comments.userId, users.id))
         .where(whereClause)
         .orderBy(desc(comments.createdAt))
         .offset((page - 1) * limit)
@@ -235,7 +265,7 @@ export const CommentService = {
           updatedAt: now,
           deletedAt: null,
         } as any)
-        .returning({ id: comments.id })
+        .returning()
 
       // For top-level comments, set rootId to the generated id
       if (!parentId) {
@@ -285,18 +315,20 @@ export const CommentService = {
       })()
     }
 
-    // Return the created comment with user info
+    // Return the created comment with user info — fetch user via LEFT JOIN
     const [comment] = await db
       .select({
-        ...getTableColumns(comments),
-        user: sql<{ id: string; name: string; image: string }>`
-          (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${comments.userId}) "u")
+        user: sql<{ id: string; name: string; image: string } | null>`
+          CASE WHEN ${users.id} IS NOT NULL
+            THEN json_build_object('id', ${users.id}, 'name', ${users.name}, 'image', ${users.image})
+            ELSE NULL
+          END
         `.as('user'),
       })
-      .from(comments)
-      .where(eq(comments.id, inserted.id))
+      .from(users)
+      .where(eq(users.id, userId))
 
-    return comment!
+    return { ...inserted, user: comment?.user ?? null }
   },
 
   async updateComment(
@@ -307,24 +339,24 @@ export const CommentService = {
   ) {
     role = role ?? 'user'
 
-    const [comment] = await db
-      .select({
-        id: comments.id,
-        userId: comments.userId,
-        status: comments.status,
-      })
-      .from(comments)
-      .where(and(eq(comments.id, id), eq(comments.status, 'normal')))
-
-    if (!comment) {
-      throw new Error('评论不存在或已被删除')
+    // Build ownership check — admin bypasses userId check
+    const whereConditions: any[] = [
+      eq(comments.id, id),
+      eq(comments.status, 'normal'),
+    ]
+    if (role !== 'admin') {
+      whereConditions.push(eq(comments.userId, userId))
     }
 
-    if (comment.userId !== userId || role !== 'admin') {
-      throw new Error('无权编辑该评论')
-    }
+    const [updated] = await db
+      .update(comments)
+      .set({ content, updatedAt: new Date() })
+      .where(and(...whereConditions))
+      .returning({ id: comments.id })
 
-    await db.update(comments).set({ content }).where(eq(comments.id, id))
+    if (!updated) {
+      throw new Error('评论不存在、已被删除或无权编辑')
+    }
 
     return { success: true }
   },
@@ -334,53 +366,42 @@ export const CommentService = {
     userId: string,
     isAdmin: boolean,
   ) {
-    const [comment] = await db
-      .select({
-        id: comments.id,
-        userId: comments.userId,
-        status: comments.status,
-      })
-      .from(comments)
-      .where(and(eq(comments.id, id), eq(comments.status, 'normal')))
-
-    if (!comment) {
-      throw new Error('评论不存在或已被删除')
+    const whereConditions: any[] = [
+      eq(comments.id, id),
+      eq(comments.status, 'normal'),
+    ]
+    if (!isAdmin) {
+      whereConditions.push(eq(comments.userId, userId))
     }
 
-    if (comment.userId !== userId && !isAdmin) {
-      throw new Error('无权删除该评论')
-    }
-
-    await db
+    const [updated] = await db
       .update(comments)
       .set({
         status: 'deleted',
         deletedAt: new Date(),
       })
-      .where(eq(comments.id, id))
+      .where(and(...whereConditions))
+      .returning({ id: comments.id })
+
+    if (!updated) {
+      throw new Error('评论不存在、已被删除或无权删除')
+    }
 
     return { success: true }
   },
 
   async togglePin({ id }: CommentModel.params) {
-    const [comment] = await db
-      .select({
-        isPinned: comments.isPinned,
-        status: comments.status,
-      })
-      .from(comments)
+    const [updated] = await db
+      .update(comments)
+      .set({ isPinned: sql`NOT ${comments.isPinned}` })
       .where(and(eq(comments.id, id), eq(comments.status, 'normal')))
+      .returning({ isPinned: comments.isPinned })
 
-    if (!comment) {
+    if (!updated) {
       throw status(404, '评论不存在或已被删除')
     }
 
-    await db
-      .update(comments)
-      .set({ isPinned: !comment.isPinned })
-      .where(eq(comments.id, id))
-
-    return { isPinned: !comment.isPinned }
+    return { isPinned: updated.isPinned }
   },
 
   async changeCommentStatus(

@@ -536,6 +536,9 @@ export const VndbSync = {
     await delKvPattern('galzy:game:count').catch((e) =>
       console.warn('[Cache] gameCount invalidation failed:', e),
     )
+    await delKvPattern('galzy:search:*').catch((e) =>
+      console.warn('[Cache] search invalidation failed:', e),
+    )
   },
 
   // ========== VN Sync ==========

@@ -49,32 +49,29 @@ export const CollectionService = {
     // Batch count for manual collections
     const manualIds = items.filter((i) => i.type === 'manual').map((i) => i.id)
     if (manualIds.length > 0) {
-      const [manualCounts, allEntries] = await Promise.all([
-        db
-          .select({
-            collectionId: collectionEntries.collectionId,
-            count: count(),
-          })
-          .from(collectionEntries)
-          .where(inArray(collectionEntries.collectionId, manualIds))
-          .groupBy(collectionEntries.collectionId),
-        db
-          .select({
-            collectionId: collectionEntries.collectionId,
-            vid: collectionEntries.vid,
-            sortOrder: collectionEntries.sortOrder,
-          })
-          .from(collectionEntries)
-          .where(inArray(collectionEntries.collectionId, manualIds))
-          .orderBy(asc(collectionEntries.sortOrder)),
-      ])
-      for (const row of manualCounts) {
-        countMap.set(row.collectionId, row.count)
-      }
+      const allEntries = await db
+        .select({
+          collectionId: collectionEntries.collectionId,
+          vid: collectionEntries.vid,
+          sortOrder: collectionEntries.sortOrder,
+        })
+        .from(collectionEntries)
+        .where(inArray(collectionEntries.collectionId, manualIds))
+        .orderBy(asc(collectionEntries.sortOrder))
+
+      // Compute counts per collection from entries (avoids second query)
+      const perCollection = new Map<number, number>()
       for (const entry of allEntries) {
+        perCollection.set(
+          entry.collectionId,
+          (perCollection.get(entry.collectionId) ?? 0) + 1,
+        )
         const list = entriesMap.get(entry.collectionId) ?? []
         list.push({ vid: entry.vid, sortOrder: entry.sortOrder })
         entriesMap.set(entry.collectionId, list)
+      }
+      for (const [id, count] of perCollection) {
+        countMap.set(id, count)
       }
     }
 

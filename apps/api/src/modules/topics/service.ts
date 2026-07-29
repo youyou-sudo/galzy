@@ -272,30 +272,21 @@ export const TopicService = {
   async toggleLike({ id }: TopicModel.params, userId: string) {
     const numericId = Number(id)
 
-    const [topic] = await db
-      .select({ id: topics.id })
-      .from(topics)
-      .where(eq(topics.id, numericId))
-
-    if (!topic) {
-      throw status(404, '帖子不存在')
-    }
-
-    const [existing] = await db
-      .select({ id: topicLikes.id })
-      .from(topicLikes)
+    // Try DELETE first — if row exists, unlike succeeds
+    const deleted = await db
+      .delete(topicLikes)
       .where(
         and(eq(topicLikes.topicId, numericId), eq(topicLikes.userId, userId)),
       )
+      .returning({ id: topicLikes.id })
 
-    if (existing) {
+    const liked = deleted.length === 0
+    if (liked) {
+      // Row didn't exist — insert it (ON CONFLICT for idempotency)
       await db
-        .delete(topicLikes)
-        .where(
-          and(eq(topicLikes.topicId, numericId), eq(topicLikes.userId, userId)),
-        )
-    } else {
-      await db.insert(topicLikes).values({ topicId: numericId, userId })
+        .insert(topicLikes)
+        .values({ topicId: numericId, userId })
+        .onConflictDoNothing()
     }
 
     const [countResult] = await db
@@ -304,7 +295,7 @@ export const TopicService = {
       .where(eq(topicLikes.topicId, numericId))
 
     return {
-      liked: !existing,
+      liked,
       likeCount: Number(countResult?.count ?? 0),
     }
   },
@@ -312,36 +303,22 @@ export const TopicService = {
   async toggleFavorite({ id }: TopicModel.params, userId: string) {
     const numericId = Number(id)
 
-    const [topic] = await db
-      .select({ id: topics.id })
-      .from(topics)
-      .where(eq(topics.id, numericId))
-
-    if (!topic) {
-      throw status(404, '帖子不存在')
-    }
-
-    const [existing] = await db
-      .select({ id: topicFavorites.id })
-      .from(topicFavorites)
+    const deleted = await db
+      .delete(topicFavorites)
       .where(
         and(
           eq(topicFavorites.topicId, numericId),
           eq(topicFavorites.userId, userId),
         ),
       )
+      .returning({ id: topicFavorites.id })
 
-    if (existing) {
+    const favorited = deleted.length === 0
+    if (favorited) {
       await db
-        .delete(topicFavorites)
-        .where(
-          and(
-            eq(topicFavorites.topicId, numericId),
-            eq(topicFavorites.userId, userId),
-          ),
-        )
-    } else {
-      await db.insert(topicFavorites).values({ topicId: numericId, userId })
+        .insert(topicFavorites)
+        .values({ topicId: numericId, userId })
+        .onConflictDoNothing()
     }
 
     const [countResult] = await db
@@ -350,7 +327,7 @@ export const TopicService = {
       .where(eq(topicFavorites.topicId, numericId))
 
     return {
-      favorited: !existing,
+      favorited,
       favoriteCount: Number(countResult?.count ?? 0),
     }
   },
