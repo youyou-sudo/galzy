@@ -230,30 +230,41 @@ export const CronService = {
       const processedData = processData(data.data.content)
 
       await db.transaction(async (trx) => {
-        // 使用 UPSERT 替代全量删除，避免数据丢失
-        for (const result of processedData) {
+        const CHUNK_SIZE = 500
+
+        // Bulk UPSERT in chunks to avoid N per-row round trips
+        for (let i = 0; i < processedData.length; i += CHUNK_SIZE) {
+          const chunk = processedData.slice(i, i + CHUNK_SIZE)
           await trx
             .insert(alistb)
-            .values({
-              id: result.id,
-              vid: result.vid,
-              other: result.other != null ? Number(result.other) : null,
-              path: result.path,
-            })
+            .values(
+              chunk.map((r) => ({
+                id: r.id,
+                vid: r.vid,
+                other: r.other != null ? Number(r.other) : null,
+                path: r.path,
+              })),
+            )
             .onConflictDoUpdate({
               target: alistb.id,
               set: {
-                vid: result.vid,
-                other: result.other != null ? Number(result.other) : null,
-                path: result.path,
+                vid: sql.raw('excluded.vid'),
+                other: sql.raw('excluded.other'),
+                path: sql.raw('excluded.path'),
               },
             })
         }
 
-        // 删除不再存在的记录
-        const currentIds = processedData.map((r) => r.vid)
-        if (currentIds.length > 0) {
-          await trx.delete(alistb).where(notInArray(alistb.vid, currentIds))
+        // Delete stale entries: fetch existing IDs, diff in-memory, delete in chunks
+        const currentIdSet = new Set(processedData.map((r) => r.id))
+        const existingIds = await trx
+          .select({ id: alistb.id })
+          .from(alistb)
+          .then((rows) => rows.map((r) => r.id))
+        const staleIds = existingIds.filter((id) => !currentIdSet.has(id))
+        for (let i = 0; i < staleIds.length; i += CHUNK_SIZE) {
+          const chunk = staleIds.slice(i, i + CHUNK_SIZE)
+          await trx.delete(alistb).where(inArray(alistb.id, chunk))
         }
 
         await trx
@@ -624,10 +635,8 @@ export const CronService = {
           tags: sql`COALESCE((SELECT json_agg(DISTINCT tv.tag) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE), '[]'::json)`,
           titles_obj: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT title, latin, lang FROM ${vnTitles} t WHERE t.id = ${vn.id}) t), '[]'::json)`,
           images: sql`(SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM ${images} i WHERE i.id = ${vn.cImage}) i)`,
-          releases: sql`COALESCE((SELECT json_agg(row_to_json(rel.*)) FROM (SELECT r.title, r.released FROM ${releasesVn} rv INNER JOIN ${releases} r ON r.id = rv.id WHERE rv.vid = ${vn.id}) rel), '[]'::json)`,
           other: sql`(SELECT ${alistb.other} FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1)`,
-          otherData: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, (SELECT ${alistb.other} FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1) AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o WHERE o.id = (SELECT ${alistb.other} FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1)) other_sub)`,
-          tags_obj: sql`COALESCE((SELECT json_agg(row_to_json(tag.*)) FROM (SELECT DISTINCT z.alias, z.name, z.id FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE) tag), '[]'::json)`,
+          otherData: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, a.other_val AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o CROSS JOIN LATERAL (SELECT ${alistb.other} AS other_val FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1) a WHERE o.id = a.other_val) other_sub)`,
           has_download: sql`TRUE`,
         })
         .from(vn)
@@ -670,7 +679,7 @@ export const CronService = {
           images: sql`(SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM ${images} i WHERE i.id = ${vn.cImage}) i)`,
           releases: sql`COALESCE((SELECT json_agg(row_to_json(rel.*)) FROM (SELECT r.title, r.released FROM ${releasesVn} rv INNER JOIN ${releases} r ON r.id = rv.id WHERE rv.vid = ${vn.id}) rel), '[]'::json)`,
           other: sql`(SELECT ${alistb.other} FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1)`,
-          otherData: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, (SELECT ${alistb.other} FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1) AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o WHERE o.id = (SELECT ${alistb.other} FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1)) other_sub)`,
+          otherData: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, a.other_val AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o CROSS JOIN LATERAL (SELECT ${alistb.other} AS other_val FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1) a WHERE o.id = a.other_val) other_sub)`,
           tags_obj: sql`COALESCE((SELECT json_agg(row_to_json(tag.*)) FROM (SELECT DISTINCT z.alias, z.name, z.id FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE) tag), '[]'::json)`,
           has_download: sql`TRUE`,
         })
@@ -727,7 +736,7 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
       votecount: vn.cVotecount,
       description: vn.description,
       // Sortable — first release date as text (YYYY-MM-DD, handles partial dates)
-      released_first: sql`COALESCE((SELECT MIN(${releases.released}) FROM ${releasesVn} INNER JOIN ${releases} ON ${releases.id} = ${releasesVn.id} WHERE ${releasesVn.vid} = ${alistb.vid} AND ${releases.released} IS NOT NULL), '')`,
+      released_first: sql`COALESCE((SELECT MIN(${releases.released}) FROM ${releasesVn} INNER JOIN ${releases} ON ${releases.id} = ${releasesVn.id} WHERE ${releasesVn.vid} = ${vn.id} AND ${releases.released} IS NOT NULL), '')`,
       // Sortable — download and view counts
       dl_count: sql`(SELECT COUNT(*)::int FROM ${gameDownloadStats} WHERE game_id = ${vn.id})`,
       vw_count: sql`(SELECT COUNT(*)::int FROM ${eventViews} WHERE event_type = 'game_view' AND target_id = ${vn.id})`,

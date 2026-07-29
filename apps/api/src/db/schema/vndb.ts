@@ -105,6 +105,7 @@ export const tagsVn = pgTable(
     tagIdx: index('idx_tags_vn_tag').on(table.tag),
     vidIdx: index('idx_tags_vn_vid').on(table.vid),
     uidIdx: index('idx_tags_vn_uid').on(table.uid),
+    tagVidIdx: index('idx_tags_vn_tag_vid').on(table.tag, table.vid),
   }),
 )
 

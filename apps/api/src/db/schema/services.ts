@@ -82,6 +82,8 @@ export const collections = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
   },
   (table) => ({
+    statusIdx: index('idx_galrc_collections_status').on(table.status),
+    typeIdx: index('idx_galrc_collections_type').on(table.type),
     sortCreatedIdx: index('idx_galrc_collections_sort_created').on(
       table.sortOrder,
       table.createdAt,

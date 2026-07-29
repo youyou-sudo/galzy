@@ -144,12 +144,11 @@ export const Game = {
       totalPages,
       totalCount,
     }
-    const result = structuredClone(datas)
     if (useCache) {
-      void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 2)
+      void setKv(cacheKey, JSON.stringify(datas), 60 * 60 * 2)
     }
-    type GameList = typeof result
-    return result
+    type GameList = typeof datas
+    return datas
   },
   async InfoGet({ id }: GameModel.infoId) {
     const cacheKey = `galzy:game:info:${id}`
@@ -709,31 +708,47 @@ export const Game = {
         ELSE interval '3 month'
       END
     ) AS start
+  ),
+  totals AS (
+    SELECT
+      date_trunc(${mode}, d.created_at) AS bucket,
+      COUNT(d.id)::int AS total
+    FROM "galrc_gameDownloadStats" d
+    WHERE d.game_id = ${id}
+      AND d.created_at >= (SELECT min(start) FROM series)
+      AND d.created_at <  (SELECT max(start) + CASE ${mode}
+            WHEN 'week' THEN interval '1 week'
+            WHEN 'month' THEN interval '1 month'
+            ELSE interval '3 month'
+          END FROM series)
+    GROUP BY bucket
+  ),
+  grand AS (
+    SELECT COUNT(*)::int AS total FROM "galrc_gameDownloadStats" WHERE game_id = ${id}
   )
-
   SELECT
     CASE
-      WHEN ${mode} = 'week' THEN to_char(start, 'IW') || '周'
-      WHEN ${mode} = 'month' THEN to_char(start, 'MM') || '月'
-      ELSE '第' || extract(quarter from start) || '季度'
+      WHEN ${mode} = 'week' THEN to_char(s.start, 'IW') || '周'
+      WHEN ${mode} = 'month' THEN to_char(s.start, 'MM') || '月'
+      ELSE '第' || extract(quarter from s.start) || '季度'
     END AS label,
-
-    COUNT(d.id)::int AS total
-
-  FROM series
-  LEFT JOIN "galrc_gameDownloadStats" d
-    ON date_trunc(${mode}, d.created_at) = start
-    AND d.game_id = ${id}
-
-  GROUP BY start
-  ORDER BY start ASC;
+    COALESCE(t.total, 0) AS total,
+    g.total AS grand_total
+  FROM series s
+  LEFT JOIN totals t ON t.bucket = s.start
+  CROSS JOIN grand g
+  ORDER BY s.start ASC;
 `)
-    const data = await db
-      .select({ total: countAll() })
-      .from(gameDownloadStats)
-      .where(eq(gameDownloadStats.gameId, id))
-      .then((r) => r[0])
-    return { total: data?.total, res }
+    const rows = res as unknown as Array<{
+      label: string
+      total: number
+      grand_total: number
+    }>
+    const total = rows.length > 0 ? rows[0].grand_total : 0
+    return {
+      total,
+      res: rows.map(({ label, total: t }) => ({ label, total: t })),
+    }
   },
   async quickSearch({ q, limit = 20 }: { q: string; limit?: number }) {
     const safeQ =

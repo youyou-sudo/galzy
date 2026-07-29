@@ -164,6 +164,13 @@ export const comments = pgTable(
     rootIdIdx: index('idx_galrc_comments_root_id').on(table.rootId),
     statusIdx: index('idx_galrc_comments_status').on(table.status),
     createdAtIdx: index('idx_galrc_comments_created_at').on(table.createdAt),
+    statusPinnedCreatedIdx: index(
+      'idx_galrc_comments_status_pinned_created',
+    ).on(table.status, table.isPinned, table.createdAt),
+    rootIdDepthIdx: index('idx_galrc_comments_rootid_depth').on(
+      table.rootId,
+      table.depth,
+    ),
   }),
 )
 
@@ -212,6 +219,10 @@ export const topics = pgTable(
     userIdIdx: index('idx_galrc_topics_user_id').on(table.userId),
     statusIdx: index('idx_galrc_topics_status').on(table.status),
     createdAtIdx: index('idx_galrc_topics_created_at').on(table.createdAt),
+    statusCreatedIdx: index('idx_galrc_topics_status_created').on(
+      table.status,
+      table.createdAt,
+    ),
   }),
 )
 

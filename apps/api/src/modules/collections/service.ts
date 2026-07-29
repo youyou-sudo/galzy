@@ -81,23 +81,35 @@ export const CollectionService = {
     // Count distinct VNs for producer collections
     const producerItems = items.filter((i) => i.type === 'producer')
     if (producerItems.length > 0) {
-      const producerCounts = await Promise.all(
-        producerItems.map(async (item) => {
-          const pIds = item.producerIds as string[] | null
-          if (pIds && pIds.length > 0) {
-            const [result] = await db
-              .select({ count: countDistinct(vn.id) })
-              .from(releasesProducers)
-              .innerJoin(releasesVn, eq(releasesVn.id, releasesProducers.id))
-              .innerJoin(vn, eq(vn.id, releasesVn.vid))
-              .where(inArray(releasesProducers.pid, pIds))
-            return { id: item.id, count: result.count }
-          }
-          return { id: item.id, count: 0 }
-        }),
-      )
-      for (const { id, count } of producerCounts) {
-        countMap.set(id, count)
+      // Collect all unique pIds across all producer collections
+      const allPIds = [
+        ...new Set(
+          producerItems.flatMap(
+            (item) => (item.producerIds as string[] | null) ?? [],
+          ),
+        ),
+      ]
+      if (allPIds.length > 0) {
+        const rows = await db
+          .select({
+            pid: releasesProducers.pid,
+            count: countDistinct(vn.id),
+          })
+          .from(releasesProducers)
+          .innerJoin(releasesVn, eq(releasesVn.id, releasesProducers.id))
+          .innerJoin(vn, eq(vn.id, releasesVn.vid))
+          .where(inArray(releasesProducers.pid, allPIds))
+          .groupBy(releasesProducers.pid)
+        // Build pid→count map so each collection can sum its pIds
+        const pidCountMap = new Map(rows.map((r) => [r.pid, Number(r.count)]))
+        for (const item of producerItems) {
+          const pIds = (item.producerIds as string[] | null) ?? []
+          const total = pIds.reduce(
+            (sum, pid) => sum + (pidCountMap.get(pid) ?? 0),
+            0,
+          )
+          countMap.set(item.id, total)
+        }
       }
     }
 

@@ -45,9 +45,18 @@ export const Strategy = {
     const isVNDB = /^v\d+$/.test(gameId)
     const data = await db
       .select({
-        ...getTableColumns(articles),
+        id: articles.id,
+        vid: articles.vid,
+        otherid: articles.otherid,
+        author: articles.author,
+        title: articles.title,
+        type: articles.type,
+        status: articles.status,
+        copyright: articles.copyright,
+        createdAt: articles.createdAt,
+        updatedAt: articles.updatedAt,
         user: sql<Record<string, any>>`
-          (SELECT row_to_json("u".*) FROM (SELECT * FROM "galrc_user" WHERE "id" = ${articles.author}) "u")
+          (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${articles.author}) "u")
         `.as('user'),
       })
       .from(articles)
@@ -59,6 +68,7 @@ export const Strategy = {
             : eq(articles.otherid, Number(gameId)),
         ),
       )
+      .limit(50)
     void setKv(
       `galzy:game:strategys:${gameId}`,
       JSON.stringify(data),
