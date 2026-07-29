@@ -36,8 +36,12 @@ export const CollectionService = {
         .where(and(...conditions)),
     ])
 
-    // Compute entryCount per collection
+    // Compute entryCount per collection + fetch entries for manual type
     const countMap = new Map<number, number>()
+    const entriesMap = new Map<
+      number,
+      Array<{ vid: string; sortOrder: number }>
+    >()
     for (const item of items) {
       countMap.set(item.id, 0)
     }
@@ -45,20 +49,36 @@ export const CollectionService = {
     // Batch count for manual collections
     const manualIds = items.filter((i) => i.type === 'manual').map((i) => i.id)
     if (manualIds.length > 0) {
-      const manualCounts = await db
-        .select({
-          collectionId: collectionEntries.collectionId,
-          count: count(),
-        })
-        .from(collectionEntries)
-        .where(inArray(collectionEntries.collectionId, manualIds))
-        .groupBy(collectionEntries.collectionId)
+      const [manualCounts, allEntries] = await Promise.all([
+        db
+          .select({
+            collectionId: collectionEntries.collectionId,
+            count: count(),
+          })
+          .from(collectionEntries)
+          .where(inArray(collectionEntries.collectionId, manualIds))
+          .groupBy(collectionEntries.collectionId),
+        db
+          .select({
+            collectionId: collectionEntries.collectionId,
+            vid: collectionEntries.vid,
+            sortOrder: collectionEntries.sortOrder,
+          })
+          .from(collectionEntries)
+          .where(inArray(collectionEntries.collectionId, manualIds))
+          .orderBy(asc(collectionEntries.sortOrder)),
+      ])
       for (const row of manualCounts) {
         countMap.set(row.collectionId, row.count)
       }
+      for (const entry of allEntries) {
+        const list = entriesMap.get(entry.collectionId) ?? []
+        list.push({ vid: entry.vid, sortOrder: entry.sortOrder })
+        entriesMap.set(entry.collectionId, list)
+      }
     }
 
-    // Count distinct VNs for producer collections — run all in parallel
+    // Count distinct VNs for producer collections
     const producerItems = items.filter((i) => i.type === 'producer')
     if (producerItems.length > 0) {
       const producerCounts = await Promise.all(
@@ -84,6 +104,7 @@ export const CollectionService = {
     const itemsWithCount = items.map((item) => ({
       ...item,
       entryCount: countMap.get(item.id) ?? 0,
+      entries: entriesMap.get(item.id) ?? [],
     }))
 
     return { items: itemsWithCount, total: total[0].count, page, limit }

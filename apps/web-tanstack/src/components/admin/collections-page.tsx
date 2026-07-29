@@ -29,7 +29,6 @@ import {
   adminUpdateCollection,
   adminUpdateCollectionEntries,
 } from '@web/server/admin/collections'
-import { getCollectionById } from '@web/server/collections'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -713,7 +712,6 @@ function EditCollectionDialog({
     entries: collection.entries ?? [],
   })
   const [vidInput, setVidInput] = useState('')
-  const [loadingEntries, setLoadingEntries] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -725,20 +723,10 @@ function EditCollectionDialog({
       status: collection.status,
       entries: collection.entries ?? [],
     })
-    // Fetch full collection with entries for manual type
-    if (collection.type === 'manual') {
-      setLoadingEntries(true)
-      getCollectionById({ data: { id: String(collection.id) } })
-        .then((full) => {
-          const fullColl = full as Record<string, unknown>
-          const entries = (fullColl.entries as Array<{ vid: string; sortOrder: number }>) ?? []
-          setForm((prev) => ({ ...prev, entries }))
-        })
-        .catch(() => {})
-        .finally(() => setLoadingEntries(false))
-    }
-  }, [open, collection])
-      toast.error('请输入合集名称')
+  }, [open, collection.id])
+
+  const handleSubmit = async () => {
+    if (!form.title.trim()) {
       return
     }
     setSubmitting(true)
@@ -853,12 +841,6 @@ function EditCollectionDialog({
               />
             )}
 
-            {form.type === 'manual' && loadingEntries && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                <Loader2Icon className="size-4 animate-spin" />
-                正在加载游戏条目...
-              </div>
-            )}
             {form.type === 'manual' && (
               <GameSearch
                 selectedVids={form.entries.map((e) => e.vid)}
