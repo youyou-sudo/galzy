@@ -20,14 +20,16 @@ const withTimeout: typeof fetch = (async (input, init) => {
     return await fetch(input, { ...init, signal })
   } catch (e) {
     // Convert network/abort errors to structured error responses
-    // so Eden Treaty can parse them as { data: null, error: { status, value } }
-    const message = e instanceof Error ? e.message : String(e)
+    // so Eden Treaty parses them as { data: null, error: { status, value } }.
+    // Return a plain string body so error.value is a readable string,
+    // not a nested object that breaks elysiaErrorF.
     const isAbort = e instanceof DOMException && e.name === 'AbortError'
+    const detail = e instanceof Error ? e.message : String(e)
+    const msg = isAbort
+      ? `Request timed out (${detail})`
+      : `Backend unreachable: ${detail}`
     return new Response(
-      JSON.stringify({
-        message: isAbort ? 'Request timed out' : 'Backend unreachable',
-        detail: message,
-      }),
+      JSON.stringify(msg),
       {
         status: isAbort ? 504 : 502,
         headers: { 'content-type': 'application/json' },
