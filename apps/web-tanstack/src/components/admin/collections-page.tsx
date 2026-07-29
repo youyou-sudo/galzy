@@ -451,6 +451,12 @@ function GameSearch({
     }
   }, [])
 
+  const handleInput = (value: string) => {
+    setQuery(value)
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => doSearch(value), 300)
+  }
+
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium">游戏条目（VID）</label>
