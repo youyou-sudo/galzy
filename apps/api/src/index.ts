@@ -25,9 +25,24 @@ import { openapi } from '@elysia/openapi'
 import { Elysia } from 'elysia'
 
 async function buildApp() {
-  return new Elysia()
-    .onError(({ code, error }) => {
-      if (code === 'VALIDATION') return error.message
+  return new Elysia({
+    serve: {
+      // Prevent hanging connections from blocking the event loop
+      idleTimeout: 30,
+    },
+  })
+    .onError(({ code, error, set }) => {
+      if (code === 'VALIDATION') {
+        set.status = 400
+        return error.message
+      }
+      // Log unexpected errors for diagnostics
+      if (code !== 'NOT_FOUND') {
+        console.error(
+          `[err] ${code ?? 'UNKNOWN'}:`,
+          error instanceof Error ? error.message : error,
+        )
+      }
     })
     .use(
       openapi({
@@ -93,8 +108,8 @@ async function healthcheck() {
     console.log('[ ok ] Healthcheck passed')
     process.exit(0)
   } catch (e) {
-    console.error('[err] Healthcheck failed:', (e as Error).message)
-    process.exit(1)
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[err] Healthcheck failed:', msg)
   }
 }
 

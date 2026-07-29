@@ -44,10 +44,14 @@ const CLUSTER_WORKERS = Math.max(1,
   Number(process.env.CLUSTER_WORKERS ?? availableParallelism()))
 const IS_COMPILED = ((Bun as any).embeddedFiles as Blob[] | undefined)?.length ? true : false
 
-// ── SSR timeout ────────────────────────────────────
-// Hard cap: abort the SSR promise if it hasn't resolved.
-// Set below React 19's internal 120s stream lifetime to preempt it.
-const SSR_TIMEOUT_MS = Number(process.env.SSR_TIMEOUT_MS ?? 55_000)
+// SSR timeout: overall cap for a single SSR render.
+// Individual server function fetches use FETCH_TIMEOUT_MS (set below).
+const SSR_TIMEOUT_MS = Number(process.env.SSR_TIMEOUT_MS ?? 60_000)
+
+// Fetch timeout: per-request timeout for BFF→API calls.
+// Must be shorter than SSR_TIMEOUT so individual calls fail fast
+// and the SSR can render a fallback rather than timing out entirely.
+const FETCH_TIMEOUT_MS = Number(process.env.FETCH_TIMEOUT_MS ?? 30_000)
 
 // ── Filter patterns ─────────────────────────────────
 const INCLUDE = (process.env.ASSET_PRELOAD_INCLUDE ?? '')
@@ -396,12 +400,6 @@ function fastPath(url: string): string {
   return i === -1 ? '/' : url.slice(i)
 }
 
-/**
- * Wrap the SSR ReadableStream so that mid-stream aborts (e.g. React's
- * internal 120s lifetime kill) don't crash the server.  On AbortError we
- * close the stream cleanly; the client already received headers and will
- * see a truncated body, but the server stays healthy.
- */
 function safeSSRResponse(res: Response): Response {
   if (!res.body) return res
   const reader = res.body.getReader()
@@ -417,7 +415,14 @@ function safeSSRResponse(res: Response): Response {
           return
         }
         controller.enqueue(value)
-      } catch {
+      } catch (e) {
+        if (
+          e instanceof DOMException
+            ? e.name !== 'AbortError'
+            : (typeof e === 'object' && e !== null && 'name' in e && (e as Record<string, unknown>).name !== 'AbortError')
+        ) {
+          console.error('[err] SSR stream error:', e)
+        }
         try { controller.close() } catch {}
         canceled = true
       }
@@ -482,7 +487,14 @@ function compressStream(res: Response, ae: string): Response {
       try {
         const { done, value } = await reader.read()
         this.push(done ? null : Buffer.from(value))
-      } catch (e) { this.destroy(e as Error) }
+      } catch (e) {
+        // AbortError is expected when the client disconnects or SSR times out;
+        // other errors indicate a real problem and should be logged.
+        if (e instanceof DOMException ? e.name !== 'AbortError' : true) {
+          console.error('[err] compressStream source error:', e)
+        }
+        this.destroy(e instanceof Error ? e : new Error(String(e)))
+      }
     },
   })
 
@@ -513,7 +525,14 @@ async function main(): Promise<void> {
 
   function isAbortError(reason: unknown): boolean {
     if (reason instanceof DOMException && reason.name === 'AbortError') return true
-    if ((reason as { name?: string }).name === 'AbortError') return true
+    if (
+      typeof reason === 'object' &&
+      reason !== null &&
+      'name' in reason
+    ) {
+      const named = reason as Record<string, unknown>
+      if (named.name === 'AbortError') return true
+    }
     if (
       typeof reason === 'object' &&
       reason !== null &&
@@ -564,8 +583,11 @@ async function main(): Promise<void> {
         if (SSR_TIMEOUT_MS > 0) {
           const ac = new AbortController()
           const timer = setTimeout(() => ac.abort(), SSR_TIMEOUT_MS)
+          // Clone request with abort signal so the SSR handler can cancel
+          // in-flight server-function fetches when the timeout fires.
+          const ssrReq = new Request(req, { signal: ac.signal })
           res = await Promise.race([
-            ssrMod.default.fetch(req),
+            ssrMod.default.fetch(ssrReq),
             new Promise<never>((_, reject) => {
               ac.signal.addEventListener('abort', () => {
                 reject(new DOMException('SSR request timed out', 'TimeoutError'))
@@ -593,10 +615,7 @@ async function main(): Promise<void> {
     },
 
     error(e) {
-      if (
-        e instanceof DOMException ||
-        (e as { name?: string }).name === 'AbortError'
-      ) {
+      if (isAbortError(e)) {
         return new Response(null, { status: 499 })
       }
       console.error('[err]', e)

@@ -11,6 +11,7 @@ async function proxy(request: Request) {
 		method: request.method,
 		headers: request.headers,
 		redirect: "manual",
+		signal: AbortSignal.timeout(30_000),
 		body:
 			request.method !== "GET" && request.method !== "HEAD"
 				? await request.text()

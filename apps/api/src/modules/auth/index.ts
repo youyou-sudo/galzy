@@ -2,7 +2,10 @@ import { auth } from '@api/modules/auth/service'
 import cors from '@elysiajs/cors'
 import { Elysia } from 'elysia'
 
-const allowedOrigins = ['http://localhost:3001', `${process.env.WEB_HOST}`]
+const allowedOrigins: (string | RegExp)[] = ['http://localhost:3001']
+if (process.env.WEB_HOST) {
+  allowedOrigins.push(process.env.WEB_HOST)
+}
 
 let bunServer: {
   requestIP: (req: Request) => { address: string } | null

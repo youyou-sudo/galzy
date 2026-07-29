@@ -17,6 +17,7 @@ async function uploadProxy(request: Request) {
 		method: request.method,
 		headers,
 		redirect: "manual",
+		signal: AbortSignal.timeout(60_000),
 		body: request.body,
 	});
 
