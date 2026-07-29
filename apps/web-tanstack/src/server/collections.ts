@@ -34,9 +34,11 @@ export const getCollectionById = createServerFn()
 export const getCollectionPreview = createServerFn()
   .validator(z.object({ id: z.string(), limit: z.optional(z.number()) }))
   .handler(async ({ data }) => {
-    const { data: res, error } = await api.collections({ id: data.id }).preview.get({
-      query: { limit: data.limit },
-    })
+    const { data: res, error } = await api
+      .collections({ id: data.id })
+      .preview.get({
+        query: { limit: data.limit },
+      })
     elysiaErrorF(error)
     return res
   })

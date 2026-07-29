@@ -65,7 +65,11 @@ function CoverStack({
       <div className="w-16 h-24 sm:w-20 sm:h-28 rounded-lg shadow-lg border overflow-hidden bg-muted">
         {game.imageId ? (
           <img
-            src={getImageUrl({ imageId: game.imageId, width: game.imageWidth, height: game.imageHeight })}
+            src={getImageUrl({
+              imageId: game.imageId,
+              width: game.imageWidth,
+              height: game.imageHeight,
+            })}
             alt={game.alias || game.id}
             className="w-full h-full object-cover"
             loading="lazy"
@@ -99,9 +103,7 @@ function CoverStack({
         >
           {previews.map(renderCover)}
         </div>
-        <div className="absolute sm:right-4 right-4 top-0">
-          {countOverlay}
-        </div>
+        <div className="absolute sm:right-4 right-4 top-0">{countOverlay}</div>
       </div>
     )
   }
@@ -201,7 +203,7 @@ export function CollectionCard({
     return (
       <>
         <Card
-          className="cursor-pointer hover:bg-accent/50 transition-colors"
+          className="cursor-pointer hover:bg-accent/50 transition-colors pt-0"
           onClick={handleClick}
         >
           <CardContent className="flex flex-col items-start gap-3 pt-4">
