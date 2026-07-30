@@ -28,13 +28,10 @@ const withTimeout: typeof fetch = (async (input, init) => {
     const msg = isAbort
       ? `Request timed out (${detail})`
       : `Backend unreachable: ${detail}`
-    return new Response(
-      JSON.stringify(msg),
-      {
-        status: isAbort ? 504 : 502,
-        headers: { 'content-type': 'application/json' },
-      },
-    )
+    return new Response(JSON.stringify(msg), {
+      status: isAbort ? 504 : 502,
+      headers: { 'content-type': 'application/json' },
+    })
   }
 }) as typeof fetch
 
