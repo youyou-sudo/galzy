@@ -71,6 +71,13 @@
       "when": 1754000000000,
       "tag": "0009_producers_trigram",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1754100000000,
+      "tag": "0010_schema_hardening",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,5 @@
 import { SQL } from 'bun'
+import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/bun-sql'
 import * as schema from './schema'
 
@@ -13,4 +14,8 @@ const client = new SQL({
 
 export const db = drizzle({ client, schema })
 
-export { sql } from 'drizzle-orm'
+// Set per-session timeout to prevent runaway queries from holding connections.
+// Also set at database level via migration 0010 for all connections.
+await db.execute(sql.raw(`SET statement_timeout = '30s'`))
+
+export { sql }
