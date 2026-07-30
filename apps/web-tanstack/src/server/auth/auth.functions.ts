@@ -3,10 +3,16 @@ import z from "zod";
 import { authServerClient } from "./auth.server";
 
 export const getSession = createServerFn({ method: "GET" }).handler(
-	async () => {
-		const { data: session } = await authServerClient.getSession();
-		return session;
-	},
+  async () => {
+    try {
+      const { data: session } = await authServerClient.getSession();
+      return session;
+    } catch {
+      // Network errors already caught by safeFetch in auth.server.ts,
+      // but catch any unexpected errors here so SSR doesn't crash.
+      return null;
+    }
+  },
 );
 
 export const seedVerification = createServerFn({ method: "GET" })

@@ -411,10 +411,10 @@ function safeSSRResponse(res: Response): Response {
         const { done, value } = await reader.read()
         if (done) {
           canceled = true
-          controller.close()
+          try { controller.close() } catch {}
           return
         }
-        controller.enqueue(value)
+        try { controller.enqueue(value) } catch {}
       } catch (e) {
         if (
           e instanceof DOMException
