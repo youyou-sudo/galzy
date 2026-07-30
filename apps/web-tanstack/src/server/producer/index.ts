@@ -16,9 +16,9 @@ export const producerInfo = createServerFn()
 export const producerGameList = createServerFn()
 	.validator(z.object({ pid: z.string() }))
 	.handler(async ({ data }) => {
-		const { data: producer, error } = await api.producer.gamelists.get({
+		const { data: result, error } = await api.producer.gamelists.get({
 			query: { pid: data.pid },
 		});
 		elysiaErrorF(error);
-		return producer;
+		return result?.items ?? [];
 	});
