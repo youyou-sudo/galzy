@@ -44,11 +44,15 @@ export const Download = {
 
       const randomWorker =
         workerList[Math.floor(Math.random() * workerList.length)]
-      await db.insert(gameDownloadStats).values({
-        gameId: game_id,
-        filePath: path,
-        createdAt: new Date(),
-      })
+      // Fire-and-forget: stats tracking MUST NOT block the download response
+      void db
+        .insert(gameDownloadStats)
+        .values({
+          gameId: game_id,
+          filePath: path,
+          createdAt: new Date(),
+        })
+        .catch((err) => console.error('[DownloadGet] 统计写入失败:', err))
 
       return {
         success: true,

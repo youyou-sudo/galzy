@@ -455,18 +455,18 @@ export const CollectionService = {
       .where(eq(collections.id, id))
       .limit(1)
     if (!existing) throw status(404, '合集不存在')
-
-    await db
-      .delete(collectionEntries)
-      .where(eq(collectionEntries.collectionId, id))
-    if (entries.length > 0) {
-      await db.insert(collectionEntries).values(
-        entries.map((e) => ({
-          collectionId: id,
-          vid: e.vid,
-          sortOrder: e.sortOrder,
-        })),
-      )
-    }
-  },
+    await db.transaction(async (trx) => {
+      await trx
+        .delete(collectionEntries)
+        .where(eq(collectionEntries.collectionId, id))
+      if (entries.length > 0) {
+        await trx.insert(collectionEntries).values(
+          entries.map((e) => ({
+            collectionId: id,
+            vid: e.vid,
+            sortOrder: e.sortOrder,
+          })),
+        )
+      }
+    })
 }

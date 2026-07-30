@@ -3,6 +3,8 @@ import { t } from 'elysia'
 export namespace ProducerModel {
   export const producerGet = t.Object({
     pid: t.String(),
+    page: t.Optional(t.Number({ minimum: 1, default: 1 })),
+    limit: t.Optional(t.Number({ minimum: 1, maximum: 100, default: 50 })),
   })
   export type ProducerGet = typeof producerGet.static
 

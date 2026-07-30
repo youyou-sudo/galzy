@@ -135,58 +135,41 @@ export const TopicService = {
       throw status(404, '帖子不存在')
     }
 
-    const [
-      [topicUser],
-      [likeCountResult],
-      [favCountResult],
-      isLikedRow,
-      isFavoritedRow,
-    ] = await Promise.all([
+    const [topicUser, likesSummary, favsSummary] = await Promise.all([
       db
         .select({ id: users.id, name: users.name, image: users.image })
         .from(users)
-        .where(eq(users.id, topic.userId)),
+        .where(eq(users.id, topic.userId))
+        .then((r) => r[0] ?? null),
       db
-        .select({ count: count() })
+        .select({
+          count: count(),
+          userLiked: userId
+            ? sql<boolean>`bool_or(${topicLikes.userId} = ${userId})`
+            : sql<boolean>`FALSE`,
+        })
         .from(topicLikes)
-        .where(eq(topicLikes.topicId, numericId)),
+        .where(eq(topicLikes.topicId, numericId))
+        .then((r) => r[0] ?? { count: 0, userLiked: false }),
       db
-        .select({ count: count() })
+        .select({
+          count: count(),
+          userFavorited: userId
+            ? sql<boolean>`bool_or(${topicFavorites.userId} = ${userId})`
+            : sql<boolean>`FALSE`,
+        })
         .from(topicFavorites)
-        .where(eq(topicFavorites.topicId, numericId)),
-      userId
-        ? db
-            .select({ id: topicLikes.id })
-            .from(topicLikes)
-            .where(
-              and(
-                eq(topicLikes.topicId, numericId),
-                eq(topicLikes.userId, userId),
-              ),
-            )
-            .then((r) => r[0])
-        : Promise.resolve(undefined),
-      userId
-        ? db
-            .select({ id: topicFavorites.id })
-            .from(topicFavorites)
-            .where(
-              and(
-                eq(topicFavorites.topicId, numericId),
-                eq(topicFavorites.userId, userId),
-              ),
-            )
-            .then((r) => r[0])
-        : Promise.resolve(undefined),
+        .where(eq(topicFavorites.topicId, numericId))
+        .then((r) => r[0] ?? { count: 0, userFavorited: false }),
     ])
 
     return {
       ...topic,
-      user: topicUser ?? null,
-      likeCount: Number(likeCountResult?.count ?? 0),
-      favoriteCount: Number(favCountResult?.count ?? 0),
-      isLiked: !!isLikedRow,
-      isFavorited: !!isFavoritedRow,
+      user: topicUser,
+      likeCount: Number(likesSummary.count),
+      favoriteCount: Number(favsSummary.count),
+      isLiked: likesSummary.userLiked,
+      isFavorited: favsSummary.userFavorited,
     }
   },
 

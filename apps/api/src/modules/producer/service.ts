@@ -9,7 +9,16 @@ import {
   vnTitles,
 } from '@api/libs'
 import { delKv, getKv, setKv } from '@api/libs/redis'
-import { and, eq, getTableColumns, ilike, inArray, or, sql } from 'drizzle-orm'
+import {
+  and,
+  count,
+  eq,
+  getTableColumns,
+  ilike,
+  inArray,
+  or,
+  sql,
+} from 'drizzle-orm'
 import { status } from 'elysia'
 import type { ProducerModel } from './model'
 
@@ -39,51 +48,73 @@ export const Producer = {
 
     return producer
   },
-  async gamelists({ pid }: ProducerModel.ProducerGet) {
-    const redisKey = `galzy:producer:gamelist:${pid}`
-    const redisData = await getKv(redisKey)
+  async gamelists({ pid, page = 1, limit = 50 }: ProducerModel.ProducerGet) {
+    const cacheKey = `galzy:producer:gamelist:${pid}:${page}:${limit}`
+    const redisData = await getKv(cacheKey)
     if (redisData) {
       try {
         return JSON.parse(redisData) as Producergamelists
       } catch {
-        await delKv(redisKey)
+        await delKv(cacheKey)
       }
     }
 
-    const producerGamelists = await db
-      .select({
-        id: vn.id,
-        alias: vn.alias,
-        description: vn.description,
-        olang: vn.olang,
-        image_id: images.id,
-        image_width: images.width,
-        image_height: images.height,
-        c_sexual_avg: images.cSexualAvg,
-        titles: sql`(SELECT COALESCE(json_agg(row_to_json(t.*)), '[]'::json) FROM (SELECT lang, official, title, latin FROM vn_titles WHERE id = ${vn.id}) t)`,
-      })
-      .from(vn)
-      .innerJoin(images, eq(images.id, vn.cImage))
-      .where(
-        inArray(
-          vn.id,
-          db
-            .select({ vid: releasesVn.vid })
-            .from(releasesProducers)
-            .innerJoin(releasesVn, eq(releasesVn.id, releasesProducers.id))
-            .innerJoin(alistb, eq(alistb.vid, releasesVn.vid))
-            .where(eq(releasesProducers.pid, pid)),
-        ) as any,
-      )
-      .orderBy(vn.id)
+    const offset = (page - 1) * limit
 
-    type Producergamelists = typeof producerGamelists
+    const [producerGamelists, countResult] = await Promise.all([
+      db
+        .select({
+          id: vn.id,
+          alias: vn.alias,
+          description: vn.description,
+          olang: vn.olang,
+          image_id: images.id,
+          image_width: images.width,
+          image_height: images.height,
+          c_sexual_avg: images.cSexualAvg,
+          titles: sql`(SELECT COALESCE(json_agg(row_to_json(t.*)), '[]'::json) FROM (SELECT lang, official, title, latin FROM vn_titles WHERE id = ${vn.id}) t)`,
+        })
+        .from(vn)
+        .innerJoin(images, eq(images.id, vn.cImage))
+        .where(
+          inArray(
+            vn.id,
+            db
+              .select({ vid: releasesVn.vid })
+              .from(releasesProducers)
+              .innerJoin(releasesVn, eq(releasesVn.id, releasesProducers.id))
+              .innerJoin(alistb, eq(alistb.vid, releasesVn.vid))
+              .where(eq(releasesProducers.pid, pid)),
+          ) as any,
+        )
+        .orderBy(vn.id)
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(releasesProducers)
+        .innerJoin(releasesVn, eq(releasesVn.id, releasesProducers.id))
+        .innerJoin(alistb, eq(alistb.vid, releasesVn.vid))
+        .where(eq(releasesProducers.pid, pid))
+        .then((r) => r[0]),
+    ])
 
-    if (!producerGamelists) throw status(404, `未找到该生产者的游戏列表喵~`)
+    const totalCount = Number(countResult?.count ?? 0)
+    const data = {
+      items: producerGamelists,
+      currentPage: page,
+      totalPages: Math.ceil(totalCount / limit),
+      totalCount,
+    }
 
-    void setKv(redisKey, JSON.stringify(producerGamelists), 60 * 30)
+    type Producergamelists = typeof data
 
-    return producerGamelists
+    if (!producerGamelists.length && totalCount === 0)
+      throw status(404, `未找到该生产者的游戏列表喵~`)
+
+    void setKv(cacheKey, JSON.stringify(data), 60 * 30)
+
+    return data
   },
   async search({ q, limit = 20 }: ProducerModel.search) {
     const cacheKey = `galzy:producer:search:${q}:${limit}`

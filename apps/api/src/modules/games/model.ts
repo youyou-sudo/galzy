@@ -4,8 +4,12 @@ export namespace GameModel {
   export const gameList = t.Object({
     pageSize: t.Number({ minimum: 1 }),
     pageIndex: t.Number({ minimum: 0 }),
-    sortBy: t.Optional(t.String({ default: 'id' })),
-    order: t.Optional(t.String({ default: 'desc' })),
+    sortBy: t.Optional(
+      t.UnionEnum(['id', 'released', 'downloads', 'views'], {
+        default: 'id',
+      }),
+    ),
+    order: t.Optional(t.UnionEnum(['asc', 'desc'], { default: 'desc' })),
   })
   export const infoId = t.Object({
     id: t.String({ minLength: 1 }),

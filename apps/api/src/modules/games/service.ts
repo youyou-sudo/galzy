@@ -552,67 +552,58 @@ export const Game = {
   },
   async VidassociationGet({ id }: GameModel.infoId) {
     if (id.startsWith('v')) {
-      const fetchData = async () => {
-        return await db.query.alistb.findFirst({
+      const fetchData = (tx = db) =>
+        tx.query.alistb.findFirst({
           columns: { id: true, vid: true, other: true, path: true },
           with: {
             otherData: {
-              with: {
-                media: {
-                  with: {
-                    media: true,
-                  },
-                },
-              },
+              with: { media: { with: { media: true } } },
             },
           },
           where: eq(alistb.vid, id),
         })
-      }
-      let data = await fetchData()
-      if (data?.otherData === null) {
-        const newOtherId = await db
-          .insert(others)
-          .values({ status: 'draft' })
-          .returning({ id: others.id })
-          .then((r) => r[0])
-        await db
-          .update(alistb)
-          .set({ other: newOtherId.id })
-          .where(eq(alistb.vid, id))
-        data = await fetchData()
-      }
-      const datas = data!.otherData
+
+      const datas = await db.transaction(async (trx) => {
+        let data = await fetchData(trx)
+        if (data?.otherData === null) {
+          const newOtherId = await trx
+            .insert(others)
+            .values({ status: 'draft' })
+            .returning({ id: others.id })
+            .then((r) => r[0])
+          await trx
+            .update(alistb)
+            .set({ other: newOtherId.id })
+            .where(eq(alistb.vid, id))
+          data = await fetchData(trx)
+        }
+        return data!.otherData
+      })
       return datas
     }
     if (id.match(/^\d+$/)) {
-      const fetchData = async () => {
-        return await db.query.others.findFirst({
-          with: {
-            media: {
-              with: {
-                media: true,
-              },
-            },
-          },
+      const fetchData = (tx = db) =>
+        tx.query.others.findFirst({
+          with: { media: { with: { media: true } } },
           where: eq(others.id, Number(id)),
         })
-      }
-      let data = await fetchData()
-      if (data === undefined) {
-        const newOtherId = await db
-          .insert(others)
-          .values({ status: 'draft' })
-          .returning({ id: others.id })
-          .then((r) => r[0])
 
-        await db
-          .update(alistb)
-          .set({ other: newOtherId.id })
-          .where(eq(alistb.other, Number(id)))
-
-        data = await fetchData()
-      }
+      const data = await db.transaction(async (trx) => {
+        let result = await fetchData(trx)
+        if (result === undefined) {
+          const newOtherId = await trx
+            .insert(others)
+            .values({ status: 'draft' })
+            .returning({ id: others.id })
+            .then((r) => r[0])
+          await trx
+            .update(alistb)
+            .set({ other: newOtherId.id })
+            .where(eq(alistb.other, Number(id)))
+          result = await fetchData(trx)
+        }
+        return result
+      })
       return data
     }
   },
