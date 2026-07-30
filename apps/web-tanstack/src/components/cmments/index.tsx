@@ -15,6 +15,7 @@ import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { Separator } from '../ui/separator'
 import { ReplyEidtInput } from './reply-edit-input'
+import { CommentMarkdown } from './comment-markdown'
 
 const typeLabelMap: Record<
   string,
@@ -101,12 +102,12 @@ function ReplyItem({
               {reply.user?.name}
             </span>
           </div>
-          <p className="text-sm text-foreground/80 mt-0.5">
+          <div className="text-sm text-foreground/80 mt-0.5">
             {reply.reUser && (
               <span className="text-primary">回复@{reply.reUser.name}：</span>
             )}
-            {reply.content}
-          </p>
+            <CommentMarkdown content={reply.content} />
+          </div>
 
           <div className="flex items-center">
             <span className="text-xs text-muted-foreground">
@@ -191,9 +192,7 @@ export function CommentItem({ targetType }: { targetType: string }) {
                 {typeLabelMap[items.type]?.label}
               </Badge>
             </div>
-            <p className="text-sm text-foreground/80 mt-0.5 wrap-break-word whitespace-pre-wrap">
-              {items.content}
-            </p>
+            <CommentMarkdown content={items.content} />
             <div className="flex items-center text-xs -mt-1">
               <span className="text-muted-foreground my-2">
                 {formatTime(items.createdAt.toISOString())}

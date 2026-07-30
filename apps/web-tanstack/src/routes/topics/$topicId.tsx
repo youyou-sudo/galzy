@@ -15,6 +15,7 @@ import {
   BreadcrumbSeparator,
 } from '@web/components/ui/breadcrumb'
 import { ReplyEidtInput } from '@web/components/cmments/reply-edit-input'
+import { CommentMarkdown } from '@web/components/cmments/comment-markdown'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -359,9 +360,7 @@ function CommentCard({
               {comment.user?.name}
             </span>
           </div>
-          <p className="text-sm text-foreground/80 mt-0.5 whitespace-pre-wrap break-words">
-            {comment.content}
-          </p>
+          <CommentMarkdown content={comment.content} />
           <div className="flex items-center text-xs">
             <span className="text-muted-foreground my-2">
               {formatTime(comment.createdAt)}
@@ -441,12 +440,12 @@ function ReplyList({
               {reply.user?.name}
             </span>
           </div>
-          <p className="text-sm text-foreground/80 mt-0.5 break-words">
+          <div className="text-sm text-foreground/80 mt-0.5">
             {reply.reUser && (
               <span className="text-primary">回复@{reply.reUser.name}：</span>
             )}
-            {reply.content}
-          </p>
+            <CommentMarkdown content={reply.content} />
+          </div>
           <div className="flex items-center">
             <span className="text-xs text-muted-foreground">
               {formatTime(reply.createdAt)}
