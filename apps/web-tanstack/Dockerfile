@@ -1,3 +1,5 @@
+ARG BUILD_ID
+
 FROM oven/bun:slim AS build
 
 WORKDIR /app
@@ -14,6 +16,7 @@ COPY apps/api apps/api
 COPY packages packages
 
 ENV NODE_ENV=production
+ENV BUILD_ID=${BUILD_ID}
 
 WORKDIR /app/apps/web-tanstack
 RUN bun install
@@ -24,6 +27,7 @@ FROM gcr.io/distroless/base
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV BUILD_ID=${BUILD_ID}
 
 COPY --from=build /app/apps/web-tanstack/server /app/server
 

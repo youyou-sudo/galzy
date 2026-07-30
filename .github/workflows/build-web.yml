@@ -55,12 +55,13 @@ jobs:
           context: .
           file: ./apps/web-tanstack/Dockerfile
           push: true
+          build-args: |
+            BUILD_ID=${{ github.run_id }}-${{ github.run_attempt }}
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.value }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
       - name: Trigger WEB Webhook Deploy
         run: |
           curl -X POST "${{ secrets.DEPLOY_WEBHOOK_WEB }}" \

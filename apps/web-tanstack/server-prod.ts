@@ -575,7 +575,24 @@ async function main(): Promise<void> {
     port: PORT,
     reusePort: true,
     async fetch(req) {
-      const handler = statics[fastPath(req.url)]
+      const { pathname } = new URL(req.url)
+
+      // Build-fingerprint endpoint — client-side version check
+      // detects stale server-function bundles after a deployment.
+      if (pathname === '/_build') {
+        return new Response(
+          JSON.stringify({ buildId: process.env.BUILD_ID ?? 'unknown' }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-store',
+            },
+          },
+        )
+      }
+
+      const handler = statics[fastPath(pathname)]
       if (handler) return handler(req)
 
       try {
@@ -608,6 +625,14 @@ async function main(): Promise<void> {
         if (isAbortError(e)) {
           console.warn('[warn] SSR downstream timeout:', (e as Error).message)
           return new Response('Gateway Timeout', { status: 504 })
+        }
+        const errMsg = e instanceof Error ? e.message : String(e)
+        if (errMsg.includes('Server function info not found')) {
+          console.warn('[warn] stale client detected — server function hash mismatch:', errMsg)
+          return new Response(
+            JSON.stringify({ error: 'STALE_CLIENT', action: 'reload' }),
+            { status: 409, headers: { 'Content-Type': 'application/json' } },
+          )
         }
         console.error('[err]', e)
         return new Response('Internal Server Error', { status: 500 })
