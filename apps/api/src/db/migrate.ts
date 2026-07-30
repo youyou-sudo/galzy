@@ -24,10 +24,15 @@ export const dbAction = async () => {
     if (pong === 'PONG') {
       console.log('✅ Redis connection test successful')
     } else {
-      console.warn('⚠️  Redis ping returned unexpected response — continuing without cache/locks')
+      console.warn(
+        '⚠️  Redis ping returned unexpected response — continuing without cache/locks',
+      )
     }
   } catch (e) {
-    console.warn('⚠️  Redis unavailable — continuing without cache/locks:', e instanceof Error ? e.message : String(e))
+    console.warn(
+      '⚠️  Redis unavailable — continuing without cache/locks:',
+      e instanceof Error ? e.message : String(e),
+    )
   }
 
   console.log('🎉 Database loading complete')

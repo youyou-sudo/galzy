@@ -117,7 +117,18 @@ export const CollectionService = {
     }))
 
     // Batch-embed VN previews when requested — avoids N+1 /preview calls
-    const previewMap = new Map<number, Array<{ id: string; alias: string | null; title: string; imageId: string | null; imageWidth: number | null; imageHeight: number | null; cSexualAvg: number | null }>>()
+    const previewMap = new Map<
+      number,
+      Array<{
+        id: string
+        alias: string | null
+        title: string
+        imageId: string | null
+        imageWidth: number | null
+        imageHeight: number | null
+        cSexualAvg: number | null
+      }>
+    >()
     if (includePreview > 0) {
       const vidSet = new Set<string>()
       const perCollection: Map<number, string[]> = new Map()
@@ -206,7 +217,8 @@ export const CollectionService = {
         const vnMap = new Map(vnRows.map((r) => [r.id, r]))
         const titleMap = new Map<string, string>()
         for (const r of titleRows) {
-          const titles = (r.titles as Array<{ lang: string; title: string }>) ?? []
+          const titles =
+            (r.titles as Array<{ lang: string; title: string }>) ?? []
           const best =
             titles.find((t) => t.lang === 'zh-Hans') ??
             titles.find((t) => t.lang === 'zh') ??
@@ -235,12 +247,13 @@ export const CollectionService = {
       }
     }
 
-    const resultItems = includePreview > 0
-      ? itemsWithCount.map((item) => ({
-          ...item,
-          previews: previewMap.get(item.id) ?? [],
-        }))
-      : itemsWithCount
+    const resultItems =
+      includePreview > 0
+        ? itemsWithCount.map((item) => ({
+            ...item,
+            previews: previewMap.get(item.id) ?? [],
+          }))
+        : itemsWithCount
 
     return { items: resultItems, total: total[0].count, page, limit }
   },

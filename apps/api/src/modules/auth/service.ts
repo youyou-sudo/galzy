@@ -12,7 +12,8 @@ import { emailOtpPlugin } from './emailOtp-plugin'
 const dialect = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: Number(process.env.POSTGRES_POOL_MAX ?? 10),
-  idleTimeoutMillis: Number(process.env.POSTGRES_POOL_IDLETIMEOUT ?? 300) * 1000,
+  idleTimeoutMillis:
+    Number(process.env.POSTGRES_POOL_IDLETIMEOUT ?? 300) * 1000,
 })
 const readKungalOAuthBody = <T>(body: unknown, status: number): T => {
   if (body === null || typeof body !== 'object') {
