@@ -469,4 +469,5 @@ export const CollectionService = {
         )
       }
     })
+  },
 }
