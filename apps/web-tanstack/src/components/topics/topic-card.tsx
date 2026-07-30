@@ -1,9 +1,10 @@
 import { Link } from '@tanstack/react-router'
 import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
 import { Card, CardContent, CardHeader } from '@web/components/ui/card'
-import { Heart } from 'lucide-react'
+import { Heart, MessageSquare } from 'lucide-react'
 
-function formatTime(dateStr: string) {
+function formatTime(dateStr: Date | string | null) {
+  if (!dateStr) return '未知'
   const date = new Date(dateStr)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
@@ -23,12 +24,13 @@ interface TopicCardProps {
     id: number
     title: string
     summary?: string
-    createdAt: string
+    createdAt: Date | string | null
     likeCount?: number
+    replyCount?: number
     user: {
       id: string
       name: string
-      image: string
+      image: string | null
     } | null
   }
 }
@@ -36,7 +38,7 @@ interface TopicCardProps {
 export function TopicCard({ topic }: TopicCardProps) {
   return (
     <Link to="/topics/$topicId" params={{ topicId: String(topic.id) }}>
-      <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+      <Card className="hover:bg-accent/50 transition-colors cursor-pointer gap-1">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Avatar className="size-6">
@@ -61,9 +63,15 @@ export function TopicCard({ topic }: TopicCardProps) {
           <p className="text-sm text-muted-foreground line-clamp-2 wrap-break-word">
             {topic.summary}
           </p>
-          <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
-            <Heart className="size-3.5" />
-            <span>{topic.likeCount ?? 0}</span>
+          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Heart className="size-3.5" />
+              <span>{topic.likeCount ?? 0}</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <MessageSquare className="size-3.5" />
+              <span>{topic.replyCount ?? 0}</span>
+            </span>
           </div>
         </CardContent>
       </Card>

@@ -13,24 +13,45 @@ export const getTopics = createServerFn()
 			status: z.optional(z.string()),
 		}),
 	)
-  .handler(async ({ data }) => {
-    let session = null;
-    try {
-      const { data: s } = await authServerClient.getSession();
-      session = s;
-    } catch { /* network error → session stays null */ }
-    const { data: res, error } = await api.topics.get({
-      query: {
-        page: data.page,
-        limit: data.limit,
-        status: data.status,
-        userId: session?.user?.id,
-      },
-      ...cookiePass(),
-    });
-    elysiaErrorF(error);
-    return res;
-  });
+	.handler(async ({ data }) => {
+		let session = null;
+		try {
+			const { data: s } = await authServerClient.getSession();
+			session = s;
+		} catch {
+			/* network error → session stays null */
+		}
+		const { data: res, error } = await api.topics.get({
+			query: {
+				page: data.page,
+				limit: data.limit,
+				status: data.status,
+				userId: session?.user?.id,
+			},
+			...cookiePass(),
+		});
+		elysiaErrorF(error);
+		return res;
+	});
+
+export const getUserFavorites = createServerFn()
+	.validator(
+		z.object({
+			page: z.optional(z.number()),
+			limit: z.optional(z.number()),
+		}),
+	)
+	.handler(async ({ data }) => {
+		const { data: res, error } = await api.topics.favorites.get({
+			query: {
+				page: data.page,
+				limit: data.limit,
+			},
+			...cookiePass(),
+		});
+		elysiaErrorF(error);
+		return res;
+	});
 
 export const getTopic = createServerFn()
 	.validator(
@@ -38,21 +59,23 @@ export const getTopic = createServerFn()
 			id: z.number(),
 		}),
 	)
-  .handler(async ({ data }) => {
-    let session = null;
-    try {
-      const { data: s } = await authServerClient.getSession();
-      session = s;
-    } catch { /* network error → session stays null */ }
-    const { data: res, error } = await api.topics({ id: data.id }).get({
-      query: {
-        userId: session?.user?.id,
-      },
-      ...cookiePass(),
-    });
-    elysiaErrorF(error);
-    return res;
-  });
+	.handler(async ({ data }) => {
+		let session = null;
+		try {
+			const { data: s } = await authServerClient.getSession();
+			session = s;
+		} catch {
+			/* network error → session stays null */
+		}
+		const { data: res, error } = await api.topics({ id: data.id }).get({
+			query: {
+				userId: session?.user?.id,
+			},
+			...cookiePass(),
+		});
+		elysiaErrorF(error);
+		return res;
+	});
 
 export const createTopic = createServerFn()
 	.validator(

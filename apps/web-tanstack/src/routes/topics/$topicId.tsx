@@ -6,16 +6,8 @@ import {
   useMatches,
   useNavigate,
 } from '@tanstack/react-router'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@web/components/ui/breadcrumb'
-import { ReplyEidtInput } from '@web/components/cmments/reply-edit-input'
 import { CommentMarkdown } from '@web/components/cmments/comment-markdown'
+import { ReplyEidtInput } from '@web/components/cmments/reply-edit-input'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +21,14 @@ import {
 } from '@web/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
 import { Badge } from '@web/components/ui/badge'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@web/components/ui/breadcrumb'
 import { Button } from '@web/components/ui/button'
 import { Card, CardContent, CardHeader } from '@web/components/ui/card'
 import { Separator } from '@web/components/ui/separator'
@@ -120,20 +120,19 @@ function RouteComponent() {
     <div className="max-w-7xl mx-auto space-y-4">
       <Breadcrumb className="mb-4">
         <BreadcrumbList>
-          <BreadcrumbItem><BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
+          </BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbLink render={<Link to="/topics" />}>论坛</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link to="/topics" />}>论坛</BreadcrumbLink>
+          </BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbPage>{(topic as any).title}</BreadcrumbPage></BreadcrumbItem>
+          <BreadcrumbItem>
+            <BreadcrumbPage>{(topic as any).title}</BreadcrumbPage>
+          </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-
-      <Link
-        to="/topics"
-        className="text-sm text-muted-foreground hover:text-foreground"
-      >
-        ← 返回论坛
-      </Link>
 
       <Card>
         <CardHeader>

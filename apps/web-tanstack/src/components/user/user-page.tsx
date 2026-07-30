@@ -1,3 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
+import { TopicCard } from "@web/components/topics/topic-card";
 import {
 	Card,
 	CardContent,
@@ -14,8 +16,9 @@ import AvatarComp from "@web/components/user/ProfileMenu/AvatarEditor";
 import ProfileTab from "@web/components/user/ProfileMenu/ProfileTab";
 import SecurityTab from "@web/components/user/ProfileMenu/SecurityTab";
 import { authClient } from "@web/server/auth/auth-client";
-import { Mail, Shield, User } from "lucide-react";
-import { useEffect } from "react";
+import { getUserFavorites } from "@web/server/topics";
+import { Bookmark, Mail, Shield, User } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const errorMessages: Record<string, string> = {
@@ -49,10 +52,17 @@ export default function RouteComponent({
 		}
 	}, [errorCode, errorDescription]);
 
+	const [favoritesPage, setFavoritesPage] = useState(1);
+	const { data: favData, isFetching: favLoading } = useQuery({
+		queryKey: ["userFavorites", favoritesPage],
+		queryFn: async () =>
+			await getUserFavorites({ data: { page: favoritesPage, limit: 10 } }),
+	});
+
 	if (!user) return null;
 
 	return (
-		<div className="max-w-2xl mx-auto space-y-6">
+		<div className="max-w-3xl mx-auto space-y-6">
 			{/* 用户头部信息 */}
 			<Card>
 				<CardContent className="pt-6">
@@ -85,6 +95,10 @@ export default function RouteComponent({
 						<Shield className="size-4" />
 						安全
 					</TabsTrigger>
+					<TabsTrigger value="favorites" className="flex-1">
+						<Bookmark className="size-4" />
+						收藏
+					</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value="profile" className="mt-4">
@@ -105,6 +119,54 @@ export default function RouteComponent({
 						</CardHeader>
 						<CardContent>
 							<SecurityTab />
+						</CardContent>
+					</Card>
+				</TabsContent>
+
+				<TabsContent value="favorites" className="mt-4">
+					<Card>
+						<CardHeader>
+							<CardTitle className="text-lg">收藏的帖子</CardTitle>
+						</CardHeader>
+						<CardContent>
+							{favLoading ? (
+								<p className="text-sm text-muted-foreground text-center py-8">
+									加载中...
+								</p>
+							) : !favData?.topics?.length ? (
+								<p className="text-sm text-muted-foreground text-center py-8">
+									还没有收藏任何帖子
+								</p>
+							) : (
+								<div className="space-y-3">
+									{favData.topics.map((topic) => (
+										<TopicCard key={topic.id} topic={topic} />
+									))}
+									{favData.totalPages > 1 && (
+										<div className="flex items-center justify-center gap-2 pt-4">
+											<button
+												type="button"
+												disabled={favoritesPage <= 1}
+												onClick={() => setFavoritesPage((p) => p - 1)}
+												className="px-3 py-1 text-sm rounded border disabled:opacity-40"
+											>
+												上一页
+											</button>
+											<span className="text-sm text-muted-foreground">
+												{favoritesPage} / {favData.totalPages}
+											</span>
+											<button
+												type="button"
+												disabled={favoritesPage >= favData.totalPages}
+												onClick={() => setFavoritesPage((p) => p + 1)}
+												className="px-3 py-1 text-sm rounded border disabled:opacity-40"
+											>
+												下一页
+											</button>
+										</div>
+									)}
+								</div>
+							)}
 						</CardContent>
 					</Card>
 				</TabsContent>

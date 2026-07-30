@@ -15,6 +15,16 @@ export const topics = new Elysia({ prefix: '/topics' })
     },
   )
   .get(
+    '/favorites',
+    async ({ query, user }) => {
+      return await TopicService.getFavorites(query, user.id)
+    },
+    {
+      auth: true,
+      query: TopicModel.FavoritesList,
+    },
+  )
+  .get(
     '/:id',
     async ({ params, query }) => {
       return await TopicService.getTopic(params, query?.userId)

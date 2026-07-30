@@ -1,4 +1,11 @@
-import { db, topicFavorites, topicLikes, topics, users } from '@api/libs'
+import {
+  comments,
+  db,
+  topicFavorites,
+  topicLikes,
+  topics,
+  users,
+} from '@api/libs'
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { TopicModel } from './model'
@@ -49,7 +56,8 @@ export const TopicService = {
     const topicIds = topicsData.map((t) => t.id)
     const userIds = [...new Set(topicsData.map((t) => t.userId))]
 
-    const [usersData, likesData, favsData, userLikes, userFavs] =
+    const topicIdStrings = topicIds.map(String)
+    const [usersData, likesData, favsData, commentCounts, userLikes, userFavs] =
       await Promise.all([
         db
           .select({ id: users.id, name: users.name, image: users.image })
@@ -65,6 +73,16 @@ export const TopicService = {
           .from(topicFavorites)
           .where(inArray(topicFavorites.topicId, topicIds))
           .groupBy(topicFavorites.topicId),
+        db
+          .select({ topicId: comments.targetId, count: count() })
+          .from(comments)
+          .where(
+            and(
+              eq(comments.targetType, 'topic'),
+              inArray(comments.targetId, topicIdStrings),
+            ),
+          )
+          .groupBy(comments.targetId),
         userId
           ? db
               .select({ topicId: topicLikes.topicId })
@@ -96,6 +114,9 @@ export const TopicService = {
     const favCountMap = new Map(
       favsData.map((f) => [f.topicId, Number(f.count)]),
     )
+    const replyCountMap = new Map(
+      commentCounts.map((c) => [Number(c.topicId), Number(c.count)]),
+    )
     const userLikeSet = new Set(userLikes.map((l) => l.topicId))
     const userFavSet = new Set(userFavs.map((f) => f.topicId))
 
@@ -104,6 +125,150 @@ export const TopicService = {
       user: userMap.get(t.userId) ?? null,
       likeCount: likeCountMap.get(t.id) ?? 0,
       favoriteCount: favCountMap.get(t.id) ?? 0,
+      replyCount: replyCountMap.get(t.id) ?? 0,
+      isLiked: userLikeSet.has(t.id),
+      isFavorited: userFavSet.has(t.id),
+    }))
+
+    const total = Number(countResult?.total ?? 0)
+    return {
+      topics: enrichedTopics,
+      total,
+      totalPages: Math.ceil(total / limit),
+    }
+  },
+
+  async getFavorites(
+    { page = 1, limit = 20 }: TopicModel.favoritesList,
+    userId: string,
+  ) {
+    const offset = (page - 1) * limit
+
+    const [favRows, countResult] = await Promise.all([
+      db
+        .select({
+          topicId: topicFavorites.topicId,
+          favoritedAt: topicFavorites.createdAt,
+        })
+        .from(topicFavorites)
+        .innerJoin(topics, eq(topicFavorites.topicId, topics.id))
+        .where(
+          and(
+            eq(topicFavorites.userId, userId),
+            eq(topics.status, 'published'),
+          ),
+        )
+        .orderBy(desc(topicFavorites.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ total: count() })
+        .from(topicFavorites)
+        .innerJoin(topics, eq(topicFavorites.topicId, topics.id))
+        .where(
+          and(
+            eq(topicFavorites.userId, userId),
+            eq(topics.status, 'published'),
+          ),
+        )
+        .then((r) => r[0]),
+    ])
+
+    if (favRows.length === 0) {
+      return { topics: [], total: 0, totalPages: 0 }
+    }
+
+    const topicIds = favRows.map((r) => r.topicId)
+
+    const topicsData = await db
+      .select({
+        id: topics.id,
+        userId: topics.userId,
+        title: topics.title,
+        status: topics.status,
+        createdAt: topics.createdAt,
+        updatedAt: topics.updatedAt,
+        summary: sql<string>`substring(${topics.content}, 1, 400)`.as(
+          'summary',
+        ),
+      })
+      .from(topics)
+      .where(inArray(topics.id, topicIds))
+
+    // Preserve favorited order
+    const topicMap = new Map(topicsData.map((t) => [t.id, t]))
+    const ordered = topicIds
+      .map((id) => topicMap.get(id))
+      .filter((t): t is NonNullable<typeof t> => t != null)
+
+    const favTopicIdStrings = topicIds.map(String)
+    const userIds = [...new Set(ordered.map((t) => t.userId))]
+
+    const [usersData, likesData, favsData, commentCounts, userLikes, userFavs] =
+      await Promise.all([
+        db
+          .select({ id: users.id, name: users.name, image: users.image })
+          .from(users)
+          .where(inArray(users.id, userIds)),
+        db
+          .select({ topicId: topicLikes.topicId, count: count() })
+          .from(topicLikes)
+          .where(inArray(topicLikes.topicId, topicIds))
+          .groupBy(topicLikes.topicId),
+        db
+          .select({ topicId: topicFavorites.topicId, count: count() })
+          .from(topicFavorites)
+          .where(inArray(topicFavorites.topicId, topicIds))
+          .groupBy(topicFavorites.topicId),
+        db
+          .select({ topicId: comments.targetId, count: count() })
+          .from(comments)
+          .where(
+            and(
+              eq(comments.targetType, 'topic'),
+              inArray(comments.targetId, favTopicIdStrings),
+            ),
+          )
+          .groupBy(comments.targetId),
+        db
+          .select({ topicId: topicLikes.topicId })
+          .from(topicLikes)
+          .where(
+            and(
+              inArray(topicLikes.topicId, topicIds),
+              eq(topicLikes.userId, userId),
+            ),
+          ),
+        db
+          .select({ topicId: topicFavorites.topicId })
+          .from(topicFavorites)
+          .where(
+            and(
+              inArray(topicFavorites.topicId, topicIds),
+              eq(topicFavorites.userId, userId),
+            ),
+          ),
+      ])
+
+    const userMap = new Map(usersData.map((u) => [u.id, u]))
+    const likeCountMap = new Map(
+      likesData.map((l) => [l.topicId, Number(l.count)]),
+    )
+    const favCountMap = new Map(
+      favsData.map((f) => [f.topicId, Number(f.count)]),
+    )
+    const replyCountMap = new Map(
+      commentCounts.map((c) => [Number(c.topicId), Number(c.count)]),
+    )
+    const userLikeSet = new Set(userLikes.map((l) => l.topicId))
+    const userFavSet = new Set(userFavs.map((f) => f.topicId))
+
+    const enrichedTopics = ordered.map((t) => ({
+      ...t,
+      user: userMap.get(t.userId) ?? null,
+      likeCount: likeCountMap.get(t.id) ?? 0,
+      favoriteCount: favCountMap.get(t.id) ?? 0,
+      replyCount: replyCountMap.get(t.id) ?? 0,
       isLiked: userLikeSet.has(t.id),
       isFavorited: userFavSet.has(t.id),
     }))

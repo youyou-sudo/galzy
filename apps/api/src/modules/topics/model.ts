@@ -24,6 +24,10 @@ export namespace TopicModel {
   })
 
   export const LikeToggle = t.Object({})
+  export const FavoritesList = t.Object({
+    page: t.Optional(t.Number({ default: 1, minimum: 1 })),
+    limit: t.Optional(t.Number({ default: 20, minimum: 1, maximum: 100 })),
+  })
 
   export const LikeStatus = t.Object({
     userId: t.Optional(t.String()),
@@ -34,5 +38,6 @@ export namespace TopicModel {
   export type update = typeof Update.static
   export type params = typeof Params.static
   export type likeToggle = typeof LikeToggle.static
+  export type favoritesList = typeof FavoritesList.static
   export type likeStatus = typeof LikeStatus.static
 }
