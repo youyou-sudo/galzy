@@ -50,21 +50,28 @@ export const Tags = {
     const items = await db
       .select({
         tags: sql<Array<Record<string, any>>>`COALESCE(
-          (SELECT json_agg(json_build_object(
-            'tag_data', (SELECT row_to_json(tag_obj.*)
-              FROM (
-                SELECT t.id, t.name, t.description,
-                       z.name AS zht_name, z.description AS zht_description
-                FROM ${tags} t
-                INNER JOIN ${zhtags} z ON t.id = z.id AND z.exhibition = TRUE
-                WHERE t.id = tv.tag
-              ) tag_obj
+          (SELECT json_agg(
+            json_build_object(
+              'tag_data', CASE WHEN z.id IS NOT NULL THEN
+                json_build_object(
+                  'id', t.id,
+                  'name', t.name,
+                  'description', t.description,
+                  'zht_name', z.name,
+                  'zht_description', z.description
+                )
+              ELSE NULL END
             )
-          ))
-          FROM ${tagsVn} tv
-          WHERE tv.vid = ${vn.id} AND tv.vote > 0
-          GROUP BY tv.tag, tv.vid
-          HAVING AVG(tv.vote) > 1
+          )
+          FROM (
+            SELECT tv.tag, AVG(tv.vote) AS avg_vote
+            FROM ${tagsVn} tv
+            WHERE tv.vid = ${vn.id} AND tv.vote > 0
+            GROUP BY tv.tag
+            HAVING AVG(tv.vote) > 1
+          ) sub
+          INNER JOIN ${tags} t ON t.id = sub.tag
+          LEFT JOIN ${zhtags} z ON z.id = t.id AND z.exhibition = TRUE
           ), '[]'::json
         )`,
       })

@@ -38,10 +38,15 @@ async function buildApp() {
       }
       // Log unexpected errors for diagnostics
       if (code !== 'NOT_FOUND') {
-        console.error(
-          `[err] ${code ?? 'UNKNOWN'}:`,
-          error instanceof Error ? error.message : error,
-        )
+        const msg = error instanceof Error ? error.message : error
+        const cause = error instanceof Error ? (error as any).cause : undefined
+        console.error(`[err] ${code ?? 'UNKNOWN'}:`, msg)
+        if (cause) {
+          console.error(
+            `[err]   caused by:`,
+            cause instanceof Error ? cause.message : cause,
+          )
+        }
       }
     })
     .use(
