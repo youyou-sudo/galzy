@@ -59,6 +59,49 @@ interface MeiliProgress {
   lastUpdated: string
 }
 
+/**
+ * Shared SELECT columns for Meilisearch game documents.
+ * Centralizes the 13 correlated subqueries used by:
+ * - MeiliSearchData (batch indexing)
+ * - syncGameToMeili (single incremental sync)
+ * - syncGameBatchToMeili (batch incremental sync)
+ *
+ * Each column is a scalar subquery optimized by PostgreSQL's query planner —
+ * the shared definition avoids copy-paste drift across the three call sites.
+ */
+const gameMeiliDocBase = {
+  id: vn.id,
+  alias: vn.alias,
+  olang: vn.olang,
+  devstatus: vn.devstatus,
+  rating: vn.cRating,
+  votecount: vn.cVotecount,
+  description: vn.description,
+  released_first: sql`COALESCE((SELECT MIN(${releases.released}) FROM ${releasesVn} INNER JOIN ${releases} ON ${releases.id} = ${releasesVn.id} WHERE ${releasesVn.vid} = ${vn.id} AND ${releases.released} IS NOT NULL), '')`,
+  dl_count: sql`(SELECT COUNT(*)::int FROM ${gameDownloadStats} WHERE game_id = ${vn.id})`,
+  vw_count: sql`(SELECT COUNT(*)::int FROM ${eventViews} WHERE event_type = 'game_view' AND target_id = ${vn.id})`,
+  titles: sql`COALESCE((SELECT json_agg(t.title) FROM ${vnTitles} t WHERE t.id = ${vn.id}), '[]'::json)`,
+  tag_names: sql`COALESCE((SELECT json_agg(DISTINCT z.name) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE), '[]'::json)`,
+  tags: sql`COALESCE((SELECT json_agg(DISTINCT tv.tag) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE), '[]'::json)`,
+  titles_obj: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT title, latin, lang FROM ${vnTitles} t WHERE t.id = ${vn.id}) t), '[]'::json)`,
+  images: sql`(SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM ${images} i WHERE i.id = ${vn.cImage}) i)`,
+  releases: sql`COALESCE((SELECT json_agg(row_to_json(rel.*)) FROM (SELECT r.title, r.released FROM ${releasesVn} rv INNER JOIN ${releases} r ON r.id = rv.id WHERE rv.vid = ${vn.id}) rel), '[]'::json)`,
+  tags_obj: sql`COALESCE((SELECT json_agg(row_to_json(tag.*)) FROM (SELECT DISTINCT z.alias, z.name, z.id FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE) tag), '[]'::json)`,
+  has_download: sql`TRUE`,
+}
+
+/** Subquery-based columns used when alistb is NOT joined (incremental sync paths). */
+const gameMeiliDocOtherSubquery = {
+  other: sql`(SELECT ${alistb.other} FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1)`,
+  otherData: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, a.other_val AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o CROSS JOIN LATERAL (SELECT ${alistb.other} AS other_val FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1) a WHERE o.id = a.other_val) other_sub)`,
+}
+
+/** Direct-reference columns used when alistb IS joined (batch indexing path). */
+const gameMeiliDocOtherDirect = {
+  other: alistb.other,
+  otherData: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, ${alistb.other} AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o WHERE o.id = ${alistb.other}) other_sub)`,
+}
+
 export const CronService = {
   async workerDataPull() {
     const lockKey = 'galzy:lock:cron:workerDataCorn'
@@ -631,29 +674,10 @@ export const CronService = {
       process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
     )
     try {
-      // Query for the specific VN directly
-      // MeiliSearchData queries via alistb JOIN vn — we need a single-doc query
-      // Re-query for the specific VN
       const doc = await db
         .select({
-          id: vn.id,
-          alias: vn.alias,
-          olang: vn.olang,
-          devstatus: vn.devstatus,
-          rating: vn.cRating,
-          votecount: vn.cVotecount,
-          description: vn.description,
-          released_first: sql`COALESCE((SELECT MIN(${releases.released}) FROM ${releasesVn} INNER JOIN ${releases} ON ${releases.id} = ${releasesVn.id} WHERE ${releasesVn.vid} = ${vn.id} AND ${releases.released} IS NOT NULL), '')`,
-          dl_count: sql`(SELECT COUNT(*)::int FROM ${gameDownloadStats} WHERE game_id = ${vn.id})`,
-          vw_count: sql`(SELECT COUNT(*)::int FROM ${eventViews} WHERE event_type = 'game_view' AND target_id = ${vn.id})`,
-          titles: sql`COALESCE((SELECT json_agg(t.title) FROM ${vnTitles} t WHERE t.id = ${vn.id}), '[]'::json)`,
-          tag_names: sql`COALESCE((SELECT json_agg(DISTINCT z.name) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE), '[]'::json)`,
-          tags: sql`COALESCE((SELECT json_agg(DISTINCT tv.tag) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE), '[]'::json)`,
-          titles_obj: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT title, latin, lang FROM ${vnTitles} t WHERE t.id = ${vn.id}) t), '[]'::json)`,
-          images: sql`(SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM ${images} i WHERE i.id = ${vn.cImage}) i)`,
-          other: sql`(SELECT ${alistb.other} FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1)`,
-          otherData: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, a.other_val AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o CROSS JOIN LATERAL (SELECT ${alistb.other} AS other_val FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1) a WHERE o.id = a.other_val) other_sub)`,
-          has_download: sql`TRUE`,
+          ...gameMeiliDocBase,
+          ...gameMeiliDocOtherSubquery,
         })
         .from(vn)
         .where(eq(vn.id, vnId))
@@ -675,33 +699,13 @@ export const CronService = {
       process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
     )
     try {
-      // Query all VNs in the batch with the same shape as MeiliSearchData
       const docs = await db
         .select({
-          id: vn.id,
-          alias: vn.alias,
-          olang: vn.olang,
-          devstatus: vn.devstatus,
-          rating: vn.cRating,
-          votecount: vn.cVotecount,
-          description: vn.description,
-          released_first: sql`COALESCE((SELECT MIN(${releases.released}) FROM ${releasesVn} INNER JOIN ${releases} ON ${releases.id} = ${releasesVn.id} WHERE ${releasesVn.vid} = ${vn.id} AND ${releases.released} IS NOT NULL), '')`,
-          dl_count: sql`(SELECT COUNT(*)::int FROM ${gameDownloadStats} WHERE game_id = ${vn.id})`,
-          vw_count: sql`(SELECT COUNT(*)::int FROM ${eventViews} WHERE event_type = 'game_view' AND target_id = ${vn.id})`,
-          titles: sql`COALESCE((SELECT json_agg(t.title) FROM ${vnTitles} t WHERE t.id = ${vn.id}), '[]'::json)`,
-          tag_names: sql`COALESCE((SELECT json_agg(DISTINCT z.name) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE), '[]'::json)`,
-          tags: sql`COALESCE((SELECT json_agg(DISTINCT tv.tag) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE), '[]'::json)`,
-          titles_obj: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT title, latin, lang FROM ${vnTitles} t WHERE t.id = ${vn.id}) t), '[]'::json)`,
-          images: sql`(SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM ${images} i WHERE i.id = ${vn.cImage}) i)`,
-          releases: sql`COALESCE((SELECT json_agg(row_to_json(rel.*)) FROM (SELECT r.title, r.released FROM ${releasesVn} rv INNER JOIN ${releases} r ON r.id = rv.id WHERE rv.vid = ${vn.id}) rel), '[]'::json)`,
-          other: sql`(SELECT ${alistb.other} FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1)`,
-          otherData: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, a.other_val AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o CROSS JOIN LATERAL (SELECT ${alistb.other} AS other_val FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1) a WHERE o.id = a.other_val) other_sub)`,
-          tags_obj: sql`COALESCE((SELECT json_agg(row_to_json(tag.*)) FROM (SELECT DISTINCT z.alias, z.name, z.id FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE) tag), '[]'::json)`,
-          has_download: sql`TRUE`,
+          ...gameMeiliDocBase,
+          ...gameMeiliDocOtherSubquery,
         })
         .from(vn)
         .where(inArray(vn.id, vnIds))
-
       if (docs.length > 0) {
         await index.updateDocuments(docs, { primaryKey: 'id' })
         console.log(`[Meili] 批量增量更新: ${docs.length} docs`)
@@ -744,36 +748,8 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
 
   const items = await db
     .select({
-      id: vn.id,
-      alias: vn.alias,
-      olang: vn.olang,
-      devstatus: vn.devstatus,
-      rating: vn.cRating,
-      votecount: vn.cVotecount,
-      description: vn.description,
-      // Sortable — first release date as text (YYYY-MM-DD, handles partial dates)
-      released_first: sql`COALESCE((SELECT MIN(${releases.released}) FROM ${releasesVn} INNER JOIN ${releases} ON ${releases.id} = ${releasesVn.id} WHERE ${releasesVn.vid} = ${vn.id} AND ${releases.released} IS NOT NULL), '')`,
-      // Sortable — download and view counts
-      dl_count: sql`(SELECT COUNT(*)::int FROM ${gameDownloadStats} WHERE game_id = ${vn.id})`,
-      vw_count: sql`(SELECT COUNT(*)::int FROM ${eventViews} WHERE event_type = 'game_view' AND target_id = ${vn.id})`,
-      // Searchable — array of title strings
-      titles: sql`COALESCE((SELECT json_agg(t.title) FROM ${vnTitles} t WHERE t.id = ${vn.id}), '[]'::json)`,
-      // Searchable — array of tag names
-      tag_names: sql`COALESCE((SELECT json_agg(DISTINCT z.name) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE), '[]'::json)`,
-      // Filterable — array of tag IDs
-      tags: sql`COALESCE((SELECT json_agg(DISTINCT tv.tag) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE), '[]'::json)`,
-      // Display — titles as objects (for UI)
-      titles_obj: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT title, latin, lang FROM ${vnTitles} t WHERE t.id = ${vn.id}) t), '[]'::json)`,
-      // Display — image data
-      images: sql`(SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM ${images} i WHERE i.id = ${vn.cImage}) i)`,
-      // Display — releases
-      releases: sql`COALESCE((SELECT json_agg(row_to_json(rel.*)) FROM (SELECT r.title, r.released FROM ${releasesVn} rv INNER JOIN ${releases} r ON r.id = rv.id WHERE rv.vid = ${vn.id}) rel), '[]'::json)`,
-      // Display — other data from alistb
-      other: alistb.other,
-      otherData: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, ${alistb.other} AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o WHERE o.id = ${alistb.other}) other_sub)`,
-      // Display — tag objects
-      tags_obj: sql`COALESCE((SELECT json_agg(row_to_json(tag.*)) FROM (SELECT DISTINCT z.alias, z.name, z.id FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE) tag), '[]'::json)`,
-      has_download: sql`TRUE`,
+      ...gameMeiliDocBase,
+      ...gameMeiliDocOtherDirect,
     })
     .from(alistb)
     .innerJoin(vn, eq(alistb.vid, vn.id))

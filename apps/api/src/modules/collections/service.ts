@@ -24,7 +24,17 @@ export const CollectionService = {
 
     const [items, total] = await Promise.all([
       db
-        .select()
+        .select({
+          id: collections.id,
+          title: collections.title,
+          description: collections.description,
+          type: collections.type,
+          producerIds: collections.producerIds,
+          status: collections.status,
+          sortOrder: collections.sortOrder,
+          createdAt: collections.createdAt,
+          updatedAt: collections.updatedAt,
+        })
         .from(collections)
         .where(and(...conditions))
         .orderBy(asc(collections.sortOrder), desc(collections.createdAt))

@@ -120,10 +120,17 @@ export const TopicService = {
     const numericId = Number(id)
 
     const [topic] = await db
-      .select()
+      .select({
+        id: topics.id,
+        userId: topics.userId,
+        title: topics.title,
+        content: topics.content,
+        status: topics.status,
+        createdAt: topics.createdAt,
+        updatedAt: topics.updatedAt,
+      })
       .from(topics)
       .where(eq(topics.id, numericId))
-
     if (!topic) {
       throw status(404, '帖子不存在')
     }
@@ -250,7 +257,15 @@ export const TopicService = {
     await db.update(topics).set(updateData).where(eq(topics.id, numericId))
 
     const [updated] = await db
-      .select()
+      .select({
+        id: topics.id,
+        userId: topics.userId,
+        title: topics.title,
+        content: topics.content,
+        status: topics.status,
+        createdAt: topics.createdAt,
+        updatedAt: topics.updatedAt,
+      })
       .from(topics)
       .where(eq(topics.id, numericId))
 

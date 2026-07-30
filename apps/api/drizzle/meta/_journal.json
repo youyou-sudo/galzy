@@ -64,6 +64,13 @@
       "when": 1785320127835,
       "tag": "0008_known_omega_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1754000000000,
+      "tag": "0009_producers_trigram",
+      "breakpoints": true
     }
   ]
 }

@@ -50,23 +50,21 @@ export const Tags = {
     const items = await db
       .select({
         tags: sql<Array<Record<string, any>>>`COALESCE(
-          (SELECT json_agg(row_to_json(sub.*))
-           FROM (
-             SELECT
-               (SELECT row_to_json(tag_obj.*)
-                FROM (
-                  SELECT t.id, t.name, t.description,
-                         z.name AS zht_name, z.description AS zht_description
-                  FROM ${tags} t
-                  INNER JOIN ${zhtags} z ON t.id = z.id
-                  WHERE t.id = tv.tag AND z.exhibition = TRUE
-                ) tag_obj
-               ) AS tag_data
-             FROM ${tagsVn} tv
-             WHERE tv.vid = ${vn.id} AND tv.vote > 0
-             GROUP BY tv.tag, tv.vid
-             HAVING AVG(tv.vote) > 1
-           ) sub
+          (SELECT json_agg(json_build_object(
+            'tag_data', (SELECT row_to_json(tag_obj.*)
+              FROM (
+                SELECT t.id, t.name, t.description,
+                       z.name AS zht_name, z.description AS zht_description
+                FROM ${tags} t
+                INNER JOIN ${zhtags} z ON t.id = z.id AND z.exhibition = TRUE
+                WHERE t.id = tv.tag
+              ) tag_obj
+            )
+          ))
+          FROM ${tagsVn} tv
+          WHERE tv.vid = ${vn.id} AND tv.vote > 0
+          GROUP BY tv.tag, tv.vid
+          HAVING AVG(tv.vote) > 1
           ), '[]'::json
         )`,
       })
@@ -140,42 +138,44 @@ export const Tags = {
     const [mainResult, countResult] = await Promise.all([
       db
         .select({
-          datas: sql<Record<string, any>>`(SELECT row_to_json(obj.*)
+          id: vn.id,
+          olang: vn.olang,
+          titles: sql`COALESCE(
+            (SELECT json_agg(row_to_json(vnt.*)) FROM ${vnTitles} vnt WHERE vnt.id = ${vn.id}),
+            '[]'::json
+          )`,
+          images: sql`(SELECT row_to_json(img.*)
+            FROM (SELECT id, height, width, c_sexual_avg FROM ${images} img WHERE img.id = ${vn.cImage}) img
+          )`,
+          other: alistb.other,
+          other_datas: sql`(SELECT row_to_json(od.*)
             FROM (
-              SELECT vn.id, vn.olang,
+              SELECT o.*, ${alistb.other} AS other,
                 COALESCE(
-                  (SELECT json_agg(row_to_json(vnt.*)) FROM ${vnTitles} vnt WHERE vnt.id = vn.id),
-                  '[]'::json
-                ) AS titles,
-(SELECT row_to_json(img.*)
-                  FROM (SELECT id, height, width, c_sexual_avg FROM ${images} img WHERE img.id = vn.c_image) img
-                ) AS images,
-                a2.other,
-                (SELECT row_to_json(od.*)
-                 FROM (
-                   SELECT o.*, a2.other,
-                     COALESCE(
-                       (SELECT json_agg(row_to_json(om_sub.*))
-                        FROM (
-                          SELECT om.*,
-                            (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media
-                          FROM ${otherMedia} om WHERE om.other_id = o.id
-                        ) om_sub
-                       ), '[]'::json
-                     ) AS other_media
-                   FROM ${others} o WHERE o.id = a2.other
-                 ) od
-                ) AS other_datas
-              FROM ${alistb} a2
-              INNER JOIN ${vn} ON a2.vid = vn.id
-              WHERE a2.vid = ${tagsVn.vid}
-            ) obj
+                  (SELECT json_agg(row_to_json(om_sub.*))
+                   FROM (
+                     SELECT om.*,
+                       (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media
+                     FROM ${otherMedia} om WHERE om.other_id = o.id
+                   ) om_sub
+                  ), '[]'::json
+                ) AS other_media
+              FROM ${others} o WHERE o.id = ${alistb.other}
+            ) od
           )`,
         })
         .from(tagsVn)
         .innerJoin(alistb, eq(alistb.vid, tagsVn.vid))
+        .innerJoin(vn, eq(vn.id, alistb.vid))
         .where(eq(tagsVn.tag, tagId))
-        .groupBy(tagsVn.tag, tagsVn.vid)
+        .groupBy(
+          tagsVn.tag,
+          tagsVn.vid,
+          vn.id,
+          vn.olang,
+          vn.cImage,
+          alistb.other,
+        )
         .orderBy(desc(tagsVn.vid))
         .limit(pageSize)
         .offset(offset),
@@ -188,10 +188,8 @@ export const Tags = {
         .then((r) => r[0]),
     ])
 
-    // main query 结果处理
-    const items = mainResult.map((item) => item.datas)
+    const items = mainResult
 
-    // count query 结果处理
     const totalCount = Number(countResult?.count ?? 0)
     const totalPages = Math.ceil(totalCount / pageSize)
 
@@ -202,7 +200,6 @@ export const Tags = {
       totalCount,
     }
 
-    // 设置缓存（异步执行，不阻塞返回）
     void setKv(cacheKey, JSON.stringify(data), 60 * 60)
 
     type TagGames = typeof data
