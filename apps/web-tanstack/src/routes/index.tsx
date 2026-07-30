@@ -15,7 +15,6 @@ import {
   CardTitle,
 } from '@web/components/ui/card'
 import { Skeleton } from '@web/components/ui/skeleton'
-import { getSession } from '@web/server/auth/auth.functions'
 import { getCollectionsWithPreview } from '@web/server/collections'
 import { getCritical, getTotalCount } from '@web/server/game'
 import { Gamepad2, Tags } from 'lucide-react'
@@ -23,14 +22,9 @@ import { Gamepad2, Tags } from 'lucide-react'
 export const Route = createFileRoute('/')({
   component: App,
   loader: async ({ context }) => {
-    // getCritical + all prefetches run in parallel
     const [rankings] = await Promise.all([
       getCritical(),
       Promise.all([
-        context.queryClient.ensureQueryData({
-          queryKey: ['auth'],
-          queryFn: getSession,
-        }),
         context.queryClient.ensureQueryData({
           queryKey: ['homeCollections'],
           queryFn: () =>
@@ -48,7 +42,8 @@ export const Route = createFileRoute('/')({
   pendingComponent: () => <HomePageSkeleton />,
   headers: () => ({
     'Cache-Control':
-      'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400',
+      'public, s-maxage=10, stale-while-revalidate=60',
+    'Cache-Tag': 'page-home',
   }),
   staleTime: 60_000,
   gcTime: 5 * 60_000,

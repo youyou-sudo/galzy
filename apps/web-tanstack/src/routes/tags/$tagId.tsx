@@ -42,8 +42,9 @@ export const Route = createFileRoute('/tags/$tagId')({
 			},
 		],
 	}),
-	headers: () => ({
-		"Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+	headers: ({ params }) => ({
+		"Cache-Control": "public, s-maxage=30, stale-while-revalidate=300",
+		"Cache-Tag": `tag-${params.tagId},page-tag-detail`,
 	}),
 
 	component: () => {

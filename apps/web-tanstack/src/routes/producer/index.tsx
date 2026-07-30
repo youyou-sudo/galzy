@@ -6,6 +6,10 @@ import {
 
 export const Route = createFileRoute("/producer/")({
 	component: RouteComponent,
+	headers: () => ({
+		"Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
+		"Cache-Tag": "page-producers",
+	}),
 });
 
 function RouteComponent() {

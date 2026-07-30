@@ -48,6 +48,11 @@ export const Route = createFileRoute("/games/")({
 		});
 		return { initialData: gamelist };
 	},
+	headers: () => ({
+		"Cache-Control": "public, s-maxage=30, stale-while-revalidate=300",
+		"Cache-Tag": "page-games",
+		"Vary": "Accept, Accept-Encoding",
+	}),
 });
 
 function RouteComponent() {

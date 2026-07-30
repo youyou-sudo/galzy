@@ -11,6 +11,7 @@ import {
   vnTitles,
   zhtags,
 } from '@api/libs'
+import { purgeByTags, purgeTagPages } from '@api/libs/cloudflare-cache'
 import { delKv, getKv, setKv } from '@api/libs/redis'
 import {
   and,
@@ -290,21 +291,31 @@ export const Tags = {
           description: zh_description,
         })
         .where(eq(zhtags.id, id))
+      await purgeTagPages(String(id))
       return true
     } catch {
       return false
     }
   },
+
   async tagFileAdd({ file }: TagsModel.tagFileAdd) {
     const text = await file.text()
     const datas = JSON.parse(text)
-    const datass = datas.map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      exhibition: item.exhibition,
-      alias: item.alias,
-      description: item.description,
-    }))
+    const datass = datas.map(
+      (item: {
+        id: number
+        name: string
+        exhibition: boolean
+        alias: string
+        description: string
+      }) => ({
+        id: item.id,
+        name: item.name,
+        exhibition: item.exhibition,
+        alias: item.alias,
+        description: item.description,
+      }),
+    )
 
     await db
       .insert(zhtags)
@@ -318,6 +329,9 @@ export const Tags = {
           description: zhtags.description,
         },
       })
+
+    // Batch import: purge tag list (individual pages too many)
+    await purgeByTags(['page-tags'])
 
     return true
   },

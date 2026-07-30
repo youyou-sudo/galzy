@@ -53,8 +53,9 @@ export const Route = createFileRoute("/$id/_layout")({
 			},
 		],
 	}),
-	headers: () => ({
-		"Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+	headers: ({ params }) => ({
+		"Cache-Control": "public, s-maxage=30, stale-while-revalidate=300",
+		"Cache-Tag": `game-${params.id},page-game`,
 	}),
 	staleTime: 60_000,
 	gcTime: 5 * 60_000,

@@ -15,8 +15,9 @@ export const Route = createFileRoute("/producer/$pid")({
 			gameList: producerGameList({ data: { pid } }),
 		};
 	},
-	headers: () => ({
-		"Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+	headers: ({ params }) => ({
+		"Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
+		"Cache-Tag": `producer-${params.pid},page-producer-detail`,
 	}),
 
 	component: () => {

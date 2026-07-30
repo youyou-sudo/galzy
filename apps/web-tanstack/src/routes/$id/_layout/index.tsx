@@ -9,9 +9,9 @@ export const Route = createFileRoute("/$id/_layout/")({
 		const filelist = await getFileList({ data: { id } });
 		return { filelist };
 	},
-	headers: () => ({
-		// Cache at CDN for 1 hour, allow stale content for up to 1 day
-		"Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+	headers: ({ params }) => ({
+		"Cache-Control": "public, s-maxage=30, stale-while-revalidate=300",
+		"Cache-Tag": `game-${params.id},page-game-download`,
 	}),
 
 	// Client-side caching (via TanStack Router)

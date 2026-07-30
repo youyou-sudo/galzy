@@ -13,6 +13,7 @@ import {
   vn,
   vnTitles,
 } from '@api/libs'
+import { purgeGamePages } from '@api/libs/cloudflare-cache'
 import {
   acquireIdempotentKey,
   acquireLockKv,
@@ -25,6 +26,7 @@ import {
   setKv,
   storeIdempotentResult,
 } from '@api/libs/redis'
+
 import {
   and,
   asc,
@@ -647,6 +649,7 @@ export const Game = {
     await delKv(`galzy:game:vidassociation:${id}`)
     await delKvPattern('galzy:game:list*')
     await delKv('galzy:game:count')
+    await purgeGamePages(String(id))
     await storeIdempotentResult(
       `galzy:idempotent:vidassociationUpdate:${hash}`,
       datas,

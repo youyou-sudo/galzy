@@ -22,6 +22,10 @@ export const Route = createFileRoute('/collections/')({
       data: { page, limit: 30, previewLimit: 4 },
     })
   },
+  headers: () => ({
+    'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=300',
+    'Cache-Tag': 'page-collections',
+  }),
   component: RouteComponent,
   pendingComponent: () => <CollectionsPageSkeleton />,
 })

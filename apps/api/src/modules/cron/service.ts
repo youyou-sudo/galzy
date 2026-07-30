@@ -19,6 +19,8 @@ import {
   vnTitles,
   zhtags,
 } from '@api/libs'
+import { purgeByTags } from '@api/libs/cloudflare-cache'
+
 import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
 import { VndbSync } from '@api/modules/vndb-sync/service'
 import {
@@ -228,7 +230,17 @@ export const CronService = {
           signal: AbortSignal.timeout(30_000),
         },
       )
-      const data = await openlistdatas.json() as { data: { content: Array<{ parent: string; name: string; is_dir: boolean; size: number; type: number }> } }
+      const data = (await openlistdatas.json()) as {
+        data: {
+          content: Array<{
+            parent: string
+            name: string
+            is_dir: boolean
+            size: number
+            type: number
+          }>
+        }
+      }
       const processedData = processData(data.data.content)
 
       await db.transaction(async (trx) => {
@@ -487,6 +499,8 @@ export const CronService = {
         completedAt: new Date().toISOString(),
       })
       await this.addMeiliLog('game', 'success', '游戏索引重建完成')
+      // Invalidate CDN cache for affected pages
+      await purgeByTags(['page-home', 'page-games'])
       return { code: 200 }
     } catch (e) {
       console.error('meiliSearchAddIndex 运行失败喵', e)

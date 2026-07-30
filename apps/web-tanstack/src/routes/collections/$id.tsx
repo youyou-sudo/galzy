@@ -18,6 +18,10 @@ export const Route = createFileRoute('/collections/$id')({
     ])
     return { collection, previews }
   },
+  headers: ({ params }) => ({
+    'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=300',
+    'Cache-Tag': `collection-${params.id},page-collection-detail`,
+  }),
   component: RouteComponent,
   pendingComponent: () => <CollectionDetailSkeleton />,
 })

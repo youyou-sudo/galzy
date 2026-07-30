@@ -14,6 +14,8 @@ import {
   vnTitles,
   zhtags,
 } from '@api/libs'
+import { purgeAfterSync } from '@api/libs/cloudflare-cache'
+
 import { MeiliClient } from '@api/libs/meilisearch'
 import { acquireLockKv, delKvPattern, releaseLockKv } from '@api/libs/redis'
 import { idOrFilter, VndbClient } from '@api/libs/vndb-api'
@@ -264,6 +266,7 @@ export const VndbSync = {
       void this.updateProgress({ stageProcessed: processed, stageTotal: total })
     })
     await this.invalidateCache()
+    await purgeAfterSync()
     await this.updateProgress({
       status: 'completed',
       completedAt: new Date().toISOString(),
@@ -441,6 +444,7 @@ export const VndbSync = {
       }
 
       await this.invalidateCache()
+      await purgeAfterSync()
       await this.updateProgress({
         status: 'completed',
         completedAt: new Date().toISOString(),

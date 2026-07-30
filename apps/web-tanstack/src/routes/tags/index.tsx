@@ -54,8 +54,9 @@ export const Route = createFileRoute("/tags/")({
 		],
 	}),
 	headers: () => ({
-		"Cache-Control": "public, max-age=300",
-		Vary: "Accept, Accept-Encoding",
+		"Cache-Control": "public, s-maxage=60, stale-while-revalidate=600",
+		"Cache-Tag": "page-tags",
+		"Vary": "Accept, Accept-Encoding",
 	}),
 	staleTime: 1000 * 30,
 });
