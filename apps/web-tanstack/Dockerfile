@@ -1,4 +1,4 @@
-ARG BUILD_ID
+ARG BUILD_ID=dev
 
 FROM oven/bun:slim AS build
 

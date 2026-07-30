@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
 import { devtools } from '@tanstack/devtools-vite'
@@ -39,8 +39,11 @@ const config = defineConfig({
           return `export const BUILD_ID = ${JSON.stringify(BUILD_ID)};`
         }
       },
-      buildEnd() {
-        writeFileSync('dist/.build-id', BUILD_ID)
+      buildEnd(error) {
+        if (!error) {
+          mkdirSync('dist', { recursive: true })
+          writeFileSync('dist/.build-id', BUILD_ID)
+        }
       },
     },
     devtools(),
