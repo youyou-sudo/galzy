@@ -37,7 +37,7 @@ jobs:
 
       - name: Extract version
         id: version
-        run: echo "value=$(node -p "require('./apps/api/package.json').version")" >> $GITHUB_OUTPUT
+        run: echo "value=$(node -p "require('./apps/web-tanstack/package.json').version")" >> $GITHUB_OUTPUT
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -69,4 +69,4 @@ jobs:
             -H "x-github-event: registry_package" \
             --max-time 30 \
             --retry 2 \
-            -d '{"registry_package": {"package_version": {"package_url": "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"}}}'
+            -d '{"registry_package":{"package_version":{"package_url":"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.value }}","container_metadata":{"tag":{"name":"${{ steps.version.outputs.value }}"}}}}}'
