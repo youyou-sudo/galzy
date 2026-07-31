@@ -1,0 +1,34 @@
+# Ohmypi Project Configuration
+
+## Verification Rules
+
+### Browser Verification (MANDATORY)
+After every code change that affects the frontend, you MUST:
+1. Start/restart the dev server (`bun --cwd apps/web-tanstack dev`)
+2. Open the affected page(s) in the browser
+3. Take a full-page screenshot
+4. Inspect the screenshot with `inspect_image` to verify correct rendering
+5. Check browser console for errors
+
+This applies to:
+- Route/page changes
+- Component changes
+- Layout/style changes
+- Server function changes that affect rendered data
+
+### Screenshot & Inspect Protocol
+- After screenshot, immediately run `inspect_image` with a specific question about expected behavior
+- The question MUST mention: expected layout, visible elements, any errors, visual quality
+- If `inspect_image` reports issues, fix them before proceeding
+- Do NOT claim "verified" without an `inspect_image` result confirming correctness
+
+### Dev Server
+- Dev command: `bun --cwd apps/web-tanstack dev`
+- Default port: 3000
+- API port: 3001
+- Both must be running for full-stack verification
+
+## Exceptions
+- Pure backend/API changes without UI impact: browser verification optional
+- README/docs changes: no browser verification needed
+- Config file changes: no browser verification needed

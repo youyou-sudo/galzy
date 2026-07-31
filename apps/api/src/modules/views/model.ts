@@ -18,6 +18,7 @@ export namespace ViewsModel {
     imageId: string | null
     imageWidth: number | null
     imageHeight: number | null
+    imageUrl: string | null
     cSexualAvg: number | null
   }
   export type TagRankingItem = {

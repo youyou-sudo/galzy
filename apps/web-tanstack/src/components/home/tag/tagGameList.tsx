@@ -1,7 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
 import { Button } from "@web/components/ui/button";
-import { getImageUrl } from "@web/lib/image-url";
 import { getVnListByTag } from "@web/server/tags";
 import { GameCard } from "../card";
 
@@ -54,11 +53,7 @@ export const TagGamelist = () => {
 						gameid={String(item.id)}
 						width={item.images?.width ?? 200}
 						height={item.images?.height ?? 300}
-						src={getImageUrl({
-							imageId: item.images?.id,
-							width: item.images?.width,
-							height: item.images?.height,
-						})}
+						src={item.images?.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
 						cSexualAvg={item.images?.c_sexual_avg}
 						title={
 							item.titles?.find(

@@ -1,4 +1,4 @@
-import { db, eventViews, MeiliClient } from '@api/libs'
+import { buildCoverUrl, db, eventViews, MeiliClient } from '@api/libs'
 import { delKv, getKv, setKv } from '@api/libs/redis'
 import { status } from 'elysia'
 import { t } from 'try'
@@ -66,6 +66,20 @@ export const Search = {
       topTag: topTag
         ? (topTag as SearchModel.tagAllReturn['items'][0])
         : undefined,
+    }
+    // Backfill imageUrl for stale index docs (pre-reindex data lacks it)
+    for (const hit of index.hits) {
+      const img = (hit as Record<string, unknown>).images as Record<
+        string,
+        unknown
+      > | null
+      if (img?.id && !img.imageUrl) {
+        img.imageUrl = buildCoverUrl(
+          img.id as string,
+          img.width as number,
+          img.height as number,
+        )
+      }
     }
     void setKv(cacheKey, JSON.stringify(data), 60 * 60 * 1)
     type SearchReturn = typeof data

@@ -11,7 +11,6 @@ import {
 	BreadcrumbSeparator,
 } from "@web/components/ui/breadcrumb";
 import { Button } from "@web/components/ui/button";
-import { getImageUrl } from "@web/lib/image-url";
 import { getGameList } from "@web/server/game";
 import { ArrowUpDown, Flame, ListFilter } from "lucide-react";
 import { z } from "zod";
@@ -51,7 +50,7 @@ export const Route = createFileRoute("/games/")({
 	headers: () => ({
 		"Cache-Control": "public, s-maxage=30, stale-while-revalidate=300",
 		"Cache-Tag": "page-games",
-		"Vary": "Accept, Accept-Encoding",
+		Vary: "Accept, Accept-Encoding",
 	}),
 });
 
@@ -99,11 +98,7 @@ function RouteComponent() {
 				gameid={String(item.id)}
 				width={item.images?.width ?? 200}
 				height={item.images?.height ?? 300}
-				src={getImageUrl({
-					imageId: item.images?.id,
-					width: item.images?.width,
-					height: item.images?.height,
-				})}
+				src={item.images?.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
 				cSexualAvg={item.images?.c_sexual_avg}
 				title={
 					item?.titles_obj?.find(

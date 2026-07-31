@@ -1,5 +1,6 @@
 import {
   alistb,
+  buildCoverUrl,
   db,
   images,
   media,
@@ -7,6 +8,7 @@ import {
   others,
   tags,
   tagsVn,
+  transformStoredUrl,
   vn,
   vnTitles,
   zhtags,
@@ -152,7 +154,7 @@ export const Tags = {
             '[]'::json
           )`,
           images: sql`(SELECT row_to_json(img.*)
-            FROM (SELECT id, height, width, c_sexual_avg FROM ${images} img WHERE img.id = ${vn.cImage}) img
+            FROM (SELECT id, height, width, c_sexual_avg, url FROM ${images} img WHERE img.id = ${vn.cImage}) img
           )`,
           other: alistb.other,
           other_datas: sql`(SELECT row_to_json(od.*)
@@ -198,6 +200,23 @@ export const Tags = {
     const items = mainResult
 
     const totalCount = Number(countResult?.count ?? 0)
+
+    // Transform image URLs: replace VNDB host with configured CDN
+    for (const item of items) {
+      const img = item.images as Record<string, unknown> | null
+      if (img) {
+        img.imageUrl = img.id
+          ? buildCoverUrl(
+              img.id as string,
+              img.width as number,
+              img.height as number,
+            )
+          : null
+        if (img.url) {
+          img.url = transformStoredUrl(img.url as string)
+        }
+      }
+    }
     const totalPages = Math.ceil(totalCount / pageSize)
 
     const data = {

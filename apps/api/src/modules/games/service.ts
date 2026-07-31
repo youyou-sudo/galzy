@@ -1,5 +1,6 @@
 import {
   alistb,
+  buildCoverUrl,
   db,
   eventViews,
   gameDownloadStats,
@@ -10,6 +11,7 @@ import {
   releasesProducers,
   releasesVn,
   sql,
+  transformStoredUrl,
   vn,
   vnTitles,
 } from '@api/libs'
@@ -104,7 +106,7 @@ export const Game = {
           )
         `,
         images: sql`
-          (SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM images i WHERE i.id = vn.c_image) i)
+          (SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg, url FROM images i WHERE i.id = vn.c_image) i)
         `,
         other: alistb.other,
         other_datas: sql`
@@ -139,6 +141,22 @@ export const Game = {
       .limit(pageSize)
       .offset(offset)
     const totalCount = await this.Count()
+    // Transform image URLs: replace VNDB host with configured CDN
+    for (const item of items) {
+      const img = item.images as Record<string, unknown> | null
+      if (img) {
+        img.imageUrl = img.id
+          ? buildCoverUrl(
+              img.id as string,
+              img.width as number,
+              img.height as number,
+            )
+          : null
+        if (img.url) {
+          img.url = transformStoredUrl(img.url as string)
+        }
+      }
+    }
     const totalPages = Math.ceil(totalCount / pageSize)
     const datas = {
       items,
@@ -284,6 +302,24 @@ export const Game = {
           ? releasesDates.sort((a, b) => a.localeCompare(b))[0]
           : null
 
+      if (data.vn?.image) {
+        // Drizzle 的 image 关系类型与 legacy 列名合并成 string & Image,
+        // 无法表达新增的 imageUrl 字段,此处做显式断言
+        const img = data.vn.image as unknown as {
+          id: string
+          [key: string]: unknown
+        }
+        img.imageUrl = data.vn.image.id
+          ? buildCoverUrl(
+              data.vn.image.id,
+              data.vn.image.width,
+              data.vn.image.height,
+            )
+          : null
+        if (data.vn.image.url) {
+          data.vn.image.url = transformStoredUrl(data.vn.image.url)
+        }
+      }
       return {
         ...data,
         released_first,
@@ -765,7 +801,19 @@ export const Game = {
         .from(vn)
         .where(eq(vn.id, vid))
         .limit(1)
-      if (rows.length > 0) return rows
+      if (rows.length > 0) {
+        for (const row of rows) {
+          const img = row.images as Record<string, unknown> | null
+          if (img?.id) {
+            img.imageUrl = buildCoverUrl(
+              img.id as string,
+              img.width as number,
+              img.height as number,
+            )
+          }
+        }
+        return rows
+      }
       // Fall through to Meilisearch for fuzzy partial matches
     }
 
@@ -776,12 +824,22 @@ export const Game = {
       limit,
       attributesToRetrieve: ['id', 'alias', 'titles_obj', 'olang', 'images'],
     })
-    return result.hits.map((hit) => ({
-      id: hit.id,
-      alias: hit.alias,
-      titles_obj: hit.titles_obj,
-      olang: hit.olang,
-      images: hit.images,
-    }))
+    return result.hits.map((hit) => {
+      const img = hit.images as Record<string, unknown> | null
+      if (img?.id && !img.imageUrl) {
+        img.imageUrl = buildCoverUrl(
+          img.id as string,
+          img.width as number,
+          img.height as number,
+        )
+      }
+      return {
+        id: hit.id,
+        alias: hit.alias,
+        titles_obj: hit.titles_obj,
+        olang: hit.olang,
+        images: hit.images,
+      }
+    })
   },
 }

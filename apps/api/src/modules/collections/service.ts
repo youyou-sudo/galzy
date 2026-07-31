@@ -1,4 +1,5 @@
 import {
+  buildCoverUrl,
   collectionEntries,
   collections,
   db,
@@ -249,6 +250,13 @@ export const CollectionService = {
                 imageId: v?.imageId ?? null,
                 imageWidth: v?.imageWidth ?? null,
                 imageHeight: v?.imageHeight ?? null,
+                imageUrl: v?.imageId
+                  ? buildCoverUrl(
+                      v.imageId,
+                      v?.imageWidth ?? null,
+                      v?.imageHeight ?? null,
+                    )
+                  : null,
                 cSexualAvg: v?.cSexualAvg ?? null,
               }
             }),
@@ -425,11 +433,12 @@ export const CollectionService = {
       imageId: e.imageId,
       imageWidth: e.imageWidth,
       imageHeight: e.imageHeight,
+      imageUrl: e.imageId
+        ? buildCoverUrl(e.imageId, e.imageWidth, e.imageHeight)
+        : null,
       cSexualAvg: e.cSexualAvg,
     }))
   },
-
-  // 删除合集
   async delete(id: number) {
     const [existing] = await db
       .select()

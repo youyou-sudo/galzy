@@ -1,5 +1,4 @@
 import { Await, getRouteApi } from "@tanstack/react-router";
-import { getImageUrl } from "@web/lib/image-url";
 import { GameCard } from "../card";
 
 const apiroute = getRouteApi("/producer/$pid");
@@ -38,11 +37,7 @@ export const ProducerGamelist = () => {
 										gameid={String(item.id)}
 										width={item.image_width ?? 200}
 										height={item.image_height ?? 300}
-										src={getImageUrl({
-											imageId: item.image_id,
-											width: item.image_width,
-											height: item.image_height,
-										})}
+										src={item.image_url ?? "/No-Image-Placeholder.svg.webp"}
 										cSexualAvg={item.c_sexual_avg}
 										title={title}
 									/>

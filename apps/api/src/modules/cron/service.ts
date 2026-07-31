@@ -1,5 +1,6 @@
 import {
   alistb,
+  buildCoverUrl,
   cloudflare,
   db,
   eventViews,
@@ -100,6 +101,20 @@ const gameMeiliDocOtherSubquery = {
 const gameMeiliDocOtherDirect = {
   other: alistb.other,
   otherData: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, ${alistb.other} AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o WHERE o.id = ${alistb.other}) other_sub)`,
+}
+
+/** Add computed imageUrl to each doc's images field using buildCoverUrl. */
+function addImageUrlToDocs(docs: Array<Record<string, unknown>>): void {
+  for (const doc of docs) {
+    const img = doc.images as Record<string, unknown> | null
+    if (img?.id) {
+      img.imageUrl = buildCoverUrl(
+        img.id as string,
+        img.width as number,
+        img.height as number,
+      )
+    }
+  }
 }
 
 export const CronService = {
@@ -682,8 +697,8 @@ export const CronService = {
         .from(vn)
         .where(eq(vn.id, vnId))
         .limit(1)
-
       if (doc.length > 0 && doc[0]) {
+        addImageUrlToDocs(doc)
         await index.updateDocuments([doc[0]])
         console.log(`[Meili] 增量更新: ${vnId}`)
       }
@@ -707,8 +722,8 @@ export const CronService = {
         .from(vn)
         .where(inArray(vn.id, vnIds))
       if (docs.length > 0) {
+        addImageUrlToDocs(docs)
         await index.updateDocuments(docs, { primaryKey: 'id' })
-        console.log(`[Meili] 批量增量更新: ${docs.length} docs`)
       }
     } catch (e) {
       console.error(`[Meili] 批量增量更新失败:`, e)
@@ -756,7 +771,7 @@ const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
     .orderBy(desc(vn.id), desc(alistb.other))
     .limit(pageSize)
     .offset(offset)
-
+  addImageUrlToDocs(items)
   return { items }
 }
 

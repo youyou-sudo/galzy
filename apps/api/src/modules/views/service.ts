@@ -1,9 +1,11 @@
 import {
+  buildCoverUrl,
   db,
   eventViews,
   gameDownloadStats,
   images,
   sql,
+  transformStoredUrl,
   vn,
   vnTitles,
   zhtags,
@@ -127,6 +129,7 @@ export const ViewsService = {
         imageId: images.id,
         imageWidth: images.width,
         imageHeight: images.height,
+        imageUrl: images.url,
         cSexualAvg: images.cSexualAvg,
         titles: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT lang, title FROM ${vnTitles} t WHERE t.id = ${sql.identifier('vn')}.${sql.identifier('id')}) t), '[]'::json)`,
       })
@@ -139,6 +142,7 @@ export const ViewsService = {
       imageWidth: number | null
       imageHeight: number | null
       cSexualAvg: number | null
+      imageUrl: string | null
       titles: Array<{ lang: string; title: string }>
     }>
 
@@ -150,6 +154,7 @@ export const ViewsService = {
         imageWidth: number | null
         imageHeight: number | null
         cSexualAvg: number | null
+        imageUrl: string | null
       }
     >()
     for (const r of titleRows) {
@@ -161,6 +166,7 @@ export const ViewsService = {
       imageMap.set(r.id, {
         imageId: r.imageId,
         imageWidth: r.imageWidth,
+        imageUrl: r.imageUrl,
         imageHeight: r.imageHeight,
         cSexualAvg: r.cSexualAvg,
       })
@@ -175,6 +181,9 @@ export const ViewsService = {
         imageId: img?.imageId ?? null,
         imageWidth: img?.imageWidth ?? null,
         imageHeight: img?.imageHeight ?? null,
+        imageUrl: img?.imageId
+          ? buildCoverUrl(img.imageId, img.imageWidth, img.imageHeight)
+          : transformStoredUrl(img?.imageUrl ?? null),
         cSexualAvg: img?.cSexualAvg ?? null,
       }
     })

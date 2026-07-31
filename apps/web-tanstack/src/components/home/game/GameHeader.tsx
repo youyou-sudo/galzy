@@ -1,6 +1,5 @@
 import { GameCard } from "@web/components/home/card";
 import { Skeleton } from "@web/components/ui/skeleton";
-import { getImageUrl } from "@web/lib";
 import type { getGameDetail } from "@web/server/game";
 
 type GameData = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>;
@@ -29,11 +28,9 @@ export function GameHeader({ game }: { game: GameData }) {
 							height={game?.vn?.image?.height ?? 300}
 							loading="lazy"
 							decoding="async"
-							src={getImageUrl({
-								imageId: game?.vn?.image?.id,
-								width: game?.vn?.image?.width,
-								height: game?.vn?.image?.height,
-							})}
+							src={
+								game?.vn?.image?.imageUrl ?? "/No-Image-Placeholder.svg.webp"
+							}
 							alt={olangTitle || "null"}
 							cSexualAvg={game?.vn?.image?.cSexualAvg}
 							className="rounded-lg w-full h-full object-cover"

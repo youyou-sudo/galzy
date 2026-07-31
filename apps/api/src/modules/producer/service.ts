@@ -1,5 +1,6 @@
 import {
   alistb,
+  buildCoverUrl,
   db,
   images,
   producers,
@@ -71,6 +72,7 @@ export const Producer = {
           image_id: images.id,
           image_width: images.width,
           image_height: images.height,
+          image_url: images.url,
           c_sexual_avg: images.cSexualAvg,
           titles: sql`(SELECT COALESCE(json_agg(row_to_json(t.*)), '[]'::json) FROM (SELECT lang, official, title, latin FROM vn_titles WHERE id = ${vn.id}) t)`,
         })
@@ -100,6 +102,11 @@ export const Producer = {
     ])
 
     const totalCount = Number(countResult?.count ?? 0)
+    for (const item of producerGamelists) {
+      item.image_url = item.image_id
+        ? buildCoverUrl(item.image_id, item.image_width, item.image_height)
+        : null
+    }
     const data = {
       items: producerGamelists,
       currentPage: page,

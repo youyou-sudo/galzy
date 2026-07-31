@@ -1,6 +1,5 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: <any> */
 import { getRouteApi } from "@tanstack/react-router";
-import { getImageUrl } from "@web/lib/image-url";
 import { GameCard } from "../card";
 
 const routeApi = getRouteApi("/search/");
@@ -14,6 +13,7 @@ interface HitDoc {
 		width: number;
 		height: number;
 		c_sexual_avg: number;
+		imageUrl?: string | null;
 	} | null;
 	otherData?: {
 		id: number;
@@ -22,7 +22,12 @@ interface HitDoc {
 		alias?: string;
 		other_media?: Array<{
 			cover?: boolean;
-			media?: { id: string; width: number; height: number };
+			media?: {
+				id: string;
+				width: number;
+				height: number;
+				imageUrl?: string | null;
+			};
 		}>;
 	};
 }
@@ -48,14 +53,8 @@ const SearchlistComponent = () => {
 					? item.otherData.other_media.find((m: any) => m.cover === true)?.media
 					: item.images;
 
-				let imagess = "/No-Image-Placeholder.svg.webp";
-				if (imagesData?.id && imagesData.width && imagesData.height) {
-					imagess = getImageUrl({
-						imageId: imagesData.id,
-						width: imagesData.width,
-						height: imagesData.height,
-					});
-				}
+				const imagess =
+					imagesData?.imageUrl ?? "/No-Image-Placeholder.svg.webp";
 
 				const titleObj = item.titles_obj;
 				const displayTitle =
