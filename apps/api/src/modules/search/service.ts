@@ -158,6 +158,21 @@ export const Search = {
       }
     }
 
+    // Backfill imageUrl for stale index docs (pre-reindex data lacks it)
+    for (const hit of result.hits) {
+      const img = (hit as Record<string, unknown>).images as Record<
+        string,
+        unknown
+      > | null
+      if (img?.id && !img.imageUrl) {
+        img.imageUrl = buildCoverUrl(
+          img.id as string,
+          img.width as number,
+          img.height as number,
+        )
+      }
+    }
+
     return {
       hits: result.hits,
       totalHits: result.totalHits,
