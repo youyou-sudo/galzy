@@ -51,14 +51,6 @@ export const Producer = {
   },
   async gamelists({ pid, page = 1, limit = 50 }: ProducerModel.ProducerGet) {
     const cacheKey = `galzy:producer:gamelist:${pid}:${page}:${limit}`
-    const redisData = await getKv(cacheKey)
-    if (redisData) {
-      try {
-        return JSON.parse(redisData) as Producergamelists
-      } catch {
-        await delKv(cacheKey)
-      }
-    }
 
     const offset = (page - 1) * limit
 
@@ -113,8 +105,6 @@ export const Producer = {
       totalPages: Math.ceil(totalCount / limit),
       totalCount,
     }
-
-    type Producergamelists = typeof data
 
     if (!producerGamelists.length && totalCount === 0)
       throw status(404, `未找到该生产者的游戏列表喵~`)

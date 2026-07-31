@@ -6,8 +6,9 @@ type SearchParams = z.infer<typeof SearchSchema>;
 
 export const Route = createFileRoute("/search/")({
 	validateSearch: SearchSchema,
-	loader: async ({ search }) => {
-		const { q, startDate, endDate } = search as SearchParams;
+	loaderDeps: ({ search }) => search ?? {},
+	loader: async ({ deps }) => {
+		const { q, startDate, endDate } = deps as SearchParams;
 		throw redirect({
 			to: "/games",
 			search: { q, startDate, endDate },

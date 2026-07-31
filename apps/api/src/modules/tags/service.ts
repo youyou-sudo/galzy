@@ -131,16 +131,6 @@ export const Tags = {
   async tagGames({ tagId, pageSize, pageIndex }: TagsModel.tagGames) {
     const cacheKey = `galzy:tag:games:${tagId}:${pageSize}:${pageIndex}`
 
-    // 先查缓存
-    const redisData = await getKv(cacheKey)
-    if (redisData) {
-      try {
-        return JSON.parse(redisData) as TagGames
-      } catch {
-        // 缓存损坏则忽略，走数据库查询
-      }
-    }
-
     const offset = pageIndex * pageSize
 
     // 并行执行 主查询 + 统计查询
@@ -228,7 +218,6 @@ export const Tags = {
 
     void setKv(cacheKey, JSON.stringify(data), 60 * 60)
 
-    type TagGames = typeof data
     return data
   },
   async tagAllGet({ pageSize, pageIndex, keyword, id }: TagsModel.tagAll) {

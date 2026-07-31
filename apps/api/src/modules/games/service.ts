@@ -62,21 +62,7 @@ export const Game = {
   async List({ pageIndex, pageSize, sortBy, order }: GameModel.gameList) {
     const useCache = !sortBy || sortBy === 'id'
     const cacheKey = `galzy:game:list:${pageIndex}:${pageSize}${useCache ? '' : `:${sortBy}:${order}`}`
-    if (useCache) {
-      const redisData = await getKv(cacheKey)
-      if (redisData !== null && redisData !== undefined) {
-        return JSON.parse(redisData) as GameList
-      }
-    }
     const offset = pageIndex * pageSize
-    interface ListRow {
-      id: string
-      olang: string | null
-      titles: unknown
-      images: unknown
-      other: number | null
-      other_datas: unknown
-    }
     const dir = order === 'asc' ? 'ASC' : 'DESC'
     let orderClause
     if (sortBy === 'released') {
@@ -167,7 +153,6 @@ export const Game = {
     if (useCache) {
       void setKv(cacheKey, JSON.stringify(datas), 60 * 60 * 2)
     }
-    type GameList = typeof datas
     return datas
   },
   async InfoGet({ id }: GameModel.infoId) {
@@ -179,7 +164,9 @@ export const Game = {
         const cached = JSON.parse(redisData)
         if (
           !cached?.vn ||
-          (cached?.vn?.image && !('c_sexual_avg' in cached.vn.image))
+          (cached?.vn?.image &&
+            (!('c_sexual_avg' in cached.vn.image) ||
+              !('imageUrl' in cached.vn.image)))
         ) {
           await delKv(cacheKey)
         } else {
@@ -345,7 +332,6 @@ export const Game = {
         const result = structuredClone(data)
         void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 6)
 
-        type GameInfo = typeof result
         return result
       } finally {
         void releaseLockKv(lockKey, lockVal)
@@ -362,7 +348,6 @@ export const Game = {
       }
 
       const data = await queryDb()
-      type GameInfo = typeof data
       return data
     }
   },
@@ -576,6 +561,18 @@ export const Game = {
       limit,
       offset,
     })
+    // Transform image URLs: replace VNDB host with configured CDN
+    for (const row of data) {
+      const img = (row as { vn?: { image?: Record<string, unknown> | null } })
+        .vn?.image
+      if (img?.id && !('imageUrl' in img)) {
+        img.imageUrl = buildCoverUrl(
+          img.id as string,
+          img.width as number,
+          img.height as number,
+        )
+      }
+    }
     return {
       data,
       pagination: {

@@ -110,8 +110,6 @@ export const ViewsService = {
     const weekStart = getEffectiveWeekStart()
     const weekKey = weekStart.toISOString().slice(0, 10)
     const cacheKey = `galzy:views:hot:game:${weekKey}`
-    const cached = await getKv(cacheKey)
-    if (cached) return JSON.parse(cached) as ViewsModel.GameRankingItem[]
 
     const rows = await queryGameRankings(weekStart)
 

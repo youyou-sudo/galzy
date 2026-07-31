@@ -13,7 +13,14 @@ export const Search = {
     if (redisData) {
       try {
         const parsed = JSON.parse(redisData)
-        return parsed as SearchReturn
+        // Stale entries written before imageUrl existed must be rebuilt
+        const hits = (parsed?.hits ?? []) as Array<Record<string, unknown>>
+        const stale = hits.some((h) => {
+          const img = h.images as Record<string, unknown> | null
+          return !!img && !('imageUrl' in img)
+        })
+        if (!stale) return parsed as SearchReturn
+        await delKv(cacheKey)
       } catch {
         await delKv(cacheKey)
       }
