@@ -53,6 +53,25 @@ export const getUserFavorites = createServerFn()
 		return res;
 	});
 
+export const getUserLikes = createServerFn()
+	.validator(
+		z.object({
+			page: z.optional(z.number()),
+			limit: z.optional(z.number()),
+		}),
+	)
+	.handler(async ({ data }) => {
+		const { data: res, error } = await api.topics.likes.get({
+			query: {
+				page: data.page,
+				limit: data.limit,
+			},
+			...cookiePass(),
+		});
+		elysiaErrorF(error);
+		return res;
+	});
+
 export const getTopic = createServerFn()
 	.validator(
 		z.object({
