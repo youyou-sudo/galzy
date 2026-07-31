@@ -23,7 +23,9 @@ export const betterAuth = new Elysia({ name: 'better-auth' })
   .onRequest(({ server }) => {
     if (!bunServer && server) bunServer = server
   })
-  .mount((request: Request) => {
+  .onRequest(async ({ request }) => {
+    // Inject client IP for Better Auth rate limiting / audit
+    let authRequest = request
     if (
       bunServer &&
       'requestIP' in bunServer &&
@@ -36,13 +38,23 @@ export const betterAuth = new Elysia({ name: 'better-auth' })
         if (ipInfo?.address) {
           const headers = new Headers(request.headers)
           headers.set('x-forwarded-for', ipInfo.address)
-          request = new Request(request, { headers })
+          authRequest = new Request(request, { headers })
         }
       } catch {
         /* 拿不到 IP 就用默认行为 */
       }
     }
-    return auth.handler(request)
+
+    // Only intercept /auth/* paths; short-circuit with Better Auth's handler.
+    // Non-auth requests fall through to Elysia's native route matching.
+    // Previously this used .mount() which registered ALL /* as a catch-all
+    // route — Better Auth returns 404 for non-auth paths, and because it
+    // returns a Response (doesn't throw), Elysia would silently serve that
+    // 404 with zero log output when a more-specific route failed to match.
+    const url = new URL(authRequest.url)
+    if (url.pathname.startsWith('/auth/') || url.pathname === '/auth') {
+      return auth.handler(authRequest)
+    }
   })
   .macro({
     auth: {
