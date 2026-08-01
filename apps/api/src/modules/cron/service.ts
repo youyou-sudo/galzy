@@ -194,9 +194,13 @@ export const CronService = {
               json?.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive?.[0]
                 ?.sum ?? {}
 
-            const result2 = json2.result.script.routes[0].pattern ?? {}
-            const cleanDomain = result2.replace(/\*$/, '').replace(/\/+$/, '')
-            const url = `https://${cleanDomain}`
+            // 路由信息可能为空（无 routes 或 API 返回异常结构），此时保留原有 urlEndpoint
+            const pattern = json2?.result?.script?.routes?.[0]?.pattern
+            const cleanDomain =
+              typeof pattern === 'string'
+                ? pattern.replace(/\*$/, '').replace(/\/+$/, '')
+                : ''
+            const url = cleanDomain ? `https://${cleanDomain}` : undefined
 
             await db
               .update(cloudflare)
@@ -206,21 +210,15 @@ export const CronService = {
                 requests: result.requests ?? 0,
                 responseBodySize: result.responseBodySize ?? 0,
                 subrequests: result.subrequests ?? 0,
-                urlEndpoint: url,
+                ...(url ? { urlEndpoint: url } : {}),
                 state: (result.requests ?? 0) < 100000,
                 updateTime: new Date(),
               })
               .where(eq(cloudflare.id, item.id))
           } catch (err) {
-            console.error(`请求失败: ${item.accountId}, ${err}`)
-            // 如果请求出错，直接将 state 设置为 false
-            await db
-              .update(cloudflare)
-              .set({
-                state: false,
-                updateTime: new Date(),
-              })
-              .where(eq(cloudflare.id, item.id))
+            // 仅记录失败，不把 state 置为 false：网络抖动/CF API 限流是暂时性的，
+            // 直接标记节点不可用会误导运维与下载路由判断。
+            console.warn(`workerDataPull 请求失败: ${item.accountId}, ${err}`)
           }
         }),
       )

@@ -482,7 +482,7 @@ export const Game = {
         }),
       )
     }
-    if (!viddata?.path) throw status(500, `未找到相关文件`)
+    if (!viddata?.path) throw status(404, `未找到相关文件`)
 
     const data = await buildAllTrees(viddata?.path)
     void setKv(cacheKey, JSON.stringify(data), 60 * 6)

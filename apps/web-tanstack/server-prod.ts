@@ -574,6 +574,10 @@ async function main(): Promise<void> {
   Bun.serve({
     port: PORT,
     reusePort: true,
+    // Bun 默认 idleTimeout 为 10s：SSR / 上游代理 / 上传可能远超 10s，
+    // 连接会在处理过程中被服务端直接掐断，客户端（含 Cloudflare）看到的是
+    // 连接中断而非可读的 504/502。放宽到覆盖最大上游等待时间。
+    idleTimeout: 180,
     async fetch(req) {
       const { pathname } = new URL(req.url)
 

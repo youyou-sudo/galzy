@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { proxyFetch } from "@web/lib/proxy-fetch";
 
 const API_BASE = process.env.API_HOST;
 
@@ -9,22 +10,7 @@ const API_BASE = process.env.API_HOST;
 async function uploadProxy(request: Request) {
 	const targetUrl = `${API_BASE}/media/uploadavatar`;
 
-	// 转发请求头，移除 host 避免连接冲突
-	const headers = new Headers(request.headers);
-	headers.delete("host");
-
-	const res = await fetch(targetUrl, {
-		method: request.method,
-		headers,
-		redirect: "manual",
-		signal: AbortSignal.timeout(60_000),
-		body: request.body,
-	});
-
-	return new Response(res.body, {
-		status: res.status,
-		headers: res.headers,
-	});
+	return proxyFetch(targetUrl, request, 60_000);
 }
 
 export const Route = createFileRoute("/api/upload/")({

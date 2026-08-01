@@ -73,6 +73,12 @@ const proc = Bun.spawnSync(
     '--minify-whitespace',
     '--minify-syntax',
     '--target','bun',
+    // TanStack Start 的虚拟模块（#tanstack-*）只在 vite 插件构建期存在；
+    // 运行时 createStartHandler 的 loadEntries 走的是新 API 路径，
+    // 这些动态 import 永远不会被调用，externals 化即可让 bun 完成打包。
+    '--external','#tanstack-start-entry',
+    '--external','#tanstack-router-entry',
+    '--external','tanstack-start-manifest:v',
     './server-prod.ts',
     './dist/server/server.js',
     './dist-blob.data',

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { proxyFetch } from "@web/lib/proxy-fetch";
 
 const API_BASE = process.env.API_HOST;
 
@@ -7,20 +8,7 @@ async function proxy(request: Request) {
 
 	const targetUrl = `${API_BASE}${url.pathname.replace("/api", "")}${url.search}`;
 
-	const res = await fetch(targetUrl, {
-		method: request.method,
-		headers: request.headers,
-		redirect: "manual",
-		signal: AbortSignal.timeout(30_000),
-		body:
-			request.method !== "GET" && request.method !== "HEAD"
-				? await request.text()
-				: undefined,
-	});
-	return new Response(res.body, {
-		status: res.status,
-		headers: res.headers,
-	});
+	return proxyFetch(targetUrl, request, 30_000);
 }
 export const Route = createFileRoute("/api/auth/$")({
 	server: {

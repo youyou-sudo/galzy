@@ -36,17 +36,20 @@ async function buildApp() {
         set.status = 400
         return error.message
       }
-      // Log unexpected errors for diagnostics
-      if (code !== 'NOT_FOUND') {
-        const msg = error instanceof Error ? error.message : error
-        const cause = error instanceof Error ? (error as any).cause : undefined
-        console.error(`[err] ${code ?? 'UNKNOWN'}:`, msg)
-        if (cause) {
-          console.error(
-            `[err]   caused by:`,
-            cause instanceof Error ? cause.message : cause,
-          )
-        }
+      // 4xx 业务错误（未找到、参数错误等）是正常业务流，不按服务端错误记录；
+      // 只有 5xx 才需要 error 级日志用于排查。
+      const statusCode = typeof code === 'number' ? code : Number(code)
+      const is4xx =
+        Number.isInteger(statusCode) && statusCode >= 400 && statusCode < 500
+      if (is4xx || code === 'NOT_FOUND') return
+      const msg = error instanceof Error ? error.message : error
+      const cause = error instanceof Error ? (error as any).cause : undefined
+      console.error(`[err] ${code ?? 'UNKNOWN'}:`, msg)
+      if (cause) {
+        console.error(
+          `[err]   caused by:`,
+          cause instanceof Error ? cause.message : cause,
+        )
       }
     })
     .use(

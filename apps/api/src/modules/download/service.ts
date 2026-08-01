@@ -23,11 +23,11 @@ export const Download = {
 
       const alistData = (await alistDatas.json()) as AlistFsResponse
 
-      if (alistData.data === undefined) throw status(500, `未找到此文件`)
+      if (alistData.data === undefined) throw status(404, `未找到此文件`)
       if (alistData.data.sign === undefined)
-        throw status(500, `未找到此文件的签名`)
+        throw status(404, `未找到此文件的签名`)
 
-      if (alisterror) throw status(500, `Error:${JSON.stringify(alisterror)}`)
+      if (alisterror) throw status(502, `Error:${JSON.stringify(alisterror)}`)
 
       const workerList = await db
         .select({
@@ -39,7 +39,7 @@ export const Download = {
         .orderBy(cloudflare.id)
 
       if (workerList.length === 0) {
-        throw status(500, '没有可用的下载节点喵~')
+        throw status(503, '没有可用的下载节点喵~')
       }
 
       const randomWorker =
@@ -63,6 +63,8 @@ export const Download = {
 
     const [, error, res] = t(await alistDownloadGet(path))
     if (error) {
+      // 保留内部抛出的业务状态码（404/502/503），只有意外错误才包成 500
+      if (typeof (error as { code?: unknown })?.code === 'number') throw error
       throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
     }
     return res
