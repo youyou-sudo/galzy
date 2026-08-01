@@ -1,20 +1,10 @@
-// import { dbConfig } from '@api/libs/config'
-
+import { accounts, db, sessions, users, verifications } from '@api/db'
+import { drizzleAdapter } from '@better-auth/drizzle-adapter'
 import { APIError, type BetterAuthOptions, betterAuth } from 'better-auth'
-// import { BunPostgresDialect } from 'kysely-bun-sql'
 import { admin, genericOAuth, openAPI } from 'better-auth/plugins'
 import { localization } from 'better-auth-localization'
-import { Pool } from 'pg'
 import { emailOtpPlugin } from './emailOtp-plugin'
 
-// const dialect = new BunPostgresDialect(dbConfig)
-//
-const dialect = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: Number(process.env.POSTGRES_POOL_MAX ?? 10),
-  idleTimeoutMillis:
-    Number(process.env.POSTGRES_POOL_IDLETIMEOUT ?? 300) * 1000,
-})
 const readKungalOAuthBody = <T>(body: unknown, status: number): T => {
   if (body === null || typeof body !== 'object') {
     throw new APIError('BAD_REQUEST', {
@@ -48,7 +38,15 @@ const readKungalOAuthBody = <T>(body: unknown, status: number): T => {
 }
 
 const _authConfig = {
-  database: dialect,
+  database: drizzleAdapter(db, {
+    provider: 'pg',
+    schema: {
+      galrc_user: users,
+      galrc_session: sessions,
+      galrc_account: accounts,
+      galrc_verification: verifications,
+    },
+  }),
   user: {
     modelName: 'galrc_user',
   },
