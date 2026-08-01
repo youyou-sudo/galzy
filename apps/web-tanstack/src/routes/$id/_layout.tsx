@@ -1,4 +1,3 @@
-import { api } from '@libs'
 import { createFileRoute, Link, useRouterState } from '@tanstack/react-router'
 import GameLayoutPage from '@web/components/game/game-layout-page'
 import {
@@ -10,8 +9,8 @@ import {
   BreadcrumbSeparator,
 } from '@web/components/ui/breadcrumb'
 import { seoTemplate } from '@web/config/seoTemplate'
-import { ipPass } from '@web/lib/ip-pass'
 import { getGameDetail, getGameTags } from '@web/server/game'
+import { recordGameView } from '@web/server/views'
 
 export const Route = createFileRoute('/$id/_layout')({
   params: {
@@ -30,7 +29,7 @@ export const Route = createFileRoute('/$id/_layout')({
     const { id } = params
     // Record game view for hot ranking (non-blocking)
     try {
-      await api.views.game.post({ gameId: id }, ipPass())
+      await recordGameView({ data: { id } })
     } catch {
       // silently ignore recording failures
     }

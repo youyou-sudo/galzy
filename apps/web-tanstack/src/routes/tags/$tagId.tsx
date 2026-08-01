@@ -1,4 +1,3 @@
-import { api } from '@libs'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import TagDetailPage from '@web/components/tags/tag-detail-page'
 import {
@@ -10,15 +9,15 @@ import {
   BreadcrumbSeparator,
 } from '@web/components/ui/breadcrumb'
 import { seoTemplate } from '@web/config/seoTemplate'
-import { ipPass } from '@web/lib/ip-pass'
 import { getTagData, getVnListByTag } from '@web/server/tags'
+import { recordTagView } from '@web/server/views'
 
 export const Route = createFileRoute('/tags/$tagId')({
   loader: async ({ params }) => {
     const { tagId } = params
     // Record tag view for hot ranking (non-blocking)
     try {
-      await api.views.tag.post({ tagId }, ipPass())
+      await recordTagView({ data: { tagId } });
     } catch {
       // silently ignore recording failures
     }
