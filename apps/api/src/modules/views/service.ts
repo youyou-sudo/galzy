@@ -10,11 +10,35 @@ import {
   vnTitles,
   zhtags,
 } from '@api/libs'
-import { getKv, setKv } from '@api/libs/redis'
+import { getKv, getRedisClient, setKv } from '@api/libs/redis'
 import { and, count, desc, eq, gte, inArray } from 'drizzle-orm'
+import { status } from 'elysia'
 import type { ViewsModel } from './model'
 
 const WEEK_CACHE_TTL = 60 * 5
+
+// ============================================================
+// 访问防刷：固定窗口计数（Redis INCR），每 IP 每端点独立限额。
+// Redis 不可用时放行（fail-open），避免防刷拖垮正常访问记录。
+// ============================================================
+const VIEW_RATE_LIMIT = 200
+const VIEW_RATE_WINDOW_SECONDS = 60 * 60 * 24
+
+async function hitViewRateLimit(
+  ip: string | null,
+  scope: 'game' | 'tag',
+): Promise<boolean> {
+  if (!ip) return false
+  try {
+    const key = `galzy:views:rl:${scope}:${ip}`
+    const count = await getRedisClient().incr(key)
+    if (count === 1)
+      await getRedisClient().expire(key, VIEW_RATE_WINDOW_SECONDS)
+    return count > VIEW_RATE_LIMIT
+  } catch {
+    return false
+  }
+}
 
 function getWeekStart(): Date {
   const now = new Date()
@@ -79,7 +103,12 @@ async function queryTagRankings(weekStart: Date) {
 }
 
 export const ViewsService = {
-  async recordGameView({ gameId }: ViewsModel.recordGameView) {
+  async recordGameView(
+    { gameId }: ViewsModel.recordGameView,
+    ip: string | null,
+  ) {
+    if (await hitViewRateLimit(ip, 'game'))
+      throw status(429, '请求过于频繁，请稍后再试喵～')
     await db.insert(eventViews).values({
       eventType: 'game_view',
       targetId: gameId,
@@ -87,7 +116,9 @@ export const ViewsService = {
     })
   },
 
-  async recordTagView({ tagId }: ViewsModel.recordTagView) {
+  async recordTagView({ tagId }: ViewsModel.recordTagView, ip: string | null) {
+    if (await hitViewRateLimit(ip, 'tag'))
+      throw status(429, '请求过于频繁，请稍后再试喵～')
     await db.insert(eventViews).values({
       eventType: 'tag_view',
       targetId: tagId,
