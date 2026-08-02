@@ -39,6 +39,18 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'Galgame 资源站, 这里收录了大部分电脑端与手机端的汉化 Galgame',
       },
       {
+        property: 'og:site_name',
+        content: 'GalZY',
+      },
+      {
+        property: 'og:locale',
+        content: 'zh_CN',
+      },
+      {
+        name: 'twitter:card',
+        content: 'summary',
+      },
+      {
         title: 'GalZY - Galgame 资源站',
       },
     ],

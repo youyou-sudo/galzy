@@ -18,6 +18,7 @@ import AvatarComp from '@web/components/user/ProfileMenu/AvatarEditor'
 import ProfileTab from '@web/components/user/ProfileMenu/ProfileTab'
 import SecurityTab from '@web/components/user/ProfileMenu/SecurityTab'
 import { elysiaErrorF } from '@web/lib'
+import { seoMeta } from '@web/lib/seo'
 import { getSession, listAccounts } from '@web/server/auth/auth.functions'
 import { authClient } from '@web/server/auth/auth-client'
 import { getUserFavorites, getUserLikes } from '@web/server/topics'
@@ -45,6 +46,11 @@ const UserSearchSchema = z.object({
 })
 
 export const Route = createFileRoute('/user/')({
+  head: () =>
+    seoMeta({
+      title: '个人中心 | GalZY - Galgame 资源站',
+      noindex: true,
+    }),
   validateSearch: UserSearchSchema,
   loaderDeps: ({ search: { page } }) => ({ page }),
   loader: async ({ context, deps: { page } }) => {

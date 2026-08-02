@@ -15,12 +15,20 @@ import {
   CardTitle,
 } from '@web/components/ui/card'
 import { Skeleton } from '@web/components/ui/skeleton'
+import { seoTemplate } from '@web/config/seoTemplate'
+import { seoMeta } from '@web/lib/seo'
 import { getCollectionsWithPreview } from '@web/server/collections'
 import { getCritical, getTotalCount } from '@web/server/game'
 import { Gamepad2, Tags } from 'lucide-react'
 
 export const Route = createFileRoute('/')({
   component: App,
+  head: () =>
+    seoMeta({
+      title: seoTemplate.title,
+      description: seoTemplate.description,
+      path: '/',
+    }),
   loader: async ({ context }) => {
     const [rankings] = await Promise.all([
       getCritical(),
@@ -28,7 +36,9 @@ export const Route = createFileRoute('/')({
         context.queryClient.ensureQueryData({
           queryKey: ['homeCollections'],
           queryFn: () =>
-            getCollectionsWithPreview({ data: { limit: 5, previewLimit: 3 } }).then(r => r.items),
+            getCollectionsWithPreview({
+              data: { limit: 5, previewLimit: 3 },
+            }).then((r) => r.items),
         }),
         context.queryClient.ensureQueryData({
           queryKey: ['totalCount'],
@@ -41,8 +51,7 @@ export const Route = createFileRoute('/')({
 
   pendingComponent: () => <HomePageSkeleton />,
   headers: () => ({
-    'Cache-Control':
-      'public, s-maxage=10, stale-while-revalidate=60',
+    'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=60',
     'Cache-Tag': 'page-home',
   }),
   staleTime: 60_000,

@@ -1,5 +1,11 @@
 import { api } from '@libs'
 import { createServerFn } from '@tanstack/react-start'
+import type {
+  CollectionData,
+  CollectionDataListResponse,
+  CollectionListResponse,
+  CollectionPreviewGame,
+} from '@web/lib/collections'
 import { elysiaErrorF } from '@web/lib/elysia-error'
 import z from 'zod'
 
@@ -20,7 +26,8 @@ export const getCollections = createServerFn()
       },
     })
     elysiaErrorF(error)
-    return res
+    // Elysia 推断的响应类型含联合，会被 createServerFn 收敛为 unknown，这里按已知形状定型
+    return res as unknown as CollectionDataListResponse
   })
 
 export const getCollectionById = createServerFn()
@@ -28,7 +35,8 @@ export const getCollectionById = createServerFn()
   .handler(async ({ data }) => {
     const { data: res, error } = await api.collections({ id: data.id }).get()
     elysiaErrorF(error)
-    return res
+    // Elysia 推断的响应类型含联合，会被 createServerFn 收敛为 unknown，这里按已知形状定型
+    return res as unknown as CollectionData
   })
 
 export const getCollectionPreview = createServerFn()
@@ -40,7 +48,7 @@ export const getCollectionPreview = createServerFn()
         query: { limit: data.limit },
       })
     elysiaErrorF(error)
-    return res
+    return (res ?? []) as CollectionPreviewGame[]
   })
 
 export const getCollectionsWithPreview = createServerFn()
@@ -63,5 +71,11 @@ export const getCollectionsWithPreview = createServerFn()
       },
     })
     elysiaErrorF(listErr)
-    return listRes ?? { items: [], total: 0, page: data.page, limit: data.limit }
+    // Elysia 推断的响应类型含联合，会被 createServerFn 收敛为 unknown，这里按已知形状定型
+    return (listRes ?? {
+      items: [],
+      total: 0,
+      page: data.page,
+      limit: data.limit,
+    }) as CollectionListResponse
   })

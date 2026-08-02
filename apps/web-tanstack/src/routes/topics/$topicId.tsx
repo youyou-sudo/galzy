@@ -32,6 +32,8 @@ import {
 import { Button } from '@web/components/ui/button'
 import { Card, CardContent, CardHeader } from '@web/components/ui/card'
 import { Separator } from '@web/components/ui/separator'
+import { seoTemplate } from '@web/config/seoTemplate'
+import { seoMeta, truncateText } from '@web/lib/seo'
 import { authClient } from '@web/server/auth/auth-client'
 import { getCmments } from '@web/server/comments'
 import {
@@ -69,6 +71,15 @@ export const Route = createFileRoute('/topics/$topicId')({
     const topic = await getTopic({ data: { id: Number(params.topicId) } })
     return { topic }
   },
+  head: ({ loaderData, params }) =>
+    seoMeta({
+      title: `${loaderData?.topic?.title || '帖子'} | ${seoTemplate.title}`,
+      description: loaderData?.topic?.content
+        ? truncateText(loaderData.topic.content, 150)
+        : undefined,
+      path: `/topics/${params.topicId}`,
+      type: 'article',
+    }),
 })
 
 function RouteComponent() {
@@ -80,7 +91,7 @@ function RouteComponent() {
   const { data: topic } = useQuery({
     queryKey: ['topic', topicId],
     queryFn: async () => await getTopic({ data: { id: Number(topicId) } }),
-    initialData: loaderData.topic,
+    initialData: loaderData?.topic,
   })
   const { data: session } = useQuery({
     queryKey: ['auth'],

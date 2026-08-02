@@ -1,20 +1,36 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { z } from 'zod'
-import { CollectionCard, CollectionCardSkeleton } from '@web/components/collections/collection-card'
 import {
-  Breadcrumb, BreadcrumbItem, BreadcrumbLink,
-  BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator,
+  CollectionCard,
+  CollectionCardSkeleton,
+} from '@web/components/collections/collection-card'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from '@web/components/ui/breadcrumb'
 import { Button } from '@web/components/ui/button'
+import { seoTemplate } from '@web/config/seoTemplate'
+import { seoMeta } from '@web/lib/seo'
 import { getCollectionsWithPreview } from '@web/server/collections'
-import { Package, ChevronLeft, ChevronRight, Library } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Library, Package } from 'lucide-react'
+import { z } from 'zod'
 
 const searchSchema = z.object({
   page: z.optional(z.number().default(1)).catch(1),
 })
 
 export const Route = createFileRoute('/collections/')({
+  head: () =>
+    seoMeta({
+      title: `游戏合集 | ${seoTemplate.title}`,
+      description:
+        'GalZY 精选游戏合集：官方中文、经典名作、会社作品集等主题合集，一次发现更多好游戏。',
+      path: '/collections',
+    }),
   validateSearch: searchSchema,
   loaderDeps: ({ search: { page } }) => ({ page }),
   loader: async ({ deps: { page } }) => {
@@ -35,9 +51,13 @@ function CollectionsPageSkeleton() {
     <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6">
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
-          <BreadcrumbItem><BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
+          </BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbPage>合集</BreadcrumbPage></BreadcrumbItem>
+          <BreadcrumbItem>
+            <BreadcrumbPage>合集</BreadcrumbPage>
+          </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
@@ -78,9 +98,13 @@ function RouteComponent() {
       {/* Breadcrumb */}
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
-          <BreadcrumbItem><BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink></BreadcrumbItem>
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
+          </BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbPage>合集</BreadcrumbPage></BreadcrumbItem>
+          <BreadcrumbItem>
+            <BreadcrumbPage>合集</BreadcrumbPage>
+          </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
@@ -110,7 +134,9 @@ function RouteComponent() {
             <Package className="size-8 text-muted-foreground/40" />
           </div>
           <p className="text-lg font-medium text-foreground/60">暂无合集</p>
-          <p className="text-sm text-muted-foreground mt-1">还没有创建任何合集</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            还没有创建任何合集
+          </p>
         </div>
       )}
 
@@ -121,7 +147,11 @@ function RouteComponent() {
             variant="outline"
             size="sm"
             disabled={page <= 1}
-            render={page > 1 ? <Link to="/collections" search={{ page: page - 1 }} /> : undefined}
+            render={
+              page > 1 ? (
+                <Link to="/collections" search={{ page: page - 1 }} />
+              ) : undefined
+            }
           >
             <ChevronLeft className="size-4" />
             上一页
@@ -130,7 +160,12 @@ function RouteComponent() {
           <div className="flex items-center gap-1">
             {paginationRange(page, totalPages).map((p, i) =>
               p === '…' ? (
-                <span key={`dots-${i}`} className="px-1 text-muted-foreground text-sm">…</span>
+                <span
+                  key={`dots-${i}`}
+                  className="px-1 text-muted-foreground text-sm"
+                >
+                  …
+                </span>
               ) : (
                 <Button
                   key={p}
@@ -149,7 +184,11 @@ function RouteComponent() {
             variant="outline"
             size="sm"
             disabled={page >= totalPages}
-            render={page < totalPages ? <Link to="/collections" search={{ page: page + 1 }} /> : undefined}
+            render={
+              page < totalPages ? (
+                <Link to="/collections" search={{ page: page + 1 }} />
+              ) : undefined
+            }
           >
             下一页
             <ChevronRight className="size-4" />
@@ -165,6 +204,7 @@ function paginationRange(current: number, total: number): (number | '…')[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
 
   if (current <= 3) return [1, 2, 3, 4, '…', total]
-  if (current >= total - 2) return [1, '…', total - 3, total - 2, total - 1, total]
+  if (current >= total - 2)
+    return [1, '…', total - 3, total - 2, total - 1, total]
   return [1, '…', current - 1, current, current + 1, '…', total]
 }
