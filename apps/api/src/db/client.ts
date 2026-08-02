@@ -3,7 +3,11 @@ import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/bun-sql'
 import * as schema from './schema'
 
-const poolMax = Number(process.env.POSTGRES_POOL_MAX ?? 10)
+// 池上限：上游已证实 bun:sql 1.3.x 的池在并发获取竞态下会卡死（oven-sh/bun#30494，
+// 同款 max:10 + idleTimeout:0 + unsafe() 配置在高并发下约 50% 概率触发；max 越低越安全，
+// max:2 实测 100% 通过）。本项目流量不大（读多走 Redis 缓存），5 条连接足够，
+// 同时显著降低卡死概率。可用 POSTGRES_POOL_MAX 覆盖。
+const poolMax = Number(process.env.POSTGRES_POOL_MAX ?? 5)
 
 const client = new SQL({
   url: process.env.DATABASE_URL!,

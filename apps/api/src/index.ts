@@ -1,3 +1,4 @@
+import { startDbWatchdog } from '@api/db/watchdog'
 import { dbAction, initValidationError } from '@api/libs'
 import {
   betterAuth,
@@ -87,7 +88,12 @@ async function startServer() {
 
   initValidationError()
   dbAction()
-  if (process.env.NODE_ENV === 'production') startCronTasks()
+  if (process.env.NODE_ENV === 'production') {
+    startCronTasks()
+    // bun:sql 池卡死自动恢复：独立探针确认 DB 健康而池失败时退出进程，
+    // 由编排层重启（oven-sh/bun#30494 上游未修复，见 db/watchdog.ts）。
+    startDbWatchdog()
+  }
 
   const app = (await buildApp()).listen(Number(process.env.PORT) || 3001)
 
