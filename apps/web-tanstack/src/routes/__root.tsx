@@ -127,7 +127,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 data-umami-event-position="Banner-dzmm"
                 target="_blank"
                 rel="noopener noreferrer"
-                href="https://www.aikda.com/?rf=876926e5"
+                href="https://umami.galzy.moe/q/KrhnTk4vg"
               >
                 <div
                   id="sidebar-ad"

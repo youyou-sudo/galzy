@@ -9,18 +9,18 @@ import { Info } from "lucide-react";
 const glgc = [
 	{
 		name: "魔法喵",
-		url: "https://mofacga.top/register?code=Vg1GGQiP",
+		url: "https://umami.galzy.moe/q/e7AV4Eccd",
 		desc: "价格实惠、最低 9.9￥- 768 GB 流量、中转高速、GPT & 流媒体解锁",
 	},
 	{
 		name: "从雨云",
-		url: "https://congyu.moe/auth/register?invite=048e5cbcac",
+		url: "https://umami.galzy.moe/q/d4Jso3Ga8",
 		desc: "柚子厨专属 VPN, 中转高速流量，低延迟，流媒体全解锁，又有 0.1 低倍率流量 9 元 1 TB",
 		info: "使用 0.1 等低倍率节点下载资源，请调整下载线程为 1 以获得最快下载速度",
 	},
 	{
 		name: "MujikaNetwork",
-		url: "https://my.mujika.pro/@web/register?code=G0Udwpw2",
+		url: "https://umami.galzy.moe/q/vSRpFufPA",
 		desc: "IEPL专线接入，超低延迟无惧晚高峰、流媒体/AI全解锁、覆盖主流地区节点、设有机场EMBY服（标准订阅计划及以上可享），跨境快车道，就用母鸡卡！",
 	},
 ];
@@ -68,7 +68,7 @@ export const Glgczujm = () => {
 						data-umami-event="广告点击"
 						data-umami-event-name="DZMM"
 						data-umami-event-position="页内广告-DZMM"
-						href="https://www.aikda.com/?rf=876926e5"
+						href="https://umami.galzy.moe/q/KrhnTk4vg"
 					>
 						<AlertTitle>Ai 女友💋（在线畅玩）</AlertTitle>
 					</a>
@@ -81,7 +81,7 @@ export const Glgczujm = () => {
 					data-umami-event="广告点击"
 					data-umami-event-name="DZMM"
 					data-umami-event-position="页内广告-DZMM"
-					href="https://www.aikda.com/?rf=876926e5"
+					href="https://umami.galzy.moe/q/KrhnTk4vg"
 				>
 					<div className="sm:hidden">
 						<Image
