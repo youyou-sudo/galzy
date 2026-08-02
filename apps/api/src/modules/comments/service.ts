@@ -304,7 +304,7 @@ export const CommentService = {
             content.length > 100 ? content.slice(0, 100) + '…' : content
 
           await emailServer.send({
-            from: '紫缘社 <noreply@outbound.galzy.moe>',
+            from: '紫缘社 <support@outbound.galzy.moe>',
             to: parentUser.email,
             subject: '你的评论收到了回复喵～',
             text: `你好 ${parentUser.name}，你的评论收到了新的回复喵～\n\n回复内容：${preview}\n\n查看完整对话：${commentUrl}`,
