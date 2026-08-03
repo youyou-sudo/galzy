@@ -7,6 +7,7 @@ on:
     paths:
       - "apps/web-tanstack/**"
       - "packages/**"
+      - "scripts/**"
       - "bun.lock"
       - "package.json"
       - ".github/workflows/build-web.yml"
