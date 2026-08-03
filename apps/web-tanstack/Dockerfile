@@ -1,6 +1,9 @@
 ARG BUILD_ID=dev
 
-FROM oven/bun:canary-slim AS build
+# 钉住与根 package.json packageManager 一致的 bun 版本（1.3.14）。
+# canary/浮动 tag 的解析结果与仓库 bun.lock 不兼容，会触发
+# `bun install --frozen-lockfile` 报 "lockfile had changes"。
+FROM oven/bun:1.3.14-slim AS build
 
 WORKDIR /app
 
