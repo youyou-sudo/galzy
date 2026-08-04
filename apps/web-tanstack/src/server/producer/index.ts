@@ -44,3 +44,23 @@ export const producerGameList = createServerFn()
 		elysiaErrorF(error);
 		return result?.items ?? [];
 	});
+
+export const ProducerSearchSchema = z.object({
+	q: z.string().optional(),
+	page: z.number().optional(),
+	hitsPerPage: z.number().optional(),
+});
+
+export const getSearchProducers = createServerFn()
+	.validator(ProducerSearchSchema)
+	.handler(async ({ data }) => {
+		const { data: res, error } = await api.search.producers.get({
+			query: {
+				q: data.q,
+				page: data.page,
+				hitsPerPage: data.hitsPerPage,
+			},
+		});
+		elysiaErrorF(error);
+		return res;
+	});

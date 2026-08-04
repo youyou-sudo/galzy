@@ -909,6 +909,9 @@ export const VndbSync = {
 
     const fields = 'id,name,original,aliases,lang,type,description'
 
+    // Collect docs for incremental Meilisearch sync
+    const meiliDocs: Array<Record<string, unknown>> = []
+
     for (let i = 0; i < pids.length; i += BATCH_SIZE) {
       const batch = pids.slice(i, i + BATCH_SIZE)
       for await (const results of VndbClient.paginateAll<ProducerResult>(
@@ -943,6 +946,18 @@ export const VndbSync = {
                 syncedAt: new Date(),
               },
             })
+
+          // Build partial Meilisearch doc from VNDB API data
+          meiliDocs.push({
+            id: prod.id,
+            name: prod.name,
+            latin: prod.original,
+            original: prod.original,
+            alias: prod.aliases?.join(',') ?? null,
+            type: prod.type,
+            lang: prod.lang,
+            description: prod.description,
+          })
         }
       }
       if (onProgress) {
@@ -951,6 +966,19 @@ export const VndbSync = {
         } catch {}
       }
       await new Promise((r) => setTimeout(r, 2000))
+    }
+
+    // Push to Meilisearch incrementally
+    if (meiliDocs.length > 0) {
+      try {
+        const index = MeiliClient.index(
+          process.env.MEILISEARCH_PRODUCER_INDEXNAME || 'galrc_Producer',
+        )
+        await index.updateDocuments(meiliDocs, { primaryKey: 'id' })
+        console.log(`  → MeiliSearch 厂商增量更新: ${meiliDocs.length} docs`)
+      } catch (e) {
+        console.error('  → MeiliSearch 厂商增量更新失败:', e)
+      }
     }
   },
 }

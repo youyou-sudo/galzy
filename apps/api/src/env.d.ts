@@ -13,6 +13,7 @@ declare module 'bun' {
     MEILISEARCH_HOST: string
     MEILISEARCH_INDEXNAME: string
     MEILISEARCH_MASTER: string
+    MEILISEARCH_PRODUCER_INDEXNAME: string
     MEILISEARCH_TAG_INDEXNAME: string
     NODE_ENV: string
     OPENLIST_API_KEY: string

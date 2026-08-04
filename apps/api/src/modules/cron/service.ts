@@ -10,6 +10,7 @@ import {
   media,
   otherMedia,
   others,
+  producers,
   releases,
   releasesVn,
   siteConfig,
@@ -41,12 +42,13 @@ import {
   notInArray,
 } from 'drizzle-orm'
 import { status } from 'elysia'
+import type { Index } from 'meilisearch'
 import { all } from 'radash'
 import { processData } from './lib'
 
 interface MeiliProgress {
   status: 'idle' | 'running' | 'completed' | 'failed'
-  type: 'game' | 'tag' | null
+  type: 'game' | 'tag' | 'producer' | null
   startedAt: string | null
   completedAt: string | null
   totalPages: number
@@ -101,6 +103,18 @@ const gameMeiliDocOtherSubquery = {
 const gameMeiliDocOtherDirect = {
   other: alistb.other,
   otherData: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, ${alistb.other} AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o WHERE o.id = ${alistb.other}) other_sub)`,
+}
+
+/** Shared SELECT columns for Meilisearch producer documents. */
+const producerMeiliDocBase = {
+  id: producers.id,
+  name: producers.name,
+  latin: producers.latin,
+  original: producers.original,
+  alias: producers.alias,
+  type: producers.type,
+  lang: producers.lang,
+  description: producers.description,
 }
 
 /** Add computed imageUrl to each doc's images field using buildCoverUrl. */
@@ -414,11 +428,15 @@ export const CronService = {
   },
 
   async updateMeiliProgress(
-    type: 'game' | 'tag',
+    type: 'game' | 'tag' | 'producer',
     partial: Partial<MeiliProgress>,
   ) {
     const key =
-      type === 'game' ? 'meiliSearchProgress_game' : 'meiliSearchProgress_tag'
+      type === 'game'
+        ? 'meiliSearchProgress_game'
+        : type === 'tag'
+          ? 'meiliSearchProgress_tag'
+          : 'meiliSearchProgress_producer'
     const current = await this.getMeiliProgress(type)
     const updated: MeiliProgress = {
       ...current,
@@ -434,9 +452,15 @@ export const CronService = {
       })
   },
 
-  async getMeiliProgress(type: 'game' | 'tag'): Promise<MeiliProgress> {
+  async getMeiliProgress(
+    type: 'game' | 'tag' | 'producer',
+  ): Promise<MeiliProgress> {
     const key =
-      type === 'game' ? 'meiliSearchProgress_game' : 'meiliSearchProgress_tag'
+      type === 'game'
+        ? 'meiliSearchProgress_game'
+        : type === 'tag'
+          ? 'meiliSearchProgress_tag'
+          : 'meiliSearchProgress_producer'
     const row = await db
       .select({ config: siteConfig.config })
       .from(siteConfig)
@@ -458,7 +482,7 @@ export const CronService = {
   },
 
   async addMeiliLog(
-    type: 'game' | 'tag',
+    type: 'game' | 'tag' | 'producer',
     level: MeiliProgress['logs'][0]['level'],
     message: string,
   ) {
@@ -681,6 +705,121 @@ export const CronService = {
     }
   },
 
+  async meiliSearchAddProducer() {
+    try {
+      const { totalPages } = await this.getProducerDataInfo()
+
+      await this.updateMeiliProgress('producer', {
+        status: 'running',
+        type: 'producer',
+        startedAt: new Date().toISOString(),
+        completedAt: null,
+        totalPages,
+        processedPages: 0,
+        errors: 0,
+        logs: [
+          {
+            time: new Date().toISOString(),
+            level: 'info',
+            message: `厂商索引重建开始: ${totalPages} 页`,
+          },
+        ],
+      })
+
+      const index = await MeiliClient.index(
+        process.env.MEILISEARCH_PRODUCER_INDEXNAME || 'galrc_Producer',
+      )
+      await index.deleteAllDocuments()
+      await this.addMeiliLog('producer', 'info', '已清空现有索引')
+
+      const pageSize = 500
+      const concurrencyLimit = 3
+
+      for (let i = 0; i < totalPages; i += concurrencyLimit) {
+        const batch = []
+        for (let j = 0; j < concurrencyLimit && i + j < totalPages; j++) {
+          batch.push(this.indexProducerPageWithRetry(index, pageSize, i + j))
+        }
+        await Promise.all(batch)
+        const processed = Math.min(i + concurrencyLimit, totalPages)
+        await this.updateMeiliProgress('producer', {
+          processedPages: processed,
+        })
+        await this.addMeiliLog(
+          'producer',
+          'info',
+          `索引进度: ${processed}/${totalPages} 页`,
+        )
+      }
+
+      // Configure index settings
+      let task
+      task = await index.updateFilterableAttributes(['type', 'lang'])
+      await MeiliClient.tasks.waitForTask(task.taskUid, { timeout: 300_000 })
+
+      task = await index.updateSearchableAttributes([
+        'name',
+        'latin',
+        'original',
+        'alias',
+        'description',
+      ])
+      await MeiliClient.tasks.waitForTask(task.taskUid, { timeout: 300_000 })
+
+      // Finite pagination caps hits at maxTotalHits (default 1000) — raise it so
+      // every producer stays reachable through the paginated browse page.
+      task = await index.updatePagination({ maxTotalHits: 10000 })
+      await MeiliClient.tasks.waitForTask(task.taskUid, { timeout: 300_000 })
+      await this.addMeiliLog(
+        'producer',
+        'success',
+        '已更新索引设置（筛选、搜索字段、分页上限）',
+      )
+
+      await this.updateMeiliProgress('producer', {
+        status: 'completed',
+        completedAt: new Date().toISOString(),
+      })
+      await this.addMeiliLog('producer', 'success', '厂商索引重建完成')
+      return { code: 200 }
+    } catch (e) {
+      console.error('meiliSearchAddProducer 运行失败喵', e)
+      await this.updateMeiliProgress('producer', {
+        status: 'failed',
+        completedAt: new Date().toISOString(),
+        errors: (await this.getMeiliProgress('producer')).errors + 1,
+      })
+      await this.addMeiliLog('producer', 'error', `重建失败: ${String(e)}`)
+      throw status(500, `meiliSearchAddProducer 运行失败喵 ${e}`)
+    }
+  },
+
+  async indexProducerPageWithRetry(
+    index: Index,
+    pageSize: number,
+    pageIndex: number,
+    retries = 3,
+  ) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const { items } = await producerAllGet(pageSize, pageIndex)
+        if (items.length > 0) {
+          await index.addDocuments(items)
+        }
+        return
+      } catch (e) {
+        console.error(
+          `厂商索引分页 ${pageIndex} 失败 (尝试 ${i + 1}/${retries})`,
+          e,
+        )
+        if (i === retries - 1) throw e
+        const { promise, resolve } = Promise.withResolvers<void>()
+        setTimeout(resolve, 1000 * (i + 1))
+        await promise
+      }
+    }
+  },
+
   // Incremental sync: push one VN to Meilisearch by ID
   async syncGameToMeili(vnId: string) {
     const index = MeiliClient.index(
@@ -728,6 +867,46 @@ export const CronService = {
     }
   },
 
+  // Incremental sync: push one producer to Meilisearch by ID
+  async syncProducerToMeili(pid: string) {
+    const index = MeiliClient.index(
+      process.env.MEILISEARCH_PRODUCER_INDEXNAME || 'galrc_Producer',
+    )
+    try {
+      const doc = await db
+        .select(producerMeiliDocBase)
+        .from(producers)
+        .where(eq(producers.id, pid))
+        .limit(1)
+      if (doc.length > 0 && doc[0]) {
+        await index.updateDocuments([doc[0]])
+        console.log(`[Meili] 厂商增量更新: ${pid}`)
+      }
+    } catch (e) {
+      console.error(`[Meili] 厂商增量更新失败 ${pid}:`, e)
+    }
+  },
+
+  // Incremental sync: push a batch of producer IDs to Meilisearch
+  async syncProducerBatchToMeili(pids: string[]) {
+    if (pids.length === 0) return
+    const index = MeiliClient.index(
+      process.env.MEILISEARCH_PRODUCER_INDEXNAME || 'galrc_Producer',
+    )
+    try {
+      const docs = await db
+        .select(producerMeiliDocBase)
+        .from(producers)
+        .where(inArray(producers.id, pids))
+      if (docs.length > 0) {
+        await index.updateDocuments(docs, { primaryKey: 'id' })
+        console.log(`[Meili] 厂商批量增量更新: ${docs.length} docs`)
+      }
+    } catch (e) {
+      console.error(`[Meili] 厂商批量增量更新失败:`, e)
+    }
+  },
+
   // 辅助方法：获取总页数信息
   async getMeiliSearchDataInfo() {
     const totalCountResult = await db
@@ -747,6 +926,18 @@ export const CronService = {
       .from(tags)
       .innerJoin(zhtags, eq(tags.id, zhtags.id))
       .where(eq(zhtags.exhibition, true))
+      .then((r) => r[0])
+
+    const totalCount = Number(totalCountResult?.count || 0)
+    const totalPages = Math.ceil(totalCount / 500)
+
+    return { totalCount, totalPages }
+  },
+
+  async getProducerDataInfo() {
+    const totalCountResult = await db
+      .select({ count: count() })
+      .from(producers)
       .then((r) => r[0])
 
     const totalCount = Number(totalCountResult?.count || 0)
@@ -786,6 +977,19 @@ const tagAllGet = async (pageSize: number, pageIndex: number) => {
     .from(tags)
     .innerJoin(zhtags, eq(tags.id, zhtags.id))
     .where(eq(zhtags.exhibition, true))
+    .limit(pageSize)
+    .offset(offset)
+
+  return { items }
+}
+
+const producerAllGet = async (pageSize: number, pageIndex: number) => {
+  const offset = pageIndex * pageSize
+
+  const items = await db
+    .select(producerMeiliDocBase)
+    .from(producers)
+    .orderBy(asc(producers.id))
     .limit(pageSize)
     .offset(offset)
 

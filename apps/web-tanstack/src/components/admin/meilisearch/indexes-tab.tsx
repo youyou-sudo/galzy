@@ -25,6 +25,7 @@ import { cn } from '@web/lib/utils'
 import {
   getMeiliSearchProgress,
   triggerGameIndexRebuild,
+  triggerProducerIndexRebuild,
   triggerTagIndexRebuild,
 } from '@web/server/admin/meilisearch'
 import {
@@ -105,7 +106,11 @@ function RebuildCard({
 
   const rebuildMutation = useMutation({
     mutationFn: () =>
-      type === 'game' ? triggerGameIndexRebuild() : triggerTagIndexRebuild(),
+      type === 'game'
+        ? triggerGameIndexRebuild()
+        : type === 'tag'
+          ? triggerTagIndexRebuild()
+          : triggerProducerIndexRebuild(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meiliStats'] })
       queryClient.invalidateQueries({
@@ -282,7 +287,7 @@ export function IndexesTab() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <RebuildCard
               type="game"
               label="游戏索引"
@@ -292,6 +297,11 @@ export function IndexesTab() {
               type="tag"
               label="标签索引"
               description="重建标签数据的全文搜索索引"
+            />
+            <RebuildCard
+              type="producer"
+              label="厂商索引"
+              description="重建厂商 / 开发会社数据的全文搜索索引"
             />
           </div>
         </CardContent>

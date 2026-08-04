@@ -56,6 +56,15 @@ export const search = new Elysia({ prefix: '/search' })
       query: SearchModel.tagSearch,
     },
   )
+  .get(
+    '/producers',
+    async ({ query: { q, page, hitsPerPage } }) => {
+      return Search.searchProducers({ q, page, hitsPerPage })
+    },
+    {
+      query: SearchModel.producerSearch,
+    },
+  )
   .get('/getStats', async () => {
     return await Search.getStats()
   })

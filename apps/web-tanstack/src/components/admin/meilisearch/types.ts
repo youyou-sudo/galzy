@@ -1,5 +1,5 @@
 /** 索引类型 */
-export type IndexType = 'game' | 'tag';
+export type IndexType = 'game' | 'tag' | 'producer';
 
 // ─── Meilisearch Stats ────────────────────────────────────────
 
@@ -41,7 +41,7 @@ export interface MeiliLogEntry {
 
 export interface MeiliProgress {
   status: 'idle' | 'running' | 'completed' | 'failed';
-  type: 'game' | 'tag' | null;
+  type: 'game' | 'tag' | 'producer' | null;
   startedAt: string | null;
   completedAt: string | null;
   totalPages: number;

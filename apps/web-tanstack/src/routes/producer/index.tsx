@@ -1,47 +1,92 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link } from "@tanstack/react-router";
+import ProducersPage from "@web/components/producer/producers-page";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@web/components/ui/breadcrumb'
-import { seoTemplate } from '@web/config/seoTemplate'
-import { seoMeta } from '@web/lib/seo'
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from "@web/components/ui/breadcrumb";
+import { seoTemplate } from "@web/config/seoTemplate";
+import { seoMeta } from "@web/lib/seo";
+import { getSearchProducers } from "@web/server/producer";
+import { z } from "zod";
 
-export const Route = createFileRoute('/producer/')({
-  component: RouteComponent,
-  head: () =>
-    seoMeta({
-      title: `厂商 | ${seoTemplate.title}`,
-      description:
-        '按厂商 / 开发会社浏览 GalZY 收录的 Galgame 作品，发现各会社的代表作与全部汉化游戏。',
-      path: '/producer',
-    }),
-  headers: () => ({
-    'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=600',
-    'Cache-Tag': 'page-producers',
-  }),
-})
+const producerSearchSchema = z.object({
+	q: z.string().optional(),
+	page: z.optional(z.number().default(1)).catch(1),
+});
 
-function RouteComponent() {
-  return (
-    <div className="max-w-7xl mx-auto py-6 px-4 sm:px-0 space-y-4">
-      <Breadcrumb className="mb-4">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>厂商</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-      <div className="flex justify-center items-center h-full text-[1.5rem]">
-        该区域开发中
-      </div>
-    </div>
-  )
-}
+const PAGE_SIZE = 24;
+
+export const Route = createFileRoute("/producer/")({
+	component: () => {
+		const { producers, q, page } = Route.useLoaderData();
+		return (
+			<div className="max-w-7xl mx-auto py-6 px-4 sm:px-0">
+				<Breadcrumb className="mb-4">
+					<BreadcrumbList>
+						<BreadcrumbItem>
+							<BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
+						</BreadcrumbItem>
+						<BreadcrumbSeparator />
+						<BreadcrumbItem>
+							<BreadcrumbPage>厂商</BreadcrumbPage>
+						</BreadcrumbItem>
+					</BreadcrumbList>
+				</Breadcrumb>
+				<ProducersPage
+					producers={
+						producers as
+							| {
+									hits: Array<{
+										id: string;
+										name: string | null;
+										latin: string | null;
+										original: string | null;
+										alias: string | null;
+										type: string | null;
+										lang: string | null;
+										description: string | null;
+									}>;
+									totalHits: number;
+									totalPages: number;
+									page: number;
+									hitsPerPage: number;
+							  }
+							| null
+							| undefined
+					}
+					q={q}
+					page={page}
+				/>
+			</div>
+		);
+	},
+	validateSearch: producerSearchSchema,
+	loaderDeps: ({ search: { q, page } }) => ({ q, page }),
+	loader: async ({ deps }) => {
+		return {
+			producers: await getSearchProducers({
+				data: { q: deps.q, page: deps.page, hitsPerPage: PAGE_SIZE },
+			}),
+			q: deps.q,
+			page: deps.page,
+		};
+	},
+	head: ({ loaderData }) =>
+		seoMeta({
+			title: `厂商检索 - ${loaderData?.q || "全部厂商"} | ${seoTemplate.title}`,
+			description: `按厂商 / 开发会社浏览 GalZY 收录的 Galgame 作品，当前${
+				loaderData?.q ? `搜索"${loaderData.q}"` : "查看全部厂商"
+			}，共 ${loaderData?.producers?.totalHits || 0} 个厂商。`,
+			path: "/producer",
+		}),
+	headers: () => ({
+		"Cache-Control": "public, s-maxage=60, stale-while-revalidate=600",
+		"Cache-Tag": "page-producers",
+		"Vary": "Accept, Accept-Encoding",
+	}),
+	staleTime: 1000 * 30,
+});

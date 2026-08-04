@@ -28,7 +28,7 @@ import {
 import { z } from 'zod';
 
 const indexTypeSchema = z.object({
-  indexType: z.enum(['game', 'tag']).optional().default('game'),
+  indexType: z.enum(['game', 'tag', 'producer']).optional().default('game'),
 });
 
 export const Route = createFileRoute('/admin/_authL/meilisearch')({
@@ -64,6 +64,7 @@ function RouteComponent() {
           <SelectContent>
             <SelectItem value="game">游戏索引</SelectItem>
             <SelectItem value="tag">标签索引</SelectItem>
+            <SelectItem value="producer">厂商索引</SelectItem>
           </SelectContent>
         </Select>
       </div>

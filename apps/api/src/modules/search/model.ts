@@ -50,6 +50,14 @@ export namespace SearchModel {
     limit: t.Optional(t.Number({ minimum: 1, default: 50 })),
   })
   export type tagSearch = typeof tagSearch.static
+  export const producerSearch = t.Object({
+    q: t.Optional(t.String()),
+    page: t.Optional(t.Number({ minimum: 1, default: 1 })),
+    hitsPerPage: t.Optional(
+      t.Number({ minimum: 1, maximum: 100, default: 24 }),
+    ),
+  })
+  export type producerSearch = typeof producerSearch.static
   export type search = typeof search.static
   export type gameSearch = typeof gameSearch.static
   export type meilisearchEmbeddersUpdate =

@@ -13,10 +13,17 @@ export const cronServer = new Elysia()
     void CronService.meiliSearchAddTag()
     return { ok: true, message: '标签索引重建已触发' }
   })
+  .get('/task/meiliSearchAddProducer', () => {
+    console.log('[Cron Trigger] meiliSearchAddProducer 手动触发')
+    void CronService.meiliSearchAddProducer()
+    return { ok: true, message: '厂商索引重建已触发' }
+  })
   .get(
     '/task/meiliSearchProgress',
     async ({ query: { type } }) => {
-      return await CronService.getMeiliProgress(type as 'game' | 'tag')
+      return await CronService.getMeiliProgress(
+        type as 'game' | 'tag' | 'producer',
+      )
     },
     {
       query: t.Object({
@@ -56,6 +63,12 @@ export function startCronTasks() {
   new Cron('0 3 * * 0', () => {
     CronService.meiliSearchAddTag()
     console.log('[Cron] meiliSearchAddTag weekly full rebuild')
+  })
+
+  // Weekly full rebuild as safety net
+  new Cron('0 3 * * 0', () => {
+    CronService.meiliSearchAddProducer()
+    console.log('[Cron] meiliSearchAddProducer weekly full rebuild')
   })
 
   console.log('✅️ Cron tasks started.')

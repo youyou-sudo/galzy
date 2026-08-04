@@ -4,10 +4,16 @@ import { elysiaErrorF } from "@web/lib";
 import { cookiePass } from "@web/lib/cookie-pass";
 import z from "zod";
 
+const INDEX_NAME_MAP = {
+	game: process.env.MEILISEARCH_INDEXNAME || "galzy_games",
+	tag: process.env.MEILISEARCH_TAG_INDEXNAME || "galrc_Tag",
+	producer: process.env.MEILISEARCH_PRODUCER_INDEXNAME || "galrc_Producer",
+} as const;
+
 export const getMeiliSearchProgress = createServerFn({ method: "GET" })
 	.validator(
 		z.object({
-			type: z.enum(["game", "tag"]),
+			type: z.enum(["game", "tag", "producer"]),
 		}),
 	)
 	.handler(async ({ data: { type } }) => {
@@ -72,14 +78,11 @@ export const updateEmbedders = createServerFn({ method: "POST" })
 export const getPropertyList = createServerFn({ method: "GET" })
 	.validator(
 		z.object({
-			indexType: z.enum(["game", "tag"]).optional().default("game"),
+			indexType: z.enum(["game", "tag", "producer"]).optional().default("game"),
 		}),
 	)
 	.handler(async ({ data }) => {
-		const indexName =
-			data?.indexType === "tag"
-				? process.env.MEILISEARCH_TAG_INDEXNAME
-				: process.env.MEILISEARCH_INDEXNAME;
+		const indexName = INDEX_NAME_MAP[data?.indexType ?? "game"];
 		const { data: result, error } =
 			await api.search.meilisearchPropertylist.get({
 				query: { indexName },
@@ -95,14 +98,11 @@ export const getPropertyList = createServerFn({ method: "GET" })
 export const getSearchableAttributes = createServerFn({ method: "GET" })
 	.validator(
 		z.object({
-			indexType: z.enum(["game", "tag"]).optional().default("game"),
+			indexType: z.enum(["game", "tag", "producer"]).optional().default("game"),
 		}),
 	)
 	.handler(async ({ data }) => {
-		const indexName =
-			data?.indexType === "tag"
-				? process.env.MEILISEARCH_TAG_INDEXNAME
-				: process.env.MEILISEARCH_INDEXNAME;
+		const indexName = INDEX_NAME_MAP[data?.indexType ?? "game"];
 		const { data: result, error } =
 			await api.search.meilisearchSearchableAttributesGet.get({
 				query: { indexName },
@@ -119,14 +119,11 @@ export const updateSearchableAttributes = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			fields: z.array(z.string()),
-			indexType: z.enum(["game", "tag"]).optional().default("game"),
+			indexType: z.enum(["game", "tag", "producer"]).optional().default("game"),
 		}),
 	)
 	.handler(async ({ data: { fields, indexType } }) => {
-		const indexName =
-			indexType === "tag"
-				? process.env.MEILISEARCH_TAG_INDEXNAME
-				: process.env.MEILISEARCH_INDEXNAME;
+		const indexName = INDEX_NAME_MAP[indexType];
 		const { data, error } =
 			await api.search.meilisearchSearchableAttributesUpdate.post(
 				{ fields, indexName },
@@ -157,3 +154,16 @@ export const triggerTagIndexRebuild = createServerFn({ method: "GET" }).handler(
 		return data;
 	},
 );
+
+/**
+ * 触发厂商索引重建
+ */
+export const triggerProducerIndexRebuild = createServerFn({
+	method: "GET",
+}).handler(async () => {
+	const { data, error } = await api.task.meiliSearchAddProducer.get(
+		cookiePass(),
+	);
+	elysiaErrorF(error);
+	return data;
+});

@@ -69,6 +69,13 @@ export default function Header() {
                   >
                     标签
                   </Link>
+                  <Link
+                    to="/producer"
+                    className="block px-3 py-2 text-lg font-medium hover:bg-accent hover:text-accent-foreground rounded-md"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    会社
+                  </Link>
                   <div className="space-y-1">
                     <div className="px-3 py-2 text-sm font-semibold text-muted-foreground tracking-wider uppercase">
                       工具
@@ -125,6 +132,14 @@ export default function Header() {
                     render={<Link to="/tags" />}
                   >
                     标签
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+                <NavigationMenuItem>
+                  <NavigationMenuLink
+                    className={navigationMenuTriggerStyle()}
+                    render={<Link to="/producer" />}
+                  >
+                    会社
                   </NavigationMenuLink>
                 </NavigationMenuItem>
                 <NavigationMenuItem>

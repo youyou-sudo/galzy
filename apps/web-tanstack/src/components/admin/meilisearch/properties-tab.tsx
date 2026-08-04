@@ -92,7 +92,7 @@ export function PropertiesTab({ indexType }: { indexType: IndexType }) {
           <span className="text-xs text-muted-foreground pb-1.5">
             目标索引:
             <span className="font-medium text-foreground ml-1">
-              {indexType === 'game' ? '游戏' : '标签'}
+              {indexType === 'game' ? '游戏' : indexType === 'tag' ? '标签' : '厂商'}
             </span>
           </span>
           <div className="flex-1 space-y-1.5 min-w-[200px]">

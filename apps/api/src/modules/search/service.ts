@@ -272,7 +272,28 @@ export const Search = {
     })
     return {
       hits: result.hits,
-      totalHits: (result as { totalHits?: number }).totalHits ?? 0,
+      totalHits: result.estimatedTotalHits ?? 0,
+    }
+  },
+  async searchProducers({
+    q,
+    page = 1,
+    hitsPerPage = 24,
+  }: SearchModel.producerSearch) {
+    const safeQ =
+      q?.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim() || ''
+    const result = await MeiliClient.index(
+      process.env.MEILISEARCH_PRODUCER_INDEXNAME || 'galrc_Producer',
+    ).search(safeQ, {
+      page,
+      hitsPerPage,
+    })
+    return {
+      hits: result.hits,
+      totalHits: result.totalHits ?? 0,
+      totalPages: result.totalPages ?? 0,
+      page: result.page ?? page,
+      hitsPerPage: result.hitsPerPage ?? hitsPerPage,
     }
   },
   async getStats() {
