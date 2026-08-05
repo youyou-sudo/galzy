@@ -29,6 +29,54 @@ export function truncateText(text: string, max = 120): string {
 	return clean.length > max ? `${clean.slice(0, max)}…` : clean;
 }
 
+/** 从 game detail 取官方语言标题（与 vn.olang 一致），无则回退 "Galgame" */
+export function gameTitleOf(
+	game:
+		| {
+				vn?: {
+					olang?: string;
+					titles?: Array<{ lang?: string; title?: string }>;
+				};
+		  }
+		| null
+		| undefined,
+): string {
+	const vn = game?.vn;
+	const title = vn?.titles?.find(
+		(t) => t.lang === vn?.olang && t.title?.trim() !== "",
+	)?.title;
+	return title || "Galgame";
+}
+
+type LayoutGameMatch = { routeId: string; loaderData?: unknown };
+
+/** 从 route head 的 matches 中取父布局（/$id/_layout）loader 已加载的 game detail，
+ *  供子路由复用标题，避免每个 tab 重复请求 game detail。 */
+export function parentGameFromMatches(
+	matches: ReadonlyArray<LayoutGameMatch>,
+): GameTitleSource | undefined {
+	const match = matches.find((m) => m.routeId === "/$id/_layout");
+	if (
+		match &&
+		typeof match === "object" &&
+		"loaderData" in match &&
+		match.loaderData &&
+		typeof match.loaderData === "object" &&
+		"game" in match.loaderData
+	) {
+		const game = match.loaderData.game;
+		if (game && typeof game === "object") return game;
+	}
+	return undefined;
+}
+
+type GameTitleSource = {
+	vn?: {
+		olang?: string;
+		titles?: Array<{ lang?: string; title?: string }>;
+	};
+};
+
 /** 生成统一的 SEO head：title + description + robots + OG + canonical */
 export function seoMeta({ title, description, path, type = "website", noindex }: SeoOptions) {
 	const url = path ? `${seoTemplate.siteUrl}${path}` : undefined;

@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { GameTabSkeleton } from "@web/components/game/game-tab-skeleton";
 import IntroductionPage from "@web/components/introduction/introduction-page";
 import { seoTemplate } from "@web/config/seoTemplate";
-import { getGameDetail } from "@web/server/game";
+import { gameTitleOf, parentGameFromMatches } from "@web/lib/seo";
 import { getintroductionList } from "@web/server/introduction";
 
 export const Route = createFileRoute("/$id/_layout/introduction/")({
@@ -10,18 +11,13 @@ export const Route = createFileRoute("/$id/_layout/introduction/")({
 		return {
 			introductionList: await getintroductionList({ data: { id } }),
 			id,
-			game: await getGameDetail({ data: { id } }),
 		};
 	},
-	head: ({ loaderData }) => ({
+	head: ({ matches }) => ({
+		// 复用父布局已加载的 game detail，避免重复请求
 		meta: [
 			{
-				title: `${
-					loaderData?.game?.vn?.titles?.find(
-						(t) =>
-							t.lang === loaderData?.game?.vn?.olang && t.title.trim() !== "",
-					)?.title || "Galgame"
-				} 攻略文章列表 | ${seoTemplate.title}`,
+				title: `${gameTitleOf(parentGameFromMatches(matches))} 攻略文章列表 | ${seoTemplate.title}`,
 			},
 		],
 	}),
@@ -31,6 +27,7 @@ export const Route = createFileRoute("/$id/_layout/introduction/")({
 
 	staleTime: 60_000,
 	gcTime: 5 * 60_000,
+	pendingComponent: () => <GameTabSkeleton />,
 
 	component: () => {
 		const loaderData = Route.useLoaderData();

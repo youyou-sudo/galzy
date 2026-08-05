@@ -16,6 +16,7 @@ import {
 } from '@web/components/ui/card'
 import { Skeleton } from '@web/components/ui/skeleton'
 import { seoTemplate } from '@web/config/seoTemplate'
+import { useIdlePreload } from '@web/hooks/use-idle-preload'
 import { seoMeta } from '@web/lib/seo'
 import { getCollectionsWithPreview } from '@web/server/collections'
 import { getCritical, getTotalCount } from '@web/server/game'
@@ -62,6 +63,19 @@ const apiroute = getRouteApi('/')
 
 function App() {
   const { rankings } = apiroute.useLoaderData()
+
+  // 空闲预取「更多游戏 →」「更多合集 →」的目标路由，点击时即时命中缓存
+  useIdlePreload([
+    (router) => {
+      void router.preloadRoute({
+        to: '/games',
+        search: { sortBy: 'downloads', order: 'desc' },
+      })
+    },
+    (router) => {
+      void router.preloadRoute({ to: '/collections' })
+    },
+  ])
 
   return (
     <>

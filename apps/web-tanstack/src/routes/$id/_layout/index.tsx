@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { GameTabSkeleton } from "@web/components/game/game-tab-skeleton";
 import { DownloadOptions } from "@web/components/home/game/download-options";
 import { getFileList } from "@web/server/game";
 
 export const Route = createFileRoute("/$id/_layout/")({
 	component: DownloadComponent,
+	pendingComponent: () => <GameTabSkeleton />,
 	loader: async ({ params }) => {
 		const { id } = params;
 		const filelist = await getFileList({ data: { id } });

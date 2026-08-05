@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { GameTabSkeleton } from "@web/components/game/game-tab-skeleton";
 import { ChartAreaLinear } from "@web/components/home/game/translate/chart-area-linear";
 import { seoTemplate } from "@web/config/seoTemplate";
-import { getGameDetail, translateData } from "@web/server/game";
+import { gameTitleOf, parentGameFromMatches } from "@web/lib/seo";
+import { translateData } from "@web/server/game";
 
 export const Route = createFileRoute("/$id/_layout/translate")({
 	component: RouteComponent,
@@ -9,18 +11,13 @@ export const Route = createFileRoute("/$id/_layout/translate")({
 		const { id } = params;
 		return {
 			translateData: await translateData({ data: { id } }),
-			game: await getGameDetail({ data: { id } }),
 		};
 	},
-	head: ({ loaderData }) => ({
+	head: ({ matches }) => ({
+		// 复用父布局已加载的 game detail，避免重复请求
 		meta: [
 			{
-				title: `${
-					loaderData?.game?.vn?.titles?.find(
-						(t) =>
-							t.lang === loaderData?.game?.vn?.olang && t.title.trim() !== "",
-					)?.title || "Galgame"
-				} 下载统计 | ${seoTemplate.title}`,
+				title: `${gameTitleOf(parentGameFromMatches(matches))} 下载统计 | ${seoTemplate.title}`,
 			},
 		],
 	}),
@@ -32,6 +29,7 @@ export const Route = createFileRoute("/$id/_layout/translate")({
 	// Client-side caching (via TanStack Router)
 	staleTime: 60_000, // Consider data fresh for 60 seconds on client
 	gcTime: 5 * 60_000, // Keep in memory for 5 minutes
+	pendingComponent: () => <GameTabSkeleton />,
 });
 
 function RouteComponent() {

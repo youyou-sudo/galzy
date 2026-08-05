@@ -9,6 +9,7 @@ import {
   BreadcrumbSeparator,
 } from '@web/components/ui/breadcrumb'
 import { seoTemplate } from '@web/config/seoTemplate'
+import { gameTitleOf } from '@web/lib/seo'
 import { getGameDetail, getGameTags } from '@web/server/game'
 import { recordGameView } from '@web/server/views'
 
@@ -27,39 +28,34 @@ export const Route = createFileRoute('/$id/_layout')({
   },
   loader: async ({ params }) => {
     const { id } = params
-    // Record game view for hot ranking (non-blocking)
-    try {
-      await recordGameView({ data: { id } })
-    } catch {
+    // Record game view for hot ranking — fire-and-forget, must not delay first paint
+    void recordGameView({ data: { id } }).catch(() => {
       // silently ignore recording failures
-    }
+    })
+    const [game, tags] = await Promise.all([
+      getGameDetail({ data: { id } }),
+      getGameTags({ data: { id } }),
+    ])
     return {
-      game: await getGameDetail({ data: { id } }),
-      tags: await getGameTags({ data: { id } }),
+      game,
+      tags,
       id,
     }
   },
-  head: ({ loaderData }) => ({
-    meta: [
-      {
-        title: `${
-          loaderData?.game?.vn?.titles?.find(
-            (t) =>
-              t.lang === loaderData?.game?.vn?.olang && t.title.trim() !== '',
-          )?.title || 'Galgame'
-        } 下载 | ${seoTemplate.title}`,
-      },
-      {
-        name: 'description',
-        content: `${
-          loaderData?.game?.vn?.titles?.find(
-            (t) =>
-              t.lang === loaderData?.game?.vn?.olang && t.title.trim() !== '',
-          )?.title || 'Gamgame'
-        } 资源下载，游戏别名：${loaderData?.game?.vn?.alias || '无'}，简介：${loaderData?.game?.vn?.description || '暂无简介'}`,
-      },
-    ],
-  }),
+  head: ({ loaderData }) => {
+    const title = gameTitleOf(loaderData?.game)
+    return {
+      meta: [
+        {
+          title: `${title} 下载 | ${seoTemplate.title}`,
+        },
+        {
+          name: 'description',
+          content: `${title} 资源下载，游戏别名：${loaderData?.game?.vn?.alias || '无'}，简介：${loaderData?.game?.vn?.description || '暂无简介'}`,
+        },
+      ],
+    }
+  },
   headers: ({ params }) => ({
     'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=300',
     'Cache-Tag': `game-${params.id},page-game`,
@@ -70,10 +66,7 @@ export const Route = createFileRoute('/$id/_layout')({
   component: () => {
     const loaderData = Route.useLoaderData()
     const routerState = useRouterState()
-    const gameTitle =
-      loaderData?.game?.vn?.titles?.find(
-        (t) => t.lang === loaderData?.game?.vn?.olang && t.title.trim() !== '',
-      )?.title || 'Galgame'
+    const gameTitle = gameTitleOf(loaderData?.game)
 
     // Check if we're on an introduction article page
     const match = routerState.matches.find(
