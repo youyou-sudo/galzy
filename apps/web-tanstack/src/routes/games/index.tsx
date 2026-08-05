@@ -15,14 +15,14 @@ import { seoTemplate } from '@web/config/seoTemplate'
 import { seoMeta } from '@web/lib/seo'
 import { getGameList } from '@web/server/game'
 import { ArrowUpDown, Flame, ListFilter } from 'lucide-react'
-import { z } from 'zod'
+import { object, string } from 'zod/schemas'
 
-const searchSchema = z.object({
-  q: z.string().optional().default(''),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  sortBy: z.string().optional().default('released'),
-  order: z.string().optional().default('desc'),
+const searchSchema = object({
+  q: string().optional().default(''),
+  startDate: string().optional(),
+  endDate: string().optional(),
+  sortBy: string().optional().default('released'),
+  order: string().optional().default('desc'),
 })
 
 export const Route = createFileRoute('/games/')({

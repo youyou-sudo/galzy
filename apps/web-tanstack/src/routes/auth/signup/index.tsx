@@ -30,20 +30,18 @@ import { authClient } from '@web/server/auth/auth-client'
 import { Eye, EyeOff, Loader2, LogIn, Mail, User } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { z } from 'zod'
+import { object, string } from 'zod/schemas'
 import { ReturnToSchema } from '../login'
 
-const signupSchema = z
-  .object({
-    name: z.string().min(1, '请输入用户名'),
-    email: z.string().min(1, '请输入邮箱地址').email('请输入有效的邮箱地址'),
-    password: z.string().min(6, '密码至少需要6个字符'),
-    confirmPassword: z.string().min(1, '请确认密码'),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: '两次输入的密码不一致',
-    path: ['confirmPassword'],
-  })
+const signupSchema = object({
+  name: string().min(1, '请输入用户名'),
+  email: string().min(1, '请输入邮箱地址').email('请输入有效的邮箱地址'),
+  password: string().min(6, '密码至少需要6个字符'),
+  confirmPassword: string().min(1, '请确认密码'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: '两次输入的密码不一致',
+  path: ['confirmPassword'],
+})
 
 export const Route = createFileRoute('/auth/signup/')({
   validateSearch: ReturnToSchema,

@@ -1,7 +1,7 @@
 import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
-import z from "zod";
+import { number, object, string } from "zod/schemas";
 
 export interface ProducerRelation {
 	id: string | null;
@@ -25,7 +25,7 @@ export interface ProducerInfo {
 }
 
 export const producerInfo = createServerFn()
-	.validator(z.object({ pid: z.string() }))
+	.validator(object({ pid: string() }))
 	.handler(async ({ data }) => {
 		const { data: producer, error } = await api.producer.info.get({
 			query: { pid: data.pid },
@@ -36,7 +36,7 @@ export const producerInfo = createServerFn()
 	});
 
 export const producerGameList = createServerFn()
-	.validator(z.object({ pid: z.string() }))
+	.validator(object({ pid: string() }))
 	.handler(async ({ data }) => {
 		const { data: result, error } = await api.producer.gamelists.get({
 			query: { pid: data.pid },
@@ -45,10 +45,10 @@ export const producerGameList = createServerFn()
 		return result?.items ?? [];
 	});
 
-export const ProducerSearchSchema = z.object({
-	q: z.string().optional(),
-	page: z.number().optional(),
-	hitsPerPage: z.number().optional(),
+export const ProducerSearchSchema = object({
+	q: string().optional(),
+	page: number().optional(),
+	hitsPerPage: number().optional(),
 });
 
 export const getSearchProducers = createServerFn()

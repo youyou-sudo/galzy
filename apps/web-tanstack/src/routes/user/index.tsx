@@ -25,7 +25,7 @@ import { getUserFavorites, getUserLikes } from '@web/server/topics'
 import { Bookmark, Heart, Mail, Shield, User } from 'lucide-react'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
-import { z } from 'zod'
+import { enum as zEnum, number, object, string } from 'zod/schemas'
 
 const errorMessages: Record<string, string> = {
   "email_doesn't_match":
@@ -35,14 +35,13 @@ const errorMessages: Record<string, string> = {
   unable_to_link_account: '账户关联失败，请稍后重试。',
 }
 
-const UserSearchSchema = z.object({
-  error: z.string().optional(),
-  error_description: z.string().optional(),
-  tab: z
-    .enum(['profile', 'security', 'favorites', 'likes'])
+const UserSearchSchema = object({
+  error: string().optional(),
+  error_description: string().optional(),
+  tab: zEnum(['profile', 'security', 'favorites', 'likes'])
     .optional()
     .default('profile'),
-  page: z.number().optional().default(1),
+  page: number().optional().default(1),
 })
 
 export const Route = createFileRoute('/user/')({

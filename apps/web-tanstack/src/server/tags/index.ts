@@ -1,12 +1,12 @@
 import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
-import z from "zod";
+import { number, object, string } from "zod/schemas";
 
 export const getTagData = createServerFn()
 	.validator(
-		z.object({
-			tagId: z.string(),
+		object({
+			tagId: string(),
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -17,9 +17,9 @@ export const getTagData = createServerFn()
 		return res;
 	});
 
-export const SearchTagsSchema = z.object({
-	q: z.string().optional(),
-	limit: z.number().optional(),
+export const SearchTagsSchema = object({
+	q: string().optional(),
+	limit: number().optional(),
 });
 
 export const getSearchTags = createServerFn()
@@ -34,10 +34,10 @@ export const getSearchTags = createServerFn()
 
 export const getVnListByTag = createServerFn()
 	.validator(
-		z.object({
-			tagId: z.string(),
-			pageSize: z.number(),
-			pageIndex: z.number(),
+		object({
+			tagId: string(),
+			pageSize: number(),
+			pageIndex: number(),
 		}),
 	)
 	.handler(async ({ data }) => {

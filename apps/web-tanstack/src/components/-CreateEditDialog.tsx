@@ -1,405 +1,405 @@
-import { useForm } from "@tanstack/react-form";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
-import { useSelector } from "@tanstack/react-store";
-import { MarkdownEditor } from "@web/components/editor/MarkdownEditor";
-import { Button } from "@web/components/ui/button";
+import { useForm } from '@tanstack/react-form'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { useRouter } from '@tanstack/react-router'
+import { useSelector } from '@tanstack/react-store'
+import { MarkdownEditor } from '@web/components/editor/MarkdownEditor'
+import { Button } from '@web/components/ui/button'
 import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@web/components/ui/dialog";
-import { Field, FieldError, FieldGroup } from "@web/components/ui/field";
-import { Input } from "@web/components/ui/input";
-import { elysiaErrorF } from "@web/lib";
-import { authClient } from "@web/server/auth/auth-client";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@web/components/ui/dialog'
+import { Field, FieldError, FieldGroup } from '@web/components/ui/field'
+import { Input } from '@web/components/ui/input'
+import { elysiaErrorF } from '@web/lib'
+import { authClient } from '@web/server/auth/auth-client'
 import {
-	createIntroduction,
-	updateIntroduction,
-} from "@web/server/introduction";
+  createIntroduction,
+  updateIntroduction,
+} from '@web/server/introduction'
 import {
-	introductionEditActions,
-	introductionEditStore,
-} from "@web/stores/introductionStores";
-import { useEffect, useRef } from "react";
-import { toast } from "sonner";
-import z from "zod";
+  introductionEditActions,
+  introductionEditStore,
+} from '@web/stores/introductionStores'
+import { useEffect, useRef } from 'react'
+import { toast } from 'sonner'
+import { object, string } from 'zod/schemas'
 
 // ── Props 接口（支持受控 / store / customSubmit 多模式） ──────────
 interface CreateEditDialogProps {
-	/** 游戏 ID，覆写 store 中的值 */
-	gameId?: string;
-	/** 外部控制 open 状态 */
-	open?: boolean;
-	/** open 状态变更回调 */
-	onOpenChange?: (open: boolean) => void;
-	/** 编辑模式 */
-	mode?: "create" | "edit";
-	/** 初始数据 */
-	initialData?: {
-		id?: string | number;
-		title?: string;
-		content?: string;
-		copyright?: string;
-		gameId?: string;
-	};
-	/** 操作成功回调 */
-	onSuccess?: () => void;
-	/**
-	 * 自定义提交函数（用于 admin 等非 introduction 场景）。
-	 * 提供后跳过内置的 createIntroduction/updateIntroduction 与 session 获取。
-	 * 接收表单值，应自行处理 loading/toast/错误。
-	 */
-	customSubmit?: (values: {
-		id?: string | number;
-		title: string;
-		content: string;
-		copyright?: string;
-	}) => Promise<void>;
+  /** 游戏 ID，覆写 store 中的值 */
+  gameId?: string
+  /** 外部控制 open 状态 */
+  open?: boolean
+  /** open 状态变更回调 */
+  onOpenChange?: (open: boolean) => void
+  /** 编辑模式 */
+  mode?: 'create' | 'edit'
+  /** 初始数据 */
+  initialData?: {
+    id?: string | number
+    title?: string
+    content?: string
+    copyright?: string
+    gameId?: string
+  }
+  /** 操作成功回调 */
+  onSuccess?: () => void
+  /**
+   * 自定义提交函数（用于 admin 等非 introduction 场景）。
+   * 提供后跳过内置的 createIntroduction/updateIntroduction 与 session 获取。
+   * 接收表单值，应自行处理 loading/toast/错误。
+   */
+  customSubmit?: (values: {
+    id?: string | number
+    title: string
+    content: string
+    copyright?: string
+  }) => Promise<void>
 }
 
 export function CreateEditDialog(props?: CreateEditDialogProps) {
-	const router = useRouter();
-	const formId = "CreateEdit";
+  const router = useRouter()
+  const formId = 'CreateEdit'
 
-	// ── 使用 customSubmit 时无需 store / session ──────────────────
-	const isCustom = !!props?.customSubmit;
+  // ── 使用 customSubmit 时无需 store / session ──────────────────
+  const isCustom = !!props?.customSubmit
 
-	// ── 优先使用 props，否则 fallback 到 store ──────────────────
-	const storeData = useSelector(introductionEditStore, (s) => s.data);
-	const storeOpen = useSelector(introductionEditStore, (s) => s.open);
+  // ── 优先使用 props，否则 fallback 到 store ──────────────────
+  const storeData = useSelector(introductionEditStore, (s) => s.data)
+  const storeOpen = useSelector(introductionEditStore, (s) => s.open)
 
-	const isControlled = props?.open !== undefined;
-	const open = isControlled ? props.open! : storeOpen;
-	const mergedData = props?.initialData ?? storeData;
-	const isEdit = !!(props?.initialData?.id ?? mergedData?.id);
+  const isControlled = props?.open !== undefined
+  const open = isControlled ? props.open! : storeOpen
+  const mergedData = props?.initialData ?? storeData
+  const isEdit = !!(props?.initialData?.id ?? mergedData?.id)
 
-	// ── 获取用户 session（customSubmit 不需要） ──────────────────
-	const { data: session } = useQuery({
-		queryKey: ["auth"],
-		queryFn: async () => {
-			const { data: res, error } = await authClient.getSession();
-			elysiaErrorF(error);
-			return res;
-		},
-		enabled: open && !isCustom,
-	});
+  // ── 获取用户 session（customSubmit 不需要） ──────────────────
+  const { data: session } = useQuery({
+    queryKey: ['auth'],
+    queryFn: async () => {
+      const { data: res, error } = await authClient.getSession()
+      elysiaErrorF(error)
+      return res
+    },
+    enabled: open && !isCustom,
+  })
 
-	const isAdmin = session?.user?.role === "admin" || isCustom;
+  const isAdmin = session?.user?.role === 'admin' || isCustom
 
-	// ── Mutations（customSubmit 时跳过） ──────────────────────────
-	const createMutation = useMutation({
-		mutationFn: createIntroduction,
-		onSuccess: () => {
-			toast.success(
-				isAdmin ? "文章创建成功～" : "已提交审核，请等待管理员审核喵～",
-			);
-			router.invalidate({
-				filter: (match) => match.routeId === "/$id/_layout/introduction/",
-			});
-			handleClose();
-			props?.onSuccess?.();
-		},
-		onError: (error: any) => {
-			if (error?.status === 403) {
-				toast.error(
-					"权限不足，仅管理员可直接创建文章。您的提交已记录，请等待审核喵～",
-				);
-			} else {
-				toast.error(error?.message || "创建失败，请稍后重试");
-			}
-		},
-	});
+  // ── Mutations（customSubmit 时跳过） ──────────────────────────
+  const createMutation = useMutation({
+    mutationFn: createIntroduction,
+    onSuccess: () => {
+      toast.success(
+        isAdmin ? '文章创建成功～' : '已提交审核，请等待管理员审核喵～',
+      )
+      router.invalidate({
+        filter: (match) => match.routeId === '/$id/_layout/introduction/',
+      })
+      handleClose()
+      props?.onSuccess?.()
+    },
+    onError: (error: any) => {
+      if (error?.status === 403) {
+        toast.error(
+          '权限不足，仅管理员可直接创建文章。您的提交已记录，请等待审核喵～',
+        )
+      } else {
+        toast.error(error?.message || '创建失败，请稍后重试')
+      }
+    },
+  })
 
-	const updateMutation = useMutation({
-		mutationFn: updateIntroduction,
-		onSuccess: () => {
-			toast.success("文章更新成功～");
-			router.invalidate({
-				filter: (match) => match.routeId === "/$id/_layout/introduction/",
-			});
-			handleClose();
-			props?.onSuccess?.();
-		},
-		onError: (error: any) => {
-			toast.error(error?.message || "更新失败，请稍后重试");
-		},
-	});
+  const updateMutation = useMutation({
+    mutationFn: updateIntroduction,
+    onSuccess: () => {
+      toast.success('文章更新成功～')
+      router.invalidate({
+        filter: (match) => match.routeId === '/$id/_layout/introduction/',
+      })
+      handleClose()
+      props?.onSuccess?.()
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || '更新失败，请稍后重试')
+    },
+  })
 
-	// ── 校验 Schema ──────────────────────────────────────────────
-	const formSchema = z.object({
-		title: z.string().min(1, "需要一个标题喵"),
-		content: z.string().min(1, "内容是空的喵？"),
-		copyright: z.string(),
-		userid: z.string(),
-	});
+  // ── 校验 Schema ──────────────────────────────────────────────
+  const formSchema = object({
+    title: string().min(1, '需要一个标题喵'),
+    content: string().min(1, '内容是空的喵？'),
+    copyright: string(),
+    userid: string(),
+  })
 
-	// ── Form ─────────────────────────────────────────────────────
-	const form = useForm({
-		defaultValues: {
-			title: mergedData?.title || "",
-			content: mergedData?.content || "",
-			copyright: mergedData?.copyright || "",
-			userid: session?.user?.id ?? "",
-		},
-		validators: {
-			onChange: formSchema,
-			onSubmit: formSchema,
-		},
-		onSubmit: async ({ value }) => {
-			// ── customSubmit 路径（admin 等） ─────────────────────────
-			if (isCustom) {
-				await props.customSubmit!({
-					id: mergedData?.id,
-					title: value.title.trim(),
-					content: value.content.trim(),
-					copyright: value.copyright?.trim() || undefined,
-				});
-				return;
-			}
+  // ── Form ─────────────────────────────────────────────────────
+  const form = useForm({
+    defaultValues: {
+      title: mergedData?.title || '',
+      content: mergedData?.content || '',
+      copyright: mergedData?.copyright || '',
+      userid: session?.user?.id ?? '',
+    },
+    validators: {
+      onChange: formSchema,
+      onSubmit: formSchema,
+    },
+    onSubmit: async ({ value }) => {
+      // ── customSubmit 路径（admin 等） ─────────────────────────
+      if (isCustom) {
+        await props.customSubmit!({
+          id: mergedData?.id,
+          title: value.title.trim(),
+          content: value.content.trim(),
+          copyright: value.copyright?.trim() || undefined,
+        })
+        return
+      }
 
-			// ── 默认路径（introduction 模块） ─────────────────────────
-			if (!session?.user?.id) {
-				toast.error("请先登录喵～");
-				return;
-			}
-			const gameId = props?.gameId ?? mergedData?.gameId ?? "";
+      // ── 默认路径（introduction 模块） ─────────────────────────
+      if (!session?.user?.id) {
+        toast.error('请先登录喵～')
+        return
+      }
+      const gameId = props?.gameId ?? mergedData?.gameId ?? ''
 
-			if (mergedData?.id) {
-				await updateMutation.mutateAsync({
-					data: {
-						id: String(mergedData?.id),
-						data: {
-							title: value.title.trim(),
-							content: value.content.trim(),
-							copyright: value.copyright?.trim() || null,
-						},
-					},
-				});
-				return;
-			}
-			if (!gameId) {
-				toast.error("缺少游戏 ID，无法创建喵～");
-				return;
-			}
-			await createMutation.mutateAsync({
-				data: {
-					gameId,
-					title: value.title.trim(),
-					content: value.content.trim(),
-					copyright: value.copyright?.trim() || null,
-					userid: value.userid,
-				},
-			});
-			form.reset();
-		},
-	});
+      if (mergedData?.id) {
+        await updateMutation.mutateAsync({
+          data: {
+            id: String(mergedData?.id),
+            data: {
+              title: value.title.trim(),
+              content: value.content.trim(),
+              copyright: value.copyright?.trim() || null,
+            },
+          },
+        })
+        return
+      }
+      if (!gameId) {
+        toast.error('缺少游戏 ID，无法创建喵～')
+        return
+      }
+      await createMutation.mutateAsync({
+        data: {
+          gameId,
+          title: value.title.trim(),
+          content: value.content.trim(),
+          copyright: value.copyright?.trim() || null,
+          userid: value.userid,
+        },
+      })
+      form.reset()
+    },
+  })
 
-	// ── Ctrl+Enter 提交快捷键 ─────────────────────────────────────
-	const handleKeyDown = (e: React.KeyboardEvent) => {
-		if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
-			e.preventDefault();
-			form.handleSubmit();
-		}
-	};
+  // ── Ctrl+Enter 提交快捷键 ─────────────────────────────────────
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault()
+      form.handleSubmit()
+    }
+  }
 
-	// ── 关闭（受控模式用 props，否则用 store） ────────────────────
-	const handleClose = () => {
-		if (isControlled) {
-			props?.onOpenChange?.(false);
-		} else {
-			introductionEditActions.close();
-		}
-	};
+  // ── 关闭（受控模式用 props，否则用 store） ────────────────────
+  const handleClose = () => {
+    if (isControlled) {
+      props?.onOpenChange?.(false)
+    } else {
+      introductionEditActions.close()
+    }
+  }
 
-	const handleOpenChange = (v: boolean) => {
-		if (isControlled) {
-			props?.onOpenChange?.(v);
-		} else {
-			introductionEditActions.onOpen();
-		}
-	};
+  const handleOpenChange = (v: boolean) => {
+    if (isControlled) {
+      props?.onOpenChange?.(v)
+    } else {
+      introductionEditActions.onOpen()
+    }
+  }
 
-	// ── 当 mergedData / session 变化时更新表单 ───────────────────
-	const prevSnapshotRef = useRef("");
-	useEffect(() => {
-		const snapshot = JSON.stringify([
-			mergedData?.id,
-			mergedData?.gameId,
-			mergedData?.title,
-			mergedData?.content,
-			mergedData?.copyright,
-			props?.gameId,
-			session?.user?.id,
-		]);
-		if (snapshot !== prevSnapshotRef.current) {
-			prevSnapshotRef.current = snapshot;
-			form.reset({
-				title: mergedData?.title || "",
-				content: mergedData?.content || "",
-				copyright: mergedData?.copyright || "",
-				userid: session?.user?.id ?? "",
-			});
-		}
-	}, [mergedData, session?.user?.id, props?.gameId]);
+  // ── 当 mergedData / session 变化时更新表单 ───────────────────
+  const prevSnapshotRef = useRef('')
+  useEffect(() => {
+    const snapshot = JSON.stringify([
+      mergedData?.id,
+      mergedData?.gameId,
+      mergedData?.title,
+      mergedData?.content,
+      mergedData?.copyright,
+      props?.gameId,
+      session?.user?.id,
+    ])
+    if (snapshot !== prevSnapshotRef.current) {
+      prevSnapshotRef.current = snapshot
+      form.reset({
+        title: mergedData?.title || '',
+        content: mergedData?.content || '',
+        copyright: mergedData?.copyright || '',
+        userid: session?.user?.id ?? '',
+      })
+    }
+  }, [mergedData, session?.user?.id, props?.gameId])
 
-	const isSubmitting =
-		createMutation.isPending ||
-		updateMutation.isPending ||
-		form.state.isSubmitting;
+  const isSubmitting =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    form.state.isSubmitting
 
-	// ── Dialog 标题文案 ───────────────────────────────────────────
-	const dialogTitle = isCustom
-		? isEdit
-			? "编辑文章"
-			: "创建文章"
-		: isEdit
-			? isAdmin
-				? "编辑文章"
-				: "编辑攻略文章"
-			: isAdmin
-				? "创建文章"
-				: "提交攻略文章";
+  // ── Dialog 标题文案 ───────────────────────────────────────────
+  const dialogTitle = isCustom
+    ? isEdit
+      ? '编辑文章'
+      : '创建文章'
+    : isEdit
+      ? isAdmin
+        ? '编辑文章'
+        : '编辑攻略文章'
+      : isAdmin
+        ? '创建文章'
+        : '提交攻略文章'
 
-	const dialogDescription = isCustom
-		? isEdit
-			? "修改文章标题与内容"
-			: "创建一篇新的文章"
-		: isEdit
-			? "修改已有的攻略文章内容喵～"
-			: isAdmin
-				? "创建一篇新的攻略文章"
-				: "提交攻略文章供管理员审核";
+  const dialogDescription = isCustom
+    ? isEdit
+      ? '修改文章标题与内容'
+      : '创建一篇新的文章'
+    : isEdit
+      ? '修改已有的攻略文章内容喵～'
+      : isAdmin
+        ? '创建一篇新的攻略文章'
+        : '提交攻略文章供管理员审核'
 
-	return (
-		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
-				<DialogHeader>
-					<DialogTitle>{dialogTitle}</DialogTitle>
-					<DialogDescription>{dialogDescription}</DialogDescription>
-				</DialogHeader>
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{dialogTitle}</DialogTitle>
+          <DialogDescription>{dialogDescription}</DialogDescription>
+        </DialogHeader>
 
-				<form
-					id={formId}
-					onSubmit={(e) => {
-						e.preventDefault();
-						const errors = form.state.errors;
-						if (errors.length > 0) {
-							console.log("form validation errors:", errors);
-						}
-						void form.handleSubmit();
-					}}
-				>
-					<FieldGroup className="gap-3">
-						{/* ── 标题 ── */}
-						<form.Field name="title">
-							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
-								return (
-									<Field data-invalid={isInvalid}>
-										<Input
-											className="text-sm"
-											id={field.name}
-											name={field.name}
-											value={field.state.value}
-											aria-invalid={isInvalid}
-											onChange={(e) => field.handleChange(e.target.value)}
-											autoComplete="off"
-											placeholder="输入文章标题喵～"
-										/>
-										{isInvalid && (
-											<FieldError
-												className="text-xs"
-												errors={field.state.meta.errors}
-											/>
-										)}
-									</Field>
-								);
-							}}
-						</form.Field>
+        <form
+          id={formId}
+          onSubmit={(e) => {
+            e.preventDefault()
+            const errors = form.state.errors
+            if (errors.length > 0) {
+              console.log('form validation errors:', errors)
+            }
+            void form.handleSubmit()
+          }}
+        >
+          <FieldGroup className="gap-3">
+            {/* ── 标题 ── */}
+            <form.Field name="title">
+              {(field) => {
+                const isInvalid =
+                  field.state.meta.isTouched && !field.state.meta.isValid
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <Input
+                      className="text-sm"
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      aria-invalid={isInvalid}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      autoComplete="off"
+                      placeholder="输入文章标题喵～"
+                    />
+                    {isInvalid && (
+                      <FieldError
+                        className="text-xs"
+                        errors={field.state.meta.errors}
+                      />
+                    )}
+                  </Field>
+                )
+              }}
+            </form.Field>
 
-						{/* ── 内容 — 富文本 Markdown 编辑器 ── */}
-						<form.Field name="content">
-							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
-								return (
-									<Field data-invalid={isInvalid}>
-										<MarkdownEditor
-											value={field.state.value}
-											onChange={(val) => field.handleChange(val ?? "")}
-											onKeyDown={handleKeyDown}
-											placeholder="输入文章喵～ 支持 Markdown 语法（Ctrl+Enter 提交）"
-											aria-invalid={isInvalid}
-										/>
-										{isInvalid && (
-											<FieldError
-												className="text-xs"
-												errors={field.state.meta.errors}
-											/>
-										)}
-									</Field>
-								);
-							}}
-						</form.Field>
+            {/* ── 内容 — 富文本 Markdown 编辑器 ── */}
+            <form.Field name="content">
+              {(field) => {
+                const isInvalid =
+                  field.state.meta.isTouched && !field.state.meta.isValid
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <MarkdownEditor
+                      value={field.state.value}
+                      onChange={(val) => field.handleChange(val ?? '')}
+                      onKeyDown={handleKeyDown}
+                      placeholder="输入文章喵～ 支持 Markdown 语法（Ctrl+Enter 提交）"
+                      aria-invalid={isInvalid}
+                    />
+                    {isInvalid && (
+                      <FieldError
+                        className="text-xs"
+                        errors={field.state.meta.errors}
+                      />
+                    )}
+                  </Field>
+                )
+              }}
+            </form.Field>
 
-						{/* ── 来源 ── */}
-						<form.Field name="copyright">
-							{(field) => {
-								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
-								return (
-									<Field data-invalid={isInvalid}>
-										<Input
-											className="text-sm"
-											id={field.name}
-											name={field.name}
-											value={field.state.value}
-											aria-invalid={isInvalid}
-											onChange={(e) => field.handleChange(e.target.value)}
-											autoComplete="off"
-											placeholder="输入文章来源，如果有的话喵～"
-										/>
-										{isInvalid && (
-											<FieldError
-												className="text-xs"
-												errors={field.state.meta.errors}
-											/>
-										)}
-									</Field>
-								);
-							}}
-						</form.Field>
-					</FieldGroup>
+            {/* ── 来源 ── */}
+            <form.Field name="copyright">
+              {(field) => {
+                const isInvalid =
+                  field.state.meta.isTouched && !field.state.meta.isValid
+                return (
+                  <Field data-invalid={isInvalid}>
+                    <Input
+                      className="text-sm"
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      aria-invalid={isInvalid}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      autoComplete="off"
+                      placeholder="输入文章来源，如果有的话喵～"
+                    />
+                    {isInvalid && (
+                      <FieldError
+                        className="text-xs"
+                        errors={field.state.meta.errors}
+                      />
+                    )}
+                  </Field>
+                )
+              }}
+            </form.Field>
+          </FieldGroup>
 
-					<DialogFooter className="mt-4">
-						<Button
-							form={formId}
-							variant="outline"
-							type="button"
-							onClick={handleClose}
-							disabled={isSubmitting}
-						>
-							取消
-						</Button>
-						<Button form={formId} type="submit" disabled={isSubmitting}>
-							{isSubmitting
-								? "提交中..."
-								: isEdit
-									? "保存"
-									: isCustom
-										? "创建"
-										: isAdmin
-											? "创建"
-											: "提交"}
-						</Button>
-					</DialogFooter>
-				</form>
-			</DialogContent>
-		</Dialog>
-	);
+          <DialogFooter className="mt-4">
+            <Button
+              form={formId}
+              variant="outline"
+              type="button"
+              onClick={handleClose}
+              disabled={isSubmitting}
+            >
+              取消
+            </Button>
+            <Button form={formId} type="submit" disabled={isSubmitting}>
+              {isSubmitting
+                ? '提交中...'
+                : isEdit
+                  ? '保存'
+                  : isCustom
+                    ? '创建'
+                    : isAdmin
+                      ? '创建'
+                      : '提交'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
 }

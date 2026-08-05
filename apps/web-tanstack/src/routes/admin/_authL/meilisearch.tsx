@@ -25,10 +25,10 @@ import {
   SearchIcon,
   ServerIcon,
 } from 'lucide-react';
-import { z } from 'zod';
+import { enum as zEnum, object } from 'zod/schemas';
 
-const indexTypeSchema = z.object({
-  indexType: z.enum(['game', 'tag', 'producer']).optional().default('game'),
+const indexTypeSchema = object({
+  indexType: zEnum(['game', 'tag', 'producer']).optional().default('game'),
 });
 
 export const Route = createFileRoute('/admin/_authL/meilisearch')({

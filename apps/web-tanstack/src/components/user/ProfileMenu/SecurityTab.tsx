@@ -12,18 +12,16 @@ import { authClient } from "@web/server/auth/auth-client";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
+import { object, string } from "zod/schemas";
 
-const passwordSchema = z
-	.object({
-		currentPassword: z.string().min(1, "请输入当前密码"),
-		newPassword: z.string().min(8, "新密码长度至少为8个字符"),
-		confirmPassword: z.string().min(1, "请确认新密码"),
-	})
-	.refine((data) => data.newPassword === data.confirmPassword, {
-		message: "两次输入的新密码不一致",
-		path: ["confirmPassword"],
-	});
+const passwordSchema = object({
+	currentPassword: string().min(1, "请输入当前密码"),
+	newPassword: string().min(8, "新密码长度至少为8个字符"),
+	confirmPassword: string().min(1, "请确认新密码"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+	message: "两次输入的新密码不一致",
+	path: ["confirmPassword"],
+});
 
 export default function SecurityTab() {
 	const [showCurrentPassword, setShowCurrentPassword] = useState(false);

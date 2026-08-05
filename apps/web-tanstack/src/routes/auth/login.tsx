@@ -26,15 +26,15 @@ import { authClient } from '@web/server/auth/auth-client'
 import { Eye, EyeOff, Loader2, LogIn, Mail } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { z } from 'zod'
+import { object, string } from 'zod/schemas'
 
-const loginSchema = z.object({
-  email: z.string().min(1, '请输入邮箱地址').email('请输入有效的邮箱地址'),
-  password: z.string().min(1, '请输入密码'),
+const loginSchema = object({
+  email: string().min(1, '请输入邮箱地址').email('请输入有效的邮箱地址'),
+  password: string().min(1, '请输入密码'),
 })
 
-export const ReturnToSchema = z.object({
-  return_to: z.string().optional(),
+export const ReturnToSchema = object({
+  return_to: string().optional(),
 })
 
 export const Route = createFileRoute('/auth/login')({

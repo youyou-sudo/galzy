@@ -1,12 +1,6 @@
-import { useEffect, useState } from "react";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Button } from "./ui/button";
-import { Check, Monitor, Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "lucide-react";
 
 type ThemeMode = "light" | "dark" | "auto";
 
@@ -39,8 +33,16 @@ function applyThemeMode(mode: ThemeMode) {
 	root.style.colorScheme = resolved;
 }
 
+// 懒加载：dropdown-menu 代码只在首次点击主题按钮时进入客户端
+const ThemeMenu = lazy(() =>
+	import("./theme-menu").then((m) => ({
+		default: m.ThemeMenu,
+	})),
+);
+
 export default function ThemeToggle() {
 	const [mode, setMode] = useState<ThemeMode>("auto");
+	const [open, setOpen] = useState(false);
 
 	// 初始化
 	useEffect(() => {
@@ -64,14 +66,17 @@ export default function ThemeToggle() {
 		setMode(next);
 		applyThemeMode(next);
 		window.localStorage.setItem("theme", next);
+		setOpen(false);
 	}
 
-	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger
-				render={
-					<Button variant="outline" size="icon" className="rounded-full" />
-				}
+	if (!open) {
+		return (
+			<Button
+				variant="outline"
+				size="icon"
+				className="rounded-full"
+				aria-label="切换主题"
+				onClick={() => setOpen(true)}
 			>
 				{mode === "light" ? (
 					<Sun className="size-[1.2rem] text-amber-500" />
@@ -81,36 +86,18 @@ export default function ThemeToggle() {
 					<Monitor className="size-[1.2rem] text-zinc-500" />
 				)}
 				<span className="sr-only">主题</span>
-			</DropdownMenuTrigger>
+			</Button>
+		)
+	}
 
-			<DropdownMenuContent align="end" className="min-w-32 rounded-xl">
-				<DropdownMenuItem
-					className="flex items-center gap-2 cursor-pointer"
-					onClick={() => changeMode("light")}
-				>
-					<Sun className="size-4 text-amber-500" />
-					<span>浅色</span>
-					{mode === "light" && <Check className="size-4 ml-auto" />}
-				</DropdownMenuItem>
-
-				<DropdownMenuItem
-					className="flex items-center gap-2 cursor-pointer"
-					onClick={() => changeMode("dark")}
-				>
-					<Moon className="size-4 text-blue-400" />
-					<span>深色</span>
-					{mode === "dark" && <Check className="size-4 ml-auto" />}
-				</DropdownMenuItem>
-
-				<DropdownMenuItem
-					className="flex items-center gap-2 cursor-pointer"
-					onClick={() => changeMode("auto")}
-				>
-					<Monitor className="size-4 text-zinc-500" />
-					<span>系统</span>
-					{mode === "auto" && <Check className="size-4 ml-auto" />}
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
+	return (
+		<Suspense fallback={null}>
+			<ThemeMenu
+				open={open}
+				mode={mode}
+				onOpenChange={setOpen}
+				onSelect={changeMode}
+			/>
+		</Suspense>
 	);
 }
