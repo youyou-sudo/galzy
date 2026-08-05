@@ -1,4 +1,5 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import babel from '@rolldown/plugin-babel'
 import tailwindcss from '@tailwindcss/vite'
 import { devtools } from '@tanstack/devtools-vite'
@@ -14,6 +15,13 @@ const config = defineConfig({
   resolve: {
     tsconfigPaths: true,
     dedupe: ['react', 'react-dom'],
+    alias: {
+      // 路由 validateSearch 只需 zod 经典 API 子集：指向 classic/schemas.js
+      // （具名导出可 tree-shake，避免整个 zod 主入口进客户端 bundle）
+      'zod/schemas': fileURLToPath(
+        new URL('../../node_modules/zod/v4/classic/schemas.js', import.meta.url),
+      ),
+    },
   },
 
   ssr: {
