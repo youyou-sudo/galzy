@@ -3,6 +3,14 @@ import { redis } from 'bun'
 
 const isProduction = process.env.NODE_ENV === 'production'
 
+// 开发模式（NODE_ENV !== 'production'）下 Redis 默认不生效：
+// 缓存直查 DB、锁 / 幂等直接放行，无需本地 Redis 即可跑通全流程。
+// 如需在本地调试缓存，可设 REDIS_ENABLED=true 强制开启。
+export const isRedisEnabled =
+  process.env.REDIS_ENABLED !== undefined
+    ? process.env.REDIS_ENABLED === 'true'
+    : isProduction
+
 const redisLog = {
   debug: (...args: unknown[]) => {
     if (!isProduction) console.debug(...args)
@@ -41,6 +49,12 @@ const safeRedisOp = async <T>(
   fallback: T,
   operationName: string,
 ): Promise<T> => {
+  if (!isRedisEnabled) {
+    redisLog.debug(
+      `[Redis] ${operationName} skipped: redis disabled (dev mode)`,
+    )
+    return fallback
+  }
   const client = getRedisClient()
   if (!client) {
     redisLog.warn(
@@ -187,6 +201,8 @@ export const acquireLockKv = async (
   lockValue: string,
   lockTimeoutMs: number,
 ) => {
+  // 开发模式 Redis 不生效：单实例无并发竞争，直接视为已获得锁
+  if (!isRedisEnabled) return true
   return safeRedisOp(
     async (client) => {
       const result = await client.send('SET', [
@@ -214,6 +230,8 @@ export const acquireLockKv = async (
  * @returns 是否成功释放锁
  */
 export const releaseLockKv = async (key: string, value: string) => {
+  // 开发模式 Redis 不生效：直接视为释放成功
+  if (!isRedisEnabled) return true
   return safeRedisOp(
     async (client) => {
       try {
@@ -261,6 +279,8 @@ export async function acquireIdempotentKey(
   key: string,
   ttl: number,
 ): Promise<boolean> {
+  // 开发模式 Redis 不生效：不做幂等去重，直接放行
+  if (!isRedisEnabled) return true
   return safeRedisOp(
     async (client) => {
       const result = await client.send('SET', [

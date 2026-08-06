@@ -10,7 +10,7 @@ import {
   vnTitles,
   zhtags,
 } from '@api/libs'
-import { getKv, getRedisClient, setKv } from '@api/libs/redis'
+import { getKv, getRedisClient, isRedisEnabled, setKv } from '@api/libs/redis'
 import { and, count, desc, eq, gte, inArray } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { ViewsModel } from './model'
@@ -29,6 +29,8 @@ async function hitViewRateLimit(
   scope: 'game' | 'tag',
 ): Promise<boolean> {
   if (!ip) return false
+  // 开发模式 Redis 不生效：防刷逻辑停用，直接放行
+  if (!isRedisEnabled) return false
   try {
     const key = `galzy:views:rl:${scope}:${ip}`
     const count = await getRedisClient().incr(key)

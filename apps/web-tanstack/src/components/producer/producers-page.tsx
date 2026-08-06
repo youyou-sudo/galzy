@@ -1,8 +1,19 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@web/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@web/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@web/components/ui/card";
 import { Input } from "@web/components/ui/input";
-import { Building2Icon, ChevronLeft, ChevronRight, SearchIcon, XIcon } from "lucide-react";
+import {
+	Building2Icon,
+	ChevronLeft,
+	ChevronRight,
+	SearchIcon,
+	XIcon,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface ProducerHit {
@@ -149,17 +160,11 @@ export default function ProducersPage({
 						>
 							<Card className="h-full transition-colors hover:bg-secondary/40">
 								<CardHeader>
-									<CardTitle className="text-base">
-										{producer.name}
-									</CardTitle>
+									<CardTitle className="text-base">{producer.name}</CardTitle>
 								</CardHeader>
-								{(producer.latin ||
-									producer.original ||
-									producer.alias) && (
+								{(producer.latin || producer.original || producer.alias) && (
 									<CardContent className="pt-0 text-sm text-muted-foreground line-clamp-2">
-										{producer.latin ||
-											producer.original ||
-											producer.alias}
+										{producer.latin || producer.original || producer.alias}
 									</CardContent>
 								)}
 							</Card>
@@ -220,10 +225,10 @@ export default function ProducersPage({
 
 /** Generate a compact page range: [1, …, 4, 5, 6, …, 10] */
 function paginationRange(current: number, total: number): (number | "…")[] {
-	if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+	if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
 
-	if (current <= 3) return [1, 2, 3, 4, "…", total]
+	if (current <= 3) return [1, 2, 3, 4, "…", total];
 	if (current >= total - 2)
-		return [1, "…", total - 3, total - 2, total - 1, total]
-	return [1, "…", current - 1, current, current + 1, "…", total]
+		return [1, "…", total - 3, total - 2, total - 1, total];
+	return [1, "…", current - 1, current, current + 1, "…", total];
 }

@@ -26,9 +26,7 @@ import {
 	TextQuote,
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
-import Markdown from "react-markdown";
-import rehypeRaw from "rehype-raw";
-import remarkGfm from "remark-gfm";
+import { SmartMarkdown } from "@web/components/SmartMarkdown";
 
 // ---------------------------------------------------------------------------
 //  Props
@@ -178,9 +176,7 @@ export function MarkdownEditor({
 	const renderPreview = () =>
 		value ? (
 			<div className="overflow-x-auto">
-				<Markdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
-					{value}
-				</Markdown>
+				<SmartMarkdown>{value}</SmartMarkdown>
 			</div>
 		) : (
 			<p className="py-8 text-center text-sm text-muted-foreground">暂无内容</p>

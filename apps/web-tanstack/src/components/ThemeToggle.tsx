@@ -87,7 +87,7 @@ export default function ThemeToggle() {
 				)}
 				<span className="sr-only">主题</span>
 			</Button>
-		)
+		);
 	}
 
 	return (
