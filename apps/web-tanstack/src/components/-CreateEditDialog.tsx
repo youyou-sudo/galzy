@@ -104,13 +104,7 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 			props?.onSuccess?.();
 		},
 		onError: (error: any) => {
-			if (error?.status === 403) {
-				toast.error(
-					"权限不足，仅管理员可直接创建文章。您的提交已记录，请等待审核喵～",
-				);
-			} else {
-				toast.error(error?.message || "创建失败，请稍后重试");
-			}
+			toast.error(error?.message || "创建失败，请稍后重试");
 		},
 	});
 
