@@ -86,7 +86,7 @@ export const MarkdownComponents = {
 	),
 	hr: ({ ...props }) => <hr className="my-4 md:my-8" {...props} />,
 	table: ({ className, ...props }: ComponentProps<"table">) => (
-		<div className="my-6 w-full overflow-y-auto">
+		<div className="my-6 w-full overflow-x-auto">
 			<table className={cn("w-full", className)} {...props} />
 		</div>
 	),
@@ -146,5 +146,67 @@ export const MarkdownComponents = {
 	),
 	em: ({ className, ...props }: ComponentProps<"em">) => (
 		<em className={cn("italic", className)} {...props} />
+	),
+};
+
+/**
+ * 文章正文（攻略 / 帖子）排版：标题缩放到页面标题（text-2xl）之下，
+ * 并带上下留白，避免正文标题压过页面标题。
+ */
+export const ArticleMarkdownComponents = {
+	...MarkdownComponents,
+	h1: ({ className, ...props }: ComponentProps<"h1">) => (
+		<h1
+			className={cn(
+				"scroll-m-20 mt-6 mb-2 text-xl font-bold tracking-tight first:mt-0",
+				className,
+			)}
+			{...props}
+		/>
+	),
+	h2: ({ className, ...props }: ComponentProps<"h2">) => (
+		<h2
+			className={cn(
+				"scroll-m-20 mt-6 mb-2 text-lg font-semibold tracking-tight first:mt-0",
+				className,
+			)}
+			{...props}
+		/>
+	),
+	h3: ({ className, ...props }: ComponentProps<"h3">) => (
+		<h3
+			className={cn(
+				"scroll-m-20 mt-5 mb-1.5 text-base font-semibold tracking-tight first:mt-0",
+				className,
+			)}
+			{...props}
+		/>
+	),
+	h4: ({ className, ...props }: ComponentProps<"h4">) => (
+		<h4
+			className={cn(
+				"scroll-m-20 mt-4 mb-1 text-sm font-semibold tracking-tight first:mt-0",
+				className,
+			)}
+			{...props}
+		/>
+	),
+	h5: ({ className, ...props }: ComponentProps<"h5">) => (
+		<h5
+			className={cn(
+				"scroll-m-20 mt-4 mb-1 text-sm font-semibold first:mt-0",
+				className,
+			)}
+			{...props}
+		/>
+	),
+	h6: ({ className, ...props }: ComponentProps<"h6">) => (
+		<h6
+			className={cn(
+				"scroll-m-20 mt-4 mb-1 text-sm font-semibold first:mt-0",
+				className,
+			)}
+			{...props}
+		/>
 	),
 };

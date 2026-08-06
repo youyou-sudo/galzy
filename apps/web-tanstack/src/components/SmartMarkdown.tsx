@@ -6,6 +6,7 @@ import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
+import { ArticleMarkdownComponents } from "./markdown-components";
 
 /**
  * 攻略内容智能渲染：纯 txt 与 markdown 之间的平衡。
@@ -22,6 +23,7 @@ export function SmartMarkdown({ children }: { children?: string | null }) {
 		<Markdown
 			remarkPlugins={[remarkGfm, remarkBreaks]}
 			rehypePlugins={[rehypeRaw]}
+			components={ArticleMarkdownComponents}
 		>
 			{normalizeTxtForMarkdown(content)}
 		</Markdown>

@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
+
+import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { SmartMarkdown } from "../components/SmartMarkdown";
-import { render } from "@testing-library/react";
 
 describe("SmartMarkdown", () => {
 	it("纯 txt:原样保留换行与缩进", () => {
@@ -43,6 +44,48 @@ describe("SmartMarkdown", () => {
 		const html = "<p>1.【save1】</p><p>选择阳子</p>";
 		const { container } = render(<SmartMarkdown>{html}</SmartMarkdown>);
 		expect(container.querySelectorAll("p").length).toBe(2);
+	});
+
+	it("markdown:GFM 表格渲染为带边框的 table", () => {
+		const md = "## 好感度\n\n| 角色 | 好感度 |\n| --- | --- |\n| 智代 | 100 |";
+		const { container } = render(<SmartMarkdown>{md}</SmartMarkdown>);
+		expect(container.querySelector("table")).toBeTruthy();
+		expect(container.querySelectorAll("th").length).toBe(2);
+		expect(container.querySelectorAll("td").length).toBe(2);
+		expect(container.querySelector("th")?.textContent).toContain("角色");
+		expect(container.querySelector("td")?.textContent).toContain("智代");
+	});
+
+	it("纯表格内容（无其他 markdown 特征）也走 markdown 渲染", () => {
+		const md = "| 角色 | 好感度 |\n| --- | --- |\n| 智代 | 100 |";
+		const { container } = render(<SmartMarkdown>{md}</SmartMarkdown>);
+		expect(container.querySelector("table")).toBeTruthy();
+		// 未走 pre-wrap 纯文本分支
+		expect(container.querySelector("div.whitespace-pre-wrap")).toBeNull();
+	});
+
+	it("标题字号不超过页面标题（text-2xl）", () => {
+		const md = "# 一级\n\n## 二级\n\n### 三级";
+		const { container } = render(<SmartMarkdown>{md}</SmartMarkdown>);
+		const h1 = container.querySelector("h1");
+		expect(h1?.className).toContain("text-xl");
+		expect(container.querySelector("h2")?.className).toContain("text-lg");
+		expect(container.querySelector("h3")?.className).toContain("text-base");
+	});
+
+	it("无外缘竖线的 GFM 表格也走 markdown 渲染", () => {
+		const md = "角色 | 好感度\n--- | ---\n智代 | 100";
+		const { container } = render(<SmartMarkdown>{md}</SmartMarkdown>);
+		expect(container.querySelector("table")).toBeTruthy();
+		expect(container.querySelector("td")?.textContent).toContain("智代");
+	});
+
+	it("纯文本 --- 分隔线不误判为表格", () => {
+		const md = "序章\n\n---\n\n第二章";
+		const { container } = render(<SmartMarkdown>{md}</SmartMarkdown>);
+		// 无竖线 → 纯文本分支，--- 原样保留
+		expect(container.querySelector("div.whitespace-pre-wrap")).toBeTruthy();
+		expect(container.textContent).toContain("---");
 	});
 
 	it("空内容安全", () => {

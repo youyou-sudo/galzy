@@ -8,6 +8,7 @@ import {
 } from '@tanstack/react-router'
 import { CommentMarkdown } from '@web/components/cmments/comment-markdown'
 import { ReplyEidtInput } from '@web/components/cmments/reply-edit-input'
+import { ArticleMarkdownComponents } from '@web/components/markdown-components'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,7 +44,7 @@ import {
   toggleTopicLike,
 } from '@web/server/topics'
 import { replycardActions } from '@web/stores/reply-edit-input'
-import { Bookmark, FileText, Heart, Pencil, Trash2 } from 'lucide-react'
+import { Bookmark, Heart, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import Markdown from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
@@ -216,7 +217,11 @@ function RouteComponent() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto break-words text-foreground/80">
-            <Markdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm]}>
+            <Markdown
+              rehypePlugins={[rehypeRaw]}
+              remarkPlugins={[remarkGfm]}
+              components={ArticleMarkdownComponents}
+            >
               {(topic as any).content}
             </Markdown>
           </div>
