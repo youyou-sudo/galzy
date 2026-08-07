@@ -286,6 +286,79 @@ export const Tags = {
       totalCount,
     }
   },
+  async tagCategories(): Promise<
+    Record<
+      string,
+      Array<{ id: string; name: string; vnCount: number; views: number }>
+    >
+  > {
+    const cacheKey = 'galzy:tags:categories:v4'
+    const cached = await getKv(cacheKey)
+    if (cached) {
+      try {
+        return JSON.parse(cached)
+      } catch {
+        await delKv(cacheKey)
+      }
+    }
+
+    // 与详情页口径一致：仅展示已本地化（zhtags 存在）的标签，避免点进去 404
+    // vnCount = 站内收录（alistb 存在）的关联游戏数，与标签详情页列表口径一致
+    // views = 累计 tag_view 浏览量（供排序）
+    const [rows, countRows, viewRows] = await Promise.all([
+      db
+        .select({
+          id: tags.id,
+          cat: tags.cat,
+          name: zhtags.name,
+        })
+        .from(tags)
+        .innerJoin(zhtags, eq(zhtags.id, tags.id)),
+      db.execute(
+        sql`SELECT tv.tag, count(DISTINCT tv.vid)::int AS cnt FROM tags_vn tv INNER JOIN galrc_alistb a ON a.vid = tv.vid GROUP BY tv.tag`,
+      ),
+      db.execute(
+        sql`SELECT target_id, count(*)::int AS cnt FROM galrc_event_views WHERE event_type = 'tag_view' GROUP BY target_id`,
+      ),
+    ])
+
+    const countMap = new Map(
+      (countRows as Array<{ tag: string; cnt: number }>).map((r) => [
+        r.tag,
+        r.cnt,
+      ]),
+    )
+    const viewMap = new Map(
+      (viewRows as Array<{ target_id: string; cnt: number }>).map((r) => [
+        r.target_id,
+        r.cnt,
+      ]),
+    )
+
+    const grouped: Record<
+      string,
+      Array<{ id: string; name: string; vnCount: number; views: number }>
+    > = {
+      cont: [],
+      ero: [],
+      tech: [],
+    }
+    for (const r of rows) {
+      const list = grouped[r.cat ?? ''] ?? grouped.cont
+      list.push({
+        id: r.id,
+        name: r.name || r.id,
+        vnCount: countMap.get(r.id) ?? 0,
+        views: viewMap.get(r.id) ?? 0,
+      })
+    }
+    for (const list of Object.values(grouped)) {
+      list.sort((a, b) => a.name.localeCompare(b.name, 'zh'))
+    }
+
+    void setKv(cacheKey, JSON.stringify(grouped), 60 * 60)
+    return grouped
+  },
   async tagEdit({
     zh_name,
     exhibition,

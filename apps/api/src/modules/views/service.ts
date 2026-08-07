@@ -5,6 +5,7 @@ import {
   gameDownloadStats,
   images,
   sql,
+  tags,
   transformStoredUrl,
   vn,
   vnTitles,
@@ -238,15 +239,18 @@ export const ViewsService = {
     }
 
     const tagIds = rows.map((r) => r.targetId)
-    const zhtagRows = await db
+    // 优先中文名，未本地化的回退 VNDB 英文名，避免显示原始 tag id
+    const tagRows = await db
       .select({
-        id: zhtags.id,
-        name: zhtags.name,
+        id: tags.id,
+        name: tags.name,
+        zhName: zhtags.name,
       })
-      .from(zhtags)
-      .where(inArray(zhtags.id, tagIds))
+      .from(tags)
+      .leftJoin(zhtags, eq(zhtags.id, tags.id))
+      .where(inArray(tags.id, tagIds))
 
-    const titleMap = new Map(zhtagRows.map((r) => [r.id, r.name]))
+    const titleMap = new Map(tagRows.map((r) => [r.id, r.zhName ?? r.name]))
 
     const result = rows.map((r) => ({
       tag: r.targetId,

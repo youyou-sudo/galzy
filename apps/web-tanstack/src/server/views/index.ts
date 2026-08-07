@@ -14,10 +14,7 @@ export const recordGameView = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data }) => {
-		const { error } = await api.views.game.post(
-			{ gameId: data.id },
-			ipPass(),
-		);
+		const { error } = await api.views.game.post({ gameId: data.id }, ipPass());
 		elysiaErrorF(error);
 	});
 
@@ -28,9 +25,6 @@ export const recordTagView = createServerFn({ method: "POST" })
 		}),
 	)
 	.handler(async ({ data }) => {
-		const { error } = await api.views.tag.post(
-			{ tagId: data.tagId },
-			ipPass(),
-		);
+		const { error } = await api.views.tag.post({ tagId: data.tagId }, ipPass());
 		elysiaErrorF(error);
 	});

@@ -49,3 +49,10 @@ export const getVnListByTag = createServerFn()
 		elysiaErrorF(error);
 		return res;
 	});
+
+// 分类浏览（cont/ero/tech 三大类），仅含已本地化标签，与详情页口径一致
+export const getTagCategories = createServerFn().handler(async () => {
+	const { data: res, error } = await api.tags.categories.get();
+	elysiaErrorF(error);
+	return res;
+});

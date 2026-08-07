@@ -3,6 +3,7 @@ import { TagsModel } from './model'
 import { Tags } from './service'
 
 export const tags = new Elysia({ prefix: '/tags' })
+  .get('/categories', () => Tags.tagCategories())
   .get(
     '/tag',
     async ({ query: { tagId } }) => {
