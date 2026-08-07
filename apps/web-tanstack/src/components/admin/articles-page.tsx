@@ -35,6 +35,7 @@ import {
 	SearchIcon,
 	Trash2Icon,
 	Undo2Icon,
+	XCircleIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -158,6 +159,8 @@ function ArticlesTable() {
 		}
 	> = {
 		published: { label: "已审核", variant: "default" as const },
+		pending: { label: "待审核", variant: "outline" as const },
+		rejected: { label: "已驳回", variant: "secondary" as const },
 		hidden: { label: "隐藏", variant: "secondary" as const },
 		deleted: { label: "已删除", variant: "destructive" as const },
 	};
@@ -194,7 +197,9 @@ function ArticlesTable() {
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="__all__">全部状态</SelectItem>
+							<SelectItem value="pending">待审核</SelectItem>
 							<SelectItem value="published">已审核</SelectItem>
+							<SelectItem value="rejected">已驳回</SelectItem>
 							<SelectItem value="hidden">已隐藏</SelectItem>
 							<SelectItem value="deleted">已删除</SelectItem>
 						</SelectContent>
@@ -305,6 +310,12 @@ function ArticlesTable() {
 													<EditArticleCell article={article} onDone={refresh} />
 													{article.status !== "published" && (
 														<PublishArticleButton
+															article={article}
+															onDone={refresh}
+														/>
+													)}
+													{article.status === "pending" && (
+														<RejectArticleButton
 															article={article}
 															onDone={refresh}
 														/>
@@ -456,6 +467,45 @@ function PublishArticleButton({
 				<Loader2Icon className="size-4 animate-spin" />
 			) : (
 				<CircleCheckIcon className="size-4 text-green-600" />
+			)}
+		</Button>
+	);
+}
+
+function RejectArticleButton({
+	article,
+	onDone,
+}: {
+	article: AdminArticle;
+	onDone: () => void;
+}) {
+	const [loading, setLoading] = useState(false);
+
+	const handleReject = async () => {
+		setLoading(true);
+		try {
+			const res = await adminChangeArticleStatus({
+				data: { id: article.id, status: "rejected" },
+			});
+			if (!res) {
+				toast.error("操作失败");
+				return;
+			}
+			toast.success("文章已驳回");
+			onDone();
+		} catch {
+			toast.error("操作出错");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	return (
+		<Button variant="ghost" size="sm" onClick={handleReject} disabled={loading}>
+			{loading ? (
+				<Loader2Icon className="size-4 animate-spin" />
+			) : (
+				<XCircleIcon className="size-4 text-destructive" />
 			)}
 		</Button>
 	);

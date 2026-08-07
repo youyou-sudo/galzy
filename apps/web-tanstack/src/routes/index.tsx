@@ -33,7 +33,7 @@ export const Route = createFileRoute("/")({
 					queryKey: ["homeCollections"],
 					queryFn: () =>
 						getCollectionsWithPreview({
-							data: { limit: 5, previewLimit: 3 },
+							data: { limit: 6, previewLimit: 3 },
 						}).then((r) => r.items),
 				}),
 				context.queryClient.ensureQueryData({

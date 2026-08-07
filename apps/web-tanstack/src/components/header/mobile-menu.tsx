@@ -1,18 +1,19 @@
 import { Link } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import { Button } from "@web/components/ui/button";
+import { Separator } from "@web/components/ui/separator";
 import {
 	Sheet,
 	SheetContent,
 	SheetHeader,
 	SheetTitle,
 } from "@web/components/ui/sheet";
-import { Separator } from "@web/components/ui/separator";
 import { cn } from "@web/lib/utils";
 import {
 	Building2,
 	ExternalLink,
 	Home,
+	Library,
 	Mail,
 	MessageSquare,
 	Tags,
@@ -23,6 +24,7 @@ const mainLinks = [
 	{ to: "/", label: "主页", icon: Home },
 	{ to: "/tags", label: "标签", icon: Tags },
 	{ to: "/producer", label: "会社", icon: Building2 },
+	{ to: "/collections", label: "合集", icon: Library },
 	{ to: "/topics", label: "论坛", icon: MessageSquare },
 	{ to: "/contact", label: "联系", icon: Mail },
 ] as const;
@@ -68,18 +70,15 @@ export function HeaderMobileMenu({
 				</SheetHeader>
 				<nav className="flex flex-col gap-3 px-2 pb-2">
 					<div className="grid grid-cols-2 gap-2">
-						{mainLinks.map(({ to, label, icon: Icon }, index) => (
+						{mainLinks.map(({ to, label, icon: Icon }, _index) => (
 							<Button
 								key={to}
 								variant="outline"
 								nativeButton={false}
 								className={cn(
 									"h-12 w-full justify-start gap-2.5 px-3 text-base font-medium",
-									index === mainLinks.length - 1 && "col-span-2",
 								)}
-								render={
-									<Link to={to} onClick={() => onOpenChange(false)} />
-								}
+								render={<Link to={to} onClick={() => onOpenChange(false)} />}
 							>
 								<Icon data-icon="inline-start" />
 								{label}
@@ -97,9 +96,7 @@ export function HeaderMobileMenu({
 								variant="ghost"
 								nativeButton={false}
 								className="h-auto w-full justify-start gap-3 px-3 py-2.5"
-								render={
-									<Link to={to} onClick={() => onOpenChange(false)} />
-								}
+								render={<Link to={to} onClick={() => onOpenChange(false)} />}
 							>
 								<Icon data-icon="inline-start" />
 								<div className="flex flex-col items-start gap-0.5">

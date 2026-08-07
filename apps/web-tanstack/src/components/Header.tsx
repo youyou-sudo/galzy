@@ -101,6 +101,14 @@ export default function Header() {
 									</NavigationMenuLink>
 								</NavigationMenuItem>
 								<NavigationMenuItem>
+									<NavigationMenuLink
+										className={navigationMenuTriggerStyle()}
+										render={<Link to="/collections" />}
+									>
+										合集
+									</NavigationMenuLink>
+								</NavigationMenuItem>
+								<NavigationMenuItem>
 									<NavigationMenuTrigger>工具</NavigationMenuTrigger>
 									<NavigationMenuContent>
 										<ul className="grid w-[220px] gap-1 p-3">

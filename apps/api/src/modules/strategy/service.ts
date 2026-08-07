@@ -3,6 +3,7 @@ import { articles, db, sql } from '@api/libs'
 import {
   acquireIdempotentKey,
   delKv,
+  delKvPattern,
   generateIdempotentHash,
   getIdempotentResult,
   getKv,
@@ -27,8 +28,11 @@ export const Strategy = {
         `.as('user'),
       })
       .from(articles)
-      .where(eq(articles.id, strategyId))
+      .where(and(eq(articles.id, strategyId), eq(articles.status, 'published')))
       .then((r) => r[0])
+    if (!strategyContent) {
+      throw status(404, '文章不存在或未通过审核')
+    }
     void setKv(
       `galzy:strategy:${strategyId}`,
       JSON.stringify(strategyContent),
@@ -63,6 +67,7 @@ export const Strategy = {
       .where(
         and(
           eq(articles.type, 'strategy'),
+          eq(articles.status, 'published'),
           isVNDB
             ? eq(articles.vid, gameId)
             : eq(articles.otherid, Number(gameId)),
@@ -80,6 +85,7 @@ export const Strategy = {
   async strategyUpdate({ id, data }: StrategyModel.strategyListUpdate) {
     await delKv(`galzy:game:strategys:${id}`)
     await delKv(`galzy:strategy:${id}`)
+    void delKvPattern('galzy:strategy:admin:articles:*')
     const hash = generateIdempotentHash({ id, data })
     const cached = await getIdempotentResult(
       `galzy:idempotent:strategyListUpdate:${hash}`,
@@ -104,8 +110,14 @@ export const Strategy = {
       60,
     )
   },
-  async strategyCreate({ id, data, userid }: StrategyModel.strategyListCreate) {
+  async strategyCreate({
+    id,
+    data,
+    userid,
+    isAdmin,
+  }: StrategyModel.strategyListCreate & { userid: string; isAdmin: boolean }) {
     await delKv(`galzy:game:strategys:${id}`)
+    void delKvPattern('galzy:strategy:admin:articles:*')
     const hash = generateIdempotentHash({ id, data })
     const cached = await getIdempotentResult(
       `galzy:idempotent:strategyListCreate:${hash}`,
@@ -120,17 +132,25 @@ export const Strategy = {
     if (!ok) {
       throw status(200, '重复请求')
     }
+    const articleStatus = isAdmin ? 'published' : 'pending'
     const isVNDB = /^v\d+$/.test(id)
     if (isVNDB) {
       await db
         .insert(articles)
-        .values({ vid: id, ...data, type: 'strategy', author: userid })
+        .values({
+          vid: id,
+          ...data,
+          type: 'strategy',
+          author: userid,
+          status: articleStatus,
+        })
     } else {
       await db.insert(articles).values({
         otherid: Number(id),
         ...data,
         type: 'strategy',
         author: userid,
+        status: articleStatus,
       })
     }
     await storeIdempotentResult(
@@ -141,6 +161,7 @@ export const Strategy = {
   },
   async strategyDelete({ strategyId, gameId }: StrategyModel.strategy) {
     await delKv(`galzy:game:strategys:${gameId}`)
+    void delKvPattern('galzy:strategy:admin:articles:*')
     const hash = generateIdempotentHash({ strategyId })
     const cached = await getIdempotentResult(
       `galzy:idempotent:strategyListDelete:${hash}`,
@@ -252,6 +273,7 @@ export const Strategy = {
     }
 
     await delKv(`galzy:strategy:${id}`)
+    void delKvPattern('galzy:strategy:admin:articles:*')
     if (article.vid) {
       void delKv(`galzy:game:strategys:${article.vid}`)
     }

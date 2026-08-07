@@ -41,7 +41,6 @@ export const createIntroduction = createServerFn()
 			title: z.string().min(1, "标题不能为空"),
 			content: z.string().min(1, "内容不能为空"),
 			copyright: z.string().nullable().optional(),
-			userid: z.string(),
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -53,7 +52,6 @@ export const createIntroduction = createServerFn()
 					content: data.content,
 					copyright: data.copyright ?? "",
 				},
-				userid: data.userid,
 			},
 			cookiePass(),
 		);

@@ -128,7 +128,6 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 		title: string().min(1, "需要一个标题喵"),
 		content: string().min(1, "内容是空的喵？"),
 		copyright: string(),
-		userid: string(),
 	});
 
 	// ── Form ─────────────────────────────────────────────────────
@@ -137,7 +136,6 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 			title: mergedData?.title || "",
 			content: mergedData?.content || "",
 			copyright: mergedData?.copyright || "",
-			userid: session?.user?.id ?? "",
 		},
 		validators: {
 			onChange: formSchema,
@@ -185,7 +183,6 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 					title: value.title.trim(),
 					content: value.content.trim(),
 					copyright: value.copyright?.trim() || null,
-					userid: value.userid,
 				},
 			});
 			form.reset();
@@ -235,7 +232,6 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 				title: mergedData?.title || "",
 				content: mergedData?.content || "",
 				copyright: mergedData?.copyright || "",
-				userid: session?.user?.id ?? "",
 			});
 		}
 	}, [mergedData, session?.user?.id, props?.gameId]);

@@ -1,8 +1,10 @@
+import { betterAuth } from '@api/modules/auth'
 import { Elysia } from 'elysia'
 import { StrategyModel } from './model'
 import { Strategy } from './service'
 
 export const strategy = new Elysia({ prefix: '/strategy' })
+  .use(betterAuth)
   .get(
     '/gamestrategys',
     async ({ query: { gameId } }) => {
@@ -33,11 +35,16 @@ export const strategy = new Elysia({ prefix: '/strategy' })
   )
   .post(
     '/strategylistcreate',
-    async ({ body: { id, data, userid } }) => {
-      return await Strategy.strategyCreate({ id, data, userid })
+    async ({ body: { id, data }, user }) => {
+      return await Strategy.strategyCreate({
+        id,
+        data,
+        userid: user.id,
+        isAdmin: user.role === 'admin',
+      })
     },
     {
-      isAdmin: true,
+      auth: true,
       body: StrategyModel.strategyListCreate,
     },
   )

@@ -15,7 +15,6 @@ export namespace StrategyModel {
   export const strategyListCreate = t.Object({
     id: t.String({ minLength: 1 }),
     data: t.Any(),
-    userid: t.String({ minLength: 1 }),
   })
   export const adminArticleListQuery = t.Object({
     page: t.Optional(t.Number({ minimum: 1 })),
