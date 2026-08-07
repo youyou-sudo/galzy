@@ -12,7 +12,7 @@ import {
   zhtags,
 } from '@api/libs'
 import { getKv, getRedisClient, isRedisEnabled, setKv } from '@api/libs/redis'
-import { and, count, desc, eq, gte, inArray } from 'drizzle-orm'
+import { and, count, desc, eq, gte, inArray, isNull, or } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { ViewsModel } from './model'
 
@@ -239,7 +239,8 @@ export const ViewsService = {
     }
 
     const tagIds = rows.map((r) => r.targetId)
-    // 优先中文名，未本地化的回退 VNDB 英文名，避免显示原始 tag id
+    // 优先中文名，未本地化的回退 VNDB 英文名，避免显示原始 tag id；
+    // 标注了不展示（exhibition = false）的标签从热门列表中剔除
     const tagRows = await db
       .select({
         id: tags.id,
@@ -248,15 +249,23 @@ export const ViewsService = {
       })
       .from(tags)
       .leftJoin(zhtags, eq(zhtags.id, tags.id))
-      .where(inArray(tags.id, tagIds))
+      .where(
+        and(
+          inArray(tags.id, tagIds),
+          or(isNull(zhtags.id), eq(zhtags.exhibition, true)),
+        ),
+      )
 
+    const visibleIds = new Set(tagRows.map((r) => r.id))
     const titleMap = new Map(tagRows.map((r) => [r.id, r.zhName ?? r.name]))
 
-    const result = rows.map((r) => ({
-      tag: r.targetId,
-      title: titleMap.get(r.targetId) ?? null,
-      total: r.total,
-    }))
+    const result = rows
+      .filter((r) => visibleIds.has(r.targetId))
+      .map((r) => ({
+        tag: r.targetId,
+        title: titleMap.get(r.targetId) ?? null,
+        total: r.total,
+      }))
 
     void setKv(cacheKey, JSON.stringify(result), WEEK_CACHE_TTL)
     return result

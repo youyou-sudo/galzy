@@ -5,6 +5,10 @@ import {
 	CollectionsSectionSkeleton,
 } from "@web/components/home/collections-section";
 import { HotGamesSection } from "@web/components/home/hot-games-section";
+import {
+	HotTagsSection,
+	HotTagsSectionSkeleton,
+} from "@web/components/home/hot-tags-section";
 import SearchInput from "@web/components/home/search/Search";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { seoTemplate } from "@web/config/seoTemplate";
@@ -78,6 +82,8 @@ function App() {
 				<SearchInput />
 			</div>
 
+			<HotTagsSection tags={rankings.tag} />
+
 			<HotGamesSection games={rankings.game} />
 
 			<CollectionsSection />
@@ -98,6 +104,7 @@ function HomePageSkeleton() {
 					<Skeleton className="h-10 w-full rounded-lg" />
 				</div>
 			</div>
+			<HotTagsSectionSkeleton />
 			<CollectionsSectionSkeleton />
 		</div>
 	);

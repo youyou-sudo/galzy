@@ -25,12 +25,12 @@ import ThemeToggle from "./ThemeToggle";
 // 仅客户端懒加载：auth-client/better-auth、头像裁剪等只在用户菜单挂载后进入客户端，
 // SSR 不渲染该组件（输出骨架），首屏不下载其代码
 const UserMenu = lazy(() => import("./user/UserMenu"));
-// 懒加载：dialog/scroll-lock 代码只在移动端菜单首次打开时加载
-const HeaderMobileMenu = lazy(() =>
+// 懒加载：dialog/scroll-lock 代码不进首屏 bundle，空闲时预加载、首次打开前就绪
+const loadHeaderMobileMenu = () =>
 	import("./header/mobile-menu").then((m) => ({
 		default: m.HeaderMobileMenu,
-	})),
-);
+	}));
+const HeaderMobileMenu = lazy(loadHeaderMobileMenu);
 
 export default function Header() {
 	const [isOpen, setIsOpen] = useState(false);
@@ -38,6 +38,15 @@ export default function Header() {
 	const blurEnabled = useSelector(r18Store, (s) => s.blurEnabled);
 	useEffect(() => {
 		setMounted(true);
+		// 移动端首屏空闲时预加载侧栏菜单 chunk：首次点击汉堡按钮时立即打开，不等待网络请求
+		if (window.matchMedia("(max-width: 767px)").matches) {
+			const run = () => void loadHeaderMobileMenu();
+			if (typeof requestIdleCallback === "function") {
+				requestIdleCallback(run, { timeout: 2000 });
+			} else {
+				setTimeout(run, 300);
+			}
+		}
 	}, []);
 	return (
 		<div className="sticky top-0 z-50 mx-auto w-full max-w-7xl border-b bg-background/95 backdrop-blur-sm px-4 sm:px-6 py-2 lg:mb-4 rounded-full lg:border dark:opacity-70">
@@ -53,6 +62,7 @@ export default function Header() {
 							size="icon"
 							aria-label="打开菜单"
 							onClick={() => setIsOpen(true)}
+							onPointerEnter={() => void loadHeaderMobileMenu()}
 						>
 							<Menu className="size-5" />
 							<span className="sr-only">打开菜单</span>

@@ -131,3 +131,27 @@
     @apply font-sans;
     }
 }
+
+/* 移动端顶栏抽屉入场动画：面板从顶部向下滑入。
+   Base UI v1.6 的 data-starting-style 入场阶段在当前 React 19 下首帧即被清除（从不绘制），
+   过渡无从触发；故入场用挂载即播放的 keyframes，出场仍由 Sheet 的 data-ending-style 过渡负责。 */
+@keyframes galzy-sheet-top-drop {
+  from {
+    transform: translateY(-6rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+[data-slot="sheet-content"][data-side="top"] {
+  animation: galzy-sheet-top-drop 0.3s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="sheet-content"][data-side="top"] {
+    animation: none;
+  }
+}

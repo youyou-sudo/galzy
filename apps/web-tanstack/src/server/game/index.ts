@@ -125,9 +125,20 @@ export const getTotalCount = createServerFn().handler(async () => {
 	return totalRes;
 });
 export const getCritical = createServerFn().handler(async () => {
-	const gameResult = await api.views.hot.game.get();
+	const [gameResult, tagResult] = await Promise.allSettled([
+		api.views.hot.game.get(),
+		api.views.hot.tag.get(),
+	]);
 
-	return {
-		game: !gameResult.error && gameResult.data ? gameResult.data : null,
-	};
+	const game =
+		gameResult.status === "fulfilled" && !gameResult.value.error
+			? (gameResult.value.data ?? null)
+			: null;
+
+	const tag =
+		tagResult.status === "fulfilled" && !tagResult.value.error
+			? (tagResult.value.data ?? null)
+			: null;
+
+	return { game, tag };
 });
