@@ -119,7 +119,7 @@ function RouteComponent() {
   )
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-3 md:px-6 py-6">
+    <div>
       <Breadcrumb className="mb-4">
         <BreadcrumbList>
           <BreadcrumbItem>

@@ -88,7 +88,7 @@ export default function RouteComponent() {
 
 	return (
 		<section className="flex justify-center items-start min-h-[60vh]">
-			<div className="p-4 w-full max-w-2xl">
+			<div className="w-full max-w-2xl">
 				{/* Header */}
 				<div className="text-center mb-6">
 					<h1 className="text-3xl font-bold mb-2">车牌号跳转工具</h1>

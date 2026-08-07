@@ -8,7 +8,7 @@ import {
 export default function RouteComponent() {
 	return (
 		<section className="flex justify-center items-center">
-			<div className="p-4 w-full max-w-md">
+			<div className="w-full max-w-md">
 				<Card className="shadow-lg rounded-2xl">
 					<CardHeader>
 						<CardTitle className="flex items-center justify-center text-4xl font-extrabold">

@@ -41,7 +41,7 @@ function RouteComponent() {
   const { indexType } = Route.useSearch();
   const navigate = useNavigate();
   return (
-    <div className="container mx-auto py-6 space-y-6 max-w-4xl">
+    <div className="mx-auto w-full max-w-4xl space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">

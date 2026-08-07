@@ -39,19 +39,19 @@ function PokerStack({
 	}
 
 	const layerStyles = [
-		{ rotate: -4, x: -4, y: 2, z: 0, scale: 0.82 },
+		{ rotate: -10, x: -16, y: 4, z: 0, scale: 0.82 },
 		{ rotate: 1, x: 0, y: 0, z: 10, scale: 0.9 },
-		{ rotate: 6, x: 4, y: 2, z: 20, scale: 1 },
+		{ rotate: 10, x: 16, y: 4, z: 20, scale: 1 },
 	];
 
 	const hoverStyles = [
-		"group-hover:rotate-[-8deg] group-hover:translate-x-[-14px] group-hover:translate-y-[6px]",
-		"group-hover:rotate-[2deg] group-hover:-translate-x-[3px] group-hover:-translate-y-[2px]",
-		"group-hover:rotate-[10deg] group-hover:translate-x-[14px] group-hover:translate-y-[6px]",
+		"group-hover:rotate-[-7deg] group-hover:translate-x-[-13px] group-hover:translate-y-[4px]",
+		"group-hover:rotate-[1deg] group-hover:-translate-x-[3px] group-hover:-translate-y-[2px]",
+		"group-hover:rotate-[7deg] group-hover:translate-x-[13px] group-hover:translate-y-[4px]",
 	];
 
 	return (
-		<div className="relative aspect-[4/5] w-full rounded-xl overflow-hidden bg-muted/30">
+		<div className="relative aspect-[4/5] w-full rounded-xl bg-muted/30">
 			{stackItems.map((item, i) => {
 				const layer = layerStyles[i];
 				return (
@@ -74,9 +74,6 @@ function PokerStack({
 					/>
 				);
 			})}
-
-			{/* Bottom gradient */}
-			<div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
 
 			{/* Count badge — bottom-right */}
 			<div

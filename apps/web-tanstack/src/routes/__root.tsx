@@ -115,7 +115,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <TanStackQueryProvider>
           <RouterProgress />
           <Header />
-          <main className="mx-auto w-full max-w-7xl p-4 space-y-4">
+          <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-6 space-y-4">
             {/* 广告 */}
             <aside
               id="sidebar-ad"

@@ -38,7 +38,7 @@ export const Route = createFileRoute('/producer/$pid')({
     const loaderData = Route.useLoaderData()
     const producerName = loaderData.producer?.name || '厂商'
     return (
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-0">
+      <div>
         <Breadcrumb className="mb-4">
           <BreadcrumbList>
             <BreadcrumbItem>

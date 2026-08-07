@@ -78,7 +78,7 @@ export const Route = createFileRoute('/$id/_layout')({
 
     return (
       <>
-        <div className="max-w-7xl mx-auto w-full px-3 md:px-6 pt-6">
+        <div>
           <Breadcrumb className="mb-4">
             <BreadcrumbList>
               <BreadcrumbItem>

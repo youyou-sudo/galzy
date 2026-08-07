@@ -25,7 +25,7 @@ export const Route = createFileRoute("/tags/")({
 		const { q } = Route.useLoaderData();
 		const { cat, sort } = Route.useSearch();
 		return (
-			<div className="max-w-7xl mx-auto py-6">
+			<div>
 				<Breadcrumb className="mb-4">
 					<BreadcrumbList>
 						<BreadcrumbItem>

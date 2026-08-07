@@ -7,7 +7,7 @@ export const ProducerGamelist = () => {
 	const { gameList } = apiroute.useLoaderData();
 
 	return (
-		<div className="grid grid-cols-3 gap-4 md:grid-cols-6 p-3">
+		<div className="grid grid-cols-3 gap-4 md:grid-cols-6">
 			<Await
 				promise={gameList}
 				fallback={

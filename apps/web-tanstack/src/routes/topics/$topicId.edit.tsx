@@ -54,7 +54,7 @@ function RouteComponent() {
 	}
 
 	return (
-		<div className="py-8">
+		<div>
 			<TopicForm
 				defaultValues={{
 					title: (topic as any).title,

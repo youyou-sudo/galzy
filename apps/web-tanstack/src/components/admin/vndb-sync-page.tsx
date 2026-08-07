@@ -126,7 +126,7 @@ export default function RouteComponent() {
 				: 0;
 
 	return (
-		<div className="container mx-auto py-6 space-y-6 max-w-4xl">
+		<div className="mx-auto w-full max-w-4xl space-y-6">
 			<div>
 				<h1 className="text-2xl font-bold tracking-tight">VNDB 数据同步</h1>
 				<p className="text-muted-foreground mt-1">

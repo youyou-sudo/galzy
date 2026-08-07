@@ -40,7 +40,7 @@ function RouteComponent() {
   }
 
   return (
-    <div className="py-8">
+    <div>
       <TopicForm onSubmit={handleSubmit} title="发帖" submitLabel="发布" />
     </div>
   )

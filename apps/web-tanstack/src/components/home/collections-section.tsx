@@ -15,7 +15,7 @@ export function CollectionsSection() {
   if (!collections || collections.length === 0) return null
 
   return (
-    <section className="px-3 md:px-6 mb-8">
+    <section className="mb-8">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <BookOpen className="size-5 text-primary" />
@@ -39,7 +39,7 @@ export function CollectionsSection() {
 
 export function CollectionsSectionSkeleton() {
   return (
-    <section className="px-3 md:px-6 mb-8">
+    <section className="mb-8">
       <div className="flex items-center gap-2 mb-4">
         <div className="size-5 rounded bg-muted animate-pulse" />
         <div className="h-6 w-24 rounded bg-muted animate-pulse" />

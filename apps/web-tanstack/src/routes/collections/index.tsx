@@ -1,9 +1,9 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import {
-  CollectionCard,
-  CollectionCardSkeleton,
-} from '@web/components/collections/collection-card'
+  CollectionItem,
+  CollectionItemSkeleton,
+} from '@web/components/home/collection-card'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -48,7 +48,7 @@ export const Route = createFileRoute('/collections/')({
 
 function CollectionsPageSkeleton() {
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6">
+    <div>
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -70,7 +70,7 @@ function CollectionsPageSkeleton() {
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
         {Array.from({ length: 12 }).map((_, i) => (
-          <CollectionCardSkeleton key={i} />
+          <CollectionItemSkeleton key={i} />
         ))}
       </div>
     </div>
@@ -94,7 +94,7 @@ function RouteComponent() {
   const totalPages = Math.max(1, Math.ceil(total / (result?.limit ?? 30)))
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6">
+    <div>
       {/* Breadcrumb */}
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
@@ -125,7 +125,7 @@ function RouteComponent() {
       {items.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {items.map((col) => (
-            <CollectionCard key={col.id} collection={col} />
+            <CollectionItem key={col.id} collection={col} />
           ))}
         </div>
       ) : (

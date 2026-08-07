@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { GameCard } from "@web/components/home/card";
+import { cn } from "@web/lib/utils";
 import { Flame, TrendingUp } from "lucide-react";
 
 interface HotGame {
@@ -19,10 +20,10 @@ interface HotGamesSectionProps {
 export function HotGamesSection({ games }: HotGamesSectionProps) {
 	if (!games || games.length === 0) return null;
 
-	const displayGames = games.slice(0, 12);
+	const displayGames = games.slice(0, 24);
 
 	return (
-		<section className="px-3 md:px-6 mb-8">
+		<section className="mb-8">
 			<div className="flex items-center justify-between mb-4">
 				<div className="flex items-center gap-2">
 					<Flame className="size-5 text-orange-500" />
@@ -39,7 +40,15 @@ export function HotGamesSection({ games }: HotGamesSectionProps) {
 			</div>
 			<div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
 				{displayGames.map((game, index) => (
-					<div key={game.id} className="relative">
+					// 每档断点固定四排：移动端 3×4=12、sm 4×4=16、md+ 6×4=24，超出项按断点隐藏
+					<div
+						key={game.id}
+						className={cn(
+							"relative",
+							index >= 12 && index < 16 && "hidden sm:block",
+							index >= 16 && "hidden md:block",
+						)}
+					>
 						<GameCard.Item
 							gameid={game.id}
 							title={game.title || "未知游戏"}

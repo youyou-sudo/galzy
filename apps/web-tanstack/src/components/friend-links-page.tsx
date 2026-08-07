@@ -57,7 +57,7 @@ const linksList: {
 export default function RouteComponent() {
 	return (
 		<section>
-			<div className="p-2">
+			<div>
 				<div className="mb-6 ml-1 space-y-4">
 					<h1 className="flex justify-center items-center text-4xl font-semibold ">
 						🐾喵の朋友们

@@ -77,7 +77,7 @@ const HomeGamelist = () => {
 	);
 
 	return (
-		<section className="px-3 md:px-6">
+		<section>
 			<div className="flex items-center justify-between mb-4">
 				<div className="flex items-center gap-2">
 					<ListFilter className="size-4 text-muted-foreground" />

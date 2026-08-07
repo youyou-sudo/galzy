@@ -24,7 +24,7 @@ export const Route = createFileRoute("/producer/")({
 	component: () => {
 		const { producers, q, page } = Route.useLoaderData();
 		return (
-			<div className="max-w-7xl mx-auto py-6 px-4 sm:px-0">
+			<div>
 				<Breadcrumb className="mb-4">
 					<BreadcrumbList>
 						<BreadcrumbItem>

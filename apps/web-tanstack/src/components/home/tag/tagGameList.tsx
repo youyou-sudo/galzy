@@ -69,7 +69,7 @@ export const TagGamelist = () => {
 
 	return (
 		<>
-			<div className="grid grid-cols-3 gap-4 md:grid-cols-6 p-3">
+			<div className="grid grid-cols-3 gap-4 md:grid-cols-6">
 				{gameList}
 				{isLoading || isFetchingNextPage ? (
 					<>

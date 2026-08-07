@@ -19,7 +19,7 @@ const toolLinks = [
 export default function RouteComponent() {
 	return (
 		<section className="flex justify-center items-start min-h-[60vh]">
-			<div className="p-4 w-full max-w-3xl">
+			<div className="w-full max-w-3xl">
 				{/* Header */}
 				<div className="text-center mb-8">
 					<div className="inline-flex items-center justify-center size-12 rounded-full bg-primary/10 mb-4">

@@ -107,7 +107,7 @@ export default function ProducersPage({
 	const totalPages = producers?.totalPages ?? 0;
 
 	return (
-		<section className="md:w-7xl p-3 space-y-4">
+		<section className="space-y-4">
 			<div className="flex items-center justify-center gap-2 mb-4">
 				<Building2Icon className="w-5 h-5 text-primary" />
 				<h1 className="text-lg font-semibold text-foreground">厂商检索</h1>

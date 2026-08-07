@@ -73,7 +73,7 @@ const PAGE_SIZE = 20;
 
 export default function RouteComponent() {
 	return (
-		<div className="container mx-auto py-6 space-y-6 max-4xl">
+		<div className="mx-auto w-full max-w-4xl space-y-6">
 			<div className="flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-bold tracking-tight">评论管理</h1>

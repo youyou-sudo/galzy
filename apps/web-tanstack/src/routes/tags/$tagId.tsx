@@ -55,7 +55,7 @@ export const Route = createFileRoute('/tags/$tagId')({
     const loaderData = Route.useLoaderData()
     const tagName = loaderData.tag?.zht_name || loaderData.tag?.name || '标签'
     return (
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-0">
+      <div>
         <Breadcrumb className="mb-4">
           <BreadcrumbList>
             <BreadcrumbItem>

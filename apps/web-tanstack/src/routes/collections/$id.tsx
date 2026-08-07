@@ -49,7 +49,7 @@ export const Route = createFileRoute('/collections/$id')({
 
 function CollectionDetailSkeleton() {
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 space-y-8">
+    <div className="space-y-8">
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -128,7 +128,7 @@ function RouteComponent() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 space-y-10">
+    <div className="space-y-10">
       {/* Breadcrumb */}
       <Breadcrumb className="mb-2">
         <BreadcrumbList>

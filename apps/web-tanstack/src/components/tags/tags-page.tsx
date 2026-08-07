@@ -114,7 +114,7 @@ export default function TagsIndexPage({
 	const searchQ = q?.trim();
 
 	return (
-		<section className="max-w-5xl mx-auto py-3 px-0 sm:px-3 flex flex-col gap-8">
+		<section className="flex flex-col gap-8">
 			<div className="text-center flex flex-col gap-1.5">
 				<div className="flex items-center justify-center gap-2">
 					<TagsIcon className="size-5 text-primary" />
@@ -298,7 +298,7 @@ function TagCategoryBrowser({ cat, sort }: { cat: TagCat; sort: TagSort }) {
 				</p>
 			) : (
 				<>
-					<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+					<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-2">
 						{shown.map((item) => (
 							<Link
 								key={item.id}
