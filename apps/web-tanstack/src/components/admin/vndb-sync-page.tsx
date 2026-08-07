@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AdminPageHeader } from "@web/components/admin/admin-page-header";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
 import {
@@ -126,13 +127,12 @@ export default function RouteComponent() {
 				: 0;
 
 	return (
-		<div className="mx-auto w-full max-w-4xl space-y-6">
-			<div>
-				<h1 className="text-2xl font-bold tracking-tight">VNDB 数据同步</h1>
-				<p className="text-muted-foreground mt-1">
-					管理 VNDB 数据全量/增量同步，实时监控同步进度
-				</p>
-			</div>
+		<div className="flex flex-col gap-6">
+			<AdminPageHeader
+				eyebrow="系统"
+				title="VNDB 数据同步"
+				description="管理 VNDB 数据全量/增量同步，实时监控同步进度"
+			/>
 
 			{/* Sync Controls */}
 			<Card>

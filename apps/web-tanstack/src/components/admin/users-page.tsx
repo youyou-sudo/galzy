@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { AdminPageHeader } from "@web/components/admin/admin-page-header";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
 import { Card, CardContent, CardHeader } from "@web/components/ui/card";
@@ -73,16 +74,13 @@ const PAGE_SIZE = 15;
 
 export default function RouteComponent() {
 	return (
-		<div className="mx-auto w-full max-w-4xl space-y-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-2xl font-bold tracking-tight">用户管理</h1>
-					<p className="text-muted-foreground mt-1">
-						管理用户账号、角色、封禁与权限
-					</p>
-				</div>
-				<CreateUserDialog />
-			</div>
+		<div className="flex flex-col gap-6">
+			<AdminPageHeader
+				eyebrow="系统"
+				title="用户管理"
+				description="管理用户账号、角色、封禁与权限"
+				actions={<CreateUserDialog />}
+			/>
 
 			<UsersTable />
 		</div>

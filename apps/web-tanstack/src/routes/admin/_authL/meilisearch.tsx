@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { AdminPageHeader } from '@web/components/admin/admin-page-header';
 import { EmbeddersTab } from '@web/components/admin/meilisearch/embedders-tab';
 import { IndexesTab } from '@web/components/admin/meilisearch/indexes-tab';
 import { OverviewTab } from '@web/components/admin/meilisearch/overview-tab';
@@ -41,33 +42,29 @@ function RouteComponent() {
   const { indexType } = Route.useSearch();
   const navigate = useNavigate();
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Meilisearch 管理
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            管理 Meilisearch 搜索引擎的配置与索引
-          </p>
-        </div>
-
-        <Select
-          value={indexType}
-          onValueChange={(v) =>
-            navigate({ search: { indexType: v as IndexType } })
-          }
-        >
-          <SelectTrigger className="w-36">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="game">游戏索引</SelectItem>
-            <SelectItem value="tag">标签索引</SelectItem>
-            <SelectItem value="producer">厂商索引</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+    <div className="flex flex-col gap-6">
+      <AdminPageHeader
+        eyebrow="系统"
+        title="Meilisearch 管理"
+        description="管理 Meilisearch 搜索引擎的配置与索引"
+        actions={
+          <Select
+            value={indexType}
+            onValueChange={(v) =>
+              navigate({ search: { indexType: v as IndexType } })
+            }
+          >
+            <SelectTrigger className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="game">游戏索引</SelectItem>
+              <SelectItem value="tag">标签索引</SelectItem>
+              <SelectItem value="producer">厂商索引</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      />
 
       <Tabs defaultValue="overview" className="w-full">
         <div className="overflow-x-auto max-w-full -mb-[5px] pb-[5px]">

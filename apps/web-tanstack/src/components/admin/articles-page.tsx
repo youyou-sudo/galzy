@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { CreateEditDialog } from "@web/components/-CreateEditDialog";
+import { AdminPageHeader } from "@web/components/admin/admin-page-header";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
 import { Card, CardContent, CardHeader } from "@web/components/ui/card";
@@ -65,15 +66,12 @@ const PAGE_SIZE = 20;
 
 export default function RouteComponent() {
 	return (
-		<div className="mx-auto w-full max-w-4xl space-y-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-2xl font-bold tracking-tight">文章管理</h1>
-					<p className="text-muted-foreground mt-1">
-						管理全站攻略文章，支持审核、编辑、隐藏与删除操作
-					</p>
-				</div>
-			</div>
+		<div className="flex flex-col gap-6">
+			<AdminPageHeader
+				eyebrow="内容管理"
+				title="文章管理"
+				description="管理全站攻略文章，支持审核、编辑、隐藏与删除操作"
+			/>
 
 			<ArticlesTable />
 		</div>

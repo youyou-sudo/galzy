@@ -6,6 +6,7 @@ import {
   HeadContent,
   ScriptOnce,
   Scripts,
+  useMatches,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { Image } from '@unpic/react'
@@ -107,54 +108,12 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="font-sans antialiased flex flex-col min-h-screen">
-        {/* 背景层 */}
-        <div
-          className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-30 dark:opacity-10"
-          style={{ backgroundImage: 'url("/background.webp")' }}
-        />
         <TanStackQueryProvider>
           <RouterProgress />
-          <Header />
-          <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-6 space-y-4">
-            {/* 广告 */}
-            <aside
-              id="sidebar-ad"
-              className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-70 relative"
-            >
-              <a
-                data-umami-event="广告点击"
-                data-umami-event-name="dzmm"
-                data-umami-event-position="Banner-dzmm"
-                target="_blank"
-                rel="noopener noreferrer"
-                href="https://umami.galzy.moe/q/KrhnTk4vg"
-              >
-                <div
-                  id="sidebar-ad"
-                  className="sm:hidden overflow-hidden rounded-lg"
-                >
-                  <Image
-                    width={1425}
-                    height={120}
-                    src="/dzmmgif.webp"
-                    alt="dzmm 广告图片"
-                    className="object-cover scale-[1.03]"
-                  />
-                </div>
-                <div id="sidebar-ad" className="hidden sm:block">
-                  <Image
-                    width={1425}
-                    height={113}
-                    src="/dzmmgif.webp"
-                    alt="dzmm 广告图片"
-                    className="object-cover rounded-lg"
-                  />
-                </div>
-              </a>
-            </aside>
-            <TooltipProvider>{children}</TooltipProvider>
-          </main>
-          <Footer />
+          {/* 后台路由使用独立的管理端布局（AdminShell），与用户端 Header/Footer/广告完全隔离 */}
+          <TooltipProvider>
+            <AppChrome>{children}</AppChrome>
+          </TooltipProvider>
           <Toaster position="top-center" />
           <TanStackDevtools
             config={{
@@ -172,5 +131,71 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <Scripts />
       </body>
     </html>
+  )
+}
+
+/**
+ * 用户端 / 管理端双壳切换。
+ * 依据当前匹配的路由树判断：`/admin/**`（pathless 布局 `_authL` 之下）走管理端独立布局，
+ * 其余路由渲染用户端 Header / 广告 / Footer。用 useMatches（而非 useRouterState）
+ * 只订阅 matches 部分，内置记忆化、SSR 首帧与 URL 一致（见文档推荐）。
+ */
+function AppChrome({ children }: { children: React.ReactNode }) {
+  const matches = useMatches()
+  const isAdmin = matches.some((m) => m.routeId.startsWith('/admin/'))
+
+  if (isAdmin) {
+    return <>{children}</>
+  }
+
+  return (
+    <>
+      {/* 背景层 */}
+      <div
+        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-30 dark:opacity-10"
+        style={{ backgroundImage: 'url("/background.webp")' }}
+      />
+      <Header />
+      <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-6 space-y-4">
+        {/* 广告 */}
+        <aside
+          id="sidebar-ad"
+          className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-70 relative"
+        >
+          <a
+            data-umami-event="广告点击"
+            data-umami-event-name="dzmm"
+            data-umami-event-position="Banner-dzmm"
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://umami.galzy.moe/q/KrhnTk4vg"
+          >
+            <div
+              id="sidebar-ad"
+              className="sm:hidden overflow-hidden rounded-lg"
+            >
+              <Image
+                width={1425}
+                height={120}
+                src="/dzmmgif.webp"
+                alt="dzmm 广告图片"
+                className="object-cover scale-[1.03]"
+              />
+            </div>
+            <div id="sidebar-ad" className="hidden sm:block">
+              <Image
+                width={1425}
+                height={113}
+                src="/dzmmgif.webp"
+                alt="dzmm 广告图片"
+                className="object-cover rounded-lg"
+              />
+            </div>
+          </a>
+        </aside>
+        {children}
+      </main>
+      <Footer />
+    </>
   )
 }

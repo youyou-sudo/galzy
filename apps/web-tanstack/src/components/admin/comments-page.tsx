@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { AdminPageHeader } from "@web/components/admin/admin-page-header";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
 import { Card, CardContent, CardHeader } from "@web/components/ui/card";
@@ -73,15 +74,12 @@ const PAGE_SIZE = 20;
 
 export default function RouteComponent() {
 	return (
-		<div className="mx-auto w-full max-w-4xl space-y-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-2xl font-bold tracking-tight">评论管理</h1>
-					<p className="text-muted-foreground mt-1">
-						管理全站评论与回复，支持编辑、删除、状态变更与置顶操作
-					</p>
-				</div>
-			</div>
+		<div className="flex flex-col gap-6">
+			<AdminPageHeader
+				eyebrow="内容管理"
+				title="评论管理"
+				description="管理全站评论与回复，支持编辑、删除、状态变更与置顶操作"
+			/>
 
 			<CommentsTable />
 		</div>

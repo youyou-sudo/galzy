@@ -1,4 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { AdminPageHeader } from "@web/components/admin/admin-page-header";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
 import { Card, CardContent, CardHeader } from "@web/components/ui/card";
@@ -30,7 +32,6 @@ import {
 	MessageSquareTextIcon,
 	Trash2Icon,
 } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -55,15 +56,12 @@ const PAGE_SIZE = 20;
 
 export default function RouteComponent() {
 	return (
-		<div className="mx-auto w-full max-w-4xl space-y-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-2xl font-bold tracking-tight">话题管理</h1>
-					<p className="text-muted-foreground mt-1">
-						管理全站话题，支持审核、隐藏与删除操作
-					</p>
-				</div>
-			</div>
+		<div className="flex flex-col gap-6">
+			<AdminPageHeader
+				eyebrow="内容管理"
+				title="话题管理"
+				description="管理全站话题，支持审核、隐藏与删除操作"
+			/>
 
 			<TopicsTable />
 		</div>
@@ -143,7 +141,7 @@ function TopicsTable() {
 					<Select
 						value={statusFilter}
 						onValueChange={(v) => {
-							setStatusFilter(v != null && v === "__all__" ? "" : v ?? "");
+							setStatusFilter(v != null && v === "__all__" ? "" : (v ?? ""));
 							setOffset(0);
 						}}
 					>
@@ -229,9 +227,7 @@ function TopicsTable() {
 												<Badge variant={sl.variant}>{sl.label}</Badge>
 											</td>
 											<td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-												{new Date(topic.createdAt).toLocaleDateString(
-													"zh-CN",
-												)}
+												{new Date(topic.createdAt).toLocaleDateString("zh-CN")}
 											</td>
 											<td className="px-4 py-3 text-right">
 												<div className="flex items-center justify-end gap-1.5">
@@ -242,10 +238,7 @@ function TopicsTable() {
 														/>
 													)}
 													{topic.status === "published" && (
-														<HideTopicButton
-															topic={topic}
-															onDone={refresh}
-														/>
+														<HideTopicButton topic={topic} onDone={refresh} />
 													)}
 													{topic.status === "hidden" && (
 														<RestoreTopicButton
@@ -253,10 +246,7 @@ function TopicsTable() {
 															onDone={refresh}
 														/>
 													)}
-													<DeleteTopicDialog
-														topic={topic}
-														onDone={refresh}
-													/>
+													<DeleteTopicDialog topic={topic} onDone={refresh} />
 												</div>
 											</td>
 										</tr>
