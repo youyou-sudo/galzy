@@ -13,7 +13,7 @@ const sites = [
 	{
 		id: "nhentai",
 		name: "nhentai",
-		url: "https://nhentai.net/g/{id}/",
+		url: "https://nhentai.xxx/g/{id}/",
 		icon: "N",
 		color: "text-rose-500",
 		bg: "bg-rose-500/10",
