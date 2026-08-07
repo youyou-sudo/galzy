@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { adminNav, adminNavItems } from "@web/components/admin/admin-nav";
 import { AdminPageHeader } from "@web/components/admin/admin-page-header";
 import {
 	Card,
@@ -15,13 +16,10 @@ import { adminGetAllTopics } from "@web/server/admin/topics";
 import { adminListUsers } from "@web/server/auth/auth.functions";
 import {
 	ArrowRightIcon,
-	DatabaseIcon,
 	ExternalLinkIcon,
 	FileTextIcon,
 	LayoutDashboardIcon,
 	MessageSquareTextIcon,
-	PackageIcon,
-	SearchIcon,
 	ShieldCheckIcon,
 	UsersIcon,
 } from "lucide-react";
@@ -35,6 +33,16 @@ export const Route = createFileRoute("/admin/_authL/")({
 
 type StatKey = "users" | "comments" | "articles" | "topics";
 
+/** 统一读取分页接口的 total 字段,非数字一律返回 null */
+async function readTotal(request: Promise<unknown>): Promise<number | null> {
+	const res = await request;
+	if (res && typeof res === "object" && "total" in res) {
+		const total = (res as { total?: unknown }).total;
+		return typeof total === "number" ? total : null;
+	}
+	return null;
+}
+
 const statDefs: {
 	key: StatKey;
 	label: string;
@@ -45,53 +53,27 @@ const statDefs: {
 		key: "users",
 		label: "注册用户",
 		icon: UsersIcon,
-		query: async () => {
-			const res = await adminListUsers({ data: { limit: 1, offset: 0 } });
-			if (
-				res &&
-				typeof res === "object" &&
-				"total" in res &&
-				typeof res.total === "number"
-			) {
-				return res.total;
-			}
-			return null;
-		},
+		query: () => readTotal(adminListUsers({ data: { limit: 1, offset: 0 } })),
 	},
 	{
 		key: "comments",
 		label: "评论总数",
 		icon: MessageSquareTextIcon,
-		query: async () => {
-			const res = await adminGetAllComments({ data: { page: 1, limit: 1 } });
-			if (
-				res &&
-				typeof res === "object" &&
-				"total" in res &&
-				typeof res.total === "number"
-			) {
-				return res.total;
-			}
-			return null;
-		},
+		query: () =>
+			readTotal(adminGetAllComments({ data: { page: 1, limit: 1 } })),
 	},
 	{
 		key: "articles",
 		label: "攻略文章",
 		icon: FileTextIcon,
-		query: async () => {
-			const res = await adminGetAllArticles({ data: { page: 1, limit: 1 } });
-			return res?.total ?? null;
-		},
+		query: () =>
+			readTotal(adminGetAllArticles({ data: { page: 1, limit: 1 } })),
 	},
 	{
 		key: "topics",
 		label: "论坛话题",
 		icon: MessageSquareTextIcon,
-		query: async () => {
-			const res = await adminGetAllTopics({ data: { page: 1, limit: 1 } });
-			return res?.total ?? null;
-		},
+		query: () => readTotal(adminGetAllTopics({ data: { page: 1, limit: 1 } })),
 	},
 ];
 
@@ -151,55 +133,8 @@ function StatCard({
 
 // --- 快捷入口 ---
 
-const adminLinks: {
-	to: string;
-	icon: ComponentType<{ className?: string }>;
-	title: string;
-	description: string;
-}[] = [
-	{
-		to: "/admin/users",
-		icon: UsersIcon,
-		title: "用户管理",
-		description: "账号、角色、封禁与权限",
-	},
-	{
-		to: "/admin/comments",
-		icon: MessageSquareTextIcon,
-		title: "评论管理",
-		description: "删除、编辑、隐藏与置顶",
-	},
-	{
-		to: "/admin/articles",
-		icon: FileTextIcon,
-		title: "文章管理",
-		description: "审核、编辑、隐藏与删除",
-	},
-	{
-		to: "/admin/topics",
-		icon: MessageSquareTextIcon,
-		title: "话题管理",
-		description: "审核、隐藏与删除",
-	},
-	{
-		to: "/admin/collections",
-		icon: PackageIcon,
-		title: "合集管理",
-		description: "手动选品与会社绑定",
-	},
-	{
-		to: "/admin/meilisearch",
-		icon: SearchIcon,
-		title: "Meilisearch",
-		description: "索引、搜索属性与 Embedders",
-	},
-	{
-		to: "/admin/vndb-sync",
-		icon: DatabaseIcon,
-		title: "VNDB 数据同步",
-		description: "全量/增量同步与监控",
-	},
-];
+// 除仪表盘外全部导航项,由 admin-nav 单一配置源派生
+const quickLinks = adminNavItems.filter((item) => item.to !== "/admin");
 
 function QuickLinksCard() {
 	return (
@@ -212,7 +147,7 @@ function QuickLinksCard() {
 				<CardDescription>常用管理功能的直达入口</CardDescription>
 			</CardHeader>
 			<CardContent className="grid gap-1.5 sm:grid-cols-2">
-				{adminLinks.map(({ to, icon: Icon, title, description }) => (
+				{quickLinks.map(({ to, icon: Icon, label, description }) => (
 					<Link
 						key={to}
 						to={to}
@@ -222,7 +157,7 @@ function QuickLinksCard() {
 							<Icon className="size-4" />
 						</div>
 						<div className="flex min-w-0 flex-1 flex-col">
-							<span className="text-sm font-medium">{title}</span>
+							<span className="text-sm font-medium">{label}</span>
 							<span className="truncate text-xs text-muted-foreground">
 								{description}
 							</span>
@@ -236,6 +171,10 @@ function QuickLinksCard() {
 }
 
 // --- 系统状态 ---
+
+// 「系统」分组中除用户管理外的导航项,由 admin-nav 单一配置源派生
+const systemStatusItems =
+	adminNav.find((section) => section.section === "系统")?.items ?? [];
 
 function StatusRow({
 	icon: Icon,
@@ -277,30 +216,23 @@ function SystemStatusCard() {
 				<CardDescription>数据同步与站外服务入口</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-1.5">
-				<StatusRow
-					icon={SearchIcon}
-					title="Meilisearch 索引"
-					description="索引配置、搜索属性与 Embedders"
-				>
-					<Link
-						to="/admin/meilisearch"
-						className="text-xs font-medium text-primary hover:underline"
-					>
-						管理
-					</Link>
-				</StatusRow>
-				<StatusRow
-					icon={DatabaseIcon}
-					title="VNDB 数据同步"
-					description="全量 / 增量 / 开发者同步"
-				>
-					<Link
-						to="/admin/vndb-sync"
-						className="text-xs font-medium text-primary hover:underline"
-					>
-						管理
-					</Link>
-				</StatusRow>
+				{systemStatusItems
+					.filter((item) => item.to !== "/admin/users")
+					.map(({ to, icon: Icon, label, description }) => (
+						<StatusRow
+							key={to}
+							icon={Icon}
+							title={label}
+							description={description}
+						>
+							<Link
+								to={to}
+								className="text-xs font-medium text-primary hover:underline"
+							>
+								管理
+							</Link>
+						</StatusRow>
+					))}
 				<StatusRow
 					icon={ExternalLinkIcon}
 					title="前台站点"

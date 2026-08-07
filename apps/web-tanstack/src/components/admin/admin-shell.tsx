@@ -1,5 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "@tanstack/react-router";
+import { adminNav } from "@web/components/admin/admin-nav";
 import ThemeToggle from "@web/components/ThemeToggle";
 import { Button } from "@web/components/ui/button";
 import { Separator } from "@web/components/ui/separator";
@@ -7,56 +8,14 @@ import { Sheet, SheetContent, SheetTitle } from "@web/components/ui/sheet";
 import { cn } from "@web/lib/utils";
 import { authClient } from "@web/server/auth/auth-client";
 import {
-	DatabaseIcon,
 	ExternalLinkIcon,
-	FileTextIcon,
-	LayoutDashboardIcon,
 	LogOutIcon,
 	MenuIcon,
-	MessageSquareTextIcon,
-	PackageIcon,
-	SearchIcon,
 	ShieldCheckIcon,
-	UsersIcon,
 	XIcon,
 } from "lucide-react";
-import type { ComponentType } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
-
-type NavItem = {
-	to: string;
-	label: string;
-	icon: ComponentType<{ className?: string }>;
-	exact?: boolean;
-};
-
-// 后台导航配置：与用户端完全独立的管理控制台信息架构
-const adminNav: { section: string; items: NavItem[] }[] = [
-	{
-		section: "概览",
-		items: [
-			{ to: "/admin", label: "仪表盘", icon: LayoutDashboardIcon, exact: true },
-		],
-	},
-	{
-		section: "内容管理",
-		items: [
-			{ to: "/admin/comments", label: "评论管理", icon: MessageSquareTextIcon },
-			{ to: "/admin/articles", label: "文章管理", icon: FileTextIcon },
-			{ to: "/admin/topics", label: "话题管理", icon: MessageSquareTextIcon },
-			{ to: "/admin/collections", label: "合集管理", icon: PackageIcon },
-		],
-	},
-	{
-		section: "系统",
-		items: [
-			{ to: "/admin/users", label: "用户管理", icon: UsersIcon },
-			{ to: "/admin/meilisearch", label: "Meilisearch", icon: SearchIcon },
-			{ to: "/admin/vndb-sync", label: "VNDB 同步", icon: DatabaseIcon },
-		],
-	},
-];
 
 function isActive(to: string, exact: boolean | undefined, pathname: string) {
 	return exact ? pathname === to : pathname.startsWith(to);
@@ -231,9 +190,9 @@ function AdminTopBar({ pathname }: { pathname: string }) {
 					管理后台
 				</span>
 				<Separator orientation="vertical" className="hidden h-4 sm:block" />
-				<h1 className="truncate text-sm font-semibold tracking-tight">
+				<span className="truncate text-sm font-semibold tracking-tight">
 					{pageTitleOf(pathname)}
-				</h1>
+				</span>
 			</div>
 			<div className="ml-auto flex items-center gap-2">
 				<Link
