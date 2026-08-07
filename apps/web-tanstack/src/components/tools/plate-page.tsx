@@ -1,3 +1,7 @@
+import {
+	RadioGroup,
+	RadioGroupItem,
+} from "@web/components/animate-ui/components/radix/radio-group";
 import { Button } from "@web/components/ui/button";
 import {
 	Card,
@@ -9,11 +13,24 @@ import { Input } from "@web/components/ui/input";
 import { ExternalLink, Hash } from "lucide-react";
 import { useState } from "react";
 
-const sites = [
+type PlateSite = {
+	id: string;
+	name: string;
+	icon: string;
+	color: string;
+	bg: string;
+	url?: string;
+	channels?: { id: string; name: string; url: string }[];
+};
+
+const sites: PlateSite[] = [
 	{
 		id: "nhentai",
 		name: "nhentai",
-		url: "https://nhentai.xxx/g/{id}/",
+		channels: [
+			{ id: "NH", name: "NH", url: "https://nhentai.net/g/{id}/" },
+			{ id: "NHX", name: "NHX", url: "https://nhentai.xxx/g/{id}/" },
+		],
 		icon: "N",
 		color: "text-rose-500",
 		bg: "bg-rose-500/10",
@@ -78,6 +95,7 @@ const sites = [
 
 export default function RouteComponent() {
 	const [plate, setPlate] = useState("");
+	const [nhentaiChannel, setNhentaiChannel] = useState("NH");
 
 	const openSite = (url: string) => {
 		window.open(url, "_blank", "noopener,noreferrer");
@@ -111,50 +129,75 @@ export default function RouteComponent() {
 					选择班次喵～
 				</h2>
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-					{sites.map((site) => (
-						<Card key={site.id}>
-							<CardHeader className="pb-2">
-								<CardTitle className="text-base flex items-center gap-2">
-									<span
-										className={`inline-flex items-center justify-center size-6 rounded ${site.bg} ${site.color} text-xs font-bold`}
-									>
-										{site.icon}
-									</span>
-									{site.name}
-								</CardTitle>
-							</CardHeader>
-							<CardContent className="pt-0">
-								{plate.trim() ? (
-									<>
-										<p className="text-xs text-muted-foreground truncate mb-2">
-											{resolvedUrl(site.url)}
-										</p>
+					{sites.map((site) => {
+						const channel = site.channels?.find((c) => c.id === nhentaiChannel);
+						const url = channel?.url ?? site.url ?? "";
+						return (
+							<Card key={site.id}>
+								<CardHeader className="pb-2">
+									<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+										<CardTitle className="text-base flex items-center gap-2">
+											<span
+												className={`inline-flex items-center justify-center size-6 rounded ${site.bg} ${site.color} text-xs font-bold`}
+											>
+												{site.icon}
+											</span>
+											{site.name}
+										</CardTitle>
+										{site.channels && (
+											<RadioGroup
+												value={nhentaiChannel}
+												onValueChange={(value: string) =>
+													setNhentaiChannel(value)
+												}
+												className="flex flex-row items-center gap-4"
+											>
+												{site.channels.map((c) => (
+													<label
+														key={c.id}
+														className="flex items-center gap-2 text-sm cursor-pointer"
+													>
+														<RadioGroupItem value={c.id} />
+														{c.name}
+													</label>
+												))}
+											</RadioGroup>
+										)}
+									</div>
+								</CardHeader>
+								<CardContent className="pt-0">
+									{plate.trim() ? (
+										<>
+											<p className="text-xs text-muted-foreground truncate mb-2">
+												{resolvedUrl(url)}
+											</p>
+											<Button
+												size="sm"
+												variant="outline"
+												className="w-full cursor-pointer"
+												onClick={() =>
+													openSite(url.replace("{id}", plate.trim()))
+												}
+											>
+												<ExternalLink data-icon="inline-start" />
+												打开
+											</Button>
+										</>
+									) : (
 										<Button
 											size="sm"
 											variant="outline"
 											className="w-full cursor-pointer"
-											onClick={() =>
-												openSite(site.url.replace("{id}", plate.trim()))
-											}
+											disabled
 										>
 											<ExternalLink data-icon="inline-start" />
-											打开
+											输入车牌号后可上车喵～
 										</Button>
-									</>
-								) : (
-									<Button
-										size="sm"
-										variant="outline"
-										className="w-full cursor-pointer"
-										disabled
-									>
-										<ExternalLink data-icon="inline-start" />
-										输入车牌号后可上车喵～
-									</Button>
-								)}
-							</CardContent>
-						</Card>
-					))}
+									)}
+								</CardContent>
+							</Card>
+						);
+					})}
 				</div>
 			</div>
 		</section>

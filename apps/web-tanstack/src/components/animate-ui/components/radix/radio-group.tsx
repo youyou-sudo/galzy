@@ -1,5 +1,7 @@
 "use client";
 
+import { Radio as RadioPrimitive } from "@base-ui/react/radio";
+import { RadioGroup as RadioGroupPrimitive } from "@base-ui/react/radio-group";
 import { cn } from "@web/lib/utils";
 import { Circle } from "lucide-react";
 import {
@@ -8,15 +10,14 @@ import {
 	motion,
 	type Transition,
 } from "motion/react";
-import { RadioGroup as RadioGroupPrimitive } from "@base-ui/react/radio-group";
 
-type RadioGroupProps = RadioGroupPrimitive.Root.Props & {
+type RadioGroupProps = RadioGroupPrimitive.Props & {
 	transition?: Transition;
 };
 
 function RadioGroup({ className, ...props }: RadioGroupProps) {
 	return (
-		<RadioGroupPrimitive.Root
+		<RadioGroupPrimitive
 			data-slot="radio-group"
 			className={cn("grid gap-2.5", className)}
 			{...props}
@@ -24,7 +25,7 @@ function RadioGroup({ className, ...props }: RadioGroupProps) {
 	);
 }
 
-type RadioGroupIndicatorProps = RadioGroupPrimitive.Indicator.Props & {
+type RadioGroupIndicatorProps = RadioPrimitive.Indicator.Props & {
 	transition: Transition;
 };
 
@@ -34,7 +35,7 @@ function RadioGroupIndicator({
 	...props
 }: RadioGroupIndicatorProps) {
 	return (
-		<RadioGroupPrimitive.Indicator
+		<RadioPrimitive.Indicator
 			data-slot="radio-group-indicator"
 			className={cn("flex items-center justify-center", className)}
 			{...props}
@@ -51,11 +52,11 @@ function RadioGroupIndicator({
 					<Circle className="size-3 fill-current text-current" />
 				</motion.div>
 			</AnimatePresence>
-		</RadioGroupPrimitive.Indicator>
+		</RadioPrimitive.Indicator>
 	);
 }
 
-type RadioGroupItemProps = RadioGroupPrimitive.Item.Props &
+type RadioGroupItemProps = RadioPrimitive.Root.Props &
 	HTMLMotionProps<"button"> & {
 		transition?: Transition;
 	};
@@ -66,7 +67,7 @@ function RadioGroupItem({
 	...props
 }: RadioGroupItemProps) {
 	return (
-		<RadioGroupPrimitive.Item
+		<RadioPrimitive.Root
 			render={
 				<motion.button
 					data-slot="radio-group-item"
@@ -84,13 +85,13 @@ function RadioGroupItem({
 				data-slot="radio-group-item-indicator"
 				transition={transition}
 			/>
-		</RadioGroupPrimitive.Item>
+		</RadioPrimitive.Root>
 	);
 }
 
 export {
 	RadioGroup,
 	RadioGroupItem,
-	type RadioGroupProps,
 	type RadioGroupItemProps,
+	type RadioGroupProps,
 };
