@@ -7,8 +7,11 @@ export const strategy = new Elysia({ prefix: '/strategy' })
   .use(betterAuth)
   .get(
     '/gamestrategys',
-    async ({ query: { gameId } }) => {
-      return await Strategy.gameStrategys({ gameId })
+    async ({ query: { gameId }, request }) => {
+      return await Strategy.gameStrategys({
+        gameId,
+        headers: request.headers,
+      })
     },
     {
       query: StrategyModel.gameStrategys,
@@ -25,11 +28,16 @@ export const strategy = new Elysia({ prefix: '/strategy' })
   )
   .post(
     '/strategylistupdate',
-    async ({ body: { id, data } }) => {
-      return await Strategy.strategyUpdate({ id, data })
+    async ({ body: { id, data }, user }) => {
+      return await Strategy.strategyUpdate({
+        id,
+        data,
+        userid: user.id,
+        isAdmin: user.role === 'admin',
+      })
     },
     {
-      isAdmin: true,
+      auth: true,
       body: StrategyModel.strategyListUpdate,
     },
   )

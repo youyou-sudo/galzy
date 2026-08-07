@@ -9,6 +9,7 @@ import { Loader2, NotepadText, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { CreateEditDialog } from "@web/components/-CreateEditDialog";
+import { Badge } from "@web/components/ui/badge";
 
 export default function IntroductionPage({
 	introductionList,
@@ -105,65 +106,83 @@ export default function IntroductionPage({
 
 			{introductionList && introductionList.length > 0 && (
 				<div className="rounded-lg">
-					{introductionList.map((item: any) => (
-						<div
-							key={item.id}
-							className="flex items-center justify-between px-2 gap-2 rounded-lg group hover:bg-muted/50"
-						>
-							<Link
-								to="/$id/introduction/$articleId"
-								params={{ id: id, articleId: String(item.id) }}
-								resetScroll={false}
-								className="w-full min-w-0"
+					{introductionList.map((item: any) => {
+						const isMine =
+							item.author === session?.user?.id &&
+							(item.status === "pending" || item.status === "rejected");
+						const canEdit = isAdmin || isMine;
+						return (
+							<div
+								key={item.id}
+								className="flex items-center justify-between px-2 gap-2 rounded-lg group hover:bg-muted/50"
 							>
-								<div className="py-2 flex items-center w-full min-w-0">
-									<NotepadText className="size-4 mr-1 shrink-0" />
-									<span className="truncate">{item.title}</span>
-								</div>
-							</Link>
-
-							{/* Admin action buttons */}
-							{isAdmin && (
-								<div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-									<Button
-										variant="ghost"
-										size="icon-sm"
-										onClick={(e) => {
-											e.preventDefault();
-											e.stopPropagation();
-											introductionEditActions.setOpen({
-												gameId: id,
-												id: String(item.id),
-												title: item.title,
-												content: item.content,
-												copyright: item.copyright,
-											});
-										}}
-										title="编辑"
-									>
-										<Pencil className="size-3.5" />
-									</Button>
-									<Button
-										variant="ghost"
-										size="icon-sm"
-										onClick={(e) => {
-											e.preventDefault();
-											e.stopPropagation();
-											handleDelete(item.id);
-										}}
-										disabled={deletingIds.has(item.id)}
-										title="删除"
-									>
-										{deletingIds.has(item.id) ? (
-											<Loader2 className="size-3.5 animate-spin" />
-										) : (
-											<Trash2 className="size-3.5 text-destructive" />
+								<Link
+									to="/$id/introduction/$articleId"
+									params={{ id: id, articleId: String(item.id) }}
+									resetScroll={false}
+									className="w-full min-w-0"
+								>
+									<div className="py-2 flex items-center w-full min-w-0">
+										<NotepadText className="size-4 mr-1 shrink-0" />
+										<span className="truncate">{item.title}</span>
+										{item.status === "pending" && (
+											<Badge variant="outline" className="ml-2 shrink-0">
+												待审核
+											</Badge>
 										)}
-									</Button>
-								</div>
-							)}
-						</div>
-					))}
+										{item.status === "rejected" && (
+											<Badge variant="secondary" className="ml-2 shrink-0">
+												已驳回
+											</Badge>
+										)}
+									</div>
+								</Link>
+
+								{/* Admin / author action buttons */}
+								{canEdit && (
+									<div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+										<Button
+											variant="ghost"
+											size="icon-sm"
+											onClick={(e) => {
+												e.preventDefault();
+												e.stopPropagation();
+												introductionEditActions.setOpen({
+													gameId: id,
+													id: String(item.id),
+													title: item.title,
+													content: item.content,
+													copyright: item.copyright,
+												});
+											}}
+											title="编辑"
+										>
+											<Pencil className="size-3.5" />
+										</Button>
+										{isAdmin && (
+											<Button
+												variant="ghost"
+												size="icon-sm"
+												onClick={(e) => {
+													e.preventDefault();
+													e.stopPropagation();
+													handleDelete(item.id);
+												}}
+												disabled={deletingIds.has(item.id)}
+												title="删除"
+											>
+												{deletingIds.has(item.id) ? (
+													<Loader2 className="size-3.5 animate-spin" />
+												) : (
+													<Trash2 className="size-3.5 text-destructive" />
+												)}
+											</Button>
+										)}
+									</div>
+								)}
+							</div>
+						);
+					})}
 				</div>
 			)}
 

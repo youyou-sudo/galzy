@@ -111,7 +111,11 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 	const updateMutation = useMutation({
 		mutationFn: updateIntroduction,
 		onSuccess: () => {
-			toast.success("文章更新成功～");
+			toast.success(
+				isAdmin
+					? "文章更新成功～"
+					: "修改已提交，请等待管理员重新审核喵～",
+			);
 			router.invalidate({
 				filter: (match) => match.routeId === "/$id/_layout/introduction/",
 			});

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { articles, db, sql } from '@api/libs'
+import { auth } from '@api/modules/auth/service'
 import {
   acquireIdempotentKey,
   delKv,
@@ -10,9 +11,72 @@ import {
   setKv,
   storeIdempotentResult,
 } from '@api/libs/redis'
-import { and, count, desc, eq, getTableColumns, like } from 'drizzle-orm'
+import {
+  and,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  like,
+} from 'drizzle-orm'
 import { status } from 'elysia'
 import type { StrategyModel } from './model'
+
+export interface StrategyListRow {
+  id: number
+  vid: string | null
+  otherid: number | null
+  author: string | null
+  title: string | null
+  type: string | null
+  status: string
+  copyright: string | null
+  content: string | null
+  createdAt: Date | null
+  updatedAt: Date | null
+  user: Record<string, any> | null
+}
+
+/** 游戏攻略列表查询：公开仅 published；传 authorId 时查该作者指定状态的未过审文章 */
+function strategyListQuery(
+  gameId: string,
+  options: { authorId?: string; statuses?: string[] } = {},
+): Promise<StrategyListRow[]> {
+  const isVNDB = /^v\d+$/.test(gameId)
+  const conditions = [
+    eq(articles.type, 'strategy'),
+    isVNDB ? eq(articles.vid, gameId) : eq(articles.otherid, Number(gameId)),
+  ]
+  if (options.authorId) {
+    conditions.push(
+      eq(articles.author, options.authorId),
+      inArray(articles.status, options.statuses ?? ['pending', 'rejected']),
+    )
+  } else {
+    conditions.push(eq(articles.status, 'published'))
+  }
+  return db
+    .select({
+      id: articles.id,
+      vid: articles.vid,
+      otherid: articles.otherid,
+      author: articles.author,
+      title: articles.title,
+      type: articles.type,
+      status: articles.status,
+      copyright: articles.copyright,
+      content: articles.content,
+      createdAt: articles.createdAt,
+      updatedAt: articles.updatedAt,
+      user: sql<Record<string, any>>`
+        (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${articles.author}) "u")
+      `.as('user'),
+    })
+    .from(articles)
+    .where(and(...conditions))
+    .limit(50)
+}
 
 export const Strategy = {
   async strategy({ strategyId }: StrategyModel.strategy) {
@@ -41,51 +105,71 @@ export const Strategy = {
     type StrategyContent = typeof strategyContent
     return strategyContent
   },
-  async gameStrategys({ gameId }: StrategyModel.gameStrategys) {
+  async gameStrategys({
+    gameId,
+    headers,
+  }: StrategyModel.gameStrategys & { headers: Headers }) {
     const redisData = await getKv(`galzy:game:strategys:${gameId}`)
+    let data: StrategyListRow[]
     if (redisData !== null && redisData !== undefined) {
-      return JSON.parse(redisData) as StrategyContent
+      data = JSON.parse(redisData) as StrategyListRow[]
+    } else {
+      data = await strategyListQuery(gameId)
+      void setKv(
+        `galzy:game:strategys:${gameId}`,
+        JSON.stringify(data),
+        60 * 60 * 1,
+      )
     }
-    const isVNDB = /^v\d+$/.test(gameId)
-    const data = await db
+    // 作者本人的未过审文章实时追加（不缓存，避免跨用户串数据）
+    const session = await auth.api.getSession({ headers })
+    if (session?.user?.id) {
+      const mine = await strategyListQuery(gameId, {
+        authorId: session.user.id,
+        statuses: ['pending', 'rejected'],
+      })
+      data = [...mine, ...data]
+    }
+    return data
+  },
+  async strategyUpdate({
+    id,
+    data,
+    userid,
+    isAdmin,
+  }: StrategyModel.strategyListUpdate & { userid: string; isAdmin: boolean }) {
+    const [article] = await db
       .select({
         id: articles.id,
         vid: articles.vid,
         otherid: articles.otherid,
         author: articles.author,
-        title: articles.title,
-        type: articles.type,
         status: articles.status,
-        copyright: articles.copyright,
-        createdAt: articles.createdAt,
-        updatedAt: articles.updatedAt,
-        user: sql<Record<string, any>>`
-          (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${articles.author}) "u")
-        `.as('user'),
       })
       .from(articles)
-      .where(
-        and(
-          eq(articles.type, 'strategy'),
-          eq(articles.status, 'published'),
-          isVNDB
-            ? eq(articles.vid, gameId)
-            : eq(articles.otherid, Number(gameId)),
-        ),
-      )
-      .limit(50)
-    void setKv(
-      `galzy:game:strategys:${gameId}`,
-      JSON.stringify(data),
-      60 * 60 * 1,
-    )
-    type StrategyContent = typeof data
-    return data
-  },
-  async strategyUpdate({ id, data }: StrategyModel.strategyListUpdate) {
-    await delKv(`galzy:game:strategys:${id}`)
+      .where(eq(articles.id, Number(id)))
+    if (!article) {
+      throw status(404, '文章不存在')
+    }
+    const isOwner = article.author === userid
+    if (!isAdmin && !isOwner) {
+      throw status(403, '无权编辑该文章')
+    }
+    if (
+      !isAdmin &&
+      article.status !== 'pending' &&
+      article.status !== 'rejected'
+    ) {
+      throw status(403, '已发布的文章不能直接编辑')
+    }
     await delKv(`galzy:strategy:${id}`)
     void delKvPattern('galzy:strategy:admin:articles:*')
+    if (article.vid) {
+      void delKv(`galzy:game:strategys:${article.vid}`)
+    }
+    if (article.otherid) {
+      void delKv(`galzy:game:strategys:${article.otherid}`)
+    }
     const hash = generateIdempotentHash({ id, data })
     const cached = await getIdempotentResult(
       `galzy:idempotent:strategyListUpdate:${hash}`,
@@ -100,9 +184,12 @@ export const Strategy = {
     if (!ok) {
       throw status(200, '重复请求')
     }
+    // 作者编辑被驳回的文章后重新进入审核队列
+    const nextStatus =
+      !isAdmin && article.status === 'rejected' ? { status: 'pending' } : {}
     await db
       .update(articles)
-      .set({ ...data })
+      .set({ ...data, ...nextStatus })
       .where(eq(articles.id, Number(id)))
     await storeIdempotentResult(
       `galzy:idempotent:strategyListUpdate:${hash}`,

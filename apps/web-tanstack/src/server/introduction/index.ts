@@ -29,6 +29,7 @@ export const getintroductionList = createServerFn()
 	.handler(async ({ data }) => {
 		const { data: res, error } = await api.strategy.gamestrategys.get({
 			query: { gameId: data.id },
+			...cookiePass(),
 		});
 		elysiaErrorF(error);
 		return res;
