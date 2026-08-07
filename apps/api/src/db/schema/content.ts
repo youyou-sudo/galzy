@@ -112,6 +112,11 @@ export const articles = pgTable(
     typeIdx: index('idx_galrc_article_type').on(table.type),
     statusIdx: index('idx_galrc_article_status').on(table.status),
     createdAtIdx: index('idx_galrc_article_created_at').on(table.createdAt),
+    typeStatusCreatedIdx: index('idx_galrc_article_type_status_created').on(
+      table.type,
+      table.status,
+      table.createdAt,
+    ),
   }),
 )
 
@@ -203,29 +208,7 @@ export const otherMediaRelations = relations(otherMedia, ({ one }) => ({
   }),
 }))
 
-// galrc_topics — 主题帖子
-export const topics = pgTable(
-  'galrc_topics',
-  {
-    id: serial('id').primaryKey(),
-    userId: varchar('userId', { length: 255 }).notNull(),
-    title: varchar('title', { length: 255 }).notNull(),
-    content: text('content').notNull(),
-    status: varchar('status', { length: 255 }).notNull().default('published'),
-    createdAt: timestamp('createdAt', { withTimezone: true }).defaultNow(),
-    updatedAt: timestamp('updatedAt', { withTimezone: true }).defaultNow(),
-  },
-  (table) => ({
-    userIdIdx: index('idx_galrc_topics_user_id').on(table.userId),
-    statusIdx: index('idx_galrc_topics_status').on(table.status),
-    createdAtIdx: index('idx_galrc_topics_created_at').on(table.createdAt),
-    statusCreatedIdx: index('idx_galrc_topics_status_created').on(
-      table.status,
-      table.createdAt,
-    ),
-  }),
-)
-
+// galrc_topic_likes / galrc_topic_favorites — 帖子(文章 type='topic')点赞/收藏
 export const topicLikes = pgTable(
   'galrc_topic_likes',
   {

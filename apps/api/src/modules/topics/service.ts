@@ -1,9 +1,9 @@
 import {
+  articles,
   comments,
   db,
   topicFavorites,
   topicLikes,
-  topics,
   users,
 } from '@api/libs'
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
@@ -21,30 +21,33 @@ export const TopicService = {
   ) {
     const offset = (page - 1) * limit
 
-    const conditions = [eq(topics.status, statusFilter)]
+    const conditions = [
+      eq(articles.type, 'topic'),
+      eq(articles.status, statusFilter),
+    ]
     const whereClause = and(...conditions)
 
     const [topicsData, countResult] = await Promise.all([
       db
         .select({
-          id: topics.id,
-          userId: topics.userId,
-          title: topics.title,
-          status: topics.status,
-          createdAt: topics.createdAt,
-          updatedAt: topics.updatedAt,
-          summary: sql<string>`substring(${topics.content}, 1, 400)`.as(
+          id: articles.id,
+          userId: articles.author,
+          title: articles.title,
+          status: articles.status,
+          createdAt: articles.createdAt,
+          updatedAt: articles.updatedAt,
+          summary: sql<string>`substring(${articles.content}, 1, 400)`.as(
             'summary',
           ),
         })
-        .from(topics)
+        .from(articles)
         .where(whereClause)
-        .orderBy(desc(topics.createdAt))
+        .orderBy(desc(articles.createdAt))
         .limit(limit)
         .offset(offset),
       db
         .select({ total: count() })
-        .from(topics)
+        .from(articles)
         .where(whereClause)
         .then((r) => r[0]),
     ])
@@ -54,7 +57,11 @@ export const TopicService = {
     }
 
     const topicIds = topicsData.map((t) => t.id)
-    const userIds = [...new Set(topicsData.map((t) => t.userId))]
+    const userIds = [
+      ...new Set(
+        topicsData.map((t) => t.userId).filter((u): u is string => u != null),
+      ),
+    ]
 
     const topicIdStrings = topicIds.map(String)
     const [usersData, likesData, favsData, commentCounts, userLikes, userFavs] =
@@ -122,7 +129,7 @@ export const TopicService = {
 
     const enrichedTopics = topicsData.map((t) => ({
       ...t,
-      user: userMap.get(t.userId) ?? null,
+      user: userMap.get(t.userId ?? '') ?? null,
       likeCount: likeCountMap.get(t.id) ?? 0,
       favoriteCount: favCountMap.get(t.id) ?? 0,
       replyCount: replyCountMap.get(t.id) ?? 0,
@@ -151,11 +158,12 @@ export const TopicService = {
           favoritedAt: topicFavorites.createdAt,
         })
         .from(topicFavorites)
-        .innerJoin(topics, eq(topicFavorites.topicId, topics.id))
+        .innerJoin(articles, eq(topicFavorites.topicId, articles.id))
         .where(
           and(
             eq(topicFavorites.userId, userId),
-            eq(topics.status, 'published'),
+            eq(articles.type, 'topic'),
+            eq(articles.status, 'published'),
           ),
         )
         .orderBy(desc(topicFavorites.createdAt))
@@ -164,11 +172,12 @@ export const TopicService = {
       db
         .select({ total: count() })
         .from(topicFavorites)
-        .innerJoin(topics, eq(topicFavorites.topicId, topics.id))
+        .innerJoin(articles, eq(topicFavorites.topicId, articles.id))
         .where(
           and(
             eq(topicFavorites.userId, userId),
-            eq(topics.status, 'published'),
+            eq(articles.type, 'topic'),
+            eq(articles.status, 'published'),
           ),
         )
         .then((r) => r[0]),
@@ -182,18 +191,18 @@ export const TopicService = {
 
     const topicsData = await db
       .select({
-        id: topics.id,
-        userId: topics.userId,
-        title: topics.title,
-        status: topics.status,
-        createdAt: topics.createdAt,
-        updatedAt: topics.updatedAt,
-        summary: sql<string>`substring(${topics.content}, 1, 400)`.as(
+        id: articles.id,
+        userId: articles.author,
+        title: articles.title,
+        status: articles.status,
+        createdAt: articles.createdAt,
+        updatedAt: articles.updatedAt,
+        summary: sql<string>`substring(${articles.content}, 1, 400)`.as(
           'summary',
         ),
       })
-      .from(topics)
-      .where(inArray(topics.id, topicIds))
+      .from(articles)
+      .where(inArray(articles.id, topicIds))
 
     // Preserve favorited order
     const topicMap = new Map(topicsData.map((t) => [t.id, t]))
@@ -202,7 +211,11 @@ export const TopicService = {
       .filter((t): t is NonNullable<typeof t> => t != null)
 
     const favTopicIdStrings = topicIds.map(String)
-    const userIds = [...new Set(ordered.map((t) => t.userId))]
+    const userIds = [
+      ...new Set(
+        ordered.map((t) => t.userId).filter((u): u is string => u != null),
+      ),
+    ]
 
     const [usersData, likesData, favsData, commentCounts, userLikes, userFavs] =
       await Promise.all([
@@ -265,7 +278,7 @@ export const TopicService = {
 
     const enrichedTopics = ordered.map((t) => ({
       ...t,
-      user: userMap.get(t.userId) ?? null,
+      user: userMap.get(t.userId ?? '') ?? null,
       likeCount: likeCountMap.get(t.id) ?? 0,
       favoriteCount: favCountMap.get(t.id) ?? 0,
       replyCount: replyCountMap.get(t.id) ?? 0,
@@ -294,9 +307,13 @@ export const TopicService = {
           likedAt: topicLikes.createdAt,
         })
         .from(topicLikes)
-        .innerJoin(topics, eq(topicLikes.topicId, topics.id))
+        .innerJoin(articles, eq(topicLikes.topicId, articles.id))
         .where(
-          and(eq(topicLikes.userId, userId), eq(topics.status, 'published')),
+          and(
+            eq(topicLikes.userId, userId),
+            eq(articles.type, 'topic'),
+            eq(articles.status, 'published'),
+          ),
         )
         .orderBy(desc(topicLikes.createdAt))
         .limit(limit)
@@ -304,9 +321,13 @@ export const TopicService = {
       db
         .select({ total: count() })
         .from(topicLikes)
-        .innerJoin(topics, eq(topicLikes.topicId, topics.id))
+        .innerJoin(articles, eq(topicLikes.topicId, articles.id))
         .where(
-          and(eq(topicLikes.userId, userId), eq(topics.status, 'published')),
+          and(
+            eq(topicLikes.userId, userId),
+            eq(articles.type, 'topic'),
+            eq(articles.status, 'published'),
+          ),
         )
         .then((r) => r[0]),
     ])
@@ -319,18 +340,18 @@ export const TopicService = {
 
     const topicsData = await db
       .select({
-        id: topics.id,
-        userId: topics.userId,
-        title: topics.title,
-        status: topics.status,
-        createdAt: topics.createdAt,
-        updatedAt: topics.updatedAt,
-        summary: sql<string>`substring(${topics.content}, 1, 400)`.as(
+        id: articles.id,
+        userId: articles.author,
+        title: articles.title,
+        status: articles.status,
+        createdAt: articles.createdAt,
+        updatedAt: articles.updatedAt,
+        summary: sql<string>`substring(${articles.content}, 1, 400)`.as(
           'summary',
         ),
       })
-      .from(topics)
-      .where(inArray(topics.id, topicIds))
+      .from(articles)
+      .where(inArray(articles.id, topicIds))
 
     // Preserve liked order
     const topicMap = new Map(topicsData.map((t) => [t.id, t]))
@@ -339,7 +360,11 @@ export const TopicService = {
       .filter((t): t is NonNullable<typeof t> => t != null)
 
     const likeTopicIdStrings = topicIds.map(String)
-    const userIds = [...new Set(ordered.map((t) => t.userId))]
+    const userIds = [
+      ...new Set(
+        ordered.map((t) => t.userId).filter((u): u is string => u != null),
+      ),
+    ]
 
     const [usersData, likesData, favsData, commentCounts, userLikes, userFavs] =
       await Promise.all([
@@ -402,7 +427,7 @@ export const TopicService = {
 
     const enrichedTopics = ordered.map((t) => ({
       ...t,
-      user: userMap.get(t.userId) ?? null,
+      user: userMap.get(t.userId ?? '') ?? null,
       likeCount: likeCountMap.get(t.id) ?? 0,
       favoriteCount: favCountMap.get(t.id) ?? 0,
       replyCount: replyCountMap.get(t.id) ?? 0,
@@ -423,16 +448,16 @@ export const TopicService = {
 
     const [topic] = await db
       .select({
-        id: topics.id,
-        userId: topics.userId,
-        title: topics.title,
-        content: topics.content,
-        status: topics.status,
-        createdAt: topics.createdAt,
-        updatedAt: topics.updatedAt,
+        id: articles.id,
+        userId: articles.author,
+        title: articles.title,
+        content: articles.content,
+        status: articles.status,
+        createdAt: articles.createdAt,
+        updatedAt: articles.updatedAt,
       })
-      .from(topics)
-      .where(eq(topics.id, numericId))
+      .from(articles)
+      .where(and(eq(articles.id, numericId), eq(articles.type, 'topic')))
     if (!topic) {
       throw status(404, '帖子不存在')
     }
@@ -441,7 +466,7 @@ export const TopicService = {
       db
         .select({ id: users.id, name: users.name, image: users.image })
         .from(users)
-        .where(eq(users.id, topic.userId))
+        .where(eq(users.id, topic.userId ?? ''))
         .then((r) => r[0] ?? null),
       db
         .select({
@@ -478,17 +503,29 @@ export const TopicService = {
   async createTopic({ title, content }: TopicModel.create, userId: string) {
     const now = new Date()
 
-    const [topic] = await db
-      .insert(topics)
+    const [inserted] = await db
+      .insert(articles)
       .values({
-        userId,
+        author: userId,
         title,
         content,
+        type: 'topic',
         status: 'published',
         createdAt: now,
         updatedAt: now,
-      } as any)
+      })
       .returning()
+
+    // 与列表/详情返回结构一致：author 列以 userId 字段对外暴露
+    const topic = {
+      id: inserted!.id,
+      userId: inserted!.author,
+      title: inserted!.title,
+      content: inserted!.content,
+      status: inserted!.status,
+      createdAt: inserted!.createdAt,
+      updatedAt: inserted!.updatedAt,
+    }
 
     const [topicUser] = await db
       .select({ id: users.id, name: users.name, image: users.image })
@@ -519,11 +556,11 @@ export const TopicService = {
 
     const [topic] = await db
       .select({
-        id: topics.id,
-        userId: topics.userId,
+        id: articles.id,
+        userId: articles.author,
       })
-      .from(topics)
-      .where(eq(topics.id, numericId))
+      .from(articles)
+      .where(and(eq(articles.id, numericId), eq(articles.type, 'topic')))
 
     if (!topic) {
       throw status(404, '帖子不存在')
@@ -533,31 +570,31 @@ export const TopicService = {
       throw status(403, '无权编辑该帖子')
     }
 
-    const updateData: Record<string, any> = {}
+    const updateData: Record<string, string | Date> = {}
     if (title !== undefined) updateData.title = title
     if (content !== undefined) updateData.content = content
     if (newStatus !== undefined) updateData.status = newStatus
     updateData.updatedAt = new Date()
 
-    await db.update(topics).set(updateData).where(eq(topics.id, numericId))
+    await db.update(articles).set(updateData).where(eq(articles.id, numericId))
 
     const [updated] = await db
       .select({
-        id: topics.id,
-        userId: topics.userId,
-        title: topics.title,
-        content: topics.content,
-        status: topics.status,
-        createdAt: topics.createdAt,
-        updatedAt: topics.updatedAt,
+        id: articles.id,
+        userId: articles.author,
+        title: articles.title,
+        content: articles.content,
+        status: articles.status,
+        createdAt: articles.createdAt,
+        updatedAt: articles.updatedAt,
       })
-      .from(topics)
-      .where(eq(topics.id, numericId))
+      .from(articles)
+      .where(eq(articles.id, numericId))
 
     const [topicUser] = await db
       .select({ id: users.id, name: users.name, image: users.image })
       .from(users)
-      .where(eq(users.id, updated!.userId))
+      .where(eq(users.id, updated!.userId ?? ''))
 
     return {
       ...updated!,
@@ -641,11 +678,11 @@ export const TopicService = {
 
     const [topic] = await db
       .select({
-        id: topics.id,
-        userId: topics.userId,
+        id: articles.id,
+        userId: articles.author,
       })
-      .from(topics)
-      .where(eq(topics.id, numericId))
+      .from(articles)
+      .where(and(eq(articles.id, numericId), eq(articles.type, 'topic')))
 
     if (!topic) {
       throw status(404, '帖子不存在')
@@ -656,9 +693,9 @@ export const TopicService = {
     }
 
     await db
-      .update(topics)
+      .update(articles)
       .set({ status: 'deleted', updatedAt: new Date() })
-      .where(eq(topics.id, numericId))
+      .where(eq(articles.id, numericId))
 
     return { success: true }
   },

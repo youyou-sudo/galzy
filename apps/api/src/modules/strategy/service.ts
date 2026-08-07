@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto'
 import { articles, db, sql } from '@api/libs'
-import { auth } from '@api/modules/auth/service'
 import {
   acquireIdempotentKey,
   delKv,
@@ -11,6 +10,7 @@ import {
   setKv,
   storeIdempotentResult,
 } from '@api/libs/redis'
+import { auth } from '@api/modules/auth/service'
 import {
   and,
   count,
@@ -222,15 +222,13 @@ export const Strategy = {
     const articleStatus = isAdmin ? 'published' : 'pending'
     const isVNDB = /^v\d+$/.test(id)
     if (isVNDB) {
-      await db
-        .insert(articles)
-        .values({
-          vid: id,
-          ...data,
-          type: 'strategy',
-          author: userid,
-          status: articleStatus,
-        })
+      await db.insert(articles).values({
+        vid: id,
+        ...data,
+        type: 'strategy',
+        author: userid,
+        status: articleStatus,
+      })
     } else {
       await db.insert(articles).values({
         otherid: Number(id),
