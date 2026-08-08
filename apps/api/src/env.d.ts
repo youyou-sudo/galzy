@@ -18,7 +18,6 @@ declare module 'bun' {
     CLOUDREVE_EMAIL: string
     CLOUDREVE_HOST: string
     CLOUDREVE_PASSWORD: string
-    CLOUDREVE_DOWNLOAD_HOST: string
     CLOUDREVE_UPLOAD_DIR?: string
     NODE_ENV: string
     S3_ACCESS_KEY_ID: string

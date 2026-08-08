@@ -4,8 +4,6 @@ import { delKv, getKv, setKv } from '@api/libs/redis'
 const CLOUDREVE_HOST = process.env.CLOUDREVE_HOST
 const CLOUDREVE_EMAIL = process.env.CLOUDREVE_EMAIL
 const CLOUDREVE_PASSWORD = process.env.CLOUDREVE_PASSWORD
-// 下载直链 HOST：拼接文件路径生成对外下载链接（如 https://dl.example.com）
-const CLOUDREVE_DOWNLOAD_HOST = process.env.CLOUDREVE_DOWNLOAD_HOST
 
 // Cloudreve 文件 URI 前缀：cloudreve://my 表示当前登录用户自己的网盘
 const CLOUDREVE_FS_PREFIX = 'cloudreve://my'
@@ -247,15 +245,21 @@ export async function searchCloudreveFolders(
 
 // ── 下载 ──────────────────────────────────────────────
 /**
- * 构建直链下载 URL：下载 HOST + 百分号编码后的文件路径，无需向 Cloudreve 申请签名 URL。
- * `/Games/[vndb-v123]/file.7z` → `${CLOUDREVE_DOWNLOAD_HOST}/Games/%5Bvndb-v123%5D/file.7z`
+ * 通过 Cloudreve API 创建临时匿名下载链接（v4 `POST /api/v4/file/url`）。
+ * 输入 Cloudreve 文件 URI（如 `cloudreve://my/Games/...`），返回可直接访问的签名直链。
+ * 注意：对象存储 key 并非完整 FS 路径，不能用 HOST + 路径拼接，必须走该接口。
  */
-export function buildCloudreveDownloadUrl(path: string): string {
-  if (!CLOUDREVE_DOWNLOAD_HOST) {
-    throw new CloudreveError(-1, '缺少 CLOUDREVE_DOWNLOAD_HOST 环境变量')
-  }
-  const encodedPath = pathToCloudreveUri(path).slice(CLOUDREVE_FS_PREFIX.length)
-  return `${CLOUDREVE_DOWNLOAD_HOST}${encodedPath}`
+export async function createCloudreveDownloadUrl(uri: string): Promise<string> {
+  const data = await cloudreveData<{ urls?: { url?: string }[] }>(
+    '/api/v4/file/url',
+    {
+      method: 'POST',
+      body: JSON.stringify({ uris: [uri], download: true }),
+    },
+  )
+  const url = data.urls?.[0]?.url
+  if (!url) throw new CloudreveError(-1, 'Cloudreve 未返回下载 URL')
+  return url
 }
 
 // ── 删除 ──────────────────────────────────────────────

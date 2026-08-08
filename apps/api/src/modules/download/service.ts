@@ -1,5 +1,9 @@
 import { cloudflare, db, gameDownloadStats } from '@api/libs'
-import { buildCloudreveDownloadUrl } from '@api/libs/cloudreve'
+import {
+  CloudreveError,
+  createCloudreveDownloadUrl,
+  pathToCloudreveUri,
+} from '@api/libs/cloudreve'
 import { eq } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { DownloadModel } from './model'
@@ -9,8 +13,14 @@ export const Download = {
     path,
     game_id,
   }: DownloadModel.path): Promise<DownloadModel.DownloadGet> {
-    // 直链下载 URL：下载 HOST + 文件路径（无需向 Cloudreve 申请签名 URL）
-    const rawUrl = buildCloudreveDownloadUrl(path)
+    // 通过 Cloudreve API 获取签名直链（对象存储 key 非完整路径，不能拼接）
+    let rawUrl: string
+    try {
+      rawUrl = await createCloudreveDownloadUrl(pathToCloudreveUri(path))
+    } catch (err) {
+      if (err instanceof CloudreveError) throw status(404, err.message)
+      throw err
+    }
 
     // Fire-and-forget: stats tracking MUST NOT block the download response
     void db
