@@ -87,8 +87,10 @@ async function startServer() {
   console.log(`🦊 Elysia is running loding……`)
 
   initValidationError()
-  dbAction()
-  if (process.env.NODE_ENV === 'production') {
+  // 先等 DB 连通 + 挂起迁移应用完成，再启动 cron 与看门狗：全新数据库部署时表尚不存在，
+  // 过早启动的定时任务会每分钟报 relation does not exist（如 workerDataPull 查 galrc_cloudflare）。
+  const dbReady = await dbAction()
+  if (process.env.NODE_ENV === 'production' && dbReady) {
     startCronTasks()
     // bun:sql 池卡死自动恢复：独立探针确认 DB 健康而池失败时退出进程，
     // 由编排层重启（oven-sh/bun#30494 上游未修复，见 db/watchdog.ts）。

@@ -34,6 +34,10 @@ WORKDIR /app
 # Copy server file from build stage
 COPY --from=build /app/apps/api/server /app/server
 
+# 启动时自动应用挂起的数据库迁移（db/migrate.ts 的 dbAction 按 cwd 定位 drizzle 目录）。
+# 全新数据库部署必须包含该目录，否则服务以 error 状态启动、cron 不会开启。
+COPY --from=build /app/apps/api/drizzle /app/drizzle
+
 # Environment variables
 ENV NODE_ENV=production
 ENV PORT=3001

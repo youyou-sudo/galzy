@@ -1,0 +1,142 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "apps/web-tanstack/**"
+      - "packages/**"
+      - "scripts/**"
+      - "deploy/**"
+      - "bun.lock"
+      - "package.json"
+      - ".github/workflows/build-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: build-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/mono
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      web: ${{ steps.filter.outputs.web }}
+      compose: ${{ steps.filter.outputs.compose }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Detect changed paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+              - 'packages/**'
+              - 'bun.lock'
+              - 'package.json'
+            web:
+              - 'apps/web-tanstack/**'
+              - 'packages/**'
+              - 'scripts/**'
+              - 'bun.lock'
+              - 'package.json'
+            compose:
+              - 'deploy/**'
+
+  build:
+    needs: changes
+    if: ${{ needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch' }}
+    strategy:
+      matrix:
+        include:
+          - app: api
+            changed: ${{ needs.changes.outputs.api == 'true' || github.event_name == 'workflow_dispatch' }}
+            build_args: ""
+          - app: web
+            changed: ${{ needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch' }}
+            build_args: "BUILD_ID=${{ github.run_id }}-${{ github.run_attempt }}"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        if: matrix.changed == 'true'
+        uses: oven-sh/setup-bun@v2
+
+      - name: Extract version
+        if: matrix.changed == 'true'
+        id: version
+        run: echo "value=$(node -p "require('./apps/${{ matrix.app }}/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        if: matrix.changed == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        if: matrix.changed == 'true'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push ${{ matrix.app }} image
+        if: matrix.changed == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./apps/${{ matrix.app }}/Dockerfile
+          push: true
+          build-args: ${{ matrix.build_args }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.app }}:${{ steps.version.outputs.value }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.app }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: [changes, build]
+    if: ${{ success() && (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.compose == 'true' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Dokploy stack webhook
+        env:
+          WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK }}
+          COMMITS_JSON: ${{ toJSON(github.event.commits) }}
+        run: |
+          if [[ -z "$WEBHOOK_URL" ]]; then
+            echo "::error::Secret DEPLOY_WEBHOOK is not set — paste the Dokploy compose service webhook URL"
+            exit 1
+          fi
+          # Dokploy compose webhook expects a GitHub push event:
+          #   x-github-event: push, body.ref = refs/heads/<branch>, body.commits = changed files
+          # (branch must match the one configured on the compose service; Auto Deploy must be on)
+          payload="$(jq -nc \
+            --arg ref 'refs/heads/${{ github.ref_name }}' \
+            --argjson commits "$COMMITS_JSON" \
+            '{ ref: $ref, commits: $commits }')"
+          code="$(curl -sS -o /tmp/dokploy-webhook-resp -w '%{http_code}' -X POST "$WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -H 'x-github-event: push' \
+            --max-time 60 \
+            --retry 2 \
+            --retry-delay 3 \
+            -d "$payload")"
+          if [[ "$code" != 2* ]]; then
+            echo "::error::Dokploy webhook rejected the deployment (HTTP $code)"
+            cat /tmp/dokploy-webhook-resp
+            exit 1
+          fi

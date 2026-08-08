@@ -225,7 +225,14 @@ export const CronService = {
       )
       await releaseLockKv(lockKey, lockValue)
     } catch (err) {
-      console.error('workerDataPull 任务失败', err)
+      // 打印简短信息而非整个错误对象：Drizzle 错误对象含压缩后的库源码，日志噪音极大。
+      // 底层原因（如缺表）取 err.cause 一并输出，便于定位。
+      const msg = err instanceof Error ? err.message : String(err)
+      const cause =
+        err instanceof Error && err.cause instanceof Error
+          ? ` (cause: ${err.cause.message})`
+          : ''
+      console.error(`workerDataPull 任务失败: ${msg}${cause}`)
       await releaseLockKv(lockKey, lockValue)
     }
   },

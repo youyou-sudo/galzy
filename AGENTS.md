@@ -37,7 +37,7 @@ galzy/
 │   │   ├── db/                   # Drizzle ORM schema + client
 │   │   │   ├── client.ts         # Bun SQL → drizzle() initialization
 │   │   │   ├── schema/           # 5 schema files: alist, auth, content, services, vndb
-│   │   │   └── migrate.ts        # Startup DB + Redis connectivity check
+│   │   │   └── migrate.ts        # Startup DB check — auto-migrates fresh DBs; skips (with warning) when tables exist without migration journal
 │   │   └── libs/                 # Shared utilities (redis, meilisearch, typebox)
 │   ├── drizzle/                  # Migration SQL files (Drizzle Kit)
 │   └── .env.example              # All environment variables
@@ -61,7 +61,8 @@ galzy/
 │   └── pakadd.ts                 # Add dep to specific workspace
 ├── biome.json                    # Biome formatter + linter config
 ├── renovate.json                 # Automated dependency updates
-└── .github/workflows/            # build-api.yml, build-web.yml → GHCR + webhook
+├── deploy/docker-compose.yml     # Dokploy Compose/Stack 全栈部署文件
+└── .github/workflows/            # build-deploy.yml → GHCR + single Dokploy webhook
 ```
 
 ## Development Commands

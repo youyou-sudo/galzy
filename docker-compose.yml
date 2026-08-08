@@ -1,0 +1,87 @@
+services:
+  web:
+    image: ghcr.io/youyou-sudo/mono-web:latest
+    restart: unless-stopped
+    expose:
+      - "3000"
+    env_file:
+      - .env
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: ghcr.io/youyou-sudo/mono-api:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # 内部服务直连，覆盖 .env 里可能残留的外部地址
+      DATABASE_URL: postgresql://${POSTGRES_USER:-galzy}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in Dokploy env}@postgres:5432/${POSTGRES_DB:-galzy}
+      REDIS_URL: redis://redis:6379
+      MEILISEARCH_HOST: http://meilisearch:7700
+    healthcheck:
+      test: ["CMD", "/app/server", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-galzy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in Dokploy env}
+      POSTGRES_DB: ${POSTGRES_DB:-galzy}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-galzy} -d ${POSTGRES_DB:-galzy}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.52.0
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?MEILI_MASTER_KEY must be set in Dokploy env}
+    volumes:
+      - meili_data_v1.52.0:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+  meili_data_v1.52.0:
