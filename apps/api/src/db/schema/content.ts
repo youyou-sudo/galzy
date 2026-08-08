@@ -73,7 +73,7 @@ export const otherMedia = pgTable(
   }),
 )
 
-// galrc_alistb — Alist条目关联
+// galrc_alistb — 游戏文件条目关联（由 Cloudreve 目录同步，历史名保留 alistb）
 export const alistb = pgTable(
   'galrc_alistb',
   {

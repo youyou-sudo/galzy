@@ -1,8 +1,23 @@
+import { betterAuth } from '@api/modules/auth'
 import { CronService } from '@api/modules/cron/service'
 import { Cron } from 'croner'
 import { Elysia, t } from 'elysia'
 
 export const cronServer = new Elysia()
+  .use(betterAuth)
+  .get(
+    '/task/cloudreveSearch',
+    async ({ query }) => {
+      return await CronService.cloudreveSearchPreview(query)
+    },
+    {
+      // isAdmin: true,
+      query: t.Object({
+        keyword: t.Optional(t.String({ default: '[vndb-' })),
+        limit: t.Optional(t.Number({ default: 20, minimum: 1, maximum: 200 })),
+      }),
+    },
+  )
   .get('/task/meiliSearchAddIndex', () => {
     console.log('[Cron Trigger] meiliSearchAddIndex 手动触发')
     void CronService.meiliSearchAddIndex()
@@ -31,9 +46,9 @@ export const cronServer = new Elysia()
       }),
     },
   )
-  .get('/task/alistSyncScript', () => {
-    console.log('[Cron Trigger] alistSyncScript 手动触发')
-    return CronService.alistSyncScript()
+  .get('/task/cloudreveSyncScript', () => {
+    console.log('[Cron Trigger] cloudreveSyncScript 手动触发')
+    return CronService.cloudreveSyncScript()
   })
   .get('/task/workerDataPull', () => {
     console.log('[Cron Trigger] workerDataPull 手动触发')
@@ -49,8 +64,8 @@ export function startCronTasks() {
 
   // // 每5分钟执行一次
   // new Cron('*/5 * * * *', () => {
-  //   CronService.alistSyncScript()
-  //   console.log('[Cron] alistSyncScript 定时执行')
+  //   CronService.cloudreveSyncScript()
+  //   console.log('[Cron] cloudreveSyncScript 定时执行')
   // })
 
   // Weekly full rebuild as safety net (Sunday 3:00 AM)

@@ -4,8 +4,10 @@ import {
   db,
   eventViews,
   gameDownloadStats,
+  listCloudreveFiles,
   MeiliClient,
   others,
+  pathToCloudreveUri,
   producers,
   releases,
   releasesProducers,
@@ -387,23 +389,13 @@ export const Game = {
 
     const fetchList = async (parent: string): Promise<RawItem[]> => {
       try {
-        const res = await fetch(`${process.env.OPENLIST_HOST}/api/fs/list`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: process.env.OPENLIST_API_KEY,
-          },
-          body: JSON.stringify({
-            path: parent,
-            password: '',
-            refresh: false,
-            page: 1,
-            per_page: 0,
-          }),
-          signal: AbortSignal.timeout(15_000),
-        })
-        const json = await res.json()
-        return json.data?.content || []
+        const files = await listCloudreveFiles(pathToCloudreveUri(parent))
+        return files.map((file) => ({
+          name: file.name,
+          size: file.size,
+          is_dir: file.type === 1,
+          type: file.type,
+        }))
       } catch {
         return []
       }

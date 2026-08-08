@@ -1,73 +1,31 @@
 import { cloudflare, db, gameDownloadStats } from '@api/libs'
+import { buildCloudreveDownloadUrl } from '@api/libs/cloudreve'
 import { eq } from 'drizzle-orm'
 import { status } from 'elysia'
-import { t } from 'try'
-import type { AlistFsResponse, DownloadModel } from './model'
+import type { DownloadModel } from './model'
 
 export const Download = {
   async DownloadGet({
     path,
     game_id,
   }: DownloadModel.path): Promise<DownloadModel.DownloadGet> {
-    const alistDownloadGet = async (path: string) => {
-      const [, alisterror, alistDatas] = t(
-        await fetch(`${process.env.OPENLIST_HOST}/api/fs/get`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: process.env.OPENLIST_API_KEY,
-          },
-          body: JSON.stringify({ path }),
-        }),
-      )
+    // 直链下载 URL：下载 HOST + 文件路径（无需向 Cloudreve 申请签名 URL）
+    const rawUrl = buildCloudreveDownloadUrl(path)
 
-      const alistData = (await alistDatas.json()) as AlistFsResponse
+    // Fire-and-forget: stats tracking MUST NOT block the download response
+    void db
+      .insert(gameDownloadStats)
+      .values({
+        gameId: game_id,
+        filePath: path,
+        createdAt: new Date(),
+      })
+      .catch((err) => console.error('[DownloadGet] 统计写入失败:', err))
 
-      if (alistData.data === undefined) throw status(404, `未找到此文件`)
-      if (alistData.data.sign === undefined)
-        throw status(404, `未找到此文件的签名`)
-
-      if (alisterror) throw status(502, `Error:${JSON.stringify(alisterror)}`)
-
-      const workerList = await db
-        .select({
-          id: cloudflare.id,
-          urlEndpoint: cloudflare.urlEndpoint,
-        })
-        .from(cloudflare)
-        .where(eq(cloudflare.enable, true))
-        .orderBy(cloudflare.id)
-
-      if (workerList.length === 0) {
-        throw status(503, '没有可用的下载节点喵~')
-      }
-
-      const randomWorker =
-        workerList[Math.floor(Math.random() * workerList.length)]
-      // Fire-and-forget: stats tracking MUST NOT block the download response
-      void db
-        .insert(gameDownloadStats)
-        .values({
-          gameId: game_id,
-          filePath: path,
-          createdAt: new Date(),
-        })
-        .catch((err) => console.error('[DownloadGet] 统计写入失败:', err))
-
-      return {
-        success: true,
-        raw_url: `${randomWorker.urlEndpoint}${path.split('/').map(encodeURIComponent).join('/')}?sign=${alistData.data?.sign}`,
-        sign: alistData.data.sign,
-      }
+    return {
+      success: true,
+      raw_url: rawUrl,
     }
-
-    const [, error, res] = t(await alistDownloadGet(path))
-    if (error) {
-      // 保留内部抛出的业务状态码（404/502/503），只有意外错误才包成 500
-      if (typeof (error as { code?: unknown })?.code === 'number') throw error
-      throw status(500, `服务出错了喵~，Error:${JSON.stringify(error)}`)
-    }
-    return res
   },
   async Worker() {
     const res = await db

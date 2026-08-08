@@ -29,7 +29,6 @@ export namespace DownloadModel {
   export const DownloadGet = t.Object({
     success: t.Boolean(),
     raw_url: t.String(),
-    sign: t.String(),
   })
 
   // ── 类型推导 ──────────────────────────────────
@@ -38,35 +37,4 @@ export namespace DownloadModel {
   export type workerConfigFormDel = typeof workerConfigFormDel.static
   export type nodeEnaledAc = typeof nodeEnaledAc.static
   export type DownloadGet = typeof DownloadGet.static
-}
-
-// ── Alist FS 相关类型 ────────────────────────────
-export interface AlistFsObject {
-  created?: Date
-  hash_info?: Record<string, string> | null
-  hashinfo?: string
-  id?: string
-  is_dir?: boolean
-  modified?: Date
-  mount_details?: AlistStorageDetails | null
-  name?: string
-  path?: string
-  sign?: string
-  /** 字节，目录为 0 */
-  size?: number
-  thumb?: string
-  /** 0=Unknown 1=Folder 2=Video 3=Audio 4=Text 5=Image */
-  type?: number
-}
-
-export interface AlistStorageDetails {
-  driver_name?: string
-  free_space?: number
-  total_space?: number
-}
-
-export interface AlistFsResponse {
-  code: number
-  data?: AlistFsObject
-  message: string
 }

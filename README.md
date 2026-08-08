@@ -174,7 +174,7 @@ cp apps/api/.env.example apps/api/.env
 | OAuth | `LINUXDO_CLIENT_ID` / `LINUXDO_CLIENT_SECRET` | Linux.do OAuth 凭据 |
 | OAuth | `TWITTER_CLIENT_ID` / `TWITTER_CLIENT_SECRET` | Twitter OAuth 凭据 |
 | 存储 | `S3_BUCKET` / `S3_ENDPOINT` / ... | S3 对象存储配置（媒体文件） |
-| 下载 | `OPENLIST_API_KEY` / `OPENLIST_HOST` | 文件下载代理配置 |
+| 下载 | `CLOUDREVE_HOST` / `CLOUDREVE_EMAIL` / `CLOUDREVE_PASSWORD` | Cloudreve 文件存储（游戏文件搜索、目录、下载、媒体删除） |
 | 邮件 | `EMAIL_KEY` | CloudMailin SMTP 密钥 |
 
 ### 安装与启动

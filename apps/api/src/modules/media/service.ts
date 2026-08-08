@@ -1,4 +1,10 @@
-import { db, media as mediaTable, otherMedia } from '@api/libs'
+import {
+  db,
+  deleteCloudreveFiles,
+  media as mediaTable,
+  otherMedia,
+  pathToCloudreveUri,
+} from '@api/libs'
 import {
   acquireIdempotentKey,
   delKv,
@@ -136,18 +142,12 @@ export const Media = {
       // 如果图片没有被其他条目使用，则删除 galrc_media 中的记录
       await db.delete(mediaTable).where(eq(mediaTable.hash, mediahash))
 
-      const targetUrl = `${process.env.OPENLIST_HOST}/api/fs/remove`
-      const authToken = process.env.OPENLIST_API_KEY
-      await fetch(targetUrl, {
-        method: 'POST',
-        headers: {
-          Authorization: `${authToken}`,
-        },
-        body: JSON.stringify({
-          name: [name],
-          dir: `/upload`,
-        }),
-      })
+      // 同步删除 Cloudreve 上传目录中的同名文件（best-effort）
+      const uploadDir = (process.env.CLOUDREVE_UPLOAD_DIR ?? '/upload').replace(
+        /\/+$/,
+        '',
+      )
+      await deleteCloudreveFiles([pathToCloudreveUri(`${uploadDir}/${name}`)])
     }
 
     await storeIdempotentResult(

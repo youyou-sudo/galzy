@@ -15,9 +15,12 @@ declare module 'bun' {
     MEILISEARCH_MASTER: string
     MEILISEARCH_PRODUCER_INDEXNAME: string
     MEILISEARCH_TAG_INDEXNAME: string
+    CLOUDREVE_EMAIL: string
+    CLOUDREVE_HOST: string
+    CLOUDREVE_PASSWORD: string
+    CLOUDREVE_DOWNLOAD_HOST: string
+    CLOUDREVE_UPLOAD_DIR?: string
     NODE_ENV: string
-    OPENLIST_API_KEY: string
-    OPENLIST_HOST: string
     S3_ACCESS_KEY_ID: string
     S3_BUCKET: string
     S3_ENDPOINT: string

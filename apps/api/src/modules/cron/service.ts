@@ -2,6 +2,7 @@ import {
   alistb,
   buildCoverUrl,
   cloudflare,
+  cloudreveUriToPath,
   db,
   eventViews,
   gameDownloadStats,
@@ -13,6 +14,7 @@ import {
   producers,
   releases,
   releasesVn,
+  searchCloudreveFolders,
   siteConfig,
   sql,
   tags,
@@ -25,22 +27,7 @@ import { purgeByTags } from '@api/libs/cloudflare-cache'
 
 import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
 import { VndbSync } from '@api/modules/vndb-sync/service'
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  gt,
-  gte,
-  inArray,
-  isNotNull,
-  isNull,
-  like,
-  lt,
-  lte,
-  notInArray,
-} from 'drizzle-orm'
+import { asc, count, desc, eq, inArray } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { Index } from 'meilisearch'
 import { all } from 'radash'
@@ -243,75 +230,26 @@ export const CronService = {
     }
   },
 
-  async alistSyncScript() {
-    const lockKey = 'galzy:lock:cron:runAlistData'
+  async cloudreveSyncScript() {
+    const lockKey = 'galzy:lock:cron:runCloudreveData'
     const lockValue = crypto.randomUUID()
     const lockTimeout = 120000
 
     const lock = await acquireLockKv(lockKey, lockValue, lockTimeout)
     if (!lock) return null
     try {
-      const [alistUpInfo, alistUpTime] = await Promise.all([
-        fetch(`${process.env.OPENLIST_HOST}/api/admin/index/progress`, {
-          method: 'GET',
-          headers: {
-            Authorization: process.env.OPENLIST_API_KEY,
-          },
-          signal: AbortSignal.timeout(30_000),
-        }),
-        db
-          .select({ config: siteConfig.config })
-          .from(siteConfig)
-          .where(eq(siteConfig.key, 'alistUpTime'))
-          .limit(1)
-          .then((r) => r[0]),
-      ])
-
-      const alistUp = await alistUpInfo.json()
-
-      if (!alistUp) return
-      if (alistUp.is_done === false) return
-      const lastUpdate = (
-        alistUpTime?.config as { lastUpdate?: number } | undefined
-      )?.lastUpdate
-      if ((lastUpdate || 0) === alistUp.last_done_time)
-        return console.log(
-          'alistUp.last_done_time',
-          alistUp.last_done_time,
-          'alistUpTime.config.lastUpdate',
-          lastUpdate,
-        )
-
-      const openlistdatas = await fetch(
-        `${process.env.OPENLIST_HOST}/api/fs/search`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: process.env.OPENLIST_API_KEY,
-          },
-          body: JSON.stringify({
-            parent: '/',
-            keywords: '[vndb-',
-            scope: 1,
-            page: 1,
-            per_page: 1000000,
-          }),
-          signal: AbortSignal.timeout(30_000),
-        },
+      // Cloudreve 搜索直接查库、无"索引构建中"状态，无需等待索引进度。
+      // 递归搜索整个网盘中名称含 [vndb- 的文件夹（等价原 alist fs/search + scope=1）
+      const items = await searchCloudreveFolders('[vndb-')
+      const processedData = processData(
+        items.map((item) => ({
+          name: item.name,
+          path: item.path,
+          is_dir: item.type === 1,
+          size: item.size,
+          type: item.type,
+        })),
       )
-      const data = (await openlistdatas.json()) as {
-        data: {
-          content: Array<{
-            parent: string
-            name: string
-            is_dir: boolean
-            size: number
-            type: number
-          }>
-        }
-      }
-      const processedData = processData(data.data.content)
 
       await db.transaction(async (trx) => {
         const CHUNK_SIZE = 500
@@ -326,7 +264,7 @@ export const CronService = {
                 id: r.id,
                 vid: r.vid,
                 other: r.other != null ? Number(r.other) : null,
-                path: r.path,
+                path: r.path.map((p) => cloudreveUriToPath(p)),
               })),
             )
             .onConflictDoUpdate({
@@ -354,27 +292,53 @@ export const CronService = {
         await trx
           .insert(siteConfig)
           .values({
-            key: 'alistUpTime',
+            key: 'cloudreveSyncTime',
             config: JSON.stringify({
-              lastUpdate: alistUp.last_done_time,
+              lastUpdate: Date.now(),
             }),
           })
           .onConflictDoUpdate({
             target: siteConfig.key,
             set: {
               config: JSON.stringify({
-                lastUpdate: alistUp.last_done_time,
+                lastUpdate: Date.now(),
               }),
             },
           })
       })
-      console.log('alistSyncScript 运行成功喵')
+      console.log('cloudreveSyncScript 运行成功喵')
       void VndbSync.syncDelta()
       await releaseLockKv(lockKey, lockValue)
     } catch (e) {
-      console.error('alistSyncScript 运行失败喵', e)
+      console.error('cloudreveSyncScript 运行失败喵', e)
     } finally {
       await releaseLockKv(lockKey, lockValue)
+    }
+  },
+
+  /** 调试用：预览 Cloudreve 搜索命中（文件名/ID/路径），不落库 */
+  async cloudreveSearchPreview({
+    keyword = '[vndb-',
+    limit = 20,
+  }: {
+    keyword?: string
+    limit?: number
+  }) {
+    const found = await searchCloudreveFolders(keyword)
+    const items = found.slice(0, limit)
+    const email = process.env.CLOUDREVE_EMAIL ?? ''
+    const at = email.indexOf('@')
+    return {
+      host: process.env.CLOUDREVE_HOST,
+      email: at > 1 ? `${email.slice(0, 1)}***${email.slice(at)}` : email,
+      keyword,
+      total: found.length,
+      items: items.map(({ id, name, path, size }) => ({
+        id,
+        name,
+        path,
+        size,
+      })),
     }
   },
 

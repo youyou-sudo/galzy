@@ -1,7 +1,8 @@
-// 原始数据项类型
+// 原始数据项类型（Cloudreve 搜索结果项）
 interface RawDataItem {
-  parent: string
   name: string
+  /** 完整路径（Cloudreve 文件 URI，如 cloudreve://my/Games/[vndb-v123]） */
+  path: string
   is_dir: boolean
   size: number
   type: number
@@ -15,9 +16,8 @@ interface ProcessedItem {
   path: string[]
 }
 
-// 扩展的数据项（包含完整路径和vid）
+// 扩展的数据项（包含vid）
 interface ExtendedItem extends RawDataItem {
-  fullPath: string
   vid: string
 }
 
@@ -25,14 +25,6 @@ interface ExtendedItem extends RawDataItem {
 function extractVid(str: string): string | null {
   const match = str.match(/\[vndb-v(\d+)\]/)
   return match ? `v${match[1]}` : null
-}
-
-// 构建完整路径（parent + name）
-function buildFullPath(item: RawDataItem): string {
-  const parent = item.parent.endsWith('/')
-    ? item.parent.slice(0, -1)
-    : item.parent
-  return `${parent}/${item.name}`
 }
 
 // 去除有父子关系的路径（保留更短的父路径）
@@ -63,7 +55,6 @@ export function processData(data: RawDataItem[]): ProcessedItem[] {
       if (!vid) return null
       return {
         ...item,
-        fullPath: buildFullPath(item),
         vid,
       }
     })
@@ -77,15 +68,15 @@ export function processData(data: RawDataItem[]): ProcessedItem[] {
       vidMap.set(item.vid, new Set())
     }
     // 添加当前条目的完整路径
-    vidMap.get(item.vid)!.add(item.fullPath)
+    vidMap.get(item.vid)!.add(item.path)
 
     // 查找所有以当前条目路径为前缀的其他条目（即子路径）
     for (const otherItem of items) {
-      if (otherItem.fullPath === item.fullPath) continue
+      if (otherItem.path === item.path) continue
 
       // 如果 otherItem 是当前条目的子路径，也添加到集合中
-      if (otherItem.fullPath.startsWith(item.fullPath + '/')) {
-        vidMap.get(item.vid)!.add(otherItem.fullPath)
+      if (otherItem.path.startsWith(item.path + '/')) {
+        vidMap.get(item.vid)!.add(otherItem.path)
       }
     }
   }
