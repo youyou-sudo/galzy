@@ -98,25 +98,7 @@ export const dbAction = async (): Promise<boolean> => {
   if (!canAutoMigrate) {
     console.warn(
       `⚠️ 检测到已有 ${journalState.publicTables} 张业务表，但迁移日志表 drizzle.__drizzle_migrations 不存在或为空。\n` +
-        '   已跳过自动迁移：无法判断哪些迁移已应用，重跑破坏性迁移（0011 合并话题帖）可能损坏数据。\n' +
-        '   如需为未来 schema 变更启用自动迁移，请对生产库执行一次对账 SQL（见下方模板，hash/created_at 取自 apps/api/drizzle/meta/_journal.json）：\n' +
-        '   CREATE SCHEMA IF NOT EXISTS drizzle;\n' +
-        '   CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (\n' +
-        '     id serial PRIMARY KEY, hash text NOT NULL, created_at bigint\n' +
-        '   );\n' +
-        '   INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES\n' +
-        "     ('0000_previous_the_santerians', 1784616122224),\n" +
-        "     ('0001_tired_dazzler', 1784627845869),\n" +
-        "     ('0002_goofy_boom_boom', 1784896200057),\n" +
-        "     ('0003_high_redwing', 1784897947802),\n" +
-        "     ('0004_collections_tables', 1785051955684),\n" +
-        "     ('0005_worried_magdalene', 1785053556211),\n" +
-        "     ('0006_conscious_warstar', 1785071861404),\n" +
-        "     ('0007_first_martin_li', 1785122075805),\n" +
-        "     ('0008_known_omega_sentinel', 1785320127835),\n" +
-        "     ('0009_producers_trigram', 1754000000000),\n" +
-        "     ('0010_schema_hardening', 1754100000000),\n" +
-        "     ('0011_merge_topics_into_articles', 1786099908665);",
+        '   已跳过自动迁移：无法判断哪些迁移已应用，重跑破坏性迁移（0011 合并话题帖）可能损坏数据。\n',
     )
     setDeployStatus('ready')
   } else {
