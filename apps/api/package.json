@@ -18,12 +18,12 @@
     "db:up": "drizzle-kit up"
   },
   "dependencies": {
-    "@better-auth/drizzle-adapter": "^1.6.25",
+    "@better-auth/drizzle-adapter": "^1.6.26",
     "@elysia/openapi": "^1.4.15",
     "@elysiajs/cors": "^1.4.2",
     "@elysiajs/opentelemetry": "1.4.11",
     "@sinclair/typebox": "^0.34.52",
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.2.0",
     "@types/xxhashjs": "^0.2.4",
     "ajv": "^8.20.0",
     "better-auth-localization": "^3.0.0",
