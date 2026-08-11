@@ -26,6 +26,10 @@ import type {
   VnResult,
 } from '@api/libs/vndb-api/types'
 import { eq, isNotNull } from 'drizzle-orm'
+import {
+  type CloudreveSyncStats,
+  CLOUDREVE_SYNC_TIME_KEY,
+} from '@api/modules/cron/lib'
 
 const BATCH_SIZE = 100
 
@@ -263,7 +267,10 @@ export const VndbSync = {
       stageProcessed: 0,
     })
     await this.syncProducersByIds(pids, (processed, total) => {
-      void this.updateProgress({ stageProcessed: processed, stageTotal: total })
+      void this.updateProgress({
+        stageProcessed: processed,
+        stageTotal: total,
+      })
     })
     await this.invalidateCache()
     await purgeAfterSync()
@@ -521,12 +528,25 @@ export const VndbSync = {
     return rows.map((r) => r.vid!)
   },
 
+  /** 最近一次 Cloudreve 文件同步的结果（cloudreveSyncScript 写入），无记录返回 null */
+  async cloudreveSyncStatus(): Promise<CloudreveSyncStats | null> {
+    const row = await db
+      .select({ config: siteConfig.config })
+      .from(siteConfig)
+      .where(eq(siteConfig.key, CLOUDREVE_SYNC_TIME_KEY))
+      .limit(1)
+    return (row[0]?.config as CloudreveSyncStats | undefined) ?? null
+  },
+
   async invalidateCache() {
     await delKvPattern('galzy:game:list*').catch((e) =>
       console.warn('[Cache] gameList invalidation failed:', e),
     )
     await delKvPattern('galzy:game:info*').catch((e) =>
       console.warn('[Cache] gameInfo invalidation failed:', e),
+    )
+    await delKvPattern('OpenListFiles:*').catch((e) =>
+      console.warn('[Cache] OpenListFiles invalidation failed:', e),
     )
     await delKvPattern('galzy:game:tags*').catch((e) =>
       console.warn('[Cache] gameTags invalidation failed:', e),

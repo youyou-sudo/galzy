@@ -62,11 +62,12 @@ export function startCronTasks() {
     console.log('[Cron] workerDataPull 定时执行')
   })
 
-  // // 每5分钟执行一次
-  // new Cron('*/5 * * * *', () => {
-  //   CronService.cloudreveSyncScript()
-  //   console.log('[Cron] cloudreveSyncScript 定时执行')
-  // })
+  // 每 30 分钟同步一次 Cloudreve 目录 → 文件条目。
+  // 文件夹移动/改名后路径自动自愈，新增目录自动上架（搜索+upsert 约数秒，已用分布式锁防重入）
+  new Cron('*/30 * * * *', () => {
+    CronService.cloudreveSyncScript()
+    console.log('[Cron] cloudreveSyncScript 定时执行 (30min)')
+  })
 
   // Weekly full rebuild as safety net (Sunday 3:00 AM)
   new Cron('0 3 * * 0', () => {

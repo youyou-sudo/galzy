@@ -2,7 +2,7 @@ import {
   alistb,
   buildCoverUrl,
   cloudflare,
-  cloudreveUriToPath,
+  cloudrevePathExists,
   db,
   eventViews,
   gameDownloadStats,
@@ -27,11 +27,50 @@ import { purgeByTags } from '@api/libs/cloudflare-cache'
 
 import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
 import { VndbSync } from '@api/modules/vndb-sync/service'
-import { asc, count, desc, eq, inArray } from 'drizzle-orm'
+import { asc, count, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { Index } from 'meilisearch'
 import { all } from 'radash'
-import { processData } from './lib'
+import {
+  type AlistbRow,
+  CLOUDREVE_SYNC_TIME_KEY,
+  type CloudreveSyncStats,
+  diffCloudreveData,
+} from './lib'
+
+/** 读取 alistb 全量行，path jsonb 在 drizzle 中类型为 unknown，此处归一为 string[] | null */
+async function getAlistbRows(): Promise<AlistbRow[]> {
+  const rows = await db
+    .select({
+      id: alistb.id,
+      vid: alistb.vid,
+      other: alistb.other,
+      path: alistb.path,
+    })
+    .from(alistb)
+  return rows.map((r) => ({ ...r, path: r.path as string[] | null }))
+}
+
+/**
+ * 搜索 Cloudreve 中名称含 [vndb- 的文件夹并与 alistb 现有数据计算差异。
+ * 同步（cloudreveSyncScript）与巡检（cloudreveSyncCheck）共用。
+ */
+async function collectCloudreveDiff() {
+  const items = await searchCloudreveFolders('[vndb-')
+  const existing = await getAlistbRows()
+  const diff = await diffCloudreveData(
+    items.map((item) => ({
+      name: item.name,
+      path: item.path,
+      is_dir: item.type === 1,
+      size: item.size,
+      type: item.type,
+    })),
+    existing,
+    cloudrevePathExists,
+  )
+  return { foldersFound: items.length, diff }
+}
 
 interface MeiliProgress {
   status: 'idle' | 'running' | 'completed' | 'failed'
@@ -244,82 +283,125 @@ export const CronService = {
 
     const lock = await acquireLockKv(lockKey, lockValue, lockTimeout)
     if (!lock) return null
+    const startedAt = Date.now()
     try {
-      // Cloudreve 搜索直接查库、无"索引构建中"状态，无需等待索引进度。
-      // 递归搜索整个网盘中名称含 [vndb- 的文件夹（等价原 alist fs/search + scope=1）
-      const items = await searchCloudreveFolders('[vndb-')
-      const processedData = processData(
-        items.map((item) => ({
-          name: item.name,
-          path: item.path,
-          is_dir: item.type === 1,
-          size: item.size,
-          type: item.type,
-        })),
-      )
+      const { foldersFound, diff } = await collectCloudreveDiff()
+
+      const stats = {
+        foldersFound,
+        processedVids: diff.chunks.length + diff.unchanged,
+        added: diff.added,
+        updated: diff.updated,
+        kept: diff.toKeep.length,
+        deleted: diff.toDelete.length,
+      }
+      const record: CloudreveSyncStats = {
+        lastUpdate: Date.now(),
+        ...stats,
+        tookMs: Date.now() - startedAt,
+      }
 
       await db.transaction(async (trx) => {
         const CHUNK_SIZE = 500
 
-        // Bulk UPSERT in chunks to avoid N per-row round trips
-        for (let i = 0; i < processedData.length; i += CHUNK_SIZE) {
-          const chunk = processedData.slice(i, i + CHUNK_SIZE)
+        // Bulk UPSERT in chunks to avoid N per-row round trips。
+        // 仅覆盖 vid/path：保留 existing.other，防止覆盖管理员手工绑定的 other 关联。
+        for (let i = 0; i < diff.chunks.length; i += CHUNK_SIZE) {
+          const chunk = diff.chunks.slice(i, i + CHUNK_SIZE)
           await trx
             .insert(alistb)
             .values(
               chunk.map((r) => ({
                 id: r.id,
                 vid: r.vid,
-                other: r.other != null ? Number(r.other) : null,
-                path: r.path.map((p) => cloudreveUriToPath(p)),
+                other: r.other,
+                path: r.path,
               })),
             )
             .onConflictDoUpdate({
               target: alistb.id,
               set: {
                 vid: sql.raw('excluded.vid'),
-                other: sql.raw('excluded.other'),
+                other: sql.raw('galrc_alistb.other'),
                 path: sql.raw('excluded.path'),
               },
             })
         }
 
-        // Delete stale entries: fetch existing IDs, diff in-memory, delete in chunks
-        const currentIdSet = new Set(processedData.map((r) => r.id))
-        const existingIds = await trx
-          .select({ id: alistb.id })
-          .from(alistb)
-          .then((rows) => rows.map((r) => r.id))
-        const staleIds = existingIds.filter((id) => !currentIdSet.has(id))
-        for (let i = 0; i < staleIds.length; i += CHUNK_SIZE) {
-          const chunk = staleIds.slice(i, i + CHUNK_SIZE)
-          await trx.delete(alistb).where(inArray(alistb.id, chunk))
+        // 删除已确认不存在的行（搜索结果缺失且所有存储路径均已验证失效），分块删除
+        for (let i = 0; i < diff.toDelete.length; i += CHUNK_SIZE) {
+          const chunk = diff.toDelete.slice(i, i + CHUNK_SIZE)
+          await trx.delete(alistb).where(
+            inArray(
+              alistb.id,
+              chunk.map((r) => r.id),
+            ),
+          )
         }
 
         await trx
           .insert(siteConfig)
           .values({
-            key: 'cloudreveSyncTime',
-            config: JSON.stringify({
-              lastUpdate: Date.now(),
-            }),
+            key: CLOUDREVE_SYNC_TIME_KEY,
+            config: record as any,
           })
           .onConflictDoUpdate({
             target: siteConfig.key,
             set: {
-              config: JSON.stringify({
-                lastUpdate: Date.now(),
-              }),
+              config: record as any,
             },
           })
       })
-      console.log('cloudreveSyncScript 运行成功喵')
+      console.log('cloudreveSyncScript 运行成功喵', stats)
+      // 清理游戏文件树缓存，避免旧路径/空结果残留
+      await VndbSync.invalidateCache()
       void VndbSync.syncDelta()
-      await releaseLockKv(lockKey, lockValue)
+      return { ok: true, ...stats }
     } catch (e) {
       console.error('cloudreveSyncScript 运行失败喵', e)
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : String(e),
+      }
     } finally {
       await releaseLockKv(lockKey, lockValue)
+    }
+  },
+
+  /** 只读巡检：搜索 Cloudreve 并对比 alistb，报告待新增/更新/删除与无文件游戏，不落库 */
+  async cloudreveSyncCheck() {
+    const { foldersFound, diff } = await collectCloudreveDiff()
+
+    // VNDB 数据存在但无 alistb 行（无文件条目）的游戏
+    const [countRow] = await db
+      .select({ count: count() })
+      .from(vn)
+      .leftJoin(alistb, eq(alistb.vid, vn.id))
+      .where(isNull(alistb.vid))
+    const vnNoAlistbSamples = await db
+      .select({ id: vn.id })
+      .from(vn)
+      .leftJoin(alistb, eq(alistb.vid, vn.id))
+      .where(isNull(alistb.vid))
+      .orderBy(vn.id)
+      .limit(100)
+
+    return {
+      foldersFound,
+      processedVids: diff.chunks.length + diff.unchanged,
+      added: diff.added,
+      updated: diff.updated,
+      kept: diff.toKeep.length,
+      deleted: diff.toDelete.length,
+      addedRows: diff.addedRows,
+      updatedRows: diff.updatedRows,
+      staleDeadRows: diff.staleDeadRows,
+      staleAliveRows: diff.staleAliveRows,
+      vnWithoutAlistb: {
+        total: Number(countRow?.count ?? 0),
+        truncated: Number(countRow?.count ?? 0) > 100,
+        samples: vnNoAlistbSamples.map((r) => r.id),
+      },
     }
   },
 

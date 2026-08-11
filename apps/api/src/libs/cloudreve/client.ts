@@ -243,6 +243,21 @@ export async function searchCloudreveFolders(
   return listCloudreveFiles(searchUri, pageSize)
 }
 
+/**
+ * 判断解码后的路径在 Cloudreve 是否仍存在（目录/文件均可）。
+ * 目录存在（含空目录）返回 true；Cloudreve 明确返回"路径不存在"返回 false。
+ * 网络/超时等请求失败会向上抛出 —— 调用方应保守保留，不得当作"已删除"。
+ */
+export async function cloudrevePathExists(path: string): Promise<boolean> {
+  try {
+    await listCloudreveFiles(pathToCloudreveUri(path))
+    return true
+  } catch (err) {
+    if (err instanceof CloudreveError) return false
+    throw err
+  }
+}
+
 // ── 下载 ──────────────────────────────────────────────
 /**
  * 通过 Cloudreve API 创建临时匿名下载链接（v4 `POST /api/v4/file/url`）。

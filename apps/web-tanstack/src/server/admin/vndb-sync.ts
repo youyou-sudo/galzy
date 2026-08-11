@@ -37,3 +37,33 @@ export const triggerProducersSync = createServerFn({ method: "POST" }).handler(
 		return data;
 	},
 );
+
+export const getCloudreveSyncStatus = createServerFn({
+	method: "GET",
+}).handler(async () => {
+	const { data, error } = await api["vndb-sync"].cloudreve.get(cookiePass());
+	elysiaErrorF(error);
+	return data;
+});
+
+export const triggerCloudreveSync = createServerFn({ method: "POST" }).handler(
+	async () => {
+		const { data, error } = await api["vndb-sync"].cloudreve.sync.post(
+			{},
+			cookiePass(),
+		);
+		elysiaErrorF(error);
+		return data;
+	},
+);
+
+export const checkCloudreveFiles = createServerFn({ method: "POST" }).handler(
+	async () => {
+		const { data, error } = await api["vndb-sync"].cloudreve.check.post(
+			{},
+			cookiePass(),
+		);
+		elysiaErrorF(error);
+		return data;
+	},
+);
