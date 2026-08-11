@@ -1,47 +1,47 @@
 /**
  * @CLIENT_ONLY — 纯客户端 UI 状态，SSR 只读默认值。
  */
-import { createStore } from "@tanstack/react-store";
+import { createStore } from '@tanstack/react-store'
 
 type ModalState<T = any> = {
-	open: boolean;
-	data: T | null;
-};
+  open: boolean
+  data: T | null
+}
 
 export const downCardStore = createStore<ModalState>({
-	open: false,
-	data: null,
-});
+  open: false,
+  data: null,
+})
 
 export const downmodalActions = {
-	open(data: any) {
-		downCardStore.setState((s) => ({
-			...s,
-			open: true,
-			data,
-		}));
-	},
+  open(data: any) {
+    downCardStore.setState((s) => ({
+      ...s,
+      open: true,
+      data,
+    }))
+  },
 
-	setOpen(open: boolean) {
-		downCardStore.setState((s) => ({
-			...s,
-			open: open,
-			data: open ? s.data : null,
-		}));
-	},
+  setOpen(open: boolean) {
+    downCardStore.setState((s) => ({
+      ...s,
+      open: open,
+      data: open ? s.data : null,
+    }))
+  },
 
-	close() {
-		downCardStore.setState((s) => ({
-			...s,
-			open: false,
-			data: null,
-		}));
-	},
+  close() {
+    downCardStore.setState((s) => ({
+      ...s,
+      open: false,
+      data: null,
+    }))
+  },
 
-	updateData(partial: Partial<{ id: string; name?: string }>) {
-		downCardStore.setState((s) => ({
-			...s,
-			data: s.data ? { ...s.data, ...partial } : null,
-		}));
-	},
-};
+  updateData(partial: Partial<{ id: string; name?: string }>) {
+    downCardStore.setState((s) => ({
+      ...s,
+      data: s.data ? { ...s.data, ...partial } : null,
+    }))
+  },
+}
