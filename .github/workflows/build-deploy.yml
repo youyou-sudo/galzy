@@ -58,9 +58,11 @@ jobs:
       matrix:
         include:
           - app: api
+            dir: api
             changed: ${{ needs.changes.outputs.api == 'true' || github.event_name == 'workflow_dispatch' }}
             build_args: ""
           - app: web
+            dir: web-tanstack
             changed: ${{ needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch' }}
             build_args: "BUILD_ID=${{ github.run_id }}-${{ github.run_attempt }}"
     runs-on: ubuntu-latest
@@ -75,7 +77,9 @@ jobs:
       - name: Extract version
         if: matrix.changed
         id: version
-        run: echo "value=$(node -p "require('./apps/${{ matrix.app }}/package.json').version")" >> "$GITHUB_OUTPUT"
+        run: |
+          version="$(node -e "const p = require('./apps/${{ matrix.dir }}/package.json'); if (!p.version) throw new Error('missing version'); console.log(p.version)")"
+          echo "value=$version" >> "$GITHUB_OUTPUT"
 
       - name: Log in to GitHub Container Registry
         if: matrix.changed
@@ -94,7 +98,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./apps/${{ matrix.app }}/Dockerfile
+          file: ./apps/${{ matrix.dir }}/Dockerfile
           push: true
           build-args: ${{ matrix.build_args }}
           tags: |
