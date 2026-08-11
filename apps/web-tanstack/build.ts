@@ -70,8 +70,11 @@ const proc = Bun.spawnSync(
   [
     'bun', 'build', '--compile',
     '--splitting',
+    // Vite 已用 oxc 压缩过 SSR bundle；bun 的 --minify-syntax 会在已压缩代码上
+    // 再做一遍 DCE/内联/重命名，曾出现函数声明被丢弃导致运行时
+    // "undefined is not an object (evaluating 'c4')"（server fn payload 解析路径）。
+    // 只保留空白压缩，避免二次压缩破坏作用域绑定。
     '--minify-whitespace',
-    '--minify-syntax',
     '--target','bun',
     // TanStack Start 的虚拟模块（#tanstack-*）只在 vite 插件构建期存在；
     // 运行时 createStartHandler 的 loadEntries 走的是新 API 路径，
