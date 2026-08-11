@@ -62,7 +62,7 @@ galzy/
 ├── biome.json                    # Biome formatter + linter config
 ├── renovate.json                 # Automated dependency updates
 ├── deploy/docker-compose.yml     # Dokploy Compose/Stack 全栈部署文件
-└── .github/workflows/            # build-deploy.yml → GHCR + single Dokploy webhook
+└── .github/workflows/            # build-deploy.yml → GHCR + per-service Dokploy webhooks (api/web)
 ```
 
 ## Development Commands

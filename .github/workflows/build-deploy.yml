@@ -8,7 +8,6 @@ on:
       - "apps/web-tanstack/**"
       - "packages/**"
       - "scripts/**"
-      - "deploy/**"
       - "bun.lock"
       - "package.json"
       - ".github/workflows/build-deploy.yml"
@@ -32,7 +31,6 @@ jobs:
     outputs:
       api: ${{ steps.filter.outputs.api }}
       web: ${{ steps.filter.outputs.web }}
-      compose: ${{ steps.filter.outputs.compose }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -52,8 +50,6 @@ jobs:
               - 'scripts/**'
               - 'bun.lock'
               - 'package.json'
-            compose:
-              - 'deploy/**'
 
   build:
     needs: changes
@@ -107,18 +103,18 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy:
+  deploy-api:
     needs: [changes, build]
-    if: ${{ success() && (needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || needs.changes.outputs.compose == 'true' || github.event_name == 'workflow_dispatch') }}
+    if: ${{ success() && (needs.changes.outputs.api == 'true' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Dokploy stack webhook
+      - name: Trigger Dokploy api webhook
         env:
-          WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK }}
+          WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_API }}
           COMMITS_JSON: ${{ toJSON(github.event.commits) }}
         run: |
           if [[ -z "$WEBHOOK_URL" ]]; then
-            echo "::error::Secret DEPLOY_WEBHOOK is not set — paste the Dokploy compose service webhook URL"
+            echo "::error::Secret DEPLOY_WEBHOOK_API is not set — paste the Dokploy api service webhook URL"
             exit 1
           fi
           # Dokploy compose webhook expects a GitHub push event:
@@ -136,7 +132,41 @@ jobs:
             --retry-delay 3 \
             -d "$payload")"
           if [[ "$code" != 2* ]]; then
-            echo "::error::Dokploy webhook rejected the deployment (HTTP $code)"
+            echo "::error::Dokploy webhook rejected the api deployment (HTTP $code)"
+            cat /tmp/dokploy-webhook-resp
+            exit 1
+          fi
+
+  deploy-web:
+    needs: [changes, build]
+    if: ${{ success() && (needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Dokploy web webhook
+        env:
+          WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_WEB }}
+          COMMITS_JSON: ${{ toJSON(github.event.commits) }}
+        run: |
+          if [[ -z "$WEBHOOK_URL" ]]; then
+            echo "::error::Secret DEPLOY_WEBHOOK_WEB is not set — paste the Dokploy web service webhook URL"
+            exit 1
+          fi
+          # Dokploy compose webhook expects a GitHub push event:
+          #   x-github-event: push, body.ref = refs/heads/<branch>, body.commits = changed files
+          # (branch must match the one configured on the compose service; Auto Deploy must be on)
+          payload="$(jq -nc \
+            --arg ref 'refs/heads/${{ github.ref_name }}' \
+            --argjson commits "$COMMITS_JSON" \
+            '{ ref: $ref, commits: $commits }')"
+          code="$(curl -sS -o /tmp/dokploy-webhook-resp -w '%{http_code}' -X POST "$WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -H 'x-github-event: push' \
+            --max-time 60 \
+            --retry 2 \
+            --retry-delay 3 \
+            -d "$payload")"
+          if [[ "$code" != 2* ]]; then
+            echo "::error::Dokploy webhook rejected the web deployment (HTTP $code)"
             cat /tmp/dokploy-webhook-resp
             exit 1
           fi
