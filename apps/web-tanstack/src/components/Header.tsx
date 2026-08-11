@@ -18,7 +18,7 @@ import {
 } from "@web/components/ui/tooltip";
 import { cn } from "@web/lib/utils";
 import { r18Actions, r18Store } from "@web/stores/r18Store";
-import { ExternalLink, Eye, EyeOff, Menu, Wrench } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, Home, Menu, Wrench } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
 import ThemeToggle from "./ThemeToggle";
 
@@ -77,12 +77,53 @@ export default function Header() {
 						<NavigationMenu>
 							<NavigationMenuList>
 								<NavigationMenuItem>
-									<NavigationMenuLink
-										className={navigationMenuTriggerStyle()}
-										render={<Link to="/" />}
-									>
-										主页
-									</NavigationMenuLink>
+									<NavigationMenuTrigger>主页</NavigationMenuTrigger>
+									<NavigationMenuContent>
+										<ul className="grid w-[240px] gap-1">
+											<li>
+												<NavigationMenuLink
+													className={cn(
+														navigationMenuTriggerStyle(),
+														"h-auto w-full justify-start gap-3",
+													)}
+													render={<Link to="/" />}
+												>
+													<Home className="size-4 shrink-0" />
+													<div className="flex flex-col items-start gap-0.5">
+														<span className="text-sm font-medium">主站</span>
+														<span className="text-xs font-normal text-muted-foreground">
+															GalZY 游戏资源主页
+														</span>
+													</div>
+												</NavigationMenuLink>
+											</li>
+											<li>
+												<NavigationMenuLink
+													className={cn(
+														navigationMenuTriggerStyle(),
+														"h-auto w-full justify-start gap-3",
+													)}
+													render={
+														<a
+															href="https://list.galzy.moe"
+															target="_blank"
+															rel="noreferrer"
+														/>
+													}
+												>
+													<ExternalLink className="size-4 shrink-0" />
+													<div className="flex flex-col items-start gap-0.5">
+														<span className="text-sm font-medium">
+															OpList 站
+														</span>
+														<span className="text-xs font-normal text-muted-foreground">
+															Openlist 搭建 · list.galzy.moe
+														</span>
+													</div>
+												</NavigationMenuLink>
+											</li>
+										</ul>
+									</NavigationMenuContent>
 								</NavigationMenuItem>
 								<NavigationMenuItem>
 									<NavigationMenuLink
