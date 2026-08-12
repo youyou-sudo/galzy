@@ -15,6 +15,7 @@ import {
   Home,
   Library,
   Mail,
+  Megaphone,
   MessageSquare,
   Tags,
   Wrench,
@@ -28,7 +29,7 @@ const mainLinks = [
   { to: '/contact', label: '联系', icon: Mail },
 ] as const
 
-// 主页拆分为主站与 Openlist 文件列表站两个入口（文件列表站为新标签页打开的外部站点）
+// 主页包含主站、OpList 文件列表站与紫缘社公告页三个入口（OpList 与公告页为新标签页打开的外部站点）
 const fileListSiteUrl = 'https://list.galzy.moe'
 
 const toolLinks = [
@@ -91,6 +92,17 @@ export function HeaderMobileMenu({
             >
               <ExternalLink data-icon="inline-start" />
               OpList 站
+            </Button>
+            <Button
+              variant="outline"
+              nativeButton={false}
+              className="col-span-2 h-12 w-full justify-start gap-2.5 px-3 text-base font-medium"
+              render={
+                <a href="https://galzy.top/" target="_blank" rel="noreferrer" />
+              }
+            >
+              <Megaphone data-icon="inline-start" />
+              防失联&发布页
             </Button>
             {mainLinks.map(({ to, label, icon: Icon }) => (
               <Button

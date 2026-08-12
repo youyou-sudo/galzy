@@ -156,7 +156,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
         style={{ backgroundImage: 'url("/background.webp")' }}
       />
       <Header />
-      <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-6 space-y-4">
+      <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-6">
         {/* 广告 */}
         <aside
           id="sidebar-ad"
