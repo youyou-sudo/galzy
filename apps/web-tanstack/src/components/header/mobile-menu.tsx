@@ -96,7 +96,7 @@ export function HeaderMobileMenu({
             <Button
               variant="outline"
               nativeButton={false}
-              className="col-span-2 h-12 w-full justify-start gap-2.5 px-3 text-base font-medium"
+              className="h-12 w-full justify-start gap-2.5 px-3 text-base font-medium"
               render={
                 <a href="https://galzy.top/" target="_blank" rel="noreferrer" />
               }
