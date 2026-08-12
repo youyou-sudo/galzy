@@ -16,6 +16,7 @@ import { useIdlePreload } from "@web/hooks/use-idle-preload";
 import { seoMeta } from "@web/lib/seo";
 import { getCollectionsWithPreview } from "@web/server/collections";
 import { getCritical, getTotalCount } from "@web/server/game";
+import { r18Store } from "@web/stores/r18Store";
 
 export const Route = createFileRoute("/")({
 	component: App,
@@ -26,14 +27,15 @@ export const Route = createFileRoute("/")({
 			path: "/",
 		}),
 	loader: async ({ context }) => {
+		const showR18 = r18Store.state.showR18;
 		const [rankings] = await Promise.all([
-			getCritical(),
+			getCritical({ data: { showR18 } }),
 			Promise.all([
 				context.queryClient.ensureQueryData({
-					queryKey: ["homeCollections"],
+					queryKey: ["homeCollections", showR18],
 					queryFn: () =>
 						getCollectionsWithPreview({
-							data: { limit: 6, previewLimit: 3 },
+							data: { limit: 6, previewLimit: 3, showR18 },
 						}).then((r) => r.items),
 				}),
 				context.queryClient.ensureQueryData({
@@ -42,6 +44,8 @@ export const Route = createFileRoute("/")({
 				}),
 			]),
 		]);
+		// 预热首页热门游戏缓存（key 与 HotGamesSection 一致，SSR 渲染直接用，不重复请求）
+		context.queryClient.setQueryData(["hotGames", showR18], rankings.game);
 		return { rankings };
 	},
 

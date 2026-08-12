@@ -58,6 +58,7 @@ export const getCollectionsWithPreview = createServerFn()
       limit: z.optional(z.number().default(12)),
       previewLimit: z.optional(z.number().default(4)),
       type: z.optional(z.enum(['manual', 'producer'])),
+      showR18: z.optional(z.boolean()),
     }),
   )
   .handler(async ({ data }) => {
@@ -68,6 +69,7 @@ export const getCollectionsWithPreview = createServerFn()
         limit: data.limit,
         type: data.type,
         includePreview: data.previewLimit,
+        r18: data.showR18,
       },
     })
     elysiaErrorF(listErr)

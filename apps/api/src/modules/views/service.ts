@@ -67,17 +67,24 @@ function getEffectiveWeekStart(): Date {
   return getWeekStart()
 }
 
-async function queryGameRankings(weekStart: Date) {
+async function queryGameRankings(weekStart: Date, excludeR18 = false) {
+  // r18 关闭时在 SQL 层剔除涩涩游戏，保证仍取满 30 名健康游戏（前端显示 24 个）
+  const r18Filter = (idExpr: string) =>
+    excludeR18
+      ? sql`AND NOT EXISTS (SELECT 1 FROM ${vn} v JOIN ${images} i ON i.id = v.c_image WHERE v.id = ${sql.raw(idExpr)} AND i.c_sexual_avg >= 1)`
+      : sql``
   const result = await db.execute(sql`
     SELECT id, SUM(score)::int AS total FROM (
       SELECT target_id AS id, COUNT(*) * 1 AS score
       FROM galrc_event_views
       WHERE event_type = 'game_view' AND created_at >= ${weekStart}
+      ${r18Filter('target_id')}
       GROUP BY target_id
       UNION ALL
       SELECT game_id AS id, COUNT(*) * 3 AS score
       FROM "galrc_gameDownloadStats"
       WHERE created_at >= ${weekStart}
+      ${r18Filter('game_id')}
       GROUP BY game_id
     ) combined
     GROUP BY id
@@ -140,12 +147,14 @@ export const ViewsService = {
     )
   },
 
-  async getHotGames(): Promise<ViewsModel.GameRankingItem[]> {
+  async getHotGames({
+    r18,
+  }: ViewsModel.hotGame = {}): Promise<ViewsModel.GameRankingItem[]> {
     const weekStart = getEffectiveWeekStart()
     const weekKey = weekStart.toISOString().slice(0, 10)
-    const cacheKey = `galzy:views:hot:game:${weekKey}`
+    const cacheKey = `galzy:views:hot:game:${weekKey}:${r18 ? '1' : '0'}`
 
-    const rows = await queryGameRankings(weekStart)
+    const rows = await queryGameRankings(weekStart, r18 === false)
 
     if (rows.length === 0) {
       void setKv(cacheKey, JSON.stringify([]), WEEK_CACHE_TTL)
@@ -204,7 +213,7 @@ export const ViewsService = {
       })
     }
 
-    const result: ViewsModel.GameRankingItem[] = rows.map((r) => {
+    const mapped: ViewsModel.GameRankingItem[] = rows.map((r) => {
       const img = imageMap.get(r.id)
       return {
         id: r.id,
@@ -219,6 +228,9 @@ export const ViewsService = {
         cSexualAvg: img?.cSexualAvg ?? null,
       }
     })
+
+    // r18 关闭时剔除涩涩游戏（无封面 → cSexualAvg null → 保留）
+    const result = r18 ? mapped : mapped.filter((g) => (g.cSexualAvg ?? 0) < 1)
 
     void setKv(cacheKey, JSON.stringify(result), WEEK_CACHE_TTL)
     return result

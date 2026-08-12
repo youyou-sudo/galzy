@@ -7,6 +7,8 @@ export namespace CollectionModel {
     status: t.Optional(t.String()),
     type: t.Optional(t.String()), // 'manual' | 'producer'
     includePreview: t.Optional(t.Number({ default: 0, maximum: 20 })), // 嵌入前N个VN预览
+    // false → 预览中剔除 R18（images.c_sexual_avg >= 1）游戏；缺省/true → 不过滤
+    r18: t.Optional(t.Boolean()),
   })
 
   export const Params = t.Object({

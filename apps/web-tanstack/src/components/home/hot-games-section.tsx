@@ -1,6 +1,10 @@
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { useSelector } from "@tanstack/react-store";
 import { GameCard } from "@web/components/home/card";
 import { cn } from "@web/lib/utils";
+import { getCritical } from "@web/server/game";
+import { r18Store } from "@web/stores/r18Store";
 import { Flame, TrendingUp } from "lucide-react";
 
 interface HotGame {
@@ -17,7 +21,16 @@ interface HotGamesSectionProps {
 	games: HotGame[] | null;
 }
 
-export function HotGamesSection({ games }: HotGamesSectionProps) {
+export function HotGamesSection({ games: initialGames }: HotGamesSectionProps) {
+	const showR18 = useSelector(r18Store, (s) => s.showR18);
+	const { data: games } = useQuery({
+		queryKey: ["hotGames", showR18],
+		queryFn: async () => (await getCritical({ data: { showR18 } })).game,
+		// 关闭状态下 loader 数据与 key 一致直接用；开启时 key 不同，交给查询拉取（避免展示错误过滤的数据）
+		initialData: showR18 === false ? initialGames : undefined,
+		staleTime: 60_000,
+	});
+
 	if (!games || games.length === 0) return null;
 
 	const displayGames = games.slice(0, 24);

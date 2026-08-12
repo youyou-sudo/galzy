@@ -1,14 +1,19 @@
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
+import { useSelector } from '@tanstack/react-store'
 import { getCollectionsWithPreview } from '@web/server/collections'
+import { r18Store } from '@web/stores/r18Store'
 import { BookOpen } from 'lucide-react'
 import { CollectionItem, CollectionItemSkeleton } from './collection-card'
 
 export function CollectionsSection() {
-  const { data: collections } = useSuspenseQuery({
-    queryKey: ['homeCollections'],
+  const showR18 = useSelector(r18Store, (s) => s.showR18)
+  const { data: collections } = useQuery({
+    queryKey: ['homeCollections', showR18],
     queryFn: () =>
-      getCollectionsWithPreview({ data: { limit: 5, previewLimit: 3 } }).then(r => r.items),
+      getCollectionsWithPreview({
+        data: { limit: 5, previewLimit: 3, showR18 },
+      }).then((r) => r.items),
     staleTime: 5 * 60_000,
   })
 

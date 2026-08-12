@@ -45,9 +45,15 @@ export const views = new Elysia({ prefix: '/views' })
       body: ViewsModel.RecordTagView,
     },
   )
-  .get('/hot/game', async () => {
-    return await ViewsService.getHotGames()
-  })
+  .get(
+    '/hot/game',
+    async ({ query }) => {
+      return await ViewsService.getHotGames(query)
+    },
+    {
+      query: ViewsModel.HotGame,
+    },
+  )
   .get('/hot/tag', async () => {
     return await ViewsService.getHotTags()
   })

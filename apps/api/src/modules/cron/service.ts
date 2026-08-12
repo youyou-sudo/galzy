@@ -601,6 +601,7 @@ export const CronService = {
         'tags',
         'has_download',
         'released_first',
+        'images.c_sexual_avg',
       ])
       await MeiliClient.tasks.waitForTask(task.taskUid, { timeout: 300_000 })
 

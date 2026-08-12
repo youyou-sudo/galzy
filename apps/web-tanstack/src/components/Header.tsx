@@ -35,7 +35,7 @@ const HeaderMobileMenu = lazy(loadHeaderMobileMenu);
 export default function Header() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [mounted, setMounted] = useState(false);
-	const blurEnabled = useSelector(r18Store, (s) => s.blurEnabled);
+	const showR18 = useSelector(r18Store, (s) => s.showR18);
 	useEffect(() => {
 		setMounted(true);
 		// 移动端首屏空闲时预加载侧栏菜单 chunk：首次点击汉堡按钮时立即打开，不等待网络请求
@@ -225,16 +225,16 @@ export default function Header() {
 									size="sm"
 									className={cn(
 										"gap-1 px-1.5 min-w-0",
-										blurEnabled
+										showR18
 											? "text-pink-500 hover:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/20"
 											: "text-green-500 hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20",
 									)}
 									onClick={r18Actions.toggle}
 								>
-									{blurEnabled ? (
-										<EyeOff className="size-4 shrink-0" />
-									) : (
+									{showR18 ? (
 										<Eye className="size-4 shrink-0" />
+									) : (
+										<EyeOff className="size-4 shrink-0" />
 									)}
 									<span className="text-[10px] font-bold leading-none">
 										涩！
@@ -243,7 +243,7 @@ export default function Header() {
 							}
 						/>
 						<TooltipContent>
-							{blurEnabled ? "点击关闭涩！模糊" : "点击开启涩！模糊"}
+							{showR18 ? "点击关闭涩！过滤 R18 游戏" : "点击开启涩！显示 R18 游戏"}
 						</TooltipContent>
 					</Tooltip>
 					<ThemeToggle />

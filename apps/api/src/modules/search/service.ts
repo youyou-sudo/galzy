@@ -105,6 +105,7 @@ export const Search = {
       tags,
       startDate,
       endDate,
+      r18,
     } = params
 
     const safeQ =
@@ -126,6 +127,10 @@ export const Search = {
       filters.push(
         `released_first >= "${startDate}" AND released_first <= "${endDate}"`,
       )
+    }
+    if (r18 === false) {
+      // 健康模式：剔除 R18（c_sexual_avg >= 1）。NOT 形式对无封面文档（images=null）同样命中
+      filters.push('NOT (images.c_sexual_avg >= 1)')
     }
 
     // Build sort

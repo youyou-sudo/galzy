@@ -49,8 +49,8 @@ export function Images({
 	...props
 }: ImageProps & { cSexualAvg?: number | null }) {
 	const THRESHOLD = 1.0;
-	const blurEnabled = useSelector(r18Store, (s) => s.blurEnabled);
-	const isSensitive = blurEnabled && (cSexualAvg ?? 0) >= THRESHOLD;
+	const showR18 = useSelector(r18Store, (s) => s.showR18);
+	const isSensitive = !showR18 && (cSexualAvg ?? 0) >= THRESHOLD;
 	const [revealed, setRevealed] = useState(false);
 
 	return (
@@ -89,8 +89,8 @@ function SensitiveImage({
 	...imageProps
 }: ImageProps & { cSexualAvg?: number | null }) {
 	const THRESHOLD = 1.0;
-	const blurEnabled = useSelector(r18Store, (s) => s.blurEnabled);
-	const isSensitive = blurEnabled && (cSexualAvg ?? 0) >= THRESHOLD;
+	const showR18 = useSelector(r18Store, (s) => s.showR18);
+	const isSensitive = !showR18 && (cSexualAvg ?? 0) >= THRESHOLD;
 	const [revealed, setRevealed] = useState(false);
 
 	const w = (imageProps as Record<string, unknown>).width as number | undefined;
@@ -142,8 +142,8 @@ function Item({
 	cSexualAvg?: number | null;
 }) {
 	const THRESHOLD = 1.0;
-	const blurEnabled = useSelector(r18Store, (s) => s.blurEnabled);
-	const isSensitive = blurEnabled && (cSexualAvg ?? 0) >= THRESHOLD;
+	const showR18 = useSelector(r18Store, (s) => s.showR18);
+	const isSensitive = !showR18 && (cSexualAvg ?? 0) >= THRESHOLD;
 	const [revealed, setRevealed] = useState(false);
 
 	return (

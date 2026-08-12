@@ -11,6 +11,11 @@ export namespace ViewsModel {
   })
   export type recordTagView = typeof RecordTagView.static
 
+  export const HotGame = t.Object({
+    r18: t.Optional(t.Boolean()),
+  })
+  export type hotGame = typeof HotGame.static
+
   export type GameRankingItem = {
     id: string
     title: string | null

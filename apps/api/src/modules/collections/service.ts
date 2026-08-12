@@ -17,7 +17,7 @@ import type { CollectionModel } from './model'
 export const CollectionService = {
   // 获取合集列表（传 status 则按状态过滤，不传则返回全部）
   async list(params: CollectionModel.list) {
-    const { page = 1, limit = 20, type, includePreview = 0 } = params
+    const { page = 1, limit = 20, type, includePreview = 0, r18 } = params
     const offset = (page - 1) * limit
     const conditions = []
     if (params.status) conditions.push(eq(collections.status, params.status))
@@ -269,7 +269,10 @@ export const CollectionService = {
       includePreview > 0
         ? itemsWithCount.map((item) => ({
             ...item,
-            previews: previewMap.get(item.id) ?? [],
+            // r18 === false 时剔除涩涩游戏封面（无封面 → cSexualAvg null → 保留）
+            previews: (previewMap.get(item.id) ?? []).filter(
+              (p) => r18 !== false || (p.cSexualAvg ?? 0) < 1,
+            ),
           }))
         : itemsWithCount
 

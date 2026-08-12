@@ -1,5 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { useSelector } from '@tanstack/react-store'
 import { GameCard } from '@web/components/home/card'
 import SearchInput from '@web/components/home/search/Search'
 import {
@@ -14,6 +15,7 @@ import { Button } from '@web/components/ui/button'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { seoMeta } from '@web/lib/seo'
 import { getGameList } from '@web/server/game'
+import { r18Store } from '@web/stores/r18Store'
 import { ArrowUpDown, Flame, ListFilter } from 'lucide-react'
 import { object, string } from 'zod/schemas'
 
@@ -43,6 +45,8 @@ export const Route = createFileRoute('/games/')({
     order,
   }),
   loader: async ({ deps: { q, startDate, endDate, sortBy, order } }) => {
+    // 搜索模式（q 存在）不启用 R18 过滤，敏感图片由卡片模糊组件兜底
+    const showR18 = q ? undefined : r18Store.state.showR18
     const { gamelist } = await getGameList({
       data: {
         pageIndex: 0,
@@ -52,6 +56,7 @@ export const Route = createFileRoute('/games/')({
         q,
         startDate,
         endDate,
+        showR18,
       },
     })
     return { initialData: gamelist }
@@ -66,6 +71,9 @@ export const Route = createFileRoute('/games/')({
 function RouteComponent() {
   const { q, startDate, endDate, sortBy, order } = Route.useSearch()
   const { initialData } = Route.useLoaderData()
+  const storeShowR18 = useSelector(r18Store, (s) => s.showR18)
+  // 搜索模式（q 存在）不启用 R18 过滤，敏感图片由卡片模糊组件兜底
+  const showR18 = q ? undefined : storeShowR18
   const navigate = useNavigate()
 
   const {
@@ -75,7 +83,15 @@ function RouteComponent() {
     fetchNextPage,
     hasNextPage,
   } = useInfiniteQuery({
-    queryKey: ['gameList', q, startDate, endDate, sortBy, order],
+    queryKey: [
+      'gameList',
+      q,
+      startDate,
+      endDate,
+      sortBy,
+      order,
+      q ? 'search' : storeShowR18,
+    ],
     queryFn: async ({ pageParam }) => {
       const { gamelist } = await getGameList({
         data: {
@@ -86,6 +102,7 @@ function RouteComponent() {
           q,
           startDate,
           endDate,
+          showR18,
         },
       })
       return gamelist ?? null

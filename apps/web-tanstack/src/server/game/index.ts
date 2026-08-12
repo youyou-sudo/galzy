@@ -72,6 +72,7 @@ export const getGameList = createServerFn()
 				q: z.optional(z.string()),
 				olang: z.optional(z.string()),
 				tags: z.optional(z.union([z.string(), z.array(z.string())])),
+				showR18: z.optional(z.boolean()),
 			})
 			.partial()
 			.default({}),
@@ -106,6 +107,7 @@ export const getGameList = createServerFn()
 				order: data.order as "asc" | "desc" | undefined,
 				olang: data.olang,
 				tags: data.tags,
+				r18: data.showR18,
 			},
 		});
 		elysiaErrorF(error);
@@ -124,21 +126,23 @@ export const getTotalCount = createServerFn().handler(async () => {
 	elysiaErrorF(error);
 	return totalRes;
 });
-export const getCritical = createServerFn().handler(async () => {
-	const [gameResult, tagResult] = await Promise.allSettled([
-		api.views.hot.game.get(),
-		api.views.hot.tag.get(),
-	]);
+export const getCritical = createServerFn()
+	.validator(z.object({ showR18: z.optional(z.boolean()) }))
+	.handler(async ({ data }) => {
+		const [gameResult, tagResult] = await Promise.allSettled([
+			api.views.hot.game.get({ query: { r18: data.showR18 } }),
+			api.views.hot.tag.get(),
+		]);
 
-	const game =
-		gameResult.status === "fulfilled" && !gameResult.value.error
-			? (gameResult.value.data ?? null)
-			: null;
+		const game =
+			gameResult.status === "fulfilled" && !gameResult.value.error
+				? (gameResult.value.data ?? null)
+				: null;
 
-	const tag =
-		tagResult.status === "fulfilled" && !tagResult.value.error
-			? (tagResult.value.data ?? null)
-			: null;
+		const tag =
+			tagResult.status === "fulfilled" && !tagResult.value.error
+				? (tagResult.value.data ?? null)
+				: null;
 
-	return { game, tag };
-});
+		return { game, tag };
+	});
