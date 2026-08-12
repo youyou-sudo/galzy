@@ -110,7 +110,7 @@ export function HeaderMobileMenu({
                 variant="outline"
                 nativeButton={false}
                 className={cn(
-                  'h-12 w-full justify-start gap-2.5 px-3 text-base font-medium last:col-span-2',
+                  'h-12 w-full justify-start gap-2.5 px-3 text-base font-medium',
                 )}
                 render={<Link to={to} onClick={() => onOpenChange(false)} />}
               >
