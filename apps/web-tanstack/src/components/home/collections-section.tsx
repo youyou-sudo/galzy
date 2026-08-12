@@ -8,7 +8,7 @@ import { CollectionItem, CollectionItemSkeleton } from './collection-card'
 
 export function CollectionsSection() {
   const showR18 = useSelector(r18Store, (s) => s.showR18)
-  const { data: collections } = useQuery({
+  const { data: collections, isLoading } = useQuery({
     queryKey: ['homeCollections', showR18],
     queryFn: () =>
       getCollectionsWithPreview({
@@ -16,6 +16,9 @@ export function CollectionsSection() {
       }).then((r) => r.items),
     staleTime: 5 * 60_000,
   })
+
+  // 切换/冷启动拉取窗口期显示骨架，避免整块空白
+  if (isLoading) return <CollectionsSectionSkeleton />
 
   if (!collections || collections.length === 0) return null
 

@@ -4,7 +4,10 @@ import {
 	CollectionsSection,
 	CollectionsSectionSkeleton,
 } from "@web/components/home/collections-section";
-import { HotGamesSection } from "@web/components/home/hot-games-section";
+import {
+	HotGamesSection,
+	HotGamesSectionSkeleton,
+} from "@web/components/home/hot-games-section";
 import {
 	HotTagsSection,
 	HotTagsSectionSkeleton,
@@ -109,6 +112,7 @@ function HomePageSkeleton() {
 				</div>
 			</div>
 			<HotTagsSectionSkeleton />
+			<HotGamesSectionSkeleton />
 			<CollectionsSectionSkeleton />
 		</div>
 	);

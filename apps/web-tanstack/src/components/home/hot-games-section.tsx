@@ -23,13 +23,16 @@ interface HotGamesSectionProps {
 
 export function HotGamesSection({ games: initialGames }: HotGamesSectionProps) {
 	const showR18 = useSelector(r18Store, (s) => s.showR18);
-	const { data: games } = useQuery({
+	const { data: games, isLoading } = useQuery({
 		queryKey: ["hotGames", showR18],
 		queryFn: async () => (await getCritical({ data: { showR18 } })).game,
 		// 关闭状态下 loader 数据与 key 一致直接用；开启时 key 不同，交给查询拉取（避免展示错误过滤的数据）
 		initialData: showR18 === false ? initialGames : undefined,
 		staleTime: 60_000,
 	});
+
+	// 切换/冷启动拉取窗口期显示骨架，避免整块空白
+	if (isLoading) return <HotGamesSectionSkeleton />;
 
 	if (!games || games.length === 0) return null;
 
@@ -81,5 +84,17 @@ export function HotGamesSection({ games: initialGames }: HotGamesSectionProps) {
 }
 
 export function HotGamesSectionSkeleton() {
-	return null;
+	return (
+		<section className="mb-8">
+			<div className="flex items-center gap-2 mb-4">
+				<div className="size-5 rounded bg-muted animate-pulse" />
+				<div className="h-6 w-24 rounded bg-muted animate-pulse" />
+			</div>
+			<div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+				{Array.from({ length: 12 }).map((_, i) => (
+					<GameCard.ListSkeleton key={i} />
+				))}
+			</div>
+		</section>
+	);
 }
