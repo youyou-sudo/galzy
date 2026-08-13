@@ -87,7 +87,7 @@ export const Glgczujm = () => {
             <Image
               width={1425}
               height={120}
-              src="/dzmmgif.webp"
+              src="/dzmm.webp"
               alt="DZMM 广告图片"
               className="object-cover rounded-lg"
             />
@@ -96,7 +96,7 @@ export const Glgczujm = () => {
             <Image
               width={1425}
               height={120}
-              src="/dzmmgif.webp"
+              src="/dzmm.webp"
               alt="DZMM 广告图片"
               className="object-cover rounded-lg"
             />

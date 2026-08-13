@@ -177,7 +177,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
               <Image
                 width={1425}
                 height={120}
-                src="/dzmmgif.webp"
+                src="/dzmm.webp"
                 alt="dzmm 广告图片"
                 className="object-cover scale-[1.03]"
               />
@@ -186,7 +186,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
               <Image
                 width={1425}
                 height={113}
-                src="/dzmmgif.webp"
+                src="/dzmm.webp"
                 alt="dzmm 广告图片"
                 className="object-cover rounded-lg"
               />
