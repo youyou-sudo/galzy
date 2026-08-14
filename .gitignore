@@ -26,6 +26,9 @@ out/
 build
 dist
 
+# bun-queue patched Lua scripts (copied from node_modules by postinstall)
+apps/api/commands/
+
 
 # Debug
 npm-debug.log*

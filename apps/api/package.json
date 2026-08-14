@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "build": "bun build --compile --minify-whitespace --minify-syntax --target bun --outfile server ./src/index.ts",
+    "postinstall": "bun run ../../scripts/patch-bun-queue.ts",
     "lint": "biome check --write",
     "format": "biome format --write .",
     "check": "biome check",

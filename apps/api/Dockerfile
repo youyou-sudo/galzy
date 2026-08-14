@@ -37,6 +37,11 @@ COPY --from=build /app/apps/api/server /app/server
 # 全新数据库部署必须包含该目录，否则服务以 error 状态启动、cron 不会开启。
 COPY --from=build /app/apps/api/drizzle /app/drizzle
 
+# bun-queue 的 Lua 命令脚本（dist/commands/*.lua）。单二进制编译后 import.meta.dir
+# 指向虚拟 $bunfs，脚本文件不会被嵌入；postinstall 已把路径 patch 为
+# process.cwd()/commands，server 运行时 cwd=/app，因此必须把脚本复制到 /app/commands。
+COPY --from=build /app/apps/api/commands /app/commands
+
 # Environment variables
 ENV NODE_ENV=production
 ENV PORT=3001

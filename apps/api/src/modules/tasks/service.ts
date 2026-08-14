@@ -328,33 +328,53 @@ export async function startQueueWorkers() {
 
   for (const w of workers) w.start()
 
+  // 清理历史遗留的 repeatable cron jobs：scheduleCron 不传 jobId 时每次启动都会
+  // 生成随机 id 并残留，重启多次后会累积重复调度（同一 cron 触发多份 job）。
+  for (const q of [vndbQueue, meiliQueue, cloudreveQueue, metricsQueue]) {
+    try {
+      const delayed = await q.getJobs('delayed')
+      for (const j of delayed) {
+        if (j.opts?.repeat) await q.removeJob(j.id)
+      }
+    } catch (e) {
+      console.warn(`[queue] 清理 ${q.name} 旧 cron jobs 失败:`, e)
+    }
+  }
+
   // 定时任务调度（scheduleCron 替换 croner）：
   // - workerDataPull 每分钟
   // - cloudreve 同步每 30 分钟
   // - meili 三索引每周日 3:00 滚动重建
   // - 队列日志/记录 TTL 清理每天 4:00
+  // jobId 固定 → 重复注册幂等（addStandardJob 对同 id 走 handleDuplicatedJob 去重）。
   try {
     await metricsQueue.scheduleCron({
+      jobId: 'cron:worker-data-pull',
       cronExpression: '*/1 * * * *',
       data: { type: 'worker-data-pull' } satisfies TaskPayload,
     })
     await cloudreveQueue.scheduleCron({
+      jobId: 'cron:cloudreve-sync',
       cronExpression: '*/30 * * * *',
       data: { type: 'cloudreve-sync' } satisfies TaskPayload,
     })
     await meiliQueue.scheduleCron({
+      jobId: 'cron:meili-game',
       cronExpression: '0 3 * * 0',
       data: { type: 'meili-game' } satisfies TaskPayload,
     })
     await meiliQueue.scheduleCron({
+      jobId: 'cron:meili-tag',
       cronExpression: '0 3 * * 0',
       data: { type: 'meili-tag' } satisfies TaskPayload,
     })
     await meiliQueue.scheduleCron({
+      jobId: 'cron:meili-producer',
       cronExpression: '0 3 * * 0',
       data: { type: 'meili-producer' } satisfies TaskPayload,
     })
     await metricsQueue.scheduleCron({
+      jobId: 'cron:queue-log-prune',
       cronExpression: '0 4 * * *',
       data: { type: 'queue-log-prune' } satisfies TaskPayload,
     })
