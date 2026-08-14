@@ -10,6 +10,7 @@ import {
   QUEUE_JOB_RETENTION_DAYS,
   QUEUE_LOG_TTL_DAYS,
 } from '@api/libs/queue/config'
+import { delKvPattern, getRedisClient } from '@api/libs/redis'
 import { CronService } from '@api/modules/cron/service'
 import { VndbSync } from '@api/modules/vndb-sync/service'
 import { type Queue, Worker } from '@stacksjs/bun-queue'
@@ -330,16 +331,32 @@ export async function startQueueWorkers() {
 
   // 清理历史遗留的 repeatable cron jobs：scheduleCron 不传 jobId 时每次启动都会
   // 生成随机 id 并残留，重启多次后会累积重复调度（同一 cron 触发多份 job）。
+  // 旧版本（脚本加载坏掉的时期）写入的数据可能类型损坏（WRONGTYPE），
+  // removeJob 失败时用 DEL 兜底直接删除 job key，避免脏数据无限残留。
   for (const q of [vndbQueue, meiliQueue, cloudreveQueue, metricsQueue]) {
     try {
       const delayed = await q.getJobs('delayed')
       for (const j of delayed) {
-        if (j.opts?.repeat) await q.removeJob(j.id)
+        if (j.opts?.repeat) {
+          try {
+            await q.removeJob(j.id)
+          } catch (rmErr) {
+            console.warn(
+              `[queue] removeJob ${j.id} 失败（脏数据），改用 DEL 兜底:`,
+              rmErr,
+            )
+            await getRedisClient().del(q.getJobKey(j.id))
+          }
+        }
       }
     } catch (e) {
       console.warn(`[queue] 清理 ${q.name} 旧 cron jobs 失败:`, e)
     }
   }
+
+  // 清理历史残留的分布式锁（异常退出/旧版本可能留下锁 key，导致新 job 一直
+  // acquire 失败循环；TTL 30s 会自动过期，主动清一次更稳）。
+  await delKvPattern('galzy-queue:*:lock:*')
 
   // 定时任务调度（scheduleCron 替换 croner）：
   // - workerDataPull 每分钟
