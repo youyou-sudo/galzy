@@ -41,6 +41,7 @@ import { Route as AdminAuthLArticlesRouteImport } from './routes/admin/_authL/ar
 import { Route as AdminAuthLCollectionsRouteImport } from './routes/admin/_authL/collections'
 import { Route as AdminAuthLCommentsRouteImport } from './routes/admin/_authL/comments'
 import { Route as AdminAuthLMeilisearchRouteImport } from './routes/admin/_authL/meilisearch'
+import { Route as AdminAuthLTasksRouteImport } from './routes/admin/_authL/tasks'
 import { Route as AdminAuthLTopicsRouteImport } from './routes/admin/_authL/topics'
 import { Route as AdminAuthLUsersRouteImport } from './routes/admin/_authL/users'
 import { Route as AdminAuthLVndbSyncRouteImport } from './routes/admin/_authL/vndb-sync'
@@ -212,6 +213,11 @@ const AdminAuthLMeilisearchRoute = AdminAuthLMeilisearchRouteImport.update({
   path: '/meilisearch',
   getParentRoute: () => AdminAuthLRoute,
 } as any)
+const AdminAuthLTasksRoute = AdminAuthLTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
 const AdminAuthLTopicsRoute = AdminAuthLTopicsRouteImport.update({
   id: '/topics',
   path: '/topics',
@@ -296,6 +302,7 @@ export interface FileRoutesByFullPath {
   '/admin/collections': typeof AdminAuthLCollectionsRoute
   '/admin/comments': typeof AdminAuthLCommentsRoute
   '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
+  '/admin/tasks': typeof AdminAuthLTasksRoute
   '/admin/topics': typeof AdminAuthLTopicsRoute
   '/admin/users': typeof AdminAuthLUsersRoute
   '/admin/vndb-sync': typeof AdminAuthLVndbSyncRoute
@@ -338,6 +345,7 @@ export interface FileRoutesByTo {
   '/admin/collections': typeof AdminAuthLCollectionsRoute
   '/admin/comments': typeof AdminAuthLCommentsRoute
   '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
+  '/admin/tasks': typeof AdminAuthLTasksRoute
   '/admin/topics': typeof AdminAuthLTopicsRoute
   '/admin/users': typeof AdminAuthLUsersRoute
   '/admin/vndb-sync': typeof AdminAuthLVndbSyncRoute
@@ -383,6 +391,7 @@ export interface FileRoutesById {
   '/admin/_authL/collections': typeof AdminAuthLCollectionsRoute
   '/admin/_authL/comments': typeof AdminAuthLCommentsRoute
   '/admin/_authL/meilisearch': typeof AdminAuthLMeilisearchRoute
+  '/admin/_authL/tasks': typeof AdminAuthLTasksRoute
   '/admin/_authL/topics': typeof AdminAuthLTopicsRoute
   '/admin/_authL/users': typeof AdminAuthLUsersRoute
   '/admin/_authL/vndb-sync': typeof AdminAuthLVndbSyncRoute
@@ -429,6 +438,7 @@ export interface FileRouteTypes {
     | '/admin/collections'
     | '/admin/comments'
     | '/admin/meilisearch'
+    | '/admin/tasks'
     | '/admin/topics'
     | '/admin/users'
     | '/admin/vndb-sync'
@@ -471,6 +481,7 @@ export interface FileRouteTypes {
     | '/admin/collections'
     | '/admin/comments'
     | '/admin/meilisearch'
+    | '/admin/tasks'
     | '/admin/topics'
     | '/admin/users'
     | '/admin/vndb-sync'
@@ -515,6 +526,7 @@ export interface FileRouteTypes {
     | '/admin/_authL/collections'
     | '/admin/_authL/comments'
     | '/admin/_authL/meilisearch'
+    | '/admin/_authL/tasks'
     | '/admin/_authL/topics'
     | '/admin/_authL/users'
     | '/admin/_authL/vndb-sync'
@@ -786,6 +798,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthLMeilisearchRouteImport
       parentRoute: typeof AdminAuthLRoute
     }
+    '/admin/_authL/tasks': {
+      id: '/admin/_authL/tasks'
+      path: '/tasks'
+      fullPath: '/admin/tasks'
+      preLoaderRoute: typeof AdminAuthLTasksRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
     '/admin/_authL/topics': {
       id: '/admin/_authL/topics'
       path: '/topics'
@@ -884,6 +903,7 @@ interface AdminAuthLRouteChildren {
   AdminAuthLCollectionsRoute: typeof AdminAuthLCollectionsRoute
   AdminAuthLCommentsRoute: typeof AdminAuthLCommentsRoute
   AdminAuthLMeilisearchRoute: typeof AdminAuthLMeilisearchRoute
+  AdminAuthLTasksRoute: typeof AdminAuthLTasksRoute
   AdminAuthLTopicsRoute: typeof AdminAuthLTopicsRoute
   AdminAuthLUsersRoute: typeof AdminAuthLUsersRoute
   AdminAuthLVndbSyncRoute: typeof AdminAuthLVndbSyncRoute
@@ -895,6 +915,7 @@ const AdminAuthLRouteChildren: AdminAuthLRouteChildren = {
   AdminAuthLCollectionsRoute: AdminAuthLCollectionsRoute,
   AdminAuthLCommentsRoute: AdminAuthLCommentsRoute,
   AdminAuthLMeilisearchRoute: AdminAuthLMeilisearchRoute,
+  AdminAuthLTasksRoute: AdminAuthLTasksRoute,
   AdminAuthLTopicsRoute: AdminAuthLTopicsRoute,
   AdminAuthLUsersRoute: AdminAuthLUsersRoute,
   AdminAuthLVndbSyncRoute: AdminAuthLVndbSyncRoute,

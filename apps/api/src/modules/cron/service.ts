@@ -353,9 +353,10 @@ export const CronService = {
           })
       })
       console.log('cloudreveSyncScript 运行成功喵', stats)
-      // 清理游戏文件树缓存，避免旧路径/空结果残留
+      // 清理游戏文件树缓存，避免旧路径/空结果残留。
+      // 注：后续的 VNDB 增量同步已迁移到队列（cloudreve handler 成功后显式入队 vndb-delta），
+      // 此处不再直接 void VndbSync.syncDelta()，避免双重触发且失败不可观测。
       await VndbSync.invalidateCache()
-      void VndbSync.syncDelta()
       return { ok: true, ...stats }
     } catch (e) {
       console.error('cloudreveSyncScript 运行失败喵', e)
@@ -569,11 +570,12 @@ export const CronService = {
       })
 
       const index = await MeiliClient.index(process.env.MEILISEARCH_INDEXNAME)
-      const deleteTask = await index.deleteAllDocuments()
-      await MeiliClient.tasks.waitForTask(deleteTask.taskUid, {
-        timeout: 300_000,
-      })
-      await this.addMeiliLog('game', 'info', '已清空现有索引')
+      // 滚动模式：不清空索引（避免用户短暂搜到空结果），逐页覆盖写入，末尾差集删除过期文档。
+      await this.addMeiliLog(
+        'game',
+        'info',
+        '滚动更新开始（保留现有索引，不清空）',
+      )
 
       const pageSize = 500
       const concurrencyLimit = 3
@@ -627,6 +629,15 @@ export const CronService = {
         'success',
         '已更新索引设置（筛选、排序、搜索字段）',
       )
+
+      // 差集删除：DB 中有文件的 vid（alistb.vid）之外的游戏文档视为过期，分批删除。
+      const liveVids = new Set(
+        (await db.selectDistinct({ vid: alistb.vid }).from(alistb))
+          .map((r) => r.vid)
+          .filter((v): v is string => v != null),
+      )
+      const pruned = await pruneStaleDocs(index, liveVids)
+      await this.addMeiliLog('game', 'info', `清理过期索引文档: ${pruned} 条`)
 
       await this.updateMeiliProgress('game', {
         status: 'completed',
@@ -696,8 +707,12 @@ export const CronService = {
       const index = await MeiliClient.index(
         process.env.MEILISEARCH_TAG_INDEXNAME,
       )
-      await index.deleteAllDocuments()
-      await this.addMeiliLog('tag', 'info', '已清空现有索引')
+      // 滚动模式：不清空索引，逐页覆盖写入，末尾差集删除过期文档。
+      await this.addMeiliLog(
+        'tag',
+        'info',
+        '滚动更新开始（保留现有索引，不清空）',
+      )
 
       const pageSize = 500
       const concurrencyLimit = 3
@@ -716,6 +731,19 @@ export const CronService = {
           `索引进度: ${processed}/${totalPages} 页`,
         )
       }
+
+      // 差集删除：DB 中处于 exhibition 的 tag 之外的标签文档视为过期。
+      const liveTagIds = new Set(
+        (
+          await db
+            .select({ id: tags.id })
+            .from(tags)
+            .innerJoin(zhtags, eq(tags.id, zhtags.id))
+            .where(eq(zhtags.exhibition, true))
+        ).map((r) => r.id),
+      )
+      const pruned = await pruneStaleDocs(index, liveTagIds)
+      await this.addMeiliLog('tag', 'info', `清理过期索引文档: ${pruned} 条`)
 
       await this.updateMeiliProgress('tag', {
         status: 'completed',
@@ -783,8 +811,12 @@ export const CronService = {
       const index = await MeiliClient.index(
         process.env.MEILISEARCH_PRODUCER_INDEXNAME || 'galrc_Producer',
       )
-      await index.deleteAllDocuments()
-      await this.addMeiliLog('producer', 'info', '已清空现有索引')
+      // 滚动模式：不清空索引，逐页覆盖写入，末尾差集删除过期文档。
+      await this.addMeiliLog(
+        'producer',
+        'info',
+        '滚动更新开始（保留现有索引，不清空）',
+      )
 
       const pageSize = 500
       const concurrencyLimit = 3
@@ -828,6 +860,19 @@ export const CronService = {
         'producer',
         'success',
         '已更新索引设置（筛选、搜索字段、分页上限）',
+      )
+
+      // 差集删除：DB 中已不存在的 producer 文档视为过期。
+      const liveProducerIds = new Set(
+        (await db.select({ id: producers.id }).from(producers)).map(
+          (r) => r.id,
+        ),
+      )
+      const pruned = await pruneStaleDocs(index, liveProducerIds)
+      await this.addMeiliLog(
+        'producer',
+        'info',
+        `清理过期索引文档: ${pruned} 条`,
       )
 
       await this.updateMeiliProgress('producer', {
@@ -1048,4 +1093,47 @@ const producerAllGet = async (pageSize: number, pageIndex: number) => {
     .offset(offset)
 
   return { items }
+}
+
+// ── 滚动重建辅助：差集删除过期文档 ──────────────────────────────
+// 滚动模式不「清空重建」，而是逐页 updateDocuments/addDocuments 后，
+// 只删除「DB 中已不存在」的过期文档，全程保留旧文档可被搜索（无空窗）。
+
+const MEILI_PRUNE_CHUNK = 1000
+
+/** 分页遍历 Meili 索引，取全部文档主键 id。 */
+async function collectMeiliIds(index: Index): Promise<string[]> {
+  const ids: string[] = []
+  let offset = 0
+  for (;;) {
+    const page = await index.getDocuments({
+      limit: MEILI_PRUNE_CHUNK,
+      offset,
+      fields: ['id'],
+    })
+    if (!page.results || page.results.length === 0) break
+    for (const doc of page.results) {
+      if (doc.id != null) ids.push(String(doc.id))
+    }
+    offset += page.results.length
+    if (page.results.length < MEILI_PRUNE_CHUNK) break
+  }
+  return ids
+}
+
+/**
+ * 删除 Meili 索引中「existingIds 集合之外」的过期文档。
+ * 返回删除数量；删除失败会抛错（调用方据此把 job 标记失败，保守只残留不误删）。
+ */
+async function pruneStaleDocs(
+  index: Index,
+  existingIds: Set<string>,
+): Promise<number> {
+  const meiliIds = await collectMeiliIds(index)
+  const stale = meiliIds.filter((id) => !existingIds.has(id))
+  if (stale.length === 0) return 0
+  for (let i = 0; i < stale.length; i += MEILI_PRUNE_CHUNK) {
+    await index.deleteDocuments(stale.slice(i, i + MEILI_PRUNE_CHUNK))
+  }
+  return stale.length
 }

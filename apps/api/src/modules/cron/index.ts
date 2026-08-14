@@ -1,6 +1,7 @@
+import { QUEUE } from '@api/libs/queue'
 import { betterAuth } from '@api/modules/auth'
 import { CronService } from '@api/modules/cron/service'
-import { Cron } from 'croner'
+import { enqueue } from '@api/modules/tasks/service'
 import { Elysia, t } from 'elysia'
 
 export const cronServer = new Elysia()
@@ -18,20 +19,20 @@ export const cronServer = new Elysia()
       }),
     },
   )
-  .get('/task/meiliSearchAddIndex', () => {
+  .get('/task/meiliSearchAddIndex', async () => {
     console.log('[Cron Trigger] meiliSearchAddIndex 手动触发')
-    void CronService.meiliSearchAddIndex()
-    return { ok: true, message: '游戏索引重建已触发' }
+    const jobId = await enqueue(QUEUE.meiliIndex, { type: 'meili-game' })
+    return { ok: true, message: '游戏索引重建已入队', jobId }
   })
-  .get('/task/meiliSearchAddTag', () => {
+  .get('/task/meiliSearchAddTag', async () => {
     console.log('[Cron Trigger] meiliSearchAddTag 手动触发')
-    void CronService.meiliSearchAddTag()
-    return { ok: true, message: '标签索引重建已触发' }
+    const jobId = await enqueue(QUEUE.meiliIndex, { type: 'meili-tag' })
+    return { ok: true, message: '标签索引重建已入队', jobId }
   })
-  .get('/task/meiliSearchAddProducer', () => {
+  .get('/task/meiliSearchAddProducer', async () => {
     console.log('[Cron Trigger] meiliSearchAddProducer 手动触发')
-    void CronService.meiliSearchAddProducer()
-    return { ok: true, message: '厂商索引重建已触发' }
+    const jobId = await enqueue(QUEUE.meiliIndex, { type: 'meili-producer' })
+    return { ok: true, message: '厂商索引重建已入队', jobId }
   })
   .get(
     '/task/meiliSearchProgress',
@@ -46,46 +47,13 @@ export const cronServer = new Elysia()
       }),
     },
   )
-  .get('/task/cloudreveSyncScript', () => {
+  .get('/task/cloudreveSyncScript', async () => {
     console.log('[Cron Trigger] cloudreveSyncScript 手动触发')
-    return CronService.cloudreveSyncScript()
+    const jobId = await enqueue(QUEUE.cloudreveSync, { type: 'cloudreve-sync' })
+    return { ok: true, message: 'Cloudreve 同步已入队', jobId }
   })
-  .get('/task/workerDataPull', () => {
+  .get('/task/workerDataPull', async () => {
     console.log('[Cron Trigger] workerDataPull 手动触发')
-    return CronService.workerDataPull()
+    const jobId = await enqueue(QUEUE.metrics, { type: 'worker-data-pull' })
+    return { ok: true, message: '指标拉取已入队', jobId }
   })
-
-export function startCronTasks() {
-  // 每分钟执行一次
-  new Cron('*/1 * * * *', () => {
-    CronService.workerDataPull()
-    console.log('[Cron] workerDataPull 定时执行')
-  })
-
-  // 每 30 分钟同步一次 Cloudreve 目录 → 文件条目。
-  // 文件夹移动/改名后路径自动自愈，新增目录自动上架（搜索+upsert 约数秒，已用分布式锁防重入）
-  new Cron('*/30 * * * *', () => {
-    CronService.cloudreveSyncScript()
-    console.log('[Cron] cloudreveSyncScript 定时执行 (30min)')
-  })
-
-  // Weekly full rebuild as safety net (Sunday 3:00 AM)
-  new Cron('0 3 * * 0', () => {
-    CronService.meiliSearchAddIndex()
-    console.log('[Cron] meiliSearchAddIndex weekly full rebuild')
-  })
-
-  // Weekly full rebuild as safety net
-  new Cron('0 3 * * 0', () => {
-    CronService.meiliSearchAddTag()
-    console.log('[Cron] meiliSearchAddTag weekly full rebuild')
-  })
-
-  // Weekly full rebuild as safety net
-  new Cron('0 3 * * 0', () => {
-    CronService.meiliSearchAddProducer()
-    console.log('[Cron] meiliSearchAddProducer weekly full rebuild')
-  })
-
-  console.log('✅️ Cron tasks started.')
-}

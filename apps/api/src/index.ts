@@ -12,16 +12,17 @@ import {
   otel,
   producer,
   search,
-  startCronTasks,
   status,
   strategy,
   tags,
+  tasks,
   topics,
   views,
   vndbSync,
 } from '@api/modules'
 import { OpenAPI } from '@api/modules/auth/service'
 import { setDeployStatus } from '@api/modules/status/service'
+import { startQueueWorkers } from '@api/modules/tasks/service'
 import { openapi } from '@elysia/openapi'
 import { Elysia } from 'elysia'
 
@@ -76,6 +77,7 @@ async function buildApp() {
     .use(producer)
     .use(status)
     .use(topics)
+    .use(tasks)
     .use(vndbSync)
 }
 
@@ -91,7 +93,8 @@ async function startServer() {
   // 过早启动的定时任务会每分钟报 relation does not exist（如 workerDataPull 查 galrc_cloudflare）。
   const dbReady = await dbAction()
   if (process.env.NODE_ENV === 'production' && dbReady) {
-    startCronTasks()
+    // 任务队列 Worker + 定时调度（已替代 croner，见 docs/task-queue-migration.md）。
+    await startQueueWorkers()
     // bun:sql 池卡死自动恢复：独立探针确认 DB 健康而池失败时退出进程，
     // 由编排层重启（oven-sh/bun#30494 上游未修复，见 db/watchdog.ts）。
     startDbWatchdog()
