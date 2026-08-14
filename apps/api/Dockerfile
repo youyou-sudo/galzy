@@ -9,7 +9,12 @@ COPY package.json package.json
 COPY apps/api/package.json apps/api/package.json
 COPY packages/config/package.json packages/config/package.json
 
-RUN bun install
+# postinstall（patch-bun-queue）所需脚本。首次 install 用 --ignore-scripts：
+# 此时 apps/api 源码尚未 COPY、node_modules 布局未建立，postinstall 无意义；
+# 源码 COPY 后的第二次 install 会正常触发 postinstall 完成 patch。
+COPY scripts scripts
+
+RUN bun install --ignore-scripts
 
 COPY apps/api apps/api
 COPY packages/config packages/config
