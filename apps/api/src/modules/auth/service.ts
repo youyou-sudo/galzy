@@ -109,7 +109,6 @@ const _authConfig = {
               refresh_token: string
               expires_in: number
             }
-
             return {
               accessToken: tokenData.access_token,
               refreshToken: tokenData.refresh_token,
@@ -250,9 +249,24 @@ const _authConfig = {
     'https://www.galzy.eu.org',
     'https://www.galzy.moe',
     'https://galzy.moe',
+    // 动态注入 WEB_HOST（OAuth 回调 / errorURL 都落在这个前端域名上）。
+    ...(process.env.WEB_HOST ? [process.env.WEB_HOST] : []),
   ],
 
   basePath: '/auth',
+  // `baseURL` 是后端的对外公开地址。浏览器/SSR 通过前端 `/api/auth/*` 代理
+  // 回源到后端，因此这里必须是后端的真实地址（后端的 BETTER_AUTH_URL /
+  // API_HOST）。绝不能设成前端地址：否则 OAuth 失败时 Better Auth 会把错误
+  // 302 到前端 `/api/auth/error`，该路径又被前端代理轮回后端，形成无限重定向。
+  baseURL:
+    process.env.BETTER_AUTH_URL ||
+    process.env.API_HOST ||
+    'http://localhost:3001',
+  onAPIError: {
+    // 错误跳转必须落到前端一个「普通页面」路由（登录页读取 `?error=` 展示），
+    // 而不能是 `/api/auth/error`——那是前端代理路径，会被再次转发回后端。
+    errorURL: `${process.env.WEB_HOST || 'http://localhost:3000'}/auth/login`,
+  },
   advanced: {
     ipAddress: {
       ipAddressHeaders: ['CF-Connecting-IP', 'X-Forwarded-For'],

@@ -19,24 +19,35 @@ export const OauthButton = () => {
 
 	const handleSocialSignIn = async (provider: Provider) => {
 		setLoading(provider);
+		// 只在点击（浏览器环境）时读取 origin，SSR 阶段不访问 window。
+		const origin = window.location.origin;
+		// OAuth 失败后跳到登录页并携带错误信息；不指向 `/api/auth/error`，
+		// 否则该代理路径会被再次转发到后端，形成无限重定向。
+		const errorURL = `${origin}/auth/login`;
+		// 归一化回调地址：return_to 为空时回首页，非空时用 URL 拼合避免双斜杠。
+		const callbackURL = new URL(return_to || "/", origin).toString();
+
 		try {
 			if (provider === "linuxdo") {
 				return await authClient.signIn.oauth2({
 					providerId: "linuxdo",
-					callbackURL: `${window.location.origin}/${return_to}`,
+					callbackURL,
+					errorCallbackURL: errorURL,
 					requestSignUp: false,
 				});
 			}
 			if (provider === "kungal") {
 				return await authClient.signIn.oauth2({
 					providerId: "kungal",
-					callbackURL: `${window.location.origin}/${return_to}`,
+					callbackURL,
+					errorCallbackURL: errorURL,
 					requestSignUp: false,
 				});
 			}
 			await authClient.signIn.social({
 				provider,
-				callbackURL: `${window.location.origin}/${return_to}`,
+				callbackURL,
+				errorCallbackURL: errorURL,
 			});
 		} finally {
 			setLoading(null);

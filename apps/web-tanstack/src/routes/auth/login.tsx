@@ -24,7 +24,7 @@ import { seoMeta } from '@web/lib/seo'
 import { getSession } from '@web/server/auth/auth.functions'
 import { authClient } from '@web/server/auth/auth-client'
 import { Eye, EyeOff, Loader2, LogIn, Mail } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { object, string } from 'zod/schemas'
 
@@ -35,7 +35,25 @@ const loginSchema = object({
 
 export const ReturnToSchema = object({
   return_to: string().optional(),
+  error: string().optional(),
+  error_description: string().optional(),
 })
+
+// Better Auth 的错误重定向携带机器码 `error`（如 access_denied / invalid_code）
+// 与可选的人类可读 `error_description`。这里把机器码映射成中文提示，
+// 有 description 时优先展示 description。
+const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+  access_denied: '您取消了第三方登录',
+  invalid_code: '第三方登录授权码无效或已过期',
+  state_mismatch: '登录状态校验失败，请重试',
+  oauth_provider_not_found: '未找到对应的第三方登录服务',
+  unable_to_get_user_info: '获取第三方账号信息失败',
+  email_not_found: '第三方账号未返回邮箱，无法登录',
+  email_doesn_t_match: '第三方账号邮箱与当前账号不一致',
+  account_already_linked_to_different_user: '该第三方账号已绑定其他账号',
+  unable_to_link_account: '第三方账号绑定失败',
+  no_code: '未收到第三方登录授权码',
+}
 
 export const Route = createFileRoute('/auth/login')({
   component: RouteComponent,
@@ -58,7 +76,21 @@ export const Route = createFileRoute('/auth/login')({
 function RouteComponent() {
   const [showPassword, setShowPassword] = useState(false)
   const queryClient = useQueryClient()
-  const { return_to } = Route.useSearch()
+  const { return_to, error, error_description } = Route.useSearch()
+
+  // OAuth 登录失败后 Better Auth 携带 `?error=...&error_description=...`
+  // 跳回此页。优先展示 description，否则把机器码映射成中文提示。
+  useEffect(() => {
+    if (error) {
+      const description = error_description
+        ? decodeURIComponent(error_description)
+        : OAUTH_ERROR_MESSAGES[error]
+          ? OAUTH_ERROR_MESSAGES[error]
+          : error
+      toast.error(description, { id: 'oauth-error' })
+    }
+  }, [error, error_description])
+
   const form = useForm({
     defaultValues: {
       email: '',
