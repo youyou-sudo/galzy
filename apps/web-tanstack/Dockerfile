@@ -1,6 +1,6 @@
 ARG BUILD_ID=dev
 
-FROM oven/bun:1.3.14-slim AS build
+FROM oven/bun:1.4.0-slim AS build
 
 WORKDIR /app
 
