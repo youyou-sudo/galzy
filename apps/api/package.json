@@ -19,7 +19,7 @@
     "db:up": "drizzle-kit up"
   },
   "dependencies": {
-    "@better-auth/drizzle-adapter": "^1.6.26",
+    "@better-auth/drizzle-adapter": "^1.7.1",
     "@elysia/openapi": "^1.4.15",
     "@elysiajs/cors": "^1.4.2",
     "@elysiajs/opentelemetry": "1.4.11",
