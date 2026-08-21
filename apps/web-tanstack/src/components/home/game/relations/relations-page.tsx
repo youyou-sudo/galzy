@@ -1,6 +1,5 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { GameCard } from "@web/components/home/card";
-import { Link } from "@tanstack/react-router";
 
 const apiroute = getRouteApi("/$id/_layout/relations");
 
@@ -44,7 +43,10 @@ export function RelationsPage() {
 	const { relations } = apiroute.useLoaderData() as {
 		relations?: { relations?: RelationItem[]; truncated?: boolean };
 	};
-	const list: RelationItem[] = relations?.relations ?? [];
+	// 仅显示站内已收录（有 vn 数据/下载文件）的关联游戏；站外未收录的隐藏
+	const list: RelationItem[] = (relations?.relations ?? []).filter(
+		(rel) => rel.game != null,
+	);
 	const truncated = relations?.truncated ?? false;
 
 	if (list.length === 0) {
@@ -69,34 +71,23 @@ export function RelationsPage() {
 					(rel.reverse ? "反向相关" : "相关");
 				return (
 					<div key={rel.vid} className="relative">
-						{rel.game ? (
-							<GameCard.Item
-								gameid={rel.vid}
-								width={rel.game.images?.width ?? 200}
-								height={rel.game.images?.height ?? 300}
-								src={
-									rel.game.images?.imageUrl ??
-									"/No-Image-Placeholder.svg.webp"
-								}
-								cSexualAvg={rel.game.images?.c_sexual_avg}
-								title={
-									rel.game.titles_obj?.find(
-										(t) =>
-											t.lang === rel.game?.olang &&
-											t.title.trim() !== "",
-									)?.title || "null"
-								}
-							/>
-						) : (
-							// 站内未收录（无文件）：仅显示缓存标题链接
-							<Link
-								to="/$id"
-								params={{ id: rel.vid }}
-								className="block rounded-lg border border-zinc-200 p-3 text-center text-sm text-zinc-700 transition hover:border-zinc-400 dark:border-zinc-800 dark:text-zinc-300"
-							>
-								{rel.title ?? rel.vid}
-							</Link>
-						)}
+						<GameCard.Item
+							gameid={rel.game!.id}
+							width={rel.game!.images?.width ?? 200}
+							height={rel.game!.images?.height ?? 300}
+							src={
+								rel.game!.images?.imageUrl ??
+								"/No-Image-Placeholder.svg.webp"
+							}
+							cSexualAvg={rel.game!.images?.c_sexual_avg}
+							title={
+								rel.game!.titles_obj?.find(
+									(t) =>
+										t.lang === rel.game!.olang &&
+										t.title.trim() !== "",
+								)?.title || "null"
+							}
+						/>
 						<span className="absolute left-1 top-1 z-10 rounded bg-zinc-900/70 px-1.5 py-0.5 text-xs text-white">
 							{label}
 						</span>
