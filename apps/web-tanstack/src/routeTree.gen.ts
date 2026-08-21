@@ -35,6 +35,7 @@ import { Route as TopicsCreateRouteImport } from './routes/topics/create'
 import { Route as UserIndexRouteImport } from './routes/user/index'
 import { Route as IdLayoutIndexRouteImport } from './routes/$id/_layout/index'
 import { Route as IdLayoutCommentRouteImport } from './routes/$id/_layout/comment'
+import { Route as IdLayoutRelationsRouteImport } from './routes/$id/_layout/relations'
 import { Route as IdLayoutTranslateRouteImport } from './routes/$id/_layout/translate'
 import { Route as AdminAuthLIndexRouteImport } from './routes/admin/_authL/index'
 import { Route as AdminAuthLArticlesRouteImport } from './routes/admin/_authL/articles'
@@ -183,6 +184,11 @@ const IdLayoutCommentRoute = IdLayoutCommentRouteImport.update({
   path: '/comment',
   getParentRoute: () => IdLayoutRoute,
 } as any)
+const IdLayoutRelationsRoute = IdLayoutRelationsRouteImport.update({
+  id: '/relations',
+  path: '/relations',
+  getParentRoute: () => IdLayoutRoute,
+} as any)
 const IdLayoutTranslateRoute = IdLayoutTranslateRouteImport.update({
   id: '/translate',
   path: '/translate',
@@ -297,6 +303,7 @@ export interface FileRoutesByFullPath {
   '/topics/': typeof TopicsIndexRoute
   '/user/': typeof UserIndexRoute
   '/$id/comment': typeof IdLayoutCommentRoute
+  '/$id/relations': typeof IdLayoutRelationsRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
   '/admin/articles': typeof AdminAuthLArticlesRoute
   '/admin/collections': typeof AdminAuthLCollectionsRoute
@@ -340,6 +347,7 @@ export interface FileRoutesByTo {
   '/topics': typeof TopicsIndexRoute
   '/user': typeof UserIndexRoute
   '/$id/comment': typeof IdLayoutCommentRoute
+  '/$id/relations': typeof IdLayoutRelationsRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
   '/admin/articles': typeof AdminAuthLArticlesRoute
   '/admin/collections': typeof AdminAuthLCollectionsRoute
@@ -386,6 +394,7 @@ export interface FileRoutesById {
   '/topics/': typeof TopicsIndexRoute
   '/user/': typeof UserIndexRoute
   '/$id/_layout/comment': typeof IdLayoutCommentRoute
+  '/$id/_layout/relations': typeof IdLayoutRelationsRoute
   '/$id/_layout/translate': typeof IdLayoutTranslateRoute
   '/admin/_authL/articles': typeof AdminAuthLArticlesRoute
   '/admin/_authL/collections': typeof AdminAuthLCollectionsRoute
@@ -433,6 +442,7 @@ export interface FileRouteTypes {
     | '/topics/'
     | '/user/'
     | '/$id/comment'
+    | '/$id/relations'
     | '/$id/translate'
     | '/admin/articles'
     | '/admin/collections'
@@ -476,6 +486,7 @@ export interface FileRouteTypes {
     | '/topics'
     | '/user'
     | '/$id/comment'
+    | '/$id/relations'
     | '/$id/translate'
     | '/admin/articles'
     | '/admin/collections'
@@ -521,6 +532,7 @@ export interface FileRouteTypes {
     | '/topics/'
     | '/user/'
     | '/$id/_layout/comment'
+    | '/$id/_layout/relations'
     | '/$id/_layout/translate'
     | '/admin/_authL/articles'
     | '/admin/_authL/collections'
@@ -756,6 +768,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IdLayoutCommentRouteImport
       parentRoute: typeof IdLayoutRoute
     }
+    '/$id/_layout/relations': {
+      id: '/$id/_layout/relations'
+      path: '/relations'
+      fullPath: '/$id/relations'
+      preLoaderRoute: typeof IdLayoutRelationsRouteImport
+      parentRoute: typeof IdLayoutRoute
+    }
     '/$id/_layout/translate': {
       id: '/$id/_layout/translate'
       path: '/translate'
@@ -880,6 +899,7 @@ declare module '@tanstack/react-router' {
 
 interface IdLayoutRouteChildren {
   IdLayoutCommentRoute: typeof IdLayoutCommentRoute
+  IdLayoutRelationsRoute: typeof IdLayoutRelationsRoute
   IdLayoutTranslateRoute: typeof IdLayoutTranslateRoute
   IdLayoutIndexRoute: typeof IdLayoutIndexRoute
   IdLayoutIntroductionArticleIdRoute: typeof IdLayoutIntroductionArticleIdRoute
@@ -888,6 +908,7 @@ interface IdLayoutRouteChildren {
 
 const IdLayoutRouteChildren: IdLayoutRouteChildren = {
   IdLayoutCommentRoute: IdLayoutCommentRoute,
+  IdLayoutRelationsRoute: IdLayoutRelationsRoute,
   IdLayoutTranslateRoute: IdLayoutTranslateRoute,
   IdLayoutIndexRoute: IdLayoutIndexRoute,
   IdLayoutIntroductionArticleIdRoute: IdLayoutIntroductionArticleIdRoute,

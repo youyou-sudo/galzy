@@ -53,6 +53,26 @@ export const vnTitles = pgTable(
   }),
 )
 
+// vn_relations — 视觉小说关系（前作/续作/衍生/同设定等，VNDB relations 字段）
+// id = 本 VN；vid = 关联 VN；relation = seq|preq|side|orig|char|alt|set|fan|par|ser…
+// 导出名 vnRelationsTable：`vnRelations` 已被 drizzle relations 定义占用
+export const vnRelationsTable = pgTable(
+  'vn_relations',
+  {
+    id: text('id'),
+    vid: text('vid'),
+    relation: text('relation'),
+    relationOfficial: boolean('relation_official'),
+    title: text('title'), // 关联 VN 标题缓存（未同步该 VN 时仍可展示）
+    syncedAt: timestamp('synced_at', { withTimezone: true }),
+  },
+  (table) => ({
+    idIdx: index('idx_vn_relations_id').on(table.id),
+    vidIdx: index('idx_vn_relations_vid').on(table.vid),
+    idVidIdx: index('idx_vn_relations_id_vid').on(table.id, table.vid),
+  }),
+)
+
 // images
 export const images = pgTable('images', {
   id: text('id').primaryKey(),

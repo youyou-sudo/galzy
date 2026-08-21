@@ -31,6 +31,7 @@ export interface VnResult {
   titles: VnTitle[]
   image: VnImage | null
   tags: VnTag[]
+  relations: VnRelation[]
   released: string | null
 }
 
@@ -40,6 +41,13 @@ export interface VnTitle {
   latin: string | null
   official: boolean
   main: boolean
+}
+
+export interface VnRelation {
+  id: string
+  relation: string
+  relation_official: boolean
+  title: string
 }
 
 export interface VnImage {

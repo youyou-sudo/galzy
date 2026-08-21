@@ -28,6 +28,9 @@ export default function GameLayoutPage({
 		(router) => {
 			void router.preloadRoute({ to: "/$id/translate", params: { id } });
 		},
+		(router) => {
+			void router.preloadRoute({ to: "/$id/relations", params: { id } });
+		},
 	]);
 
 	return (

@@ -2,6 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Tabs, TabsList, TabsTrigger } from "@web/components/ui/tabs";
 import {
 	ArrowDownToLine,
+	GitFork,
 	MessageCircle,
 	Swords,
 	TrendingUp,
@@ -14,7 +15,8 @@ export function GameTabs({ id }: { id: string }) {
 	const currentTab =
 		segments[1] === "introduction" ||
 		segments[1] === "comment" ||
-		segments[1] === "translate"
+		segments[1] === "translate" ||
+		segments[1] === "relations"
 			? segments[1]
 			: "download";
 
@@ -62,6 +64,16 @@ export function GameTabs({ id }: { id: string }) {
 				>
 					<TrendingUp />
 					统计
+				</TabsTrigger>
+				<TabsTrigger
+					value="relations"
+					nativeButton={false}
+					render={
+						<Link to="/$id/relations" params={{ id: id }} resetScroll={false} />
+					}
+				>
+					<GitFork />
+					系列
 				</TabsTrigger>
 			</TabsList>
 		</Tabs>

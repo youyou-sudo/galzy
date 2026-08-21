@@ -109,3 +109,10 @@ export const game = new Elysia({ prefix: '/games' })
     },
     { query: GameModel.QuickSearch },
   )
+  .get(
+    '/relations',
+    async ({ query: { id } }) => {
+      return await Game.Relations({ id })
+    },
+    { query: GameModel.infoId },
+  )

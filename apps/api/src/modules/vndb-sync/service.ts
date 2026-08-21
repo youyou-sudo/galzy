@@ -11,6 +11,7 @@ import {
   tags,
   tagsVn,
   vn,
+  vnRelationsTable,
   vnTitles,
   zhtags,
 } from '@api/libs'
@@ -545,6 +546,9 @@ export const VndbSync = {
     await delKvPattern('galzy:game:info*').catch((e) =>
       console.warn('[Cache] gameInfo invalidation failed:', e),
     )
+    await delKvPattern('galzy:game:relations*').catch((e) =>
+      console.warn('[Cache] gameRelations invalidation failed:', e),
+    )
     await delKvPattern('OpenListFiles:*').catch((e) =>
       console.warn('[Cache] OpenListFiles invalidation failed:', e),
     )
@@ -582,6 +586,7 @@ export const VndbSync = {
       'titles{lang,title,latin,official,main}',
       'image{id,url,dims,sexual,violence,votecount}',
       'tags{id,rating,spoiler,lie}',
+      'relations{id,relation,relation_official,title}',
     ].join(',')
 
     const tagIds = new Set<string>()
@@ -689,6 +694,22 @@ export const VndbSync = {
                 spoiler: t.spoiler,
                 lie: t.lie,
                 ignore: false,
+                syncedAt: new Date(),
+              })),
+            )
+          }
+
+          if (vnData.relations?.length) {
+            await trx
+              .delete(vnRelationsTable)
+              .where(eq(vnRelationsTable.id, vnData.id))
+            await trx.insert(vnRelationsTable).values(
+              vnData.relations.map((r) => ({
+                id: vnData.id,
+                vid: r.id,
+                relation: r.relation,
+                relationOfficial: r.relation_official,
+                title: r.title,
                 syncedAt: new Date(),
               })),
             )

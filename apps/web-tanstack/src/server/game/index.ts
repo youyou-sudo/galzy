@@ -23,6 +23,16 @@ export const getGameTags = createServerFn()
 		return tags;
 	});
 
+export const getGameRelations = createServerFn()
+	.validator(z.object({ id: z.string() }))
+	.handler(async ({ data }) => {
+		const { data: relations, error } = await api.games.relations.get({
+			query: { id: data.id },
+		});
+		elysiaErrorF(error);
+		return relations;
+	});
+
 export const getFileList = createServerFn()
 	.validator(z.object({ id: z.string() }))
 	.handler(async ({ data }) => {
