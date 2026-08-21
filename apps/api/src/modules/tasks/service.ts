@@ -385,9 +385,10 @@ export async function startQueueWorkers() {
       ])) as string[]
       for (const member of members) {
         const jobKey = `${QUEUE_PREFIX}:${q.name}:job:${member}`
-        const fields = (await client.send('HGETALL', [jobKey])) as
-          | Record<string, string>
-          | null
+        const fields = (await client.send('HGETALL', [jobKey])) as Record<
+          string,
+          string
+        > | null
         let isRepeat = false
         try {
           const opts = fields?.opts ? JSON.parse(fields.opts) : null

@@ -184,28 +184,27 @@ export const Game = {
       const kungalWork = kungalMap.get(item.id)
       const img = item.images as Record<string, unknown> | null
       if (kungalWork && kungalTitlesMap.has(kungalWork.id)) {
-        // 与 vn_titles json_agg 一致：bun-sql 解析为数组，直接赋数组
-        ;(item as any).titles = kungalTitlesMap.get(kungalWork.id)
+        // 标题按语言合并：kungal 优先，缺的语言用 vndb 补（保证 olang 标题恒在）
+        const kt = kungalTitlesMap.get(kungalWork.id)!
+        const vt = Array.isArray(item.titles) ? (item.titles as any[]) : []
+        const kLangs = new Set(
+          kt.map((t) => t.lang).filter((l): l is string => !!l),
+        )
+        ;(item as any).titles = [
+          ...kt,
+          ...vt.filter((t) => !kLangs.has(t.lang as string)),
+        ]
       }
-      if (kungalWork && img) {
-        const kcoverUrl = kungalWork.coverUrl
-        if (kcoverUrl) {
-          img.url = kcoverUrl
-          img.imageUrl = kcoverUrl
-          if (kungalWork.coverWidth) img.width = kungalWork.coverWidth
-          if (kungalWork.coverHeight) img.height = kungalWork.coverHeight
-        } else if (img) {
-          img.imageUrl = img.id
-            ? buildCoverUrl(
-                img.id as string,
-                img.width as number,
-                img.height as number,
-              )
-            : null
-          if (img.url) {
-            img.url = transformStoredUrl(img.url as string)
-          }
-        }
+      const kcoverPortrait =
+        kungalWork?.coverUrl != null &&
+        kungalWork.coverWidth != null &&
+        kungalWork.coverHeight != null &&
+        kungalWork.coverHeight >= kungalWork.coverWidth
+      if (kungalWork && kcoverPortrait && img) {
+        img.url = kungalWork.coverUrl
+        img.imageUrl = kungalWork.coverUrl
+        if (kungalWork.coverWidth) img.width = kungalWork.coverWidth
+        if (kungalWork.coverHeight) img.height = kungalWork.coverHeight
       } else if (img) {
         img.imageUrl = img.id
           ? buildCoverUrl(
@@ -413,18 +412,38 @@ export const Game = {
             })
             .from(kungalWorkTitles)
             .where(eq(kungalWorkTitles.workId, kungalWork.id))
-          if (ktitles.length > 0) {
-            ;(data.vn as any).titles = ktitles.map((t) => ({
+          // 标题按语言合并：kungal 优先，kungal 缺的语言用 vndb 补
+          // （kungal localized 常缺 olang 标题，整体替换会让前端按 lang 查找扑空显示 null）
+          const vndbTitles = ((data.vn as any).titles ?? []) as Array<{
+            lang: string | null
+            [key: string]: unknown
+          }>
+          const kungalLangs = new Set(
+            ktitles.map((t) => t.lang).filter((l): l is string => !!l),
+          )
+          const mergedTitles = [
+            ...ktitles.map((t) => ({
               id: kungalWork.id,
               lang: t.lang,
               official: t.official,
               title: t.title,
               latin: t.latin,
               main: t.main,
-            }))
+            })),
+            ...vndbTitles
+              .filter((t) => !kungalLangs.has(t.lang as string))
+              .map((t) => ({ ...t })),
+          ]
+          if (mergedTitles.length > 0) {
+            ;(data.vn as any).titles = mergedTitles
           }
-          const kcoverUrl = kungalWork.coverUrl
-          if (kcoverUrl && data.vn.image) {
+          // 封面：kungal 竖版封面才优先（横版多为目录数据错误，如把同人图/截图当封面，回退 vndb）
+          const kcoverPortrait =
+            kungalWork.coverUrl &&
+            kungalWork.coverWidth != null &&
+            kungalWork.coverHeight != null &&
+            kungalWork.coverHeight >= kungalWork.coverWidth
+          if (kcoverPortrait && data.vn.image) {
             const img = data.vn.image as unknown as {
               id: string
               url: string | null
@@ -433,8 +452,8 @@ export const Game = {
               height: number | null
               [key: string]: unknown
             }
-            img.url = kcoverUrl
-            img.imageUrl = kcoverUrl // kungal CDN 绝对地址，不经过 buildCoverUrl/transformStoredUrl
+            img.url = kungalWork.coverUrl
+            img.imageUrl = kungalWork.coverUrl // kungal CDN 绝对地址，不经过 buildCoverUrl/transformStoredUrl
             if (kungalWork.coverWidth) img.width = kungalWork.coverWidth
             if (kungalWork.coverHeight) img.height = kungalWork.coverHeight
           }
@@ -959,7 +978,8 @@ export const Game = {
         for (const row of rows) {
           const img = row.images as Record<string, unknown> | null
           if (kungalWork && ktitles.length > 0) {
-            ;(row as any).titles_obj = ktitles.map((t) => ({
+            // 标题按语言合并：kungal 优先，缺的语言用 vndb 补
+            const kt = ktitles.map((t) => ({
               id: kungalWork.id,
               lang: t.lang,
               official: t.official,
@@ -967,23 +987,29 @@ export const Game = {
               latin: t.latin,
               main: t.main,
             }))
+            const vt = Array.isArray((row as any).titles_obj)
+              ? ((row as any).titles_obj as any[])
+              : []
+            const kLangs = new Set(
+              kt.map((t) => t.lang).filter((l): l is string => !!l),
+            )
+            ;(row as any).titles_obj = [
+              ...kt,
+              ...vt.filter((t) => !kLangs.has(t.lang as string)),
+            ]
           }
-          if (kungalWork && img) {
-            const kcoverUrl = kungalWork.coverUrl
-            if (kcoverUrl) {
-              // id 置空：外层 buildCoverUrl 兜底（img?.id）不会覆盖 kungal 封面
-              img.id = null
-              img.url = kcoverUrl
-              img.imageUrl = kcoverUrl
-              if (kungalWork.coverWidth) img.width = kungalWork.coverWidth
-              if (kungalWork.coverHeight) img.height = kungalWork.coverHeight
-            } else if (img?.id) {
-              img.imageUrl = buildCoverUrl(
-                img.id as string,
-                img.width as number,
-                img.height as number,
-              )
-            }
+          const kcoverPortrait =
+            kungalWork?.coverUrl != null &&
+            kungalWork.coverWidth != null &&
+            kungalWork.coverHeight != null &&
+            kungalWork.coverHeight >= kungalWork.coverWidth
+          if (kungalWork && kcoverPortrait && img) {
+            // id 置空：外层 buildCoverUrl 兜底（img?.id）不会覆盖 kungal 封面
+            img.id = null
+            img.url = kungalWork.coverUrl
+            img.imageUrl = kungalWork.coverUrl
+            if (kungalWork.coverWidth) img.width = kungalWork.coverWidth
+            if (kungalWork.coverHeight) img.height = kungalWork.coverHeight
           } else if (img?.id) {
             img.imageUrl = buildCoverUrl(
               img.id as string,

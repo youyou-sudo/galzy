@@ -118,6 +118,8 @@ const gameMeiliDocBase = {
   vw_count: sql`(SELECT COUNT(*)::int FROM ${eventViews} WHERE event_type = 'game_view' AND target_id = ${vn.id})`,
   titles: sql`COALESCE(
     (SELECT json_agg(kt.title) FROM ${kungalWorkTitles} kt INNER JOIN ${kungalWorks} kw ON kw.id = kt.work_id WHERE kw.vndb_id = ${vn.id}),
+    '[]'::json
+  ) || COALESCE(
     (SELECT json_agg(t.title) FROM ${vnTitles} t WHERE t.id = ${vn.id}),
     '[]'::json
   )`,
@@ -125,7 +127,17 @@ const gameMeiliDocBase = {
   tags: sql`COALESCE((SELECT json_agg(DISTINCT tv.tag) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE), '[]'::json)`,
   titles_obj: sql`COALESCE(
     (SELECT json_agg(row_to_json(kt.*)) FROM (SELECT kt.title, kt.latin, kt.lang FROM ${kungalWorkTitles} kt INNER JOIN ${kungalWorks} kw ON kw.id = kt.work_id WHERE kw.vndb_id = ${vn.id}) kt),
-    (SELECT json_agg(row_to_json(t.*)) FROM (SELECT title, latin, lang FROM ${vnTitles} t WHERE t.id = ${vn.id}) t),
+    '[]'::json
+  ) || COALESCE(
+    (SELECT json_agg(row_to_json(t.*)) FROM (
+      SELECT t.title, t.latin, t.lang FROM ${vnTitles} t
+      WHERE t.id = ${vn.id}
+        AND t.lang NOT IN (
+          SELECT kt2.lang FROM ${kungalWorkTitles} kt2
+          INNER JOIN ${kungalWorks} kw2 ON kw2.id = kt2.work_id
+          WHERE kw2.vndb_id = ${vn.id} AND kt2.lang IS NOT NULL
+        )
+    ) t),
     '[]'::json
   )`,
   images: sql`COALESCE(
@@ -138,6 +150,8 @@ const gameMeiliDocBase = {
         COALESCE((SELECT c_sexual_avg FROM ${images} i WHERE i.id = ${vn.cImage}), 0) AS c_sexual_avg
       FROM ${kungalWorks} kw
       WHERE kw.vndb_id = ${vn.id} AND kw.cover_url IS NOT NULL
+        AND kw.cover_width IS NOT NULL AND kw.cover_height IS NOT NULL
+        AND kw.cover_height >= kw.cover_width
     ) kimg),
     (SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM ${images} i WHERE i.id = ${vn.cImage}) i)
   )`,
