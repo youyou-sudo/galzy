@@ -87,6 +87,7 @@ galzy/
 **Drizzle migration rules (CRITICAL):**
 - **NEVER** use `db:push` (it diffs against the entire DB including non-app tables, prompting drops).
 - **NEVER** use `drizzle-kit migrate` (bug: hangs indefinitely).
+- `db:up` 应用挂起迁移：走 bun-sql migrator（`src/db/up.ts`，与启动自动迁移同一实现/日志表 `drizzle.__drizzle_migrations`，幂等）。drizzle-kit 0.31 的 `up` 命令只是快照格式升级器，**不应用迁移**，不要改回 `drizzle-kit up`。
 - Correct workflow: `db:generate` → `db:up` → `db:check`.
 
 ## Code Conventions & Common Patterns

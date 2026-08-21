@@ -16,7 +16,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:check": "drizzle-kit check",
-    "db:up": "drizzle-kit up"
+    "db:up": "bun run src/db/up.ts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.1",
