@@ -41,8 +41,11 @@ interface RelationItem {
 }
 
 export function RelationsPage() {
-	const { relations } = apiroute.useLoaderData();
+	const { relations } = apiroute.useLoaderData() as {
+		relations?: { relations?: RelationItem[]; truncated?: boolean };
+	};
 	const list: RelationItem[] = relations?.relations ?? [];
+	const truncated = relations?.truncated ?? false;
 
 	if (list.length === 0) {
 		return (
@@ -53,7 +56,13 @@ export function RelationsPage() {
 	}
 
 	return (
-		<div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+		<>
+			{truncated && (
+				<div className="p-4 pb-0 text-center text-xs text-zinc-400">
+					关联作品较多，仅显示部分
+				</div>
+			)}
+			<div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
 			{list.map((rel) => {
 				const label =
 					RELATION_LABELS[rel.relation] ??
@@ -94,6 +103,7 @@ export function RelationsPage() {
 					</div>
 				);
 			})}
-		</div>
+			</div>
+		</>
 	);
 }

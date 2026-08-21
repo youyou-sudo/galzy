@@ -1088,17 +1088,35 @@ export const Game = {
     }
     if (!lookupVid) throw status(404, `未找到 id=${id} 对应的游戏信息`)
 
-    // 正向（本游戏声明的关系）+ 反向（声明本游戏为关系的游戏），按关联 vid 去重
-    const [forward, reverse] = await Promise.all([
-      db
-        .select()
-        .from(vnRelationsTable)
-        .where(eq(vnRelationsTable.id, lookupVid)),
-      db
-        .select()
-        .from(vnRelationsTable)
-        .where(eq(vnRelationsTable.vid, lookupVid)),
-    ])
+    // BFS 传递闭包：显示整个关系连通簇（如某系列的全部作品），而非仅直接相邻。
+    // 一条递归 CTE 拉出连通簇全部边（1 次往返），JS 内做 BFS 分方向；
+    // 深度/总数设上限防爆炸（超大集群截断并标记 truncated）。
+    const MAX_DEPTH = 4
+    const MAX_TOTAL = 100
+    const edgeRows = await db.execute(sql`
+      WITH RECURSIVE closure AS (
+        SELECT r.id, r.vid, r.relation, r.relation_official, r.title, 1 AS depth
+        FROM vn_relations r
+        WHERE r.id = ${lookupVid} OR r.vid = ${lookupVid}
+        UNION
+        SELECT r.id, r.vid, r.relation, r.relation_official, r.title, c.depth + 1
+        FROM vn_relations r
+        JOIN closure c ON (r.id = c.vid OR r.vid = c.id) AND r.id <> r.vid
+        WHERE c.depth < ${MAX_DEPTH}
+      )
+      SELECT DISTINCT id, vid, relation, relation_official, title FROM closure
+    `)
+    const edges = (
+      edgeRows as Array<{
+        id: string | null
+        vid: string | null
+        relation: string | null
+        relation_official: boolean | null
+        title: string | null
+      }>
+    ).filter((r) => r.id && r.vid)
+
+    const visited = new Set<string>([lookupVid])
     const relMap = new Map<
       string,
       {
@@ -1109,109 +1127,85 @@ export const Game = {
         reverse: boolean
       }
     >()
-    for (const r of forward) {
-      if (r.vid && !relMap.has(r.vid)) {
-        relMap.set(r.vid, {
-          vid: r.vid,
-          relation: r.relation ?? 'rel',
-          relationOfficial: r.relationOfficial,
-          title: r.title,
-          reverse: false,
-        })
-      }
-    }
-    for (const r of reverse) {
-      if (r.id && !relMap.has(r.id)) {
-        relMap.set(r.id, {
-          vid: r.id,
+    let frontier = [lookupVid]
+    let truncated = false
+    for (let depth = 0; depth < MAX_DEPTH && frontier.length; depth++) {
+      const next: string[] = []
+      for (const r of edges) {
+        // r.vid 在当前层 → 边是 r.id → r.vid，other = r.id（反向：对方声明了指向本层节点的关系）
+        // r.id 在当前层 → 边是 r.id → r.vid，other = r.vid（正向）
+        const isReverse = r.vid != null && frontier.includes(r.vid)
+        const other = isReverse ? r.id : r.vid
+        if (!other || visited.has(other)) continue
+        if (relMap.size >= MAX_TOTAL) {
+          truncated = true
+          break
+        }
+        visited.add(other)
+        relMap.set(other, {
+          vid: other,
           // 反向关系取逆：X 声明 seq → 本游戏，则本游戏视角 X 是前作
-          relation: RELATION_INVERSE[r.relation ?? ''] ?? r.relation ?? 'rel',
-          relationOfficial: r.relationOfficial,
+          relation: isReverse
+            ? (RELATION_INVERSE[r.relation ?? ''] ?? r.relation ?? 'rel')
+            : (r.relation ?? 'rel'),
+          relationOfficial: r.relation_official,
           title: r.title,
-          reverse: true,
+          reverse: isReverse,
         })
+        next.push(other)
       }
+      if (truncated) break
+      frontier = next
     }
 
     const relatedVids = [...relMap.keys()].filter((v): v is string => !!v)
-    // 站内游戏数据（vn + titles + images + kungal 优先合并）
-    const vnRows = relatedVids.length
-      ? await db
-          .select({ id: vn.id, olang: vn.olang, cImage: vn.cImage })
-          .from(vn)
-          .where(inArray(vn.id, relatedVids))
-      : []
-    const vnIdSet = new Set(vnRows.map((v) => v.id))
-    const titleRows = vnIdSet.size
-      ? await db
-          .select({
-            id: vnTitles.id,
-            lang: vnTitles.lang,
-            official: vnTitles.official,
-            title: vnTitles.title,
-            latin: vnTitles.latin,
-            main: vnTitles.main,
-          })
-          .from(vnTitles)
-          .where(inArray(vnTitles.id, [...vnIdSet]))
-      : []
-    const cImages = vnRows.map((v) => v.cImage).filter((c): c is string => !!c)
-    const imageRows = cImages.length
-      ? await db
-          .select({
-            id: images.id,
-            url: images.url,
-            width: images.width,
-            height: images.height,
-            cSexualAvg: images.cSexualAvg,
-          })
-          .from(images)
-          .where(inArray(images.id, cImages))
-      : []
-    const kungalRows = relatedVids.length
-      ? await db
-          .select({
-            id: kungalWorks.id,
-            vndbId: kungalWorks.vndbId,
-            coverUrl: kungalWorks.coverUrl,
-            coverWidth: kungalWorks.coverWidth,
-            coverHeight: kungalWorks.coverHeight,
-          })
-          .from(kungalWorks)
-          .where(inArray(kungalWorks.vndbId, relatedVids))
-      : []
+    // 站内游戏数据：两条独立查询并行（vn+titles+image 子查询、kungal+titles 子查询）
+    const [vnRows, kungalRows] = await Promise.all([
+      relatedVids.length
+        ? db
+            .select({
+              id: vn.id,
+              olang: vn.olang,
+              cImage: vn.cImage,
+              titlesObj: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT lang, official, title, latin FROM ${vnTitles} t WHERE t.id = ${vn.id}) t), '[]'::json)`,
+              image: sql`(SELECT row_to_json(i.*) FROM (SELECT id, url, width, height, c_sexual_avg FROM ${images} i WHERE i.id = ${vn.cImage}) i)`,
+            })
+            .from(vn)
+            .where(inArray(vn.id, relatedVids))
+        : Promise.resolve([]),
+      relatedVids.length
+        ? db
+            .select({
+              id: kungalWorks.id,
+              vndbId: kungalWorks.vndbId,
+              coverUrl: kungalWorks.coverUrl,
+              coverWidth: kungalWorks.coverWidth,
+              coverHeight: kungalWorks.coverHeight,
+              titles: sql`COALESCE((SELECT json_agg(row_to_json(kt.*)) FROM (SELECT lang, official, title, latin FROM ${kungalWorkTitles} kt WHERE kt.work_id = ${kungalWorks.id}) kt), '[]'::json)`,
+            })
+            .from(kungalWorks)
+            .where(inArray(kungalWorks.vndbId, relatedVids))
+        : Promise.resolve([]),
+    ])
     const kungalMap = new Map(kungalRows.map((r) => [r.vndbId, r]))
-    const ktRows = kungalRows.length
-      ? await db
-          .select({
-            workId: kungalWorkTitles.workId,
-            lang: kungalWorkTitles.lang,
-            official: kungalWorkTitles.official,
-            title: kungalWorkTitles.title,
-            latin: kungalWorkTitles.latin,
-            main: kungalWorkTitles.main,
-          })
-          .from(kungalWorkTitles)
-          .where(
-            inArray(
-              kungalWorkTitles.workId,
-              kungalRows.map((r) => r.id),
-            ),
-          )
-      : []
-    const ktMap = new Map<string, typeof ktRows>()
-    for (const t of ktRows) {
-      const list = ktMap.get(t.workId) ?? []
-      list.push(t)
-      ktMap.set(t.workId, list)
-    }
 
     const buildCard = (vid: string) => {
       const vnRow = vnRows.find((v) => v.id === vid)
       if (!vnRow) return null
       const kungalWork = kungalMap.get(vid)
-      const vndbTitles = titleRows.filter((t) => t.id === vid)
-      const kungalTitles = kungalWork ? (ktMap.get(kungalWork.id) ?? []) : []
+      const vndbTitles = Array.isArray(vnRow.titlesObj)
+        ? (vnRow.titlesObj as Array<{
+            lang: string | null
+            official: boolean | null
+            title: string | null
+            latin: string | null
+          }>)
+        : []
+      const kungalTitles = kungalWork
+        ? Array.isArray(kungalWork.titles)
+          ? (kungalWork.titles as typeof vndbTitles)
+          : []
+        : []
       const kLangs = new Set(
         kungalTitles.map((t) => t.lang).filter((l): l is string => !!l),
       )
@@ -1231,7 +1225,13 @@ export const Game = {
             latin: t.latin,
           })),
       ]
-      const vndbImg = imageRows.find((i) => i.id === vnRow.cImage)
+      const vndbImg = vnRow.image as {
+        id: string
+        url: string | null
+        width: number | null
+        height: number | null
+        c_sexual_avg: number | null
+      } | null
       const kcoverPortrait =
         kungalWork?.coverUrl != null &&
         kungalWork.coverWidth != null &&
@@ -1244,7 +1244,7 @@ export const Game = {
             imageUrl: kungalWork!.coverUrl,
             width: kungalWork!.coverWidth,
             height: kungalWork!.coverHeight,
-            c_sexual_avg: vndbImg?.cSexualAvg ?? 0,
+            c_sexual_avg: vndbImg?.c_sexual_avg ?? 0,
           }
         : vndbImg
           ? {
@@ -1255,7 +1255,7 @@ export const Game = {
                 : null,
               width: vndbImg.width,
               height: vndbImg.height,
-              c_sexual_avg: vndbImg.cSexualAvg ?? 0,
+              c_sexual_avg: vndbImg.c_sexual_avg ?? 0,
             }
           : null
       return { id: vid, olang: vnRow.olang, titles_obj: titlesObj, images }
@@ -1263,6 +1263,7 @@ export const Game = {
 
     const data = {
       id: lookupVid,
+      truncated,
       relations: [...relMap.values()].map((r) => ({
         ...r,
         game: buildCard(r.vid),
