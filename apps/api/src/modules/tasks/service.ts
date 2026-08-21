@@ -341,17 +341,14 @@ export async function startQueueWorkers() {
     }),
   )
 
-  // Cloudflare 指标拉取 + 队列日志清理
+  // 队列日志/记录 TTL 清理（worker-data-pull 已废弃移除，见 commit）
   const metricsQueue = queueOf(QUEUE.metrics)
   workers.push(
     new Worker<TaskPayload>(metricsQueue, 1, async (job) => {
       const logger = new JobLogger(job.id)
       await TaskLifecycle.markRunning(job.id)
       try {
-        const result =
-          job.data.type === 'queue-log-prune'
-            ? await runPruneHandler()
-            : await CronService.workerDataPull()
+        const result = await runPruneHandler()
         await logger.success(`metrics ${job.data.type} 完成`)
         await TaskLifecycle.markCompleted(job.id, result ?? null)
         return result
@@ -368,8 +365,8 @@ export async function startQueueWorkers() {
 
   // 清理历史遗留的 repeatable cron jobs：scheduleCron 不传 jobId 时每次启动都会
   // 生成随机 id 并残留，重启多次后会累积重复调度（同一 cron 触发多份 job）。
-  // 旧版本（脚本加载坏掉的时期）写入的数据可能类型损坏（WRONGTYPE），
-  // removeJob 失败时用 DEL 兜底直接删除 job key，避免脏数据无限残留。
+  // 旧版本（脚本加载坏掉的时期）写入的数据可能类型损坏（WRONGTYPE）——
+  // bun-queue removeJob 对 WRONGTYPE 内部吞错且返回 void，故 DEL 幂等兜底删除 job key。
   for (const q of [
     vndbQueue,
     kungalQueue,
@@ -384,12 +381,9 @@ export async function startQueueWorkers() {
           try {
             await q.removeJob(j.id)
           } catch (rmErr) {
-            console.warn(
-              `[queue] removeJob ${j.id} 失败（脏数据），改用 DEL 兜底:`,
-              rmErr,
-            )
-            await getRedisClient().del(q.getJobKey(j.id))
+            console.warn(`[queue] removeJob ${j.id} 异常:`, rmErr)
           }
+          await getRedisClient().del(q.getJobKey(j.id))
         }
       }
     } catch (e) {
@@ -402,17 +396,12 @@ export async function startQueueWorkers() {
   await delKvPattern('galzy-queue:*:lock:*')
 
   // 定时任务调度（scheduleCron 替换 croner）：
-  // - workerDataPull 每分钟
   // - cloudreve 同步每 30 分钟
   // - meili 三索引每周日 3:00 滚动重建
   // - 队列日志/记录 TTL 清理每天 4:00
+  // （worker-data-pull 旧下载机制指标拉取已废弃移除）
   // jobId 固定 → 重复注册幂等（addStandardJob 对同 id 走 handleDuplicatedJob 去重）。
   try {
-    await metricsQueue.scheduleCron({
-      jobId: 'cron:worker-data-pull',
-      cronExpression: '*/1 * * * *',
-      data: { type: 'worker-data-pull' } satisfies TaskPayload,
-    })
     await cloudreveQueue.scheduleCron({
       jobId: 'cron:cloudreve-sync',
       cronExpression: '*/30 * * * *',

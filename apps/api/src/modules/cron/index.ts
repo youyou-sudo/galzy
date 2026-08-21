@@ -52,8 +52,3 @@ export const cronServer = new Elysia()
     const jobId = await enqueue(QUEUE.cloudreveSync, { type: 'cloudreve-sync' })
     return { ok: true, message: 'Cloudreve 同步已入队', jobId }
   })
-  .get('/task/workerDataPull', async () => {
-    console.log('[Cron Trigger] workerDataPull 手动触发')
-    const jobId = await enqueue(QUEUE.metrics, { type: 'worker-data-pull' })
-    return { ok: true, message: '指标拉取已入队', jobId }
-  })

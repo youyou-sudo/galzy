@@ -1,7 +1,6 @@
 import {
   alistb,
   buildCoverUrl,
-  cloudflare,
   cloudrevePathExists,
   db,
   eventViews,
@@ -32,7 +31,6 @@ import { VndbSync } from '@api/modules/vndb-sync/service'
 import { asc, count, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { Index } from 'meilisearch'
-import { all } from 'radash'
 import {
   type AlistbRow,
   CLOUDREVE_SYNC_TIME_KEY,
@@ -187,124 +185,6 @@ function addImageUrlToDocs(docs: Array<Record<string, unknown>>): void {
 }
 
 export const CronService = {
-  async workerDataPull() {
-    const lockKey = 'galzy:lock:cron:workerDataCorn'
-    const lockValue = crypto.randomUUID()
-    const lockTimeout = 120000
-
-    const lock = await acquireLockKv(lockKey, lockValue, lockTimeout)
-    if (!lock) {
-      return
-    }
-
-    try {
-      const data = await db
-        .select({
-          id: cloudflare.id,
-          accountId: cloudflare.accountId,
-          aEmail: cloudflare.aEmail,
-          aKey: cloudflare.aKey,
-          wokerName: cloudflare.wokerName,
-        })
-        .from(cloudflare)
-
-      await all(
-        data.map(async (item) => {
-          try {
-            const today = new Date()
-            const yyyy = today.getUTCFullYear()
-            const mm = String(today.getUTCMonth() + 1).padStart(2, '0')
-            const dd = String(today.getUTCDate()).padStart(2, '0')
-            const dateStr = `${yyyy}-${mm}-${dd}`
-
-            const raw = JSON.stringify({
-              query: `query getBillingMetrics($accountTag: String!, $datetimeStart: String!, $datetimeEnd: String!, $scriptName: String!) { viewer { accounts(filter: {accountTag: $accountTag}) { workersInvocationsAdaptive(limit: 10, filter: { scriptName: $scriptName, date_geq: $datetimeStart, date_leq: $datetimeEnd }) { sum { duration requests subrequests responseBodySize errors }}}}}`,
-              variables: {
-                accountTag: item.accountId,
-                datetimeStart: dateStr,
-                datetimeEnd: dateStr,
-                scriptName: item.wokerName,
-              },
-            })
-
-            const commonHeaders = {
-              'X-Auth-Email': item.aEmail,
-              'X-Auth-Key': item.aKey,
-              Accept: '*/*',
-              Host: 'api.cloudflare.com',
-            }
-
-            // 并行发送两个请求
-            const [res, res2] = await Promise.all([
-              fetch('https://api.cloudflare.com/client/v4/graphql', {
-                method: 'POST',
-                headers: {
-                  ...commonHeaders,
-                  'Content-Type': 'text/plain',
-                },
-                body: raw,
-                redirect: 'follow',
-                signal: AbortSignal.timeout(30_000),
-              }),
-              fetch(
-                `https://api.cloudflare.com/client/v4/accounts/${item.accountId}/workers/services/${item.wokerName}/environments/production?expand=routes`,
-                {
-                  method: 'GET',
-                  headers: commonHeaders,
-                  signal: AbortSignal.timeout(30_000),
-                },
-              ),
-            ])
-
-            // 并行解析 JSON
-            const [json, json2] = await Promise.all([res.json(), res2.json()])
-
-            const result =
-              json?.data?.viewer?.accounts?.[0]?.workersInvocationsAdaptive?.[0]
-                ?.sum ?? {}
-
-            // 路由信息可能为空（无 routes 或 API 返回异常结构），此时保留原有 urlEndpoint
-            const pattern = json2?.result?.script?.routes?.[0]?.pattern
-            const cleanDomain =
-              typeof pattern === 'string'
-                ? pattern.replace(/\*$/, '').replace(/\/+$/, '')
-                : ''
-            const url = cleanDomain ? `https://${cleanDomain}` : undefined
-
-            await db
-              .update(cloudflare)
-              .set({
-                duration: result.duration ?? 0,
-                errors: result.errors ?? 0,
-                requests: result.requests ?? 0,
-                responseBodySize: result.responseBodySize ?? 0,
-                subrequests: result.subrequests ?? 0,
-                ...(url ? { urlEndpoint: url } : {}),
-                state: (result.requests ?? 0) < 100000,
-                updateTime: new Date(),
-              })
-              .where(eq(cloudflare.id, item.id))
-          } catch (err) {
-            // 仅记录失败，不把 state 置为 false：网络抖动/CF API 限流是暂时性的，
-            // 直接标记节点不可用会误导运维与下载路由判断。
-            console.warn(`workerDataPull 请求失败: ${item.accountId}, ${err}`)
-          }
-        }),
-      )
-      await releaseLockKv(lockKey, lockValue)
-    } catch (err) {
-      // 打印简短信息而非整个错误对象：Drizzle 错误对象含压缩后的库源码，日志噪音极大。
-      // 底层原因（如缺表）取 err.cause 一并输出，便于定位。
-      const msg = err instanceof Error ? err.message : String(err)
-      const cause =
-        err instanceof Error && err.cause instanceof Error
-          ? ` (cause: ${err.cause.message})`
-          : ''
-      console.error(`workerDataPull 任务失败: ${msg}${cause}`)
-      await releaseLockKv(lockKey, lockValue)
-    }
-  },
-
   async cloudreveSyncScript() {
     const lockKey = 'galzy:lock:cron:runCloudreveData'
     const lockValue = crypto.randomUUID()

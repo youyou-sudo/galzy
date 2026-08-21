@@ -74,7 +74,8 @@ export const Search = {
         ? (topTag as SearchModel.tagAllReturn['items'][0])
         : undefined,
     }
-    // Backfill imageUrl for stale index docs (pre-reindex data lacks it)
+    // Backfill imageUrl: vndb 文档按 image id 构建 CDN 地址；kungal 文档 id 为空、
+    // url 为绝对地址（meili 会把 imageUrl 小写成 imageurl，运行时回填 camelCase）。
     for (const hit of index.hits) {
       const img = (hit as Record<string, unknown>).images as Record<
         string,
@@ -86,6 +87,8 @@ export const Search = {
           img.width as number,
           img.height as number,
         )
+      } else if (img && !img.imageUrl && img.url) {
+        img.imageUrl = img.url as string
       }
     }
     void setKv(cacheKey, JSON.stringify(data), 60 * 60 * 1)
@@ -170,7 +173,8 @@ export const Search = {
       }
     }
 
-    // Backfill imageUrl for stale index docs (pre-reindex data lacks it)
+    // Backfill imageUrl: vndb 文档按 image id 构建 CDN 地址；kungal 文档 id 为空、
+    // url 为绝对地址（meili 会把 imageUrl 小写成 imageurl，运行时回填 camelCase）。
     for (const hit of result.hits) {
       const img = (hit as Record<string, unknown>).images as Record<
         string,
@@ -182,6 +186,8 @@ export const Search = {
           img.width as number,
           img.height as number,
         )
+      } else if (img && !img.imageUrl && img.url) {
+        img.imageUrl = img.url as string
       }
     }
 

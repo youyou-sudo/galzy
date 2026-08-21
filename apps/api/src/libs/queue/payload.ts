@@ -15,7 +15,6 @@ export type TaskPayload =
   | { type: 'meili-tag' }
   | { type: 'meili-producer' }
   | { type: 'cloudreve-sync' }
-  | { type: 'worker-data-pull' }
   | { type: 'queue-log-prune' }
 
 export type TaskType = TaskPayload['type']

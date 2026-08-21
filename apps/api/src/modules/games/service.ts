@@ -991,6 +991,9 @@ export const Game = {
           img.width as number,
           img.height as number,
         )
+      } else if (img && !img.imageUrl && img.url) {
+        // kungal 封面：meili 小写化 imageurl → 回填 camelCase
+        img.imageUrl = img.url as string
       }
       return {
         id: hit.id,
