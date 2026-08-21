@@ -117,17 +117,17 @@ const gameMeiliDocBase = {
   dl_count: sql`(SELECT COUNT(*)::int FROM ${gameDownloadStats} WHERE game_id = ${vn.id})`,
   vw_count: sql`(SELECT COUNT(*)::int FROM ${eventViews} WHERE event_type = 'game_view' AND target_id = ${vn.id})`,
   titles: sql`COALESCE(
-    (SELECT json_agg(kt.title) FROM ${kungalWorkTitles} kt INNER JOIN ${kungalWorks} kw ON kw.id = kt.work_id WHERE kw.vndb_id = ${vn.id}),
-    '[]'::json
+    (SELECT json_agg(kt.title) FROM ${kungalWorkTitles} kt INNER JOIN ${kungalWorks} kw ON kw.id = kt.work_id WHERE kw.vndb_id = ${vn.id})::jsonb,
+    '[]'::jsonb
   ) || COALESCE(
-    (SELECT json_agg(t.title) FROM ${vnTitles} t WHERE t.id = ${vn.id}),
-    '[]'::json
+    (SELECT json_agg(t.title) FROM ${vnTitles} t WHERE t.id = ${vn.id})::jsonb,
+    '[]'::jsonb
   )`,
   tag_names: sql`COALESCE((SELECT json_agg(DISTINCT z.name) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE), '[]'::json)`,
   tags: sql`COALESCE((SELECT json_agg(DISTINCT tv.tag) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE), '[]'::json)`,
   titles_obj: sql`COALESCE(
-    (SELECT json_agg(row_to_json(kt.*)) FROM (SELECT kt.title, kt.latin, kt.lang FROM ${kungalWorkTitles} kt INNER JOIN ${kungalWorks} kw ON kw.id = kt.work_id WHERE kw.vndb_id = ${vn.id}) kt),
-    '[]'::json
+    (SELECT json_agg(row_to_json(kt.*)) FROM (SELECT kt.title, kt.latin, kt.lang FROM ${kungalWorkTitles} kt INNER JOIN ${kungalWorks} kw ON kw.id = kt.work_id WHERE kw.vndb_id = ${vn.id}) kt)::jsonb,
+    '[]'::jsonb
   ) || COALESCE(
     (SELECT json_agg(row_to_json(t.*)) FROM (
       SELECT t.title, t.latin, t.lang FROM ${vnTitles} t
@@ -137,8 +137,8 @@ const gameMeiliDocBase = {
           INNER JOIN ${kungalWorks} kw2 ON kw2.id = kt2.work_id
           WHERE kw2.vndb_id = ${vn.id} AND kt2.lang IS NOT NULL
         )
-    ) t),
-    '[]'::json
+    ) t)::jsonb,
+    '[]'::jsonb
   )`,
   images: sql`COALESCE(
     (SELECT row_to_json(kimg.*) FROM (
