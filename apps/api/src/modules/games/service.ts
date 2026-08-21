@@ -136,7 +136,13 @@ export const Game = {
     const pageVids = items.map((i) => i.id)
     const kungalRows = pageVids.length
       ? await db
-          .select()
+          .select({
+            id: kungalWorks.id,
+            vndbId: kungalWorks.vndbId,
+            coverUrl: kungalWorks.coverUrl,
+            coverWidth: kungalWorks.coverWidth,
+            coverHeight: kungalWorks.coverHeight,
+          })
           .from(kungalWorks)
           .where(inArray(kungalWorks.vndbId, pageVids))
       : []
@@ -232,11 +238,12 @@ export const Game = {
     if (redisData) {
       try {
         const cached = JSON.parse(redisData)
+        // 历史缓存条目缺 imageUrl（imageUrl 特性上线前写入）→ 删除重建。
+        // 注意：详情响应的 image 是 Drizzle 关系行（cSexualAvg 驼峰），
+        // 不要用列表面的 c_sexual_avg 判存亡（此前误用导致缓存永远失效、每次全量查库）。
         if (
           !cached?.vn ||
-          (cached?.vn?.image &&
-            (!('c_sexual_avg' in cached.vn.image) ||
-              !('imageUrl' in cached.vn.image)))
+          (cached?.vn?.image && !('imageUrl' in cached.vn.image))
         ) {
           await delKv(cacheKey)
         } else {
@@ -382,7 +389,15 @@ export const Game = {
       //    缺字段回退 vndb。前端零改动（仍消费 vn.titles / vn.image / vn.description / released_first）。
       if (lookupVid) {
         const kungalWork = await db
-          .select()
+          .select({
+            id: kungalWorks.id,
+            vndbId: kungalWorks.vndbId,
+            coverUrl: kungalWorks.coverUrl,
+            coverWidth: kungalWorks.coverWidth,
+            coverHeight: kungalWorks.coverHeight,
+            intro: kungalWorks.intro,
+            releasedFirst: kungalWorks.releasedFirst,
+          })
           .from(kungalWorks)
           .where(eq(kungalWorks.vndbId, lookupVid))
           .limit(1)
@@ -917,7 +932,13 @@ export const Game = {
         // Kungal 数据源优先：命中 vid 的 kungal 记录覆盖标题与封面
         const kungalWork = /^v\d+$/i.test(vid)
           ? await db
-              .select()
+              .select({
+                id: kungalWorks.id,
+                vndbId: kungalWorks.vndbId,
+                coverUrl: kungalWorks.coverUrl,
+                coverWidth: kungalWorks.coverWidth,
+                coverHeight: kungalWorks.coverHeight,
+              })
               .from(kungalWorks)
               .where(eq(kungalWorks.vndbId, vid))
               .limit(1)
