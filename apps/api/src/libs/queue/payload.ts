@@ -9,6 +9,8 @@ export type TaskPayload =
   | { type: 'vndb-full' }
   | { type: 'vndb-delta' }
   | { type: 'vndb-producers' }
+  | { type: 'kungal-full' }
+  | { type: 'kungal-delta' }
   | { type: 'meili-game' }
   | { type: 'meili-tag' }
   | { type: 'meili-producer' }

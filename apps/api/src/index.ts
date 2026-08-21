@@ -8,6 +8,7 @@ import {
   download,
   game,
   health,
+  kungalSync,
   media,
   otel,
   producer,
@@ -79,6 +80,7 @@ async function buildApp() {
     .use(topics)
     .use(tasks)
     .use(vndbSync)
+    .use(kungalSync)
 }
 
 export type app = Awaited<ReturnType<typeof buildApp>>

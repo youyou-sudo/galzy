@@ -4,6 +4,8 @@ import {
   db,
   eventViews,
   gameDownloadStats,
+  kungalWorks,
+  kungalWorkTitles,
   listCloudreveFiles,
   MeiliClient,
   others,
@@ -37,6 +39,7 @@ import {
   count as countAll,
   desc,
   eq,
+  inArray,
   isNotNull,
   isNull,
   like,
@@ -69,7 +72,7 @@ export const Game = {
     let orderClause
     if (sortBy === 'released') {
       orderClause = sql.raw(
-        `(SELECT MIN(r.released) FROM releases_vn rv JOIN releases r ON r.id = rv.id WHERE rv.vid = vn.id) ${dir} NULLS LAST, vn.id ${dir}`,
+        `COALESCE((SELECT kw.released_first FROM galrc_kungal_works kw WHERE kw.vndb_id = vn.id), (SELECT MIN(r.released) FROM releases_vn rv JOIN releases r ON r.id = rv.id WHERE rv.vid = vn.id)) ${dir} NULLS LAST, vn.id ${dir}`,
       )
     } else if (sortBy === 'downloads') {
       orderClause = sql.raw(
@@ -129,10 +132,75 @@ export const Game = {
       .limit(pageSize)
       .offset(offset)
     const totalCount = await this.Count()
-    // Transform image URLs: replace VNDB host with configured CDN
+    // Kungal 数据源优先：批量载入本页 vid 的 kungal 记录与标题，逐个覆盖
+    const pageVids = items.map((i) => i.id)
+    const kungalRows = pageVids.length
+      ? await db
+          .select()
+          .from(kungalWorks)
+          .where(inArray(kungalWorks.vndbId, pageVids))
+      : []
+    const kungalMap = new Map(kungalRows.map((r) => [r.vndbId, r]))
+    let kungalTitlesMap = new Map<string, Array<Record<string, unknown>>>()
+    if (kungalRows.length > 0) {
+      const kt = await db
+        .select({
+          workId: kungalWorkTitles.workId,
+          lang: kungalWorkTitles.lang,
+          official: kungalWorkTitles.official,
+          title: kungalWorkTitles.title,
+          latin: kungalWorkTitles.latin,
+          main: kungalWorkTitles.main,
+        })
+        .from(kungalWorkTitles)
+        .where(
+          inArray(
+            kungalWorkTitles.workId,
+            kungalRows.map((r) => r.id),
+          ),
+        )
+      kungalTitlesMap = new Map()
+      for (const row of kt) {
+        const list = kungalTitlesMap.get(row.workId) ?? []
+        list.push({
+          id: row.workId,
+          lang: row.lang,
+          official: row.official,
+          title: row.title,
+          latin: row.latin,
+          main: row.main,
+        })
+        kungalTitlesMap.set(row.workId, list)
+      }
+    }
+    // Transform image URLs: replace VNDB host with configured CDN (kungal 记录用 kungal 封面)
     for (const item of items) {
+      const kungalWork = kungalMap.get(item.id)
       const img = item.images as Record<string, unknown> | null
-      if (img) {
+      if (kungalWork && kungalTitlesMap.has(kungalWork.id)) {
+        // 与 vn_titles json_agg 一致：bun-sql 解析为数组，直接赋数组
+        ;(item as any).titles = kungalTitlesMap.get(kungalWork.id)
+      }
+      if (kungalWork && img) {
+        const kcoverUrl = kungalWork.coverUrl
+        if (kcoverUrl) {
+          img.url = kcoverUrl
+          img.imageUrl = kcoverUrl
+          if (kungalWork.coverWidth) img.width = kungalWork.coverWidth
+          if (kungalWork.coverHeight) img.height = kungalWork.coverHeight
+        } else if (img) {
+          img.imageUrl = img.id
+            ? buildCoverUrl(
+                img.id as string,
+                img.width as number,
+                img.height as number,
+              )
+            : null
+          if (img.url) {
+            img.url = transformStoredUrl(img.url as string)
+          }
+        }
+      } else if (img) {
         img.imageUrl = img.id
           ? buildCoverUrl(
               img.id as string,
@@ -286,7 +354,7 @@ export const Game = {
       const releasesDates = data.vn?.releasesVn
         ?.map((rv) => rv.release?.released)
         ?.filter((r): r is string => r !== null && r !== undefined)
-      const released_first =
+      let released_first =
         releasesDates && releasesDates.length > 0
           ? releasesDates.sort((a, b) => a.localeCompare(b))[0]
           : null
@@ -309,6 +377,61 @@ export const Game = {
           data.vn.image.url = transformStoredUrl(data.vn.image.url)
         }
       }
+
+      // ── Kungal 数据源优先合并（第二数据源）：有 kungal 记录 → 覆盖标题/封面/简介/首发日，
+      //    缺字段回退 vndb。前端零改动（仍消费 vn.titles / vn.image / vn.description / released_first）。
+      if (lookupVid) {
+        const kungalWork = await db
+          .select()
+          .from(kungalWorks)
+          .where(eq(kungalWorks.vndbId, lookupVid))
+          .limit(1)
+          .then((r) => r[0])
+        if (kungalWork && data.vn) {
+          const ktitles = await db
+            .select({
+              lang: kungalWorkTitles.lang,
+              official: kungalWorkTitles.official,
+              title: kungalWorkTitles.title,
+              latin: kungalWorkTitles.latin,
+              main: kungalWorkTitles.main,
+            })
+            .from(kungalWorkTitles)
+            .where(eq(kungalWorkTitles.workId, kungalWork.id))
+          if (ktitles.length > 0) {
+            ;(data.vn as any).titles = ktitles.map((t) => ({
+              id: kungalWork.id,
+              lang: t.lang,
+              official: t.official,
+              title: t.title,
+              latin: t.latin,
+              main: t.main,
+            }))
+          }
+          const kcoverUrl = kungalWork.coverUrl
+          if (kcoverUrl && data.vn.image) {
+            const img = data.vn.image as unknown as {
+              id: string
+              url: string | null
+              imageUrl: string | null
+              width: number | null
+              height: number | null
+              [key: string]: unknown
+            }
+            img.url = kcoverUrl
+            img.imageUrl = kcoverUrl // kungal CDN 绝对地址，不经过 buildCoverUrl/transformStoredUrl
+            if (kungalWork.coverWidth) img.width = kungalWork.coverWidth
+            if (kungalWork.coverHeight) img.height = kungalWork.coverHeight
+          }
+          if (kungalWork.intro) {
+            ;(data.vn as any).description = kungalWork.intro
+          }
+          if (kungalWork.releasedFirst) {
+            released_first = kungalWork.releasedFirst
+          }
+        }
+      }
+
       return {
         ...data,
         released_first,
@@ -791,9 +914,56 @@ export const Game = {
         .where(eq(vn.id, vid))
         .limit(1)
       if (rows.length > 0) {
+        // Kungal 数据源优先：命中 vid 的 kungal 记录覆盖标题与封面
+        const kungalWork = /^v\d+$/i.test(vid)
+          ? await db
+              .select()
+              .from(kungalWorks)
+              .where(eq(kungalWorks.vndbId, vid))
+              .limit(1)
+              .then((r) => r[0])
+          : undefined
+        const ktitles = kungalWork
+          ? await db
+              .select({
+                lang: kungalWorkTitles.lang,
+                official: kungalWorkTitles.official,
+                title: kungalWorkTitles.title,
+                latin: kungalWorkTitles.latin,
+                main: kungalWorkTitles.main,
+              })
+              .from(kungalWorkTitles)
+              .where(eq(kungalWorkTitles.workId, kungalWork.id))
+          : []
         for (const row of rows) {
           const img = row.images as Record<string, unknown> | null
-          if (img?.id) {
+          if (kungalWork && ktitles.length > 0) {
+            ;(row as any).titles_obj = ktitles.map((t) => ({
+              id: kungalWork.id,
+              lang: t.lang,
+              official: t.official,
+              title: t.title,
+              latin: t.latin,
+              main: t.main,
+            }))
+          }
+          if (kungalWork && img) {
+            const kcoverUrl = kungalWork.coverUrl
+            if (kcoverUrl) {
+              // id 置空：外层 buildCoverUrl 兜底（img?.id）不会覆盖 kungal 封面
+              img.id = null
+              img.url = kcoverUrl
+              img.imageUrl = kcoverUrl
+              if (kungalWork.coverWidth) img.width = kungalWork.coverWidth
+              if (kungalWork.coverHeight) img.height = kungalWork.coverHeight
+            } else if (img?.id) {
+              img.imageUrl = buildCoverUrl(
+                img.id as string,
+                img.width as number,
+                img.height as number,
+              )
+            }
+          } else if (img?.id) {
             img.imageUrl = buildCoverUrl(
               img.id as string,
               img.width as number,

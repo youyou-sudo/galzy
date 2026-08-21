@@ -10,6 +10,8 @@ import type { TaskPayload } from './payload'
 export const QUEUE = {
   /** VNDB 数据同步（full / delta / producers），VNDB API 限流 → 串行 */
   vndbSync: 'galzy:vndb-sync',
+  /** Kungal（NextMoe）目录数据同步（full / delta） */
+  kungalSync: 'galzy:kungal-sync',
   /** Meilisearch 索引滚动同步（game / tag / producer），三类型隔离可并行 */
   meiliIndex: 'galzy:meili-index',
   /** Cloudreve 文件→VNDB ID 同步 */

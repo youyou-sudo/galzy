@@ -12,6 +12,7 @@ import {
 } from '@api/libs/queue/config'
 import { delKvPattern, getRedisClient } from '@api/libs/redis'
 import { CronService } from '@api/modules/cron/service'
+import { KungalSync } from '@api/modules/kungal-sync/service'
 import { VndbSync } from '@api/modules/vndb-sync/service'
 import { type Queue, Worker } from '@stacksjs/bun-queue'
 import { and, desc, eq, lt } from 'drizzle-orm'
@@ -198,6 +199,20 @@ async function runVndbHandler(payload: TaskPayload) {
   }
 }
 
+/** Kungal（NextMoe）目录数据同步分派。 */
+async function runKungalHandler(payload: TaskPayload) {
+  switch (payload.type) {
+    case 'kungal-full':
+      return await KungalSync.syncFull()
+    case 'kungal-delta':
+      return await KungalSync.syncDelta()
+    default:
+      throw new Error(
+        `未知的 kungal 任务类型: ${(payload as TaskPayload).type}`,
+      )
+  }
+}
+
 /** Cloudreve 文件→VNDB ID 同步分派。 */
 async function runCloudreveHandler(payload: TaskPayload) {
   if (payload.type !== 'cloudreve-sync') {
@@ -262,6 +277,26 @@ export async function startQueueWorkers() {
     }),
   )
 
+  // Kungal 目录数据同步（串行：与 vndb 独立，解析走 NextMoe 限流）
+  const kungalQueue = queueOf(QUEUE.kungalSync)
+  workers.push(
+    new Worker<TaskPayload>(kungalQueue, 1, async (job) => {
+      const logger = new JobLogger(job.id)
+      await TaskLifecycle.markRunning(job.id)
+      try {
+        const result = await runKungalHandler(job.data)
+        await logger.success(`kungal ${job.data.type} 完成`)
+        await TaskLifecycle.markCompleted(job.id, result ?? null)
+        return result
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        await logger.error(msg)
+        await TaskLifecycle.markFailed(job.id, msg)
+        throw e
+      }
+    }),
+  )
+
   // Meilisearch 索引滚动同步（game/tag/producer 按类型分派，三类型隔离可并行）
   const meiliQueue = queueOf(QUEUE.meiliIndex)
   workers.push(
@@ -294,6 +329,8 @@ export async function startQueueWorkers() {
         await TaskLifecycle.markCompleted(job.id, result ?? null)
         // 保留原有行为：云同步成功后紧跟一次 VNDB 增量同步（显式入队，失败可观测）。
         await enqueue(QUEUE.vndbSync, { type: 'vndb-delta' })
+        // 新文件也可能带来新 vid，同步跟进 kungal 增量解析。
+        await enqueue(QUEUE.kungalSync, { type: 'kungal-delta' })
         return result
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
@@ -333,7 +370,13 @@ export async function startQueueWorkers() {
   // 生成随机 id 并残留，重启多次后会累积重复调度（同一 cron 触发多份 job）。
   // 旧版本（脚本加载坏掉的时期）写入的数据可能类型损坏（WRONGTYPE），
   // removeJob 失败时用 DEL 兜底直接删除 job key，避免脏数据无限残留。
-  for (const q of [vndbQueue, meiliQueue, cloudreveQueue, metricsQueue]) {
+  for (const q of [
+    vndbQueue,
+    kungalQueue,
+    meiliQueue,
+    cloudreveQueue,
+    metricsQueue,
+  ]) {
     try {
       const delayed = await q.getJobs('delayed')
       for (const j of delayed) {

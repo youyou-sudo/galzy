@@ -1,6 +1,7 @@
 export * from './alist'
 export * from './auth'
 export * from './content'
+export * from './kungal'
 export * from './services'
 export * from './task-log'
 export * from './vndb'
