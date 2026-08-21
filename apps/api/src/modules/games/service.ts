@@ -1094,7 +1094,9 @@ export const Game = {
     // 深度 6：万华镜等长系列链最长可达 6 跳（v44184 见全系列需 5-6 跳）。
     const MAX_DEPTH = 6
     const MAX_TOTAL = 100
-    const edgeRows = await db.execute(sql`
+    // 单条 SQL：递归 CTE 闭包边 + vn 数据 + kungal 数据全部折叠（json_agg 子查询），
+    // 冷路径 DB 网络往返从 3 次降到 1 次（另有 Redis 检查 1 次）。
+    const merged = await db.execute(sql`
       WITH RECURSIVE closure AS (
         SELECT r.id, r.vid, r.relation, r.relation_official, r.title, 1 AS depth
         FROM vn_relations r
@@ -1104,18 +1106,77 @@ export const Game = {
         FROM vn_relations r
         JOIN closure c ON (r.id = c.vid OR r.vid = c.id) AND r.id <> r.vid
         WHERE c.depth < ${MAX_DEPTH}
+      ),
+      edge_list AS (
+        SELECT DISTINCT id, vid, relation, relation_official, title FROM closure
+      ),
+      rel_vids AS (
+        SELECT DISTINCT vv AS vid FROM (
+          SELECT id AS vv FROM edge_list UNION SELECT vid AS vv FROM edge_list
+        ) t
       )
-      SELECT DISTINCT id, vid, relation, relation_official, title FROM closure
+      SELECT
+        (SELECT COALESCE(json_agg(row_to_json(e.*)), '[]'::json) FROM edge_list e) AS edges,
+        (SELECT COALESCE(json_agg(row_to_json(v.*)), '[]'::json) FROM (
+          SELECT v.id, v.olang, v.c_image,
+            COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (
+              SELECT lang, official, title, latin FROM vn_titles t WHERE t.id = v.id
+            ) t), '[]'::json) AS titles_obj,
+            (SELECT row_to_json(i.*) FROM (
+              SELECT id, url, width, height, c_sexual_avg FROM images i WHERE i.id = v.c_image
+            ) i) AS image
+          FROM vn v WHERE v.id IN (SELECT vid FROM rel_vids)
+        ) v) AS games,
+        (SELECT COALESCE(json_agg(row_to_json(k.*)), '[]'::json) FROM (
+          SELECT k.id, k.vndb_id, k.cover_url, k.cover_width, k.cover_height,
+            COALESCE((SELECT json_agg(row_to_json(kt.*)) FROM (
+              SELECT lang, official, title, latin FROM galrc_kungal_work_titles kt
+              WHERE kt.work_id = k.id
+            ) kt), '[]'::json) AS titles
+          FROM galrc_kungal_works k WHERE k.vndb_id IN (SELECT vid FROM rel_vids)
+        ) k) AS kungal
     `)
-    const edges = (
-      edgeRows as Array<{
+    const mergedRow = merged[0] as {
+      edges?: Array<{
         id: string | null
         vid: string | null
         relation: string | null
         relation_official: boolean | null
         title: string | null
       }>
-    ).filter((r) => r.id && r.vid)
+      games?: Array<{
+        id: string
+        olang: string | null
+        c_image: string | null
+        titles_obj: unknown
+        image: unknown
+      }>
+      kungal?: Array<{
+        id: string
+        vndb_id: string | null
+        cover_url: string | null
+        cover_width: number | null
+        cover_height: number | null
+        titles: unknown
+      }>
+    }
+    const edges = (mergedRow.edges ?? []).filter((r) => r.id && r.vid)
+    const vnRows = (mergedRow.games ?? []).map((g) => ({
+      id: g.id,
+      olang: g.olang,
+      cImage: g.c_image,
+      titlesObj: Array.isArray(g.titles_obj) ? g.titles_obj : [],
+      image: g.image,
+    }))
+    const kungalRows = (mergedRow.kungal ?? []).map((k) => ({
+      id: k.id,
+      vndbId: k.vndb_id,
+      coverUrl: k.cover_url,
+      coverWidth: k.cover_width,
+      coverHeight: k.cover_height,
+      titles: Array.isArray(k.titles) ? k.titles : [],
+    }))
+    const kungalMap = new Map(kungalRows.map((r) => [r.vndbId, r]))
 
     const visited = new Set<string>([lookupVid])
     const relMap = new Map<
@@ -1159,37 +1220,7 @@ export const Game = {
       frontier = next
     }
 
-    const relatedVids = [...relMap.keys()].filter((v): v is string => !!v)
-    // 站内游戏数据：两条独立查询并行（vn+titles+image 子查询、kungal+titles 子查询）
-    const [vnRows, kungalRows] = await Promise.all([
-      relatedVids.length
-        ? db
-            .select({
-              id: vn.id,
-              olang: vn.olang,
-              cImage: vn.cImage,
-              titlesObj: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT lang, official, title, latin FROM ${vnTitles} t WHERE t.id = ${vn.id}) t), '[]'::json)`,
-              image: sql`(SELECT row_to_json(i.*) FROM (SELECT id, url, width, height, c_sexual_avg FROM ${images} i WHERE i.id = ${vn.cImage}) i)`,
-            })
-            .from(vn)
-            .where(inArray(vn.id, relatedVids))
-        : Promise.resolve([]),
-      relatedVids.length
-        ? db
-            .select({
-              id: kungalWorks.id,
-              vndbId: kungalWorks.vndbId,
-              coverUrl: kungalWorks.coverUrl,
-              coverWidth: kungalWorks.coverWidth,
-              coverHeight: kungalWorks.coverHeight,
-              titles: sql`COALESCE((SELECT json_agg(row_to_json(kt.*)) FROM (SELECT lang, official, title, latin FROM ${kungalWorkTitles} kt WHERE kt.work_id = ${kungalWorks.id}) kt), '[]'::json)`,
-            })
-            .from(kungalWorks)
-            .where(inArray(kungalWorks.vndbId, relatedVids))
-        : Promise.resolve([]),
-    ])
-    const kungalMap = new Map(kungalRows.map((r) => [r.vndbId, r]))
-
+    // vn/kungal 数据已由上方单条 SQL 的 edges/games/kungal 折叠返回
     const buildCard = (vid: string) => {
       const vnRow = vnRows.find((v) => v.id === vid)
       if (!vnRow) return null
