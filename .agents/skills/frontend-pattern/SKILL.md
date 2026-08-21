@@ -515,13 +515,12 @@ export const authServerClient = createAuthClient({
 **文件**: `apps/web-tanstack/src/server/auth/betterPlugins.ts`
 
 ```typescript
-import { adminClient, genericOAuthClient } from 'better-auth/client/plugins'
+import { adminClient } from 'better-auth/client/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 
 export const betterPlugins = [
   adminClient(),
   tanstackStartCookies(),
-  genericOAuthClient(),
 ] as const satisfies BetterAuthPlugin[]
 ```
 

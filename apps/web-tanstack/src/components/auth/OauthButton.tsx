@@ -28,17 +28,9 @@ export const OauthButton = () => {
 		const callbackURL = new URL(return_to || "/", origin).toString();
 
 		try {
-			if (provider === "linuxdo") {
-				return await authClient.signIn.oauth2({
-					providerId: "linuxdo",
-					callbackURL,
-					errorCallbackURL: errorURL,
-					requestSignUp: false,
-				});
-			}
-			if (provider === "kungal") {
-				return await authClient.signIn.oauth2({
-					providerId: "kungal",
+			if (provider === "linuxdo" || provider === "kungal") {
+				return await authClient.signIn.social({
+					provider,
 					callbackURL,
 					errorCallbackURL: errorURL,
 					requestSignUp: false,

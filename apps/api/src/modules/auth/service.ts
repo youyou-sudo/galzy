@@ -78,15 +78,18 @@ const _authConfig = {
           clientId: process.env.KUNGAL_CLIENT_ID || '',
           clientSecret: process.env.KUNGAL_CLIENT_SECRET || '',
           redirectURI:
-            process.env.WEB_HOST + '/api/auth/oauth2/callback/kungal',
+            process.env.WEB_HOST + '/api/auth/callback/kungal',
           authorizationUrl: 'https://oauth.kungal.com/api/v1/oauth/authorize',
           tokenUrl: 'https://oauth.kungal.com/api/v1/oauth/token',
           scopes: ['openid', 'profile', 'email'],
           pkce: true,
-          requireIssuerValidation: true,
           getToken: async ({ code, codeVerifier }) => {
-            const redirecturl =
-              process.env.WEB_HOST + '/api/auth/oauth2/callback/kungal'
+            // 必须与授权请求使用的 redirect_uri 完全一致（配置的 redirectURI）：
+            // 1.7 框架传给 getToken 的 redirectURI 是 baseURL 派生值（含 /auth
+            // basePath），与授权步骤用的配置值不同，会导致 kungal 以
+            // invalid_grant 拒绝换码。
+            const redirectURI =
+              process.env.WEB_HOST + '/api/auth/callback/kungal'
             const res = await fetch(
               'https://oauth.kungal.com/api/v1/oauth/token',
               {
@@ -95,7 +98,7 @@ const _authConfig = {
                 body: JSON.stringify({
                   grant_type: 'authorization_code',
                   code,
-                  redirect_uri: redirecturl,
+                  redirect_uri: redirectURI,
                   client_id: process.env.KUNGAL_CLIENT_ID || '',
                   client_secret: process.env.KUNGAL_CLIENT_SECRET || '',
                   code_verifier: codeVerifier,
@@ -152,20 +155,21 @@ const _authConfig = {
           clientSecret: process.env.LINUXDO_CLIENT_SECRET || '',
           authorizationUrl: 'https://connect.linux.do/oauth2/authorize',
           redirectURI:
-            process.env.WEB_HOST + '/api/auth/oauth2/callback/linuxdo',
+            process.env.WEB_HOST + '/api/auth/callback/linuxdo',
           tokenUrl: 'https://connect.linux.do/oauth2/token',
           scopes: ['openid', 'profile', 'email'],
           pkce: true,
           getToken: async ({ code, codeVerifier }) => {
-            const redirecturl =
-              process.env.WEB_HOST + '/api/auth/oauth2/callback/linuxdo'
+            // 与授权请求的 redirect_uri 保持一致，理由同 kungal。
+            const redirectURI =
+              process.env.WEB_HOST + '/api/auth/callback/linuxdo'
             const res = await fetch('https://connect.linux.do/oauth2/token', {
               method: 'POST',
               headers: { 'content-type': 'application/x-www-form-urlencoded' },
               body: new URLSearchParams({
                 grant_type: 'authorization_code',
                 code,
-                redirect_uri: redirecturl,
+                redirect_uri: redirectURI,
                 client_id: process.env.LINUXDO_CLIENT_ID || '',
                 client_secret: process.env.LINUXDO_CLIENT_SECRET || '',
                 ...(codeVerifier ? { code_verifier: codeVerifier } : {}),

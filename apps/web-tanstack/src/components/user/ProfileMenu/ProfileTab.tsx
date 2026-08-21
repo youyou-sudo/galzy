@@ -15,14 +15,11 @@ import { Check, Loader2 } from "lucide-react";
 import { type ChangeEvent, useState } from "react";
 import { FaDiscord, FaGithub, FaTwitter } from "react-icons/fa";
 
-type ProviderType = "social" | "oauth2";
-
 interface OAuthProviderDef {
 	id: string;
 	name: string;
 	iconType: "fa";
 	Icon: typeof FaGithub;
-	type: ProviderType;
 }
 
 interface OAuthProviderImageDef {
@@ -30,7 +27,6 @@ interface OAuthProviderImageDef {
 	name: string;
 	iconType: "image";
 	iconSrc: string;
-	type: ProviderType;
 }
 
 const OAUTH_PROVIDERS: (OAuthProviderDef | OAuthProviderImageDef)[] = [
@@ -39,35 +35,30 @@ const OAUTH_PROVIDERS: (OAuthProviderDef | OAuthProviderImageDef)[] = [
 		name: "GitHub",
 		iconType: "fa",
 		Icon: FaGithub,
-		type: "social",
 	},
 	{
 		id: "discord",
 		name: "Discord",
 		iconType: "fa",
 		Icon: FaDiscord,
-		type: "social",
 	},
 	{
 		id: "twitter",
 		name: "Twitter",
 		iconType: "fa",
 		Icon: FaTwitter,
-		type: "social",
 	},
 	{
 		id: "linuxdo",
 		name: "Linux.Do",
 		iconType: "image",
 		iconSrc: "/linuxdo.webp",
-		type: "oauth2",
 	},
 	{
 		id: "kungal",
 		name: "Kun Galgame",
 		iconType: "image",
 		iconSrc: "/kungal.webp",
-		type: "oauth2",
 	},
 ];
 
@@ -130,24 +121,16 @@ export default function ProfileTab({
 		}
 	};
 
-	const handleLink = async (providerId: string, type: ProviderType) => {
+	const handleLink = async (providerId: string) => {
 		setLinkingProvider(providerId);
 		try {
 			const callbackURL = `${window.location.origin}/user`;
 			const errorCallbackURL = callbackURL;
-			if (type === "oauth2") {
-				await authClient.oauth2.link({
-					providerId,
-					callbackURL,
-					errorCallbackURL,
-				});
-			} else {
-				await authClient.linkSocial({
-					provider: providerId,
-					callbackURL,
-					errorCallbackURL,
-				});
-			}
+			await authClient.linkSocial({
+				provider: providerId,
+				callbackURL,
+				errorCallbackURL,
+			});
 		} finally {
 			setLinkingProvider(null);
 		}
@@ -295,7 +278,7 @@ export default function ProfileTab({
 										variant="outline"
 										size="sm"
 										disabled={isProcessing}
-										onClick={() => handleLink(provider.id, provider.type)}
+										onClick={() => handleLink(provider.id)}
 									>
 										{isProcessing ? (
 											<Loader2 className="size-3.5 animate-spin" />
