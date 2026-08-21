@@ -52,6 +52,14 @@ const linksList: {
 		description:
 			"TouchGal 是一个一站式 Galgame 文化社区。提供Galgame 论坛、Galgame 下载等服务。承诺永久免费, 高质量。为Galgame 爱好者提供一片净土！",
 	},
+	{
+		title: "缘汐馆",
+		avatar:
+			"https://mrqyj.us.kg/wp-content/uploads/2026/08/%E7%BC%98%E6%B1%90%E9%A6%86%E7%BD%91%E7%AB%99%E5%9B%BE%E6%A0%87%E8%AE%BE%E8%AE%A1.png",
+		href: "https://mrqyj.us.kg",
+		description:
+			"缘汐馆",
+	},
 ];
 
 export default function RouteComponent() {
