@@ -138,8 +138,8 @@ Scope 注意：
 
 ### 系列与引擎
 
-**`GET /v1/catalog/series`** — keyset 浏览（id ASC），行带 nsfw-aware `work_count`。
-**`GET /v1/catalog/series/{id}`** — 系列记录 + 源锚点 + intros；`include=works`（按阅读顺序附成员作品）。
+**`GET /v1/catalog/series`** — keyset 浏览（id ASC），行 = `{id, display_name, source, work_count, has_nsfw}`；`source` 过滤 `curated|derived|dlsite`（OPEN 词汇）。只含系列身份与计数，**不含成员作品**。
+**`GET /v1/catalog/series/{id}`** — 系列记录 + `include=works` 按发售序挂成员（limit/offset 分页，`members[]` 并行带 position/kind）。**注意：成员作品是基础简报**（`{id, display_name, localized, medium, content_rating, claimed_by}`），`include=works,refs` 也**不会**给成员加 refs——拿不到 vndb 锚点。要 vndb id 需对成员 id 走 `GET /v1/catalog/works?ids=<csv,≤100>&include=refs&nsfw=1` 批量水合（一次调用取全部成员），再从 refs 里筛 `source=vndb && /^v\d+$/`（vndb 锚点含 release id rNNN，要滤掉）。
 **`GET /v1/catalog/engines`** — keyset 浏览（id ASC），行带 nsfw-aware `work_count`。
 **`GET /v1/catalog/engines/{id}`** — 引擎记录：名称 + work_count + 跨源精确 refs。
 
