@@ -4,6 +4,7 @@ import {
   defaultJobOptions,
   isQueueEnabled,
   QUEUE,
+  QUEUE_PREFIX,
   queueOf,
 } from '@api/libs/queue'
 import {
@@ -363,10 +364,10 @@ export async function startQueueWorkers() {
 
   for (const w of workers) w.start()
 
-  // 清理历史遗留的 repeatable cron jobs：scheduleCron 不传 jobId 时每次启动都会
-  // 生成随机 id 并残留，重启多次后会累积重复调度（同一 cron 触发多份 job）。
-  // 旧版本（脚本加载坏掉的时期）写入的数据可能类型损坏（WRONGTYPE）——
-  // bun-queue removeJob 对 WRONGTYPE 内部吞错且返回 void，故 DEL 幂等兜底删除 job key。
+  // 清理历史遗留的 repeatable cron jobs：直接操作 Redis（ZREM delayed 成员 + DEL job hash），
+  // 绕过 bun-queue removeJob —— 它对 zset 型 delayed 结构执行 LREM 必然 WRONGTYPE，
+  // 且内部吞错打日志（每次启动刷屏），removeJob 路径不可用。
+  // scheduleCron 在其后用固定 jobId 重新注册，删除旧成员是安全的（幂等去重）。
   for (const q of [
     vndbQueue,
     kungalQueue,
@@ -375,25 +376,39 @@ export async function startQueueWorkers() {
     metricsQueue,
   ]) {
     try {
-      const delayed = await q.getJobs('delayed')
-      for (const j of delayed) {
-        if (j.opts?.repeat) {
-          try {
-            await q.removeJob(j.id)
-          } catch (rmErr) {
-            console.warn(`[queue] removeJob ${j.id} 异常:`, rmErr)
-          }
-          await getRedisClient().del(q.getJobKey(j.id))
+      const client = getRedisClient()
+      const delayedKey = `${QUEUE_PREFIX}:${q.name}:delayed`
+      const members = (await client.send('ZRANGE', [
+        delayedKey,
+        '0',
+        '-1',
+      ])) as string[]
+      for (const member of members) {
+        const jobKey = `${QUEUE_PREFIX}:${q.name}:job:${member}`
+        const fields = (await client.send('HGETALL', [jobKey])) as
+          | Record<string, string>
+          | null
+        let isRepeat = false
+        try {
+          const opts = fields?.opts ? JSON.parse(fields.opts) : null
+          isRepeat = !!opts?.repeat
+        } catch {
+          isRepeat = false
         }
+        if (!isRepeat) continue
+        await client.send('ZREM', [delayedKey, member])
+        await client.send('DEL', [jobKey])
+        console.log(`[queue] 清理旧 cron job ${member} (${q.name})`)
       }
     } catch (e) {
       console.warn(`[queue] 清理 ${q.name} 旧 cron jobs 失败:`, e)
     }
   }
 
-  // 清理历史残留的分布式锁（异常退出/旧版本可能留下锁 key，导致新 job 一直
-  // acquire 失败循环；TTL 30s 会自动过期，主动清一次更稳）。
-  await delKvPattern('galzy-queue:*:lock:*')
+  // 清理历史残留的分布式锁：bun-queue 锁 key 形如 `galzy-queue:lock:job:<id>`，
+  // 旧进程异常退出会残留（30s TTL），重启后 stalled checker 重试期间一直 acquire
+  // 失败刷屏。启动时主动清一次，避免重启窗口的抢锁报错。
+  await delKvPattern('galzy-queue:lock:*')
 
   // 定时任务调度（scheduleCron 替换 croner）：
   // - cloudreve 同步每 30 分钟
