@@ -1089,9 +1089,10 @@ export const Game = {
     if (!lookupVid) throw status(404, `未找到 id=${id} 对应的游戏信息`)
 
     // BFS 传递闭包：显示整个关系连通簇（如某系列的全部作品），而非仅直接相邻。
-    // 一条递归 CTE 拉出连通簇全部边（1 次往返），JS 内做 BFS 分方向；
+    // 一条递归 CTE 拉出连通簇全部边（1 次往返），JS 内 BFS 分方向；
     // 深度/总数设上限防爆炸（超大集群截断并标记 truncated）。
-    const MAX_DEPTH = 4
+    // 深度 6：万华镜等长系列链最长可达 6 跳（v44184 见全系列需 5-6 跳）。
+    const MAX_DEPTH = 6
     const MAX_TOTAL = 100
     const edgeRows = await db.execute(sql`
       WITH RECURSIVE closure AS (
