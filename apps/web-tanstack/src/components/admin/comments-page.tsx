@@ -202,7 +202,7 @@ function CommentsTable() {
 					<Select
 						value={statusFilter}
 						onValueChange={(v) => {
-							setStatusFilter(v === "__all__" ? "" : v);
+							setStatusFilter((v ?? "") === "__all__" ? "" : (v ?? ""));
 							setOffset(0);
 						}}
 					>
@@ -219,7 +219,7 @@ function CommentsTable() {
 					<Select
 						value={typeFilter}
 						onValueChange={(v) => {
-							setTypeFilter(v === "__all__" ? "" : v);
+							setTypeFilter((v ?? "") === "__all__" ? "" : (v ?? ""));
 							setOffset(0);
 						}}
 					>

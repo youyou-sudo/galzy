@@ -21,4 +21,4 @@ export const Route = createFileRoute("/api/auth/$")({
 			POST: async ({ request }: { request: Request }) => proxy(request),
 		},
 	},
-});
+} as unknown as Parameters<typeof createFileRoute<"/api/auth/$">>[0]);

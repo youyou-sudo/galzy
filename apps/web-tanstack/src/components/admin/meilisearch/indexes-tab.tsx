@@ -228,21 +228,23 @@ function RebuildCard({
 
       {/* Rebuild Trigger with Confirmation */}
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={rebuildMutation.isPending || isRunning}
-            className="w-full"
-          >
-            {rebuildMutation.isPending ? (
-              <Loader2Icon className="size-3.5 animate-spin" />
-            ) : (
-              <RefreshCwIcon className="size-3.5" />
-            )}
-            重建{label}
-          </Button>
-        </AlertDialogTrigger>
+        <AlertDialogTrigger
+          render={
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={rebuildMutation.isPending || isRunning}
+              className="w-full"
+            >
+              {rebuildMutation.isPending ? (
+                <Loader2Icon className="size-3.5 animate-spin" />
+              ) : (
+                <RefreshCwIcon className="size-3.5" />
+              )}
+              重建{label}
+            </Button>
+          }
+        />
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>确认重建{label}</AlertDialogTitle>

@@ -316,7 +316,7 @@ function ProducerSearch({ selectedIds, onToggle }: ProducerSearchProps) {
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<Producer[]>([]);
 	const [searching, setSearching] = useState(false);
-	const timerRef = useRef<ReturnType<typeof setTimeout>>();
+	const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
 	const doSearch = useCallback(async (q: string) => {
 		if (!q.trim()) {
@@ -422,7 +422,7 @@ function GameSearch({
 	const [query, setQuery] = useState("");
 	const [results, setResults] = useState<GameInfo[]>([]);
 	const [searching, setSearching] = useState(false);
-	const timerRef = useRef<ReturnType<typeof setTimeout>>();
+	const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
 	const doSearch = useCallback(async (q: string) => {
 		if (!q.trim()) {
@@ -432,7 +432,7 @@ function GameSearch({
 		setSearching(true);
 		try {
 			const res = await adminSearchGames({ data: { q: q.trim(), limit: 20 } });
-			const games = (res ?? []) as GameInfo[];
+			const games = (res ?? []) as unknown as GameInfo[];
 			// Compute display title: zh-Hans > zh > olang > alias > id
 			setResults(
 				games.map((g) => {
@@ -639,7 +639,9 @@ function CreateCollectionDialog({ onDone }: { onDone: () => void }) {
 							<label className="text-sm font-medium">类型</label>
 							<Select
 								value={form.type}
-								onValueChange={(v) => setForm((prev) => ({ ...prev, type: v }))}
+								onValueChange={(v) =>
+									setForm((prev) => ({ ...prev, type: v ?? prev.type }))
+								}
 							>
 								<SelectTrigger className="w-full">
 									<SelectValue placeholder="选择类型" />
@@ -684,7 +686,7 @@ function CreateCollectionDialog({ onDone }: { onDone: () => void }) {
 							<Select
 								value={form.status}
 								onValueChange={(v) =>
-									setForm((prev) => ({ ...prev, status: v }))
+									setForm((prev) => ({ ...prev, status: v ?? prev.status }))
 								}
 							>
 								<SelectTrigger className="w-full">
@@ -735,8 +737,6 @@ function EditCollectionDialog({
 		status: collection.status,
 		entries: collection.entries ?? [],
 	});
-	const [vidInput, setVidInput] = useState("");
-
 	useEffect(() => {
 		if (!open) return;
 		setForm({
@@ -846,7 +846,9 @@ function EditCollectionDialog({
 							<label className="text-sm font-medium">类型</label>
 							<Select
 								value={form.type}
-								onValueChange={(v) => setForm((prev) => ({ ...prev, type: v }))}
+								onValueChange={(v) =>
+									setForm((prev) => ({ ...prev, type: v ?? prev.type }))
+								}
 							>
 								<SelectTrigger className="w-full">
 									<SelectValue placeholder="选择类型" />
@@ -891,7 +893,7 @@ function EditCollectionDialog({
 							<Select
 								value={form.status}
 								onValueChange={(v) =>
-									setForm((prev) => ({ ...prev, status: v }))
+									setForm((prev) => ({ ...prev, status: v ?? prev.status }))
 								}
 							>
 								<SelectTrigger className="w-full">

@@ -77,8 +77,7 @@ const _authConfig = {
           providerId: 'kungal',
           clientId: process.env.KUNGAL_CLIENT_ID || '',
           clientSecret: process.env.KUNGAL_CLIENT_SECRET || '',
-          redirectURI:
-            process.env.WEB_HOST + '/api/auth/callback/kungal',
+          redirectURI: process.env.WEB_HOST + '/api/auth/callback/kungal',
           authorizationUrl: 'https://oauth.kungal.com/api/v1/oauth/authorize',
           tokenUrl: 'https://oauth.kungal.com/api/v1/oauth/token',
           scopes: ['openid', 'profile', 'email'],
@@ -154,8 +153,7 @@ const _authConfig = {
           clientId: process.env.LINUXDO_CLIENT_ID || '',
           clientSecret: process.env.LINUXDO_CLIENT_SECRET || '',
           authorizationUrl: 'https://connect.linux.do/oauth2/authorize',
-          redirectURI:
-            process.env.WEB_HOST + '/api/auth/callback/linuxdo',
+          redirectURI: process.env.WEB_HOST + '/api/auth/callback/linuxdo',
           tokenUrl: 'https://connect.linux.do/oauth2/token',
           scopes: ['openid', 'profile', 'email'],
           pkce: true,
@@ -228,22 +226,28 @@ const _authConfig = {
   },
   socialProviders: {
     github: {
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      redirectURI: process.env.WEB_HOST + '/api/auth/callback/github',
+      clientId: process.env.GITHUB_CLIENT_ID || '',
+      clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
+      redirectURI:
+        (process.env.WEB_HOST || 'http://localhost:3000') +
+        '/api/auth/callback/github',
     },
     discord: {
-      clientId: process.env.DISCORD_CLIENT_ID,
-      clientSecret: process.env.DISCORD_CLIENT_SECRET,
-      redirectURI: process.env.WEB_HOST + '/api/auth/callback/discord',
+      clientId: process.env.DISCORD_CLIENT_ID || '',
+      clientSecret: process.env.DISCORD_CLIENT_SECRET || '',
+      redirectURI:
+        (process.env.WEB_HOST || 'http://localhost:3000') +
+        '/api/auth/callback/discord',
       mapProfileToUser: (profile) => ({
         email: profile.email ?? `${profile.id}@discord.placeholder.local`,
       }),
     },
     twitter: {
-      clientId: process.env.TWITTER_CLIENT_ID,
-      clientSecret: process.env.TWITTER_CLIENT_SECRET,
-      redirectURI: process.env.WEB_HOST + '/api/auth/callback/twitter',
+      clientId: process.env.TWITTER_CLIENT_ID || '',
+      clientSecret: process.env.TWITTER_CLIENT_SECRET || '',
+      redirectURI:
+        (process.env.WEB_HOST || 'http://localhost:3000') +
+        '/api/auth/callback/twitter',
     },
   },
   trustedOrigins: [

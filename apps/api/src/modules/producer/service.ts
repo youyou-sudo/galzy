@@ -7,11 +7,9 @@ import {
   releasesProducers,
   releasesVn,
   vn,
-  vnTitles,
 } from '@api/libs'
-import { delKv, getKv, setKv } from '@api/libs/redis'
+import { getKv, setKv } from '@api/libs/redis'
 import {
-  and,
   count,
   eq,
   getTableColumns,
@@ -66,7 +64,14 @@ export const Producer = {
           image_height: images.height,
           image_url: images.url,
           c_sexual_avg: images.cSexualAvg,
-          titles: sql`(SELECT COALESCE(json_agg(row_to_json(t.*)), '[]'::json) FROM (SELECT lang, official, title, latin FROM vn_titles WHERE id = ${vn.id}) t)`,
+          titles: sql<
+            Array<{
+              lang: string | null
+              official: boolean | null
+              title: string | null
+              latin: string | null
+            }>
+          >`(SELECT COALESCE(json_agg(row_to_json(t.*)), '[]'::json) FROM (SELECT lang, official, title, latin FROM vn_titles WHERE id = ${vn.id}) t)`,
         })
         .from(vn)
         .innerJoin(images, eq(images.id, vn.cImage))

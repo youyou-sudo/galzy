@@ -92,7 +92,8 @@ export function CollectionItem({ collection }: { collection: CollectionData }) {
 
 	return (
 		<Link
-			to={`/collections/${collection.id}`}
+			to="/collections/$id"
+			params={{ id: String(collection.id) }}
 			className="group block rounded-2xl transition-all duration-300 hover:-translate-y-1"
 		>
 			<PokerStack previews={collection.previews} count={gameCount} />

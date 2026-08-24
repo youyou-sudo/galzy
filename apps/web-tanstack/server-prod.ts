@@ -48,11 +48,6 @@ const IS_COMPILED = ((Bun as any).embeddedFiles as Blob[] | undefined)?.length ?
 // Individual server function fetches use FETCH_TIMEOUT_MS (set below).
 const SSR_TIMEOUT_MS = Number(process.env.SSR_TIMEOUT_MS ?? 60_000)
 
-// Fetch timeout: per-request timeout for BFF→API calls.
-// Must be shorter than SSR_TIMEOUT so individual calls fail fast
-// and the SSR can render a fallback rather than timing out entirely.
-const FETCH_TIMEOUT_MS = Number(process.env.FETCH_TIMEOUT_MS ?? 30_000)
-
 // ── Filter patterns ─────────────────────────────────
 const INCLUDE = (process.env.ASSET_PRELOAD_INCLUDE ?? '')
   .split(',')

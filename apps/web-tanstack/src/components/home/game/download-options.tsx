@@ -249,10 +249,7 @@ export const DownCardDialog = () => {
 
 	return (
 		<Dialog open={open} onOpenChange={downmodalActions.setOpen}>
-			<DialogContent
-				className="max-h-[85%] overflow-y-auto"
-				onCloseAutoFocus={(e) => e.preventDefault()}
-			>
+			<DialogContent className="max-h-[85%] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{data?.volumes ? `分卷列表` : `文件信息`}</DialogTitle>
 				</DialogHeader>
@@ -301,40 +298,40 @@ export const DownCardDialog = () => {
 										</Button>
 									</AnimateIcon>
 									<AnimateIcon animateOnHover>
-									<Button
-										onClick={() => handleDownload(item?.id, game_id)}
-										disabled={downloadingMap[item?.id] || false}
-										variant="outline"
-									>
-										{downloadingMap[item?.id] ? (
-											<span className="flex items-center gap-2">
-												<svg
-													className="animate-spin h-4 w-4"
-													viewBox="0 0 24 24"
-												>
-													<circle
-														className="opacity-25"
-														cx="12"
-														cy="12"
-														r="10"
-														stroke="currentColor"
-														strokeWidth="4"
-													/>
-													<path
-														className="opacity-75"
-														fill="currentColor"
-														d="M4 12a8 8 0 018-8v8H4z"
-													></path>
-												</svg>
-												请求中
-											</span>
-										) : (
-											<div className="flex items-center gap-1">
-												<Download />
-												下载
-											</div>
-										)}
-									</Button>
+										<Button
+											onClick={() => handleDownload(item?.id, game_id)}
+											disabled={downloadingMap[item?.id] || false}
+											variant="outline"
+										>
+											{downloadingMap[item?.id] ? (
+												<span className="flex items-center gap-2">
+													<svg
+														className="animate-spin h-4 w-4"
+														viewBox="0 0 24 24"
+													>
+														<circle
+															className="opacity-25"
+															cx="12"
+															cy="12"
+															r="10"
+															stroke="currentColor"
+															strokeWidth="4"
+														/>
+														<path
+															className="opacity-75"
+															fill="currentColor"
+															d="M4 12a8 8 0 018-8v8H4z"
+														></path>
+													</svg>
+													请求中
+												</span>
+											) : (
+												<div className="flex items-center gap-1">
+													<Download />
+													下载
+												</div>
+											)}
+										</Button>
 									</AnimateIcon>
 								</ItemActions>
 							</Item>

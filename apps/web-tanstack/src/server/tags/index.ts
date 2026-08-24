@@ -1,6 +1,7 @@
 import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
+import type { StripUnknown } from "@web/lib/serializable";
 import { number, object, string } from "zod/schemas";
 
 export const getTagData = createServerFn()
@@ -47,7 +48,7 @@ export const getVnListByTag = createServerFn()
 			pageIndex: data.pageIndex,
 		});
 		elysiaErrorF(error);
-		return res;
+		return res as StripUnknown<NonNullable<typeof res>> | null;
 	});
 
 // 分类浏览（cont/ero/tech 三大类），仅含已本地化标签，与详情页口径一致

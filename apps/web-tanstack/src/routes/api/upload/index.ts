@@ -19,4 +19,4 @@ export const Route = createFileRoute("/api/upload/")({
 			POST: async ({ request }: { request: Request }) => uploadProxy(request),
 		},
 	},
-});
+} as unknown as Parameters<typeof createFileRoute<"/api/upload/">>[0]);

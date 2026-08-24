@@ -34,9 +34,12 @@ export function gameTitleOf(
 	game:
 		| {
 				vn?: {
-					olang?: string;
-					titles?: Array<{ lang?: string; title?: string }>;
-				};
+					olang?: string | null;
+					titles?: Array<{
+						lang?: string | null;
+						title?: string | null;
+					}> | null;
+				} | null;
 		  }
 		| null
 		| undefined,
@@ -72,13 +75,19 @@ export function parentGameFromMatches(
 
 type GameTitleSource = {
 	vn?: {
-		olang?: string;
-		titles?: Array<{ lang?: string; title?: string }>;
+		olang?: string | null;
+		titles?: Array<{ lang?: string | null; title?: string | null }>;
 	};
 };
 
 /** 生成统一的 SEO head：title + description + robots + OG + canonical */
-export function seoMeta({ title, description, path, type = "website", noindex }: SeoOptions) {
+export function seoMeta({
+	title,
+	description,
+	path,
+	type = "website",
+	noindex,
+}: SeoOptions) {
 	const url = path ? `${seoTemplate.siteUrl}${path}` : undefined;
 	const meta: HeadTag[] = [
 		{ title },
@@ -86,7 +95,9 @@ export function seoMeta({ title, description, path, type = "website", noindex }:
 		...(noindex ? [{ name: "robots", content: "noindex, nofollow" }] : []),
 		{ property: "og:type", content: type },
 		{ property: "og:title", content: title },
-		...(description ? [{ property: "og:description", content: description }] : []),
+		...(description
+			? [{ property: "og:description", content: description }]
+			: []),
 		...(url ? [{ property: "og:url", content: url }] : []),
 	];
 	const links = url ? [{ rel: "canonical", href: url }] : [];

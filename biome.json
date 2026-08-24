@@ -12,10 +12,40 @@
       "**/.vscode/**/*",
       "**/index.html",
       "**/rsbuild.config.ts",
+      "**/vite.config.ts",
       "!**/src/routeTree.gen.ts",
       "!**/src/styles.css"
     ]
   },
+  "overrides": [
+    {
+      "includes": ["apps/web-tanstack/**"],
+      "formatter": {
+        "indentStyle": "tab"
+      },
+      "javascript": {
+        "formatter": {
+          "quoteStyle": "double",
+          "semicolons": "always"
+        }
+      },
+      "linter": {
+        "rules": {
+          "recommended": true,
+          "correctness": {
+            "noChildrenProp": "info"
+          },
+          "security": {
+            "noDangerouslySetInnerHtml": "info"
+          },
+          "suspicious": {
+            "noArrayIndexKey": "info"
+          },
+          "a11y": "info"
+        }
+      }
+    }
+  ],
   "formatter": {
     "enabled": true,
     "formatWithErrors": false,

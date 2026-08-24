@@ -21,7 +21,6 @@ import {
 } from "@web/components/animate-ui/primitives/radix/dialog";
 import { cn } from "@web/lib/utils";
 import { XIcon } from "lucide-react";
-import * as React from "react";
 
 type DialogProps = DialogPrimitiveProps;
 

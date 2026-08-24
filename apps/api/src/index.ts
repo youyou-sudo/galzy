@@ -10,7 +10,6 @@ import {
   health,
   kungalSync,
   media,
-  otel,
   producer,
   search,
   status,

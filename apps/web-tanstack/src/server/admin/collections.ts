@@ -2,6 +2,7 @@ import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { cookiePass } from "@web/lib/cookie-pass";
 import { elysiaErrorF } from "@web/lib/elysia-error";
+import type { StripUnknown } from "@web/lib/serializable";
 import z from "zod";
 
 export const adminGetCollections = createServerFn()
@@ -25,7 +26,7 @@ export const adminGetCollections = createServerFn()
 			...cookiePass(),
 		});
 		elysiaErrorF(error);
-		return res;
+		return res as StripUnknown<NonNullable<typeof res>> | null;
 	});
 
 export const adminCreateCollection = createServerFn()
@@ -44,7 +45,11 @@ export const adminCreateCollection = createServerFn()
 			cookiePass(),
 		);
 		elysiaErrorF(error);
-		return { success: true, collection };
+		return {
+			success: true,
+			collection:
+				(collection as StripUnknown<NonNullable<typeof collection>>) ?? null,
+		};
 	});
 
 export const adminUpdateCollection = createServerFn()

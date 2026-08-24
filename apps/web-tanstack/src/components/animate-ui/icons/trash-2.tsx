@@ -7,7 +7,6 @@ import {
 	useAnimateIconContext,
 } from "@web/components/animate-ui/icons/icon";
 import { motion, type Variants } from "motion/react";
-import * as React from "react";
 
 type Trash2Props = IconProps<keyof typeof animations>;
 

@@ -1,6 +1,7 @@
 import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
+import type { StripUnknown } from "@web/lib/serializable";
 import z from "zod";
 
 export const getGameDetail = createServerFn()
@@ -12,7 +13,7 @@ export const getGameDetail = createServerFn()
 			},
 		});
 		elysiaErrorF(error);
-		return getgame;
+		return getgame as StripUnknown<NonNullable<typeof getgame>> | null;
 	});
 
 export const getGameTags = createServerFn()
@@ -82,6 +83,8 @@ export const getGameList = createServerFn()
 				q: z.optional(z.string()),
 				olang: z.optional(z.string()),
 				tags: z.optional(z.union([z.string(), z.array(z.string())])),
+				startDate: z.optional(z.string()),
+				endDate: z.optional(z.string()),
 				showR18: z.optional(z.boolean()),
 			})
 			.partial()
@@ -117,16 +120,18 @@ export const getGameList = createServerFn()
 				order: data.order as "asc" | "desc" | undefined,
 				olang: data.olang,
 				tags: data.tags,
+				startDate: data.startDate,
+				endDate: data.endDate,
 				r18: data.showR18,
 			},
 		});
 		elysiaErrorF(error);
 		return {
 			gamelist: {
-				items: result.hits,
-				currentPage: (result.page || 1) - 1,
-				totalPages: result.totalPages || 0,
-				totalCount: result.totalHits || 0,
+				items: result?.hits ?? [],
+				currentPage: (result?.page || 1) - 1,
+				totalPages: result?.totalPages || 0,
+				totalCount: result?.totalHits || 0,
 			},
 		};
 	});

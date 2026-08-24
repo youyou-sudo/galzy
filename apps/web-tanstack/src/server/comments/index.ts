@@ -2,6 +2,7 @@ import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import { cookiePass } from "@web/lib/cookie-pass";
+import type { StripUnknown } from "@web/lib/serializable";
 import z from "zod";
 
 export const getCmments = createServerFn()
@@ -28,7 +29,7 @@ export const getCmments = createServerFn()
 			...cookiePass(),
 		});
 		elysiaErrorF(error);
-		return res;
+		return res as StripUnknown<NonNullable<typeof res>> | null;
 	});
 
 export const createCmments = createServerFn()
@@ -55,5 +56,5 @@ export const createCmments = createServerFn()
 			cookiePass(),
 		);
 		elysiaErrorF(error);
-		return res;
+		return res as StripUnknown<NonNullable<typeof res>> | null;
 	});

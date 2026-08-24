@@ -6,7 +6,7 @@ type GameData = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>;
 
 export function GameHeader({ game }: { game: GameData }) {
 	const olangTitle = game?.vn?.titles?.find(
-		(t) => t.lang === game.vn?.olang && t.title.trim() !== "",
+		(t) => t.lang === game.vn?.olang && (t.title ?? "").trim() !== "",
 	)?.title;
 
 	return (
@@ -16,8 +16,8 @@ export function GameHeader({ game }: { game: GameData }) {
 				<div className="relative inline-block">
 					<div
 						className={`${
-							game?.vn?.image?.height &&
-							game?.vn?.image?.height < game?.vn?.image?.width
+							(game?.vn?.image?.height ?? 0) > 0 &&
+							(game?.vn?.image?.height ?? 0) < (game?.vn?.image?.width ?? 0)
 								? "min-w-72.5"
 								: "max-w-55"
 						} relative overflow-hidden text-left`}
@@ -29,7 +29,11 @@ export function GameHeader({ game }: { game: GameData }) {
 							loading="lazy"
 							decoding="async"
 							src={
-								game?.vn?.image?.imageUrl ?? "/No-Image-Placeholder.svg.webp"
+								(
+									game?.vn?.image as unknown as {
+										imageUrl?: string | null;
+									} | null
+								)?.imageUrl ?? "/No-Image-Placeholder.svg.webp"
 							}
 							alt={olangTitle || "null"}
 							cSexualAvg={game?.vn?.image?.cSexualAvg}

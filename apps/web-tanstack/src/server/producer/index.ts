@@ -1,6 +1,7 @@
 import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
+import type { StripUnknown } from "@web/lib/serializable";
 import { number, object, string } from "zod/schemas";
 
 export interface ProducerRelation {
@@ -42,7 +43,9 @@ export const producerGameList = createServerFn()
 			query: { pid: data.pid },
 		});
 		elysiaErrorF(error);
-		return result?.items ?? [];
+		return (result?.items ?? []) as StripUnknown<
+			NonNullable<typeof result>["items"]
+		>;
 	});
 
 export const ProducerSearchSchema = object({

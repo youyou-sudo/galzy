@@ -57,7 +57,7 @@ export const TagGamelist = () => {
 						cSexualAvg={item.images?.c_sexual_avg}
 						title={
 							item.titles?.find(
-								(t) => t.lang === item.olang && t.title.trim() !== "",
+								(t) => t.lang === item.olang && (t.title ?? "").trim() !== "",
 							)?.title || "null"
 						}
 					/>

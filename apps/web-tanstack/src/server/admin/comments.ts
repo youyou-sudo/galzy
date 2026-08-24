@@ -2,6 +2,7 @@ import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import { cookiePass } from "@web/lib/cookie-pass";
+import type { StripUnknown } from "@web/lib/serializable";
 import z from "zod";
 
 export const adminGetComments = createServerFn({ method: "GET" })
@@ -28,7 +29,7 @@ export const adminGetComments = createServerFn({ method: "GET" })
 			...cookiePass(),
 		});
 		elysiaErrorF(error);
-		return res;
+		return res as StripUnknown<NonNullable<typeof res>> | null;
 	});
 
 export const adminUpdateComment = createServerFn({ method: "POST" })
@@ -97,7 +98,7 @@ export const adminGetAllComments = createServerFn({ method: "GET" })
 			...cookiePass(),
 		});
 		elysiaErrorF(error);
-		return res;
+		return res as StripUnknown<NonNullable<typeof res>> | null;
 	});
 
 export const adminTogglePin = createServerFn({ method: "POST" })

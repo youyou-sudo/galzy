@@ -2,9 +2,6 @@ import {
   alistb,
   buildCoverUrl,
   db,
-  eventViews,
-  gameDownloadStats,
-  images,
   kungalWorks,
   kungalWorkTitles,
   listCloudreveFiles,
@@ -18,7 +15,6 @@ import {
   sql,
   transformStoredUrl,
   vn,
-  vnRelationsTable,
   vnTitles,
 } from '@api/libs'
 import { purgeGamePages } from '@api/libs/cloudflare-cache'
@@ -74,7 +70,7 @@ export const Game = {
   },
   async List({ pageIndex, pageSize, sortBy, order }: GameModel.gameList) {
     const useCache = !sortBy || sortBy === 'id'
-    const cacheKey = `galzy:game:list:${pageIndex}:${pageSize}${useCache ? '' : `:${sortBy}:${order}`}`
+    const cacheKey = `galzy:game:list:${pageIndex}:${pageSize}:${sortBy ?? 'id'}:${order}`
     const offset = pageIndex * pageSize
     const dir = order === 'asc' ? 'ASC' : 'DESC'
     let orderClause
@@ -240,6 +236,7 @@ export const Game = {
   },
   async InfoGet({ id }: GameModel.infoId) {
     const cacheKey = `galzy:game:info:${id}`
+    type InfoResult = Awaited<ReturnType<typeof queryDb>>
     const redisData = await getKv(cacheKey)
 
     if (redisData) {
@@ -254,7 +251,7 @@ export const Game = {
         ) {
           await delKv(cacheKey)
         } else {
-          return cached
+          return cached as InfoResult
         }
       } catch {
         await delKv(cacheKey)
@@ -489,7 +486,7 @@ export const Game = {
         const doubleCheck = await getKv(cacheKey)
         if (doubleCheck) {
           try {
-            return JSON.parse(doubleCheck)
+            return JSON.parse(doubleCheck) as InfoResult
           } catch {
             await delKv(cacheKey)
           }
@@ -508,7 +505,7 @@ export const Game = {
       const retryData = await getKv(cacheKey)
       if (retryData) {
         try {
-          return JSON.parse(retryData)
+          return JSON.parse(retryData) as InfoResult
         } catch {
           await delKv(cacheKey)
         }
@@ -742,7 +739,7 @@ export const Game = {
   },
   async VidassociationGet({ id }: GameModel.infoId) {
     if (id.startsWith('v')) {
-      const fetchData = (tx = db) =>
+      const fetchData = (tx: { query: typeof db.query } = db) =>
         tx.query.alistb.findFirst({
           columns: { id: true, vid: true, other: true, path: true },
           with: {
@@ -766,13 +763,19 @@ export const Game = {
             .set({ other: newOtherId.id })
             .where(eq(alistb.vid, id))
           data = await fetchData(trx)
+          await delKv(`galzy:game:info:${id}`)
+          await delKvPattern('galzy:game:list*')
+          await delKvPattern('galzy:tag:games:*')
         }
-        return data!.otherData
+        if (!data?.otherData) {
+          throw status(404, `未找到 id=${id} 对应的关联数据`)
+        }
+        return data.otherData
       })
       return datas
     }
     if (id.match(/^\d+$/)) {
-      const fetchData = (tx = db) =>
+      const fetchData = (tx: { query: typeof db.query } = db) =>
         tx.query.others.findFirst({
           with: { media: { with: { media: true } } },
           where: eq(others.id, Number(id)),
@@ -791,11 +794,18 @@ export const Game = {
             .set({ other: newOtherId.id })
             .where(eq(alistb.other, Number(id)))
           result = await fetchData(trx)
+          await delKv(`galzy:game:info:${id}`)
+          await delKvPattern('galzy:game:list*')
+          await delKvPattern('galzy:tag:games:*')
+        }
+        if (!result) {
+          throw status(404, `未找到 id=${id} 对应的条目`)
         }
         return result
       })
       return data
     }
+    throw status(400, '无效的 id')
   },
   async vidassociationUpdate({ id, data }: GameModel.vidassociationUpdate) {
     const hash = generateIdempotentHash({ id, data })
@@ -810,7 +820,7 @@ export const Game = {
       60,
     )
     if (!ok) {
-      throw status(200, '重复请求')
+      throw status(409, '重复请求')
     }
     const { title, description, alias } = data
     const titleObject = Array.isArray(title) ? JSON.stringify(title) : title
@@ -850,7 +860,7 @@ export const Game = {
       2,
     )
     if (!ok) {
-      throw status(200, '重复请求')
+      throw status(409, '重复请求')
     }
     const otherId = await db.transaction(async (tx) => {
       const newOther = await tx
@@ -867,7 +877,11 @@ export const Game = {
       return newOther
     })
 
-    await storeIdempotentResult(`vidassociationCreate:action`, otherId, 2)
+    await storeIdempotentResult(
+      `galzy:idempotent:vidassociationCreate:action`,
+      otherId,
+      60,
+    )
     await delKvPattern('galzy:game:list*')
     await delKv('galzy:game:count')
     type OtherId = typeof otherId
@@ -1063,10 +1077,11 @@ export const Game = {
   /** 游戏关系（VNDB relations：前作/续作/衍生等），正反向合并去重 */
   async Relations({ id }: GameModel.infoId) {
     const cacheKey = `galzy:game:relations:${id}`
+    type RelResult = typeof data
     const redisData = await getKv(cacheKey)
     if (redisData) {
       try {
-        return JSON.parse(redisData)
+        return JSON.parse(redisData) as RelResult
       } catch {
         await delKv(cacheKey)
       }

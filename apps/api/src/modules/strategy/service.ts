@@ -182,7 +182,7 @@ export const Strategy = {
       10,
     )
     if (!ok) {
-      throw status(200, '重复请求')
+      throw status(409, '重复请求')
     }
     // 作者编辑被驳回的文章后重新进入审核队列
     const nextStatus =
@@ -193,9 +193,10 @@ export const Strategy = {
       .where(eq(articles.id, Number(id)))
     await storeIdempotentResult(
       `galzy:idempotent:strategyListUpdate:${hash}`,
-      '',
+      { success: true },
       60,
     )
+    return { success: true }
   },
   async strategyCreate({
     id,
@@ -217,7 +218,7 @@ export const Strategy = {
       10,
     )
     if (!ok) {
-      throw status(200, '重复请求')
+      throw status(409, '重复请求')
     }
     const articleStatus = isAdmin ? 'published' : 'pending'
     const isVNDB = /^v\d+$/.test(id)
@@ -240,9 +241,10 @@ export const Strategy = {
     }
     await storeIdempotentResult(
       `galzy:idempotent:strategyListCreate:${hash}`,
-      '',
+      { success: true },
       60,
     )
+    return { success: true }
   },
   async strategyDelete({ strategyId, gameId }: StrategyModel.strategy) {
     await delKv(`galzy:game:strategys:${gameId}`)
@@ -259,15 +261,17 @@ export const Strategy = {
       10,
     )
     if (!ok) {
-      throw status(200, '重复请求')
+      throw status(409, '重复请求')
     }
     await db.delete(articles).where(eq(articles.id, Number(strategyId)))
 
+    await delKv(`galzy:strategy:${strategyId}`)
     await storeIdempotentResult(
       `galzy:idempotent:strategyListDelete:${hash}`,
-      '',
+      { success: true },
       60,
     )
+    return { success: true }
   },
   async adminListAll(params: StrategyModel.adminArticleListQuery): Promise<{
     articles: any[]
@@ -341,7 +345,7 @@ export const Strategy = {
       10,
     )
     if (!ok) {
-      throw status(200, '重复请求')
+      throw status(409, '重复请求')
     }
 
     const [article] = await db
@@ -373,8 +377,9 @@ export const Strategy = {
 
     await storeIdempotentResult(
       `galzy:idempotent:adminChangeStatus:${hash}`,
-      '',
+      { success: true },
       60,
     )
+    return { success: true }
   },
 }

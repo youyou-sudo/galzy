@@ -14,7 +14,7 @@ import {
   zhtags,
 } from '@api/libs'
 import { purgeByTags, purgeTagPages } from '@api/libs/cloudflare-cache'
-import { delKv, getKv, setKv } from '@api/libs/redis'
+import { delKv, delKvPattern, getKv, setKv } from '@api/libs/redis'
 import {
   and,
   asc,
@@ -139,11 +139,25 @@ export const Tags = {
         .select({
           id: vn.id,
           olang: vn.olang,
-          titles: sql`COALESCE(
+          titles: sql<
+            Array<{
+              lang: string | null
+              official: boolean | null
+              title: string | null
+              latin: string | null
+            }>
+          >`COALESCE(
             (SELECT json_agg(row_to_json(vnt.*)) FROM ${vnTitles} vnt WHERE vnt.id = ${vn.id}),
             '[]'::json
           )`,
-          images: sql`(SELECT row_to_json(img.*)
+          images: sql<{
+            id: string
+            height: number | null
+            width: number | null
+            c_sexual_avg: number | null
+            url: string | null
+            imageUrl?: string | null
+          } | null>`(SELECT row_to_json(img.*)
             FROM (SELECT id, height, width, c_sexual_avg, url FROM ${images} img WHERE img.id = ${vn.cImage}) img
           )`,
           other: alistb.other,
@@ -377,6 +391,10 @@ export const Tags = {
         })
         .where(eq(zhtags.id, id))
       await purgeTagPages(String(id))
+      // 标签详情 / 游戏标签 / 分类页缓存同步失效（含本地化名称、展示状态）
+      await delKv(`galzy:tag:${id}`)
+      await delKvPattern('galzy:game:tags:*')
+      await delKv('galzy:tags:categories:v4')
       return true
     } catch {
       return false
@@ -417,6 +435,10 @@ export const Tags = {
 
     // Batch import: purge tag list (individual pages too many)
     await purgeByTags(['page-tags'])
+    // 批量导入影响所有标签缓存
+    await delKvPattern('galzy:tag:*')
+    await delKvPattern('galzy:game:tags:*')
+    await delKv('galzy:tags:categories:v4')
 
     return true
   },

@@ -209,7 +209,7 @@ export const Search = {
     documentTemplate,
   }: SearchModel.meilisearchEmbeddersUpdate) {
     const indexdata = await MeiliClient.index(
-      process.env.MEILISEARCH_INDEXNAME,
+      process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
     ).updateEmbedders({
       body: {
         source: 'rest',
@@ -233,12 +233,12 @@ export const Search = {
   },
   async meilisearchEmbeddersGet() {
     const indexdata = await MeiliClient.index(
-      process.env.MEILISEARCH_INDEXNAME,
+      process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
     ).getEmbedders()
     return indexdata
   },
   async meilisearchPropertylist(indexName?: string) {
-    const name = indexName || process.env.MEILISEARCH_INDEXNAME
+    const name = indexName || process.env.MEILISEARCH_INDEXNAME || 'galzy_games'
     const indexdata = await MeiliClient.index(name).getDocuments({ limit: 1 })
     if (indexdata.results && indexdata.results.length > 0) {
       return Object.keys(indexdata.results[0])
@@ -246,7 +246,7 @@ export const Search = {
     return []
   },
   async meilisearchSearchableAttributesGet(indexName?: string) {
-    const name = indexName || process.env.MEILISEARCH_INDEXNAME
+    const name = indexName || process.env.MEILISEARCH_INDEXNAME || 'galzy_games'
     const index = MeiliClient.index(name)
 
     const searchable = await index.getSearchableAttributes()
@@ -265,7 +265,8 @@ export const Search = {
     indexName,
   }: SearchModel.meilisearchSearchableAttributesUpdate) {
     try {
-      const name = indexName || process.env.MEILISEARCH_INDEXNAME
+      const name =
+        indexName || process.env.MEILISEARCH_INDEXNAME || 'galzy_games'
       const index = MeiliClient.index(name)
       await index.updateSearchableAttributes(fields)
       return { code: 200 }
@@ -277,7 +278,7 @@ export const Search = {
     const safeQ =
       q?.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim() || ''
     const result = await MeiliClient.index(
-      process.env.MEILISEARCH_TAG_INDEXNAME || '',
+      process.env.MEILISEARCH_TAG_INDEXNAME || 'galrc_Tag',
     ).search(safeQ, {
       limit: limit || 50,
     })

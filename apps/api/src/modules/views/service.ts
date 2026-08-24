@@ -2,7 +2,6 @@ import {
   buildCoverUrl,
   db,
   eventViews,
-  gameDownloadStats,
   images,
   sql,
   tags,

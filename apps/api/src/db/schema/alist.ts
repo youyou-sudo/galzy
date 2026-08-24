@@ -2,11 +2,9 @@ import {
   bigint,
   boolean,
   index,
-  jsonb,
   pgTable,
   text,
   timestamp,
-  varchar,
 } from 'drizzle-orm/pg-core'
 
 // galrc_search_nodes — 从Alist API同步的节点

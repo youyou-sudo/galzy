@@ -4,6 +4,7 @@ import {
   createCloudreveDownloadUrl,
   pathToCloudreveUri,
 } from '@api/libs/cloudreve'
+import { delKvPattern } from '@api/libs/redis'
 import { eq } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { DownloadModel } from './model'
@@ -30,6 +31,7 @@ export const Download = {
         filePath: path,
         createdAt: new Date(),
       })
+      .then(() => delKvPattern('galzy:game:list*'))
       .catch((err) => console.error('[DownloadGet] 统计写入失败:', err))
 
     return {

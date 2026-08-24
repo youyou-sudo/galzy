@@ -33,7 +33,7 @@ async function getData(vid: string) {
 	const datas = gameResp.data;
 	const titlesData =
 		datas?.vn?.titles?.find(
-			(t) => t.lang === datas.vn?.olang && t.title.trim() !== "",
+			(t) => t.lang === datas.vn?.olang && (t.title ?? "").trim() !== "",
 		)?.title || "null";
 
 	const aliasData = datas?.vn?.alias
@@ -43,6 +43,8 @@ async function getData(vid: string) {
 		.join(", ");
 
 	const openlist = fileListResp.data as GameModel.TreeNode[];
+	if (fileListResp.status >= 400)
+		return jsonResponse({ code: "502", message: "文件服务暂不可用" }, 502);
 	if (!openlist?.length)
 		return jsonResponse(vltdma.getMessage("noFiles"), vltdma.code);
 
@@ -55,14 +57,15 @@ async function getData(vid: string) {
 			alias: aliasData,
 			description: datas?.vn?.description,
 			filelist: groupSplitArchives(openlist[0].children),
-			strategy: strategyList.data?.map(({ user, ...rest }) => ({
-				...rest,
-				user: {
-					id: user?.id,
-					name: user?.name,
-					image: user?.image,
-				},
-			})),
+			strategy:
+				strategyList.data?.map(({ user, ...rest }) => ({
+					...rest,
+					user: {
+						id: user?.id,
+						name: user?.name,
+						image: user?.image,
+					},
+				})) ?? [],
 		},
 	};
 }
@@ -120,13 +123,14 @@ export function groupSplitArchives(
 export const Route = createFileRoute("/api/game")({
 	server: {
 		handlers: {
-			GET: async ({ request }) => {
+			GET: async ({ request }: { request: Request }) => {
 				const vid = new URL(request.url).searchParams.get("vid");
 				if (!vid)
 					return jsonResponse(vltdma.getMessage("notFound"), vltdma.code);
 				const data = await getData(vid);
+				if (data instanceof Response) return data;
 				return jsonResponse(data);
 			},
 		},
 	},
-});
+} as unknown as Parameters<typeof createFileRoute<"/api/game">>[0]);

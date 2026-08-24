@@ -59,7 +59,7 @@ export const Route = createFileRoute("/producer/")({
 							| undefined
 					}
 					q={q}
-					page={page}
+					page={page ?? 1}
 				/>
 			</div>
 		);
@@ -86,7 +86,7 @@ export const Route = createFileRoute("/producer/")({
 	headers: () => ({
 		"Cache-Control": "public, s-maxage=60, stale-while-revalidate=600",
 		"Cache-Tag": "page-producers",
-		"Vary": "Accept, Accept-Encoding",
+		Vary: "Accept, Accept-Encoding",
 	}),
 	staleTime: 1000 * 30,
 });

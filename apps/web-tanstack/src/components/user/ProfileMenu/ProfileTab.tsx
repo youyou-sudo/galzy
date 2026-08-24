@@ -14,6 +14,7 @@ import { authClient } from "@web/server/auth/auth-client";
 import { Check, Loader2 } from "lucide-react";
 import { type ChangeEvent, useState } from "react";
 import { FaDiscord, FaGithub, FaTwitter } from "react-icons/fa";
+import { toast } from "sonner";
 
 interface OAuthProviderDef {
 	id: string;
@@ -139,10 +140,8 @@ export default function ProfileTab({
 	const handleUnlink = async (providerId: string, accountId: string) => {
 		setUnlinkingProvider(providerId);
 		try {
-			const { error } = await authClient.unlinkAccount({
-				providerId,
-				accountId,
-			});
+			// better-auth 的 unlinkAccount 仅接受 accountId（providerId 是旧 API）
+			const { error } = await authClient.unlinkAccount({ accountId });
 			if (!error) {
 				await refetchAccounts();
 			}
@@ -175,7 +174,7 @@ export default function ProfileTab({
 			</div>
 			<div className="space-y-2">
 				<Label>邮箱</Label>
-				<Tooltip delayDuration={300}>
+				<Tooltip>
 					<TooltipTrigger
 						render={
 							<div className="flex min-h-8 w-full min-w-0 items-center rounded-lg border border-input bg-input/30 px-2.5 py-1 text-sm text-muted-foreground break-all dark:bg-input/80" />

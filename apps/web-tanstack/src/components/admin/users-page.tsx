@@ -232,7 +232,7 @@ function UsersTable() {
 											</div>
 										</td>
 										<td className="px-4 py-3">
-											<Tooltip delayDuration={300}>
+											<Tooltip>
 												<TooltipTrigger
 													render={
 														<span className="text-sm text-muted-foreground break-all cursor-default" />
@@ -338,8 +338,8 @@ function CreateUserDialog() {
 			const res = await authClient.admin.createUser({
 				email,
 				password,
-				name: name || undefined,
-				role,
+				name: name || "",
+				role: role as "user" | "admin",
 			});
 
 			if (res.error) {
@@ -403,7 +403,7 @@ function CreateUserDialog() {
 					</div>
 					<div className="space-y-2">
 						<Label htmlFor="c-role">角色</Label>
-						<Select value={role} onValueChange={setRole}>
+						<Select value={role} onValueChange={(v) => setRole(v ?? "user")}>
 							<SelectTrigger id="c-role">
 								<SelectValue />
 							</SelectTrigger>
@@ -448,7 +448,7 @@ function SetRoleDialog({ user, onDone }: { user: User; onDone: () => void }) {
 		try {
 			const res = await authClient.admin.setRole({
 				userId: user.id,
-				role,
+				role: role as "user" | "admin",
 			});
 
 			if (res.error) {
@@ -489,7 +489,7 @@ function SetRoleDialog({ user, onDone }: { user: User; onDone: () => void }) {
 				<div className="space-y-4">
 					<div className="space-y-2">
 						<Label htmlFor="sr-role">角色</Label>
-						<Select value={role} onValueChange={setRole}>
+						<Select value={role} onValueChange={(v) => setRole(v ?? "user")}>
 							<SelectTrigger id="sr-role">
 								<SelectValue />
 							</SelectTrigger>

@@ -9,9 +9,9 @@ import { authClient } from "@web/server/auth/auth-client";
 import { createCmments } from "@web/server/comments";
 import { replyCardStore, replycardActions } from "@web/stores/reply-edit-input";
 import { PawPrint } from "lucide-react";
-import { useMemo, useRef } from "react";
+import { type ComponentProps, useMemo, useRef } from "react";
 import { toast } from "sonner";
-import { enum as zEnum, object, string } from "zod/schemas";
+import { object, string, enum as zEnum } from "zod/schemas";
 import KaomojiPicker from "../EmojiPicker/emoji-picker";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
@@ -23,6 +23,32 @@ const items = [
 	{ label: "提问", value: "question" },
 	{ label: "反馈", value: "feedback" },
 ] as const;
+
+/** base-ui ToggleGroup 的 Value 泛型在 type="single" 下推断不稳定，
+ *  集中定型 props（value 单值、onValueChange 归一化后写回表单字段）。 */
+function typeToggleProps(field: {
+	name: string;
+	state: { value: unknown };
+	handleChange: (value: never) => void;
+}) {
+	return {
+		type: "single" as const,
+		size: "sm" as const,
+		id: field.name,
+		value: field.state.value as unknown as string,
+		variant: "outline" as const,
+		spacing: 2,
+		onValueChange: (value: string | string[] | null | undefined) => {
+			if (
+				Array.isArray(value)
+					? value.length > 0
+					: value !== null && value !== undefined
+			) {
+				field.handleChange((Array.isArray(value) ? value[0] : value) as never);
+			}
+		},
+	};
+}
 
 export const ReplyEidtInput = ({
 	reId,
@@ -254,16 +280,12 @@ export const ReplyEidtInput = ({
 											{/* 评论类型 */}
 											{!reId && showTypeSelector && (
 												<Field data-invalid={isInvalid}>
+													{/* base-ui ToggleGroup 的 Value 泛型在 type="single" 下类型不稳定，
+													    此处显式定型 props，避免框架泛型推断抖动 */}
 													<ToggleGroup
-														type="single"
-														size="sm"
-														id={field.name}
-														value={field.state.value}
-														variant="outline"
-														spacing={2}
-														onValueChange={(value) => {
-															if (value) field.handleChange(value);
-														}}
+														{...(typeToggleProps(
+															field,
+														) as unknown as ComponentProps<typeof ToggleGroup>)}
 													>
 														{items.map((item) => (
 															<ToggleGroupItem
@@ -277,12 +299,6 @@ export const ReplyEidtInput = ({
 															</ToggleGroupItem>
 														))}
 													</ToggleGroup>
-													{isInvalid && (
-														<FieldError
-															className="text-xs"
-															errors={field.state.meta.errors}
-														/>
-													)}
 												</Field>
 											)}
 											<Button

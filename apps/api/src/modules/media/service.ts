@@ -1,4 +1,5 @@
 import {
+  alistb,
   db,
   deleteCloudreveFiles,
   media as mediaTable,
@@ -8,6 +9,7 @@ import {
 import {
   acquireIdempotentKey,
   delKv,
+  delKvPattern,
   generateIdempotentHash,
   getIdempotentResult,
   storeIdempotentResult,
@@ -15,8 +17,20 @@ import {
 import { S3Client } from 'bun'
 import { and, eq, sql } from 'drizzle-orm'
 import { status } from 'elysia'
-import { auth } from '../auth/service'
 import type { MediaModel } from './model'
+
+async function invalidateOtherCaches(otherId: number) {
+  const vids = await db
+    .select({ vid: alistb.vid })
+    .from(alistb)
+    .where(eq(alistb.other, otherId))
+  await Promise.all([
+    delKv(`galzy:game:info:${otherId}`),
+    ...vids.map((r) => delKv(`galzy:game:info:${r.vid}`)),
+  ])
+  await delKvPattern('galzy:game:list*')
+  await delKvPattern('galzy:tag:games:*')
+}
 
 // Bun's S3Client reads S3_* or AWS_* env vars automatically.
 const config = {
@@ -47,7 +61,7 @@ export const Media = {
       60,
     )
     if (!ok) {
-      throw status(200, '重复请求')
+      throw status(409, '重复请求')
     }
     // 首先检查是否存在相同 hash 的记录
     const existingMedia = await db
@@ -84,32 +98,40 @@ export const Media = {
       .limit(1)
       .then((r) => r[0])
 
-    // 只有在关联不存在时才创建新的关联
-    if (!existingRelation) {
-      await db.transaction(async (trx) => {
-        if (cover) {
-          await trx
-            .update(otherMedia)
-            .set({ cover: false })
-            .where(
-              and(eq(otherMedia.otherId, entryId), eq(otherMedia.cover, true)),
-            )
-        }
-        await trx.insert(otherMedia).values({
-          otherId: entryId,
-          mediaHash: mediahash,
-          sortOrder: sortOrder,
-          cover: cover,
-        })
-      })
-
-      await delKv(`galzy:game:info:${entryId}`)
+    // 关联已存在：幂等命中，直接返回成功（不重复插入）
+    if (existingRelation) {
       await storeIdempotentResult(
         `galzy:idempotent:insertmediatoentry:${hash}`,
-        '',
+        { success: true },
         60,
       )
+      return { success: true }
     }
+
+    await db.transaction(async (trx) => {
+      if (cover) {
+        await trx
+          .update(otherMedia)
+          .set({ cover: false })
+          .where(
+            and(eq(otherMedia.otherId, entryId), eq(otherMedia.cover, true)),
+          )
+      }
+      await trx.insert(otherMedia).values({
+        otherId: entryId,
+        mediaHash: mediahash,
+        sortOrder: sortOrder,
+        cover: cover,
+      })
+    })
+
+    await invalidateOtherCaches(entryId)
+    await storeIdempotentResult(
+      `galzy:idempotent:insertmediatoentry:${hash}`,
+      { success: true },
+      60,
+    )
+    return { success: true }
   },
   async delemediatoentry({ id, mediahash, name }: MediaModel.delemediatoentry) {
     const hash = generateIdempotentHash({ id, mediahash, name })
@@ -124,7 +146,7 @@ export const Media = {
       60,
     )
     if (!ok) {
-      throw status(200, '重复请求')
+      throw status(409, '重复请求')
     }
     // 删除 galrc_other_media 中的记录
     await db
@@ -150,11 +172,13 @@ export const Media = {
       await deleteCloudreveFiles([pathToCloudreveUri(`${uploadDir}/${name}`)])
     }
 
+    await invalidateOtherCaches(id)
     await storeIdempotentResult(
       `galzy:idempotent:delemediatoentry:${hash}`,
-      '',
+      { success: true },
       60,
     )
+    return { success: true }
   },
   async getMediaByCover({ other, mediahash }: MediaModel.getMediaByCover) {
     const hash = generateIdempotentHash({ other, mediahash })
@@ -169,7 +193,7 @@ export const Media = {
       60,
     )
     if (!ok) {
-      throw status(200, '重复请求')
+      throw status(409, '重复请求')
     }
     const mediaResult = await db.transaction(async (trx) => {
       // 清除当前其他所有封面
@@ -193,7 +217,7 @@ export const Media = {
       return updated
     })
 
-    await delKv(`galzy:game:info:${other}`)
+    await invalidateOtherCaches(other)
     await storeIdempotentResult(
       `galzy:idempotent:getMediaByCover:${hash}`,
       mediaResult,
@@ -214,7 +238,7 @@ export const Media = {
       60,
     )
     if (!ok) {
-      throw status(200, '重复请求')
+      throw status(409, '重复请求')
     }
     const data = await db
       .select({

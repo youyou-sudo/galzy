@@ -428,7 +428,6 @@ export default function AvatarComp({ name, image, editor }: AvatarEditorProps) {
 									onCropChange={setCrop}
 									onCropComplete={(_, area) => setCroppedAreaPixels(area)}
 									onZoomChange={setZoom}
-									onError={() => setImageLoadError(true)}
 								/>
 							))}
 					</div>

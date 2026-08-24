@@ -26,7 +26,7 @@ import {
 } from '@api/libs'
 import { purgeByTags } from '@api/libs/cloudflare-cache'
 
-import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
+import { acquireLockKv, delKvPattern, releaseLockKv } from '@api/libs/redis'
 import { VndbSync } from '@api/modules/vndb-sync/service'
 import { asc, count, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { status } from 'elysia'
@@ -492,7 +492,9 @@ export const CronService = {
         ],
       })
 
-      const index = await MeiliClient.index(process.env.MEILISEARCH_INDEXNAME)
+      const index = await MeiliClient.index(
+        process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
+      )
       // 滚动模式：不清空索引（避免用户短暂搜到空结果），逐页覆盖写入，末尾差集删除过期文档。
       await this.addMeiliLog(
         'game',
@@ -569,6 +571,8 @@ export const CronService = {
       await this.addMeiliLog('game', 'success', '游戏索引重建完成')
       // Invalidate CDN cache for affected pages
       await purgeByTags(['page-home', 'page-games'])
+      // Meili 数据已变 → 搜索 API 缓存（galzy:search:*）同步失效
+      await delKvPattern('galzy:search:*')
       return { code: 200 }
     } catch (e) {
       console.error('meiliSearchAddIndex 运行失败喵', e)
@@ -628,7 +632,7 @@ export const CronService = {
       })
 
       const index = await MeiliClient.index(
-        process.env.MEILISEARCH_TAG_INDEXNAME,
+        process.env.MEILISEARCH_TAG_INDEXNAME || 'galrc_Tag',
       )
       // 滚动模式：不清空索引，逐页覆盖写入，末尾差集删除过期文档。
       await this.addMeiliLog(
@@ -673,6 +677,7 @@ export const CronService = {
         completedAt: new Date().toISOString(),
       })
       await this.addMeiliLog('tag', 'success', '标签索引重建完成')
+      await delKvPattern('galzy:search:*')
       return { code: 200 }
     } catch (e) {
       console.error('meiliSearchAddTag 运行失败喵', e)
@@ -803,6 +808,7 @@ export const CronService = {
         completedAt: new Date().toISOString(),
       })
       await this.addMeiliLog('producer', 'success', '厂商索引重建完成')
+      await delKvPattern('galzy:search:*')
       return { code: 200 }
     } catch (e) {
       console.error('meiliSearchAddProducer 运行失败喵', e)
