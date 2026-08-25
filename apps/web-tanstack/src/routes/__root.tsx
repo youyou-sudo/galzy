@@ -156,11 +156,11 @@ function AppChrome({ children }: { children: React.ReactNode }) {
         style={{ backgroundImage: 'url("/background.webp")' }}
       />
       <Header />
-      <main className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-6">
+      <main className="mx-auto w-full max-w-7xl px-4 sm:px-6">
         {/* 广告 */}
         <aside
           id="sidebar-ad"
-          className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 mt-2 opacity-70 relative"
+          className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 opacity-70 relative mb-2"
         >
           <a
             data-umami-event="广告点击"

@@ -1,70 +1,131 @@
-import type React from "react";
+import { cn } from "@web/lib/utils";
+import Markdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
 
 type BBCodeRendererProps = {
+	inline?: boolean;
 	text: string;
 };
 
-// HTML 实体转义
-const escapeHTML = (str: string): string => {
-	return str
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#39;");
+type DescriptionPreview = {
+	text: string;
+	isTruncated: boolean;
 };
 
-// 解析 BBCode
-const bbcodeParser = (bbcode: string): string => {
-	// 先转义 HTML 实体，防止 XSS 攻击
-	bbcode = escapeHTML(bbcode);
-	// 解析 [b] 和 [/b] 标签 (支持大小写)
-	bbcode = bbcode.replace(/\[b\](.*?)\[\/b\]/gi, "<strong>$1</strong>");
+const toDescriptionHref = (value: string): string | null => {
+	const url = value.trim();
+	const internalMatch = url.match(/^\/?([vgp]\d+)$/i);
 
-	// 解析 [i] 和 [/i] 标签 (支持大小写)
-	bbcode = bbcode.replace(/\[i\](.*?)\[\/i\]/gi, "<em>$1</em>");
+	if (internalMatch) {
+		const id = internalMatch[1];
+		const prefix = id[0].toLowerCase();
 
-	// 解析 [url] 标签 (支持大小写)，智能识别四种链接类型
-	bbcode = bbcode.replace(/\[url=(.*?)\](.*?)\[\/url\]/gi, (_, url, text) => {
-		// 判断是否为内部链接：/v/g/p + 数字（如 /v1、g8、/p988）
-		const internalMatch = url.match(/^\/?([vgp]\d+)$/i);
-		if (internalMatch) {
-			const id = internalMatch[1]; // 去掉可能的前导 /，如 "p988"
-			const prefix = id[0].toLowerCase();
-			let href: string;
-			if (prefix === "g") {
-				href = `/tags/${id}`;
-			} else if (prefix === "p") {
-				href = `/producer/${id}`;
-			} else {
-				// v 前缀，直接挂载到根路径
-				href = `/${id}`;
-			}
-			return `<a class="text-cyan-600 hover:underline" href="${href}">${text}</a>`;
-		}
-		// 外链：新窗口打开
-		return `<a class="text-cyan-600 hover:underline" href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`;
-	});
+		if (prefix === "g") return `/tags/${id}`;
+		if (prefix === "p") return `/producer/${id}`;
+		return `/${id}`;
+	}
 
-	// 解析 [quote] 标签 (支持大小写)
-	bbcode = bbcode.replace(
-		/\[quote\](.*?)\[\/quote\]/gi,
-		"<blockquote>$1</blockquote>",
+	return /^https?:\/\//i.test(url) ? url : null;
+};
+
+/**
+ * Kungal 简介有时会带有 Markdown，同时 VNDB 简介仍然使用 BBCode。
+ * 先清理数据源的换行标记并将已支持的 BBCode 转成 Markdown，统一交给
+ * react-markdown 渲染，避免通过 dangerouslySetInnerHTML 注入 HTML。
+ */
+export function normalizeDescription(text: string): string {
+	return (
+		text
+			.replace(/\r\n?/g, "\n")
+			.replace(/\\n/g, "\n")
+			// 数据源用行尾或独立一行的反斜杠表示换行。
+			.replace(/[\\]+[ \t]*(?=\n|$)/g, "")
+			// 修正 Kungal 当前 Wikipedia 署名中的非标准 Markdown 分隔符。
+			.replace(
+				/\*\\?\[(?:From|Form)\*\s+\*\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)\*\s+\*, used under CC BY-SA 4\.0 licenses\]\*/gi,
+				"*From [$1]($2), used under CC BY-SA 4.0 licenses*",
+			)
 	);
+}
 
-	// 解析换行符（匹配真正的换行符 \n 以及字面量 \\n）
-	bbcode = bbcode.replace(/\n/g, "<br />").replace(/\\n/g, "<br />");
+export function getDescriptionPreview(text: string): DescriptionPreview {
+	const lines = normalizeDescription(text)
+		.split("\n")
+		.filter((line) => line.trim() !== "");
+	const isTruncated = lines.length > 6;
 
-	// 解析 [From ErogeShop]（这是文本，而非 BBCode 标签）
-	bbcode = bbcode.replace(/\[From ErogeShop\]/g, "<i>[From ErogeShop]</i>");
+	return {
+		text: `${lines.slice(0, 6).join("\n")}${isTruncated ? "..." : ""}`,
+		isTruncated,
+	};
+}
 
-	return bbcode;
-};
+function bbcodeToMarkdown(text: string): string {
+	let markdown = normalizeDescription(text);
 
-// BBCode 渲染组件
-export const BBCodeRenderer: React.FC<BBCodeRendererProps> = ({ text }) => {
-	// 将 BBCode 文本解析为 HTML 并插入到 React 组件中
-	const parsedText = bbcodeParser(text);
+	markdown = markdown.replace(
+		/\[url=([^\]]+)\]([\s\S]*?)\[\/url\]/gi,
+		(_match, url: string, label: string) => {
+			const href = toDescriptionHref(url);
+			return href ? `[${label}](${href})` : label;
+		},
+	);
+	markdown = markdown.replace(
+		/\[url\]([\s\S]*?)\[\/url\]/gi,
+		(_match, label: string) => {
+			const href = toDescriptionHref(label);
+			return href ? `[${label}](${href})` : label;
+		},
+	);
+	markdown = markdown.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, "**$1**");
+	markdown = markdown.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, "*$1*");
+	markdown = markdown.replace(
+		/\[quote\]([\s\S]*?)\[\/quote\]/gi,
+		(_match, content: string) =>
+			content
+				.split("\n")
+				.map((line) => `> ${line}`)
+				.join("\n"),
+	);
+	markdown = markdown.replace(/\[From ErogeShop\]/gi, "*[From ErogeShop]*");
 
-	return <div dangerouslySetInnerHTML={{ __html: parsedText }} />;
+	return markdown;
+}
+
+export const BBCodeRenderer = ({
+	inline = false,
+	text,
+}: BBCodeRendererProps) => {
+	const Root = inline ? "span" : "div";
+
+	return (
+		<Root className="wrap-break-word [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground/30 [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5">
+			<Markdown
+				remarkPlugins={[remarkGfm, remarkBreaks]}
+				components={{
+					...(inline
+						? {
+								p: ({ children }) => <span>{children}</span>,
+							}
+						: {}),
+					a: ({ className, href, node: _node, ...props }) => (
+						<a
+							className={cn(
+								"text-primary underline-offset-4 hover:underline",
+								className,
+							)}
+							href={href}
+							{...props}
+							{...(href?.match(/^https?:\/\//i)
+								? { target: "_blank", rel: "noopener noreferrer" }
+								: {})}
+						/>
+					),
+				}}
+			>
+				{bbcodeToMarkdown(text)}
+			</Markdown>
+		</Root>
+	);
 };

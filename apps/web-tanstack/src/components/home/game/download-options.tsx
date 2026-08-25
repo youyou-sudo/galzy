@@ -32,6 +32,7 @@ import {
 	ItemTitle,
 } from "@web/components/ui/item";
 import { Skeleton } from "@web/components/ui/skeleton";
+import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
 import { dwAcConst } from "@web/server/game";
 import { downCardStore, downmodalActions } from "@web/stores/downCardData";
 import { FileArchive } from "lucide-react";
@@ -57,7 +58,12 @@ export const DownloadOptions = () => {
 
 	return (
 		<>
-			<FileExplorer items={filelist.game} />
+			<FileExplorer
+				items={filelist.game}
+				onFileClick={(item) => {
+					downmodalActions.open(item);
+				}}
+			/>
 			<DownCardDialog />
 		</>
 	);
@@ -139,7 +145,13 @@ function groupSplitArchives(
 }
 
 // ---------- 文件浏览器组件 ----------
-const FileExplorer = ({ items }: { items: GameModel.TreeNode[] }) => {
+const FileExplorer = ({
+	items,
+	onFileClick,
+}: {
+	items: GameModel.TreeNode[];
+	onFileClick: (item: GameModel.TreeNode) => void;
+}) => {
 	const simplifiedItems = (() => {
 		if (
 			items &&
@@ -166,12 +178,7 @@ const FileExplorer = ({ items }: { items: GameModel.TreeNode[] }) => {
 				);
 			}
 			return (
-				<FileItem
-					key={item.id}
-					onClick={() => {
-						downmodalActions.open(item);
-					}}
-				>
+				<FileItem key={item.id} onClick={() => onFileClick(item)}>
 					{item.name}
 				</FileItem>
 			);
@@ -192,6 +199,11 @@ export const DownCardDialog = () => {
 	const [isCopying, setIsCopying] = useState<Record<string, boolean>>({});
 
 	const { id: game_id } = apiroute.useParams();
+	const { closeModal, onOpenChange } = useBrowserBackModal({
+		modalId: `game-download:${game_id}`,
+		open,
+		onClose: downmodalActions.close,
+	});
 	// 下载 README
 	const { data: readmedata } = useQuery({
 		queryKey: ["readme", data?.redame, game_id],
@@ -248,7 +260,7 @@ export const DownCardDialog = () => {
 	};
 
 	return (
-		<Dialog open={open} onOpenChange={downmodalActions.setOpen}>
+		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-h-[85%] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{data?.volumes ? `分卷列表` : `文件信息`}</DialogTitle>
@@ -452,7 +464,7 @@ export const DownCardDialog = () => {
 								</Button>
 							</AnimateIcon>
 							<Button
-								onClick={() => downmodalActions.close()}
+								onClick={closeModal}
 								variant="outline"
 								className="text-red-500"
 							>

@@ -50,5 +50,6 @@ skills-lock.json
 .codegraph/
 .reasonix/
 reasonix.toml
+.playwright-mcp/*
 
 todo.md

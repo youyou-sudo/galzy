@@ -38,7 +38,7 @@ export default function GameLayoutPage({
 			<Card className="overflow-hidden wrap-break-word border-0 pb-0 ">
 				<CardContent>
 					<GameHeader game={game} />
-					<GameInfo game={game} />
+					<GameInfo game={game} gameId={id} />
 				</CardContent>
 			</Card>
 

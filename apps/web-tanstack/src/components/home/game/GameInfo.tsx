@@ -1,13 +1,35 @@
 import { Link } from "@tanstack/react-router";
-import { BBCodeRenderer } from "@web/components/bbcode";
+import { BBCodeRenderer, getDescriptionPreview } from "@web/components/bbcode";
 import { TagsCard } from "@web/components/home/game/tags";
+import { Button } from "@web/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from "@web/components/ui/dialog";
+import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
 import { formatLooseDate } from "@web/lib";
 import type { getGameDetail } from "@web/server/game";
 import { Search } from "lucide-react";
+import { useState } from "react";
 
 type GameData = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>;
 
-export function GameInfo({ game }: { game: GameData }) {
+export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
+	const description = game?.otherData?.description || game?.vn?.description;
+	const descriptionPreview = description
+		? getDescriptionPreview(description).text
+		: "";
+	const [descriptionOpen, setDescriptionOpen] = useState(false);
+	const { onOpenChange: onDescriptionOpenChange } = useBrowserBackModal({
+		modalId: `game-description:${gameId}`,
+		open: descriptionOpen,
+		onOpen: () => setDescriptionOpen(true),
+		onClose: () => setDescriptionOpen(false),
+	});
+
 	return (
 		<>
 			{/* 发行日期 */}
@@ -86,15 +108,38 @@ export function GameInfo({ game }: { game: GameData }) {
 			)}
 
 			{/* Description */}
-			{(game?.otherData?.description || game?.vn?.description) && (
-				<div className="mt-2">
-					<div className="text-xs text-zinc-500 uppercase mb-1">游戏简介</div>
-					<div className="text-sm line-clamp-6 leading-relaxed text-zinc-800 dark:text-zinc-200">
-						<BBCodeRenderer
-							text={game?.otherData?.description || game?.vn?.description || ""}
-						/>
+			{description && (
+				<Dialog open={descriptionOpen} onOpenChange={onDescriptionOpenChange}>
+					<div className="mt-2">
+						<div className="text-xs text-zinc-500 uppercase mb-1">游戏简介</div>
+						<div className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
+							<BBCodeRenderer inline text={descriptionPreview} />
+							<DialogTrigger
+								render={
+									<Button
+										variant="link"
+										size="xs"
+										className="ml-1 h-auto p-0 align-baseline"
+									/>
+								}
+							>
+								查看更多
+							</DialogTrigger>
+						</div>
 					</div>
-				</div>
+					<DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-2xl">
+						<DialogHeader>
+							<DialogTitle>游戏简介</DialogTitle>
+						</DialogHeader>
+						<div className="min-h-0 min-w-0 max-h-[70vh] overflow-x-hidden overflow-y-auto text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
+							<BBCodeRenderer
+								text={
+									game?.otherData?.description || game?.vn?.description || ""
+								}
+							/>
+						</div>
+					</DialogContent>
+				</Dialog>
 			)}
 			{/* Tags section */}
 			<TagsCard />
