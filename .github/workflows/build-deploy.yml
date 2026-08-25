@@ -66,6 +66,9 @@ jobs:
       - name: Typecheck API
         run: bunx tsc --noEmit -p apps/api/tsconfig.json
 
+      - name: Build Web artifacts for typecheck
+        run: bun --cwd apps/web-tanstack build
+
       - name: Typecheck Web
         run: bunx tsc --noEmit -p apps/web-tanstack/tsconfig.json
 
