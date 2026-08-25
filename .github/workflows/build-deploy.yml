@@ -51,8 +51,26 @@ jobs:
               - 'bun.lock'
               - 'package.json'
 
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck API
+        run: bunx tsc --noEmit -p apps/api/tsconfig.json
+
+      - name: Typecheck Web
+        run: bunx tsc --noEmit -p apps/web-tanstack/tsconfig.json
+
   build:
-    needs: changes
+    needs: [changes, typecheck]
     if: ${{ needs.changes.outputs.api == 'true' || needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch' }}
     strategy:
       matrix:

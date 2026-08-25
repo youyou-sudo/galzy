@@ -36,7 +36,7 @@ const BATCH_SIZE = 100
 
 let _progressCache: SyncProgress | null = null
 
-interface SyncProgress {
+export interface SyncProgress {
   status: 'idle' | 'running' | 'completed' | 'failed'
   type: 'full' | 'delta' | 'producers' | null
   startedAt: string | null

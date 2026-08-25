@@ -40,7 +40,7 @@ const [FolderProvider, useFolder] =
 
 type BaseFilesProps = {
 	children: React.ReactNode;
-} & Omit<AccordionProps, "type" | "defaultValue" | "value" | "onValueChange">;
+} & Omit<AccordionProps, "defaultValue" | "value" | "onValueChange">;
 
 type ControlledFilesProps = {
 	defaultOpen?: never;
@@ -75,7 +75,7 @@ function Files({
 		<FilesProvider value={{ open: openValue ?? [] }}>
 			<Accordion
 				data-slot="files"
-				type="multiple"
+				multiple
 				defaultValue={defaultOpen}
 				value={open}
 				onValueChange={setOpenValue}

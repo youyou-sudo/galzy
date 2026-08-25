@@ -81,6 +81,7 @@ function TooltipTrigger(props: TooltipTriggerProps) {
 type TooltipContentProps = TooltipPrimitive.Popup.Props & {
 	side?: "top" | "bottom" | "left" | "right";
 	sideOffset?: number;
+	align?: "start" | "center" | "end";
 	transition?: Transition;
 	arrow?: boolean;
 };
@@ -89,6 +90,7 @@ function TooltipContent({
 	className,
 	side = "top",
 	sideOffset = 4,
+	align,
 	transition = { type: "spring", stiffness: 300, damping: 25 },
 	arrow = true,
 	children,
@@ -101,7 +103,11 @@ function TooltipContent({
 		<AnimatePresence>
 			{isOpen && (
 				<TooltipPrimitive.Portal keepMounted data-slot="tooltip-portal">
-					<TooltipPrimitive.Positioner side={side} sideOffset={sideOffset}>
+					<TooltipPrimitive.Positioner
+						side={side}
+						sideOffset={sideOffset}
+						align={align}
+					>
 						<TooltipPrimitive.Popup className="z-50" {...props}>
 							<motion.div
 								key="tooltip-content"

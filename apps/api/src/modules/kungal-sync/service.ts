@@ -16,7 +16,7 @@ const RESOLVE_BATCH = 100
 
 let _progressCache: KungalSyncProgress | null = null
 
-interface KungalSyncProgress {
+export interface KungalSyncProgress {
   status: 'idle' | 'running' | 'completed' | 'failed'
   type: 'full' | 'delta' | null
   startedAt: string | null

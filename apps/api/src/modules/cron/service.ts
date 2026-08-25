@@ -72,7 +72,7 @@ async function collectCloudreveDiff() {
   return { foldersFound: items.length, diff }
 }
 
-interface MeiliProgress {
+export interface MeiliProgress {
   status: 'idle' | 'running' | 'completed' | 'failed'
   type: 'game' | 'tag' | 'producer' | null
   startedAt: string | null

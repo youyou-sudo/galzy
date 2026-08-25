@@ -30,6 +30,10 @@ const useSheet = (): SheetContextType => {
 
 type SheetProps = SheetPrimitive.Root.Props;
 
+type SheetOpenChangeDetails = Parameters<
+	NonNullable<SheetProps["onOpenChange"]>
+>[1];
+
 function Sheet({ children, ...props }: SheetProps) {
 	const [isOpen, setIsOpen] = React.useState(
 		props?.open ?? props?.defaultOpen ?? false,
@@ -40,9 +44,9 @@ function Sheet({ children, ...props }: SheetProps) {
 	}, [props?.open]);
 
 	const handleOpenChange = React.useCallback(
-		(open: boolean) => {
+		(open: boolean, eventDetails: SheetOpenChangeDetails) => {
 			setIsOpen(open);
-			props.onOpenChange?.(open);
+			props.onOpenChange?.(open, eventDetails);
 		},
 		[props],
 	);
@@ -122,9 +126,8 @@ function SheetPopup({
 	return (
 		<AnimatePresence>
 			{isOpen && (
-				<SheetPortal forceMount data-slot="sheet-portal">
+				<SheetPortal keepMounted data-slot="sheet-portal">
 					<SheetBackdrop
-						forceMount
 						render={
 							<motion.div
 								key="sheet-overlay"
@@ -137,7 +140,6 @@ function SheetPopup({
 						}
 					/>
 					<SheetPrimitive.Popup
-						forceMount
 						render={
 							<motion.div
 								key="sheet-content"
