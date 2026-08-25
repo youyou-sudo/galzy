@@ -113,18 +113,20 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 					<div className="mt-2">
 						<div className="text-xs text-zinc-500 uppercase mb-1">游戏简介</div>
 						<div className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
-							<BBCodeRenderer inline text={descriptionPreview} />
-							<DialogTrigger
-								render={
-									<Button
-										variant="link"
-										size="xs"
-										className="ml-1 h-auto p-0 align-baseline"
-									/>
-								}
-							>
-								查看更多
-							</DialogTrigger>
+							<div className="relative pr-12 line-clamp-3 sm:line-clamp-4">
+								<BBCodeRenderer inline text={descriptionPreview} />
+								<DialogTrigger
+									render={
+										<Button
+											variant="link"
+											size="xs"
+											className="absolute right-0 bottom-0 z-10 h-auto bg-card pl-1 align-baseline"
+										/>
+									}
+								>
+									查看更多
+								</DialogTrigger>
+							</div>
 						</div>
 					</div>
 					<DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-2xl">
