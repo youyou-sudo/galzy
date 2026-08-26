@@ -23,6 +23,7 @@ export namespace ViewsModel {
     imageId: string | null
     imageWidth: number | null
     imageHeight: number | null
+    imageThumbhash: string | null
     imageUrl: string | null
     cSexualAvg: number | null
   }

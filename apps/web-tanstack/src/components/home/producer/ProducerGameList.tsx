@@ -38,6 +38,7 @@ export const ProducerGamelist = () => {
 										gameid={String(item.id)}
 										width={item.image_width ?? 200}
 										height={item.image_height ?? 300}
+										thumbhash={item.image_thumbhash}
 										src={item.image_url ?? "/No-Image-Placeholder.svg.webp"}
 										cSexualAvg={item.c_sexual_avg}
 										title={title}

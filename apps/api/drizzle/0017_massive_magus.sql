@@ -1,0 +1,1 @@
+ALTER TABLE "galrc_kungal_works" ADD COLUMN "cover_thumbhash" text;

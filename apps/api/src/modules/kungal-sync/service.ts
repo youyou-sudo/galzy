@@ -87,6 +87,7 @@ export const KungalSync = {
               coverUrl: kungalWorks.coverUrl,
               coverWidth: kungalWorks.coverWidth,
               coverHeight: kungalWorks.coverHeight,
+              coverThumbhash: kungalWorks.coverThumbhash,
             })
             .from(kungalWorks)
             .where(isNotNull(kungalWorks.vndbId))
@@ -99,7 +100,13 @@ export const KungalSync = {
           row.coverWidth > 0 &&
           typeof row.coverHeight === 'number' &&
           row.coverHeight > 0
-        return !row || (row.coverUrl !== null && !hasCoverDimensions)
+        const hasThumbhash =
+          typeof row?.coverThumbhash === 'string' &&
+          row.coverThumbhash.length > 0
+        return (
+          !row ||
+          (row.coverUrl !== null && (!hasCoverDimensions || !hasThumbhash))
+        )
       })
     }
     if (target.length === 0) {
@@ -179,6 +186,7 @@ export const KungalSync = {
                 coverUrl: sql`excluded.cover_url`,
                 coverWidth: sql`excluded.cover_width`,
                 coverHeight: sql`excluded.cover_height`,
+                coverThumbhash: sql`excluded.cover_thumbhash`,
                 intro: sql`excluded.intro`,
                 localized: sql`excluded.localized`,
                 covers: sql`excluded.covers`,

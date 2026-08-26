@@ -14,12 +14,18 @@ interface HotGame {
 	imageUrl: string | null;
 	imageWidth: number | null;
 	imageHeight: number | null;
+	imageThumbhash: string | null;
 	cSexualAvg: number | null;
 }
 
 interface HotGamesSectionProps {
 	games: HotGame[] | null;
 }
+
+const HOT_GAME_SKELETON_KEYS = Array.from(
+	{ length: 12 },
+	(_, index) => `hot-game-skeleton-${index}`,
+);
 
 export function HotGamesSection({ games: initialGames }: HotGamesSectionProps) {
 	const showR18 = useSelector(r18Store, (s) => s.showR18);
@@ -70,6 +76,7 @@ export function HotGamesSection({ games: initialGames }: HotGamesSectionProps) {
 							title={game.title || "未知游戏"}
 							width={game.imageWidth ?? 200}
 							height={game.imageHeight ?? 300}
+							thumbhash={game.imageThumbhash}
 							src={game.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
 							cSexualAvg={game.cSexualAvg ?? null}
 						/>
@@ -91,8 +98,8 @@ export function HotGamesSectionSkeleton() {
 				<div className="h-6 w-24 rounded bg-muted animate-pulse" />
 			</div>
 			<div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-				{Array.from({ length: 12 }).map((_, i) => (
-					<GameCard.ListSkeleton key={i} />
+				{HOT_GAME_SKELETON_KEYS.map((key) => (
+					<GameCard.ListSkeleton key={key} />
 				))}
 			</div>
 		</section>

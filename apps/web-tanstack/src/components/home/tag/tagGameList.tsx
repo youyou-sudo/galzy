@@ -53,6 +53,7 @@ export const TagGamelist = () => {
 						gameid={String(item.id)}
 						width={item.images?.width ?? 200}
 						height={item.images?.height ?? 300}
+						thumbhash={item.images?.thumbhash}
 						src={item.images?.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
 						cSexualAvg={item.images?.c_sexual_avg}
 						title={

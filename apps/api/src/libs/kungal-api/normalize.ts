@@ -11,6 +11,7 @@ export interface KungalWorkRow {
   coverUrl: string | null
   coverWidth: number | null
   coverHeight: number | null
+  coverThumbhash: string | null
   intro: string | null
   localized: unknown
   covers: unknown
@@ -44,16 +45,23 @@ export function pickCover(item: KungalWorkItem): {
   url: string | null
   width: number | null
   height: number | null
+  thumbhash: string | null
 } {
   const use = (
     img?: {
       url?: string
       width?: number | null
       height?: number | null
+      thumbhash?: string | null
     } | null,
   ) =>
     img?.url
-      ? { url: img.url, width: img.width ?? null, height: img.height ?? null }
+      ? {
+          url: img.url,
+          width: img.width ?? null,
+          height: img.height ?? null,
+          thumbhash: img.thumbhash ?? null,
+        }
       : null
 
   const cover = use(item.cover)
@@ -67,13 +75,14 @@ export function pickCover(item: KungalWorkItem): {
       url: chosen.url,
       width: chosen.width ?? null,
       height: chosen.height ?? null,
+      thumbhash: chosen.thumbhash ?? null,
     }
   }
 
   const banner = use(item.banner)
   if (banner) return banner
 
-  return { url: null, width: null, height: null }
+  return { url: null, width: null, height: null, thumbhash: null }
 }
 
 /** intros 数组 → 最佳简介（zh-Hans → zh → en → 首条；v2 字段为 value）。 */
@@ -134,6 +143,7 @@ export function normalizeWork(
       coverUrl: cover.url,
       coverWidth: cover.width,
       coverHeight: cover.height,
+      coverThumbhash: cover.thumbhash,
       intro,
       localized,
       covers: item.covers ?? null,

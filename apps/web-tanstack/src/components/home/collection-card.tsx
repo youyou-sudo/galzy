@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { getImageRatio } from "@web/lib/image";
+import { GameCard } from "@web/components/home/card";
 import { cn } from "@web/lib/utils";
 import { Layers, Library } from "lucide-react";
 
@@ -10,6 +10,7 @@ interface PreviewItem {
 	imageUrl: string | null;
 	imageWidth: number | null;
 	imageHeight: number | null;
+	imageThumbhash: string | null;
 	cSexualAvg: number | null;
 }
 
@@ -56,27 +57,30 @@ function PokerStack({
 			{stackItems.map((item, i) => {
 				const layer = layerStyles[i];
 				return (
-					<img
+					<GameCard.ThumbHashImage
 						key={item.id}
 						src={item.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
+						thumbhash={item.imageThumbhash}
+						width={item.imageWidth ?? 200}
+						height={item.imageHeight ?? 300}
 						alt=""
-						style={{
-							transform: `translate(-50%, -50%) rotate(${layer.rotate}deg) translate(${layer.x}px, ${layer.y}px) scale(${layer.scale})`,
-							zIndex: layer.z,
-							aspectRatio: getImageRatio(
-								item.imageWidth,
-								item.imageHeight,
-								2 / 3,
-							),
-						}}
-						className={cn(
+						loading="lazy"
+						decoding="async"
+						alwaysAnimate
+						wrapperClassName={cn(
 							"absolute top-1/2 left-1/2",
-							"w-[68%] rounded-lg border-[3px] border-background",
+							"w-[68%] aspect-[2/3] overflow-hidden rounded-lg border-[3px] border-background",
 							"shadow-md shadow-black/15 dark:shadow-black/30",
-							"object-cover transition-all duration-500 ease-out",
+							// 扑克层 hover 旋转/位移的过渡类（内联动画只作用于组件内部动画层，
+							// 本层的 transform 恒由此类接管）
+							"transition-all duration-500 ease-out",
 							hoverStyles[i],
 						)}
-						loading="lazy"
+						wrapperStyle={{
+							transform: `translate(-50%, -50%) rotate(${layer.rotate}deg) translate(${layer.x}px, ${layer.y}px) scale(${layer.scale})`,
+							zIndex: layer.z,
+						}}
+						className="w-full h-full object-cover"
 					/>
 				);
 			})}

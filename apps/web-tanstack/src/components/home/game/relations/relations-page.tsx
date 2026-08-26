@@ -26,6 +26,7 @@ interface RelationGame {
 		imageUrl?: string | null;
 		width?: number | null;
 		height?: number | null;
+		thumbhash?: string | null;
 		c_sexual_avg?: number | null;
 	} | null;
 }
@@ -51,9 +52,7 @@ export function RelationsPage() {
 
 	if (list.length === 0) {
 		return (
-			<div className="p-8 text-center text-sm text-zinc-500">
-				暂无相关游戏
-			</div>
+			<div className="p-8 text-center text-sm text-zinc-500">暂无相关游戏</div>
 		);
 	}
 
@@ -65,35 +64,33 @@ export function RelationsPage() {
 				</div>
 			)}
 			<div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-			{list.map((rel) => {
-				const label =
-					RELATION_LABELS[rel.relation] ??
-					(rel.reverse ? "反向相关" : "相关");
-				return (
-					<div key={rel.vid} className="relative">
-						<GameCard.Item
-							gameid={rel.game!.id}
-							width={rel.game!.images?.width ?? 200}
-							height={rel.game!.images?.height ?? 300}
-							src={
-								rel.game!.images?.imageUrl ??
-								"/No-Image-Placeholder.svg.webp"
-							}
-							cSexualAvg={rel.game!.images?.c_sexual_avg}
-							title={
-								rel.game!.titles_obj?.find(
-									(t) =>
-										t.lang === rel.game!.olang &&
-										t.title.trim() !== "",
-								)?.title || "null"
-							}
-						/>
-						<span className="absolute left-1 top-1 z-10 rounded bg-zinc-900/70 px-1.5 py-0.5 text-xs text-white">
-							{label}
-						</span>
-					</div>
-				);
-			})}
+				{list.map((rel) => {
+					const label =
+						RELATION_LABELS[rel.relation] ??
+						(rel.reverse ? "反向相关" : "相关");
+					return (
+						<div key={rel.vid} className="relative">
+							<GameCard.Item
+								gameid={rel.game!.id}
+								width={rel.game!.images?.width ?? 200}
+								height={rel.game!.images?.height ?? 300}
+								thumbhash={rel.game!.images?.thumbhash}
+								src={
+									rel.game!.images?.imageUrl ?? "/No-Image-Placeholder.svg.webp"
+								}
+								cSexualAvg={rel.game!.images?.c_sexual_avg}
+								title={
+									rel.game!.titles_obj?.find(
+										(t) => t.lang === rel.game!.olang && t.title.trim() !== "",
+									)?.title || "null"
+								}
+							/>
+							<span className="absolute left-1 top-1 z-10 rounded bg-zinc-900/70 px-1.5 py-0.5 text-xs text-white">
+								{label}
+							</span>
+						</div>
+					);
+				})}
 			</div>
 		</>
 	);

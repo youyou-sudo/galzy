@@ -65,6 +65,7 @@ export const Producer = {
           image_width: images.width,
           image_height: images.height,
           image_url: images.url,
+          image_thumbhash: sql<string | null>`NULL::text`,
           c_sexual_avg: images.cSexualAvg,
           titles: sql<
             Array<{
@@ -109,6 +110,7 @@ export const Producer = {
               coverUrl: kungalWorks.coverUrl,
               coverWidth: kungalWorks.coverWidth,
               coverHeight: kungalWorks.coverHeight,
+              coverThumbhash: kungalWorks.coverThumbhash,
             })
             .from(kungalWorks)
             .where(
@@ -132,6 +134,7 @@ export const Producer = {
         item.image_url = kungal?.coverUrl ?? null
         item.image_width = kungal?.coverWidth ?? null
         item.image_height = kungal?.coverHeight ?? null
+        item.image_thumbhash = kungal?.coverThumbhash ?? null
       } else {
         item.image_url = item.image_id
           ? buildCoverUrl(item.image_id, item.image_width, item.image_height)

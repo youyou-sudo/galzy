@@ -105,37 +105,40 @@ const gameMeiliDocBase = {
   devstatus: vn.devstatus,
   rating: vn.cRating,
   votecount: vn.cVotecount,
+  // 注意：子查询内的列引用必须显式限定表名（vn/kw/rv/r/t…）。
+  // Drizzle 在 sql`` 模板里嵌入列对象只渲染裸列名（如 "id"），
+  // 在多表 JOIN 作用域下会造成列歧义（42702）或静默绑定到错误的表。
   description: sql`COALESCE(
-    (SELECT kw.intro FROM ${kungalWorks} kw WHERE kw.vndb_id = ${vn.id}),
-    ${vn.description}
+    (SELECT kw.intro FROM ${kungalWorks} kw WHERE kw.vndb_id = vn.id),
+    vn.description
   )`,
   released_first: sql`COALESCE(
-    (SELECT kw.released_first FROM ${kungalWorks} kw WHERE kw.vndb_id = ${vn.id}),
-    (SELECT MIN(${releases.released}) FROM ${releasesVn} INNER JOIN ${releases} ON ${releases.id} = ${releasesVn.id} WHERE ${releasesVn.vid} = ${vn.id} AND ${releases.released} IS NOT NULL),
+    (SELECT kw.released_first FROM ${kungalWorks} kw WHERE kw.vndb_id = vn.id),
+    (SELECT MIN(r.released) FROM ${releasesVn} rv INNER JOIN ${releases} r ON r.id = rv.id WHERE rv.vid = vn.id AND r.released IS NOT NULL),
     ''
   )`,
-  dl_count: sql`(SELECT COUNT(*)::int FROM ${gameDownloadStats} WHERE game_id = ${vn.id})`,
-  vw_count: sql`(SELECT COUNT(*)::int FROM ${eventViews} WHERE event_type = 'game_view' AND target_id = ${vn.id})`,
+  dl_count: sql`(SELECT COUNT(*)::int FROM ${gameDownloadStats} WHERE game_id = vn.id)`,
+  vw_count: sql`(SELECT COUNT(*)::int FROM ${eventViews} WHERE event_type = 'game_view' AND target_id = vn.id)`,
   titles: sql`COALESCE(
-    (SELECT json_agg(kt.title) FROM ${kungalWorkTitles} kt INNER JOIN ${kungalWorks} kw ON kw.id = kt.work_id WHERE kw.vndb_id = ${vn.id})::jsonb,
+    (SELECT json_agg(kt.title) FROM ${kungalWorkTitles} kt INNER JOIN ${kungalWorks} kw ON kw.id = kt.work_id WHERE kw.vndb_id = vn.id)::jsonb,
     '[]'::jsonb
   ) || COALESCE(
-    (SELECT json_agg(t.title) FROM ${vnTitles} t WHERE t.id = ${vn.id})::jsonb,
+    (SELECT json_agg(t.title) FROM ${vnTitles} t WHERE t.id = vn.id)::jsonb,
     '[]'::jsonb
   )`,
-  tag_names: sql`COALESCE((SELECT json_agg(DISTINCT z.name) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE), '[]'::json)`,
-  tags: sql`COALESCE((SELECT json_agg(DISTINCT tv.tag) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE), '[]'::json)`,
+  tag_names: sql`COALESCE((SELECT json_agg(DISTINCT z.name) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = vn.id AND z.exhibition = TRUE), '[]'::json)`,
+  tags: sql`COALESCE((SELECT json_agg(DISTINCT tv.tag) FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = vn.id AND z.exhibition = TRUE), '[]'::json)`,
   titles_obj: sql`COALESCE(
-    (SELECT json_agg(row_to_json(kt.*)) FROM (SELECT kt.title, kt.latin, kt.lang FROM ${kungalWorkTitles} kt INNER JOIN ${kungalWorks} kw ON kw.id = kt.work_id WHERE kw.vndb_id = ${vn.id}) kt)::jsonb,
+    (SELECT json_agg(row_to_json(kt.*)) FROM (SELECT kt.title, kt.latin, kt.lang FROM ${kungalWorkTitles} kt INNER JOIN ${kungalWorks} kw ON kw.id = kt.work_id WHERE kw.vndb_id = vn.id) kt)::jsonb,
     '[]'::jsonb
   ) || COALESCE(
     (SELECT json_agg(row_to_json(t.*)) FROM (
       SELECT t.title, t.latin, t.lang FROM ${vnTitles} t
-      WHERE t.id = ${vn.id}
+      WHERE t.id = vn.id
         AND t.lang NOT IN (
           SELECT kt2.lang FROM ${kungalWorkTitles} kt2
           INNER JOIN ${kungalWorks} kw2 ON kw2.id = kt2.work_id
-          WHERE kw2.vndb_id = ${vn.id} AND kt2.lang IS NOT NULL
+          WHERE kw2.vndb_id = vn.id AND kt2.lang IS NOT NULL
         )
     ) t)::jsonb,
     '[]'::jsonb
@@ -144,26 +147,27 @@ const gameMeiliDocBase = {
     (SELECT row_to_json(kimg.*) FROM (
       SELECT NULL::text AS id,
         kw.cover_url AS url,
-        kw.cover_url AS imageUrl,
-        kw.cover_width AS width,
-        kw.cover_height AS height,
-        COALESCE((SELECT c_sexual_avg FROM ${images} i WHERE i.id = ${vn.cImage}), 0) AS c_sexual_avg
+         kw.cover_url AS imageUrl,
+         kw.cover_width AS width,
+         kw.cover_height AS height,
+         kw.cover_thumbhash AS thumbhash,
+        COALESCE((SELECT i.c_sexual_avg FROM ${images} i WHERE i.id = vn.c_image), 0) AS c_sexual_avg
       FROM ${kungalWorks} kw
-      WHERE kw.vndb_id = ${vn.id} AND kw.cover_url IS NOT NULL
+      WHERE kw.vndb_id = vn.id AND kw.cover_url IS NOT NULL
         AND kw.cover_width IS NOT NULL AND kw.cover_height IS NOT NULL
         AND kw.cover_height >= kw.cover_width
     ) kimg),
-    (SELECT row_to_json(i.*) FROM (SELECT id, height, width, COALESCE(c_sexual_avg, 0) AS c_sexual_avg FROM ${images} i WHERE i.id = ${vn.cImage}) i)
+    (SELECT row_to_json(i.*) FROM (SELECT i.id, i.height, i.width, COALESCE(i.c_sexual_avg, 0) AS c_sexual_avg FROM ${images} i WHERE i.id = vn.c_image) i)
   )`,
-  releases: sql`COALESCE((SELECT json_agg(row_to_json(rel.*)) FROM (SELECT r.title, r.released FROM ${releasesVn} rv INNER JOIN ${releases} r ON r.id = rv.id WHERE rv.vid = ${vn.id}) rel), '[]'::json)`,
-  tags_obj: sql`COALESCE((SELECT json_agg(row_to_json(tag.*)) FROM (SELECT DISTINCT z.alias, z.name, z.id FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = ${vn.id} AND z.exhibition = TRUE) tag), '[]'::json)`,
+  releases: sql`COALESCE((SELECT json_agg(row_to_json(rel.*)) FROM (SELECT r.title, r.released FROM ${releasesVn} rv INNER JOIN ${releases} r ON r.id = rv.id WHERE rv.vid = vn.id) rel), '[]'::json)`,
+  tags_obj: sql`COALESCE((SELECT json_agg(row_to_json(tag.*)) FROM (SELECT DISTINCT z.alias, z.name, z.id FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = vn.id AND z.exhibition = TRUE) tag), '[]'::json)`,
   has_download: sql`TRUE`,
 }
 
 /** Subquery-based columns used when alistb is NOT joined (incremental sync paths). */
 const gameMeiliDocOtherSubquery = {
-  other: sql`(SELECT ${alistb.other} FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1)`,
-  otherData: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, a.other_val AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o CROSS JOIN LATERAL (SELECT ${alistb.other} AS other_val FROM ${alistb} WHERE ${alistb.vid} = ${vn.id} LIMIT 1) a WHERE o.id = a.other_val) other_sub)`,
+  other: sql`(SELECT ga.other FROM ${alistb} ga WHERE ga.vid = vn.id LIMIT 1)`,
+  otherData: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, a.other_val AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o CROSS JOIN LATERAL (SELECT ga2.other AS other_val FROM ${alistb} ga2 WHERE ga2.vid = vn.id LIMIT 1) a WHERE o.id = a.other_val) other_sub)`,
 }
 
 /** Direct-reference columns used when alistb IS joined (batch indexing path). */

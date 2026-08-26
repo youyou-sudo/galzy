@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { GameCard } from "@web/components/home/card";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -14,7 +15,6 @@ import type {
 	CollectionData,
 	CollectionPreviewGame,
 } from "@web/lib/collections";
-import { getImageRatio } from "@web/lib/image";
 import { seoMeta, truncateText } from "@web/lib/seo";
 import {
 	getCollectionById,
@@ -212,35 +212,16 @@ function RouteComponent() {
 				{games.length > 0 ? (
 					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
 						{games.map((game) => (
-							<Link
+							<GameCard.Item
 								key={game.id}
-								to="/$id"
-								params={{ id: game.id }}
-								className="group block rounded-xl overflow-hidden bg-card border transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
-							>
-								<div
-									className="overflow-hidden bg-muted"
-									style={{
-										aspectRatio: getImageRatio(
-											game.imageWidth,
-											game.imageHeight,
-											2 / 3,
-										),
-									}}
-								>
-									<img
-										src={game.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
-										alt={game.title ?? game.alias ?? game.id}
-										className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-										loading="lazy"
-									/>
-								</div>
-								<div className="p-2.5">
-									<p className="text-xs text-center leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-										{game.title ?? game.alias ?? game.id}
-									</p>
-								</div>
-							</Link>
+								gameid={game.id}
+								title={game.title ?? game.alias ?? game.id}
+								width={game.imageWidth ?? 200}
+								height={game.imageHeight ?? 300}
+								thumbhash={game.imageThumbhash}
+								src={game.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
+								cSexualAvg={game.cSexualAvg}
+							/>
 						))}
 					</div>
 				) : (

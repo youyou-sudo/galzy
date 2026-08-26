@@ -120,6 +120,13 @@
       "when": 1787305765076,
       "tag": "0016_boring_ender_wiggin",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1787734055046,
+      "tag": "0017_massive_magus",
+      "breakpoints": true
     }
   ]
 }

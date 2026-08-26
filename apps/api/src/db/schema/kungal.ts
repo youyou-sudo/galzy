@@ -26,9 +26,10 @@ export const kungalWorks = pgTable(
     coverUrl: text('cover_url'), // 竖版封面 portrait url（显示/索引直接使用，避免 jsonb 提取）
     coverWidth: integer('cover_width'),
     coverHeight: integer('cover_height'),
+    coverThumbhash: text('cover_thumbhash'),
     intro: text('intro'), // 最佳简介（zh-Hans → zh → en → 首条，同步时裁定）
     localized: jsonb('localized'), // 原始 localized 块 { lang: { value, kind, machine? } }
-    covers: jsonb('covers'), // 原始 covers 块 { portrait: {url,width,height,thumbhash,sexual,violence,source}, banner: {...} }
+    covers: jsonb('covers'), // 原始 covers 数组（含 url、宽高、thumbhash 等字段）
     intros: jsonb('intros'), // 原始 intros 数组 [{ lang, intro }]
     ratings: jsonb('ratings'), // 原始跨源评分数组 [{ source, score, vote_count, rank? }]
     refs: jsonb('refs'), // 原始精确锚点数组 [{ source, external_id }]

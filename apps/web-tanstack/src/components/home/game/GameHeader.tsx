@@ -8,6 +8,10 @@ export function GameHeader({ game }: { game: GameData }) {
 	const olangTitle = game?.vn?.titles?.find(
 		(t) => t.lang === game.vn?.olang && (t.title ?? "").trim() !== "",
 	)?.title;
+	const image = game?.vn?.image as unknown as {
+		imageUrl?: string | null;
+		thumbhash?: string | null;
+	} | null;
 
 	return (
 		<>
@@ -19,22 +23,19 @@ export function GameHeader({ game }: { game: GameData }) {
 							(game?.vn?.image?.height ?? 0) > 0 &&
 							(game?.vn?.image?.height ?? 0) < (game?.vn?.image?.width ?? 0)
 								? "min-w-72.5"
-								: "max-w-55"
+								: "w-55"
 						} relative overflow-hidden text-left`}
 					>
 						<Skeleton className="absolute inset-0 w-full h-full rounded-lg" />
 						<GameCard.Image
 							width={game?.vn?.image?.width ?? 200}
 							height={game?.vn?.image?.height ?? 300}
+							thumbhash={image?.thumbhash}
 							loading="lazy"
 							decoding="async"
-							src={
-								(
-									game?.vn?.image as unknown as {
-										imageUrl?: string | null;
-									} | null
-								)?.imageUrl ?? "/No-Image-Placeholder.svg.webp"
-							}
+							// 详情页主封面：缓存命中时跳过浮现动画，避免重复访问的喧宾夺主
+							alwaysAnimate={false}
+							src={image?.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
 							alt={olangTitle || "null"}
 							cSexualAvg={game?.vn?.image?.cSexualAvg}
 							className="rounded-lg w-full h-full object-cover"

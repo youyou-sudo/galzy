@@ -139,6 +139,7 @@ export const CollectionService = {
         imageId: string | null
         imageWidth: number | null
         imageHeight: number | null
+        imageThumbhash: string | null
         cSexualAvg: number | null
       }>
     >()
@@ -234,6 +235,7 @@ export const CollectionService = {
             coverUrl: kungalWorks.coverUrl,
             coverWidth: kungalWorks.coverWidth,
             coverHeight: kungalWorks.coverHeight,
+            coverThumbhash: kungalWorks.coverThumbhash,
           })
           .from(kungalWorks)
           .where(inArray(kungalWorks.vndbId, allVids))
@@ -272,6 +274,9 @@ export const CollectionService = {
                 imageHeight: useKungal
                   ? (kungal?.coverHeight ?? null)
                   : (v?.imageHeight ?? null),
+                imageThumbhash: useKungal
+                  ? (kungal?.coverThumbhash ?? null)
+                  : null,
                 imageUrl: useKungal
                   ? (kungal?.coverUrl ?? null)
                   : v?.imageId
@@ -437,6 +442,7 @@ export const CollectionService = {
         coverUrl: kungalWorks.coverUrl,
         coverWidth: kungalWorks.coverWidth,
         coverHeight: kungalWorks.coverHeight,
+        coverThumbhash: kungalWorks.coverThumbhash,
       })
       .from(kungalWorks)
       .where(
@@ -483,6 +489,7 @@ export const CollectionService = {
         imageId: useKungal ? null : e.imageId,
         imageWidth: useKungal ? (kungal?.coverWidth ?? null) : e.imageWidth,
         imageHeight: useKungal ? (kungal?.coverHeight ?? null) : e.imageHeight,
+        imageThumbhash: useKungal ? (kungal?.coverThumbhash ?? null) : null,
         imageUrl: useKungal
           ? (kungal?.coverUrl ?? null)
           : e.imageId

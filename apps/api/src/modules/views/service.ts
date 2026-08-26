@@ -194,6 +194,7 @@ export const ViewsService = {
           coverUrl: kungalWorks.coverUrl,
           coverWidth: kungalWorks.coverWidth,
           coverHeight: kungalWorks.coverHeight,
+          coverThumbhash: kungalWorks.coverThumbhash,
         })
         .from(kungalWorks)
         .where(inArray(kungalWorks.vndbId, ids)),
@@ -207,6 +208,7 @@ export const ViewsService = {
         imageId: string | null
         imageWidth: number | null
         imageHeight: number | null
+        imageThumbhash: string | null
         cSexualAvg: number | null
         imageUrl: string | null
       }
@@ -220,6 +222,7 @@ export const ViewsService = {
       imageMap.set(r.id, {
         imageId: r.imageId,
         imageWidth: r.imageWidth,
+        imageThumbhash: null,
         imageUrl: r.imageUrl,
         imageHeight: r.imageHeight,
         cSexualAvg: r.cSexualAvg,
@@ -245,6 +248,9 @@ export const ViewsService = {
         imageHeight: useKungal
           ? (kungal?.coverHeight ?? null)
           : (img?.imageHeight ?? null),
+        imageThumbhash: useKungal
+          ? (kungal?.coverThumbhash ?? null)
+          : (img?.imageThumbhash ?? null),
         imageUrl: useKungal
           ? (kungal?.coverUrl ?? null)
           : img?.imageId

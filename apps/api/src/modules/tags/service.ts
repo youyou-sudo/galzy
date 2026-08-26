@@ -159,6 +159,7 @@ export const Tags = {
             width: number | null
             c_sexual_avg: number | null
             url: string | null
+            thumbhash?: string | null
             imageUrl?: string | null
           } | null>`(SELECT row_to_json(img.*)
             FROM (SELECT id, height, width, c_sexual_avg, url FROM ${images} img WHERE img.id = ${vn.cImage}) img
@@ -216,6 +217,7 @@ export const Tags = {
               coverUrl: kungalWorks.coverUrl,
               coverWidth: kungalWorks.coverWidth,
               coverHeight: kungalWorks.coverHeight,
+              coverThumbhash: kungalWorks.coverThumbhash,
             })
             .from(kungalWorks)
             .where(
@@ -245,6 +247,7 @@ export const Tags = {
           imageUrl: kungal?.coverUrl,
           width: kungal?.coverWidth,
           height: kungal?.coverHeight,
+          thumbhash: kungal?.coverThumbhash,
         }
       } else if (img) {
         img.imageUrl = img.id

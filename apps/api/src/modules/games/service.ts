@@ -147,6 +147,7 @@ export const Game = {
             coverUrl: kungalWorks.coverUrl,
             coverWidth: kungalWorks.coverWidth,
             coverHeight: kungalWorks.coverHeight,
+            coverThumbhash: kungalWorks.coverThumbhash,
           })
           .from(kungalWorks)
           .where(inArray(kungalWorks.vndbId, pageVids))
@@ -215,6 +216,7 @@ export const Game = {
           imageUrl: kungalWork.coverUrl,
           width: kungalWork.coverWidth,
           height: kungalWork.coverHeight,
+          thumbhash: kungalWork.coverThumbhash,
         }
       } else if (img) {
         img.imageUrl = img.id
@@ -406,6 +408,7 @@ export const Game = {
             coverUrl: kungalWorks.coverUrl,
             coverWidth: kungalWorks.coverWidth,
             coverHeight: kungalWorks.coverHeight,
+            coverThumbhash: kungalWorks.coverThumbhash,
             intro: kungalWorks.intro,
             releasedFirst: kungalWorks.releasedFirst,
           })
@@ -468,6 +471,7 @@ export const Game = {
               imageUrl: kungalWork.coverUrl, // kungal CDN 绝对地址，不经过 buildCoverUrl/transformStoredUrl
               width: kungalWork.coverWidth,
               height: kungalWork.coverHeight,
+              thumbhash: kungalWork.coverThumbhash,
             }
           }
           if (kungalWork.intro) {
@@ -987,6 +991,7 @@ export const Game = {
                 coverUrl: kungalWorks.coverUrl,
                 coverWidth: kungalWorks.coverWidth,
                 coverHeight: kungalWorks.coverHeight,
+                coverThumbhash: kungalWorks.coverThumbhash,
               })
               .from(kungalWorks)
               .where(eq(kungalWorks.vndbId, vid))
@@ -1044,6 +1049,7 @@ export const Game = {
               imageUrl: kungalWork.coverUrl,
               width: kungalWork.coverWidth,
               height: kungalWork.coverHeight,
+              thumbhash: kungalWork.coverThumbhash,
             }
           } else if (img?.id) {
             img.imageUrl = buildCoverUrl(
@@ -1157,6 +1163,7 @@ export const Game = {
         ) v) AS games,
         (SELECT COALESCE(json_agg(row_to_json(k.*)), '[]'::json) FROM (
           SELECT k.id, k.vndb_id, k.cover_url, k.cover_width, k.cover_height,
+            k.cover_thumbhash,
             COALESCE((SELECT json_agg(row_to_json(kt.*)) FROM (
               SELECT lang, official, title, latin FROM galrc_kungal_work_titles kt
               WHERE kt.work_id = k.id
@@ -1185,6 +1192,7 @@ export const Game = {
         cover_url: string | null
         cover_width: number | null
         cover_height: number | null
+        cover_thumbhash: string | null
         titles: unknown
       }>
     }
@@ -1202,6 +1210,7 @@ export const Game = {
       coverUrl: k.cover_url,
       coverWidth: k.cover_width,
       coverHeight: k.cover_height,
+      coverThumbhash: k.cover_thumbhash,
       titles: Array.isArray(k.titles) ? k.titles : [],
     }))
     const kungalMap = new Map(kungalRows.map((r) => [r.vndbId, r]))
@@ -1304,6 +1313,7 @@ export const Game = {
             imageUrl: kungalWork!.coverUrl,
             width: kungalWork!.coverWidth,
             height: kungalWork!.coverHeight,
+            thumbhash: kungalWork!.coverThumbhash,
             c_sexual_avg: vndbImg?.c_sexual_avg ?? 0,
           }
         : vndbImg

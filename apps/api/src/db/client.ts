@@ -19,6 +19,44 @@ const client = new SQL({
   idleTimeout: 0,
 })
 
+// 远程库/中间层会掐断长时间空闲的 TCP 连接（服务端 idle timeout），
+// 而客户端 idleTimeout: 0 不主动回收 → 池里的死连接被派发后报
+// "Connection closed"，首页/详情页随机 500。死连接在下一次使用时会自动重建，
+// 因此对连接类错误原地重试一次即可恢复；非连接类错误照常抛出。
+const CONNECTION_ERROR_RE =
+  /connection closed|idle timeout|econnreset|econnrefused|socket hang up|terminat|57P01|0800[036]/i
+
+const unsafeRaw = client.unsafe.bind(client) as (
+  query: string,
+  params: unknown[],
+) => Promise<unknown> & { values: () => Promise<unknown> }
+
+const withConnectionRetry = async <T>(exec: () => Promise<T>): Promise<T> => {
+  try {
+    return await exec()
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (CONNECTION_ERROR_RE.test(message)) return await exec()
+    throw err
+  }
+}
+
+client.unsafe = ((query: string, params: unknown[]) => {
+  // 惰性 thenable：drizzle 两种消费方式（await / .values()）各自触发一次执行，
+  // 命中连接类错误时用池内重建的新连接重试一次。
+  const q = {
+    // biome-ignore lint/suspicious/noThenProperty: drizzle 会直接 await client.unsafe(...)，必须暴露 then
+    then: (res: never, rej: never) =>
+      withConnectionRetry(() => unsafeRaw(query, params)).then(res, rej),
+    catch: (rej: never) =>
+      withConnectionRetry(() => unsafeRaw(query, params)).catch(rej),
+    finally: (fn: () => void) =>
+      withConnectionRetry(() => unsafeRaw(query, params)).finally(fn),
+    values: () => withConnectionRetry(() => unsafeRaw(query, params).values()),
+  }
+  return q
+}) as typeof client.unsafe
+
 export const db = drizzle({ client, schema })
 
 // Set per-session timeout to prevent runaway queries from holding connections.
