@@ -1,36 +1,39 @@
-// NextMoe·未萌 开放 API（Kungalapi / 鲲 Galgame 数据）wire 类型
-// 响应信封：{ code, message, data }；code === 0 为成功。
+// NextMoe·未萌 开放 API v2（Kungalapi / 鲲 Galgame 数据）wire 类型
+// 无信封：资源直接是 body；错误为 RFC 9457 application/problem+json。
 
-/** catalog works-list 行（include=names,intros,covers,ratings,refs 之后的部分字段） */
+/** catalog works 行（include=titles,intros,covers,ratings,refs 之后的部分字段） */
 export interface KungalWorkItem {
-  id: number | string
-  display_name?: string | null
+  id: string
+  display_name: string | null
   localized?: Record<
     string,
     { value?: string; kind?: string; machine?: boolean }
   > | null
-  intros?: Array<{ lang?: string; intro?: string }> | null
-  covers?: {
-    portrait?: {
-      url?: string
-      width?: number
-      height?: number
-      thumbhash?: string
-      sexual?: number
-      violence?: number
-      source?: string
-    }
-    banner?: {
-      url?: string
-      width?: number
-      height?: number
-      thumbhash?: string
-      sexual?: number
-      violence?: number
-      source?: string
-    }
+  intros?: Array<{ lang?: string; value?: string; intro?: string }> | null
+  cover?: {
+    url?: string
+    width?: number | null
+    height?: number | null
+    thumbhash?: string | null
+    source?: string
   } | null
-  cover?: string | null
+  banner?: {
+    url?: string
+    width?: number | null
+    height?: number | null
+    thumbhash?: string | null
+    source?: string
+  } | null
+  covers?: Array<{
+    id?: string
+    url?: string
+    width?: number | null
+    height?: number | null
+    thumbhash?: string | null
+    portrait_pinned?: boolean
+    vote_count?: number
+    source?: string
+  }> | null
   ratings?: Array<{
     source?: string
     score?: number
@@ -42,29 +45,20 @@ export interface KungalWorkItem {
   medium?: string | null
   content_rating?: string | null
   release_date?: string | null
-  claimed_by?: unknown
 }
 
-/** 目录 works 列表响应 data */
+/** 目录 works 列表响应（v2 统一 list 形状） */
 export interface KungalWorksListData {
   items: KungalWorkItem[]
-  next_cursor: string | null
+  missing?: string[]
+  next_cursor?: string | null
 }
 
-/** works/search 响应 data */
-export interface KungalWorksSearchData extends KungalWorksListData {
-  total: number
-}
-
-/** lookup 响应 data */
-export interface KungalLookupData {
-  work: KungalWorkItem | null
-  claimed_by?: unknown
-}
-
-/** 信封 */
-export interface KungalEnvelope<T> {
-  code: number
-  message: string
-  data: T
+/** RFC 9457 错误体 */
+export interface KungalProblem {
+  type?: string
+  title?: string
+  status?: number
+  code?: string
+  detail?: string
 }

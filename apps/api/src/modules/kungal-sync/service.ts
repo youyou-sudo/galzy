@@ -113,7 +113,7 @@ export const KungalSync = {
       ],
     })
 
-    // 阶段 1：vndb 锚点 → kungal work 解析（并发 4，逐 vid 短路解析）
+    // 阶段 1：vndb 锚点 → kungal work 解析（refs= 批量通道 ≤100/次，并发 4）
     const resolved = await KungalClient.resolveWorksByVndbIds(
       target,
       (processed) => {

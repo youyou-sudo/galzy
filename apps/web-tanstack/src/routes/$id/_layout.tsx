@@ -28,10 +28,6 @@ export const Route = createFileRoute('/$id/_layout')({
   },
   loader: async ({ params }) => {
     const { id } = params
-    // Record game view for hot ranking — fire-and-forget, must not delay first paint
-    void recordGameView({ data: { id } }).catch(() => {
-      // silently ignore recording failures
-    })
     const [game, tags] = await Promise.all([
       getGameDetail({ data: { id } }),
       getGameTags({ data: { id } }),
@@ -41,6 +37,12 @@ export const Route = createFileRoute('/$id/_layout')({
       tags,
       id,
     }
+  },
+  // 仅在真实进入页面(点击/直达/SSR 首屏)时计 view；悬停与空闲预加载不触发 onEnter，不会污染热榜
+  onEnter: ({ params }) => {
+    void recordGameView({ data: { id: params.id } }).catch(() => {
+      // silently ignore recording failures
+    })
   },
   head: ({ loaderData }) => {
     const title = gameTitleOf(loaderData?.game)

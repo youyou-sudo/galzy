@@ -4,8 +4,9 @@ import { Image, type ImageProps } from "@unpic/react";
 import { AspectRatio } from "@web/components/ui/aspect-ratio";
 import { Button } from "@web/components/ui/button";
 import { Skeleton } from "@web/components/ui/skeleton";
+import { useViewportPreload } from "@web/hooks/use-viewport-preload";
 import { r18Store } from "@web/stores/r18Store";
-import { useState, type ComponentProps } from "react";
+import { useRef, useState, type ComponentProps } from "react";
 
 function IdGameCardSkeleton({ ref, ...props }: ComponentProps<"div">) {
 	return (
@@ -145,9 +146,14 @@ function Item({
 	const showR18 = useSelector(r18Store, (s) => s.showR18);
 	const isSensitive = !showR18 && (cSexualAvg ?? 0) >= THRESHOLD;
 	const [revealed, setRevealed] = useState(false);
+	// 进入视口即预取详情数据，未请求过的条目点击也秒开（不触发 view 计数）
+	const linkRef = useRef<HTMLAnchorElement>(null);
+	useViewportPreload(linkRef, (router) => () =>
+		router.preloadRoute({ to: "/$id", params: { id: gameid } }),
+	);
 
 	return (
-		<Link to="/$id" params={{ id: gameid }}>
+		<Link ref={linkRef} to="/$id" params={{ id: gameid }}>
 			<AspectRatio
 				ratio={9 / 13}
 				className="block relative overflow-hidden rounded-lg"

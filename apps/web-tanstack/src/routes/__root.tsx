@@ -11,7 +11,6 @@ import {
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { Image } from '@unpic/react'
 import Errors from '@web/components/error'
-import { RouterProgress } from '@web/components/ProgressProvider'
 import { TooltipProvider } from '@web/components/ui/tooltip'
 import { Toaster } from 'sonner'
 import Footer from '../components/Footer'
@@ -109,7 +108,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body className="font-sans antialiased flex flex-col min-h-screen">
         <TanStackQueryProvider>
-          <RouterProgress />
           {/* 后台路由使用独立的管理端布局（AdminShell），与用户端 Header/Footer/广告完全隔离 */}
           <TooltipProvider>
             <AppChrome>{children}</AppChrome>

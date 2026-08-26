@@ -39,43 +39,58 @@ export function extractVndbRef(refs: unknown): string | null {
   return (hit as { external_id?: string } | undefined)?.external_id ?? null
 }
 
-/** covers 块 → 竖版封面（portrait 优先，兜底 banner）。 */
-export function pickCover(covers: unknown): {
+/** cover/covers/banner 块 → 竖版封面（cover 优先，兜底 portrait_pinned / 首条 / banner）。 */
+export function pickCover(item: KungalWorkItem): {
   url: string | null
   width: number | null
   height: number | null
 } {
-  const c = covers as {
-    portrait?: { url?: string; width?: number; height?: number }
-    banner?: { url?: string; width?: number; height?: number }
-  } | null
-  const portrait = c?.portrait
-  if (portrait?.url) {
+  const use = (
+    img?: {
+      url?: string
+      width?: number | null
+      height?: number | null
+    } | null,
+  ) =>
+    img?.url
+      ? { url: img.url, width: img.width ?? null, height: img.height ?? null }
+      : null
+
+  const cover = use(item.cover)
+  if (cover) return cover
+
+  const rows = item.covers ?? []
+  const chosen =
+    rows.find((c) => c.portrait_pinned) ?? rows.find((c) => c.url) ?? null
+  if (chosen?.url) {
     return {
-      url: portrait.url,
-      width: portrait.width ?? null,
-      height: portrait.height ?? null,
+      url: chosen.url,
+      width: chosen.width ?? null,
+      height: chosen.height ?? null,
     }
   }
-  const banner = c?.banner
-  if (banner?.url) {
-    return {
-      url: banner.url,
-      width: banner.width ?? null,
-      height: banner.height ?? null,
-    }
-  }
+
+  const banner = use(item.banner)
+  if (banner) return banner
+
   return { url: null, width: null, height: null }
 }
 
-/** intros 数组 → 最佳简介（zh-Hans → zh → en → 首条）。 */
+/** intros 数组 → 最佳简介（zh-Hans → zh → en → 首条；v2 字段为 value）。 */
 export function pickIntro(intros: unknown): string | null {
   if (!Array.isArray(intros)) return null
-  const rows = intros as Array<{ lang?: string; intro?: string }>
+  const rows = intros as Array<{
+    lang?: string
+    value?: string
+    intro?: string
+  }>
+  const text = (row: { lang?: string; value?: string; intro?: string }) =>
+    row.value ?? row.intro
   const byLang = (lang: string) =>
-    rows.find((i) => i.lang?.toLowerCase() === lang.toLowerCase())?.intro
+    rows.find((i) => i.lang?.toLowerCase() === lang.toLowerCase())
   return (
-    byLang('zh-Hans') ?? byLang('zh') ?? byLang('en') ?? rows[0]?.intro ?? null
+    text(byLang('zh-Hans') ?? byLang('zh') ?? byLang('en') ?? rows[0] ?? {}) ??
+    null
   )
 }
 
@@ -88,7 +103,7 @@ export function normalizeWork(
   const olang = item.olang ?? null
   const vndbId = resolvedVid ?? extractVndbRef(item.refs)
   const localized = item.localized ?? null
-  const cover = pickCover(item.covers)
+  const cover = pickCover(item)
   const intro = pickIntro(item.intros)
 
   const titles: KungalTitleRow[] = []

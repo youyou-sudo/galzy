@@ -15,19 +15,21 @@ import { recordTagView } from '@web/server/views'
 export const Route = createFileRoute('/tags/$tagId')({
   loader: async ({ params }) => {
     const { tagId } = params
-    // Record tag view for hot ranking (non-blocking)
-    try {
-      await recordTagView({ data: { tagId } });
-    } catch {
-      // silently ignore recording failures
-    }
+    const [tag, game] = await Promise.all([
+      getTagData({ data: { tagId } }),
+      getVnListByTag({ data: { tagId, pageIndex: 0, pageSize: 24 } }),
+    ])
     return {
-      tag: await getTagData({ data: { tagId } }),
-      game: await getVnListByTag({
-        data: { tagId, pageIndex: 0, pageSize: 24 },
-      }),
+      tag,
+      game,
       tagId,
     }
+  },
+  // 仅在真实进入页面时计 view；预加载(悬停/空闲)不触发 onEnter，不会污染热榜
+  onEnter: ({ params }) => {
+    void recordTagView({ data: { tagId: params.tagId } }).catch(() => {
+      // silently ignore recording failures
+    })
   },
   head: ({ loaderData }) => ({
     meta: [
