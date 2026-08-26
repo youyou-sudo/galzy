@@ -14,12 +14,18 @@ import type {
 	CollectionData,
 	CollectionPreviewGame,
 } from "@web/lib/collections";
+import { getImageRatio } from "@web/lib/image";
 import { seoMeta, truncateText } from "@web/lib/seo";
 import {
 	getCollectionById,
 	getCollectionPreview,
 } from "@web/server/collections";
 import { ChevronLeft, Layers, Library } from "lucide-react";
+
+const COLLECTION_SKELETON_KEYS = Array.from(
+	{ length: 12 },
+	(_, index) => `collection-skeleton-${index}`,
+);
 
 export const Route = createFileRoute("/collections/$id")({
 	loader: async ({ params }) => {
@@ -83,8 +89,8 @@ function CollectionDetailSkeleton() {
 			</div>
 
 			<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-				{Array.from({ length: 12 }).map((_, i) => (
-					<div key={i} className="space-y-2">
+				{COLLECTION_SKELETON_KEYS.map((key) => (
+					<div key={key} className="space-y-2">
 						<Skeleton className="aspect-[2/3] rounded-lg w-full" />
 						<Skeleton className="h-4 w-3/4 mx-auto" />
 					</div>
@@ -212,7 +218,16 @@ function RouteComponent() {
 								params={{ id: game.id }}
 								className="group block rounded-xl overflow-hidden bg-card border transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
 							>
-								<div className="aspect-[2/3] overflow-hidden bg-muted">
+								<div
+									className="overflow-hidden bg-muted"
+									style={{
+										aspectRatio: getImageRatio(
+											game.imageWidth,
+											game.imageHeight,
+											2 / 3,
+										),
+									}}
+								>
 									<img
 										src={game.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
 										alt={game.title ?? game.alias ?? game.id}

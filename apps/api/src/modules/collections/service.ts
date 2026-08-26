@@ -3,7 +3,9 @@ import {
   collectionEntries,
   collections,
   db,
+  hasUsablePortraitCover,
   images,
+  kungalWorks,
   releasesProducers,
   releasesVn,
   sql,
@@ -226,6 +228,16 @@ export const CollectionService = {
           .where(inArray(vn.id, allVids))
 
         const vnMap = new Map(vnRows.map((r) => [r.id, r]))
+        const kungalRows = await db
+          .select({
+            vndbId: kungalWorks.vndbId,
+            coverUrl: kungalWorks.coverUrl,
+            coverWidth: kungalWorks.coverWidth,
+            coverHeight: kungalWorks.coverHeight,
+          })
+          .from(kungalWorks)
+          .where(inArray(kungalWorks.vndbId, allVids))
+        const kungalMap = new Map(kungalRows.map((r) => [r.vndbId, r]))
         const titleMap = new Map<string, string>()
         for (const r of titleRows) {
           const titles =
@@ -243,20 +255,32 @@ export const CollectionService = {
             colId,
             vids.map((vid) => {
               const v = vnMap.get(vid)
+              const kungal = kungalMap.get(vid)
+              const useKungal = hasUsablePortraitCover({
+                url: kungal?.coverUrl,
+                width: kungal?.coverWidth,
+                height: kungal?.coverHeight,
+              })
               return {
                 id: vid,
                 alias: v?.alias ?? null,
                 title: titleMap.get(vid) ?? v?.alias ?? vid,
-                imageId: v?.imageId ?? null,
-                imageWidth: v?.imageWidth ?? null,
-                imageHeight: v?.imageHeight ?? null,
-                imageUrl: v?.imageId
-                  ? buildCoverUrl(
-                      v.imageId,
-                      v?.imageWidth ?? null,
-                      v?.imageHeight ?? null,
-                    )
-                  : null,
+                imageId: useKungal ? null : (v?.imageId ?? null),
+                imageWidth: useKungal
+                  ? (kungal?.coverWidth ?? null)
+                  : (v?.imageWidth ?? null),
+                imageHeight: useKungal
+                  ? (kungal?.coverHeight ?? null)
+                  : (v?.imageHeight ?? null),
+                imageUrl: useKungal
+                  ? (kungal?.coverUrl ?? null)
+                  : v?.imageId
+                    ? buildCoverUrl(
+                        v.imageId,
+                        v?.imageWidth ?? null,
+                        v?.imageHeight ?? null,
+                      )
+                    : null,
                 cSexualAvg: v?.cSexualAvg ?? null,
               }
             }),
@@ -407,6 +431,22 @@ export const CollectionService = {
 
     if (entries.length === 0) return []
 
+    const kungalRows = await db
+      .select({
+        vndbId: kungalWorks.vndbId,
+        coverUrl: kungalWorks.coverUrl,
+        coverWidth: kungalWorks.coverWidth,
+        coverHeight: kungalWorks.coverHeight,
+      })
+      .from(kungalWorks)
+      .where(
+        inArray(
+          kungalWorks.vndbId,
+          entries.map((entry) => entry.id),
+        ),
+      )
+    const kungalMap = new Map(kungalRows.map((row) => [row.vndbId, row]))
+
     // Resolve Chinese-preferred titles
     const ids = entries.map((e) => e.id)
     const titleRows = await db
@@ -429,18 +469,28 @@ export const CollectionService = {
       if (titleObj) titleMap.set(r.id, titleObj.title)
     }
 
-    return entries.map((e) => ({
-      id: e.id,
-      alias: e.alias,
-      title: titleMap.get(e.id) ?? e.alias ?? e.id,
-      imageId: e.imageId,
-      imageWidth: e.imageWidth,
-      imageHeight: e.imageHeight,
-      imageUrl: e.imageId
-        ? buildCoverUrl(e.imageId, e.imageWidth, e.imageHeight)
-        : null,
-      cSexualAvg: e.cSexualAvg,
-    }))
+    return entries.map((e) => {
+      const kungal = kungalMap.get(e.id)
+      const useKungal = hasUsablePortraitCover({
+        url: kungal?.coverUrl,
+        width: kungal?.coverWidth,
+        height: kungal?.coverHeight,
+      })
+      return {
+        id: e.id,
+        alias: e.alias,
+        title: titleMap.get(e.id) ?? e.alias ?? e.id,
+        imageId: useKungal ? null : e.imageId,
+        imageWidth: useKungal ? (kungal?.coverWidth ?? null) : e.imageWidth,
+        imageHeight: useKungal ? (kungal?.coverHeight ?? null) : e.imageHeight,
+        imageUrl: useKungal
+          ? (kungal?.coverUrl ?? null)
+          : e.imageId
+            ? buildCoverUrl(e.imageId, e.imageWidth, e.imageHeight)
+            : null,
+        cSexualAvg: e.cSexualAvg,
+      }
+    })
   },
   async delete(id: number) {
     const [existing] = await db

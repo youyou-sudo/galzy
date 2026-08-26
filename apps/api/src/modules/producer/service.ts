@@ -2,7 +2,9 @@ import {
   alistb,
   buildCoverUrl,
   db,
+  hasUsablePortraitCover,
   images,
+  kungalWorks,
   producers,
   releasesProducers,
   releasesVn,
@@ -74,7 +76,7 @@ export const Producer = {
           >`(SELECT COALESCE(json_agg(row_to_json(t.*)), '[]'::json) FROM (SELECT lang, official, title, latin FROM vn_titles WHERE id = ${vn.id}) t)`,
         })
         .from(vn)
-        .innerJoin(images, eq(images.id, vn.cImage))
+        .leftJoin(images, eq(images.id, vn.cImage))
         .where(
           inArray(
             vn.id,
@@ -99,10 +101,42 @@ export const Producer = {
     ])
 
     const totalCount = Number(countResult?.count ?? 0)
+    const kungalRows =
+      producerGamelists.length > 0
+        ? await db
+            .select({
+              vndbId: kungalWorks.vndbId,
+              coverUrl: kungalWorks.coverUrl,
+              coverWidth: kungalWorks.coverWidth,
+              coverHeight: kungalWorks.coverHeight,
+            })
+            .from(kungalWorks)
+            .where(
+              inArray(
+                kungalWorks.vndbId,
+                producerGamelists.map((item) => item.id),
+              ),
+            )
+        : []
+    const kungalMap = new Map(kungalRows.map((row) => [row.vndbId, row]))
     for (const item of producerGamelists) {
-      item.image_url = item.image_id
-        ? buildCoverUrl(item.image_id, item.image_width, item.image_height)
-        : null
+      const kungal = kungalMap.get(item.id)
+      if (
+        hasUsablePortraitCover({
+          url: kungal?.coverUrl,
+          width: kungal?.coverWidth,
+          height: kungal?.coverHeight,
+        })
+      ) {
+        item.image_id = null
+        item.image_url = kungal?.coverUrl ?? null
+        item.image_width = kungal?.coverWidth ?? null
+        item.image_height = kungal?.coverHeight ?? null
+      } else {
+        item.image_url = item.image_id
+          ? buildCoverUrl(item.image_id, item.image_width, item.image_height)
+          : null
+      }
     }
     const data = {
       items: producerGamelists,

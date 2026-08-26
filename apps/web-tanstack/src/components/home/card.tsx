@@ -5,8 +5,12 @@ import { AspectRatio } from "@web/components/ui/aspect-ratio";
 import { Button } from "@web/components/ui/button";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { useViewportPreload } from "@web/hooks/use-viewport-preload";
+import { getImageRatio } from "@web/lib/image";
 import { r18Store } from "@web/stores/r18Store";
-import { useRef, useState, type ComponentProps } from "react";
+import { type ComponentProps, useRef, useState } from "react";
+
+const SKELETON_KEYS = ["first", "second", "third"] as const;
+const DETAIL_IMAGE_RATIO = 9 / 12;
 
 function IdGameCardSkeleton({ ref, ...props }: ComponentProps<"div">) {
 	return (
@@ -16,19 +20,19 @@ function IdGameCardSkeleton({ ref, ...props }: ComponentProps<"div">) {
 				<div className="space-y-4 w-full">
 					<Skeleton className="h-10 max-w-50" />
 					<Skeleton className="h-4 max-w-50" />
-					{Array.from({ length: 3 }).map((_, index) => (
-						<Skeleton className="h-4 w-full" key={index} />
+					{SKELETON_KEYS.map((key) => (
+						<Skeleton className="h-4 w-full" key={key} />
 					))}
 				</div>
 			</div>
 			<div className="space-y-4">
 				<div className="flex gap-2">
-					{Array.from({ length: 3 }).map((_, index) => (
-						<Skeleton className="h-7 w-12.5" key={index} />
+					{SKELETON_KEYS.map((key) => (
+						<Skeleton className="h-7 w-12.5" key={key} />
 					))}
 				</div>
-				{Array.from({ length: 3 }).map((_, index) => (
-					<Skeleton className="h-4 w-3/5" key={index} />
+				{SKELETON_KEYS.map((key) => (
+					<Skeleton className="h-4 w-3/5" key={key} />
 				))}
 			</div>
 		</div>
@@ -53,10 +57,15 @@ export function Images({
 	const showR18 = useSelector(r18Store, (s) => s.showR18);
 	const isSensitive = !showR18 && (cSexualAvg ?? 0) >= THRESHOLD;
 	const [revealed, setRevealed] = useState(false);
+	const ratio = getImageRatio(
+		props.width as number | undefined,
+		props.height as number | undefined,
+		DETAIL_IMAGE_RATIO,
+	);
 
 	return (
 		<AspectRatio
-			ratio={9 / 12}
+			ratio={ratio}
 			className="w-full overflow-hidden rounded-lg border bg-muted shadow"
 		>
 			<div className="relative w-full h-full">
@@ -98,7 +107,7 @@ function SensitiveImage({
 	const h = (imageProps as Record<string, unknown>).height as
 		| number
 		| undefined;
-	const ratio = w && h && h > 0 ? w / h : 9 / 12;
+	const ratio = getImageRatio(w, h, DETAIL_IMAGE_RATIO);
 
 	return (
 		<AspectRatio ratio={ratio} className="w-full overflow-hidden rounded-lg">
@@ -146,16 +155,19 @@ function Item({
 	const showR18 = useSelector(r18Store, (s) => s.showR18);
 	const isSensitive = !showR18 && (cSexualAvg ?? 0) >= THRESHOLD;
 	const [revealed, setRevealed] = useState(false);
+	const ratio = getImageRatio(width, height);
 	// 进入视口即预取详情数据，未请求过的条目点击也秒开（不触发 view 计数）
 	const linkRef = useRef<HTMLAnchorElement>(null);
-	useViewportPreload(linkRef, (router) => () =>
-		router.preloadRoute({ to: "/$id", params: { id: gameid } }),
+	useViewportPreload(
+		linkRef,
+		(router) => () =>
+			router.preloadRoute({ to: "/$id", params: { id: gameid } }),
 	);
 
 	return (
 		<Link ref={linkRef} to="/$id" params={{ id: gameid }}>
 			<AspectRatio
-				ratio={9 / 13}
+				ratio={ratio}
 				className="block relative overflow-hidden rounded-lg"
 				style={{ contentVisibility: "auto" }}
 			>

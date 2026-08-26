@@ -184,7 +184,7 @@ const producerMeiliDocBase = {
   description: producers.description,
 }
 
-/** Add computed imageUrl to each doc's images field using buildCoverUrl. */
+/** Add a frontend-compatible imageUrl to each document's images field. */
 function addImageUrlToDocs(docs: Array<Record<string, unknown>>): void {
   for (const doc of docs) {
     const img = doc.images as Record<string, unknown> | null
@@ -194,6 +194,9 @@ function addImageUrlToDocs(docs: Array<Record<string, unknown>>): void {
         img.width as number,
         img.height as number,
       )
+    } else if (img && !img.imageUrl && img.url) {
+      // PostgreSQL lowercases the unquoted imageUrl alias in row_to_json.
+      img.imageUrl = img.url
     }
   }
 }

@@ -1,6 +1,12 @@
 const VNDB_IMAGE_HOST = 'https://vndb-t.galzy.moe'
 const VNDB_LEGACY_HOST = 'https://t.vndb.org'
 
+export type CoverDimensions = {
+  url?: string | null
+  width?: number | null
+  height?: number | null
+}
+
 /** Configured base URL for game cover images (env: GAME_IMAGE_BASE_URL). */
 const baseUrl = process.env.GAME_IMAGE_BASE_URL || VNDB_IMAGE_HOST
 
@@ -20,6 +26,23 @@ export function buildCoverUrl(
   const isLarge = (width ?? 0) > 256 && (height ?? 0) > 400
   const sizePath = isLarge ? `${prefix}.t` : prefix
   return `${baseUrl}/${sizePath}/${suffix}/${body}.jpg`
+}
+
+/** Only use a source cover when it has safe, portrait dimensions. */
+export function hasUsablePortraitCover(
+  cover: CoverDimensions | null | undefined,
+): boolean {
+  return (
+    typeof cover?.url === 'string' &&
+    cover.url.length > 0 &&
+    typeof cover.width === 'number' &&
+    Number.isFinite(cover.width) &&
+    cover.width > 0 &&
+    typeof cover.height === 'number' &&
+    Number.isFinite(cover.height) &&
+    cover.height > 0 &&
+    cover.height >= cover.width
+  )
 }
 
 /**

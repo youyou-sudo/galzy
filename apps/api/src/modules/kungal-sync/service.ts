@@ -9,6 +9,7 @@ import {
 import { purgeAfterSync } from '@api/libs/cloudflare-cache'
 import { KungalClient, normalizeWork } from '@api/libs/kungal-api'
 import { acquireLockKv, delKvPattern, releaseLockKv } from '@api/libs/redis'
+import { CronService } from '@api/modules/cron/service'
 import { VndbSync } from '@api/modules/vndb-sync/service'
 import { eq, inArray, isNotNull } from 'drizzle-orm'
 
@@ -71,22 +72,35 @@ export const KungalSync = {
     }
   },
 
-  /** full = 全部 alistb vid；delta = 只补 kungalWorks 尚未收录的 vid。 */
+  /** full = 全部 alistb vid；delta = 新作品及缺少封面尺寸的旧记录。 */
   async runSync(type: 'full' | 'delta') {
     const vids = await this.getAlistbVids()
     if (vids.length === 0) return
 
     let target = vids
     if (type === 'delta') {
-      const existing = new Set(
+      const existing = new Map(
         (
           await db
-            .select({ vndbId: kungalWorks.vndbId })
+            .select({
+              vndbId: kungalWorks.vndbId,
+              coverUrl: kungalWorks.coverUrl,
+              coverWidth: kungalWorks.coverWidth,
+              coverHeight: kungalWorks.coverHeight,
+            })
             .from(kungalWorks)
             .where(isNotNull(kungalWorks.vndbId))
-        ).map((r) => r.vndbId as string),
+        ).map((r) => [r.vndbId as string, r]),
       )
-      target = vids.filter((v) => !existing.has(v))
+      target = vids.filter((v) => {
+        const row = existing.get(v)
+        const hasCoverDimensions =
+          typeof row?.coverWidth === 'number' &&
+          row.coverWidth > 0 &&
+          typeof row.coverHeight === 'number' &&
+          row.coverHeight > 0
+        return !row || (row.coverUrl !== null && !hasCoverDimensions)
+      })
     }
     if (target.length === 0) {
       console.log('🔄 Kungal 增量同步: 无新 VN')
@@ -142,44 +156,44 @@ export const KungalSync = {
     for (let i = 0; i < entries.length; i += RESOLVE_BATCH) {
       const batch = entries.slice(i, i + RESOLVE_BATCH)
       try {
-        const works = batch.map(([vid, item]) => ({
-          ...normalizeWork(item, vid).work,
+        const normalized = batch.map(([vid, item]) => normalizeWork(item, vid))
+        const works = normalized.map(({ work }) => ({
+          ...work,
           syncedAt: new Date(),
         }))
-        const titles = batch.flatMap(
-          ([vid, item]) => normalizeWork(item, vid).titles,
-        )
+        const titles = normalized.flatMap(({ titles }) => titles)
         const batchIds = batch.map(([, item]) => String(item.id))
-        await db
-          .insert(kungalWorks)
-          .values(works)
-          .onConflictDoUpdate({
-            target: kungalWorks.id,
-            set: {
-              vndbId: sql`excluded.vndb_id`,
-              olang: sql`excluded.olang`,
-              medium: sql`excluded.medium`,
-              contentRating: sql`excluded.content_rating`,
-              releasedFirst: sql`excluded.released_first`,
-              displayName: sql`excluded.display_name`,
-              coverUrl: sql`excluded.cover_url`,
-              coverWidth: sql`excluded.cover_width`,
-              coverHeight: sql`excluded.cover_height`,
-              intro: sql`excluded.intro`,
-              localized: sql`excluded.localized`,
-              covers: sql`excluded.covers`,
-              intros: sql`excluded.intros`,
-              ratings: sql`excluded.ratings`,
-              refs: sql`excluded.refs`,
-              syncedAt: sql`excluded.synced_at`,
-            },
-          })
-        if (titles.length > 0) {
-          await db
+        await db.transaction(async (tx) => {
+          await tx
+            .insert(kungalWorks)
+            .values(works)
+            .onConflictDoUpdate({
+              target: kungalWorks.id,
+              set: {
+                vndbId: sql`excluded.vndb_id`,
+                olang: sql`excluded.olang`,
+                medium: sql`excluded.medium`,
+                contentRating: sql`excluded.content_rating`,
+                releasedFirst: sql`excluded.released_first`,
+                displayName: sql`excluded.display_name`,
+                coverUrl: sql`excluded.cover_url`,
+                coverWidth: sql`excluded.cover_width`,
+                coverHeight: sql`excluded.cover_height`,
+                intro: sql`excluded.intro`,
+                localized: sql`excluded.localized`,
+                covers: sql`excluded.covers`,
+                intros: sql`excluded.intros`,
+                ratings: sql`excluded.ratings`,
+                refs: sql`excluded.refs`,
+                syncedAt: sql`excluded.synced_at`,
+              },
+            })
+          await tx
             .delete(kungalWorkTitles)
             .where(inArray(kungalWorkTitles.workId, batchIds))
-          await db.insert(kungalWorkTitles).values(titles)
-        }
+          if (titles.length > 0)
+            await tx.insert(kungalWorkTitles).values(titles)
+        })
         upserted += works.length
       } catch (err) {
         errors += batch.length
@@ -201,6 +215,8 @@ export const KungalSync = {
 
     // 阶段 3：缓存与 CDN 失效
     await this.updateProgress({ stage: 'cache' })
+    // Meilisearch 的游戏文档也包含封面尺寸，否则搜索页会继续使用旧比例。
+    await CronService.syncGameBatchToMeili([...resolved.keys()])
     await this.invalidateCache()
     await purgeAfterSync()
     await this.updateProgress({
@@ -270,6 +286,9 @@ export const KungalSync = {
     await VndbSync.invalidateCache()
     await delKvPattern('galzy:kungal:*').catch((e) =>
       console.warn('[Cache] kungal cache invalidation failed:', e),
+    )
+    await delKvPattern('galzy:views:hot:*').catch((e) =>
+      console.warn('[Cache] hot views invalidation failed:', e),
     )
   },
 }

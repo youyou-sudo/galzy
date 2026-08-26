@@ -2,7 +2,9 @@ import {
   alistb,
   buildCoverUrl,
   db,
+  hasUsablePortraitCover,
   images,
+  kungalWorks,
   media,
   otherMedia,
   others,
@@ -22,6 +24,7 @@ import {
   countDistinct,
   desc,
   eq,
+  inArray,
   like,
   or,
   type SQL,
@@ -205,10 +208,45 @@ export const Tags = {
 
     const totalCount = Number(countResult?.count ?? 0)
 
+    const kungalRows =
+      items.length > 0
+        ? await db
+            .select({
+              vndbId: kungalWorks.vndbId,
+              coverUrl: kungalWorks.coverUrl,
+              coverWidth: kungalWorks.coverWidth,
+              coverHeight: kungalWorks.coverHeight,
+            })
+            .from(kungalWorks)
+            .where(
+              inArray(
+                kungalWorks.vndbId,
+                items.map((item) => item.id),
+              ),
+            )
+        : []
+    const kungalMap = new Map(kungalRows.map((row) => [row.vndbId, row]))
+
     // Transform image URLs: replace VNDB host with configured CDN
     for (const item of items) {
       const img = item.images as Record<string, unknown> | null
-      if (img) {
+      const kungal = kungalMap.get(item.id)
+      if (
+        hasUsablePortraitCover({
+          url: kungal?.coverUrl,
+          width: kungal?.coverWidth,
+          height: kungal?.coverHeight,
+        })
+      ) {
+        ;(item as any).images = {
+          ...(img ?? { c_sexual_avg: 0 }),
+          id: null,
+          url: kungal?.coverUrl,
+          imageUrl: kungal?.coverUrl,
+          width: kungal?.coverWidth,
+          height: kungal?.coverHeight,
+        }
+      } else if (img) {
         img.imageUrl = img.id
           ? buildCoverUrl(
               img.id as string,

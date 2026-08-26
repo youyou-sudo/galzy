@@ -2,6 +2,7 @@ import {
   alistb,
   buildCoverUrl,
   db,
+  hasUsablePortraitCover,
   kungalWorks,
   kungalWorkTitles,
   listCloudreveFiles,
@@ -199,16 +200,22 @@ export const Game = {
           ...vt.filter((t) => !kLangs.has(t.lang as string)),
         ]
       }
-      const kcoverPortrait =
-        kungalWork?.coverUrl != null &&
-        kungalWork.coverWidth != null &&
-        kungalWork.coverHeight != null &&
-        kungalWork.coverHeight >= kungalWork.coverWidth
-      if (kungalWork && kcoverPortrait && img) {
-        img.url = kungalWork.coverUrl
-        img.imageUrl = kungalWork.coverUrl
-        if (kungalWork.coverWidth) img.width = kungalWork.coverWidth
-        if (kungalWork.coverHeight) img.height = kungalWork.coverHeight
+      if (
+        kungalWork &&
+        hasUsablePortraitCover({
+          url: kungalWork.coverUrl,
+          width: kungalWork.coverWidth,
+          height: kungalWork.coverHeight,
+        })
+      ) {
+        ;(item as any).images = {
+          ...(img ?? { c_sexual_avg: 0 }),
+          id: null,
+          url: kungalWork.coverUrl,
+          imageUrl: kungalWork.coverUrl,
+          width: kungalWork.coverWidth,
+          height: kungalWork.coverHeight,
+        }
       } else if (img) {
         img.imageUrl = img.id
           ? buildCoverUrl(
@@ -443,24 +450,25 @@ export const Game = {
             ;(data.vn as any).titles = mergedTitles
           }
           // 封面：kungal 竖版封面才优先（横版多为目录数据错误，如把同人图/截图当封面，回退 vndb）
-          const kcoverPortrait =
-            kungalWork.coverUrl &&
-            kungalWork.coverWidth != null &&
-            kungalWork.coverHeight != null &&
-            kungalWork.coverHeight >= kungalWork.coverWidth
-          if (kcoverPortrait && data.vn.image) {
-            const img = data.vn.image as unknown as {
-              id: string
-              url: string | null
-              imageUrl: string | null
-              width: number | null
-              height: number | null
-              [key: string]: unknown
+          if (
+            hasUsablePortraitCover({
+              url: kungalWork.coverUrl,
+              width: kungalWork.coverWidth,
+              height: kungalWork.coverHeight,
+            })
+          ) {
+            const img = data.vn.image as unknown as Record<
+              string,
+              unknown
+            > | null
+            ;(data.vn as any).image = {
+              ...(img ?? { cSexualAvg: 0 }),
+              id: null,
+              url: kungalWork.coverUrl,
+              imageUrl: kungalWork.coverUrl, // kungal CDN 绝对地址，不经过 buildCoverUrl/transformStoredUrl
+              width: kungalWork.coverWidth,
+              height: kungalWork.coverHeight,
             }
-            img.url = kungalWork.coverUrl
-            img.imageUrl = kungalWork.coverUrl // kungal CDN 绝对地址，不经过 buildCoverUrl/transformStoredUrl
-            if (kungalWork.coverWidth) img.width = kungalWork.coverWidth
-            if (kungalWork.coverHeight) img.height = kungalWork.coverHeight
           }
           if (kungalWork.intro) {
             ;(data.vn as any).description = kungalWork.intro
@@ -1020,18 +1028,23 @@ export const Game = {
               ...vt.filter((t) => !kLangs.has(t.lang as string)),
             ]
           }
-          const kcoverPortrait =
-            kungalWork?.coverUrl != null &&
-            kungalWork.coverWidth != null &&
-            kungalWork.coverHeight != null &&
-            kungalWork.coverHeight >= kungalWork.coverWidth
-          if (kungalWork && kcoverPortrait && img) {
+          if (
+            kungalWork &&
+            hasUsablePortraitCover({
+              url: kungalWork.coverUrl,
+              width: kungalWork.coverWidth,
+              height: kungalWork.coverHeight,
+            })
+          ) {
             // id 置空：外层 buildCoverUrl 兜底（img?.id）不会覆盖 kungal 封面
-            img.id = null
-            img.url = kungalWork.coverUrl
-            img.imageUrl = kungalWork.coverUrl
-            if (kungalWork.coverWidth) img.width = kungalWork.coverWidth
-            if (kungalWork.coverHeight) img.height = kungalWork.coverHeight
+            ;(row as any).images = {
+              ...(img ?? { c_sexual_avg: 0 }),
+              id: null,
+              url: kungalWork.coverUrl,
+              imageUrl: kungalWork.coverUrl,
+              width: kungalWork.coverWidth,
+              height: kungalWork.coverHeight,
+            }
           } else if (img?.id) {
             img.imageUrl = buildCoverUrl(
               img.id as string,
@@ -1279,11 +1292,11 @@ export const Game = {
         height: number | null
         c_sexual_avg: number | null
       } | null
-      const kcoverPortrait =
-        kungalWork?.coverUrl != null &&
-        kungalWork.coverWidth != null &&
-        kungalWork.coverHeight != null &&
-        kungalWork.coverHeight >= kungalWork.coverWidth
+      const kcoverPortrait = hasUsablePortraitCover({
+        url: kungalWork?.coverUrl,
+        width: kungalWork?.coverWidth,
+        height: kungalWork?.coverHeight,
+      })
       const images = kcoverPortrait
         ? {
             id: null,

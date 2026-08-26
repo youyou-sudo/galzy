@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { getImageRatio } from "@web/lib/image";
 import { cn } from "@web/lib/utils";
 import { Layers, Library } from "lucide-react";
 
@@ -62,10 +63,15 @@ function PokerStack({
 						style={{
 							transform: `translate(-50%, -50%) rotate(${layer.rotate}deg) translate(${layer.x}px, ${layer.y}px) scale(${layer.scale})`,
 							zIndex: layer.z,
+							aspectRatio: getImageRatio(
+								item.imageWidth,
+								item.imageHeight,
+								2 / 3,
+							),
 						}}
 						className={cn(
 							"absolute top-1/2 left-1/2",
-							"w-[68%] aspect-[2/3] rounded-lg border-[3px] border-background",
+							"w-[68%] rounded-lg border-[3px] border-background",
 							"shadow-md shadow-black/15 dark:shadow-black/30",
 							"object-cover transition-all duration-500 ease-out",
 							hoverStyles[i],

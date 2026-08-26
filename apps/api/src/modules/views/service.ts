@@ -2,7 +2,9 @@ import {
   buildCoverUrl,
   db,
   eventViews,
+  hasUsablePortraitCover,
   images,
+  kungalWorks,
   sql,
   tags,
   transformStoredUrl,
@@ -161,30 +163,42 @@ export const ViewsService = {
     }
 
     const ids = rows.map((r) => r.id)
-    // Single query: titles + image data via LEFT JOIN on images
-    const titleRows = (await (db
-      .select({
-        id: vn.id,
-        olang: vn.olang,
-        imageId: images.id,
-        imageWidth: images.width,
-        imageHeight: images.height,
-        imageUrl: images.url,
-        cSexualAvg: images.cSexualAvg,
-        titles: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT lang, title FROM ${vnTitles} t WHERE t.id = ${sql.identifier('vn')}.${sql.identifier('id')}) t), '[]'::json)`,
-      })
-      .from(vn)
-      .leftJoin(images, eq(vn.cImage, images.id))
-      .where(inArray(vn.id, ids)) as any)) as Array<{
-      id: string
-      olang: string | null
-      imageId: string | null
-      imageWidth: number | null
-      imageHeight: number | null
-      cSexualAvg: number | null
-      imageUrl: string | null
-      titles: Array<{ lang: string; title: string }>
-    }>
+    // Batch queries: VNDB image/title data and Kungal cover metadata in parallel
+    const [titleRows, kungalRows] = await Promise.all([
+      (await (db
+        .select({
+          id: vn.id,
+          olang: vn.olang,
+          imageId: images.id,
+          imageWidth: images.width,
+          imageHeight: images.height,
+          imageUrl: images.url,
+          cSexualAvg: images.cSexualAvg,
+          titles: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT lang, title FROM ${vnTitles} t WHERE t.id = ${sql.identifier('vn')}.${sql.identifier('id')}) t), '[]'::json)`,
+        })
+        .from(vn)
+        .leftJoin(images, eq(vn.cImage, images.id))
+        .where(inArray(vn.id, ids)) as any)) as Array<{
+        id: string
+        olang: string | null
+        imageId: string | null
+        imageWidth: number | null
+        imageHeight: number | null
+        cSexualAvg: number | null
+        imageUrl: string | null
+        titles: Array<{ lang: string; title: string }>
+      }>,
+      db
+        .select({
+          vndbId: kungalWorks.vndbId,
+          coverUrl: kungalWorks.coverUrl,
+          coverWidth: kungalWorks.coverWidth,
+          coverHeight: kungalWorks.coverHeight,
+        })
+        .from(kungalWorks)
+        .where(inArray(kungalWorks.vndbId, ids)),
+    ])
+    const kungalMap = new Map(kungalRows.map((row) => [row.vndbId, row]))
 
     const titleMap = new Map<string, string | null>()
     const imageMap = new Map<
@@ -214,16 +228,28 @@ export const ViewsService = {
 
     const mapped: ViewsModel.GameRankingItem[] = rows.map((r) => {
       const img = imageMap.get(r.id)
+      const kungal = kungalMap.get(r.id)
+      const useKungal = hasUsablePortraitCover({
+        url: kungal?.coverUrl,
+        width: kungal?.coverWidth,
+        height: kungal?.coverHeight,
+      })
       return {
         id: r.id,
         title: titleMap.get(r.id) ?? null,
         total: r.total,
-        imageId: img?.imageId ?? null,
-        imageWidth: img?.imageWidth ?? null,
-        imageHeight: img?.imageHeight ?? null,
-        imageUrl: img?.imageId
-          ? buildCoverUrl(img.imageId, img.imageWidth, img.imageHeight)
-          : transformStoredUrl(img?.imageUrl ?? null),
+        imageId: useKungal ? null : (img?.imageId ?? null),
+        imageWidth: useKungal
+          ? (kungal?.coverWidth ?? null)
+          : (img?.imageWidth ?? null),
+        imageHeight: useKungal
+          ? (kungal?.coverHeight ?? null)
+          : (img?.imageHeight ?? null),
+        imageUrl: useKungal
+          ? (kungal?.coverUrl ?? null)
+          : img?.imageId
+            ? buildCoverUrl(img.imageId, img.imageWidth, img.imageHeight)
+            : transformStoredUrl(img?.imageUrl ?? null),
         cSexualAvg: img?.cSexualAvg ?? null,
       }
     })
