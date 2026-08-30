@@ -33,12 +33,6 @@ type ThumbHashImageProps = ImageProps & {
 
 const NO_IMAGE_SRC = "/No-Image-Placeholder.svg.webp";
 
-/** 交叉过渡编排参数：真实图以模糊形态快速淡入并缓慢去模糊；占位同步淡出让位。 */
-const REVEAL_BLUR_PX = 24;
-const REVEAL_OPACITY_MS = 250;
-const REVEAL_BLUR_MS = 600;
-const PLACEHOLDER_FADE_MS = 400;
-
 const prefersReducedMotion = () =>
 	typeof window !== "undefined" &&
 	window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -56,112 +50,66 @@ function ThumbHashImage({
 	const placeholder = getThumbHashDataUrl(thumbhash);
 	const [loaded, setLoaded] = useState(false);
 	const [failed, setFailed] = useState(false);
-	// 过渡结束后移除动画层内联 filter/transition，把 filter（敏感图 blur-xl）与
-	// transform（列表 hover:scale-105 / 扑克层 hover 旋转位移）交还给外层类接管
-	const [settled, setSettled] = useState(false);
-	const [placeholderGone, setPlaceholderGone] = useState(false);
-	// 占位在加载期间恒定可见（thumbhash 秒出）；真实图到位后淡出，
-	// 淡出完毕（placeholderGone）或秒开直出（loaded && settled）时移除
-	const showPlaceholder =
-		Boolean(placeholder) && !(loaded && settled) && !placeholderGone;
 	const reduceMotion = prefersReducedMotion();
 	const imgRef = useRef<HTMLImageElement | null>(null);
 
-	// 缓存/秒开命中兜底：图片在 hydration 前已加载完成，onLoad/onError 事件错过。
-	// ref 阶段 setLoaded 会被 React 同步 flushSync——同一帧内动画层 inline style
-	// 从起始（opacity:0 blur:24）直接变目标（opacity:1 blur:0），浏览器只 paint 目标
-	// 态，CSS transition 无起始帧不触发。React 19 hydration + useEffect 调度也常在同一
-	// paint 循环内，setTimeout 也无法保证 paint 在前。唯一可靠：useEffect 跑后**强制
-	// 同步 reflow 起始态**（读取 offsetHeight 触发浏览器同步 paint 当前 DOM），再
-	// setLoaded 触发 re-render 时浏览器已开始下一帧 paint 目标态 → CSS 过渡生效。
-	// 还在加载中（!complete）→ 等 onLoad 自然触发（onLoad 在 commit+paint 之后）。
-	// failed 路径（complete=true 但 naturalWidth=0）→ 快速回退并 setSettled。
+	// 缓存命中时 load 事件可能在 hydration 前触发，需要主动检查图片状态。
 	useEffect(() => {
-		const img = imgRef.current;
-		if (!img?.complete) return;
-		if (img.naturalWidth === 0) {
+		const image = imgRef.current;
+		if (!image?.complete) return;
+		if (image.naturalWidth === 0) {
 			setFailed(true);
-			setLoaded(true);
-			setSettled(true);
-			return;
 		}
-		if (!alwaysAnimate || reduceMotion) {
-			setLoaded(true);
-			setSettled(true);
-			return;
-		}
-		// 强制 reflow 起始态：访问 offsetHeight 触发浏览器同步 paint 当前 DOM
-		//（起始态占位清晰可见、真实图 opacity:0 blur:24 被 paint 一次），下一帧
-		// setLoaded 翻转后浏览器 paint 目标态，CSS transition 从已 paint 的起始态过渡。
-		void document.body.offsetHeight;
 		setLoaded(true);
 	}, []);
 
 	return (
 		<div className={wrapperClassName} style={wrapperStyle}>
-			{/* thumbhash 占位：加载期间完整可见，真实图到位后向下淡出让位（层级在其下） */}
-			{showPlaceholder && (
+			{/* 图片加载完成后，ThumbHash 占位层渐隐。 */}
+			{placeholder && (
 				<img
 					aria-hidden="true"
 					alt=""
-					className={`absolute inset-0 w-full h-full object-cover ${className ?? ""}`}
+					className={`galzy-thumbhash-placeholder absolute inset-0 w-full h-full object-cover ${className ?? ""}`}
 					src={placeholder ?? undefined}
 					style={{
 						opacity: loaded ? 0 : 1,
-						transition: reduceMotion
-							? "none"
-							: `opacity ${PLACEHOLDER_FADE_MS}ms ease`,
-					}}
-					onTransitionEnd={(event) => {
-						if (
-							event.target === event.currentTarget &&
-							event.propertyName === "opacity"
-						) {
-							setPlaceholderGone(true);
-						}
+						transition: reduceMotion ? "none" : "opacity 400ms ease",
 					}}
 				/>
 			)}
-			{/* 真实图动画层：加载中隐藏；到位后带模糊淡入，与占位淡出的同时去模糊至清晰。
-			    内联样式只作用于该层，不污染真实图的类式 filter（敏感图 blur-xl）/transform */}
 			<div
 				className="absolute inset-0"
 				style={
-					settled || reduceMotion
-						? undefined
-						: loaded
-							? {
-									opacity: 1,
-									filter: "blur(0px)",
-									transition: `opacity ${REVEAL_OPACITY_MS}ms ease-out, filter ${REVEAL_BLUR_MS}ms ease-out`,
-								}
-							: { opacity: 0, filter: `blur(${REVEAL_BLUR_PX}px)` }
+					alwaysAnimate && !reduceMotion
+						? {
+								opacity: loaded ? 1 : 0,
+								transition: "opacity 250ms ease-out",
+							}
+						: undefined
 				}
-				onTransitionEnd={(event) => {
-					if (
-						event.target === event.currentTarget &&
-						event.propertyName === "filter"
-					) {
-						setSettled(true);
-					}
-				}}
 			>
 				<Image
 					{...props}
 					src={failed ? NO_IMAGE_SRC : src}
 					ref={imgRef}
 					className={className}
+					style={{
+						...props.style,
+						...(alwaysAnimate && !reduceMotion
+							? {
+									filter: loaded ? "blur(0)" : "blur(24px)",
+									transition: "filter 600ms ease-out",
+								}
+							: {}),
+					}}
 					onLoad={(event) => {
 						setLoaded(true);
-						if (reduceMotion) setSettled(true);
 						onLoad?.(event);
 					}}
 					onError={() => {
-						// 封面 CDN 加载失败（如 kungal 图在部分网络不可达）：
-						// 回退到本地占位图并走同一套浮现动画，避免图片永远不可见
 						setFailed(true);
 						setLoaded(true);
-						if (reduceMotion) setSettled(true);
 					}}
 				/>
 			</div>
@@ -331,7 +279,6 @@ function Item({
 			<AspectRatio
 				ratio={LIST_IMAGE_RATIO}
 				className="block relative overflow-hidden rounded-lg"
-				style={{ contentVisibility: "auto" }}
 			>
 				<div className="relative w-full h-full">
 					{/* 无 thumbhash 的图片加载期间露出骨架（有占位时被占位层盖住） */}
@@ -344,7 +291,7 @@ function Item({
 						decoding="async"
 						src={src}
 						alt={title || " "}
-						className={`absolute inset-0 w-full h-full object-cover hover:scale-105 transition duration-500 ease-out${isSensitive && !revealed ? " blur-xl" : ""}`}
+						className={`w-full h-full object-cover hover:scale-105 transition duration-500 ease-out${isSensitive && !revealed ? " blur-xl" : ""}`}
 					/>
 					{isSensitive && !revealed && (
 						<div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">

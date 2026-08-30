@@ -32,6 +32,7 @@ import {
 import { Button } from "@web/components/ui/button";
 import { Card, CardContent, CardHeader } from "@web/components/ui/card";
 import { Separator } from "@web/components/ui/separator";
+import { Skeleton } from "@web/components/ui/skeleton";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { seoMeta, truncateText } from "@web/lib/seo";
 import { authClient } from "@web/server/auth/auth-client";
@@ -295,6 +296,27 @@ function FavoriteButton({ topic }: { topic: any }) {
 	);
 }
 
+function TopicCommentsSkeleton() {
+	return (
+		<div className="space-y-4">
+			<Skeleton className="h-10 w-full rounded-md" />
+			<div className="space-y-3">
+				{[1, 2, 3].map((i) => (
+					<div key={i} className="flex gap-3">
+						<Skeleton className="size-8 rounded-full shrink-0" />
+						<div className="flex-1 space-y-2">
+							<Skeleton className="h-4 w-20" />
+							<Skeleton className="h-4 w-full" />
+							<Skeleton className="h-4 w-3/4" />
+							<Skeleton className="h-3 w-16" />
+						</div>
+					</div>
+				))}
+			</div>
+		</div>
+	);
+}
+
 function TopicComments({
 	targetType,
 	targetId,
@@ -304,7 +326,7 @@ function TopicComments({
 	targetId: string;
 	session: any;
 }) {
-	const { data: commentsData } = useQuery({
+	const { data: commentsData, isLoading } = useQuery({
 		queryKey: ["comments", targetType, targetId],
 		queryFn: async () => {
 			return getCmments({
@@ -317,6 +339,10 @@ function TopicComments({
 			});
 		},
 	});
+
+	if (isLoading) {
+		return <TopicCommentsSkeleton />;
+	}
 
 	return (
 		<div className="space-y-4">
