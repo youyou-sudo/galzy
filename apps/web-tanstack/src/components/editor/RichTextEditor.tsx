@@ -17,6 +17,7 @@ import {
 	Link as LinkIcon,
 	List,
 	ListOrdered,
+	Loader2,
 	Minus,
 	Redo2,
 	Strikethrough,
@@ -24,8 +25,10 @@ import {
 	Underline as UnderlineIcon,
 	Undo2,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "../ui/button";
+import { Progress } from "../ui/progress";
 import { Separator } from "../ui/separator";
 
 // ---------------------------------------------------------------------------
@@ -49,23 +52,36 @@ export interface RichTextEditorProps {
 	className?: string;
 }
 
-// ---------------------------------------------------------------------------
-//  图片上传 —— 走同源代理路由，转发到 API /media/uploadimage
-// ---------------------------------------------------------------------------
-
-async function uploadImage(file: File): Promise<string> {
-	const formData = new FormData();
-	formData.append("image", file);
-	const res = await fetch("/api/upload-image", {
-		method: "POST",
-		body: formData,
+/** XHR 上传图片并回调进度（走同源代理路由，转发到 API /media/uploadimage） */
+function uploadImage(
+	file: File,
+	onProgress: (pct: number) => void,
+): Promise<string> {
+	return new Promise((resolve, reject) => {
+		const xhr = new XMLHttpRequest();
+		xhr.open("POST", "/api/upload-image");
+		xhr.upload.onprogress = (e) => {
+			if (e.lengthComputable)
+				onProgress(Math.round((e.loaded / e.total) * 100));
+		};
+		xhr.onload = () => {
+			if (xhr.status >= 200 && xhr.status < 300) {
+				try {
+					const data = JSON.parse(xhr.responseText) as { url?: string };
+					if (data.url) resolve(data.url);
+					else reject(new Error("未返回图片地址"));
+				} catch {
+					reject(new Error("响应解析失败"));
+				}
+			} else {
+				reject(new Error(`上传失败 (${xhr.status})`));
+			}
+		};
+		xhr.onerror = () => reject(new Error("网络错误，请重试"));
+		const formData = new FormData();
+		formData.append("image", file);
+		xhr.send(formData);
 	});
-	if (!res.ok) {
-		throw new Error(`上传失败 (${res.status})`);
-	}
-	const data = (await res.json()) as { url?: string };
-	if (!data.url) throw new Error("上传失败：未返回图片地址");
-	return data.url;
 }
 
 // ---------------------------------------------------------------------------
@@ -84,6 +100,8 @@ export function RichTextEditor({
 	const lastEmitted = useRef(value);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const uploadLock = useRef(false);
+	const [isUploading, setIsUploading] = useState(false);
+	const [uploadProgress, setUploadProgress] = useState(0);
 
 	const editor = useEditor({
 		immediatelyRender: false,
@@ -142,15 +160,25 @@ export function RichTextEditor({
 	}, [value, editor]);
 
 	async function insertImageFile(file: File) {
-		if (uploadLock.current) return;
+		if (uploadLock.current) {
+			toast.info("已有图片正在上传，请稍候");
+			return;
+		}
 		uploadLock.current = true;
+		setIsUploading(true);
+		setUploadProgress(0);
 		try {
-			const url = await uploadImage(file);
+			const url = await uploadImage(file, setUploadProgress);
 			editor?.chain().focus().setImage({ src: url }).run();
+			setUploadProgress(100);
 		} catch (e) {
 			console.error("[rich-editor] 图片上传失败:", e);
+			toast.error("图片上传失败", {
+				description: e instanceof Error ? e.message : "请重试",
+			});
 		} finally {
 			uploadLock.current = false;
+			setIsUploading(false);
 		}
 	}
 
@@ -185,7 +213,19 @@ export function RichTextEditor({
 					editor={editor}
 					onImage={() => fileInputRef.current?.click()}
 					onLink={setLink}
+					uploading={isUploading}
 				/>
+			)}
+
+			{/* ── 图片上传指示 ──────────────────────────────────────────────── */}
+			{isUploading && (
+				<div className="flex items-center gap-2 border-b border-input px-4 py-1.5">
+					<Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
+					<Progress value={uploadProgress} className="h-1.5 flex-1" />
+					<span className="shrink-0 text-xs text-muted-foreground">
+						上传中 {uploadProgress}%
+					</span>
+				</div>
 			)}
 
 			<input
@@ -220,10 +260,12 @@ function Toolbar({
 	editor,
 	onImage,
 	onLink,
+	uploading,
 }: {
 	editor: Editor;
 	onImage: () => void;
 	onLink: () => void;
+	uploading: boolean;
 }) {
 	const btn = (active: boolean) =>
 		cn(
@@ -338,9 +380,14 @@ function Toolbar({
 			<ToolbarButton
 				className={btn(false)}
 				onClick={onImage}
-				title="插入图片"
+				title={uploading ? "图片上传中..." : "插入图片"}
+				disabled={uploading}
 			>
-				<ImageIcon className="size-4" />
+				{uploading ? (
+					<Loader2 className="size-4 animate-spin" />
+				) : (
+					<ImageIcon className="size-4" />
+				)}
 			</ToolbarButton>
 			<ToolbarButton
 				className={btn(false)}
@@ -382,11 +429,13 @@ function ToolbarButton({
 	onClick,
 	title,
 	children,
+	disabled,
 }: {
 	className?: string;
 	onClick: () => void;
 	title: string;
 	children: React.ReactNode;
+	disabled?: boolean;
 }) {
 	return (
 		<Button
@@ -397,6 +446,7 @@ function ToolbarButton({
 			onClick={onClick}
 			title={title}
 			aria-label={title}
+			disabled={disabled}
 		>
 			{children}
 		</Button>
