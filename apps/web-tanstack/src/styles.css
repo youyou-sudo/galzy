@@ -154,3 +154,38 @@
   }
 
 }
+
+/* ── 富文本编辑器 (TipTap) ────────────────────────────────────────────── */
+
+/* 编辑区与阅读页图片统一约束：超出容器宽度的图片等比缩放。
+   只对没有内联宽度的图片生效（编辑器不自带缩放功能，库里存的 img 均无 width）。 */
+.prose img:not([width]),
+.ProseMirror img:not([width]) {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 空内容时让可编辑区域撑满整个编辑框，点击任何位置（含底部留白）都能进入末行。 */
+.ProseMirror {
+  min-height: 100%;
+}
+
+/* 选中文本时悬浮的格式条 (BubbleMenu) */
+.galzy-bubble-menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: var(--popover);
+  border: 1px solid var(--border);
+  box-shadow: var(--tw-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05)),
+    0 4px 16px rgb(0 0 0 / 0.1);
+}
+
+.galzy-bubble-menu-separator {
+  width: 1px;
+  height: 1rem;
+  margin: 0 4px;
+  background: var(--border);
+}

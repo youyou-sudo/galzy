@@ -2,7 +2,8 @@
 
 import { Image } from "@tiptap/extension-image";
 import { Placeholder } from "@tiptap/extension-placeholder";
-import { EditorContent, useEditor, type Editor } from "@tiptap/react";
+import { type Editor, EditorContent, useEditor } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import { cn } from "@web/lib/utils";
 import {
@@ -112,14 +113,15 @@ export function RichTextEditor({
 			}),
 			Image.configure({
 				allowBase64: false,
-				HTMLAttributes: { class: "rounded-md max-w-full h-auto" },
+				HTMLAttributes: { class: "rounded-md" },
 			}),
 			Placeholder.configure({ placeholder }),
 		],
 		content: value,
 		editorProps: {
 			attributes: {
-				class: "prose prose-sm sm:prose-base dark:prose-invert focus:outline-none max-w-none px-4 py-3",
+				class:
+					"prose prose-sm sm:prose-base dark:prose-invert focus:outline-none max-w-none px-4 py-3",
 			},
 			handlePaste: (_view, event) => {
 				const files = Array.from(event.clipboardData?.files ?? []);
@@ -217,6 +219,131 @@ export function RichTextEditor({
 				/>
 			)}
 
+			{/* ── 选中文本时的悬浮格式条（Notion 风格）────────────────────────── */}
+			{editor && (
+				<BubbleMenu editor={editor} className="galzy-bubble-menu">
+					<BubbleButton
+						active={editor.isActive("bold")}
+						onClick={() => run(editor, (c) => c.toggleBold())}
+						title="粗体"
+					>
+						<Bold className="size-3.5" />
+					</BubbleButton>
+					<BubbleButton
+						active={editor.isActive("italic")}
+						onClick={() => run(editor, (c) => c.toggleItalic())}
+						title="斜体"
+					>
+						<Italic className="size-3.5" />
+					</BubbleButton>
+					<BubbleButton
+						active={editor.isActive("underline")}
+						onClick={() => run(editor, (c) => c.toggleUnderline())}
+						title="下划线"
+					>
+						<UnderlineIcon className="size-3.5" />
+					</BubbleButton>
+					<BubbleButton
+						active={editor.isActive("strike")}
+						onClick={() => run(editor, (c) => c.toggleStrike())}
+						title="删除线"
+					>
+						<Strikethrough className="size-3.5" />
+					</BubbleButton>
+
+					<div className="galzy-bubble-menu-separator" />
+
+					<BubbleButton
+						active={editor.isActive("heading", { level: 1 })}
+						onClick={() => run(editor, (c) => c.toggleHeading({ level: 1 }))}
+						title="标题 1"
+					>
+						<Heading1 className="size-3.5" />
+					</BubbleButton>
+					<BubbleButton
+						active={editor.isActive("heading", { level: 2 })}
+						onClick={() => run(editor, (c) => c.toggleHeading({ level: 2 }))}
+						title="标题 2"
+					>
+						<Heading2 className="size-3.5" />
+					</BubbleButton>
+					<BubbleButton
+						active={editor.isActive("heading", { level: 3 })}
+						onClick={() => run(editor, (c) => c.toggleHeading({ level: 3 }))}
+						title="标题 3"
+					>
+						<Heading3 className="size-3.5" />
+					</BubbleButton>
+
+					<div className="galzy-bubble-menu-separator" />
+
+					<BubbleButton
+						active={editor.isActive("bulletList")}
+						onClick={() => run(editor, (c) => c.toggleBulletList())}
+						title="无序列表"
+					>
+						<List className="size-3.5" />
+					</BubbleButton>
+					<BubbleButton
+						active={editor.isActive("orderedList")}
+						onClick={() => run(editor, (c) => c.toggleOrderedList())}
+						title="有序列表"
+					>
+						<ListOrdered className="size-3.5" />
+					</BubbleButton>
+					<BubbleButton
+						active={editor.isActive("blockquote")}
+						onClick={() => run(editor, (c) => c.toggleBlockquote())}
+						title="引用"
+					>
+						<TextQuote className="size-3.5" />
+					</BubbleButton>
+					<BubbleButton
+						active={editor.isActive("code")}
+						onClick={() => run(editor, (c) => c.toggleCode())}
+						title="行内代码"
+					>
+						<Code className="size-3.5" />
+					</BubbleButton>
+					<BubbleButton
+						active={editor.isActive("link")}
+						onClick={() => {
+							if (!editor) return;
+							const previous = editor.getAttributes("link").href as
+								| string
+								| undefined;
+							const url = window.prompt(
+								"输入链接地址：",
+								previous ?? "https://",
+							);
+							if (url === null) return;
+							if (url === "") {
+								editor
+									.chain()
+									.focus()
+									.extendMarkRange("link")
+									.unsetLink()
+									.run();
+								return;
+							}
+							editor
+								.chain()
+								.focus()
+								.extendMarkRange("link")
+								.setLink({
+									href: url,
+									target: "_blank",
+									rel: "noopener noreferrer",
+								})
+								.run();
+						}}
+						title="链接"
+					>
+						<LinkIcon className="size-3.5" />
+					</BubbleButton>
+				</BubbleMenu>
+			)}
+
 			{/* ── 图片上传指示 ──────────────────────────────────────────────── */}
 			{isUploading && (
 				<div className="flex items-center gap-2 border-b border-input px-4 py-1.5">
@@ -242,11 +369,11 @@ export function RichTextEditor({
 
 			{/* ── 编辑区 ─────────────────────────────────────────────────────── */}
 			<div
-				className="overflow-y-auto"
+				className="flex overflow-y-auto"
 				style={{ minHeight }}
 				onKeyDown={onKeyDown}
 			>
-				<EditorContent editor={editor} />
+				<EditorContent editor={editor} className="min-h-full flex-1" />
 			</div>
 		</div>
 	);
@@ -447,6 +574,39 @@ function ToolbarButton({
 			title={title}
 			aria-label={title}
 			disabled={disabled}
+		>
+			{children}
+		</Button>
+	);
+}
+
+/** BubbleMenu 内的小按钮 */
+function BubbleButton({
+	active,
+	onClick,
+	title,
+	children,
+}: {
+	active: boolean;
+	onClick: () => void;
+	title: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<Button
+			type="button"
+			variant="ghost"
+			size="icon-sm"
+			className={cn(
+				"h-7 w-7",
+				active
+					? "bg-accent text-accent-foreground"
+					: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+			)}
+			onClick={onClick}
+			title={title}
+			aria-label={title}
+			onMouseDown={(e) => e.preventDefault()}
 		>
 			{children}
 		</Button>
