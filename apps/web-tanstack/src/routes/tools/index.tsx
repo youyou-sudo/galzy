@@ -1,9 +1,32 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from "@web/components/ui/breadcrumb";
 import ToolsPage from "@web/components/tools/tools-page";
 import { seoTemplate } from "@web/config/seoTemplate";
 
 export const Route = createFileRoute("/tools/")({
-	component: ToolsPage,
+	component: () => (
+		<div>
+			<Breadcrumb className="mb-4">
+				<BreadcrumbList>
+					<BreadcrumbItem>
+						<BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
+					</BreadcrumbItem>
+					<BreadcrumbSeparator />
+					<BreadcrumbItem>
+						<BreadcrumbPage>工具箱</BreadcrumbPage>
+					</BreadcrumbItem>
+				</BreadcrumbList>
+			</Breadcrumb>
+			<ToolsPage />
+		</div>
+	),
 	head: () => ({
 		meta: [
 			{ title: `工具箱 | ${seoTemplate.title}` },
