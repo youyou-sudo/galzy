@@ -46,34 +46,32 @@ const sites: PlateSite[] = [
 	{
 		id: "ehentai",
 		name: "E-Hentai",
-		url: "https://e-hentai.org/g/{id}/",
+		channels: [
+			{ id: "EH", name: "E-Hentai", url: "https://e-hentai.org/g/{id}/" },
+			{ id: "EXH", name: "ExHentai", url: "https://exhentai.org/g/{id}/" },
+		],
 		icon: "E",
 		color: "text-emerald-500",
 		bg: "bg-emerald-500/10",
 	},
 	{
-		id: "exhentai",
-		name: "ExHentai",
-		url: "https://exhentai.org/g/{id}/",
-		icon: "Ex",
-		color: "text-amber-500",
-		bg: "bg-amber-500/10",
-	},
-	{
-		id: "pixiv-artwork",
-		name: "Pixiv 作品",
-		url: "https://www.pixiv.net/artworks/{id}/",
+		id: "pixiv",
+		name: "Pixiv",
+		channels: [
+			{
+				id: "pixiv-artwork",
+				name: "作品",
+				url: "https://www.pixiv.net/artworks/{id}/",
+			},
+			{
+				id: "pixiv-author",
+				name: "作者",
+				url: "https://www.pixiv.net/users/{id}/",
+			},
+		],
 		icon: "绘",
 		color: "text-pink-500",
 		bg: "bg-pink-500/10",
-	},
-	{
-		id: "pixiv-author",
-		name: "Pixiv 作者",
-		url: "https://www.pixiv.net/users/{id}/",
-		icon: "人",
-		color: "text-blue-500",
-		bg: "bg-blue-500/10",
 	},
 	{
 		id: "gelbooru",
@@ -95,7 +93,9 @@ const sites: PlateSite[] = [
 
 export default function RouteComponent() {
 	const [plate, setPlate] = useState("");
-	const [nhentaiChannel, setNhentaiChannel] = useState("NH");
+	const [selectedChannels, setSelectedChannels] = useState<
+		Record<string, string>
+	>({});
 
 	const openSite = (url: string) => {
 		window.open(url, "_blank", "noopener,noreferrer");
@@ -130,7 +130,9 @@ export default function RouteComponent() {
 				</h2>
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 					{sites.map((site) => {
-						const channel = site.channels?.find((c) => c.id === nhentaiChannel);
+						const channel =
+							site.channels?.find((c) => c.id === selectedChannels[site.id]) ??
+							site.channels?.[0];
 						const url = channel?.url ?? site.url ?? "";
 						return (
 							<Card key={site.id}>
@@ -146,18 +148,25 @@ export default function RouteComponent() {
 										</CardTitle>
 										{site.channels && (
 											<RadioGroup
-												value={nhentaiChannel}
+												value={channel?.id ?? ""}
 												onValueChange={(value: string) =>
-													setNhentaiChannel(value)
+													setSelectedChannels((current) => ({
+														...current,
+														[site.id]: value,
+													}))
 												}
 												className="flex flex-row items-center gap-4"
 											>
 												{site.channels.map((c) => (
 													<label
 														key={c.id}
+														htmlFor={`plate-channel-${site.id}-${c.id}`}
 														className="flex items-center gap-2 text-sm cursor-pointer"
 													>
-														<RadioGroupItem value={c.id} />
+														<RadioGroupItem
+															id={`plate-channel-${site.id}-${c.id}`}
+															value={c.id}
+														/>
 														{c.name}
 													</label>
 												))}
