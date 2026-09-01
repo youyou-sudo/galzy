@@ -35,6 +35,7 @@ export const adminUpdateArticle = createServerFn()
 			id: z.number(),
 			title: z.optional(z.string()),
 			content: z.optional(z.string()),
+			contentType: z.optional(z.enum(["markdown", "html"])),
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -44,6 +45,7 @@ export const adminUpdateArticle = createServerFn()
 				data: {
 					title: data.title,
 					content: data.content,
+					contentType: data.contentType,
 				},
 			},
 			cookiePass(),

@@ -29,23 +29,28 @@ function RouteComponent() {
 		initialData: Route.useLoaderData(),
 	});
 
-	const handleSubmit = async (values: { title: string; content: string }) => {
-		try {
-			await updateTopic({
-				data: {
-					id: Number(topicId),
-					title: values.title,
-					content: values.content,
-				},
-			});
-			queryClient.invalidateQueries({ queryKey: ["topic", topicId] });
-			queryClient.invalidateQueries({ queryKey: ["topics"] });
-			toast.success("更新成功喵～");
-			navigate({ to: "/topics/$topicId", params: { topicId } });
-		} catch (error: any) {
-			toast.error(error?.message || "更新失败，请稍后重试");
-		}
-	};
+  const handleSubmit = async (values: {
+    title: string;
+    content: string;
+    contentType: "markdown" | "html";
+  }) => {
+    try {
+      await updateTopic({
+        data: {
+          id: Number(topicId),
+          title: values.title,
+          content: values.content,
+          contentType: values.contentType,
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: ["topic", topicId] });
+      queryClient.invalidateQueries({ queryKey: ["topics"] });
+      toast.success("更新成功喵～");
+      navigate({ to: "/topics/$topicId", params: { topicId } });
+    } catch (error: any) {
+      toast.error(error?.message || "更新失败，请稍后重试");
+    }
+  };
 
 	if (!topic) {
 		return (
@@ -59,6 +64,7 @@ function RouteComponent() {
 				defaultValues={{
 					title: (topic as any).title,
 					content: (topic as any).content,
+					contentType: (topic as any).contentType || "markdown",
 				}}
 				onSubmit={handleSubmit}
 				title="编辑帖子"

@@ -2,6 +2,8 @@ import {
   articles,
   comments,
   db,
+  sanitizeHtml,
+  stripHtml,
   topicFavorites,
   topicLikes,
   users,
@@ -34,6 +36,7 @@ export const TopicService = {
           userId: articles.author,
           title: articles.title,
           status: articles.status,
+          contentType: articles.contentType,
           createdAt: articles.createdAt,
           updatedAt: articles.updatedAt,
           summary: sql<string>`substring(${articles.content}, 1, 400)`.as(
@@ -129,6 +132,8 @@ export const TopicService = {
 
     const enrichedTopics = topicsData.map((t) => ({
       ...t,
+      summary:
+        t.contentType === 'html' ? stripHtml(t.summary ?? '') : t.summary,
       user: userMap.get(t.userId ?? '') ?? null,
       likeCount: likeCountMap.get(t.id) ?? 0,
       favoriteCount: favCountMap.get(t.id) ?? 0,
@@ -195,6 +200,7 @@ export const TopicService = {
         userId: articles.author,
         title: articles.title,
         status: articles.status,
+        contentType: articles.contentType,
         createdAt: articles.createdAt,
         updatedAt: articles.updatedAt,
         summary: sql<string>`substring(${articles.content}, 1, 400)`.as(
@@ -278,6 +284,8 @@ export const TopicService = {
 
     const enrichedTopics = ordered.map((t) => ({
       ...t,
+      summary:
+        t.contentType === 'html' ? stripHtml(t.summary ?? '') : t.summary,
       user: userMap.get(t.userId ?? '') ?? null,
       likeCount: likeCountMap.get(t.id) ?? 0,
       favoriteCount: favCountMap.get(t.id) ?? 0,
@@ -344,6 +352,7 @@ export const TopicService = {
         userId: articles.author,
         title: articles.title,
         status: articles.status,
+        contentType: articles.contentType,
         createdAt: articles.createdAt,
         updatedAt: articles.updatedAt,
         summary: sql<string>`substring(${articles.content}, 1, 400)`.as(
@@ -427,6 +436,8 @@ export const TopicService = {
 
     const enrichedTopics = ordered.map((t) => ({
       ...t,
+      summary:
+        t.contentType === 'html' ? stripHtml(t.summary ?? '') : t.summary,
       user: userMap.get(t.userId ?? '') ?? null,
       likeCount: likeCountMap.get(t.id) ?? 0,
       favoriteCount: favCountMap.get(t.id) ?? 0,
@@ -452,6 +463,7 @@ export const TopicService = {
         userId: articles.author,
         title: articles.title,
         content: articles.content,
+        contentType: articles.contentType,
         status: articles.status,
         createdAt: articles.createdAt,
         updatedAt: articles.updatedAt,
@@ -500,15 +512,21 @@ export const TopicService = {
     }
   },
 
-  async createTopic({ title, content }: TopicModel.create, userId: string) {
+  async createTopic(
+    { title, content, contentType = 'markdown' }: TopicModel.create,
+    userId: string,
+  ) {
     const now = new Date()
+
+    const safeContent = contentType === 'html' ? sanitizeHtml(content) : content
 
     const [inserted] = await db
       .insert(articles)
       .values({
         author: userId,
         title,
-        content,
+        content: safeContent,
+        contentType,
         type: 'topic',
         status: 'published',
         createdAt: now,
@@ -547,8 +565,15 @@ export const TopicService = {
       id,
       title,
       content,
+      contentType,
       status: newStatus,
-    }: { id: string; title?: string; content?: string; status?: string },
+    }: {
+      id: string
+      title?: string
+      content?: string
+      contentType?: 'markdown' | 'html'
+      status?: string
+    },
     userId: string,
     role?: string | null,
   ) {
@@ -572,7 +597,11 @@ export const TopicService = {
 
     const updateData: Record<string, string | Date> = {}
     if (title !== undefined) updateData.title = title
-    if (content !== undefined) updateData.content = content
+    if (content !== undefined) {
+      updateData.content =
+        contentType === 'html' ? sanitizeHtml(content) : content
+    }
+    if (contentType !== undefined) updateData.contentType = contentType
     if (newStatus !== undefined) updateData.status = newStatus
     updateData.updatedAt = new Date()
 

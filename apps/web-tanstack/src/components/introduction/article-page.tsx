@@ -15,7 +15,7 @@ import { Loader2, Pencil, Trash2, User } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { CreateEditDialog } from "@web/components/-CreateEditDialog";
-import { SmartMarkdown } from "@web/components/SmartMarkdown";
+import { RichContent } from "@web/components/RichContent";
 
 export default function ArticlePage({
 	article,
@@ -126,7 +126,10 @@ export default function ArticlePage({
 				</CardHeader>
 				<CardContent>
 					<div className="overflow-x-auto">
-						<SmartMarkdown>{article?.content}</SmartMarkdown>
+						<RichContent
+							content={article?.content}
+							contentType={article?.contentType || "markdown"}
+						/>
 					</div>
 					<div className="text-right">
 						{article?.copyright && (
@@ -167,6 +170,7 @@ export default function ArticlePage({
 						id: articleId,
 						title: article.title ?? "",
 						content: article.content ?? "",
+						contentType: article.contentType || "markdown",
 						copyright: article.copyright ?? "",
 					}}
 					onSuccess={handleEditSuccess}

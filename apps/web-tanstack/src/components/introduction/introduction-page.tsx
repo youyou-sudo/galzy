@@ -152,6 +152,7 @@ export default function IntroductionPage({
 													id: String(item.id),
 													title: item.title,
 													content: item.content,
+													contentType: item.contentType || "markdown",
 													copyright: item.copyright,
 												});
 											}}

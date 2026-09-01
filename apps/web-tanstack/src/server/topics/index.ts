@@ -101,6 +101,7 @@ export const createTopic = createServerFn()
 		z.object({
 			title: z.string().min(1),
 			content: z.string().min(1),
+			contentType: z.optional(z.enum(["markdown", "html"])),
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -108,6 +109,7 @@ export const createTopic = createServerFn()
 			{
 				title: data.title,
 				content: data.content,
+				contentType: data.contentType,
 			},
 			cookiePass(),
 		);
@@ -121,6 +123,7 @@ export const updateTopic = createServerFn()
 			id: z.number(),
 			title: z.optional(z.string()),
 			content: z.optional(z.string()),
+			contentType: z.optional(z.enum(["markdown", "html"])),
 			status: z.optional(z.string()),
 		}),
 	)
@@ -129,6 +132,7 @@ export const updateTopic = createServerFn()
 			{
 				title: data.title,
 				content: data.content,
+				contentType: data.contentType,
 				status: data.status,
 			},
 			cookiePass(),

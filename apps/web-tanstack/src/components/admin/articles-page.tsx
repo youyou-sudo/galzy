@@ -389,6 +389,7 @@ function EditArticleCell({
 		id?: string | number;
 		title: string;
 		content: string;
+		contentType: "markdown" | "html";
 		copyright?: string;
 	}) => {
 		try {
@@ -397,6 +398,7 @@ function EditArticleCell({
 					id: Number(values.id),
 					title: values.title,
 					content: values.content,
+					contentType: values.contentType,
 				},
 			});
 			toast.success("文章已更新");
@@ -419,6 +421,7 @@ function EditArticleCell({
 					id: article.id,
 					title: article.title ?? "",
 					content: article.content ?? "",
+					contentType: (article as any).contentType || "markdown",
 				}}
 				customSubmit={handleCustomSubmit}
 			/>

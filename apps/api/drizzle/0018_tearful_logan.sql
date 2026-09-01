@@ -1,0 +1,1 @@
+ALTER TABLE "galrc_article" ADD COLUMN "contentType" text DEFAULT 'markdown' NOT NULL;

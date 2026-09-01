@@ -47,6 +47,7 @@ import { Route as AdminAuthLTopicsRouteImport } from './routes/admin/_authL/topi
 import { Route as AdminAuthLUsersRouteImport } from './routes/admin/_authL/users'
 import { Route as AdminAuthLVndbSyncRouteImport } from './routes/admin/_authL/vndb-sync'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiUploadImageIndexRouteImport } from './routes/api/upload-image/index'
 import { Route as ApiUploadIndexRouteImport } from './routes/api/upload/index'
 import { Route as AuthSignupIndexRouteImport } from './routes/auth/signup/index'
 import { Route as AuthSignupVerificationRouteImport } from './routes/auth/signup/Verification'
@@ -244,6 +245,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiUploadImageIndexRoute = ApiUploadImageIndexRouteImport.update({
+  id: '/api/upload-image/',
+  path: '/api/upload-image/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiUploadIndexRoute = ApiUploadIndexRouteImport.update({
   id: '/api/upload/',
   path: '/api/upload/',
@@ -318,6 +324,7 @@ export interface FileRoutesByFullPath {
   '/topics/$topicId/edit': typeof TopicsTopicIdEditRoute
   '/$id/': typeof IdLayoutIndexRoute
   '/admin/': typeof AdminAuthLIndexRoute
+  '/api/upload-image/': typeof ApiUploadImageIndexRoute
   '/api/upload/': typeof ApiUploadIndexRoute
   '/auth/signup/': typeof AuthSignupIndexRoute
   '/$id/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
@@ -362,6 +369,7 @@ export interface FileRoutesByTo {
   '/topics/$topicId/edit': typeof TopicsTopicIdEditRoute
   '/$id': typeof IdLayoutIndexRoute
   '/admin': typeof AdminAuthLIndexRoute
+  '/api/upload-image': typeof ApiUploadImageIndexRoute
   '/api/upload': typeof ApiUploadIndexRoute
   '/auth/signup': typeof AuthSignupIndexRoute
   '/$id/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
@@ -409,6 +417,7 @@ export interface FileRoutesById {
   '/topics/$topicId/edit': typeof TopicsTopicIdEditRoute
   '/$id/_layout/': typeof IdLayoutIndexRoute
   '/admin/_authL/': typeof AdminAuthLIndexRoute
+  '/api/upload-image/': typeof ApiUploadImageIndexRoute
   '/api/upload/': typeof ApiUploadIndexRoute
   '/auth/signup/': typeof AuthSignupIndexRoute
   '/$id/_layout/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
@@ -457,6 +466,7 @@ export interface FileRouteTypes {
     | '/topics/$topicId/edit'
     | '/$id/'
     | '/admin/'
+    | '/api/upload-image/'
     | '/api/upload/'
     | '/auth/signup/'
     | '/$id/introduction/$articleId'
@@ -501,6 +511,7 @@ export interface FileRouteTypes {
     | '/topics/$topicId/edit'
     | '/$id'
     | '/admin'
+    | '/api/upload-image'
     | '/api/upload'
     | '/auth/signup'
     | '/$id/introduction/$articleId'
@@ -547,6 +558,7 @@ export interface FileRouteTypes {
     | '/topics/$topicId/edit'
     | '/$id/_layout/'
     | '/admin/_authL/'
+    | '/api/upload-image/'
     | '/api/upload/'
     | '/auth/signup/'
     | '/$id/_layout/introduction/$articleId'
@@ -580,6 +592,7 @@ export interface RootRouteChildren {
   UserIndexRoute: typeof UserIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   AuthSignupVerificationRoute: typeof AuthSignupVerificationRoute
+  ApiUploadImageIndexRoute: typeof ApiUploadImageIndexRoute
   ApiUploadIndexRoute: typeof ApiUploadIndexRoute
   AuthSignupIndexRoute: typeof AuthSignupIndexRoute
 }
@@ -852,6 +865,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/upload-image/': {
+      id: '/api/upload-image/'
+      path: '/api/upload-image'
+      fullPath: '/api/upload-image/'
+      preLoaderRoute: typeof ApiUploadImageIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/upload/': {
       id: '/api/upload/'
       path: '/api/upload'
@@ -986,6 +1006,7 @@ const rootRouteChildren: RootRouteChildren = {
   UserIndexRoute: UserIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   AuthSignupVerificationRoute: AuthSignupVerificationRoute,
+  ApiUploadImageIndexRoute: ApiUploadImageIndexRoute,
   ApiUploadIndexRoute: ApiUploadIndexRoute,
   AuthSignupIndexRoute: AuthSignupIndexRoute,
 }

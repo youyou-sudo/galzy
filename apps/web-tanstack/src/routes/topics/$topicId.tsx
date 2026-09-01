@@ -7,7 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { CommentMarkdown } from "@web/components/cmments/comment-markdown";
 import { ReplyEidtInput } from "@web/components/cmments/reply-edit-input";
-import { ArticleMarkdownComponents } from "@web/components/markdown-components";
+import { RichContent } from "@web/components/RichContent";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -46,9 +46,6 @@ import {
 import { replycardActions } from "@web/stores/reply-edit-input";
 import { Bookmark, Heart, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
-import Markdown from "react-markdown";
-import rehypeRaw from "rehype-raw";
-import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 
 function formatTime(dateStr: string) {
@@ -218,15 +215,10 @@ function RouteComponent() {
 					</div>
 				</CardHeader>
 				<CardContent>
-					<div className="overflow-x-auto break-words text-foreground/80">
-						<Markdown
-							rehypePlugins={[rehypeRaw]}
-							remarkPlugins={[remarkGfm]}
-							components={ArticleMarkdownComponents}
-						>
-							{(topic as any).content}
-						</Markdown>
-					</div>
+					<RichContent
+						content={(topic as any).content}
+						contentType={(topic as any).contentType || "markdown"}
+					/>
 					{session && (
 						<div className="flex items-center gap-4 mt-4 pt-3 border-t">
 							<LikeButton topic={topic as any} />

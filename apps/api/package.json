@@ -32,7 +32,12 @@
     "drizzle-orm": "^0.45.2",
     "elysia": "^1.4.29",
     "meilisearch": "^0.58.0",
+    "rehype": "^13.0.2",
+    "rehype-parse": "^9.0.1",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
     "unemail": "^0.4.1",
+    "unified": "^11.0.5",
     "xxhashjs": "^0.2.2"
   },
   "devDependencies": {

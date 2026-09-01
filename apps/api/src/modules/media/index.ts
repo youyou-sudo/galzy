@@ -51,3 +51,13 @@ export const media = new Elysia({ prefix: '/media' })
       body: MediaModel.uploadAvatar,
     },
   )
+  .post(
+    '/uploadimage',
+    async ({ body: { image }, user }) => {
+      return Media.uploadImage({ image, userId: user.id })
+    },
+    {
+      auth: true,
+      body: MediaModel.uploadImage,
+    },
+  )

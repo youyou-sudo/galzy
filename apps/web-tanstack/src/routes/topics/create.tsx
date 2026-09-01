@@ -29,7 +29,11 @@ function RouteComponent() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
-  const handleSubmit = async (values: { title: string; content: string }) => {
+  const handleSubmit = async (values: {
+    title: string;
+    content: string;
+    contentType: "markdown" | "html";
+  }) => {
     const result = await createTopic({ data: values })
     queryClient.invalidateQueries({ queryKey: ['topics'] })
     toast.success('发布成功喵～')

@@ -272,4 +272,25 @@ export const Media = {
 
     return { url: presignedUrl }
   },
+  async uploadImage({
+    image,
+    userId,
+  }: {
+    image: MediaModel.uploadImage['image']
+    userId: string
+  }) {
+    const contentType = image.type || 'image/png'
+    const ext = contentType.split('/')[1] || 'png'
+    const key = `content/${userId}/${Date.now()}-${image.name}.${ext}`
+
+    // Read file bytes
+    const buffer = Buffer.from(await image.arrayBuffer())
+
+    // Upload to S3
+    await s3.write(key, buffer)
+
+    const presignedUrl = `${process.env.S3_IMAGEURL}/${key}`
+
+    return { url: presignedUrl }
+  },
 }

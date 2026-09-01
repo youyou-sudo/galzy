@@ -10,12 +10,18 @@ export namespace TopicModel {
 
   export const Create = t.Object({
     title: t.String({ minLength: 1 }),
-    content: t.String({ minLength: 1 }),
+    content: t.String({ minLength: 1, maxLength: 50_000 }),
+    contentType: t.Optional(
+      t.Union([t.Literal('markdown'), t.Literal('html')]),
+    ),
   })
 
   export const Update = t.Object({
     title: t.Optional(t.String({ minLength: 1 })),
-    content: t.Optional(t.String({ minLength: 1 })),
+    content: t.Optional(t.String({ minLength: 1, maxLength: 50_000 })),
+    contentType: t.Optional(
+      t.Union([t.Literal('markdown'), t.Literal('html')]),
+    ),
     status: t.Optional(t.String({ minLength: 1 })),
   })
 

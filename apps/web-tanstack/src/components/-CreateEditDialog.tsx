@@ -2,7 +2,8 @@ import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { useSelector } from "@tanstack/react-store";
-import { MarkdownEditor } from "@web/components/editor/MarkdownEditor";
+import { RichTextEditor } from "@web/components/editor/RichTextEditor";
+import { htmlToPlainText, markdownToHtml } from "@web/lib/rich-text";
 import { Button } from "@web/components/ui/button";
 import {
 	Dialog,
@@ -43,6 +44,7 @@ interface CreateEditDialogProps {
 		id?: string | number;
 		title?: string;
 		content?: string;
+		contentType?: "markdown" | "html";
 		copyright?: string;
 		gameId?: string;
 	};
@@ -57,6 +59,7 @@ interface CreateEditDialogProps {
 		id?: string | number;
 		title: string;
 		content: string;
+		contentType: "markdown" | "html";
 		copyright?: string;
 	}) => Promise<void>;
 }
@@ -131,14 +134,20 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 	const formSchema = object({
 		title: string().min(1, "需要一个标题喵"),
 		content: string().min(1, "内容是空的喵？"),
+		contentType: string(),
 		copyright: string(),
 	});
+
+	// 存量 Markdown 内容先转成 HTML 再进编辑器；编辑器始终产出 HTML。
+	const toEditorHtml = (raw?: string) =>
+		mergedData?.contentType === "markdown" ? markdownToHtml(raw ?? "") : raw ?? "";
 
 	// ── Form ─────────────────────────────────────────────────────
 	const form = useForm({
 		defaultValues: {
 			title: mergedData?.title || "",
-			content: mergedData?.content || "",
+			content: toEditorHtml(mergedData?.content),
+			contentType: "html",
 			copyright: mergedData?.copyright || "",
 		},
 		validators: {
@@ -146,12 +155,25 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 			onSubmit: formSchema,
 		},
 		onSubmit: async ({ value }) => {
+			const contentType = "html";
+			const content = value.content.trim();
+			const isEmpty = htmlToPlainText(content).length === 0;
+			if (isEmpty) {
+				form.setFieldMeta("content", (m) => ({
+					...m,
+					errors: ["内容是空的喵？"],
+					isTouched: true,
+				}));
+				return;
+			}
+
 			// ── customSubmit 路径（admin 等） ─────────────────────────
 			if (isCustom) {
 				await props.customSubmit!({
 					id: mergedData?.id,
 					title: value.title.trim(),
-					content: value.content.trim(),
+					content,
+					contentType,
 					copyright: value.copyright?.trim() || undefined,
 				});
 				return;
@@ -170,7 +192,8 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 						id: String(mergedData?.id),
 						data: {
 							title: value.title.trim(),
-							content: value.content.trim(),
+							content,
+							contentType,
 							copyright: value.copyright?.trim() || null,
 						},
 					},
@@ -185,7 +208,8 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 				data: {
 					gameId,
 					title: value.title.trim(),
-					content: value.content.trim(),
+					content,
+					contentType,
 					copyright: value.copyright?.trim() || null,
 				},
 			});
@@ -226,6 +250,7 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 			mergedData?.gameId,
 			mergedData?.title,
 			mergedData?.content,
+			mergedData?.contentType,
 			mergedData?.copyright,
 			props?.gameId,
 			session?.user?.id,
@@ -234,7 +259,8 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 			prevSnapshotRef.current = snapshot;
 			form.reset({
 				title: mergedData?.title || "",
-				content: mergedData?.content || "",
+				content: toEditorHtml(mergedData?.content),
+				contentType: "html",
 				copyright: mergedData?.copyright || "",
 			});
 		}
@@ -316,18 +342,19 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 							}}
 						</form.Field>
 
-						{/* ── 内容 — 富文本 Markdown 编辑器 ── */}
+						{/* ── 内容 — 富文本编辑器 ── */}
 						<form.Field name="content">
 							{(field) => {
 								const isInvalid =
-									field.state.meta.isTouched && !field.state.meta.isValid;
+									field.state.meta.isTouched &&
+									(field.state.meta.errors?.length ?? 0) > 0;
 								return (
 									<Field data-invalid={isInvalid}>
-										<MarkdownEditor
+										<RichTextEditor
 											value={field.state.value}
-											onChange={(val) => field.handleChange(val ?? "")}
+											onChange={(val) => field.handleChange(val)}
 											onKeyDown={handleKeyDown}
-											placeholder="输入文章喵～ 支持 Markdown 语法（Ctrl+Enter 提交）"
+											placeholder="输入文章喵～（Ctrl+Enter 提交）"
 											aria-invalid={isInvalid}
 										/>
 										{isInvalid && (

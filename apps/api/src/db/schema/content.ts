@@ -99,6 +99,7 @@ export const articles = pgTable(
     author: text('author'),
     title: varchar('title', { length: 255 }),
     content: text('content'),
+    contentType: text('contentType').notNull().default('markdown'),
     copyright: text('copyright'),
     type: varchar('type', { length: 255 }),
     status: varchar('status', { length: 255 }).notNull().default('published'),

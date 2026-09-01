@@ -127,6 +127,13 @@
       "when": 1787734055046,
       "tag": "0017_massive_magus",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1788272087548,
+      "tag": "0018_tearful_logan",
+      "breakpoints": true
     }
   ]
 }

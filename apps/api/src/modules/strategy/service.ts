@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { articles, db, sql } from '@api/libs'
+import { articles, db, sanitizeHtml, sql } from '@api/libs'
 import {
   acquireIdempotentKey,
   delKv,
@@ -33,6 +33,7 @@ export interface StrategyListRow {
   status: string
   copyright: string | null
   content: string | null
+  contentType: string | null
   createdAt: Date | null
   updatedAt: Date | null
   user: Record<string, any> | null
@@ -67,6 +68,7 @@ function strategyListQuery(
       status: articles.status,
       copyright: articles.copyright,
       content: articles.content,
+      contentType: articles.contentType,
       createdAt: articles.createdAt,
       updatedAt: articles.updatedAt,
       user: sql<Record<string, any>>`
@@ -187,9 +189,16 @@ export const Strategy = {
     // 作者编辑被驳回的文章后重新进入审核队列
     const nextStatus =
       !isAdmin && article.status === 'rejected' ? { status: 'pending' } : {}
+    const safeData = { ...data } as Record<string, unknown>
+    if (typeof safeData.content === 'string') {
+      safeData.content =
+        safeData.contentType === 'html'
+          ? sanitizeHtml(safeData.content)
+          : safeData.content
+    }
     await db
       .update(articles)
-      .set({ ...data, ...nextStatus })
+      .set({ ...safeData, ...nextStatus })
       .where(eq(articles.id, Number(id)))
     await storeIdempotentResult(
       `galzy:idempotent:strategyListUpdate:${hash}`,
@@ -222,10 +231,18 @@ export const Strategy = {
     }
     const articleStatus = isAdmin ? 'published' : 'pending'
     const isVNDB = /^v\d+$/.test(id)
+    const safeData = {
+      ...data,
+      content:
+        data.contentType === 'html'
+          ? sanitizeHtml(data.content ?? '')
+          : data.content,
+      contentType: data.contentType ?? 'markdown',
+    }
     if (isVNDB) {
       await db.insert(articles).values({
         vid: id,
-        ...data,
+        ...safeData,
         type: 'strategy',
         author: userid,
         status: articleStatus,
@@ -233,7 +250,7 @@ export const Strategy = {
     } else {
       await db.insert(articles).values({
         otherid: Number(id),
-        ...data,
+        ...safeData,
         type: 'strategy',
         author: userid,
         status: articleStatus,

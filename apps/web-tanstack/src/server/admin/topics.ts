@@ -40,7 +40,6 @@ export const adminUpdateTopicStatus = createServerFn()
 		elysiaErrorF(error);
 		return res;
 	});
-
 export const adminDeleteTopic = createServerFn()
 	.validator(
 		z.object({

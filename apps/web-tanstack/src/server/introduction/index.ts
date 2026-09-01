@@ -41,6 +41,7 @@ export const createIntroduction = createServerFn()
 			gameId: z.string(),
 			title: z.string().min(1, "标题不能为空"),
 			content: z.string().min(1, "内容不能为空"),
+			contentType: z.optional(z.enum(["markdown", "html"])),
 			copyright: z.string().nullable().optional(),
 		}),
 	)
@@ -51,6 +52,7 @@ export const createIntroduction = createServerFn()
 				data: {
 					title: data.title,
 					content: data.content,
+					contentType: data.contentType,
 					copyright: data.copyright ?? "",
 				},
 			},
@@ -67,6 +69,7 @@ export const updateIntroduction = createServerFn()
 			data: z.object({
 				title: z.string().min(1, "标题不能为空"),
 				content: z.string().min(1, "内容不能为空"),
+				contentType: z.optional(z.enum(["markdown", "html"])),
 				copyright: z.string().nullable().optional(),
 			}),
 		}),
@@ -78,6 +81,7 @@ export const updateIntroduction = createServerFn()
 				data: {
 					title: data.data.title,
 					content: data.data.content,
+					contentType: data.data.contentType,
 					copyright: data.data.copyright ?? "",
 				},
 			},
