@@ -114,6 +114,13 @@ export function RichTextEditor({
 			Image.configure({
 				allowBase64: false,
 				HTMLAttributes: { class: "rounded-md" },
+				resize: {
+					enabled: true,
+					directions: ["bottom-right"],
+					minWidth: 60,
+					minHeight: 60,
+					alwaysPreserveAspectRatio: true,
+				},
 			}),
 			Placeholder.configure({ placeholder }),
 		],

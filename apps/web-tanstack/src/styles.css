@@ -158,11 +158,54 @@
 /* ── 富文本编辑器 (TipTap) ────────────────────────────────────────────── */
 
 /* 编辑区与阅读页图片统一约束：超出容器宽度的图片等比缩放。
-   只对没有内联宽度的图片生效（编辑器不自带缩放功能，库里存的 img 均无 width）。 */
-.prose img:not([width]),
+   编辑器自带缩放（存 width/height），因此统一对所有 img 生效；
+   height:auto 保证缩到容器宽度时保持宽高比。 */
+.prose img,
 .ProseMirror img:not([width]) {
   max-width: 100%;
   height: auto;
+}
+
+/* 图片缩放：容器最大宽度约束，防止拖拽把图片拉出编辑框 */
+[data-resize-container] {
+  max-width: 100%;
+}
+
+[data-resize-wrapper] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+[data-resize-wrapper] img {
+  max-width: 100%;
+}
+
+/* 图片被选中时的蓝色描边（Notion 风格） */
+[data-resize-container].ProseMirror-selectednode {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* 右下角缩放拖拽手柄（Notion 风格小圆点），默认隐藏，悬停/选中时显示 */
+[data-resize-handle="bottom-right"] {
+  width: 10px;
+  height: 10px;
+  background: var(--ring);
+  border: 2px solid var(--background);
+  border-radius: 9999px;
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 10;
+}
+
+[data-resize-container]:hover [data-resize-handle="bottom-right"],
+[data-resize-container].ProseMirror-selectednode
+  [data-resize-handle="bottom-right"],
+[data-resize-container][data-resize-state="true"]
+  [data-resize-handle="bottom-right"] {
+  opacity: 1;
 }
 
 /* 空内容时让可编辑区域撑满整个编辑框，点击任何位置（含底部留白）都能进入末行。 */
