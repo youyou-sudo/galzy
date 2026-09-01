@@ -33,10 +33,6 @@ type ThumbHashImageProps = ImageProps & {
 
 const NO_IMAGE_SRC = "/No-Image-Placeholder.svg.webp";
 
-const prefersReducedMotion = () =>
-	typeof window !== "undefined" &&
-	window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
 function ThumbHashImage({
 	thumbhash,
 	className,
@@ -50,22 +46,39 @@ function ThumbHashImage({
 	const placeholder = getThumbHashDataUrl(thumbhash);
 	const [loaded, setLoaded] = useState(false);
 	const [failed, setFailed] = useState(false);
-	const reduceMotion = prefersReducedMotion();
 	const imgRef = useRef<HTMLImageElement | null>(null);
 
-	// 缓存命中时 load 事件可能在 hydration 前触发，需要主动检查图片状态。
+	// 缓存命中时 load 事件可能在 hydration 前触发；未命中时使用原生事件补上加载状态。
 	useEffect(() => {
 		const image = imgRef.current;
-		if (!image?.complete) return;
-		if (image.naturalWidth === 0) {
+		if (!image) return;
+
+		const handleLoad = () => setLoaded(true);
+		const handleError = () => {
 			setFailed(true);
+			setLoaded(true);
+		};
+
+		if (image.complete) {
+			if (image.naturalWidth === 0) {
+				handleError();
+			} else {
+				handleLoad();
+			}
+			return;
 		}
-		setLoaded(true);
+
+		image.addEventListener("load", handleLoad, { once: true });
+		image.addEventListener("error", handleError, { once: true });
+		return () => {
+			image.removeEventListener("load", handleLoad);
+			image.removeEventListener("error", handleError);
+		};
 	}, []);
 
 	return (
 		<div className={wrapperClassName} style={wrapperStyle}>
-			{/* 图片加载完成后，ThumbHash 占位层渐隐。 */}
+			{/* 图片加载完成后，占位图模糊淡出，真实图同步由模糊变清晰。 */}
 			{placeholder && (
 				<img
 					aria-hidden="true"
@@ -74,21 +87,13 @@ function ThumbHashImage({
 					src={placeholder ?? undefined}
 					style={{
 						opacity: loaded ? 0 : 1,
-						transition: reduceMotion ? "none" : "opacity 400ms ease",
+						filter: loaded ? "blur(24px)" : "blur(0)",
+						transition: "filter 600ms ease-out, opacity 600ms ease-out",
+						transitionDelay: "0s",
 					}}
 				/>
 			)}
-			<div
-				className="absolute inset-0"
-				style={
-					alwaysAnimate && !reduceMotion
-						? {
-								opacity: loaded ? 1 : 0,
-								transition: "opacity 250ms ease-out",
-							}
-						: undefined
-				}
-			>
+			<div className="galzy-image-reveal absolute inset-0">
 				<Image
 					{...props}
 					src={failed ? NO_IMAGE_SRC : src}
@@ -96,7 +101,7 @@ function ThumbHashImage({
 					className={className}
 					style={{
 						...props.style,
-						...(alwaysAnimate && !reduceMotion
+						...(alwaysAnimate
 							? {
 									filter: loaded ? "blur(0)" : "blur(24px)",
 									transition: "filter 600ms ease-out",
