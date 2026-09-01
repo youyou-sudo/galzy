@@ -10,6 +10,8 @@ import { r18Store } from "@web/stores/r18Store";
 import {
 	type ComponentProps,
 	type CSSProperties,
+	type ForwardRefExoticComponent,
+	type RefAttributes,
 	useEffect,
 	useRef,
 	useState,
@@ -19,7 +21,16 @@ const SKELETON_KEYS = ["first", "second", "third"] as const;
 const DETAIL_IMAGE_RATIO = 9 / 12;
 const LIST_IMAGE_RATIO = 9 / 13;
 
-type ThumbHashImageProps = ImageProps & {
+// Unpic merges custom styles at runtime, but its ImageProps omits the style prop.
+type ImagePropsWithStyle = ImageProps & {
+	style?: CSSProperties;
+};
+
+const ImageWithStyle = Image as unknown as ForwardRefExoticComponent<
+	ImagePropsWithStyle & RefAttributes<HTMLImageElement>
+>;
+
+type ThumbHashImageProps = ImagePropsWithStyle & {
 	thumbhash?: string | null;
 	/** 动画层（占位 + 真实图的公共容器）的定位类；默认铺满父容器 */
 	wrapperClassName?: string;
@@ -94,7 +105,7 @@ function ThumbHashImage({
 				/>
 			)}
 			<div className="galzy-image-reveal absolute inset-0">
-				<Image
+				<ImageWithStyle
 					{...props}
 					src={failed ? NO_IMAGE_SRC : src}
 					ref={imgRef}

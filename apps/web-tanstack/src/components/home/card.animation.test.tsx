@@ -23,8 +23,8 @@ describe("GameCard.ThumbHashImage transition", () => {
 			/>,
 		);
 
-		const image = container.querySelector('img[alt="封面"]');
-		const placeholder = container.querySelector(
+		const image = container.querySelector<HTMLImageElement>('img[alt="封面"]');
+		const placeholder = container.querySelector<HTMLImageElement>(
 			"img.galzy-thumbhash-placeholder",
 		);
 		expect(image).not.toBeNull();
