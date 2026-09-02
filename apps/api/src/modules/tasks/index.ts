@@ -1,3 +1,4 @@
+import type { TaskPayload } from '@api/libs/queue'
 import { betterAuth } from '@api/modules/auth'
 import { Elysia } from 'elysia'
 import { TasksModel } from './model'
@@ -69,9 +70,13 @@ export const tasks = new Elysia({ prefix: '/tasks' })
   .post(
     '/enqueue/:queue',
     async ({ params: { queue }, body }) => {
-      // queue→type 白名单校验在 service.enqueue 内做（抛 400），路由不重复实现。
-      const jobId = await enqueue(queue, body as any)
+      // queue→type 白名单校验在 service.enqueue 内做（抛 400）。
+      const jobId = await enqueue(queue, body as TaskPayload)
       return { ok: true, jobId }
     },
-    { isAdmin: true, body: TasksModel.enqueueBody },
+    {
+      isAdmin: true,
+      params: TasksModel.queueParam,
+      body: TasksModel.enqueueBody,
+    },
   )

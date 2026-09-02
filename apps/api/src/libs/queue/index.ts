@@ -1,7 +1,7 @@
 import { Queue } from '@stacksjs/bun-queue'
 import { isQueueEnabled, queueConnection } from './config'
 import type { TaskPayload } from './payload'
-import { QUEUE, type QueueName } from './types'
+import type { QueueName } from './types'
 
 /**
  * QueueFactory —— 对 bun-queue 的薄封装，隔离第三方 0.x API。

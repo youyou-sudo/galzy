@@ -20,12 +20,11 @@ import { cn } from "@web/lib/utils";
 import {
 	enqueueTask,
 	getTaskLogs,
-	listDeadLetterTasks,
-	republishDeadLetterTask,
 	listTasks,
 	type QueueJobLogRow,
 	type QueueJobRow,
-	type DeadLetterJobRow,
+	removeDeadLetterTask,
+	republishDeadLetterTask,
 } from "@web/server/admin/tasks";
 import {
 	AlertTriangleIcon,
@@ -163,9 +162,11 @@ const enqueuePresets: Array<{ queue: string; type: string; label: string }> = [
 function TaskDetailDrawer({
 	job,
 	onClose,
+	onMutated,
 }: {
 	job: QueueJobRow | null;
 	onClose: () => void;
+	onMutated: () => void;
 }) {
 	const logsQuery = useQuery({
 		queryKey: ["admin", "tasks", "logs", job?.id],
@@ -175,6 +176,29 @@ function TaskDetailDrawer({
 			}),
 		enabled: !!job,
 		refetchInterval: job && job.status === "running" ? 2000 : false,
+	});
+
+	const deadLetterMutation = useMutation({
+		mutationFn: ({
+			queue,
+			jobId,
+			action,
+		}: {
+			queue: string;
+			jobId: string;
+			action: "republish" | "remove";
+		}) =>
+			action === "republish"
+				? republishDeadLetterTask({ data: { queue, jobId } })
+				: removeDeadLetterTask({ data: { queue, jobId } }),
+		onSuccess: (_, { action }) => {
+			toast.success(action === "republish" ? "已重放回队列" : "已丢弃死信");
+			onClose();
+			onMutated();
+		},
+		onError: (e) => {
+			toast.error(`操作失败: ${e instanceof Error ? e.message : String(e)}`);
+		},
 	});
 
 	if (!job) return null;
@@ -247,6 +271,42 @@ function TaskDetailDrawer({
 								失败原因
 							</p>
 							<p className="mt-1 break-all whitespace-pre-wrap">{job.error}</p>
+						</div>
+					)}
+
+					{/* 死信操作 */}
+					{job.status === "dead-letter" && (
+						<div className="flex flex-wrap gap-2">
+							<Button
+								size="sm"
+								variant="outline"
+								disabled={deadLetterMutation.isPending}
+								onClick={() =>
+									deadLetterMutation.mutate({
+										queue: job.queue,
+										jobId: job.id,
+										action: "republish",
+									})
+								}
+							>
+								<RefreshCwIcon className="size-3.5" />
+								重放回队列
+							</Button>
+							<Button
+								size="sm"
+								variant="destructive"
+								disabled={deadLetterMutation.isPending}
+								onClick={() =>
+									deadLetterMutation.mutate({
+										queue: job.queue,
+										jobId: job.id,
+										action: "remove",
+									})
+								}
+							>
+								<XCircleIcon className="size-3.5" />
+								丢弃死信
+							</Button>
 						</div>
 					)}
 
@@ -451,6 +511,11 @@ export default function TasksPage() {
 			<TaskDetailDrawer
 				job={selectedJob}
 				onClose={() => setSelectedJob(null)}
+				onMutated={() =>
+					queryClient.invalidateQueries({
+						queryKey: ["admin", "tasks", "list"],
+					})
+				}
 			/>
 		</div>
 	);

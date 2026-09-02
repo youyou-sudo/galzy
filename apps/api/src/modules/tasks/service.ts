@@ -31,7 +31,7 @@ function percentOf(processed: number, total: number): number {
  * galrc_queue_job.progress 与 bun-queue 的 job.progress（Redis，供 stalled/DLQ 语义）。
  */
 export class JobLogger {
-  private readonly job: Job<TaskPayload> | null
+  private readonly job: Job<TaskPayload>
 
   constructor(job: Job<TaskPayload>) {
     this.job = job
@@ -42,7 +42,7 @@ export class JobLogger {
     message: string,
   ) {
     await db.insert(queueJobLog).values({
-      jobId: this.job?.id ?? '',
+      jobId: this.job.id,
       level,
       message,
     })
@@ -63,7 +63,6 @@ export class JobLogger {
 
   /** 更新进度（0-100）：同时落 galrc_queue_job.progress 与 Redis job.progress。 */
   async progress(percent: number) {
-    if (!this.job) return
     const p = Math.max(0, Math.min(100, Math.round(percent)))
     await Promise.all([
       db
@@ -502,25 +501,7 @@ function wireLifecycleEvents(q: Queue<TaskPayload>) {
 
 // ── 分派表 ───────────────────────────────────────────────────────
 
-/** 各队列要消费的任务类型集合（payload.type 已与 payload.ts / types.ts 保持一致）。 */
-const QUEUE_TASK_DISPATCH = {
-  [QUEUE.vndbSync]: ['vndb-full', 'vndb-delta', 'vndb-producers'] as const,
-  [QUEUE.kungalSync]: ['kungal-full', 'kungal-delta'] as const,
-  [QUEUE.meiliIndex]: ['meili-game', 'meili-tag', 'meili-producer'] as const,
-  [QUEUE.cloudreveSync]: ['cloudreve-sync'] as const,
-  [QUEUE.metrics]: ['queue-log-prune'] as const,
-}
-
-function isTypeInQueue(
-  queue: (typeof QUEUE)[keyof typeof QUEUE],
-  type: string,
-): boolean {
-  return (QUEUE_TASK_DISPATCH[queue] as readonly string[]).includes(type)
-}
-
-/**
- * 注册所有队列的 Worker 与定时任务（仅生产 + Redis 生效时调用，见 index.ts 挂载点）。
- */
+/** 注册所有队列的 Worker 与定时任务（仅生产 + Redis 生效时调用，见 index.ts 挂载点）。 */
 export async function startQueueWorkers() {
   if (!isQueueEnabled) {
     console.log('⏭️ Queue workers skipped: Redis not enabled (dev mode).')
@@ -534,15 +515,10 @@ export async function startQueueWorkers() {
     createWorker({
       queue: QUEUE.vndbSync,
       concurrency: 1,
-      run: (payload, { logger }) => {
-        const taskType = payload.type
-        if (!isTypeInQueue(QUEUE.vndbSync, taskType)) {
-          throw new Error(`非法 vndb 任务类型: ${taskType}`)
-        }
-        return runVndbHandler(payload, (p, t) => {
+      run: (payload, { logger }) =>
+        runVndbHandler(payload, (p, t) => {
           void logger.progress(percentOf(p, t))
-        })
-      },
+        }),
     }),
   )
 
@@ -551,15 +527,10 @@ export async function startQueueWorkers() {
     createWorker({
       queue: QUEUE.kungalSync,
       concurrency: 1,
-      run: (payload, { logger }) => {
-        const taskType = payload.type
-        if (!isTypeInQueue(QUEUE.kungalSync, taskType)) {
-          throw new Error(`非法 kungal 任务类型: ${taskType}`)
-        }
-        return runKungalHandler(payload, (p, t) => {
+      run: (payload, { logger }) =>
+        runKungalHandler(payload, (p, t) => {
           void logger.progress(percentOf(p, t))
-        })
-      },
+        }),
     }),
   )
 
@@ -568,15 +539,10 @@ export async function startQueueWorkers() {
     createWorker({
       queue: QUEUE.meiliIndex,
       concurrency: 3,
-      run: (payload, { logger }) => {
-        const taskType = payload.type
-        if (!isTypeInQueue(QUEUE.meiliIndex, taskType)) {
-          throw new Error(`非法 meili 任务类型: ${taskType}`)
-        }
-        return runMeiliHandler(payload, (p, t) => {
+      run: (payload, { logger }) =>
+        runMeiliHandler(payload, (p, t) => {
           void logger.progress(percentOf(p, t))
-        })
-      },
+        }),
     }),
   )
 
