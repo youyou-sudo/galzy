@@ -155,7 +155,7 @@
 
 }
 
-/* ── 富文本编辑器 (TipTap) ────────────────────────────────────────────── */
+/* ── 富文本编辑器 (reactjs-tiptap-editor) ────────────────────────────── */
 
 /* 编辑区与阅读页图片统一约束：超出容器宽度的图片等比缩放。
    编辑器自带缩放（存 width/height），因此统一对所有 img 生效；
@@ -166,76 +166,23 @@
   height: auto;
 }
 
-/* 图片缩放：容器最大宽度约束，防止拖拽把图片拉出编辑框 */
-[data-resize-container] {
-  max-width: 100%;
+/* 阅读页图片：RichContent 经 @tiptap/static-renderer 输出
+   <div class="image" style="text-align:..."> 包裹（与编辑器节点视图一致），
+   img 保持内联、由 text-align 控制对齐；
+   float:none 仅用于阻止 img 上遗留 align 属性触发旧式浮动（旧内容兜底）。 */
+.prose img {
+  float: none;
 }
 
-[data-resize-wrapper] {
-  min-width: 0;
-  max-width: 100%;
+/* 覆盖库默认的 Notion 式大留白（32px 80px）→ 紧凑内边距；
+   最小高度由组件通过 --galzy-editor-min-height 控制，让空内容也能撑满编辑框。 */
+.reactjs-tiptap-editor .ProseMirror.ProseMirror.ProseMirror.galzy-prose {
+  padding: 0.75rem 1rem;
+  min-height: var(--galzy-editor-min-height, 300px);
 }
 
-[data-resize-wrapper] img {
-  max-width: 100%;
-}
-
-/* 图片被选中时的蓝色描边（Notion 风格） */
-[data-resize-container].ProseMirror-selectednode {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
-  border-radius: var(--radius-sm);
-}
-
-/* 底部中央缩放手柄（Notion 风格小圆点），默认隐藏，悬停/选中时显示。
-   用 right 方向的横向拖拽：横拖改宽度，高度等比跟随。 */
-[data-resize-handle="right"] {
-  width: 16px;
-  height: 16px;
-  /* 覆盖 Tiptap 内联定位（right:0; top:0; bottom:0）→ 移到图片底部中央 */
-  right: auto !important;
-  top: auto !important;
-  bottom: -7px !important;
-  left: 50% !important;
-  transform: translateX(-50%);
-  background: var(--ring);
-  border: 2px solid var(--background);
-  border-radius: 9999px;
-  cursor: ew-resize;
-  /* 移动端拖拽不被页面滚动拦截 */
-  touch-action: none;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  z-index: 10;
-}
-
-[data-resize-container]:hover [data-resize-handle="right"],
-[data-resize-container].ProseMirror-selectednode [data-resize-handle="right"],
-[data-resize-container][data-resize-state="true"] [data-resize-handle="right"] {
-  opacity: 1;
-}
-
-/* 空内容时让可编辑区域撑满整个编辑框，点击任何位置（含底部留白）都能进入末行。 */
-.ProseMirror {
-  min-height: 100%;
-}
-
-/* 选中文本时悬浮的格式条 (BubbleMenu) */
-.galzy-bubble-menu {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 4px;
+/* 编辑器图片圆角与阅读页一致（Image HTMLAttributes class="rounded-md"）：
+   库的节点视图不会把 HTMLAttributes 应用到编辑态 img，这里补上。 */
+.reactjs-tiptap-editor .image-view__body__image {
   border-radius: var(--radius-md);
-  background: var(--popover);
-  border: 1px solid var(--border);
-  box-shadow: var(--tw-shadow-sm, 0 1px 2px 0 rgb(0 0 0 / 0.05)),
-    0 4px 16px rgb(0 0 0 / 0.1);
-}
-
-.galzy-bubble-menu-separator {
-  width: 1px;
-  height: 1rem;
-  margin: 0 4px;
-  background: var(--border);
 }

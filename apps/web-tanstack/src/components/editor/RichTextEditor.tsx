@@ -1,36 +1,52 @@
 "use client";
 
-import { Image } from "@tiptap/extension-image";
-import { Placeholder } from "@tiptap/extension-placeholder";
-import { type Editor, EditorContent, useEditor } from "@tiptap/react";
-import { BubbleMenu } from "@tiptap/react/menus";
-import StarterKit from "@tiptap/starter-kit";
+import { RichTextProvider } from "reactjs-tiptap-editor";
+import "reactjs-tiptap-editor/style.css";
+import { EditorContent, useEditor } from "@tiptap/react";
+import { renderHtmlContent } from "@web/lib/rich-content-render";
 import { cn } from "@web/lib/utils";
+import { Loader2 } from "lucide-react";
 import {
-	Bold,
-	Code,
-	Code2,
-	Heading1,
-	Heading2,
-	Heading3,
-	Image as ImageIcon,
-	Italic,
-	Link as LinkIcon,
-	List,
-	ListOrdered,
-	Loader2,
-	Minus,
-	Redo2,
-	Strikethrough,
-	TextQuote,
-	Underline as UnderlineIcon,
-	Undo2,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+	type CSSProperties,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
+import { RichTextBlockquote } from "reactjs-tiptap-editor/blockquote";
+import { RichTextBold } from "reactjs-tiptap-editor/bold";
+import {
+	RichTextBubbleCodeBlock,
+	RichTextBubbleImage,
+	RichTextBubbleLink,
+	RichTextBubbleText,
+} from "reactjs-tiptap-editor/bubble";
+import { RichTextBulletList } from "reactjs-tiptap-editor/bulletlist";
+import { RichTextClear } from "reactjs-tiptap-editor/clear";
+import { RichTextCode } from "reactjs-tiptap-editor/code";
+import { RichTextCodeBlock } from "reactjs-tiptap-editor/codeblock";
+import { RichTextHeading } from "reactjs-tiptap-editor/heading";
+import { RichTextRedo, RichTextUndo } from "reactjs-tiptap-editor/history";
+import { RichTextHorizontalRule } from "reactjs-tiptap-editor/horizontalrule";
+import { RichTextImage } from "reactjs-tiptap-editor/image";
+import { RichTextItalic } from "reactjs-tiptap-editor/italic";
+import { RichTextLink } from "reactjs-tiptap-editor/link";
+import { localeActions, useLocale } from "reactjs-tiptap-editor/locale-bundle";
+import { RichTextOrderedList } from "reactjs-tiptap-editor/orderedlist";
+import {
+	renderCommandListDefault,
+	SlashCommandList,
+} from "reactjs-tiptap-editor/slashcommand";
+import { RichTextStrike } from "reactjs-tiptap-editor/strike";
+import { RichTextUnderline } from "reactjs-tiptap-editor/textunderline";
+import { themeActions } from "reactjs-tiptap-editor/theme";
 import { toast } from "sonner";
-import { Button } from "../ui/button";
 import { Progress } from "../ui/progress";
 import { Separator } from "../ui/separator";
+import { createRichTextExtensions } from "./extensions";
+
+// 编辑器 UI 文案使用中文
+localeActions.setLang("zh_CN");
 
 // ---------------------------------------------------------------------------
 //  Props
@@ -56,13 +72,13 @@ export interface RichTextEditorProps {
 /** XHR 上传图片并回调进度（走同源代理路由，转发到 API /media/uploadimage） */
 function uploadImage(
 	file: File,
-	onProgress: (pct: number) => void,
+	onProgress?: (pct: number) => void,
 ): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const xhr = new XMLHttpRequest();
 		xhr.open("POST", "/api/upload-image");
 		xhr.upload.onprogress = (e) => {
-			if (e.lengthComputable)
+			if (e.lengthComputable && onProgress)
 				onProgress(Math.round((e.loaded / e.total) * 100));
 		};
 		xhr.onload = () => {
@@ -85,6 +101,34 @@ function uploadImage(
 	});
 }
 
+/** Slash 命令菜单中只保留本项目启用的扩展对应的命令 */
+const SLASH_COMMANDS = new Set([
+	"headingParagraph",
+	"heading1",
+	"heading2",
+	"heading3",
+	"bulletList",
+	"orderedlist",
+	"blockquote",
+	"codeBlock",
+	"image",
+	"horizontalRule",
+]);
+
+function SlashList() {
+	const { t } = useLocale();
+	const commandList = useMemo(() => {
+		const lists = renderCommandListDefault({ t });
+		return lists
+			.map((l) => ({
+				...l,
+				commands: l.commands.filter((c) => SLASH_COMMANDS.has(c.name)),
+			}))
+			.filter((l) => l.commands.length > 0);
+	}, [t]);
+	return <SlashCommandList commandList={commandList} />;
+}
+
 // ---------------------------------------------------------------------------
 //  Component
 // ---------------------------------------------------------------------------
@@ -99,37 +143,41 @@ export function RichTextEditor({
 	className,
 }: RichTextEditorProps) {
 	const lastEmitted = useRef(value);
-	const fileInputRef = useRef<HTMLInputElement>(null);
 	const uploadLock = useRef(false);
 	const [isUploading, setIsUploading] = useState(false);
 	const [uploadProgress, setUploadProgress] = useState(0);
+	const [isDark, setIsDark] = useState(false);
+
+	// 跟随站点明暗主题（html.dark class），同步编辑器自身主题
+	useEffect(() => {
+		const el = document.documentElement;
+		const apply = () => {
+			const dark = el.classList.contains("dark");
+			setIsDark(dark);
+			themeActions.setTheme(dark ? "dark" : "light");
+		};
+		apply();
+		const observer = new MutationObserver(apply);
+		observer.observe(el, { attributes: true, attributeFilter: ["class"] });
+		return () => observer.disconnect();
+	}, []);
 
 	const editor = useEditor({
 		immediatelyRender: false,
-		extensions: [
-			StarterKit.configure({
-				heading: { levels: [1, 2, 3] },
-				link: { openOnClick: false },
-			}),
-			Image.configure({
-				allowBase64: false,
-				HTMLAttributes: { class: "rounded-md" },
-				resize: {
-					enabled: true,
-					// 用 "right" 方向获得横向宽度拖拽（Notion 底部中央手柄：横拖改宽度、高度等比跟随）
-					directions: ["right"],
-					minWidth: 60,
-					minHeight: 60,
-					alwaysPreserveAspectRatio: true,
-				},
-			}),
-			Placeholder.configure({ placeholder }),
-		],
+		extensions: createRichTextExtensions({
+			placeholder,
+			imageUpload: (file) => uploadImage(file),
+			imageOnError: ({ type, message }) => {
+				toast.error(type === "upload" ? "图片上传失败" : "图片无效", {
+					description: message,
+				});
+			},
+		}),
 		content: value,
 		editorProps: {
 			attributes: {
 				class:
-					"prose prose-sm sm:prose-base dark:prose-invert focus:outline-none max-w-none px-4 py-3",
+					"galzy-prose prose prose-sm sm:prose-base dark:prose-invert focus:outline-none max-w-none",
 			},
 			handlePaste: (_view, event) => {
 				const files = Array.from(event.clipboardData?.files ?? []);
@@ -169,6 +217,12 @@ export function RichTextEditor({
 		}
 	}, [value, editor]);
 
+	// 挂载前/SSR 占位用的静态渲染内容（与编辑器同构）
+	const staticHtml = useMemo(
+		() => (value ? renderHtmlContent(value) : ""),
+		[value],
+	);
+
 	async function insertImageFile(file: File) {
 		if (uploadLock.current) {
 			toast.info("已有图片正在上传，请稍候");
@@ -179,7 +233,7 @@ export function RichTextEditor({
 		setUploadProgress(0);
 		try {
 			const url = await uploadImage(file, setUploadProgress);
-			editor?.chain().focus().setImage({ src: url }).run();
+			editor?.chain().focus().setImageBlock({ src: url }).run();
 			setUploadProgress(100);
 		} catch (e) {
 			console.error("[rich-editor] 图片上传失败:", e);
@@ -192,23 +246,6 @@ export function RichTextEditor({
 		}
 	}
 
-	const setLink = () => {
-		if (!editor) return;
-		const previous = editor.getAttributes("link").href as string | undefined;
-		const url = window.prompt("输入链接地址：", previous ?? "https://");
-		if (url === null) return;
-		if (url === "") {
-			editor.chain().focus().extendMarkRange("link").unsetLink().run();
-			return;
-		}
-		editor
-			.chain()
-			.focus()
-			.extendMarkRange("link")
-			.setLink({ href: url, target: "_blank", rel: "noopener noreferrer" })
-			.run();
-	};
-
 	return (
 		<div
 			className={cn(
@@ -217,144 +254,44 @@ export function RichTextEditor({
 				className,
 			)}
 		>
-			{/* ── 工具栏 ─────────────────────────────────────────────────────── */}
-			{editor && (
-				<Toolbar
-					editor={editor}
-					onImage={() => fileInputRef.current?.click()}
-					onLink={setLink}
-					uploading={isUploading}
+			{editor ? (
+				<RichTextProvider editor={editor} dark={isDark}>
+					<Toolbar />
+
+					<SlashList />
+					<RichTextBubbleText />
+					<RichTextBubbleLink />
+					<RichTextBubbleImage />
+					<RichTextBubbleCodeBlock />
+
+					{/* ── 编辑区 ─────────────────────────────────────────────────── */}
+					<div
+						className="flex overflow-y-auto"
+						style={
+							{
+								minHeight,
+								"--galzy-editor-min-height": `${minHeight}px`,
+							} as CSSProperties
+						}
+						onKeyDown={onKeyDown}
+					>
+						<EditorContent editor={editor} className="min-h-full flex-1" />
+					</div>
+				</RichTextProvider>
+			) : (
+				/* ── SSR / 挂载前占位 ────────────────────────────────────────────
+				   编辑器实例需客户端创建（immediatelyRender: false），首屏先用静态
+				   渲染器输出内容（与编辑器同构），挂载后无缝切换，避免空白等待。 */
+				<EditorFallback
+					html={staticHtml}
+					placeholder={placeholder}
+					minHeight={minHeight}
 				/>
 			)}
 
-			{/* ── 选中文本时的悬浮格式条（Notion 风格）────────────────────────── */}
-			{editor && (
-				<BubbleMenu editor={editor} className="galzy-bubble-menu">
-					<BubbleButton
-						active={editor.isActive("bold")}
-						onClick={() => run(editor, (c) => c.toggleBold())}
-						title="粗体"
-					>
-						<Bold className="size-3.5" />
-					</BubbleButton>
-					<BubbleButton
-						active={editor.isActive("italic")}
-						onClick={() => run(editor, (c) => c.toggleItalic())}
-						title="斜体"
-					>
-						<Italic className="size-3.5" />
-					</BubbleButton>
-					<BubbleButton
-						active={editor.isActive("underline")}
-						onClick={() => run(editor, (c) => c.toggleUnderline())}
-						title="下划线"
-					>
-						<UnderlineIcon className="size-3.5" />
-					</BubbleButton>
-					<BubbleButton
-						active={editor.isActive("strike")}
-						onClick={() => run(editor, (c) => c.toggleStrike())}
-						title="删除线"
-					>
-						<Strikethrough className="size-3.5" />
-					</BubbleButton>
-
-					<div className="galzy-bubble-menu-separator" />
-
-					<BubbleButton
-						active={editor.isActive("heading", { level: 1 })}
-						onClick={() => run(editor, (c) => c.toggleHeading({ level: 1 }))}
-						title="标题 1"
-					>
-						<Heading1 className="size-3.5" />
-					</BubbleButton>
-					<BubbleButton
-						active={editor.isActive("heading", { level: 2 })}
-						onClick={() => run(editor, (c) => c.toggleHeading({ level: 2 }))}
-						title="标题 2"
-					>
-						<Heading2 className="size-3.5" />
-					</BubbleButton>
-					<BubbleButton
-						active={editor.isActive("heading", { level: 3 })}
-						onClick={() => run(editor, (c) => c.toggleHeading({ level: 3 }))}
-						title="标题 3"
-					>
-						<Heading3 className="size-3.5" />
-					</BubbleButton>
-
-					<div className="galzy-bubble-menu-separator" />
-
-					<BubbleButton
-						active={editor.isActive("bulletList")}
-						onClick={() => run(editor, (c) => c.toggleBulletList())}
-						title="无序列表"
-					>
-						<List className="size-3.5" />
-					</BubbleButton>
-					<BubbleButton
-						active={editor.isActive("orderedList")}
-						onClick={() => run(editor, (c) => c.toggleOrderedList())}
-						title="有序列表"
-					>
-						<ListOrdered className="size-3.5" />
-					</BubbleButton>
-					<BubbleButton
-						active={editor.isActive("blockquote")}
-						onClick={() => run(editor, (c) => c.toggleBlockquote())}
-						title="引用"
-					>
-						<TextQuote className="size-3.5" />
-					</BubbleButton>
-					<BubbleButton
-						active={editor.isActive("code")}
-						onClick={() => run(editor, (c) => c.toggleCode())}
-						title="行内代码"
-					>
-						<Code className="size-3.5" />
-					</BubbleButton>
-					<BubbleButton
-						active={editor.isActive("link")}
-						onClick={() => {
-							if (!editor) return;
-							const previous = editor.getAttributes("link").href as
-								| string
-								| undefined;
-							const url = window.prompt(
-								"输入链接地址：",
-								previous ?? "https://",
-							);
-							if (url === null) return;
-							if (url === "") {
-								editor
-									.chain()
-									.focus()
-									.extendMarkRange("link")
-									.unsetLink()
-									.run();
-								return;
-							}
-							editor
-								.chain()
-								.focus()
-								.extendMarkRange("link")
-								.setLink({
-									href: url,
-									target: "_blank",
-									rel: "noopener noreferrer",
-								})
-								.run();
-						}}
-						title="链接"
-					>
-						<LinkIcon className="size-3.5" />
-					</BubbleButton>
-				</BubbleMenu>
-			)}
-
-			{/* ── 图片上传指示 ──────────────────────────────────────────────── */}
+			{/* ── 粘贴/拖拽图片上传指示 ──────────────────────────────────────── */}
 			{isUploading && (
-				<div className="flex items-center gap-2 border-b border-input px-4 py-1.5">
+				<div className="flex items-center gap-2 border-t border-input px-4 py-1.5">
 					<Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
 					<Progress value={uploadProgress} className="h-1.5 flex-1" />
 					<span className="shrink-0 text-xs text-muted-foreground">
@@ -362,26 +299,48 @@ export function RichTextEditor({
 					</span>
 				</div>
 			)}
+		</div>
+	);
+}
 
-			<input
-				ref={fileInputRef}
-				type="file"
-				accept="image/*"
-				className="hidden"
-				onChange={(e) => {
-					const file = e.target.files?.[0];
-					if (file) void insertImageFile(file);
-					e.target.value = "";
-				}}
-			/>
+// ---------------------------------------------------------------------------
+//  SSR 占位
+// ---------------------------------------------------------------------------
 
-			{/* ── 编辑区 ─────────────────────────────────────────────────────── */}
+function EditorFallback({
+	html,
+	placeholder,
+	minHeight,
+}: {
+	html: string;
+	placeholder?: string;
+	minHeight: number;
+}) {
+	return (
+		<div
+			className="flex flex-col"
+			style={
+				{
+					minHeight,
+					"--galzy-editor-min-height": `${minHeight}px`,
+				} as CSSProperties
+			}
+		>
 			<div
-				className="flex overflow-y-auto"
-				style={{ minHeight }}
-				onKeyDown={onKeyDown}
+				className="galzy-prose prose prose-sm sm:prose-base dark:prose-invert focus:outline-none max-w-none w-full"
+				style={{ minHeight: `${minHeight}px` }}
 			>
-				<EditorContent editor={editor} className="min-h-full flex-1" />
+				{html ? (
+					<div dangerouslySetInnerHTML={{ __html: html }} />
+				) : (
+					<p className="text-muted-foreground select-none">
+						{placeholder || "编辑器加载中…"}
+					</p>
+				)}
+			</div>
+			<div className="mt-auto flex items-center gap-2 border-t border-input px-4 py-1.5 text-xs text-muted-foreground">
+				<Loader2 className="size-3.5 shrink-0 animate-spin" />
+				编辑器加载中…
 			</div>
 		</div>
 	);
@@ -391,232 +350,37 @@ export function RichTextEditor({
 //  Toolbar
 // ---------------------------------------------------------------------------
 
-function Toolbar({
-	editor,
-	onImage,
-	onLink,
-	uploading,
-}: {
-	editor: Editor;
-	onImage: () => void;
-	onLink: () => void;
-	uploading: boolean;
-}) {
-	const btn = (active: boolean) =>
-		cn(
-			"inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors",
-			active
-				? "bg-accent text-accent-foreground"
-				: "hover:bg-accent/50 hover:text-foreground",
-		);
-
+function Toolbar() {
 	return (
 		<div className="flex items-center gap-0.5 flex-wrap px-1 py-1 border-b border-input bg-muted/30">
-			<ToolbarButton
-				className={btn(editor.isActive("bold"))}
-				onClick={() => run(editor, (c) => c.toggleBold())}
-				title="粗体 (Ctrl+B)"
-			>
-				<Bold className="size-4" />
-			</ToolbarButton>
-			<ToolbarButton
-				className={btn(editor.isActive("italic"))}
-				onClick={() => run(editor, (c) => c.toggleItalic())}
-				title="斜体 (Ctrl+I)"
-			>
-				<Italic className="size-4" />
-			</ToolbarButton>
-			<ToolbarButton
-				className={btn(editor.isActive("underline"))}
-				onClick={() => run(editor, (c) => c.toggleUnderline())}
-				title="下划线 (Ctrl+U)"
-			>
-				<UnderlineIcon className="size-4" />
-			</ToolbarButton>
-			<ToolbarButton
-				className={btn(editor.isActive("strike"))}
-				onClick={() => run(editor, (c) => c.toggleStrike())}
-				title="删除线"
-			>
-				<Strikethrough className="size-4" />
-			</ToolbarButton>
+			<RichTextBold />
+			<RichTextItalic />
+			<RichTextUnderline />
+			<RichTextStrike />
 
 			<Separator orientation="vertical" className="mx-1 h-5" />
 
-			<ToolbarButton
-				className={btn(editor.isActive("heading", { level: 1 }))}
-				onClick={() => run(editor, (c) => c.toggleHeading({ level: 1 }))}
-				title="标题 1"
-			>
-				<Heading1 className="size-4" />
-			</ToolbarButton>
-			<ToolbarButton
-				className={btn(editor.isActive("heading", { level: 2 }))}
-				onClick={() => run(editor, (c) => c.toggleHeading({ level: 2 }))}
-				title="标题 2"
-			>
-				<Heading2 className="size-4" />
-			</ToolbarButton>
-			<ToolbarButton
-				className={btn(editor.isActive("heading", { level: 3 }))}
-				onClick={() => run(editor, (c) => c.toggleHeading({ level: 3 }))}
-				title="标题 3"
-			>
-				<Heading3 className="size-4" />
-			</ToolbarButton>
+			<RichTextHeading />
 
 			<Separator orientation="vertical" className="mx-1 h-5" />
 
-			<ToolbarButton
-				className={btn(editor.isActive("bulletList"))}
-				onClick={() => run(editor, (c) => c.toggleBulletList())}
-				title="无序列表"
-			>
-				<List className="size-4" />
-			</ToolbarButton>
-			<ToolbarButton
-				className={btn(editor.isActive("orderedList"))}
-				onClick={() => run(editor, (c) => c.toggleOrderedList())}
-				title="有序列表"
-			>
-				<ListOrdered className="size-4" />
-			</ToolbarButton>
-			<ToolbarButton
-				className={btn(editor.isActive("blockquote"))}
-				onClick={() => run(editor, (c) => c.toggleBlockquote())}
-				title="引用"
-			>
-				<TextQuote className="size-4" />
-			</ToolbarButton>
-			<ToolbarButton
-				className={btn(editor.isActive("codeBlock"))}
-				onClick={() => run(editor, (c) => c.toggleCodeBlock())}
-				title="代码块"
-			>
-				<Code2 className="size-4" />
-			</ToolbarButton>
-			<ToolbarButton
-				className={btn(editor.isActive("code"))}
-				onClick={() => run(editor, (c) => c.toggleCode())}
-				title="行内代码"
-			>
-				<Code className="size-4" />
-			</ToolbarButton>
+			<RichTextBulletList />
+			<RichTextOrderedList />
+			<RichTextBlockquote />
+			<RichTextCodeBlock />
+			<RichTextCode />
 
 			<Separator orientation="vertical" className="mx-1 h-5" />
 
-			<ToolbarButton
-				className={btn(editor.isActive("link"))}
-				onClick={onLink}
-				title="链接 (Ctrl+K)"
-			>
-				<LinkIcon className="size-4" />
-			</ToolbarButton>
-			<ToolbarButton
-				className={btn(false)}
-				onClick={onImage}
-				title={uploading ? "图片上传中..." : "插入图片"}
-				disabled={uploading}
-			>
-				{uploading ? (
-					<Loader2 className="size-4 animate-spin" />
-				) : (
-					<ImageIcon className="size-4" />
-				)}
-			</ToolbarButton>
-			<ToolbarButton
-				className={btn(false)}
-				onClick={() => run(editor, (c) => c.setHorizontalRule())}
-				title="分隔线"
-			>
-				<Minus className="size-4" />
-			</ToolbarButton>
+			<RichTextLink />
+			<RichTextImage />
+			<RichTextHorizontalRule />
+			<RichTextClear />
 
 			<Separator orientation="vertical" className="mx-1 h-5" />
 
-			<ToolbarButton
-				className={btn(false)}
-				onClick={() => run(editor, (c) => c.undo())}
-				title="撤销"
-			>
-				<Undo2 className="size-4" />
-			</ToolbarButton>
-			<ToolbarButton
-				className={btn(false)}
-				onClick={() => run(editor, (c) => c.redo())}
-				title="重做"
-			>
-				<Redo2 className="size-4" />
-			</ToolbarButton>
+			<RichTextUndo />
+			<RichTextRedo />
 		</div>
-	);
-}
-
-function run(
-	editor: Editor,
-	fn: (chain: ReturnType<Editor["chain"]>) => ReturnType<Editor["chain"]>,
-) {
-	fn(editor.chain().focus()).run();
-}
-
-function ToolbarButton({
-	className,
-	onClick,
-	title,
-	children,
-	disabled,
-}: {
-	className?: string;
-	onClick: () => void;
-	title: string;
-	children: React.ReactNode;
-	disabled?: boolean;
-}) {
-	return (
-		<Button
-			type="button"
-			variant="ghost"
-			size="icon-sm"
-			className={cn(className, "h-7 w-7")}
-			onClick={onClick}
-			title={title}
-			aria-label={title}
-			disabled={disabled}
-		>
-			{children}
-		</Button>
-	);
-}
-
-/** BubbleMenu 内的小按钮 */
-function BubbleButton({
-	active,
-	onClick,
-	title,
-	children,
-}: {
-	active: boolean;
-	onClick: () => void;
-	title: string;
-	children: React.ReactNode;
-}) {
-	return (
-		<Button
-			type="button"
-			variant="ghost"
-			size="icon-sm"
-			className={cn(
-				"h-7 w-7",
-				active
-					? "bg-accent text-accent-foreground"
-					: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-			)}
-			onClick={onClick}
-			title={title}
-			aria-label={title}
-			onMouseDown={(e) => e.preventDefault()}
-		>
-			{children}
-		</Button>
 	);
 }
