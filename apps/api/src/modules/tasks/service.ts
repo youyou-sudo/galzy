@@ -17,7 +17,7 @@ import { CronService } from '@api/modules/cron/service'
 import { KungalSync } from '@api/modules/kungal-sync/service'
 import { VndbSync } from '@api/modules/vndb-sync/service'
 import { type Job, type Queue, Worker } from '@stacksjs/bun-queue'
-import { and, desc, eq, lt } from 'drizzle-orm'
+import { and, count, desc, eq, inArray, lt } from 'drizzle-orm'
 import { status } from 'elysia'
 
 /** 百分数取整（total<=0 返回 0，避免除零）。 */
@@ -248,6 +248,89 @@ export async function removeDeadLetterJob(queueName: string, jobId: string) {
   return { ok: true }
 }
 
+/** 删除任务记录（历史终态清理）。同时删除其日志；若在 Redis 中仍存在则一并移除。 */
+export async function deleteJob(jobId: string) {
+  const rows = await db
+    .select()
+    .from(queueJob)
+    .where(eq(queueJob.id, jobId))
+    .limit(1)
+  const job = rows[0]
+  if (!job) throw status(404, `任务不存在: ${jobId}`)
+
+  // 若任务仍滞留在 Redis（waiting/active/delayed/failed），从队列移除。
+  if (isQueueEnabled) {
+    try {
+      const queue = queueOf(job.queue as (typeof QUEUE)[keyof typeof QUEUE])
+      await queue.removeJob(jobId)
+    } catch {
+      // 任务可能已被移除或队列不可用，忽略
+    }
+  }
+
+  await db.delete(queueJobLog).where(eq(queueJobLog.jobId, jobId))
+  await db.delete(queueJob).where(eq(queueJob.id, jobId))
+  return { ok: true }
+}
+
+/** 批量删除任务记录（历史终态清理）。 */
+export async function batchDeleteJobs(jobIds: string[]) {
+  if (jobIds.length === 0) return { ok: true, deleted: 0 }
+
+  // 逐条尝试从 Redis 移除（仅日志记录失败，不阻断）。
+  if (isQueueEnabled) {
+    const rows = await db
+      .select({ id: queueJob.id, queue: queueJob.queue })
+      .from(queueJob)
+      .where(inArray(queueJob.id, jobIds))
+    for (const row of rows) {
+      try {
+        const queue = queueOf(row.queue as (typeof QUEUE)[keyof typeof QUEUE])
+        await queue.removeJob(row.id)
+      } catch {
+        // 忽略
+      }
+    }
+  }
+
+  await db.delete(queueJobLog).where(inArray(queueJobLog.jobId, jobIds))
+  const deleted = await db
+    .delete(queueJob)
+    .where(inArray(queueJob.id, jobIds))
+    .returning({ id: queueJob.id })
+  return { ok: true, deleted: deleted.length }
+}
+
+/** 重试失败/中断/死信任务：重新入队（生成新 jobId），保留原记录为终态。 */
+export async function retryJob(jobId: string) {
+  const rows = await db
+    .select()
+    .from(queueJob)
+    .where(eq(queueJob.id, jobId))
+    .limit(1)
+  const job = rows[0]
+  if (!job) throw status(404, `任务不存在: ${jobId}`)
+
+  const retryable = ['failed', 'dead-letter', 'interrupted'].includes(
+    job.status,
+  )
+  if (!retryable) {
+    throw status(400, `仅失败/死信/中断的任务可重试（当前: ${job.status}）`)
+  }
+
+  const payload = (job.payload ?? {}) as TaskPayload
+  if (!payload.type)
+    throw status(400, `任务缺少 payload 类型，无法重试: ${jobId}`)
+
+  // 死信任务走 DLQ 重放（保留原 jobId，重置重试次数）；其余重新入队（新 jobId）。
+  if (job.status === 'dead-letter') {
+    return await republishDeadLetterJob(job.queue, jobId)
+  }
+
+  const newJobId = await enqueue(job.queue, payload)
+  return { ok: true, jobId: newJobId }
+}
+
 export async function listJobs(input: {
   queue?: string
   type?: string
@@ -263,15 +346,75 @@ export async function listJobs(input: {
 
   const where = conditions.length ? and(...conditions) : undefined
 
-  const rows = await db
-    .select()
-    .from(queueJob)
-    .where(where)
-    .orderBy(desc(queueJob.createdAt))
-    .limit(input.pageSize)
-    .offset(input.pageIndex * input.pageSize)
+  const [rows, totalRow] = await Promise.all([
+    db
+      .select()
+      .from(queueJob)
+      .where(where)
+      .orderBy(desc(queueJob.createdAt))
+      .limit(input.pageSize)
+      .offset(input.pageIndex * input.pageSize),
+    db.select({ count: count() }).from(queueJob).where(where),
+  ])
 
-  return rows
+  return { items: rows, total: totalRow[0]?.count ?? 0 }
+}
+
+/** 按状态聚合计数（供状态筛选 Tabs 与顶部统计卡）。 */
+export async function getTaskStats() {
+  const rows = await db
+    .select({
+      status: queueJob.status,
+      count: count(),
+    })
+    .from(queueJob)
+    .groupBy(queueJob.status)
+
+  const counts: Record<string, number> = {
+    queued: 0,
+    running: 0,
+    completed: 0,
+    failed: 0,
+    'dead-letter': 0,
+    interrupted: 0,
+  }
+  let total = 0
+  for (const r of rows) {
+    counts[r.status] = (counts[r.status] ?? 0) + r.count
+    total += r.count
+  }
+  return { counts, total }
+}
+
+/** 各队列实时状态（来自 bun-queue Redis 计数，供队列状态卡）。 */
+export async function getQueueStats() {
+  if (!isQueueEnabled) {
+    return (Object.values(QUEUE) as string[]).map((name) => ({
+      queue: name,
+      waiting: 0,
+      active: 0,
+      completed: 0,
+      failed: 0,
+      delayed: 0,
+      paused: 0,
+    }))
+  }
+  const queues = Object.values(QUEUE) as (typeof QUEUE)[keyof typeof QUEUE][]
+  const result = []
+  for (const name of queues) {
+    const queue = queueOf(name)
+    const counts = await queue.getJobCounts()
+    result.push({
+      queue: name,
+      waiting: counts.waiting ?? 0,
+      active: counts.active ?? 0,
+      completed: counts.completed ?? 0,
+      failed: counts.failed ?? 0,
+      delayed: counts.delayed ?? 0,
+      paused: counts.paused ?? 0,
+    })
+  }
+  return result
 }
 
 export async function getJobDetail(jobId: string) {

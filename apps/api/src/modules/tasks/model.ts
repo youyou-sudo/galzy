@@ -16,6 +16,11 @@ export namespace TasksModel {
     jobId: t.String(),
   })
 
+  /** 批量删除任务记录请求体 */
+  export const batchDeleteBody = t.Object({
+    ids: t.Array(t.String(), { minItems: 1 }),
+  })
+
   /** 任务列表查询参数（分页 + 过滤） */
   export const listQuery = t.Object({
     queue: t.Optional(t.String()),

@@ -3,13 +3,18 @@ import { betterAuth } from '@api/modules/auth'
 import { Elysia } from 'elysia'
 import { TasksModel } from './model'
 import {
+  batchDeleteJobs,
+  deleteJob,
   enqueue,
   getJobDetail,
   getJobLogs,
+  getQueueStats,
+  getTaskStats,
   listDeadLetterJobs,
   listJobs,
   removeDeadLetterJob,
   republishDeadLetterJob,
+  retryJob,
 } from './service'
 
 /**
@@ -19,9 +24,13 @@ import {
  * - 状态/进度/日志查询替代原 getMeiliProgress / getProgress / addMeiliLog。
  * - 死信管理挂在 /tasks/deadLetter/:queue 前缀下（避开顶层 /tasks/:jobId 动态段，
  *   避免 /tasks/deadLetter/... 被 :jobId 影子化）。
+ * - 统计（stats / queues）与运维操作（retry / delete / batchDelete）。
  */
 export const tasks = new Elysia({ prefix: '/tasks' })
   .use(betterAuth)
+  // ── 统计 ──
+  .get('/stats', async () => getTaskStats(), { isAdmin: true })
+  .get('/queues', async () => getQueueStats(), { isAdmin: true })
   // ── 死信管理（静态前缀在 Elysia 树中优先于 :jobId 动态段）──
   .get(
     '/deadLetter/:queue',
@@ -53,7 +62,7 @@ export const tasks = new Elysia({ prefix: '/tasks' })
       body: TasksModel.deadLetterJobBody,
     },
   )
-  // ── 任务列表 / 详情 / 日志 / 入队 ──
+  // ── 任务列表 / 详情 / 日志 / 入队 / 运维 ──
   .get('/', async ({ query }) => listJobs(query), {
     isAdmin: true,
     query: TasksModel.listQuery,
@@ -80,3 +89,13 @@ export const tasks = new Elysia({ prefix: '/tasks' })
       body: TasksModel.enqueueBody,
     },
   )
+  .post('/batchDelete', async ({ body }) => batchDeleteJobs(body.ids), {
+    isAdmin: true,
+    body: TasksModel.batchDeleteBody,
+  })
+  .post('/:jobId/retry', async ({ params: { jobId } }) => retryJob(jobId), {
+    isAdmin: true,
+  })
+  .post('/:jobId/delete', async ({ params: { jobId } }) => deleteJob(jobId), {
+    isAdmin: true,
+  })

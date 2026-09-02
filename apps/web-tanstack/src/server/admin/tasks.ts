@@ -17,9 +17,7 @@ export type QueueJobRow = {
 		| "dead-letter"
 		| "interrupted";
 	progress: number;
-	// biome-ignore lint/suspicious/noExplicitAny: jsonb 字段运行时为任意 JSON，无稳定形状
 	payload: any;
-	// biome-ignore lint/suspicious/noExplicitAny: jsonb 字段运行时为任意 JSON，无稳定形状
 	result: any;
 	error: string | null;
 	startedAt: string | null;
@@ -33,6 +31,29 @@ export type QueueJobLogRow = {
 	level: "info" | "warn" | "error" | "success";
 	message: string;
 	createdAt: string;
+};
+
+/** 任务状态聚合（统计卡）。 */
+export type TaskStats = {
+	counts: Record<string, number>;
+	total: number;
+};
+
+/** 队列实时状态（bun-queue Redis 计数）。 */
+export type QueueStatsRow = {
+	queue: string;
+	waiting: number;
+	active: number;
+	completed: number;
+	failed: number;
+	delayed: number;
+	paused: number;
+};
+
+/** 任务列表响应（分页）。 */
+export type TaskListResult = {
+	items: QueueJobRow[];
+	total: number;
 };
 
 /** 任务列表（分页 + 过滤）。 */
@@ -52,8 +73,59 @@ export const listTasks = createServerFn({ method: "GET" })
 			...cookiePass(),
 		});
 		elysiaErrorF(error);
-		// Elysia 推断的响应类型含联合，会被 createServerFn 收敛为 unknown，这里按已知形状定型
-		return (result ?? []) as unknown as QueueJobRow[];
+		return (result ?? { items: [], total: 0 }) as unknown as TaskListResult;
+	});
+
+/** 状态统计（顶部统计卡 + 筛选 Tabs 徽标）。 */
+export const getTaskStats = createServerFn({ method: "GET" }).handler(
+	async () => {
+		const { data: result, error } = await api.tasks.stats.get(cookiePass());
+		elysiaErrorF(error);
+		return (result ?? { counts: {}, total: 0 }) as unknown as TaskStats;
+	},
+);
+
+/** 队列实时状态（队列状态卡）。 */
+export const getQueueStats = createServerFn({ method: "GET" }).handler(
+	async () => {
+		const { data: result, error } = await api.tasks.queues.get(cookiePass());
+		elysiaErrorF(error);
+		return (result ?? []) as unknown as QueueStatsRow[];
+	},
+);
+
+/** 重试失败/中断/死信任务。 */
+export const retryTask = createServerFn({ method: "POST" })
+	.validator(z.object({ jobId: z.string().min(1) }))
+	.handler(async ({ data: { jobId } }) => {
+		const { data: result, error } = await api
+			.tasks({ jobId })
+			.retry.post(cookiePass());
+		elysiaErrorF(error);
+		return result as unknown as { ok: boolean; jobId: string } | null;
+	});
+
+/** 删除单条任务记录。 */
+export const deleteTask = createServerFn({ method: "POST" })
+	.validator(z.object({ jobId: z.string().min(1) }))
+	.handler(async ({ data: { jobId } }) => {
+		const { data: result, error } = await api
+			.tasks({ jobId })
+			.delete.post(cookiePass());
+		elysiaErrorF(error);
+		return result as unknown as { ok: boolean } | null;
+	});
+
+/** 批量删除任务记录。 */
+export const batchDeleteTasks = createServerFn({ method: "POST" })
+	.validator(z.object({ ids: z.array(z.string().min(1)).min(1) }))
+	.handler(async ({ data: { ids } }) => {
+		const { data: result, error } = await api.tasks.batchDelete.post(
+			{ ids },
+			cookiePass(),
+		);
+		elysiaErrorF(error);
+		return result as unknown as { ok: boolean; deleted: number } | null;
 	});
 
 /** 单个任务详情。 */
@@ -84,7 +156,7 @@ export const getTaskLogs = createServerFn({ method: "GET" })
 		return (result ?? []) as unknown as QueueJobLogRow[];
 	});
 
-/** 手动入队（POST /tasks/:queue，body { type }）。 */
+/** 手动入队（POST /tasks/enqueue/:queue，body { type }）。 */
 export const enqueueTask = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
@@ -129,9 +201,7 @@ export const listDeadLetterTasks = createServerFn({ method: "GET" })
 
 /** 死信重放（回原队列）。 */
 export const republishDeadLetterTask = createServerFn({ method: "POST" })
-	.validator(
-		z.object({ queue: z.string().min(1), jobId: z.string().min(1) }),
-	)
+	.validator(z.object({ queue: z.string().min(1), jobId: z.string().min(1) }))
 	.handler(async ({ data: { queue, jobId } }) => {
 		const { data: result, error } = await api.tasks
 			.deadLetter({ queue })
@@ -142,9 +212,7 @@ export const republishDeadLetterTask = createServerFn({ method: "POST" })
 
 /** 丢弃死信。 */
 export const removeDeadLetterTask = createServerFn({ method: "POST" })
-	.validator(
-		z.object({ queue: z.string().min(1), jobId: z.string().min(1) }),
-	)
+	.validator(z.object({ queue: z.string().min(1), jobId: z.string().min(1) }))
 	.handler(async ({ data: { queue, jobId } }) => {
 		const { data: result, error } = await api.tasks
 			.deadLetter({ queue })
