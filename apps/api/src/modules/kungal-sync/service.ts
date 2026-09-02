@@ -50,30 +50,33 @@ const IDLE_PROGRESS: KungalSyncProgress = {
 }
 
 export const KungalSync = {
-  async syncFull() {
+  async syncFull(onProgress?: (processed: number, total: number) => void) {
     const lockKey = 'kungal-sync-full'
     const lockVal = crypto.randomUUID()
     if (!(await acquireLockKv(lockKey, lockVal, 3600_000))) return
     try {
-      await this.runSync('full')
+      await this.runSync('full', onProgress)
     } finally {
       await releaseLockKv(lockKey, lockVal)
     }
   },
 
-  async syncDelta() {
+  async syncDelta(onProgress?: (processed: number, total: number) => void) {
     const lockKey = 'kungal-sync-delta'
     const lockVal = crypto.randomUUID()
     if (!(await acquireLockKv(lockKey, lockVal, 600_000))) return
     try {
-      await this.runSync('delta')
+      await this.runSync('delta', onProgress)
     } finally {
       await releaseLockKv(lockKey, lockVal)
     }
   },
 
   /** full = 全部 alistb vid；delta = 新作品及缺少封面尺寸的旧记录。 */
-  async runSync(type: 'full' | 'delta') {
+  async runSync(
+    type: 'full' | 'delta',
+    onProgress?: (processed: number, total: number) => void,
+  ) {
     const vids = await this.getAlistbVids()
     if (vids.length === 0) return
 
@@ -142,6 +145,7 @@ export const KungalSync = {
           processedItems: processed,
           stage: 'resolve',
         })
+        onProgress?.(processed, target.length)
       },
     )
     console.log(`✅ Kungal 解析完成: ${resolved.size}/${target.length}`)
@@ -215,6 +219,7 @@ export const KungalSync = {
         processedItems: upserted + errors,
         errors,
       })
+      onProgress?.(upserted + errors, entries.length)
       await this.addLog(
         'info',
         `works batch ${Math.min(i + RESOLVE_BATCH, entries.length)}/${entries.length} done`,

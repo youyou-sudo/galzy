@@ -45,7 +45,12 @@ function RouteComponent() {
 
   return (
     <div>
-      <TopicForm onSubmit={handleSubmit} title="发帖" submitLabel="发布" />
+      <TopicForm
+        onSubmit={handleSubmit}
+        title="发帖"
+        submitLabel="发布"
+        draftKey="galzy:draft:topic:create"
+      />
     </div>
   )
 }

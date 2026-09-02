@@ -58,18 +58,18 @@ export interface SyncProgress {
 }
 
 export const VndbSync = {
-  async syncFull() {
+  async syncFull(onProgress?: (processed: number, total: number) => void) {
     const lockKey = 'vndb-sync-full'
     const lockVal = crypto.randomUUID()
     if (!(await acquireLockKv(lockKey, lockVal, 3600_000))) return
     try {
-      await this.runFullSync()
+      await this.runFullSync(onProgress)
     } finally {
       await releaseLockKv(lockKey, lockVal)
     }
   },
 
-  async runFullSync() {
+  async runFullSync(onProgress?: (processed: number, total: number) => void) {
     const vids = await this.getAlistbVids()
     if (vids.length === 0) return
 
@@ -109,6 +109,7 @@ export const VndbSync = {
           processedItems: Math.min(i + BATCH_SIZE, vids.length),
           processedBatches: Math.floor(i / BATCH_SIZE) + 1,
         })
+        onProgress?.(Math.min(i + BATCH_SIZE, vids.length), vids.length)
         await this.addLog(
           'info',
           `VN batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(vids.length / BATCH_SIZE)} done (${Math.min(i + BATCH_SIZE, vids.length)}/${vids.length})`,
@@ -236,7 +237,9 @@ export const VndbSync = {
     console.log('✅ VNDB 全量同步完成')
   },
 
-  async syncProducersFromDb() {
+  async syncProducersFromDb(
+    onProgress?: (processed: number, total: number) => void,
+  ) {
     console.log('🔄 开发者同步开始 (从现有 releases 数据)')
     await this.updateProgress({
       status: 'running',
@@ -272,6 +275,7 @@ export const VndbSync = {
         stageProcessed: processed,
         stageTotal: total,
       })
+      onProgress?.(processed, total)
     })
     await this.invalidateCache()
     await purgeAfterSync()
@@ -284,7 +288,7 @@ export const VndbSync = {
     console.log('✅ 开发者同步完成')
   },
 
-  async syncDelta() {
+  async syncDelta(onProgress?: (processed: number, total: number) => void) {
     const lockKey = 'vndb-sync-delta'
     const lockVal = crypto.randomUUID()
     if (!(await acquireLockKv(lockKey, lockVal, 600_000))) return
@@ -334,6 +338,7 @@ export const VndbSync = {
             processedItems: Math.min(i + BATCH_SIZE, newVids.length),
             processedBatches: Math.floor(i / BATCH_SIZE) + 1,
           })
+          onProgress?.(Math.min(i + BATCH_SIZE, newVids.length), newVids.length)
           await this.addLog(
             'info',
             `VN batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(newVids.length / BATCH_SIZE)} done (${Math.min(i + BATCH_SIZE, newVids.length)}/${newVids.length})`,

@@ -478,7 +478,9 @@ export const CronService = {
     await this.updateMeiliProgress(type, { logs })
   },
 
-  async meiliSearchAddIndex() {
+  async meiliSearchAddIndex(
+    onProgress?: (processed: number, total: number) => void,
+  ) {
     try {
       const { totalPages } = await this.getMeiliSearchDataInfo()
 
@@ -520,6 +522,7 @@ export const CronService = {
         await Promise.all(batch)
         const processed = Math.min(i + concurrencyLimit, totalPages)
         await this.updateMeiliProgress('game', { processedPages: processed })
+        onProgress?.(processed, totalPages)
         await this.addMeiliLog(
           'game',
           'info',
@@ -617,7 +620,9 @@ export const CronService = {
     }
   },
 
-  async meiliSearchAddTag() {
+  async meiliSearchAddTag(
+    onProgress?: (processed: number, total: number) => void,
+  ) {
     try {
       const { totalPages } = await this.getTagDataInfo()
 
@@ -659,6 +664,7 @@ export const CronService = {
         await Promise.all(batch)
         const processed = Math.min(i + concurrencyLimit, totalPages)
         await this.updateMeiliProgress('tag', { processedPages: processed })
+        onProgress?.(processed, totalPages)
         await this.addMeiliLog(
           'tag',
           'info',
@@ -722,7 +728,9 @@ export const CronService = {
     }
   },
 
-  async meiliSearchAddProducer() {
+  async meiliSearchAddProducer(
+    onProgress?: (processed: number, total: number) => void,
+  ) {
     try {
       const { totalPages } = await this.getProducerDataInfo()
 
@@ -766,6 +774,7 @@ export const CronService = {
         await this.updateMeiliProgress('producer', {
           processedPages: processed,
         })
+        onProgress?.(processed, totalPages)
         await this.addMeiliLog(
           'producer',
           'info',

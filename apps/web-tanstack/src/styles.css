@@ -187,24 +187,31 @@
   border-radius: var(--radius-sm);
 }
 
-/* 右下角缩放拖拽手柄（Notion 风格小圆点），默认隐藏，悬停/选中时显示 */
-[data-resize-handle="bottom-right"] {
-  width: 10px;
-  height: 10px;
+/* 底部中央缩放手柄（Notion 风格小圆点），默认隐藏，悬停/选中时显示。
+   用 right 方向的横向拖拽：横拖改宽度，高度等比跟随。 */
+[data-resize-handle="right"] {
+  width: 16px;
+  height: 16px;
+  /* 覆盖 Tiptap 内联定位（right:0; top:0; bottom:0）→ 移到图片底部中央 */
+  right: auto !important;
+  top: auto !important;
+  bottom: -7px !important;
+  left: 50% !important;
+  transform: translateX(-50%);
   background: var(--ring);
   border: 2px solid var(--background);
   border-radius: 9999px;
-  cursor: nwse-resize;
+  cursor: ew-resize;
+  /* 移动端拖拽不被页面滚动拦截 */
+  touch-action: none;
   opacity: 0;
   transition: opacity 0.15s ease;
   z-index: 10;
 }
 
-[data-resize-container]:hover [data-resize-handle="bottom-right"],
-[data-resize-container].ProseMirror-selectednode
-  [data-resize-handle="bottom-right"],
-[data-resize-container][data-resize-state="true"]
-  [data-resize-handle="bottom-right"] {
+[data-resize-container]:hover [data-resize-handle="right"],
+[data-resize-container].ProseMirror-selectednode [data-resize-handle="right"],
+[data-resize-container][data-resize-state="true"] [data-resize-handle="right"] {
   opacity: 1;
 }
 

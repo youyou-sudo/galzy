@@ -22,4 +22,29 @@ export const QUEUE = {
 
 export type QueueName = (typeof QUEUE)[keyof typeof QUEUE]
 
+/**
+ * 队列 → 允许的任务类型白名单（唯一权威来源）。
+ * enqueue 与 POST /tasks/enqueue 据此校验，杜绝 type 拼接任意值。
+ */
+export const QUEUE_TASKS = {
+  [QUEUE.vndbSync]: ['vndb-full', 'vndb-delta', 'vndb-producers'],
+  [QUEUE.kungalSync]: ['kungal-full', 'kungal-delta'],
+  [QUEUE.meiliIndex]: ['meili-game', 'meili-tag', 'meili-producer'],
+  [QUEUE.cloudreveSync]: ['cloudreve-sync'],
+  [QUEUE.metrics]: ['queue-log-prune'],
+} as const satisfies Record<QueueName, readonly TaskPayload['type'][]>
+
+export type QueueTaskMap = typeof QUEUE_TASKS
+
+/** 该队列允许的所有任务类型。 */
+export function queueTaskTypes(queue: QueueName): readonly string[] {
+  return QUEUE_TASKS[queue]
+}
+
+/** 校验 (queue, type) 是否为白名单内的合法组合。 */
+export function isValidTask(queue: string, type: string): boolean {
+  const tasks = (QUEUE_TASKS as Record<string, readonly string[]>)[queue]
+  return Array.isArray(tasks) && (tasks as readonly string[]).includes(type)
+}
+
 export type TaskType = TaskPayload['type']

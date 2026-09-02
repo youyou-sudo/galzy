@@ -116,7 +116,8 @@ export function RichTextEditor({
 				HTMLAttributes: { class: "rounded-md" },
 				resize: {
 					enabled: true,
-					directions: ["bottom-right"],
+					// 用 "right" 方向获得横向宽度拖拽（Notion 底部中央手柄：横拖改宽度、高度等比跟随）
+					directions: ["right"],
 					minWidth: 60,
 					minHeight: 60,
 					alwaysPreserveAspectRatio: true,

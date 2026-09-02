@@ -33,11 +33,12 @@ export function queueAvailable(): boolean {
 }
 
 export {
+  defaultDeadLetterOptions,
   defaultJobOptions,
   isQueueEnabled,
   QUEUE_PREFIX,
   queueConnection,
 } from './config'
 export type { TaskPayload } from './payload'
-export type { QueueName, TaskType } from './types'
-export { QUEUE }
+export type { QueueName, QueueTaskMap, TaskType } from './types'
+export { isValidTask, QUEUE, queueTaskTypes } from './types'

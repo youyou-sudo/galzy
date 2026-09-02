@@ -6,6 +6,16 @@ export namespace TasksModel {
     type: t.String(),
   })
 
+  /** 队列名路径参数 */
+  export const queueParam = t.Object({
+    queue: t.String(),
+  })
+
+  /** 队列 + jobId（死信操作请求体） */
+  export const deadLetterJobBody = t.Object({
+    jobId: t.String(),
+  })
+
   /** 任务列表查询参数（分页 + 过滤） */
   export const listQuery = t.Object({
     queue: t.Optional(t.String()),

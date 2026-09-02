@@ -69,6 +69,7 @@ function RouteComponent() {
 				onSubmit={handleSubmit}
 				title="编辑帖子"
 				submitLabel="保存"
+				draftKey={`galzy:draft:topic:edit:${topicId}`}
 			/>
 		</div>
 	);

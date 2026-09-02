@@ -1,6 +1,5 @@
 import { getRedisClient, isRedisEnabled } from '@api/libs/redis'
 import type { QueueConnectionConfig } from '@stacksjs/bun-queue'
-
 /**
  * 队列 Redis key 前缀。与业务缓存/锁（`galzy:*`）同源但独立前缀，
  * 避免 `delKvPattern('galzy:*')` 之类操作误清队列数据。
@@ -33,17 +32,30 @@ export function queueConnection(
     driver: 'redis',
     redis: { client: getRedisClient() },
     prefix: QUEUE_PREFIX,
+    // 死信放连接级（对 scheduleCron 的 repeatable job 也生效——重试耗尽即进 DLQ）；
+    // defaultJobOptions 仍在 enqueue() 调用点合并，避免给 cron 任务带上 attempts/removeOnComplete。
+    defaultDeadLetterOptions,
     ...overrides,
   }
 }
 
 /**
- * 队列默认 JobOptions：失败重试 + 指数退避 + 完成后移除（减少 Redis 堆积）。
- * 各队列可在 worker 注册处按需覆盖。
+ * 队列默认 JobOptions：失败重试 + 指数退避 + 完成后移除。
+ * 重试耗尽进入死信（defaultDeadLetterOptions），failed 列表只留最近 100 条便于回溯。
  */
 export const defaultJobOptions = {
   attempts: 3,
   backoff: { type: 'exponential', delay: 1000 },
   removeOnComplete: true,
   removeOnFail: 100,
+} as const
+
+/**
+ * 队列默认死信配置：重试耗尽后自动移入 `<queue>-dead-letter` 队列，
+ * 并从原 failed 列表移除（DLQ 自持副本，避免原队列污染）。
+ */
+export const defaultDeadLetterOptions = {
+  enabled: true,
+  maxRetries: 3,
+  removeFromOriginalQueue: true,
 } as const

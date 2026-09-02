@@ -9,7 +9,13 @@ export type QueueJobRow = {
 	id: string;
 	queue: string;
 	type: string;
-	status: "queued" | "running" | "completed" | "failed" | "dead-letter";
+	status:
+		| "queued"
+		| "running"
+		| "completed"
+		| "failed"
+		| "dead-letter"
+		| "interrupted";
 	progress: number;
 	// biome-ignore lint/suspicious/noExplicitAny: jsonb 字段运行时为任意 JSON，无稳定形状
 	payload: any;
@@ -92,4 +98,57 @@ export const enqueueTask = createServerFn({ method: "POST" })
 			.post({ type }, cookiePass());
 		elysiaErrorF(error);
 		return result as unknown as { ok: boolean; jobId: string } | null;
+	});
+
+/** 死信任务一行（Redis DLQ 快照）。 */
+export type DeadLetterJobRow = {
+	id: string;
+	type: string;
+	failedReason: string | null;
+	attemptsMade: number;
+	stacktrace: string[];
+	timestamp: number;
+};
+
+/** 死信任务列表（按队列）。 */
+export const listDeadLetterTasks = createServerFn({ method: "GET" })
+	.validator(
+		z.object({
+			queue: z.string().min(1),
+			pageSize: z.number().min(1).max(500).default(50),
+			pageIndex: z.number().min(0).default(0),
+		}),
+	)
+	.handler(async ({ data: { queue, pageSize, pageIndex } }) => {
+		const { data: result, error } = await api.tasks
+			.deadLetter({ queue })
+			.get({ query: { pageSize, pageIndex }, ...cookiePass() });
+		elysiaErrorF(error);
+		return (result ?? []) as unknown as DeadLetterJobRow[];
+	});
+
+/** 死信重放（回原队列）。 */
+export const republishDeadLetterTask = createServerFn({ method: "POST" })
+	.validator(
+		z.object({ queue: z.string().min(1), jobId: z.string().min(1) }),
+	)
+	.handler(async ({ data: { queue, jobId } }) => {
+		const { data: result, error } = await api.tasks
+			.deadLetter({ queue })
+			.republish.post({ jobId }, cookiePass());
+		elysiaErrorF(error);
+		return result as unknown as { ok: boolean; jobId: string } | null;
+	});
+
+/** 丢弃死信。 */
+export const removeDeadLetterTask = createServerFn({ method: "POST" })
+	.validator(
+		z.object({ queue: z.string().min(1), jobId: z.string().min(1) }),
+	)
+	.handler(async ({ data: { queue, jobId } }) => {
+		const { data: result, error } = await api.tasks
+			.deadLetter({ queue })
+			.remove.post({ jobId }, cookiePass());
+		elysiaErrorF(error);
+		return result as unknown as { ok: boolean } | null;
 	});

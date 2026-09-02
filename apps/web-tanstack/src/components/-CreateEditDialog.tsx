@@ -2,8 +2,8 @@ import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { useSelector } from "@tanstack/react-store";
+import { EditorDraftBanner } from "@web/components/EditorDraftBanner";
 import { RichTextEditor } from "@web/components/editor/RichTextEditor";
-import { htmlToPlainText, markdownToHtml } from "@web/lib/rich-text";
 import { Button } from "@web/components/ui/button";
 import {
 	Dialog,
@@ -15,7 +15,9 @@ import {
 } from "@web/components/ui/dialog";
 import { Field, FieldError, FieldGroup } from "@web/components/ui/field";
 import { Input } from "@web/components/ui/input";
+import { useEditorDraft } from "@web/hooks/use-editor-draft";
 import { elysiaErrorF } from "@web/lib";
+import { htmlToPlainText, markdownToHtml } from "@web/lib/rich-text";
 import { authClient } from "@web/server/auth/auth-client";
 import {
 	createIntroduction,
@@ -70,7 +72,6 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 
 	// ── 使用 customSubmit 时无需 store / session ──────────────────
 	const isCustom = !!props?.customSubmit;
-
 	// ── 优先使用 props，否则 fallback 到 store ──────────────────
 	const storeData = useSelector(introductionEditStore, (s) => s.data);
 	const storeOpen = useSelector(introductionEditStore, (s) => s.open);
@@ -79,6 +80,13 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 	const open = isControlled ? props.open! : storeOpen;
 	const mergedData = props?.initialData ?? storeData;
 	const isEdit = !!(props?.initialData?.id ?? mergedData?.id);
+
+	// 草稿 key：文章 ID / 游戏 ID 粒度，避免不同对象的草稿互相覆盖
+	const draftKey =
+		`galzy:draft:intro:` +
+		(mergedData?.id
+			? `article-${mergedData.id}`
+			: `game-${props?.gameId ?? mergedData?.gameId ?? "new"}`);
 
 	// ── 获取用户 session（customSubmit 不需要） ──────────────────
 	const { data: session } = useQuery({
@@ -97,6 +105,7 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 	const createMutation = useMutation({
 		mutationFn: createIntroduction,
 		onSuccess: () => {
+			draft.clear();
 			toast.success(
 				isAdmin ? "文章创建成功～" : "已提交审核，请等待管理员审核喵～",
 			);
@@ -114,10 +123,9 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 	const updateMutation = useMutation({
 		mutationFn: updateIntroduction,
 		onSuccess: () => {
+			draft.clear();
 			toast.success(
-				isAdmin
-					? "文章更新成功～"
-					: "修改已提交，请等待管理员重新审核喵～",
+				isAdmin ? "文章更新成功～" : "修改已提交，请等待管理员重新审核喵～",
 			);
 			router.invalidate({
 				filter: (match) => match.routeId === "/$id/_layout/introduction/",
@@ -140,7 +148,9 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 
 	// 存量 Markdown 内容先转成 HTML 再进编辑器；编辑器始终产出 HTML。
 	const toEditorHtml = (raw?: string) =>
-		mergedData?.contentType === "markdown" ? markdownToHtml(raw ?? "") : raw ?? "";
+		mergedData?.contentType === "markdown"
+			? markdownToHtml(raw ?? "")
+			: (raw ?? "");
 
 	// ── Form ─────────────────────────────────────────────────────
 	const form = useForm({
@@ -176,6 +186,8 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 					contentType,
 					copyright: value.copyright?.trim() || undefined,
 				});
+				// admin 的 EditArticleCell 在成功后自行关闭对话框（setOpen(false)）
+				draft.clear();
 				return;
 			}
 
@@ -271,6 +283,21 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 		updateMutation.isPending ||
 		form.state.isSubmitting;
 
+	// ── 崩溃防丢草稿（打开对话框时启用，关闭/提交时自动清理） ──
+	const draft = useEditorDraft({
+		key: draftKey,
+		active: open,
+		subscribe: (listener) => form.store.subscribe(listener).unsubscribe,
+		getValues: () => {
+			const v = form.state.values;
+			return { title: v.title, content: v.content };
+		},
+		getInitial: () => {
+			const editorHtml = toEditorHtml(mergedData?.content);
+			return { title: mergedData?.title || "", content: editorHtml };
+		},
+	});
+
 	// ── Dialog 标题文案 ───────────────────────────────────────────
 	const dialogTitle = isCustom
 		? isEdit
@@ -313,6 +340,24 @@ export function CreateEditDialog(props?: CreateEditDialogProps) {
 						void form.handleSubmit();
 					}}
 				>
+					{draft.offered && (
+						<div className="mb-3">
+							<EditorDraftBanner
+								savedAt={draft.offered.savedAt}
+								onRestore={() => {
+									form.reset({
+										title: draft.offered!.title,
+										content: draft.offered!.content,
+										contentType: "html",
+										copyright: mergedData?.copyright || "",
+									});
+									// 恢复后建立新基线，此后改动照常自动保存
+									draft.restore();
+								}}
+								onDiscard={draft.discard}
+							/>
+						</div>
+					)}
 					<FieldGroup className="gap-3">
 						{/* ── 标题 ── */}
 						<form.Field name="title">

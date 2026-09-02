@@ -20,7 +20,7 @@ export const queueJob = pgTable(
     queue: varchar('queue', { length: 64 }).notNull(),
     /** 任务类型（vndb-full / meili-game / cloudreve-sync …）。 */
     type: varchar('type', { length: 64 }).notNull(),
-    /** queued | running | completed | failed | dead-letter */
+    /** queued | running | completed | failed | dead-letter | interrupted */
     status: varchar('status', { length: 16 }).notNull().default('queued'),
     /** 进度百分比 0–100；绝对数（如 processedItems/totalItems）存 result。 */
     progress: integer('progress').notNull().default(0),

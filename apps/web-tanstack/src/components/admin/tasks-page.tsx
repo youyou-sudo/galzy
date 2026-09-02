@@ -20,9 +20,12 @@ import { cn } from "@web/lib/utils";
 import {
 	enqueueTask,
 	getTaskLogs,
+	listDeadLetterTasks,
+	republishDeadLetterTask,
 	listTasks,
 	type QueueJobLogRow,
 	type QueueJobRow,
+	type DeadLetterJobRow,
 } from "@web/server/admin/tasks";
 import {
 	AlertTriangleIcon,
@@ -85,6 +88,11 @@ const statusConfig: Record<
 	"dead-letter": {
 		label: "死信",
 		className: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+		icon: AlertTriangleIcon,
+	},
+	interrupted: {
+		label: "已中断",
+		className: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
 		icon: AlertTriangleIcon,
 	},
 };

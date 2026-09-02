@@ -1,6 +1,6 @@
 import { useForm } from "@tanstack/react-form";
+import { EditorDraftBanner } from "@web/components/EditorDraftBanner";
 import { RichTextEditor } from "@web/components/editor/RichTextEditor";
-import { htmlToPlainText, markdownToHtml } from "@web/lib/rich-text";
 import { Button } from "@web/components/ui/button";
 import {
 	Card,
@@ -15,6 +15,8 @@ import {
 	FieldTitle,
 } from "@web/components/ui/field";
 import { Input } from "@web/components/ui/input";
+import { useEditorDraft } from "@web/hooks/use-editor-draft";
+import { htmlToPlainText, markdownToHtml } from "@web/lib/rich-text";
 import { Loader2 } from "lucide-react";
 import { useMemo } from "react";
 
@@ -29,6 +31,8 @@ interface TopicFormProps {
 		content: string;
 		contentType: "markdown" | "html";
 	}) => Promise<void>;
+	/** 草稿存储 key：新建 / 不同帖子编辑各用独立 key，避免互相覆盖 */
+	draftKey?: string;
 	submitLabel?: string;
 	title?: string;
 }
@@ -36,6 +40,7 @@ interface TopicFormProps {
 export function TopicForm({
 	defaultValues = { title: "", content: "", contentType: "html" },
 	onSubmit,
+	draftKey = "galzy:draft:topic:create",
 	submitLabel = "发布",
 	title = "发帖",
 }: TopicFormProps) {
@@ -69,7 +74,23 @@ export function TopicForm({
 				content,
 				contentType: "html",
 			});
+			// 提交成功（父组件导航离开）→ 清除草稿，避免下次打开误弹恢复
+			draft.clear();
 		},
+	});
+
+	const draft = useEditorDraft({
+		key: draftKey,
+		active: true,
+		subscribe: (listener) => form.store.subscribe(listener).unsubscribe,
+		getValues: () => {
+			const v = form.state.values;
+			return { title: v.title, content: v.content };
+		},
+		getInitial: () => ({
+			title: defaultValues.title,
+			content: editorInitial,
+		}),
 	});
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -94,6 +115,21 @@ export function TopicForm({
 						}}
 						className="flex flex-col gap-6"
 					>
+						{draft.offered && (
+							<EditorDraftBanner
+								savedAt={draft.offered.savedAt}
+								onRestore={() => {
+									form.reset({
+										title: draft.offered!.title,
+										content: draft.offered!.content,
+										contentType: "html",
+									});
+									draft.restore();
+								}}
+								onDiscard={draft.discard}
+							/>
+						)}
+
 						<form.Field name="title">
 							{(field) => (
 								<Field orientation="vertical">
