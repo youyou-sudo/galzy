@@ -242,6 +242,20 @@
   mix-blend-mode: normal;
 }
 
+/* 手机端（触屏）：整页 root 快照交叉淡化是全屏纹理加色混合的主要开销，
+   这里让 root 快照直接切换，只保留标题共享元素的飞行；
+   同时缩短标题飞行时长（350ms → 220ms），降低合成压力、手感更跟手。 */
+@media (pointer: coarse) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+
+  ::view-transition-group(.article-title) {
+    animation-duration: 220ms;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*) {
     animation-duration: 0s !important;
