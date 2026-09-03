@@ -2,12 +2,62 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
+import { useViewportPreload } from "@web/hooks/use-viewport-preload";
 import { elysiaErrorF } from "@web/lib";
 import { authClient } from "@web/server/auth/auth-client";
 import { deleteIntroduction } from "@web/server/introduction";
 import { Loader2, NotepadText, Pencil, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
+
+/**
+ * 列表条目链接：进入视口即预取文章详情路由数据，点击秒开；
+ * 标题与详情页 CardTitle 同名 view-transition-name，路由切换时标题「飞入」详情页
+ */
+function ArticleLink({ item, gameId }: { item: any; gameId: string }) {
+	const linkRef = useRef<HTMLAnchorElement>(null);
+	useViewportPreload(
+		linkRef,
+		(router) => () =>
+			router.preloadRoute({
+				to: "/$id/introduction/$articleId",
+				params: { id: gameId, articleId: String(item.id) },
+			}),
+	);
+
+	return (
+		<Link
+			ref={linkRef}
+			to="/$id/introduction/$articleId"
+			params={{ id: gameId, articleId: String(item.id) }}
+			resetScroll={false}
+			className="w-full min-w-0"
+		>
+			<div className="py-2 flex items-center w-full min-w-0">
+				<NotepadText className="size-4 mr-1 shrink-0" />
+				<span
+					className="truncate"
+					style={{
+						viewTransitionName: `article-title-${item.id}`,
+						viewTransitionClass: "article-title",
+					}}
+				>
+					{item.title}
+				</span>
+				{item.status === "pending" && (
+					<Badge variant="outline" className="ml-2 shrink-0">
+						待审核
+					</Badge>
+				)}
+				{item.status === "rejected" && (
+					<Badge variant="secondary" className="ml-2 shrink-0">
+						已驳回
+					</Badge>
+				)}
+			</div>
+		</Link>
+	);
+}
 
 export default function IntroductionPage({
 	introductionList,
@@ -121,27 +171,7 @@ export default function IntroductionPage({
 								key={item.id}
 								className="flex items-center justify-between px-2 gap-2 rounded-lg group hover:bg-muted/50"
 							>
-								<Link
-									to="/$id/introduction/$articleId"
-									params={{ id: id, articleId: String(item.id) }}
-									resetScroll={false}
-									className="w-full min-w-0"
-								>
-									<div className="py-2 flex items-center w-full min-w-0">
-										<NotepadText className="size-4 mr-1 shrink-0" />
-										<span className="truncate">{item.title}</span>
-										{item.status === "pending" && (
-											<Badge variant="outline" className="ml-2 shrink-0">
-												待审核
-											</Badge>
-										)}
-										{item.status === "rejected" && (
-											<Badge variant="secondary" className="ml-2 shrink-0">
-												已驳回
-											</Badge>
-										)}
-									</div>
-								</Link>
+								<ArticleLink item={item} gameId={id} />
 
 								{/* Admin / author action buttons */}
 								{canEdit && (

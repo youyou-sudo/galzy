@@ -227,6 +227,21 @@
   animation: galzy-page-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* 攻略文章标题（article-title-<id>）共享元素：单元素飞行。
+   两端字号/盒子比例不同，默认的快照交叉淡化会呈现「旧标题放大淡出」的
+   割裂感，拉伸填充又会把文本拉变形。这里隐藏旧快照、新快照全程不透明：
+   点击瞬间同文本的新标题在原位替换旧标题（渲染尺寸近似、几乎无感），
+   随后作为唯一元素沿 group 的位移/缩放飞入详情页，无重影无二次缩放。 */
+::view-transition-old(.article-title) {
+  animation: none;
+  opacity: 0;
+}
+
+::view-transition-new(.article-title) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*) {
     animation-duration: 0s !important;

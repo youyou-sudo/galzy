@@ -97,7 +97,16 @@ export default function ArticlePage({
 							</Button>
 						</div>
 					)}
-					<CardTitle className="text-2xl items-center text-center">
+					{/* 与列表条目标题同名的 view-transition-name，路由切换时标题「飞入」详情页。
+					    w-fit 让盒子贴合文本宽度，与列表端随文本的盒子宽高比相近，
+					    共享元素飞行的缩放近乎等比，不会把文本拉变形 */}
+					<CardTitle
+						className="text-2xl items-center text-center w-fit mx-auto"
+						style={{
+							viewTransitionName: `article-title-${articleId}`,
+							viewTransitionClass: "article-title",
+						}}
+					>
 						{article?.title}
 					</CardTitle>
 					<CardDescription>
