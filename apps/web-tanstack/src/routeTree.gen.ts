@@ -22,6 +22,7 @@ import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as CollectionsIndexRouteImport } from './routes/collections/index'
 import { Route as CollectionsIdRouteImport } from './routes/collections/$id'
 import { Route as GamesIndexRouteImport } from './routes/games/index'
+import { Route as IntroductionCreateRouteImport } from './routes/introduction/create'
 import { Route as ProducerIndexRouteImport } from './routes/producer/index'
 import { Route as ProducerPidRouteImport } from './routes/producer/$pid'
 import { Route as SearchIndexRouteImport } from './routes/search/index'
@@ -51,9 +52,11 @@ import { Route as ApiUploadImageIndexRouteImport } from './routes/api/upload-ima
 import { Route as ApiUploadIndexRouteImport } from './routes/api/upload/index'
 import { Route as AuthSignupIndexRouteImport } from './routes/auth/signup/index'
 import { Route as AuthSignupVerificationRouteImport } from './routes/auth/signup/Verification'
+import { Route as IntroductionArticleIdEditRouteImport } from './routes/introduction/$articleId.edit'
 import { Route as TopicsTopicIdEditRouteImport } from './routes/topics/$topicId.edit'
 import { Route as IdLayoutIntroductionIndexRouteImport } from './routes/$id/_layout/introduction/index'
 import { Route as IdLayoutIntroductionArticleIdRouteImport } from './routes/$id/_layout/introduction/$articleId'
+import { Route as AdminAuthLArticlesArticleIdEditRouteImport } from './routes/admin/_authL/articles.$articleId.edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -118,6 +121,11 @@ const CollectionsIdRoute = CollectionsIdRouteImport.update({
 const GamesIndexRoute = GamesIndexRouteImport.update({
   id: '/games/',
   path: '/games/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntroductionCreateRoute = IntroductionCreateRouteImport.update({
+  id: '/introduction/create',
+  path: '/introduction/create',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProducerIndexRoute = ProducerIndexRouteImport.update({
@@ -265,6 +273,12 @@ const AuthSignupVerificationRoute = AuthSignupVerificationRouteImport.update({
   path: '/auth/signup/Verification',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IntroductionArticleIdEditRoute =
+  IntroductionArticleIdEditRouteImport.update({
+    id: '/introduction/$articleId/edit',
+    path: '/introduction/$articleId/edit',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const TopicsTopicIdEditRoute = TopicsTopicIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -282,6 +296,12 @@ const IdLayoutIntroductionArticleIdRoute =
     path: '/introduction/$articleId',
     getParentRoute: () => IdLayoutRoute,
   } as any)
+const AdminAuthLArticlesArticleIdEditRoute =
+  AdminAuthLArticlesArticleIdEditRouteImport.update({
+    id: '/$articleId/edit',
+    path: '/$articleId/edit',
+    getParentRoute: () => AdminAuthLArticlesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -295,6 +315,7 @@ export interface FileRoutesByFullPath {
   '/api/search': typeof ApiSearchRoute
   '/auth/login': typeof AuthLoginRoute
   '/collections/$id': typeof CollectionsIdRoute
+  '/introduction/create': typeof IntroductionCreateRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/tools/plate': typeof ToolsPlateRoute
@@ -311,7 +332,7 @@ export interface FileRoutesByFullPath {
   '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/relations': typeof IdLayoutRelationsRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
-  '/admin/articles': typeof AdminAuthLArticlesRoute
+  '/admin/articles': typeof AdminAuthLArticlesRouteWithChildren
   '/admin/collections': typeof AdminAuthLCollectionsRoute
   '/admin/comments': typeof AdminAuthLCommentsRoute
   '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
@@ -321,6 +342,7 @@ export interface FileRoutesByFullPath {
   '/admin/vndb-sync': typeof AdminAuthLVndbSyncRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
+  '/introduction/$articleId/edit': typeof IntroductionArticleIdEditRoute
   '/topics/$topicId/edit': typeof TopicsTopicIdEditRoute
   '/$id/': typeof IdLayoutIndexRoute
   '/admin/': typeof AdminAuthLIndexRoute
@@ -329,6 +351,7 @@ export interface FileRoutesByFullPath {
   '/auth/signup/': typeof AuthSignupIndexRoute
   '/$id/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
   '/$id/introduction/': typeof IdLayoutIntroductionIndexRoute
+  '/admin/articles/$articleId/edit': typeof AdminAuthLArticlesArticleIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -340,6 +363,7 @@ export interface FileRoutesByTo {
   '/api/search': typeof ApiSearchRoute
   '/auth/login': typeof AuthLoginRoute
   '/collections/$id': typeof CollectionsIdRoute
+  '/introduction/create': typeof IntroductionCreateRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/tools/plate': typeof ToolsPlateRoute
@@ -356,7 +380,7 @@ export interface FileRoutesByTo {
   '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/relations': typeof IdLayoutRelationsRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
-  '/admin/articles': typeof AdminAuthLArticlesRoute
+  '/admin/articles': typeof AdminAuthLArticlesRouteWithChildren
   '/admin/collections': typeof AdminAuthLCollectionsRoute
   '/admin/comments': typeof AdminAuthLCommentsRoute
   '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
@@ -366,6 +390,7 @@ export interface FileRoutesByTo {
   '/admin/vndb-sync': typeof AdminAuthLVndbSyncRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
+  '/introduction/$articleId/edit': typeof IntroductionArticleIdEditRoute
   '/topics/$topicId/edit': typeof TopicsTopicIdEditRoute
   '/$id': typeof IdLayoutIndexRoute
   '/admin': typeof AdminAuthLIndexRoute
@@ -374,6 +399,7 @@ export interface FileRoutesByTo {
   '/auth/signup': typeof AuthSignupIndexRoute
   '/$id/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
   '/$id/introduction': typeof IdLayoutIntroductionIndexRoute
+  '/admin/articles/$articleId/edit': typeof AdminAuthLArticlesArticleIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -388,6 +414,7 @@ export interface FileRoutesById {
   '/api/search': typeof ApiSearchRoute
   '/auth/login': typeof AuthLoginRoute
   '/collections/$id': typeof CollectionsIdRoute
+  '/introduction/create': typeof IntroductionCreateRoute
   '/producer/$pid': typeof ProducerPidRoute
   '/tags/$tagId': typeof TagsTagIdRoute
   '/tools/plate': typeof ToolsPlateRoute
@@ -404,7 +431,7 @@ export interface FileRoutesById {
   '/$id/_layout/comment': typeof IdLayoutCommentRoute
   '/$id/_layout/relations': typeof IdLayoutRelationsRoute
   '/$id/_layout/translate': typeof IdLayoutTranslateRoute
-  '/admin/_authL/articles': typeof AdminAuthLArticlesRoute
+  '/admin/_authL/articles': typeof AdminAuthLArticlesRouteWithChildren
   '/admin/_authL/collections': typeof AdminAuthLCollectionsRoute
   '/admin/_authL/comments': typeof AdminAuthLCommentsRoute
   '/admin/_authL/meilisearch': typeof AdminAuthLMeilisearchRoute
@@ -414,6 +441,7 @@ export interface FileRoutesById {
   '/admin/_authL/vndb-sync': typeof AdminAuthLVndbSyncRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
+  '/introduction/$articleId/edit': typeof IntroductionArticleIdEditRoute
   '/topics/$topicId/edit': typeof TopicsTopicIdEditRoute
   '/$id/_layout/': typeof IdLayoutIndexRoute
   '/admin/_authL/': typeof AdminAuthLIndexRoute
@@ -422,6 +450,7 @@ export interface FileRoutesById {
   '/auth/signup/': typeof AuthSignupIndexRoute
   '/$id/_layout/introduction/$articleId': typeof IdLayoutIntroductionArticleIdRoute
   '/$id/_layout/introduction/': typeof IdLayoutIntroductionIndexRoute
+  '/admin/_authL/articles/$articleId/edit': typeof AdminAuthLArticlesArticleIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -437,6 +466,7 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/auth/login'
     | '/collections/$id'
+    | '/introduction/create'
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/tools/plate'
@@ -463,6 +493,7 @@ export interface FileRouteTypes {
     | '/admin/vndb-sync'
     | '/api/auth/$'
     | '/auth/signup/Verification'
+    | '/introduction/$articleId/edit'
     | '/topics/$topicId/edit'
     | '/$id/'
     | '/admin/'
@@ -471,6 +502,7 @@ export interface FileRouteTypes {
     | '/auth/signup/'
     | '/$id/introduction/$articleId'
     | '/$id/introduction/'
+    | '/admin/articles/$articleId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -482,6 +514,7 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/auth/login'
     | '/collections/$id'
+    | '/introduction/create'
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/tools/plate'
@@ -508,6 +541,7 @@ export interface FileRouteTypes {
     | '/admin/vndb-sync'
     | '/api/auth/$'
     | '/auth/signup/Verification'
+    | '/introduction/$articleId/edit'
     | '/topics/$topicId/edit'
     | '/$id'
     | '/admin'
@@ -516,6 +550,7 @@ export interface FileRouteTypes {
     | '/auth/signup'
     | '/$id/introduction/$articleId'
     | '/$id/introduction'
+    | '/admin/articles/$articleId/edit'
   id:
     | '__root__'
     | '/'
@@ -529,6 +564,7 @@ export interface FileRouteTypes {
     | '/api/search'
     | '/auth/login'
     | '/collections/$id'
+    | '/introduction/create'
     | '/producer/$pid'
     | '/tags/$tagId'
     | '/tools/plate'
@@ -555,6 +591,7 @@ export interface FileRouteTypes {
     | '/admin/_authL/vndb-sync'
     | '/api/auth/$'
     | '/auth/signup/Verification'
+    | '/introduction/$articleId/edit'
     | '/topics/$topicId/edit'
     | '/$id/_layout/'
     | '/admin/_authL/'
@@ -563,6 +600,7 @@ export interface FileRouteTypes {
     | '/auth/signup/'
     | '/$id/_layout/introduction/$articleId'
     | '/$id/_layout/introduction/'
+    | '/admin/_authL/articles/$articleId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -577,6 +615,7 @@ export interface RootRouteChildren {
   ApiSearchRoute: typeof ApiSearchRoute
   AuthLoginRoute: typeof AuthLoginRoute
   CollectionsIdRoute: typeof CollectionsIdRoute
+  IntroductionCreateRoute: typeof IntroductionCreateRoute
   ProducerPidRoute: typeof ProducerPidRoute
   TagsTagIdRoute: typeof TagsTagIdRoute
   ToolsPlateRoute: typeof ToolsPlateRoute
@@ -592,6 +631,7 @@ export interface RootRouteChildren {
   UserIndexRoute: typeof UserIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   AuthSignupVerificationRoute: typeof AuthSignupVerificationRoute
+  IntroductionArticleIdEditRoute: typeof IntroductionArticleIdEditRoute
   ApiUploadImageIndexRoute: typeof ApiUploadImageIndexRoute
   ApiUploadIndexRoute: typeof ApiUploadIndexRoute
   AuthSignupIndexRoute: typeof AuthSignupIndexRoute
@@ -688,6 +728,13 @@ declare module '@tanstack/react-router' {
       path: '/games'
       fullPath: '/games/'
       preLoaderRoute: typeof GamesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/introduction/create': {
+      id: '/introduction/create'
+      path: '/introduction/create'
+      fullPath: '/introduction/create'
+      preLoaderRoute: typeof IntroductionCreateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/producer/': {
@@ -893,6 +940,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSignupVerificationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/introduction/$articleId/edit': {
+      id: '/introduction/$articleId/edit'
+      path: '/introduction/$articleId/edit'
+      fullPath: '/introduction/$articleId/edit'
+      preLoaderRoute: typeof IntroductionArticleIdEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/topics/$topicId/edit': {
       id: '/topics/$topicId/edit'
       path: '/edit'
@@ -913,6 +967,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$id/introduction/$articleId'
       preLoaderRoute: typeof IdLayoutIntroductionArticleIdRouteImport
       parentRoute: typeof IdLayoutRoute
+    }
+    '/admin/_authL/articles/$articleId/edit': {
+      id: '/admin/_authL/articles/$articleId/edit'
+      path: '/$articleId/edit'
+      fullPath: '/admin/articles/$articleId/edit'
+      preLoaderRoute: typeof AdminAuthLArticlesArticleIdEditRouteImport
+      parentRoute: typeof AdminAuthLArticlesRoute
     }
   }
 }
@@ -939,8 +1000,19 @@ const IdLayoutRouteWithChildren = IdLayoutRoute._addFileChildren(
   IdLayoutRouteChildren,
 )
 
+interface AdminAuthLArticlesRouteChildren {
+  AdminAuthLArticlesArticleIdEditRoute: typeof AdminAuthLArticlesArticleIdEditRoute
+}
+
+const AdminAuthLArticlesRouteChildren: AdminAuthLArticlesRouteChildren = {
+  AdminAuthLArticlesArticleIdEditRoute: AdminAuthLArticlesArticleIdEditRoute,
+}
+
+const AdminAuthLArticlesRouteWithChildren =
+  AdminAuthLArticlesRoute._addFileChildren(AdminAuthLArticlesRouteChildren)
+
 interface AdminAuthLRouteChildren {
-  AdminAuthLArticlesRoute: typeof AdminAuthLArticlesRoute
+  AdminAuthLArticlesRoute: typeof AdminAuthLArticlesRouteWithChildren
   AdminAuthLCollectionsRoute: typeof AdminAuthLCollectionsRoute
   AdminAuthLCommentsRoute: typeof AdminAuthLCommentsRoute
   AdminAuthLMeilisearchRoute: typeof AdminAuthLMeilisearchRoute
@@ -952,7 +1024,7 @@ interface AdminAuthLRouteChildren {
 }
 
 const AdminAuthLRouteChildren: AdminAuthLRouteChildren = {
-  AdminAuthLArticlesRoute: AdminAuthLArticlesRoute,
+  AdminAuthLArticlesRoute: AdminAuthLArticlesRouteWithChildren,
   AdminAuthLCollectionsRoute: AdminAuthLCollectionsRoute,
   AdminAuthLCommentsRoute: AdminAuthLCommentsRoute,
   AdminAuthLMeilisearchRoute: AdminAuthLMeilisearchRoute,
@@ -991,6 +1063,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSearchRoute: ApiSearchRoute,
   AuthLoginRoute: AuthLoginRoute,
   CollectionsIdRoute: CollectionsIdRoute,
+  IntroductionCreateRoute: IntroductionCreateRoute,
   ProducerPidRoute: ProducerPidRoute,
   TagsTagIdRoute: TagsTagIdRoute,
   ToolsPlateRoute: ToolsPlateRoute,
@@ -1006,6 +1079,7 @@ const rootRouteChildren: RootRouteChildren = {
   UserIndexRoute: UserIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   AuthSignupVerificationRoute: AuthSignupVerificationRoute,
+  IntroductionArticleIdEditRoute: IntroductionArticleIdEditRoute,
   ApiUploadImageIndexRoute: ApiUploadImageIndexRoute,
   ApiUploadIndexRoute: ApiUploadIndexRoute,
   AuthSignupIndexRoute: AuthSignupIndexRoute,

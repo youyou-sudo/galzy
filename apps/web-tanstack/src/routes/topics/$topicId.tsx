@@ -149,12 +149,20 @@ function RouteComponent() {
 				<CardHeader>
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-2">
-							<h1 className="text-2xl font-bold">{(topic as any).title}</h1>
+							<h1
+								className="text-2xl font-bold"
+								style={{ viewTransitionName: `topic-title-${topicId}` }}
+							>
+								{(topic as any).title}
+							</h1>
 						</div>
 						<Badge variant="secondary">{(topic as any).status}</Badge>
 					</div>
 					<div className="flex items-center gap-2 mt-2">
-						<Avatar className="size-6">
+						<Avatar
+							className="size-6"
+							style={{ viewTransitionName: `topic-avatar-${topicId}` }}
+						>
 							<AvatarImage
 								src={(topic as any).user?.image || ""}
 								alt={(topic as any).user?.name}
@@ -163,7 +171,10 @@ function RouteComponent() {
 								{(topic as any).user?.name?.slice(0, 2).toUpperCase()}
 							</AvatarFallback>
 						</Avatar>
-						<span className="text-sm text-muted-foreground">
+						<span
+							className="text-sm text-muted-foreground inline-block"
+							style={{ viewTransitionName: `topic-nick-${topicId}` }}
+						>
 							{(topic as any).user?.name}
 						</span>
 						<span className="text-xs text-muted-foreground">

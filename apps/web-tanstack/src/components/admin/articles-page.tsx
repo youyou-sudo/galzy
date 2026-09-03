@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { CreateEditDialog } from "@web/components/-CreateEditDialog";
+import { useNavigate } from "@tanstack/react-router";
 import { AdminPageHeader } from "@web/components/admin/admin-page-header";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
@@ -23,7 +23,6 @@ import {
 import {
 	adminChangeArticleStatus,
 	adminGetAllArticles,
-	adminUpdateArticle,
 } from "@web/server/admin/articles";
 import {
 	ChevronLeftIcon,
@@ -305,7 +304,7 @@ function ArticlesTable() {
 											</td>
 											<td className="px-4 py-3 text-right">
 												<div className="flex items-center justify-end gap-1.5">
-													<EditArticleCell article={article} onDone={refresh} />
+													<EditArticleCell article={article} />
 													{article.status !== "published" && (
 														<PublishArticleButton
 															article={article}
@@ -376,56 +375,22 @@ function ArticlesTable() {
 	);
 }
 
-function EditArticleCell({
-	article,
-	onDone,
-}: {
-	article: AdminArticle;
-	onDone: () => void;
-}) {
-	const [open, setOpen] = useState(false);
-
-	const handleCustomSubmit = async (values: {
-		id?: string | number;
-		title: string;
-		content: string;
-		contentType: "markdown" | "html";
-		copyright?: string;
-	}) => {
-		try {
-			await adminUpdateArticle({
-				data: {
-					id: Number(values.id),
-					title: values.title,
-					content: values.content,
-					contentType: values.contentType,
-				},
-			});
-			toast.success("文章已更新");
-			setOpen(false);
-			onDone();
-		} catch {
-			toast.error("文章更新失败");
-		}
-	};
+function EditArticleCell({ article }: { article: AdminArticle }) {
+	const navigate = useNavigate();
 
 	return (
-		<>
-			<Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
-				<PencilIcon className="size-4" />
-			</Button>
-			<CreateEditDialog
-				open={open}
-				onOpenChange={setOpen}
-				initialData={{
-					id: article.id,
-					title: article.title ?? "",
-					content: article.content ?? "",
-					contentType: (article as any).contentType || "markdown",
-				}}
-				customSubmit={handleCustomSubmit}
-			/>
-		</>
+		<Button
+			variant="ghost"
+			size="sm"
+			onClick={() => {
+				navigate({
+					to: "/admin/articles/$articleId/edit",
+					params: { articleId: String(article.id) },
+				});
+			}}
+		>
+			<PencilIcon className="size-4" />
+		</Button>
 	);
 }
 

@@ -4,7 +4,7 @@ import type { getGameDetail } from "@web/server/game";
 
 type GameData = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>;
 
-export function GameHeader({ game }: { game: GameData }) {
+export function GameHeader({ game, id }: { game: GameData; id: string }) {
 	const olangTitle = game?.vn?.titles?.find(
 		(t) => t.lang === game.vn?.olang && (t.title ?? "").trim() !== "",
 	)?.title;
@@ -25,6 +25,8 @@ export function GameHeader({ game }: { game: GameData }) {
 								? "min-w-72.5"
 								: "w-55"
 						} relative overflow-hidden text-left`}
+						// 与列表卡片 GameCard.Item 同名的 view-transition-name，路由切换时封面「飞入」详情页
+						style={{ viewTransitionName: `game-cover-${id}` }}
 					>
 						<Skeleton className="absolute inset-0 w-full h-full rounded-lg" />
 						<GameCard.Image
@@ -46,7 +48,10 @@ export function GameHeader({ game }: { game: GameData }) {
 
 			{/* Main content section */}
 			<div className="overflow-hidden wrap-break-word">
-				<h1 className="font-semibold text-2xl leading-[1.2] mt-2">
+				<h1
+					className="font-semibold text-2xl leading-[1.2] mt-2 w-fit"
+					style={{ viewTransitionName: `game-title-${id}` }}
+				>
 					{olangTitle || "null"}
 				</h1>
 

@@ -295,6 +295,7 @@ function Item({
 			<AspectRatio
 				ratio={LIST_IMAGE_RATIO}
 				className="block relative overflow-hidden rounded-lg"
+				style={{ viewTransitionName: `game-cover-${gameid}` }}
 			>
 				<div className="relative w-full h-full">
 					{/* 无 thumbhash 的图片加载期间露出骨架（有占位时被占位层盖住） */}
@@ -330,7 +331,12 @@ function Item({
 					)}
 				</div>
 			</AspectRatio>
-			<p className="text-sm truncate w-full text-center px-2 pt-2">{title}</p>
+			<p
+				className="text-sm truncate w-fit max-w-full mx-auto text-center px-2 pt-2"
+				style={{ viewTransitionName: `game-title-${gameid}` }}
+			>
+				{title}
+			</p>
 		</Link>
 	);
 }

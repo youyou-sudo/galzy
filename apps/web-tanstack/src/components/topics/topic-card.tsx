@@ -41,7 +41,10 @@ export function TopicCard({ topic }: TopicCardProps) {
 			<Card className="hover:bg-accent/50 transition-colors cursor-pointer gap-1">
 				<CardHeader>
 					<div className="flex items-center gap-2">
-						<Avatar className="size-6">
+						<Avatar
+							className="size-6"
+							style={{ viewTransitionName: `topic-avatar-${topic.id}` }}
+						>
 							<AvatarImage
 								src={topic.user?.image || ""}
 								alt={topic.user?.name}
@@ -50,14 +53,22 @@ export function TopicCard({ topic }: TopicCardProps) {
 								{topic.user?.name?.slice(0, 2).toUpperCase()}
 							</AvatarFallback>
 						</Avatar>
-						<span className="text-sm text-muted-foreground">
+						<span
+							className="text-sm text-muted-foreground inline-block"
+							style={{ viewTransitionName: `topic-nick-${topic.id}` }}
+						>
 							{topic.user?.name}
 						</span>
 						<span className="text-xs text-muted-foreground ml-auto">
 							{formatTime(topic.createdAt)}
 						</span>
 					</div>
-					<h3 className="text-lg font-semibold mt-1">{topic.title}</h3>
+					<h3
+						className="text-lg font-semibold mt-1 w-fit"
+						style={{ viewTransitionName: `topic-title-${topic.id}` }}
+					>
+						{topic.title}
+					</h3>
 				</CardHeader>
 				<CardContent>
 					<p className="text-sm text-muted-foreground line-clamp-2 wrap-break-word">

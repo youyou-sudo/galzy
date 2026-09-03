@@ -1,15 +1,13 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
 import { elysiaErrorF } from "@web/lib";
 import { authClient } from "@web/server/auth/auth-client";
 import { deleteIntroduction } from "@web/server/introduction";
-import { introductionEditActions } from "@web/stores/introductionStores";
 import { Loader2, NotepadText, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CreateEditDialog } from "@web/components/-CreateEditDialog";
-import { Badge } from "@web/components/ui/badge";
 
 export default function IntroductionPage({
 	introductionList,
@@ -19,6 +17,7 @@ export default function IntroductionPage({
 	id: string;
 }) {
 	const router = useRouter();
+	const navigate = useNavigate();
 
 	// Get current user session
 	const { data: session, isPending: sessionPending } = useQuery({
@@ -73,7 +72,10 @@ export default function IntroductionPage({
 				{isLoggedIn && !sessionPending && (
 					<Button
 						onClick={() => {
-							introductionEditActions.onOpen();
+							navigate({
+								to: "/introduction/create",
+								search: { gameId: id },
+							});
 						}}
 						size="sm"
 						variant="outline"
@@ -91,7 +93,10 @@ export default function IntroductionPage({
 						<div className="mt-2">
 							<Button
 								onClick={() => {
-									introductionEditActions.onOpen();
+									navigate({
+										to: "/introduction/create",
+										search: { gameId: id },
+									});
 								}}
 								variant="outline"
 								size="sm"
@@ -147,13 +152,9 @@ export default function IntroductionPage({
 											onClick={(e) => {
 												e.preventDefault();
 												e.stopPropagation();
-												introductionEditActions.setOpen({
-													gameId: id,
-													id: String(item.id),
-													title: item.title,
-													content: item.content,
-													contentType: item.contentType || "markdown",
-													copyright: item.copyright,
+												navigate({
+													to: "/introduction/$articleId/edit",
+													params: { articleId: String(item.id) },
 												});
 											}}
 											title="编辑"
@@ -186,8 +187,6 @@ export default function IntroductionPage({
 					})}
 				</div>
 			)}
-
-			<CreateEditDialog gameId={id} />
 		</section>
 	);
 }

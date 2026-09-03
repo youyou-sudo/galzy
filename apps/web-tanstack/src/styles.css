@@ -186,3 +186,94 @@
 .reactjs-tiptap-editor .image-view__body__image {
   border-radius: var(--radius-md);
 }
+
+/* ── View Transitions（路由切换过渡） ────────────────────────────────
+   共享元素：列表卡片与详情页的同名元素（游戏封面/标题 game-cover-<id>/game-title-<id>，
+   论坛帖子 topic-title-<id>/topic-nick-<id>/topic-avatar-<id>）由浏览器自动配对、
+   使用原生 View Transition API 的共享元素「飞入」变形；其余内容整页淡入淡出。 */
+
+::view-transition-group(*) {
+  animation-duration: 350ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-group(root) {
+  animation-duration: 220ms;
+}
+
+@keyframes galzy-page-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes galzy-page-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+::view-transition-old(root) {
+  animation: galzy-page-out 180ms ease-in both;
+}
+
+::view-transition-new(root) {
+  animation: galzy-page-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+  }
+
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* ── 滚动条 ──────────────────────────────────────────────────────────
+   html 的 scrollbar-gutter: stable 让视口滚动条空间常驻占位：
+   长页/短页之间路由切换（含 View Transition 过渡）不再因滚动条
+   出现/消失而整页横向抖动；overlay 滚动条平台（macOS/移动端）
+   滚动条本身不占宽，此属性无副作用。
+   滑块颜色引用主题变量，:root / .dark 各自定义，明暗主题自动跟随。 */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border: 3px solid transparent;
+  border-radius: 9999px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--muted-foreground);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+html {
+  scrollbar-gutter: stable;
+}

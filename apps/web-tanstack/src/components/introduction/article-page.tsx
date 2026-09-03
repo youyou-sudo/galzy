@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "@tanstack/react-router";
+import { useNavigate, useRouter } from "@tanstack/react-router";
+import { RichContent } from "@web/components/RichContent";
 import { Button } from "@web/components/ui/button";
 import {
 	Card,
@@ -12,10 +13,7 @@ import { elysiaErrorF } from "@web/lib";
 import { authClient } from "@web/server/auth/auth-client";
 import { deleteIntroduction } from "@web/server/introduction";
 import { Loader2, Pencil, Trash2, User } from "lucide-react";
-import { useState } from "react";
 import { toast } from "sonner";
-import { CreateEditDialog } from "@web/components/-CreateEditDialog";
-import { RichContent } from "@web/components/RichContent";
 
 export default function ArticlePage({
 	article,
@@ -28,8 +26,7 @@ export default function ArticlePage({
 }) {
 	const router = useRouter();
 	const queryClient = useQueryClient();
-
-	const [dialogOpen, setDialogOpen] = useState(false);
+	const navigate = useNavigate();
 
 	// Get current user session
 	const { data: session } = useQuery({
@@ -66,15 +63,6 @@ export default function ArticlePage({
 		}
 	};
 
-	const handleEditSuccess = () => {
-		setDialogOpen(false);
-		queryClient.invalidateQueries({ queryKey: ["introductionList"] });
-		// Also invalidate the article cache to refresh the content
-		router.invalidate({
-			filter: (match) =>
-				match.routeId === "/$id/_layout/introduction/$articleId",
-		});
-	};
 	return (
 		<section>
 			<Card>
@@ -84,7 +72,12 @@ export default function ArticlePage({
 							<Button
 								variant="ghost"
 								size="sm"
-								onClick={() => setDialogOpen(true)}
+								onClick={() => {
+									navigate({
+										to: "/introduction/$articleId/edit",
+										params: { articleId },
+									});
+								}}
 							>
 								<Pencil className="size-4 mr-1" />
 								编辑
@@ -157,25 +150,6 @@ export default function ArticlePage({
 					</div>
 				</CardContent>
 			</Card>
-
-			{/* Edit Dialog */}
-			{article && (
-				<CreateEditDialog
-					key={`edit-${dialogOpen}`}
-					gameId={gameId}
-					open={dialogOpen}
-					onOpenChange={setDialogOpen}
-					mode="edit"
-					initialData={{
-						id: articleId,
-						title: article.title ?? "",
-						content: article.content ?? "",
-						contentType: article.contentType || "markdown",
-						copyright: article.copyright ?? "",
-					}}
-					onSuccess={handleEditSuccess}
-				/>
-			)}
 		</section>
 	);
 }
