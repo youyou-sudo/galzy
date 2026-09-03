@@ -227,6 +227,12 @@
   animation: galzy-page-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* root 快照默认走 plus-lighter 加色混合，每帧对两张全屏纹理逐像素相加，
+   是移动 GPU 带宽的主要消耗；改为普通混合后淡入淡出不再叠加发亮。 */
+::view-transition-image-pair(root) {
+  mix-blend-mode: normal;
+}
+
 /* 攻略文章标题（article-title-<id>）共享元素：单元素飞行。
    两端字号/盒子比例不同，默认的快照交叉淡化会呈现「旧标题放大淡出」的
    割裂感，拉伸填充又会把文本拉变形。这里隐藏旧快照、新快照全程不透明：
