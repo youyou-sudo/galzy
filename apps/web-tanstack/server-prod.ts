@@ -543,9 +543,12 @@ async function main(): Promise<void> {
     console.error('[err] unhandled rejection:', reason)
   })
 
-  // Load SSR handler and static assets in parallel
+  // Load SSR handler and static assets in parallel.
+  // `as string` hides the specifier from tsc (allowJs would otherwise pull the
+  // entire minified dist/ bundle into the typecheck program); Bun still sees
+  // the literal after stripping types, so `bun build --compile` keeps bundling it.
   const [ssrMod] = await Promise.all([
-    import('./dist/server/server.js') as Promise<{
+    import('./dist/server/server.js' as string) as Promise<{
       default: { fetch: (req: Request) => Response | Promise<Response> }
     }>,
     IS_COMPILED

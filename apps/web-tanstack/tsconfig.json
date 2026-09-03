@@ -1,6 +1,7 @@
 {
   "extends": "config/typescript/base.json",
   "include": ["**/*.ts", "**/*.tsx", "env.d.ts", "server.ts"],
+  "exclude": ["node_modules", "coverage", ".storybook", "dist", ".output", ".tanstack"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",
