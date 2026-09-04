@@ -1,41 +1,62 @@
 let activeTransition: ViewTransition | undefined;
 let installed = false;
 
-/** 共享元素通过内联 style={{ viewTransitionName }} 声明，用属性选择器定位 */
-const SHARED_ELEMENT_SELECTOR = '[style*="view-transition-name"]';
-
-/** 收集当前页面所有共享元素（view-transition-name）的视口 rect，按名字索引 */
-function captureSharedElementRects() {
-	const rects = new Map<string, DOMRect>();
-	for (const el of document.querySelectorAll<HTMLElement>(SHARED_ELEMENT_SELECTOR)) {
-		const name = el.style.viewTransitionName;
-		if (name) rects.set(name, el.getBoundingClientRect());
-	}
-	return rects;
-}
-
-/** 在新 DOM 中按名字定位共享元素（用于测量「飞入」目标位置） */
-function findSharedElement(name: string) {
-	for (const el of document.querySelectorAll<HTMLElement>(SHARED_ELEMENT_SELECTOR)) {
-		if (el.style.viewTransitionName === name) return el;
-	}
-	return null;
-}
-
 /**
- * 把 UA 注入的 ::view-transition-group 动画改为 compositor-only。
+ * 把 UA 生成的 ::view-transition-group 关键帧改写为 compositor-only（纯函数）。
  *
- * 浏览器生成的默认关键帧（-ua-view-transition-group-anim-*）同时插值
- * width/height 与 transform：width/height 参与动画会被 Blink 判定为主线程
- * 动画（每帧 layout，~60Hz）。这里用 WAAPI 改写每组关键帧：
+ * 浏览器生成的默认关键帧（-ua-view-transition-group-anim-*，见 spec §3.9.5）
+ * 只有 from 块：transform/width/height 是旧盒子的几何，终点值来自 group 的
+ * 内联样式（新盒子）。width/height 参与动画会被 Blink 判定为主线程动画
+ * （每帧 layout，~60Hz）。改写：
  *   - 删除所有 width/height；
- *   - 共享元素（非 root）的尺寸变化折算进 from 关键帧的 transform scale，
- *     位移用显式 translate 表达（基准 transform-origin: 0 0，见 styles.css）：
- *       from: translate(旧位置) scale(旧尺寸/新尺寸) —— 视觉上=旧盒子
- *       to:   translate(新位置) —— 视觉上=新盒子的自然位置
- * 改写后动画只剩 transform（+opacity），跑在合成器线程（120/144Hz）。
+ *   - 共享元素（非 root）且尺寸变化时，把尺寸 morph 折算成 scale 追加到
+ *     from 的 transform 末尾（transform-origin: 0 0，见 styles.css，缩放
+ *     围绕左上角，等价于 UA 默认的 width/height 插值）：
+ *       from: translate(旧位置) scale(旧尺寸/新尺寸)
+ *   - 删除 to 关键帧的 transform，让终点回落到浏览器自己计算的内联
+ *     transform —— 末帧位置由浏览器保证，不依赖外部 rect 测量（滚动恢复、
+ *     移动端 URL 栏收展导致测量与快照坐标系漂移时不会错位）。
+ * 改写后动画只剩 transform/opacity，跑在合成器线程（120/144Hz）。
  */
-function makeGroupAnimationsCompositorOnly(oldRects: Map<string, DOMRect>) {
+export function makeGroupCompositorKeyframes(
+	keyframes: Keyframe[],
+	name: string,
+): Keyframe[] {
+	if (keyframes.length === 0) return keyframes;
+
+	const from = keyframes[0];
+	const to = keyframes[keyframes.length - 1];
+
+	// from/to 关键帧自带旧/新尺寸（浏览器生成），尺寸 morph 折算成 scale
+	const oldWidth = Number.parseFloat(String(from.width ?? ""));
+	const oldHeight = Number.parseFloat(String(from.height ?? ""));
+	const newWidth = Number.parseFloat(String(to.width ?? ""));
+	const newHeight = Number.parseFloat(String(to.height ?? ""));
+	const sizesChanged =
+		name !== "root" &&
+		Number.isFinite(oldWidth) &&
+		Number.isFinite(oldHeight) &&
+		Number.isFinite(newWidth) &&
+		Number.isFinite(newHeight) &&
+		oldWidth !== newWidth &&
+		oldHeight !== newHeight;
+
+	if (sizesChanged) {
+		from.transform = `${String(from.transform ?? "")} scale(${oldWidth / newWidth}, ${oldHeight / newHeight})`;
+	}
+
+	for (const frame of keyframes) {
+		delete frame.width;
+		delete frame.height;
+	}
+	// 终点回落到浏览器自己的内联 transform（见函数注释）
+	delete to.transform;
+
+	return keyframes;
+}
+
+/** 遍历当前活动的 VT group 动画，逐个改写为 compositor-only */
+function makeGroupAnimationsCompositorOnly() {
 	for (const animation of document.getAnimations()) {
 		const effect = animation.effect as KeyframeEffect | null;
 		if (!effect?.pseudoElement) continue;
@@ -45,23 +66,7 @@ function makeGroupAnimationsCompositorOnly(oldRects: Map<string, DOMRect>) {
 		const keyframes = effect.getKeyframes();
 		if (keyframes.length === 0) continue;
 
-		for (const frame of keyframes) {
-			delete frame.width;
-			delete frame.height;
-		}
-
-		const name = match[1];
-		if (name !== "root") {
-			const from = oldRects.get(name);
-			const newElement = findSharedElement(name);
-			if (from && newElement) {
-				const to = newElement.getBoundingClientRect();
-				keyframes[0].transform = `translate(${from.left}px, ${from.top}px) scale(${from.width / to.width}, ${from.height / to.height})`;
-				keyframes[keyframes.length - 1].transform = `translate(${to.left}px, ${to.top}px)`;
-			}
-		}
-
-		effect.setKeyframes(keyframes);
+		effect.setKeyframes(makeGroupCompositorKeyframes(keyframes, match[1]));
 	}
 }
 
@@ -78,13 +83,13 @@ export function installViewTransitionTracker() {
 
 	const original = document.startViewTransition.bind(document);
 	document.startViewTransition = ((callback?: ViewTransitionUpdateCallback) => {
-		const oldRects = captureSharedElementRects();
 		const transition = original(callback);
 		activeTransition = transition;
 
-		// 新 DOM 就绪（快照已生成）后改写 group 关键帧；跳过/取消时忽略
+		// 新 DOM 就绪（快照已生成）后改写 group 关键帧为 compositor-only；
+		// 跳过/取消时忽略
 		transition.ready
-			.then(() => makeGroupAnimationsCompositorOnly(oldRects))
+			.then(() => makeGroupAnimationsCompositorOnly())
 			.catch(() => {});
 
 		// skipTransition() 会 reject ready/finished，而 TanStack Router 内部
