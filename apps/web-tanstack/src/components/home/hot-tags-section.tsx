@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { Skeleton } from "@web/components/ui/skeleton";
+import { useViewportPreload } from "@web/hooks/use-viewport-preload";
 import { cn } from "@web/lib/utils";
 import { Hash } from "lucide-react";
+import { useRef } from "react";
 
 interface HotTag {
 	tag: string;
@@ -31,8 +33,17 @@ function TagChip({
 	index: number;
 	className?: string;
 }) {
+	const linkRef = useRef<HTMLAnchorElement>(null);
+	// 进入视口即预取标签详情数据，未请求过的条目点击也秒开（不触发 view 计数）
+	useViewportPreload(
+		linkRef,
+		(router) => () =>
+			router.preloadRoute({ to: "/tags/$tagId", params: { tagId: tag.tag } }),
+	);
+
 	return (
 		<Link
+			ref={linkRef}
 			to="/tags/$tagId"
 			params={{ tagId: tag.tag }}
 			className={cn(

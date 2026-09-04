@@ -33,6 +33,7 @@ import { Button } from "@web/components/ui/button";
 import { Card, CardContent, CardHeader } from "@web/components/ui/card";
 import { Separator } from "@web/components/ui/separator";
 import { Skeleton } from "@web/components/ui/skeleton";
+import { TopicDetailPageSkeleton } from "@web/components/shared/route-skeletons";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { seoMeta, truncateText } from "@web/lib/seo";
 import { authClient } from "@web/server/auth/auth-client";
@@ -65,6 +66,7 @@ function formatTime(dateStr: string) {
 
 export const Route = createFileRoute("/topics/$topicId")({
 	component: RouteComponent,
+	pendingComponent: () => <TopicDetailPageSkeleton />,
 	loader: async ({ params }) => {
 		const topic = await getTopic({ data: { id: Number(params.topicId) } });
 		return { topic };

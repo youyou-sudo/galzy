@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@web/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@web/components/ui/card";
+import { useViewportPreload } from "@web/hooks/use-viewport-preload";
 import { Heart, MessageSquare } from "lucide-react";
+import { useRef } from "react";
 
 function formatTime(dateStr: Date | string | null) {
 	if (!dateStr) return "未知";
@@ -36,8 +38,23 @@ interface TopicCardProps {
 }
 
 export function TopicCard({ topic }: TopicCardProps) {
+	const linkRef = useRef<HTMLAnchorElement>(null);
+	// 进入视口即预取帖子详情数据，点击秒开
+	useViewportPreload(
+		linkRef,
+		(router) => () =>
+			router.preloadRoute({
+				to: "/topics/$topicId",
+				params: { topicId: String(topic.id) },
+			}),
+	);
+
 	return (
-		<Link to="/topics/$topicId" params={{ topicId: String(topic.id) }}>
+		<Link
+			ref={linkRef}
+			to="/topics/$topicId"
+			params={{ topicId: String(topic.id) }}
+		>
 			<Card className="hover:bg-accent/50 transition-colors cursor-pointer gap-1">
 				<CardHeader>
 					<div className="flex items-center gap-2">

@@ -64,6 +64,7 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 							<Link
 								to={`/producer/$pid`}
 								params={{ pid: producer.id }}
+								preload="viewport"
 								key={producer.id}
 							>
 								<span className="relative inline-flex items-center gap-0.5 text-cyan-600 wrap-break-word hover:underline">
@@ -86,6 +87,7 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 								<Link
 									to={`/producer/$pid`}
 									params={{ pid: producer.id }}
+									preload="viewport"
 									key={producer.id}
 								>
 									<span

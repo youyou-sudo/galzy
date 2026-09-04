@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useSelector } from "@tanstack/react-store";
 import { GameCard } from "@web/components/home/card";
 import SearchInput from "@web/components/home/search/Search";
+import { GameListPageSkeleton } from "@web/components/shared/route-skeletons";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -29,6 +30,7 @@ const searchSchema = object({
 
 export const Route = createFileRoute("/games/")({
 	component: RouteComponent,
+	pendingComponent: () => <GameListPageSkeleton />,
 	head: () =>
 		seoMeta({
 			title: `全部游戏 | ${seoTemplate.title}`,
@@ -44,22 +46,48 @@ export const Route = createFileRoute("/games/")({
 		sortBy,
 		order,
 	}),
-	loader: async ({ deps: { q, startDate, endDate, sortBy, order } }) => {
+	loader: async ({
+		deps: { q, startDate, endDate, sortBy, order },
+		context,
+	}) => {
 		// 搜索模式（q 存在）不启用 R18 过滤，敏感图片由卡片模糊组件兜底
 		const showR18 = q ? undefined : r18Store.state.showR18;
-		const { gamelist } = await getGameList({
-			data: {
-				pageIndex: 0,
-				pageSize: 24,
-				sortBy,
-				order,
+		// 预取/复用 useInfiniteQuery 缓存（queryKey 与其完全一致）：
+		// 已访问过的排序/筛选组合直接命中缓存，排序切换零等待；首次访问只做一次请求
+		await context.queryClient.ensureInfiniteQueryData({
+			queryKey: [
+				"gameList",
 				q,
 				startDate,
 				endDate,
-				showR18,
+				sortBy,
+				order,
+				q ? "search" : showR18,
+			],
+			queryFn: async ({ pageParam }) => {
+				const { gamelist } = await getGameList({
+					data: {
+						pageIndex: pageParam,
+						pageSize: 24,
+						sortBy,
+						order,
+						q,
+						startDate,
+						endDate,
+						showR18,
+					},
+				});
+				return gamelist ?? null;
 			},
+			initialPageParam: 0,
+			getNextPageParam: (
+				lastPage: { currentPage: number; totalPages: number } | null,
+			) =>
+				lastPage && lastPage.currentPage < lastPage.totalPages
+					? lastPage.currentPage + 1
+					: null,
 		});
-		return { initialData: gamelist };
+		return {};
 	},
 	headers: () => ({
 		"Cache-Control": "public, s-maxage=30, stale-while-revalidate=300",
@@ -70,7 +98,6 @@ export const Route = createFileRoute("/games/")({
 
 function RouteComponent() {
 	const { q, startDate, endDate, sortBy, order } = Route.useSearch();
-	const { initialData } = Route.useLoaderData();
 	const storeShowR18 = useSelector(r18Store, (s) => s.showR18);
 	// 搜索模式（q 存在）不启用 R18 过滤，敏感图片由卡片模糊组件兜底
 	const showR18 = q ? undefined : storeShowR18;
@@ -108,9 +135,6 @@ function RouteComponent() {
 			return gamelist ?? null;
 		},
 		initialPageParam: 1,
-		initialData: initialData
-			? { pages: [initialData], pageParams: [0] }
-			: undefined,
 		getNextPageParam: (lastPage) =>
 			lastPage && lastPage.currentPage < lastPage.totalPages
 				? lastPage.currentPage + 1

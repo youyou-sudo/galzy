@@ -112,7 +112,9 @@ export function HeaderMobileMenu({
                 className={cn(
                   'h-12 w-full justify-start gap-2.5 px-3 text-base font-medium',
                 )}
-                render={<Link to={to} onClick={() => onOpenChange(false)} />}
+                render={
+                  <Link to={to} preload="viewport" onClick={() => onOpenChange(false)} />
+                }
               >
                 <Icon data-icon="inline-start" />
                 {label}
@@ -130,7 +132,9 @@ export function HeaderMobileMenu({
                 variant="ghost"
                 nativeButton={false}
                 className="h-auto w-full justify-start gap-3 px-3 py-2.5"
-                render={<Link to={to} onClick={() => onOpenChange(false)} />}
+                render={
+                  <Link to={to} preload="viewport" onClick={() => onOpenChange(false)} />
+                }
               >
                 <Icon data-icon="inline-start" />
                 <div className="flex flex-col items-start gap-0.5">

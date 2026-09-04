@@ -9,10 +9,12 @@ import {
   BreadcrumbSeparator,
 } from '@web/components/ui/breadcrumb'
 import { seoTemplate } from '@web/config/seoTemplate'
+import { TagDetailPageSkeleton } from '@web/components/shared/route-skeletons'
 import { getTagData, getVnListByTag } from '@web/server/tags'
 import { recordTagView } from '@web/server/views'
 
 export const Route = createFileRoute('/tags/$tagId')({
+  pendingComponent: () => <TagDetailPageSkeleton />,
   loader: async ({ params }) => {
     const { tagId } = params
     const [tag, game] = await Promise.all([

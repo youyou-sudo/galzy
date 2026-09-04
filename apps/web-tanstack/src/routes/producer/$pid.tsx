@@ -10,9 +10,11 @@ import {
 } from '@web/components/ui/breadcrumb'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { seoMeta } from '@web/lib/seo'
+import { ProducerDetailPageSkeleton } from '@web/components/shared/route-skeletons'
 import { producerGameList, producerInfo } from '@web/server/producer'
 
 export const Route = createFileRoute('/producer/$pid')({
+  pendingComponent: () => <ProducerDetailPageSkeleton />,
   loader: async ({ params }) => {
     const { pid } = params
     return {

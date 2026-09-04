@@ -1,7 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { GameCard } from "@web/components/home/card";
+import { useViewportPreload } from "@web/hooks/use-viewport-preload";
 import { cn } from "@web/lib/utils";
 import { Layers, Library } from "lucide-react";
+import { useRef } from "react";
 
 interface PreviewItem {
 	id: string;
@@ -99,9 +101,20 @@ function PokerStack({
 
 export function CollectionItem({ collection }: { collection: CollectionData }) {
 	const gameCount = collection.entryCount ?? collection.previews?.length ?? 0;
+	const linkRef = useRef<HTMLAnchorElement>(null);
+	// 进入视口即预取合集详情数据，点击秒开
+	useViewportPreload(
+		linkRef,
+		(router) => () =>
+			router.preloadRoute({
+				to: "/collections/$id",
+				params: { id: String(collection.id) },
+			}),
+	);
 
 	return (
 		<Link
+			ref={linkRef}
 			to="/collections/$id"
 			params={{ id: String(collection.id) }}
 			className="group block rounded-2xl transition-all duration-300 hover:-translate-y-1"

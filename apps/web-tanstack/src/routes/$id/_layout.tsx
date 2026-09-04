@@ -8,9 +8,10 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@web/components/ui/breadcrumb'
+import { GameDetailPageSkeleton } from '@web/components/shared/route-skeletons'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { gameTitleOf } from '@web/lib/seo'
-import { getGameDetail, getGameTags } from '@web/server/game'
+import { getGameDetail } from '@web/server/game'
 import { recordGameView } from '@web/server/views'
 
 export const Route = createFileRoute('/$id/_layout')({
@@ -26,15 +27,19 @@ export const Route = createFileRoute('/$id/_layout')({
       id,
     }),
   },
-  loader: async ({ params }) => {
+  loader: async ({ params, context }) => {
     const { id } = params
-    const [game, tags] = await Promise.all([
-      getGameDetail({ data: { id } }),
-      getGameTags({ data: { id } }),
-    ])
+    // 只阻塞 game，快速点击时首屏秒出；tags 由 TagsCard 组件内 useQuery 自行拉取，
+    // 不进入导航关键路径（折叠面板，晚一拍出现无感知）。
+    // ensureQueryData 同时把 game 写入查询缓存（key: gameDetail），
+    // 由 persist 白名单持久化到 localStorage，刷新/重开后再次访问秒出。
+    const game = await context.queryClient.ensureQueryData({
+      queryKey: ['gameDetail', id],
+      queryFn: () => getGameDetail({ data: { id } }),
+      staleTime: 60_000,
+    })
     return {
       game,
-      tags,
       id,
     }
   },
@@ -44,6 +49,7 @@ export const Route = createFileRoute('/$id/_layout')({
       // silently ignore recording failures
     })
   },
+  pendingComponent: () => <GameDetailPageSkeleton />,
   head: ({ loaderData }) => {
     const title = gameTitleOf(loaderData?.game)
     return {

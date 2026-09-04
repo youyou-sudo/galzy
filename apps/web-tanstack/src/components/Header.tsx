@@ -179,7 +179,7 @@ export default function Header() {
 								<NavigationMenuItem>
 									<NavigationMenuLink
 										className={navigationMenuTriggerStyle()}
-										render={<Link to="/tags" />}
+										render={<Link to="/tags" preload="viewport" />}
 									>
 										标签
 									</NavigationMenuLink>
@@ -187,7 +187,7 @@ export default function Header() {
 								<NavigationMenuItem>
 									<NavigationMenuLink
 										className={navigationMenuTriggerStyle()}
-										render={<Link to="/producer" />}
+										render={<Link to="/producer" preload="viewport" />}
 									>
 										会社
 									</NavigationMenuLink>
@@ -195,7 +195,13 @@ export default function Header() {
 								<NavigationMenuItem>
 									<NavigationMenuLink
 										className={navigationMenuTriggerStyle()}
-										render={<Link to="/collections" search={{ page: 1 }} />}
+										render={
+											<Link
+												to="/collections"
+												search={{ page: 1 }}
+												preload="viewport"
+											/>
+										}
 									>
 										合集
 									</NavigationMenuLink>
@@ -248,7 +254,13 @@ export default function Header() {
 								<NavigationMenuItem>
 									<NavigationMenuLink
 										className={navigationMenuTriggerStyle()}
-										render={<Link to="/topics" search={{ page: 1 }} />}
+										render={
+											<Link
+												to="/topics"
+												search={{ page: 1 }}
+												preload="viewport"
+											/>
+										}
 									>
 										论坛
 									</NavigationMenuLink>

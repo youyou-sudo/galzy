@@ -15,10 +15,12 @@ import { elysiaErrorF } from '@web/lib'
 import { seoMeta } from '@web/lib/seo'
 import { authClient } from '@web/server/auth/auth-client'
 import { getTopics } from '@web/server/topics'
+import { TopicsListPageSkeleton } from '@web/components/shared/route-skeletons'
 import { FileText, Plus } from 'lucide-react'
 
 export const Route = createFileRoute('/topics/')({
   component: RouteComponent,
+  pendingComponent: () => <TopicsListPageSkeleton />,
   head: () =>
     seoMeta({
       title: `论坛 | ${seoTemplate.title}`,

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import ProducersPage from "@web/components/producer/producers-page";
+import { ProducerListPageSkeleton } from "@web/components/shared/route-skeletons";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -21,6 +22,7 @@ const producerSearchSchema = object({
 const PAGE_SIZE = 24;
 
 export const Route = createFileRoute("/producer/")({
+	pendingComponent: () => <ProducerListPageSkeleton />,
 	component: () => {
 		const { producers, q, page } = Route.useLoaderData();
 		return (

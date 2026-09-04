@@ -1,15 +1,22 @@
-import { getRouteApi, Link } from "@tanstack/react-router";
+import { useQuery } from '@tanstack/react-query'
+import { getRouteApi, Link } from '@tanstack/react-router'
+import { Badge } from '@web/components/ui/badge'
 import {
 	Accordion,
 	AccordionContent,
 	AccordionItem,
 	AccordionTrigger,
-} from "@web/components/ui/accordion";
-import { Badge } from "@web/components/ui/badge";
+} from '@web/components/ui/accordion'
+import { getGameTags } from '@web/server/game'
 
 export function TagsCard() {
-	const routeApi = getRouteApi("/$id/_layout");
-	const { tags } = routeApi.useLoaderData();
+	const routeApi = getRouteApi('/$id/_layout');
+	const { id } = routeApi.useLoaderData();
+	const { data: tags } = useQuery({
+		queryKey: ['gameTags', id],
+		queryFn: () => getGameTags({ data: { id } }),
+		staleTime: 60_000,
+	});
 
 	return (
 		<div className="mt-4 mb-5">
@@ -28,6 +35,7 @@ export function TagsCard() {
 												<Link
 													to={"/tags/$tagId"}
 													params={{ tagId: item.tag_data.id }}
+													preload="viewport"
 													className="no-underline opacity-70"
 												>
 													{item.tag_data?.zht_name || item.tag_data?.name}
