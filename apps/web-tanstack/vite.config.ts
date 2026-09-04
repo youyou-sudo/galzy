@@ -4,6 +4,7 @@ import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import viteCompression from "vite-plugin-compression";
@@ -26,9 +27,9 @@ const config = defineConfig({
 		},
 	},
 
-	// ssr: {
-	// 	noExternal: true,
-	// },
+	ssr: {
+		noExternal: true,
+	},
 	build: {
 		ssrManifest: true,
 		ssr: true,
@@ -65,7 +66,7 @@ const config = defineConfig({
 		babel({ presets: [reactCompilerPreset()] }),
 		// 路由代码分割当前关闭（所有路由随主包加载，导航无 chunk 等待）；
 		// 如需开启：import { tanstackRouter } from "@tanstack/router-plugin/vite" 并启用
-		// tanstackRouter({ autoCodeSplitting: true }),
+		tanstackRouter({ autoCodeSplitting: true }),
 	],
 });
 
