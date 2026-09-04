@@ -4,44 +4,46 @@ let installed = false;
 /**
  * 把 UA 生成的 ::view-transition-group 关键帧改写为 compositor-only（纯函数）。
  *
- * 浏览器生成的默认关键帧（-ua-view-transition-group-anim-*，见 spec §3.9.5）
- * 只有 from 块：transform/width/height 是旧盒子的几何，终点值来自 group 的
- * 内联样式（新盒子）。width/height 参与动画会被 Blink 判定为主线程动画
- * （每帧 layout，~60Hz）。改写：
- *   - 删除所有 width/height；
- *   - 共享元素（非 root）且尺寸变化时，把尺寸 morph 折算成 scale 追加到
- *     from 的 transform 末尾（transform-origin: 0 0，见 styles.css，缩放
- *     围绕左上角，等价于 UA 默认的 width/height 插值）：
- *       from: translate(旧位置) scale(旧尺寸/新尺寸)
- *   - 删除 to 关键帧的 transform，让终点回落到浏览器自己计算的内联
- *     transform —— 末帧位置由浏览器保证，不依赖外部 rect 测量（滚动恢复、
- *     移动端 URL 栏收展导致测量与快照坐标系漂移时不会错位）。
+ * UA 关键帧存在两种形态：
+ * 1. 新版 Chrome：width/height 已被浏览器折算进 from 的 transform scale，
+ *    关键帧不含 width/height —— 本函数不追加 scale（防止双重缩放）；
+ * 2. 旧版 Chrome：from 只有位移 transform，尺寸 morph 由 width/height 承担，
+ *    （且隐式 to 关键帧的 width/height 可能携带错误值）。这里删除所有
+ *    width/height，把尺寸变化折算成 scale 追加到 from 的 transform 末尾
+ *    （transform-origin: 0 0，见 styles.css，缩放围绕左上角，等价于 UA
+ *    默认的 width/height 插值）：
+ *      from: translate(旧位置) scale(旧尺寸/新尺寸)
+ *    newWidth/newHeight 来自新元素实测 getBoundingClientRect（尺寸与
+ *    滚动位置、移动端 URL 栏收展无关，不会像位置测量那样漂移）。
+ *
+ * 删除 to 关键帧的 transform，让终点回落到浏览器自己计算的内联
+ * transform —— 末帧位置由浏览器保证。
+ *
  * 改写后动画只剩 transform/opacity，跑在合成器线程（120/144Hz）。
  */
 export function makeGroupCompositorKeyframes(
 	keyframes: Keyframe[],
 	name: string,
+	newWidth = 0,
+	newHeight = 0,
 ): Keyframe[] {
 	if (keyframes.length === 0) return keyframes;
 
 	const from = keyframes[0];
 	const to = keyframes[keyframes.length - 1];
 
-	// from/to 关键帧自带旧/新尺寸（浏览器生成），尺寸 morph 折算成 scale
+	// 仅旧版 UA 形态（from 携带 width/height）需要补 scale
 	const oldWidth = Number.parseFloat(String(from.width ?? ""));
 	const oldHeight = Number.parseFloat(String(from.height ?? ""));
-	const newWidth = Number.parseFloat(String(to.width ?? ""));
-	const newHeight = Number.parseFloat(String(to.height ?? ""));
-	const sizesChanged =
+	const needsSizeMorph =
 		name !== "root" &&
 		Number.isFinite(oldWidth) &&
 		Number.isFinite(oldHeight) &&
-		Number.isFinite(newWidth) &&
-		Number.isFinite(newHeight) &&
-		oldWidth !== newWidth &&
-		oldHeight !== newHeight;
+		newWidth > 0 &&
+		newHeight > 0 &&
+		(oldWidth !== newWidth || oldHeight !== newHeight);
 
-	if (sizesChanged) {
+	if (needsSizeMorph) {
 		from.transform = `${String(from.transform ?? "")} scale(${oldWidth / newWidth}, ${oldHeight / newHeight})`;
 	}
 
@@ -55,6 +57,14 @@ export function makeGroupCompositorKeyframes(
 	return keyframes;
 }
 
+/** 在新 DOM 中按名字定位共享元素（仅用于测量尺寸，位置不依赖测量） */
+function findSharedElement(name: string) {
+	for (const el of document.querySelectorAll<HTMLElement>('[style*="view-transition-name"]')) {
+		if (el.style.viewTransitionName === name) return el;
+	}
+	return null;
+}
+
 /** 遍历当前活动的 VT group 动画，逐个改写为 compositor-only */
 function makeGroupAnimationsCompositorOnly() {
 	for (const animation of document.getAnimations()) {
@@ -66,7 +76,20 @@ function makeGroupAnimationsCompositorOnly() {
 		const keyframes = effect.getKeyframes();
 		if (keyframes.length === 0) continue;
 
-		effect.setKeyframes(makeGroupCompositorKeyframes(keyframes, match[1]));
+		const name = match[1];
+		let newWidth = 0;
+		let newHeight = 0;
+		if (name !== "root") {
+			const rect = findSharedElement(name)?.getBoundingClientRect();
+			if (rect) {
+				newWidth = rect.width;
+				newHeight = rect.height;
+			}
+		}
+
+		effect.setKeyframes(
+			makeGroupCompositorKeyframes(keyframes, name, newWidth, newHeight),
+		);
 	}
 }
 
