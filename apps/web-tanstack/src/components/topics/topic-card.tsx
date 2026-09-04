@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@web/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@web/components/ui/card";
 import { useViewportPreload } from "@web/hooks/use-viewport-preload";
+import { useFlipIn } from "@web/lib/flip";
 import { Heart, MessageSquare } from "lucide-react";
 import { useRef } from "react";
 
@@ -39,6 +40,10 @@ interface TopicCardProps {
 
 export function TopicCard({ topic }: TopicCardProps) {
 	const linkRef = useRef<HTMLAnchorElement>(null);
+	// 与详情页同名共享元素：前进时旧 rect 被全局捕获，后退回列表时飞回原位（FLIP）
+	const avatarFlipRef = useFlipIn<HTMLDivElement>(`topic-avatar-${topic.id}`);
+	const nickFlipRef = useFlipIn<HTMLSpanElement>(`topic-nick-${topic.id}`);
+	const titleFlipRef = useFlipIn<HTMLHeadingElement>(`topic-title-${topic.id}`);
 	// 进入视口即预取帖子详情数据，点击秒开
 	useViewportPreload(
 		linkRef,
@@ -60,7 +65,8 @@ export function TopicCard({ topic }: TopicCardProps) {
 					<div className="flex items-center gap-2">
 						<Avatar
 							className="size-6"
-							style={{ viewTransitionName: `topic-avatar-${topic.id}` }}
+							ref={avatarFlipRef}
+							data-flip-name={`topic-avatar-${topic.id}`}
 						>
 							<AvatarImage
 								src={topic.user?.image || ""}
@@ -72,7 +78,8 @@ export function TopicCard({ topic }: TopicCardProps) {
 						</Avatar>
 						<span
 							className="text-sm text-muted-foreground inline-block"
-							style={{ viewTransitionName: `topic-nick-${topic.id}` }}
+							ref={nickFlipRef}
+							data-flip-name={`topic-nick-${topic.id}`}
 						>
 							{topic.user?.name}
 						</span>
@@ -82,7 +89,8 @@ export function TopicCard({ topic }: TopicCardProps) {
 					</div>
 					<h3
 						className="text-lg font-semibold mt-1 w-fit"
-						style={{ viewTransitionName: `topic-title-${topic.id}` }}
+						ref={titleFlipRef}
+						data-flip-name={`topic-title-${topic.id}`}
 					>
 						{topic.title}
 					</h3>

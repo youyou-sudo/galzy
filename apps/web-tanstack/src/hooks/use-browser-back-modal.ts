@@ -1,4 +1,3 @@
-import { skipViewTransitionsForModal } from "@web/lib/view-transition";
 import { useEffect, useRef } from "react";
 
 const MODAL_HISTORY_KEY = "__galzy_modal__";
@@ -99,10 +98,6 @@ export function useBrowserBackModal({
 		if (open && !previousOpenRef.current && !activeEntryRef.current) {
 			addModalHistoryState(modalId);
 			activeEntryRef.current = true;
-			// 弹窗打开会引发 pushState -> 新的同 URL View Transition，
-			// 且可能打断仍在进行的路由过渡；这两种 VT 都会让标题/封面
-			// 以快照伪元素形式悬浮在弹窗遮罩之上，立即跳过（见 lib/view-transition）
-			skipViewTransitionsForModal();
 		}
 
 		if (!open && previousOpenRef.current && activeEntryRef.current) {
@@ -111,7 +106,6 @@ export function useBrowserBackModal({
 			if (shouldGoBack) {
 				window.history.back();
 			}
-			skipViewTransitionsForModal();
 		}
 
 		previousOpenRef.current = open;

@@ -7,11 +7,14 @@ import {
   ScriptOnce,
   Scripts,
   useMatches,
+  useRouter,
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { Image } from '@unpic/react'
 import Errors from '@web/components/error'
 import { TooltipProvider } from '@web/components/ui/tooltip'
+import { installFlipCapture } from '@web/lib/flip'
+import { useEffect, useRef } from 'react'
 import { Toaster } from 'sonner'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
@@ -140,10 +143,30 @@ function RootDocument({ children }: { children: React.ReactNode }) {
  */
 function AppChrome({ children }: { children: React.ReactNode }) {
   const matches = useMatches()
+  const router = useRouter()
   const isAdmin = matches.some((m) => m.routeId.startsWith('/admin/'))
 
+  // 顶层路由（matches[1]）作 key：跨顶层页面切换时重挂子树并播放 compositor
+  // 淡入动画（.galzy-route-enter）；`/$id` 各 tab、同页 search 翻页保持挂载
+  // 不动画。首屏 prev === current，不播动画。
+  const topRouteId = matches[1]?.routeId ?? ''
+  const prevRouteIdRef = useRef(topRouteId)
+  const navigating = prevRouteIdRef.current !== topRouteId
+  useEffect(() => {
+    prevRouteIdRef.current = topRouteId
+  }, [topRouteId])
+
+  // 共享元素 FLIP：导航提交前捕获旧页面 [data-flip-name] 元素的 rect
+  useEffect(() => installFlipCapture(router), [router])
+
+  const page = (
+    <div key={topRouteId} className={navigating ? 'galzy-route-enter' : ''}>
+      {children}
+    </div>
+  )
+
   if (isAdmin) {
-    return <>{children}</>
+    return page
   }
 
   return (
@@ -191,7 +214,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
             </div>
           </a>
         </aside>
-        {children}
+        {page}
       </main>
       <Footer />
     </>

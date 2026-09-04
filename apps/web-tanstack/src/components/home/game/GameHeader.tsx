@@ -1,5 +1,6 @@
 import { GameCard } from "@web/components/home/card";
 import { Skeleton } from "@web/components/ui/skeleton";
+import { useFlipIn } from "@web/lib/flip";
 import type { getGameDetail } from "@web/server/game";
 
 type GameData = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>;
@@ -12,6 +13,10 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 		imageUrl?: string | null;
 		thumbhash?: string | null;
 	} | null;
+	// 与列表卡片 GameCard.Item 同名共享元素，路由切换时封面/标题「飞入」详情页
+	// （FLIP，仅 transform/opacity，见 lib/flip）
+	const coverFlipRef = useFlipIn<HTMLDivElement>(`game-cover-${id}`, true);
+	const titleFlipRef = useFlipIn<HTMLHeadingElement>(`game-title-${id}`);
 
 	return (
 		<>
@@ -25,8 +30,8 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 								? "min-w-72.5"
 								: "w-55"
 						} relative overflow-hidden text-left`}
-						// 与列表卡片 GameCard.Item 同名的 view-transition-name，路由切换时封面「飞入」详情页
-						style={{ viewTransitionName: `game-cover-${id}` }}
+						ref={coverFlipRef}
+						data-flip-name={`game-cover-${id}`}
 					>
 						<Skeleton className="absolute inset-0 w-full h-full rounded-lg" />
 						<GameCard.Image
@@ -50,7 +55,8 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 			<div className="overflow-hidden wrap-break-word">
 				<h1
 					className="font-semibold text-2xl leading-[1.2] mt-2 w-fit"
-					style={{ viewTransitionName: `game-title-${id}` }}
+					ref={titleFlipRef}
+					data-flip-name={`game-title-${id}`}
 				>
 					{olangTitle || "null"}
 				</h1>
