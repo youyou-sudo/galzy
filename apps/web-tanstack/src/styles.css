@@ -194,7 +194,9 @@
 
    UA 默认的 group 动画同时插值 width/height（主线程 layout，~60Hz）；
    lib/view-transition.ts 在导航后用 WAAPI 删除 width/height，把尺寸变化
-   折算成 transform scale，动画只剩 transform/opacity（合成器 120/144Hz）。
+   折算成 transform scale、删除 to 关键帧的 transform（末帧回落到浏览器
+   内联 transform，位置由浏览器保证），动画只剩 transform/opacity
+   （合成器 120/144Hz）。
    transform-origin: 0 0 是几何换算的基准：translate(旧位置) scale(旧/新尺寸)
    才能精确复刻旧盒子，否则缩放会围绕中心产生偏移。 */
 
