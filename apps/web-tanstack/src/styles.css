@@ -187,38 +187,95 @@
   border-radius: var(--radius-md);
 }
 
-/* ── 路由过渡（compositor-driven，替代 View Transition） ────────────────
-   仅动画 transform/opacity，全程跑在合成器线程：无整页快照 paint、
-   无全屏纹理混合，导航后新页面立即可交互。
-   页面淡入：跨顶层页面切换时由 __root.tsx AppChrome 在子树上加
-   .galzy-route-enter（顶层 routeId 作 key 重挂触发）；
-   共享元素「飞入」：lib/flip.ts 的 FLIP（旧 rect -> transform -> 原位），
-   覆盖游戏封面/标题、论坛帖头像/昵称/标题、攻略文章标题。 */
+/* ── View Transitions（路由切换过渡） ────────────────────────────────
+   共享元素：列表卡片与详情页的同名元素（游戏封面/标题 game-cover-<id>/game-title-<id>，
+   论坛帖子 topic-title-<id>/topic-nick-<id>/topic-avatar-<id>）由浏览器自动配对、
+   使用原生 View Transition API 的共享元素「飞入」变形；其余内容整页淡入淡出。 */
 
-@keyframes galzy-route-in {
+::view-transition-group(*) {
+  animation-duration: 350ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-group(root) {
+  animation-duration: 220ms;
+}
+
+@keyframes galzy-page-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
-.galzy-route-enter {
-  animation: galzy-route-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+@keyframes galzy-page-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+::view-transition-old(root) {
+  animation: galzy-page-out 180ms ease-in both;
+}
+
+::view-transition-new(root) {
+  animation: galzy-page-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* root 快照默认走 plus-lighter 加色混合，每帧对两张全屏纹理逐像素相加，
+   是移动 GPU 带宽的主要消耗；改为普通混合后淡入淡出不再叠加发亮。 */
+::view-transition-image-pair(root) {
+  mix-blend-mode: normal;
+}
+
+/* 攻略文章标题（article-title-<id>）共享元素：单元素飞行。
+   两端字号/盒子比例不同，默认的快照交叉淡化会呈现「旧标题放大淡出」的
+   割裂感，拉伸填充又会把文本拉变形。这里隐藏旧快照、新快照全程不透明：
+   点击瞬间同文本的新标题在原位替换旧标题（渲染尺寸近似、几乎无感），
+   随后作为唯一元素沿 group 的位移/缩放飞入详情页，无重影无二次缩放。 */
+::view-transition-old(.article-title) {
+  animation: none;
+  opacity: 0;
+}
+
+::view-transition-new(.article-title) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* 手机端（触屏）：整页 root 快照交叉淡化是全屏纹理加色混合的主要开销，
+   这里让 root 快照直接切换，只保留标题共享元素的飞行；
+   同时缩短标题飞行时长（350ms → 220ms），降低合成压力、手感更跟手。 */
+@media (pointer: coarse) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+
+  ::view-transition-group(.article-title) {
+    animation-duration: 220ms;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .galzy-route-enter {
-    animation: none;
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+  }
+
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }
 
 /* ── 滚动条 ──────────────────────────────────────────────────────────
    html 的 scrollbar-gutter: stable 让视口滚动条空间常驻占位：
-   长页/短页之间路由切换不再因滚动条
+   长页/短页之间路由切换（含 View Transition 过渡）不再因滚动条
    出现/消失而整页横向抖动；overlay 滚动条平台（macOS/移动端）
    滚动条本身不占宽，此属性无副作用。
    滑块颜色引用主题变量，:root / .dark 各自定义，明暗主题自动跟随。 */

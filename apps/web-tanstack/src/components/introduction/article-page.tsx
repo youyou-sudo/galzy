@@ -10,7 +10,6 @@ import {
 	CardTitle,
 } from "@web/components/ui/card";
 import { elysiaErrorF } from "@web/lib";
-import { useFlipIn } from "@web/lib/flip";
 import { authClient } from "@web/server/auth/auth-client";
 import { deleteIntroduction } from "@web/server/introduction";
 import { Loader2, Pencil, Trash2, User } from "lucide-react";
@@ -28,8 +27,6 @@ export default function ArticlePage({
 	const router = useRouter();
 	const queryClient = useQueryClient();
 	const navigate = useNavigate();
-	// 与列表条目标题同名共享元素，路由切换时标题「飞入」详情页（FLIP，见 lib/flip）
-	const titleFlipRef = useFlipIn<HTMLDivElement>(`article-title-${articleId}`);
 
 	// Get current user session
 	const { data: session } = useQuery({
@@ -100,13 +97,15 @@ export default function ArticlePage({
 							</Button>
 						</div>
 					)}
-					{/* 与列表条目标题同名共享元素，路由切换时标题「飞入」详情页。
+					{/* 与列表条目标题同名的 view-transition-name，路由切换时标题「飞入」详情页。
 					    w-fit 让盒子贴合文本宽度，与列表端随文本的盒子宽高比相近，
-					    飞行位移与列表端起点契合（仅 transform 动画，无拉伸） */}
+					    共享元素飞行的缩放近乎等比，不会把文本拉变形 */}
 					<CardTitle
 						className="text-2xl items-center text-center w-fit mx-auto"
-						ref={titleFlipRef}
-						data-flip-name={`article-title-${articleId}`}
+						style={{
+							viewTransitionName: `article-title-${articleId}`,
+							viewTransitionClass: "article-title",
+						}}
 					>
 						{article?.title}
 					</CardTitle>

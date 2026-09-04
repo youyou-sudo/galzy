@@ -5,7 +5,6 @@ import { AspectRatio } from "@web/components/ui/aspect-ratio";
 import { Button } from "@web/components/ui/button";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { useViewportPreload } from "@web/hooks/use-viewport-preload";
-import { useFlipIn } from "@web/lib/flip";
 import { getImageRatio, getThumbHashDataUrl } from "@web/lib/image";
 import { r18Store } from "@web/stores/r18Store";
 import {
@@ -285,10 +284,6 @@ function Item({
 	const [revealed, setRevealed] = useState(false);
 	// 进入视口即预取详情数据，未请求过的条目点击也秒开（不触发 view 计数）
 	const linkRef = useRef<HTMLAnchorElement>(null);
-	// 与详情页 GameHeader 同名共享元素：前进时旧 rect 被全局捕获，
-	// 后退回列表时从详情页位置飞回网格原位（FLIP，见 lib/flip）
-	const coverFlipRef = useFlipIn<HTMLDivElement>(`game-cover-${gameid}`, true);
-	const titleFlipRef = useFlipIn<HTMLParagraphElement>(`game-title-${gameid}`);
 	useViewportPreload(
 		linkRef,
 		(router) => () =>
@@ -300,8 +295,7 @@ function Item({
 			<AspectRatio
 				ratio={LIST_IMAGE_RATIO}
 				className="block relative overflow-hidden rounded-lg"
-				ref={coverFlipRef}
-				data-flip-name={`game-cover-${gameid}`}
+				style={{ viewTransitionName: `game-cover-${gameid}` }}
 			>
 				<div className="relative w-full h-full">
 					{/* 无 thumbhash 的图片加载期间露出骨架（有占位时被占位层盖住） */}
@@ -339,8 +333,7 @@ function Item({
 			</AspectRatio>
 			<p
 				className="text-sm truncate w-fit max-w-full mx-auto text-center px-2 pt-2"
-				ref={titleFlipRef}
-				data-flip-name={`game-title-${gameid}`}
+				style={{ viewTransitionName: `game-title-${gameid}` }}
 			>
 				{title}
 			</p>

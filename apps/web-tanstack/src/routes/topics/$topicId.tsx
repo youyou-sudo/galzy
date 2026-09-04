@@ -8,7 +8,6 @@ import {
 import { CommentMarkdown } from "@web/components/cmments/comment-markdown";
 import { ReplyEidtInput } from "@web/components/cmments/reply-edit-input";
 import { RichContent } from "@web/components/RichContent";
-import { TopicDetailPageSkeleton } from "@web/components/shared/route-skeletons";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -34,8 +33,8 @@ import { Button } from "@web/components/ui/button";
 import { Card, CardContent, CardHeader } from "@web/components/ui/card";
 import { Separator } from "@web/components/ui/separator";
 import { Skeleton } from "@web/components/ui/skeleton";
+import { TopicDetailPageSkeleton } from "@web/components/shared/route-skeletons";
 import { seoTemplate } from "@web/config/seoTemplate";
-import { useFlipIn } from "@web/lib/flip";
 import { seoMeta, truncateText } from "@web/lib/seo";
 import { authClient } from "@web/server/auth/auth-client";
 import { getCmments } from "@web/server/comments";
@@ -89,11 +88,6 @@ function RouteComponent() {
 	const queryClient = useQueryClient();
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const loaderData = Route.useLoaderData();
-	// 与列表卡片 TopicCard 同名共享元素，路由切换时标题/头像/昵称「飞入」详情页
-	// （FLIP，仅 transform/opacity，见 lib/flip）
-	const titleFlipRef = useFlipIn<HTMLHeadingElement>(`topic-title-${topicId}`);
-	const avatarFlipRef = useFlipIn<HTMLDivElement>(`topic-avatar-${topicId}`);
-	const nickFlipRef = useFlipIn<HTMLSpanElement>(`topic-nick-${topicId}`);
 	const { data: topic } = useQuery({
 		queryKey: ["topic", topicId],
 		queryFn: async () => await getTopic({ data: { id: Number(topicId) } }),
@@ -159,8 +153,7 @@ function RouteComponent() {
 						<div className="flex items-center gap-2">
 							<h1
 								className="text-2xl font-bold"
-								ref={titleFlipRef}
-								data-flip-name={`topic-title-${topicId}`}
+								style={{ viewTransitionName: `topic-title-${topicId}` }}
 							>
 								{(topic as any).title}
 							</h1>
@@ -170,8 +163,7 @@ function RouteComponent() {
 					<div className="flex items-center gap-2 mt-2">
 						<Avatar
 							className="size-6"
-							ref={avatarFlipRef}
-							data-flip-name={`topic-avatar-${topicId}`}
+							style={{ viewTransitionName: `topic-avatar-${topicId}` }}
 						>
 							<AvatarImage
 								src={(topic as any).user?.image || ""}
@@ -183,8 +175,7 @@ function RouteComponent() {
 						</Avatar>
 						<span
 							className="text-sm text-muted-foreground inline-block"
-							ref={nickFlipRef}
-							data-flip-name={`topic-nick-${topicId}`}
+							style={{ viewTransitionName: `topic-nick-${topicId}` }}
 						>
 							{(topic as any).user?.name}
 						</span>

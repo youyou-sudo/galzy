@@ -4,7 +4,6 @@ import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
 import { useViewportPreload } from "@web/hooks/use-viewport-preload";
 import { elysiaErrorF } from "@web/lib";
-import { useFlipIn } from "@web/lib/flip";
 import { authClient } from "@web/server/auth/auth-client";
 import { deleteIntroduction } from "@web/server/introduction";
 import { Loader2, NotepadText, Pencil, Plus, Trash2 } from "lucide-react";
@@ -13,13 +12,10 @@ import { toast } from "sonner";
 
 /**
  * 列表条目链接：进入视口即预取文章详情路由数据，点击秒开；
- * 标题与详情页 CardTitle 同名共享元素，路由切换时标题「飞入」详情页（FLIP）
+ * 标题与详情页 CardTitle 同名 view-transition-name，路由切换时标题「飞入」详情页
  */
 function ArticleLink({ item, gameId }: { item: any; gameId: string }) {
 	const linkRef = useRef<HTMLAnchorElement>(null);
-	// 与详情页 CardTitle 同名共享元素：前进时旧 rect 被全局捕获，
-	// 后退回列表时标题飞回原位（FLIP，见 lib/flip）
-	const titleFlipRef = useFlipIn<HTMLSpanElement>(`article-title-${item.id}`);
 	useViewportPreload(
 		linkRef,
 		(router) => () =>
@@ -41,8 +37,10 @@ function ArticleLink({ item, gameId }: { item: any; gameId: string }) {
 				<NotepadText className="size-4 mr-1 shrink-0" />
 				<span
 					className="truncate"
-					ref={titleFlipRef}
-					data-flip-name={`article-title-${item.id}`}
+					style={{
+						viewTransitionName: `article-title-${item.id}`,
+						viewTransitionClass: "article-title",
+					}}
 				>
 					{item.title}
 				</span>
