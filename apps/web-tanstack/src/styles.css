@@ -187,14 +187,21 @@
   border-radius: var(--radius-md);
 }
 
-/* ── View Transitions（路由切换过渡） ────────────────────────────────
+/* ── View Transitions（compositor-only） ─────────────────────────────
    共享元素：列表卡片与详情页的同名元素（游戏封面/标题 game-cover-<id>/game-title-<id>，
-   论坛帖子 topic-title-<id>/topic-nick-<id>/topic-avatar-<id>）由浏览器自动配对、
-   使用原生 View Transition API 的共享元素「飞入」变形；其余内容整页淡入淡出。 */
+   论坛帖子 topic-title-<id>/topic-nick-<id>/topic-avatar-<id>）由浏览器自动配对，
+   使用原生 View Transition API 的共享元素「飞入」变形；其余内容整页淡入淡出。
+
+   UA 默认的 group 动画同时插值 width/height（主线程 layout，~60Hz）；
+   lib/view-transition.ts 在导航后用 WAAPI 删除 width/height，把尺寸变化
+   折算成 transform scale，动画只剩 transform/opacity（合成器 120/144Hz）。
+   transform-origin: 0 0 是几何换算的基准：translate(旧位置) scale(旧/新尺寸)
+   才能精确复刻旧盒子，否则缩放会围绕中心产生偏移。 */
 
 ::view-transition-group(*) {
   animation-duration: 350ms;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: 0 0;
 }
 
 ::view-transition-group(root) {
