@@ -4,7 +4,6 @@ import { Image, type ImageProps } from "@unpic/react";
 import { AspectRatio } from "@web/components/ui/aspect-ratio";
 import { Button } from "@web/components/ui/button";
 import { Skeleton } from "@web/components/ui/skeleton";
-import { useIdlePreload } from "@web/hooks/use-idle-preload";
 import { useViewportPreload } from "@web/hooks/use-viewport-preload";
 import { getImageRatio, getThumbHashDataUrl } from "@web/lib/image";
 import { gameHeroActions } from "@web/stores/gameHeroStore";
@@ -288,19 +287,17 @@ function Item({
 	const showR18 = useSelector(r18Store, (s) => s.showR18);
 	const isSensitive = !showR18 && (cSexualAvg ?? 0) >= THRESHOLD;
 	const [revealed, setRevealed] = useState(false);
-	// 挂载即空闲预取详情数据（首屏卡片立即预热），未请求过的条目点击也秒开；
-	// 不触发 view 计数（onEnter 仅在真实进入页面时计）。
+	// 仅用视口预取（内部有 MAX_CONCURRENT 并发队列）：进入视口才预热详情，
+	// 未请求过的条目点击也秒开，且不触发 view 计数（onEnter 仅在真实进入页面时计）。
+	// 注意：不要再叠加挂载即 idle 预取 —— 「加载更多」一次性挂载几十张卡时
+	// 会形成不受控并发洪峰，抢在点击前打爆 server function/API，导致点击顿挫、
+	// 列表图片集体闪烁（返回列表再次挂载还会重放一次洪峰）。
 	const linkRef = useRef<HTMLAnchorElement>(null);
 	useViewportPreload(
 		linkRef,
 		(router) => () =>
 			router.preloadRoute({ to: "/$id", params: { id: gameid } }),
 	);
-	useIdlePreload([
-		(router) => {
-			void router.preloadRoute({ to: "/$id", params: { id: gameid } });
-		},
-	]);
 
 	return (
 		<Link

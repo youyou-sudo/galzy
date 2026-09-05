@@ -139,6 +139,10 @@ function RouteComponent() {
 			lastPage && lastPage.currentPage < lastPage.totalPages
 				? lastPage.currentPage + 1
 				: null,
+		// 返回列表页时直接用缓存渲染，不 refetch 第一页：避免挂载瞬间整屏网格重建
+		// 造成顿挫/闪烁（配合路由 defaultPreloadStaleTime 30s 的预热窗口）
+		staleTime: 30_000,
+		refetchOnMount: false,
 	});
 
 	const gameList = gameListData?.pages.flatMap((page) =>
