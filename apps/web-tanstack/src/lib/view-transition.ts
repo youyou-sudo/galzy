@@ -97,6 +97,10 @@ function makeGroupAnimationsCompositorOnly() {
  * 包一层 document.startViewTransition，记录最近一次 View Transition 的句柄。
  * TanStack Router 的 defaultViewTransition 在路由跳转（含弹窗 pushState 引发的
  * 同 URL history 变更）时内部调用它，外部拿不到返回的句柄，这里补上。
+ *
+ * 关键机制：新一次导航（返回/前进/动画未结束再次点击）开始前，先把上一场还在
+ * 播的过渡立即 skipTransition —— 否则连续操作会被前一场动画排队/盖住，产生
+ * 「顿」「不跟手」的观感。由此动画永不阻塞下一次交互。
  * 同时把 group 动画改写为 compositor-only（见 makeGroupAnimationsCompositorOnly）。
  */
 export function installViewTransitionTracker() {
@@ -106,6 +110,10 @@ export function installViewTransitionTracker() {
 
 	const original = document.startViewTransition.bind(document);
 	document.startViewTransition = ((callback?: ViewTransitionUpdateCallback) => {
+		// 新导航开始时立刻终结上一场过渡：返回/快速点击在动画中途也能秒响应。
+		// skipTransition 会 reject 旧的 ready/finished，被下方预消化 promise 吸收。
+		skipActiveViewTransition();
+
 		const transition = original(callback);
 		activeTransition = transition;
 
