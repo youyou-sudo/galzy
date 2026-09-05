@@ -89,7 +89,9 @@ function ThumbHashImage({
 
 	return (
 		<div className={wrapperClassName} style={wrapperStyle}>
-			{/* 图片加载完成后，占位图模糊淡出，真实图同步由模糊变清晰。 */}
+			{/* 性能方案：占位图保留静态模糊（绝不动画），真实图不模糊。
+				加载完成后占位图只做廉价的 opacity+scale 淡出，露出下方清晰图，
+				避免对逐帧 box-blur 的 filter 动画造成 GPU 合成压力。 */}
 			{placeholder && (
 				<img
 					aria-hidden="true"
@@ -98,8 +100,8 @@ function ThumbHashImage({
 					src={placeholder ?? undefined}
 					style={{
 						opacity: loaded ? 0 : 1,
-						filter: loaded ? "blur(24px)" : "blur(0)",
-						transition: "filter 600ms ease-out, opacity 600ms ease-out",
+						filter: "blur(24px)",
+						transition: "opacity 500ms ease-out",
 						transitionDelay: "0s",
 					}}
 				/>
@@ -114,8 +116,8 @@ function ThumbHashImage({
 						...props.style,
 						...(alwaysAnimate
 							? {
-									filter: loaded ? "blur(0)" : "blur(24px)",
-									transition: "filter 600ms ease-out",
+									transform: loaded ? "scale(1)" : "scale(1.04)",
+									transition: "transform 500ms ease-out",
 								}
 							: {}),
 					}}

@@ -9,7 +9,7 @@ afterEach(() => {
 });
 
 describe("GameCard.ThumbHashImage transition", () => {
-	it("crossfades a blurred placeholder into a sharpening image", () => {
+	it("crossfades a statically-blurred placeholder into an unblurred image using only cheap opacity/transform", () => {
 		vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(
 			false,
 		);
@@ -29,17 +29,18 @@ describe("GameCard.ThumbHashImage transition", () => {
 		);
 		expect(image).not.toBeNull();
 		expect(placeholder).not.toBeNull();
-		expect(image?.style.filter).toBe("blur(24px)");
-		expect(placeholder?.style.filter).toBe("blur(0)");
+
+		// 真实图不参与模糊动画；占位图保留静态模糊。
+		expect(image?.style.filter).toBe("");
+		expect(placeholder?.style.filter).toBe("blur(24px)");
 
 		fireEvent.load(image!);
 
-		expect(image?.style.filter).toBe("blur(0)");
-		expect(placeholder?.style.filter).toBe("blur(24px)");
+		// 加载完成后真实图仅做 transform 缩放，占位图仅做 opacity 淡出。
+		expect(image?.style.transform).toBe("scale(1)");
 		expect(placeholder?.style.opacity).toBe("0");
-		expect(placeholder?.style.transition).toBe(
-			"filter 600ms ease-out, opacity 600ms ease-out",
-		);
+		expect(placeholder?.style.transform).toBe("");
+		expect(placeholder?.style.transition).toBe("opacity 500ms ease-out");
 		expect(placeholder?.style.transitionDelay).toBe("0s");
 	});
 });
