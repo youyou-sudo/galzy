@@ -33,7 +33,7 @@ import {
 } from "@web/components/ui/item";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
-import { dwAcConst } from "@web/server/game";
+import { dwAcConst, getFileList } from "@web/server/game";
 import { downCardStore, downmodalActions } from "@web/stores/downCardData";
 import { FileArchive } from "lucide-react";
 import { tryit } from "radash";
@@ -44,7 +44,14 @@ import { GlgczujmDl } from "./tips";
 const apiroute = getRouteApi("/$id/_layout/");
 
 export const DownloadOptions = () => {
-	const { filelist } = apiroute.useLoaderData();
+	const { id } = apiroute.useParams();
+	// 懒加载文件列表：下载 tab 才请求，不阻塞进入详情页的点击导航
+	const { data: filelist } = useQuery({
+		queryKey: ["filelist", id],
+		queryFn: () => getFileList({ data: { id } }),
+		staleTime: 60_000,
+		gcTime: 5 * 60_000,
+	});
 
 	if (!filelist?.game) {
 		return (

@@ -4,8 +4,8 @@ import { Skeleton } from '@web/components/ui/skeleton'
 
 /**
  * 路由 pendingComponent 骨架屏集合。
- * loader 等待超过 router.defaultPendingMs(100ms) 时渲染，快速点击时旧页面
- * 不再冻结等待，先出骨架再秒切数据，体验接近 SPA/原生 APP。
+ * 点击瞬间（defaultPendingMs=0）即渲染，快速点击时旧页面不再冻结等待，
+ * 先出骨架再秒切数据，体验接近 SPA/原生 APP。
  */
 
 function BreadcrumbSkeleton() {

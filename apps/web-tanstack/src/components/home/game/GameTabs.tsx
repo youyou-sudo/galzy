@@ -26,7 +26,14 @@ export function GameTabs({ id }: { id: string }) {
 				<TabsTrigger
 					value="download"
 					nativeButton={false}
-					render={<Link to="/$id" params={{ id: id }} resetScroll={false} />}
+					render={
+						<Link
+							to="/$id"
+							params={{ id: id }}
+							resetScroll={false}
+							viewTransition={false}
+						/>
+					}
 				>
 					<ArrowDownToLine className="size-4" />
 					下载
@@ -39,6 +46,7 @@ export function GameTabs({ id }: { id: string }) {
 							to="/$id/introduction"
 							params={{ id: id }}
 							resetScroll={false}
+							viewTransition={false}
 						/>
 					}
 				>
@@ -49,7 +57,12 @@ export function GameTabs({ id }: { id: string }) {
 					value="comment"
 					nativeButton={false}
 					render={
-						<Link to="/$id/comment" params={{ id: id }} resetScroll={false} />
+						<Link
+							to="/$id/comment"
+							params={{ id: id }}
+							resetScroll={false}
+							viewTransition={false}
+						/>
 					}
 				>
 					<MessageCircle />
@@ -59,7 +72,12 @@ export function GameTabs({ id }: { id: string }) {
 					value="translate"
 					nativeButton={false}
 					render={
-						<Link to="/$id/translate" params={{ id: id }} resetScroll={false} />
+						<Link
+							to="/$id/translate"
+							params={{ id: id }}
+							resetScroll={false}
+							viewTransition={false}
+						/>
 					}
 				>
 					<TrendingUp />
@@ -69,7 +87,12 @@ export function GameTabs({ id }: { id: string }) {
 					value="relations"
 					nativeButton={false}
 					render={
-						<Link to="/$id/relations" params={{ id: id }} resetScroll={false} />
+						<Link
+							to="/$id/relations"
+							params={{ id: id }}
+							resetScroll={false}
+							viewTransition={false}
+						/>
 					}
 				>
 					<GitFork />

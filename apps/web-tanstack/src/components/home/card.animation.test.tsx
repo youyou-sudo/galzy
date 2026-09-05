@@ -32,7 +32,7 @@ describe("GameCard.ThumbHashImage transition", () => {
 
 		// 真实图不参与模糊动画；占位图保留静态模糊。
 		expect(image?.style.filter).toBe("");
-		expect(placeholder?.style.filter).toBe("blur(24px)");
+		expect(placeholder?.style.filter).toBe("blur(12px)");
 
 		fireEvent.load(image!);
 
@@ -40,7 +40,7 @@ describe("GameCard.ThumbHashImage transition", () => {
 		expect(image?.style.transform).toBe("scale(1)");
 		expect(placeholder?.style.opacity).toBe("0");
 		expect(placeholder?.style.transform).toBe("");
-		expect(placeholder?.style.transition).toBe("opacity 500ms ease-out");
+		expect(placeholder?.style.transition).toBe("opacity 320ms ease-out");
 		expect(placeholder?.style.transitionDelay).toBe("0s");
 	});
 });

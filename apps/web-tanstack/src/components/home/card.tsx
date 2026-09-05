@@ -4,8 +4,10 @@ import { Image, type ImageProps } from "@unpic/react";
 import { AspectRatio } from "@web/components/ui/aspect-ratio";
 import { Button } from "@web/components/ui/button";
 import { Skeleton } from "@web/components/ui/skeleton";
+import { useIdlePreload } from "@web/hooks/use-idle-preload";
 import { useViewportPreload } from "@web/hooks/use-viewport-preload";
 import { getImageRatio, getThumbHashDataUrl } from "@web/lib/image";
+import { gameHeroActions } from "@web/stores/gameHeroStore";
 import { r18Store } from "@web/stores/r18Store";
 import {
 	type ComponentProps,
@@ -90,8 +92,9 @@ function ThumbHashImage({
 	return (
 		<div className={wrapperClassName} style={wrapperStyle}>
 			{/* 性能方案：占位图保留静态模糊（绝不动画），真实图不模糊。
-				加载完成后占位图只做廉价的 opacity+scale 淡出，露出下方清晰图，
-				避免对逐帧 box-blur 的 filter 动画造成 GPU 合成压力。 */}
+				加载完成后占位图只做廉价的 opacity 淡出，露出下方清晰图，
+				避免对逐帧 box-blur 的 filter 动画造成 GPU 合成压力。
+				模糊半径从 24px 降到 12px：网格大量占位同时存在时显著减轻 GPU 填充。 */}
 			{placeholder && (
 				<img
 					aria-hidden="true"
@@ -100,8 +103,8 @@ function ThumbHashImage({
 					src={placeholder ?? undefined}
 					style={{
 						opacity: loaded ? 0 : 1,
-						filter: "blur(24px)",
-						transition: "opacity 500ms ease-out",
+						filter: "blur(12px)",
+						transition: "opacity 320ms ease-out",
 						transitionDelay: "0s",
 					}}
 				/>
@@ -117,7 +120,8 @@ function ThumbHashImage({
 						...(alwaysAnimate
 							? {
 									transform: loaded ? "scale(1)" : "scale(1.04)",
-									transition: "transform 500ms ease-out",
+									// 同时保留 filter 过渡：R18 遮盖的 blur-xl → 清晰时仍平滑
+									transition: "transform 320ms ease-out, filter 320ms ease-out",
 								}
 							: {}),
 					}}
@@ -284,16 +288,39 @@ function Item({
 	const showR18 = useSelector(r18Store, (s) => s.showR18);
 	const isSensitive = !showR18 && (cSexualAvg ?? 0) >= THRESHOLD;
 	const [revealed, setRevealed] = useState(false);
-	// 进入视口即预取详情数据，未请求过的条目点击也秒开（不触发 view 计数）
+	// 挂载即空闲预取详情数据（首屏卡片立即预热），未请求过的条目点击也秒开；
+	// 不触发 view 计数（onEnter 仅在真实进入页面时计）。
 	const linkRef = useRef<HTMLAnchorElement>(null);
 	useViewportPreload(
 		linkRef,
 		(router) => () =>
 			router.preloadRoute({ to: "/$id", params: { id: gameid } }),
 	);
+	useIdlePreload([
+		(router) => {
+			void router.preloadRoute({ to: "/$id", params: { id: gameid } });
+		},
+	]);
 
 	return (
-		<Link ref={linkRef} to="/$id" params={{ id: gameid }}>
+		<Link
+			ref={linkRef}
+			to="/$id"
+			params={{ id: gameid }}
+			onClick={() => {
+				// 进入详情页前先用列表数据填充英雄区，详情 loader 完成前即可首屏渲染
+				gameHeroActions.set({
+					id: gameid,
+					title: title || "",
+					olangTitle: title || "",
+					imageUrl: src,
+					thumbhash,
+					width,
+					height,
+					cSexualAvg,
+				});
+			}}
+		>
 			<AspectRatio
 				ratio={LIST_IMAGE_RATIO}
 				className="block relative overflow-hidden rounded-lg"

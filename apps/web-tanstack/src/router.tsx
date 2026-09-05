@@ -22,10 +22,10 @@ export function getRouter() {
 		// 预加载(悬停/空闲)产生的 loader 数据在 30s 内点击直接复用，实现秒开；
 		// view/下载计数不依赖 loader(见 onEnter)，预加载不会污染统计
 		defaultPreloadStaleTime: 30_000,
-		// loader 等待超过 100ms 立即渲染 pendingComponent 骨架屏（默认 1000ms），
-		// 快速点击时旧页面不再冻结等待，体验接近 SPA 即时切换
-		defaultPendingMs: 100,
-		defaultPendingMinMs: 100,
+		// loader 绝大多数在缓存/预热下瞬间返回：pendingMs=60 让这类点击完全不进骨架屏
+		// （避免整帧骨架闪烁）；仅当真正慢的加载（冷缓存）时 60ms 后才出骨架，仍很跟手。
+		defaultPendingMs: 60,
+		defaultPendingMinMs: 0,
 	});
 
 	setupRouterSsrQueryIntegration({

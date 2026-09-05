@@ -1,6 +1,6 @@
 /**
  * tab 内容区加载骨架（下载/攻略/讨论/统计通用）。
- * 仅在实际 loader 超过 pendingMs 仍未返回时展示，配合预加载切换 tab 时几乎不会出现。
+ * loader 未返回即展示（defaultPendingMs=0），配合预加载切换时几乎不会出现。
  */
 export function GameTabSkeleton() {
 	return (

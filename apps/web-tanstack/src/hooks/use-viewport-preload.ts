@@ -1,8 +1,8 @@
 import { useRouter, type RegisteredRouter } from "@tanstack/react-router";
 import { useEffect, useRef, type RefObject } from "react";
 
-/** 全局并发上限：整屏卡片同时进入视口时避免瞬时打爆 server function RPC */
-const MAX_CONCURRENT = 4;
+/** 全局并发上限：首屏卡片进入视口时批量预热详情，避免瞬时打爆 server function RPC */
+const MAX_CONCURRENT = 8;
 
 interface QueueEntry {
 	run: () => void;
@@ -74,9 +74,7 @@ function schedule(task: () => Promise<unknown>): () => void {
  */
 export function useViewportPreload(
 	ref: RefObject<HTMLElement | null>,
-	makeTask: (
-		router: RegisteredRouter,
-	) => (() => Promise<unknown>) | undefined,
+	makeTask: (router: RegisteredRouter) => (() => Promise<unknown>) | undefined,
 ) {
 	const router = useRouter();
 	const makeTaskRef = useRef(makeTask);
