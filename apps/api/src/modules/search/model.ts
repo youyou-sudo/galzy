@@ -33,6 +33,8 @@ export namespace SearchModel {
     endDate: t.Optional(t.String()),
     // false → 过滤掉 R18（images.c_sexual_avg >= 1）游戏；缺省/true → 不过滤
     r18: t.Optional(t.Boolean()),
+    // 列表页不需要 facets：默认不取 facetDistribution，显著减小响应体
+    includeFacets: t.Optional(t.Boolean()),
   })
 
   export const meilisearchEmbeddersUpdate = t.Object({

@@ -4,7 +4,10 @@ import { Image, type ImageProps } from "@unpic/react";
 import { AspectRatio } from "@web/components/ui/aspect-ratio";
 import { Button } from "@web/components/ui/button";
 import { Skeleton } from "@web/components/ui/skeleton";
-import { useViewportPreload } from "@web/hooks/use-viewport-preload";
+import {
+	useIntentPreload,
+	useViewportPreload,
+} from "@web/hooks/use-viewport-preload";
 import { getImageRatio, getThumbHashDataUrl } from "@web/lib/image";
 import { gameHeroActions } from "@web/stores/gameHeroStore";
 import { r18Store } from "@web/stores/r18Store";
@@ -13,6 +16,7 @@ import {
 	type CSSProperties,
 	type ForwardRefExoticComponent,
 	type RefAttributes,
+	memo,
 	useEffect,
 	useRef,
 	useState,
@@ -266,15 +270,7 @@ function SensitiveImage({
 	);
 }
 
-function Item({
-	gameid,
-	title,
-	width,
-	height,
-	src,
-	thumbhash,
-	cSexualAvg,
-}: {
+export type GameCardItemProps = {
 	gameid: string;
 	title: string;
 	width?: number;
@@ -282,9 +278,35 @@ function Item({
 	src: string;
 	thumbhash?: string | null;
 	cSexualAvg?: number | null;
-}) {
+	/** 仅被点击（去程）/上次点击（回程）的卡保留 view-transition-name：
+	 * N 页列表的 2N 个共享元素会让 VT 快照 + tracker 扫描随页数线性爆炸，
+	 * 去/回导航各卡一次。封面飞入动画只配对这一张卡，其余卡不参与。 */
+	hasVT?: boolean;
+	/** R18 开关由列表层统一订阅后下发，避免每张卡各自订阅 store
+	 *（N 张卡 = N 个订阅，切换/更新时全量重渲染）。缺省时回退到 store。 */
+	showR18?: boolean;
+	/** 首屏行优先加载：首行传 high，其余 low，避免几十张图同时抢带宽 */
+	fetchPriority?: "high" | "low" | "auto";
+	/** 点击时同步回写（state + sessionStorage），供回程恢复配对 */
+	onActivate?: (id: string) => void;
+};
+
+function ItemInner({
+	gameid,
+	title,
+	width,
+	height,
+	src,
+	thumbhash,
+	cSexualAvg,
+	hasVT = false,
+	showR18: showR18Prop,
+	fetchPriority = "low",
+	onActivate,
+}: GameCardItemProps) {
 	const THRESHOLD = 1.0;
-	const showR18 = useSelector(r18Store, (s) => s.showR18);
+	const storeShowR18 = useSelector(r18Store, (s) => s.showR18);
+	const showR18 = showR18Prop ?? storeShowR18;
 	const isSensitive = !showR18 && (cSexualAvg ?? 0) >= THRESHOLD;
 	const [revealed, setRevealed] = useState(false);
 	// 仅用视口预取（内部有 MAX_CONCURRENT 并发队列）：进入视口才预热详情，
@@ -293,7 +315,16 @@ function Item({
 	// 会形成不受控并发洪峰，抢在点击前打爆 server function/API，导致点击顿挫、
 	// 列表图片集体闪烁（返回列表再次挂载还会重放一次洪峰）。
 	const linkRef = useRef<HTMLAnchorElement>(null);
+	const coverRef = useRef<HTMLDivElement>(null);
+	const titleRef = useRef<HTMLParagraphElement>(null);
 	useViewportPreload(
+		linkRef,
+		(router) => () =>
+			router.preloadRoute({ to: "/$id", params: { id: gameid } }),
+	);
+	// 大列表降级时视口预取自动停用，hover/focus 意图预取接管：
+	// 滚动零请求，悬停卡仍秒开。
+	useIntentPreload(
 		linkRef,
 		(router) => () =>
 			router.preloadRoute({ to: "/$id", params: { id: gameid } }),
@@ -305,6 +336,18 @@ function Item({
 			to="/$id"
 			params={{ id: gameid }}
 			onClick={() => {
+				// 同步写 DOM：VT 旧快照在 startViewTransition 调用瞬间采集，
+				// React state 重渲染赶不上，必须在导航前直接给被点卡挂上名字；
+				// 回程靠 hasVT（sessionStorage 恢复）提前渲染配对。
+				coverRef.current?.style.setProperty(
+					"view-transition-name",
+					`game-cover-${gameid}`,
+				);
+				titleRef.current?.style.setProperty(
+					"view-transition-name",
+					`game-title-${gameid}`,
+				);
+				onActivate?.(gameid);
 				// 进入详情页前先用列表数据填充英雄区，详情 loader 完成前即可首屏渲染
 				gameHeroActions.set({
 					id: gameid,
@@ -319,9 +362,10 @@ function Item({
 			}}
 		>
 			<AspectRatio
+				ref={coverRef}
 				ratio={LIST_IMAGE_RATIO}
-				className="block relative overflow-hidden rounded-lg"
-				style={{ viewTransitionName: `game-cover-${gameid}` }}
+				className="block relative overflow-hidden rounded-lg [content-visibility:auto] [contain-intrinsic-size:auto_320px]"
+				style={hasVT ? { viewTransitionName: `game-cover-${gameid}` } : undefined}
 			>
 				<div className="relative w-full h-full">
 					{/* 无 thumbhash 的图片加载期间露出骨架（有占位时被占位层盖住） */}
@@ -332,6 +376,7 @@ function Item({
 						thumbhash={thumbhash}
 						loading="lazy"
 						decoding="async"
+						fetchPriority={fetchPriority}
 						src={src}
 						alt={title || " "}
 						className={`w-full h-full object-cover hover:scale-105 transition duration-500 ease-out${isSensitive && !revealed ? " blur-xl" : ""}`}
@@ -358,14 +403,23 @@ function Item({
 				</div>
 			</AspectRatio>
 			<p
+				ref={titleRef}
 				className="text-sm truncate w-fit max-w-full mx-auto text-center px-2 pt-2"
-				style={{ viewTransitionName: `game-title-${gameid}` }}
+				style={hasVT ? { viewTransitionName: `game-title-${gameid}` } : undefined}
 			>
 				{title}
 			</p>
 		</Link>
 	);
 }
+
+/**
+ * memo 边界：fetchNextPage / 返回列表 / R18 以外状态变化时，
+ * props 不变的卡跳过重渲染。hasVT 变化的只有被点/上次被点的两张卡。
+ * 注意 memo 比较的是顶层 props —— 调用方必须传稳定引用/标量
+ *（title/width/height/src/thumbhash/cSexualAvg 均为 Meili 文档标量）。
+ */
+const Item = memo(ItemInner);
 
 export const GameCard = {
 	ListSkeleton: GameSkeleton,

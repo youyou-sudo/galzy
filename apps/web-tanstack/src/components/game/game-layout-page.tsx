@@ -15,23 +15,27 @@ export default function GameLayoutPage({
 }) {
 	// 首屏渲染完成后，空闲时预取各 tab 的 JS chunk + loader 数据，
 	// 切换 tab 时命中路由缓存，体验如 SPA 般即时；不阻塞首屏加载。
-	useIdlePreload([
-		(router) => {
-			void router.preloadRoute({ to: "/$id", params: { id } });
-		},
-		(router) => {
-			void router.preloadRoute({ to: "/$id/introduction", params: { id } });
-		},
-		(router) => {
-			void router.preloadRoute({ to: "/$id/comment", params: { id } });
-		},
-		(router) => {
-			void router.preloadRoute({ to: "/$id/translate", params: { id } });
-		},
-		(router) => {
-			void router.preloadRoute({ to: "/$id/relations", params: { id } });
-		},
-	]);
+	// 错峰 300ms 逐个预取：返回列表时在途任务更少，主线程/网络让路给导航。
+	useIdlePreload(
+		[
+			(router) => {
+				void router.preloadRoute({ to: "/$id", params: { id } });
+			},
+			(router) => {
+				void router.preloadRoute({ to: "/$id/introduction", params: { id } });
+			},
+			(router) => {
+				void router.preloadRoute({ to: "/$id/comment", params: { id } });
+			},
+			(router) => {
+				void router.preloadRoute({ to: "/$id/translate", params: { id } });
+			},
+			(router) => {
+				void router.preloadRoute({ to: "/$id/relations", params: { id } });
+			},
+		],
+		{ staggerMs: 300 },
+	);
 
 	return (
 		<div className="space-y-3">

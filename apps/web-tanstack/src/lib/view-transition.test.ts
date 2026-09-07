@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { makeGroupCompositorKeyframes } from "./view-transition";
+import {
+	makeGroupCompositorKeyframes,
+	MAX_REWRITE_GROUPS,
+} from "./view-transition";
 
 /**
  * 旧版 UA 形态（spec §3.9.5）：from 只有位移 transform，尺寸 morph 由
@@ -107,5 +110,9 @@ describe("makeGroupCompositorKeyframes（compositor-only 改写）", () => {
 		expect(keyframes[0].transform).toBe("translate(40px, 195px)");
 		expect(keyframes[0]).not.toHaveProperty("width");
 		expect(keyframes[0]).not.toHaveProperty("height");
+	});
+
+	it("改写上限存在且为正数：group 爆炸时导航动画改写有界", () => {
+		expect(MAX_REWRITE_GROUPS).toBeGreaterThan(0);
 	});
 });

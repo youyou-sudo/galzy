@@ -57,39 +57,63 @@ export function makeGroupCompositorKeyframes(
 	return keyframes;
 }
 
-/** 在新 DOM 中按名字定位共享元素（仅用于测量尺寸，位置不依赖测量） */
-function findSharedElement(name: string) {
-	for (const el of document.querySelectorAll<HTMLElement>('[style*="view-transition-name"]')) {
-		if (el.style.viewTransitionName === name) return el;
+/**
+ * 单次 DOM 扫描建表：group 数量随列表页数线性增长时，
+ * 逐 group 全量 querySelectorAll 是 O(Groups × DOM) 的二次方扫描，
+ * 正好落在导航动画启动瞬间（去/回各一次）。这里一次建 Map，
+ * 整体降为 O(Groups + DOM)。
+ */
+export const MAX_REWRITE_GROUPS = 64;
+
+function collectSharedRects() {
+	const rects = new Map<string, { width: number; height: number }>();
+	for (const el of document.querySelectorAll<HTMLElement>(
+		'[style*="view-transition-name"]',
+	)) {
+		const name = el.style.viewTransitionName;
+		if (!name || rects.has(name)) continue;
+		const rect = el.getBoundingClientRect();
+		rects.set(name, { width: rect.width, height: rect.height });
 	}
-	return null;
+	return rects;
 }
 
 /** 遍历当前活动的 VT group 动画，逐个改写为 compositor-only */
 function makeGroupAnimationsCompositorOnly() {
+	const groups: Array<{ animation: Animation; name: string }> = [];
 	for (const animation of document.getAnimations()) {
 		const effect = animation.effect as KeyframeEffect | null;
 		if (!effect?.pseudoElement) continue;
-		const match = /^::view-transition-group\((.+)\)$/.exec(effect.pseudoElement);
+		const match = /^::view-transition-group\((.+)\)$/.exec(
+			effect.pseudoElement,
+		);
 		if (!match) continue;
+		groups.push({ animation, name: match[1] });
+	}
+	if (groups.length === 0) return;
 
+	// 非 root group 需要实测新尺寸才做 DOM 扫描；且只扫一次
+	const needsMeasure = groups.some(({ name }) => name !== "root");
+	const rects = needsMeasure ? collectSharedRects() : null;
+
+	let rewritten = 0;
+	for (const { animation, name } of groups) {
+		if (rewritten >= MAX_REWRITE_GROUPS) break;
+		const effect = animation.effect as KeyframeEffect | null;
+		if (!effect) continue;
 		const keyframes = effect.getKeyframes();
 		if (keyframes.length === 0) continue;
 
-		const name = match[1];
-		let newWidth = 0;
-		let newHeight = 0;
-		if (name !== "root") {
-			const rect = findSharedElement(name)?.getBoundingClientRect();
-			if (rect) {
-				newWidth = rect.width;
-				newHeight = rect.height;
-			}
-		}
-
+		const rect = rects?.get(name);
 		effect.setKeyframes(
-			makeGroupCompositorKeyframes(keyframes, name, newWidth, newHeight),
+			makeGroupCompositorKeyframes(
+				keyframes,
+				name,
+				rect?.width ?? 0,
+				rect?.height ?? 0,
+			),
 		);
+		rewritten++;
 	}
 }
 

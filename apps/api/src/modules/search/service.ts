@@ -96,7 +96,9 @@ export const Search = {
     return data
   },
 
-  // Unified game search via Meilisearch — full-text + sort + filter + facets
+  // Unified game search via Meilisearch — full-text + sort + filter (+ optional facets)
+  // 列表页仅用 id/olang/titles_obj/images：默认投影裁剪 + Redis 页缓存，
+  // 避免整文档（含 description/releases/tags_obj/otherData）每页重复传输。
   async searchGames(params: SearchModel.gameSearch) {
     const {
       q,
@@ -109,6 +111,7 @@ export const Search = {
       startDate,
       endDate,
       r18,
+      includeFacets = false,
     } = params
 
     const safeQ =
@@ -143,6 +146,21 @@ export const Search = {
       sort.push(`${sortBy}:${dir}`)
     }
 
+    // Redis 页缓存：key 前缀与 cron 索引重建后的 delKvPattern('galzy:search:*') 对齐，
+    // Meili 数据变化时同步失效。tag_view 计数走 DB fire-and-forget，不进缓存。
+    const tagKey = Array.isArray(tags)
+      ? [...tags].sort().join(',')
+      : (tags ?? '')
+    const cacheKey = `galzy:search:games:${safeQ}:${page}:${hitsPerPage}:${sortBy ?? ''}:${order ?? ''}:${olang ?? ''}:${tagKey}:${startDate ?? ''}:${endDate ?? ''}:${r18 === false ? '0' : '1'}:${includeFacets ? 'f' : 'n'}`
+    const cached = await getKv(cacheKey)
+    if (cached) {
+      try {
+        return JSON.parse(cached) as SearchGamesReturn
+      } catch {
+        await delKv(cacheKey)
+      }
+    }
+
     const index = MeiliClient.index(
       process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
     )
@@ -152,11 +170,16 @@ export const Search = {
       hitsPerPage,
       filter: filters.length ? filters.join(' AND ') : undefined,
       sort: sort.length ? sort : undefined,
-      facets: ['olang', 'tags'],
+      // 列表页仅渲染卡片四字段；tag_view 计数仍需 tags 时由调用方开 includeFacets
+      attributesToRetrieve: includeFacets
+        ? ['id', 'olang', 'titles_obj', 'images', 'tags']
+        : ['id', 'olang', 'titles_obj', 'images'],
+      facets: includeFacets ? ['olang', 'tags'] : undefined,
     })
 
     // Record tag views from first search result (fire-and-forget)
-    if (safeQ && result.hits.length > 0) {
+    // 注意：默认投影不含 tags，此时跳过计数；需要计数时调用方传 includeFacets=true
+    if (safeQ && includeFacets && result.hits.length > 0) {
       const firstHit = result.hits[0] as Record<string, unknown>
       const hitTags = firstHit.tags as string[] | undefined
       if (hitTags && hitTags.length > 0) {
@@ -191,15 +214,32 @@ export const Search = {
       }
     }
 
-    return {
+    type SearchGamesReturn = {
+      hits: typeof result.hits
+      totalHits: typeof result.totalHits
+      totalPages: typeof result.totalPages
+      page: typeof result.page
+      hitsPerPage: typeof result.hitsPerPage
+      facetDistribution?: typeof result.facetDistribution
+      processingTimeMs: typeof result.processingTimeMs
+    }
+    const data: SearchGamesReturn = {
       hits: result.hits,
       totalHits: result.totalHits,
       totalPages: result.totalPages,
       page: result.page,
       hitsPerPage: result.hitsPerPage,
-      facetDistribution: result.facetDistribution,
       processingTimeMs: result.processingTimeMs,
     }
+    if (includeFacets) {
+      data.facetDistribution = result.facetDistribution
+    }
+    // 列表翻页高频且 Meili 结果稳定：缓存 5 分钟。空结果不缓存，
+    // 避免索引延迟/新建游戏导致的空洞被放大。
+    if (result.hits.length > 0) {
+      void setKv(cacheKey, JSON.stringify(data), 60 * 5)
+    }
+    return data
   },
   async meilisearchEmbeddersUpdate({
     url,

@@ -1,8 +1,24 @@
 import { useRouter, type RegisteredRouter } from "@tanstack/react-router";
 import { useEffect, useRef, type RefObject } from "react";
 
-/** 全局并发上限：首屏卡片进入视口时批量预热详情，避免瞬时打爆 server function RPC */
-const MAX_CONCURRENT = 8;
+/** 全局并发上限：首屏卡片进入视口时批量预热详情，避免瞬时打爆 server function RPC。
+ * 列表页「加载更多」后卡片数翻倍，并发 8 会抢占点击导航的网络/主线程，降到 4。 */
+const MAX_CONCURRENT = 4;
+/** 大列表阈值：超过此卡片数时视口预取自动降级（只响应 hover/focus 意图），
+ * 滚动不再触发成片 preloadRoute，避免返回列表时的预取洪峰。 */
+export const VIEWPORT_PRELOAD_DEGRADE_AFTER = 96;
+
+let mountedCards = 0;
+const degradeListeners = new Set<() => void>();
+
+function notifyDegrade() {
+	for (const fn of degradeListeners) fn();
+}
+
+/** 当前是否处于降级模式（挂载卡片超阈值） */
+export function isViewportPreloadDegraded() {
+	return mountedCards > VIEWPORT_PRELOAD_DEGRADE_AFTER;
+}
 
 interface QueueEntry {
 	run: () => void;
@@ -67,9 +83,11 @@ function schedule(task: () => Promise<unknown>): () => void {
 /**
  * 链接进入视口时预取路由（JS chunk + loader 数据），Next.js <Link> 的等价行为。
  * 网格中从未请求过的条目在滚入视口前完成预热，点击直接命中路由缓存秒开。
- * - rootMargin 提前 200px 开始，滚动场景下点击前大概率已就绪
+ * - rootMargin 提前 100px 开始（原 200px：加载多页时提前量太大等于全量预取）
  * - 离开视口且预取未完成 → 立即取消（排队中不出队不发、进行中让出名额），
  *   释放浏览器加载能力给后面出现在窗口里的条目；重新进入视口会再次预取
+ * - 大列表降级：挂载卡片超阈值时滚动不再预取，只响应 hover/focus 意图；
+ *   由调用方按需改用 useIntentPreload（悬停预热）
  * - 仅运行 loader，不触发路由 onEnter，view/下载计数不受影响
  */
 export function useViewportPreload(
@@ -81,8 +99,19 @@ export function useViewportPreload(
 	makeTaskRef.current = makeTask;
 
 	useEffect(() => {
+		mountedCards++;
+		// 刚越过阈值时通知已挂载的卡切换模式
+		if (mountedCards === VIEWPORT_PRELOAD_DEGRADE_AFTER + 1) notifyDegrade();
+		return () => {
+			mountedCards--;
+		};
+	}, []);
+
+	useEffect(() => {
 		const el = ref.current;
 		if (!el || typeof IntersectionObserver === "undefined") return;
+		// 降级模式下不建立视口观察（hover 意图预取见 useIntentPreload）
+		if (isViewportPreloadDegraded()) return;
 		let cancelPreload: (() => void) | null = null;
 
 		const io = new IntersectionObserver(
@@ -103,13 +132,58 @@ export function useViewportPreload(
 					}
 				}
 			},
-			{ rootMargin: "200px" },
+			{ rootMargin: "100px" },
 		);
 
 		io.observe(el);
 		return () => {
 			cancelPreload?.();
 			io.disconnect();
+		};
+	}, [router, ref]);
+}
+
+/**
+ * 意图预取：hover / focus 时预热路由。大列表降级模式下的替代方案 —
+ * 用户明确表达兴趣才发请求，点击秒开率接近视口预取，但零滚动洪峰。
+ */
+export function useIntentPreload(
+	ref: RefObject<HTMLElement | null>,
+	makeTask: (router: RegisteredRouter) => (() => Promise<unknown>) | undefined,
+) {
+	const router = useRouter();
+	const makeTaskRef = useRef(makeTask);
+	makeTaskRef.current = makeTask;
+
+	useEffect(() => {
+		const el = ref.current;
+		if (!el) return;
+		let cancelPreload: (() => void) | null = null;
+
+		const onEnter = () => {
+			if (cancelPreload) return;
+			try {
+				const task = makeTaskRef.current(router);
+				if (task) cancelPreload = schedule(task);
+			} catch {
+				// 预取失败静默忽略，不影响后续导航
+			}
+		};
+		const onLeave = () => {
+			cancelPreload?.();
+			cancelPreload = null;
+		};
+
+		el.addEventListener("pointerenter", onEnter);
+		el.addEventListener("focus", onEnter);
+		el.addEventListener("pointerleave", onLeave);
+		el.addEventListener("blur", onLeave);
+		return () => {
+			onLeave();
+			el.removeEventListener("pointerenter", onEnter);
+			el.removeEventListener("focus", onEnter);
+			el.removeEventListener("pointerleave", onLeave);
+			el.removeEventListener("blur", onLeave);
 		};
 	}, [router, ref]);
 }
