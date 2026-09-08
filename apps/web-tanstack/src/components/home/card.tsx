@@ -49,6 +49,33 @@ function useCoarsePointer(): boolean {
 	);
 }
 
+// 已成功揭示的原图 URL 缓存（模块级，跨实例/虚拟列表重挂/路由返回共享）：
+// 同一 src 再次挂载时首帧直接终态（无骨架、无 thumbhash 占位、无切换动画）。
+// 仅成功加载的原图入缓存；失败图、R18 placeholderOnly/revealed 状态均不入缓存。
+const revealedSrcs = new Set<string>();
+const revealedListeners = new Set<() => void>();
+
+function markRevealed(src: string): void {
+	if (revealedSrcs.has(src)) return;
+	revealedSrcs.add(src);
+	for (const listener of revealedListeners) listener();
+}
+
+function subscribeRevealed(onChange: () => void): () => void {
+	revealedListeners.add(onChange);
+	return () => revealedListeners.delete(onChange);
+}
+
+/** 客户端快照按 src 实时查询；SSR 快照恒 false，与服务端 markup 一致避免 hydration mismatch
+ *（水合完成后 useSyncExternalStore 自动切换到客户端快照，命中即重渲染为终态）。 */
+function useRevealedOnce(src: string): boolean {
+	return useSyncExternalStore(
+		subscribeRevealed,
+		() => revealedSrcs.has(src),
+		() => false,
+	);
+}
+
 // Unpic merges custom styles at runtime, but its ImageProps omits the style prop.
 type ImagePropsWithStyle = ImageProps & {
 	style?: CSSProperties;
@@ -90,8 +117,28 @@ function ThumbHashImage({
 	// 解码在 Worker（fallback: idle 分片）中异步完成后由 state 承接，不再阻塞 render。
 	const placeholder = useThumbHashDataUrl(thumbhash);
 	const coarse = useCoarsePointer();
-	const [loaded, setLoaded] = useState(false);
-	const [failed, setFailed] = useState(false);
+	const cachedRevealed = useRevealedOnce(src);
+	// 本地 loaded/failed 按 src 隔离：props.src 变化时同步重置（React 官方
+	// 「渲染期调整 state」模式），避免沿用旧 URL 的加载状态。
+	const [imageState, setImageState] = useState({
+		src,
+		loaded: false,
+		failed: false,
+	});
+	if (imageState.src !== src) {
+		setImageState({ src, loaded: false, failed: false });
+	}
+	// loaded 含缓存命中（跨实例首帧直出）；failed 不被缓存抑制 ——
+	// 已揭示的 URL 重挂后再次加载失败时仍回退 No-Image，不能停留破图。
+	const loaded = imageState.loaded || cachedRevealed;
+	const failed = imageState.failed;
+	// 本次挂载（或切到该 src）时即命中缓存：首帧直接终态渲染（无骨架、无占位、
+	// 无切换动画）。首次加载过程中的揭示不入此标记，桌面淡出动画不受影响。
+	const cachedAtMountRef = useRef<{ src: string; hit: boolean } | null>(null);
+	if (cachedAtMountRef.current?.src !== src) {
+		cachedAtMountRef.current = { src, hit: cachedRevealed };
+	}
+	const cachedAtMount = cachedAtMountRef.current.hit;
 	const imgRef = useRef<HTMLImageElement | null>(null);
 
 	// img.decode() 预解码提交：真实图下载并解码完成后才置 loaded ——
@@ -109,15 +156,17 @@ function ThumbHashImage({
 		const commit = () => {
 			if (cancelled) return;
 			cancelGate = gateCommit(() => {
-				if (!cancelled) setLoaded(true);
+				if (cancelled) return;
+				setImageState((s) => ({ ...s, loaded: true }));
+				// 成功揭示才入全局缓存；失败回退路径（failed）不计入。
+				if (!failed) markRevealed(src);
 			});
 		};
 		const handleError = () => {
 			if (cancelled) return;
 			cancelGate = gateCommit(() => {
 				if (cancelled) return;
-				setFailed(true);
-				setLoaded(true);
+				setImageState((s) => ({ ...s, failed: true, loaded: true }));
 			});
 		};
 
@@ -170,24 +219,26 @@ function ThumbHashImage({
 				加载完成后占位图只做廉价的 opacity 淡出，露出下方清晰图。
 				触屏(coarse)：无 opacity 过渡，揭示是瞬时终态，直接卸载占位图减少常驻图层；
 				桌面保留淡出（opacity 0 + 常驻）。 */}
-			{placeholder && !unloadPlaceholder && (
-				<img
-					aria-hidden="true"
-					alt=""
-					className={`galzy-thumbhash-placeholder absolute inset-0 w-full h-full object-cover ${className ?? ""}`}
-					src={placeholder ?? undefined}
-					style={{
-						opacity: loaded && !placeholderOnly ? 0 : 1,
-						imageRendering: "auto",
-						...(coarse
-							? {}
-							: {
-									transition: "opacity 320ms ease-out",
-									transitionDelay: "0s",
-								}),
-					}}
-				/>
-			)}
+			{placeholder &&
+				!unloadPlaceholder &&
+				!(cachedAtMount && !placeholderOnly) && (
+					<img
+						aria-hidden="true"
+						alt=""
+						className={`galzy-thumbhash-placeholder absolute inset-0 w-full h-full object-cover ${className ?? ""}`}
+						src={placeholder ?? undefined}
+						style={{
+							opacity: loaded && !placeholderOnly ? 0 : 1,
+							imageRendering: "auto",
+							...(coarse
+								? {}
+								: {
+										transition: "opacity 320ms ease-out",
+										transitionDelay: "0s",
+									}),
+						}}
+					/>
+				)}
 			{placeholderOnly && placeholder ? null : (
 				<div className="galzy-image-reveal absolute inset-0">
 					<ImageWithStyle
@@ -212,8 +263,8 @@ function ThumbHashImage({
 						onError={() => {
 							// setFailed 同步执行（类名切换是廉价 DOM 属性更新）；
 							// 揭示动画部分经 gate 提交，滚动/VT 中不洒帧。
-							setFailed(true);
-							gateCommit(() => setLoaded(true));
+							setImageState((s) => ({ ...s, failed: true }));
+							gateCommit(() => setImageState((s) => ({ ...s, loaded: true })));
 						}}
 					/>
 				</div>
