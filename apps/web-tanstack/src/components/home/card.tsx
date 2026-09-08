@@ -9,6 +9,7 @@ import {
 	useViewportPreload,
 } from "@web/hooks/use-viewport-preload";
 import { getImageRatio, useThumbHashDataUrl } from "@web/lib/image";
+import { gateCommit } from "@web/lib/reveal-gate";
 import { gameHeroActions } from "@web/stores/gameHeroStore";
 import { r18Store } from "@web/stores/r18Store";
 import {
@@ -101,14 +102,23 @@ function ThumbHashImage({
 		const image = imgRef.current;
 		if (!image) return;
 		let cancelled = false;
+		let cancelGate: (() => void) | undefined;
+		// 滚动 / View Transition 进行中挂起揭示提交（见 @web/lib/reveal-gate）：
+		// 图片陆续 decode 完成后的 setState 会洒进滚动帧/动画帧
+		// （移动端滑动与 VT 过渡掉帧根因），空闲后由 gate 批量 flush。
 		const commit = () => {
-			if (!cancelled) setLoaded(true);
+			if (cancelled) return;
+			cancelGate = gateCommit(() => {
+				if (!cancelled) setLoaded(true);
+			});
 		};
 		const handleError = () => {
-			if (!cancelled) {
+			if (cancelled) return;
+			cancelGate = gateCommit(() => {
+				if (cancelled) return;
 				setFailed(true);
-				commit();
-			}
+				setLoaded(true);
+			});
 		};
 
 		if (image.complete) {
@@ -117,21 +127,27 @@ function ThumbHashImage({
 			} else {
 				commit();
 			}
-			return;
+			return () => {
+				cancelled = true;
+				cancelGate?.();
+			};
 		}
 
 		if (typeof image.decode === "function") {
 			image.decode().then(commit, handleError);
 			return () => {
 				cancelled = true;
+				cancelGate?.();
 			};
 		}
 
 		image.addEventListener("load", commit, { once: true });
 		image.addEventListener("error", handleError, { once: true });
 		return () => {
+			cancelled = true;
 			image.removeEventListener("load", commit);
 			image.removeEventListener("error", handleError);
+			cancelGate?.();
 		};
 	}, [src, failed, placeholderOnly]);
 
@@ -187,8 +203,10 @@ function ThumbHashImage({
 							onLoad?.(event);
 						}}
 						onError={() => {
+							// setFailed 同步执行（类名切换是廉价 DOM 属性更新）；
+							// 揭示动画部分经 gate 提交，滚动/VT 中不洒帧。
 							setFailed(true);
-							setLoaded(true);
+							gateCommit(() => setLoaded(true));
 						}}
 					/>
 				</div>
