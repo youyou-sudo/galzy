@@ -287,8 +287,9 @@ export type GameCardItemProps = {
 	showR18?: boolean;
 	/** 首屏行优先加载：首行传 high，其余 low，避免几十张图同时抢带宽 */
 	fetchPriority?: "high" | "low" | "auto";
-	/** 点击时同步回写（state + sessionStorage），供回程恢复配对 */
-	onActivate?: (id: string) => void;
+	/** 点击时同步回写（state + sessionStorage），供回程恢复配对。
+	 * 第二个参数是被点卡片顶部的文档绝对 Y（调用方无需再自行计算 scrollY）。 */
+	onActivate?: (id: string, cardTopY?: number) => void;
 };
 
 function ItemInner({
@@ -347,7 +348,14 @@ function ItemInner({
 					"view-transition-name",
 					`game-title-${gameid}`,
 				);
-				onActivate?.(gameid);
+				// 卡片顶部的文档绝对位置：link 元素 bounding rect + scrollY。
+				// 同步读取，不受后续 VT/导航的 layout 变化影响；回程恢复时
+				// 被点卡回到视口内同一位置（scrollY = cardTop − 点击时行内偏移，
+				// 在 /games index.tsx 的 handleActivate 内换算）。
+				const cardTopY =
+					(linkRef.current?.getBoundingClientRect().top ?? 0) +
+					window.scrollY;
+				onActivate?.(gameid, cardTopY);
 				// 进入详情页前先用列表数据填充英雄区，详情 loader 完成前即可首屏渲染
 				gameHeroActions.set({
 					id: gameid,

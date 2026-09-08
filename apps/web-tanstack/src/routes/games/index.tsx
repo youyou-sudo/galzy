@@ -34,6 +34,18 @@ const CLICKED_GAME_KEY = "galzy:clicked-game";
 /** 点击瞬间记录的 window.scrollY：虚拟列表离开时 DOM 高度不完整，
  * 浏览器原生 scrollRestoration 恢复失败，回程据此精确落位（误差 <50px）。 */
 const CLICKED_GAME_SCROLL_KEY = "galzy:games-scroll-y";
+/** 被点卡片顶部的文档绝对位置（handleActivate 同步实测）。 */
+const CLICKED_GAME_CARD_TOP_KEY = "galzy:games-card-top";
+/** 点击瞬间卡片顶部相对视口的偏移（cardTop − scrollY）。
+ * 恢复目标 scrollY = 回程实测 cardTop − 该偏移：header 高度变化等
+ * 系统噪音在差值中抵消，被点卡回到点击时的视口位置。 */
+const CLICKED_GAME_CARD_OFFSET_KEY = "galzy:games-card-offset";
+/** 点击瞬间记录的 virtualizer.takeSnapshot()：上方所有行的真实测量尺寸。
+ * 回程时作为 initialMeasurementsCache 预埋 —— 重挂载后各行 offset 直接就是
+ * 真实值，resizeItem 不再产生 delta，也就不会触发 applyScrollAdjustment
+ * 把 window.scrollY 推离保存的位置（这正是之前 +100~200px 漂移的根因）。 */
+const CLICKED_GAME_SNAPSHOT_KEY = "galzy:games-snapshot";
+
 
 function readSessionStorage(key: string): string | null {
 	try {
@@ -54,6 +66,45 @@ function readClickedScrollY(): number | null {
 	const value = Number(raw);
 	return Number.isFinite(value) ? value : null;
 }
+
+function readStoredNumber(key: string): number | null {
+	const raw = readSessionStorage(key);
+	if (raw === null) return null;
+	const value = Number(raw);
+	return Number.isFinite(value) ? value : null;
+}
+
+type SnapshotRow = {
+	index: number;
+	key: string | number;
+	start: number;
+	size: number;
+	end: number;
+	lane: number;
+};
+
+function readSnapshot(): SnapshotRow[] | null {
+	const raw = readSessionStorage(CLICKED_GAME_SNAPSHOT_KEY);
+	if (!raw) return null;
+	try {
+		const parsed = JSON.parse(raw) as unknown;
+		if (!Array.isArray(parsed)) return null;
+		const rows = parsed.filter(
+			(row): row is SnapshotRow =>
+				!!row &&
+				typeof row === "object" &&
+				typeof (row as SnapshotRow).index === "number" &&
+				typeof (row as SnapshotRow).start === "number" &&
+				typeof (row as SnapshotRow).size === "number" &&
+				typeof (row as SnapshotRow).end === "number",
+		);
+		return rows.length > 0 ? rows : null;
+	} catch {
+		return null;
+	}
+}
+
+
 
 const searchSchema = object({
 	q: string().optional().default(""),
@@ -141,23 +192,72 @@ function RouteComponent() {
 	const [clickedId, setClickedId] = useState<string | null>(() =>
 		readClickedGame(),
 	);
-	// 精确滚动恢复：点击瞬间记录 scrollY，返回时据此落位（见下方恢复 effect）。
+	// 精确滚动恢复：点击瞬间记录 scrollY + 测量快照，返回时据此落位。
 	// useCallback 稳定引用：memo(Item) 的 props 比较不受父组件重渲染影响，
 	// 只有 clickedId 变化的两张卡（旧配对/新被点）会更新。
-	const handleActivate = useCallback((id: string) => {
-		setClickedId(id);
-		try {
-			sessionStorage.setItem(CLICKED_GAME_KEY, id);
-			// 点击的同步瞬间记录滚动位置：VT 与导航可能改变 DOM，但 scrollY
-			// 在这一帧最接近真实位置；返回时精确恢复。
-			sessionStorage.setItem(
-				CLICKED_GAME_SCROLL_KEY,
-				String(window.scrollY || 0),
-			);
-		} catch {
-			// sessionStorage 不可用时仅影响回程动画配对与精确恢复
-		}
-	}, []);
+	// virtualizer 引用通过 ref 持有（创建顺序在下方，回调执行时已就绪）。
+	// 类型用 Parameters 兜底：takeSnapshot 返回的 VirtualItem.key 可能是 bigint，
+	// 序列化进 sessionStorage 前 JSON.stringify 会抛错，由 try/catch 兜住。
+	const virtualizerRef = useRef<{
+		takeSnapshot: () => Array<{
+			index: number;
+			key: unknown;
+			start: number;
+			size: number;
+			end: number;
+			lane: number;
+		}>;
+	} | null>(null);
+	const handleActivate = useCallback(
+		(id: string, cardTopY?: number) => {
+			setClickedId(id);
+			try {
+				sessionStorage.setItem(CLICKED_GAME_KEY, id);
+				const scrollY = window.scrollY || 0;
+				// 被点卡片顶部的文档绝对位置（调用方同步实测传入）。
+				// 同时记录：绝对 scrollY + 卡片顶 + 卡片视口偏移。
+				// 回程恢复 = 回程实测 cardTop − 点击时视口偏移：
+				// 差值抵消 header 高度变化等系统噪音，被点卡回到点击时视口位置。
+				if (typeof cardTopY === "number" && Number.isFinite(cardTopY)) {
+					const top = Math.max(0, cardTopY);
+					sessionStorage.setItem(
+						CLICKED_GAME_SCROLL_KEY,
+						String(scrollY),
+					);
+					sessionStorage.setItem(
+						CLICKED_GAME_CARD_TOP_KEY,
+						String(top),
+					);
+					sessionStorage.setItem(
+						CLICKED_GAME_CARD_OFFSET_KEY,
+						String(top - scrollY),
+					);
+				} else {
+					sessionStorage.setItem(
+						CLICKED_GAME_SCROLL_KEY,
+						String(scrollY),
+					);
+				}
+				// 同时记录测量快照：上方所有行的真实尺寸回程时预埋，
+				// 防止 resizeItem 的 delta 触发 applyScrollAdjustment 漂移 scrollY。
+				const snapshot = virtualizerRef.current?.takeSnapshot();
+				if (snapshot && snapshot.length > 0) {
+					try {
+						sessionStorage.setItem(
+							CLICKED_GAME_SNAPSHOT_KEY,
+							JSON.stringify(snapshot),
+						);
+					} catch {
+						// 快照过大写不进 storage：回退到纯 scrollY 恢复
+						sessionStorage.removeItem(CLICKED_GAME_SNAPSHOT_KEY);
+					}
+				}
+			} catch {
+				// sessionStorage 不可用时仅影响回程动画配对与精确恢复
+			}
+		},
+		[],
+	);
 
 	const {
 		data: gameListData,
@@ -261,6 +361,9 @@ function RouteComponent() {
 		}
 	}, [queryKey]);
 
+	// 点击瞬间保存的测量快照：重挂载时预埋，上方各行 offset 直接就是真实值。
+	// 无快照（如首次访问/旧版）时传空数组，行为与之前一致。
+	const initialSnapshot = useMemo(() => readSnapshot() ?? [], []);
 	const rowCount = Math.ceil(flatItems.length / cols);
 	const virtualizer = useWindowVirtualizer({
 		count: rowCount,
@@ -268,17 +371,22 @@ function RouteComponent() {
 		estimateSize: () => 320,
 		overscan: 3,
 		gap: 16,
+		// 回程时预埋真实测量：resizeItem 全是 0 delta，不触发
+		// applyScrollAdjustment 漂移 scrollY（见文件顶部注释）。
+		initialMeasurementsCache: initialSnapshot,
 	});
+	useEffect(() => {
+		virtualizerRef.current = virtualizer;
+	}, [virtualizer]);
 
 	const virtualItems = virtualizer.getVirtualItems();
 
-	// 返回列表：基于 clickedId 精确滚动恢复。
-	// 虚拟化下 DOM 高度不完整，TanStack scrollRestoration 恢复必然不准；
-	// 这里点卡瞬间记录过 scrollY（点击时绝对位置），返回后：
-	//   1. 先 scrollToIndex(clickedId 所在行) —— 触发该行渲染与 measure，
-	//      让 virtualizer 拿到真实的逐行 offset；
-	//   2. 下一帧再 window.scrollTo(记录值) 精确覆盖 —— 行高测量完成后
-	//      内容绝对位置固定，这一帧位置就是真实内容停靠点，误差 ≈ 0。
+	// 返回列表：基于 clickedId + 保存的绝对 scrollY 精确恢复。
+	// 恢复成立的前提（缺一即放弃恢复，保持当前位置）：
+	//   1. clickedId 在当前数据中（排序/搜索变化导致 id 不在 → 不恢复）；
+	//   2. 有保存的 scrollY；
+	//   3. 同一 tab 内的返回（performance navigation type === 'back_forward'，
+	//      首次加载/F5 不恢复 —— 之前版本缺了这个判断)。
 	const scrollRestoredRef = useRef(false);
 	const restoreTargetRow = useMemo(() => {
 		if (!clickedId) return -1;
@@ -288,26 +396,120 @@ function RouteComponent() {
 	}, [clickedId, flatItems, cols]);
 
 	const savedRestoreY = useMemo(readClickedScrollY, []);
+	// 被点卡片顶的文档绝对位置 + 点击时卡片在视口内的偏移。
+	// 恢复目标 scrollY = 回程实测 cardTop − 点击时视口偏移：差值抵消
+	// header 高度变化等系统噪音，被点卡精确回到点击时的视口位置。
+	const savedCardTop = useMemo(
+		() => readStoredNumber(CLICKED_GAME_CARD_TOP_KEY),
+		[],
+	);
+	const savedCardViewportOffset = useMemo(
+		() => readStoredNumber(CLICKED_GAME_CARD_OFFSET_KEY),
+		[],
+	);
+	// 快照的行号是点击时的数据布局：若本次挂载的 queryKey（排序/搜索/R18）
+	// 与点击时不同，行号/offset 全部失效 —— 必须放弃恢复并清理旧记录。
+	const restoreValid = useMemo(() => {
+		const snapshot = initialSnapshot;
+		if (snapshot.length === 0) return true;
+		return snapshot.every((row) => row.index < rowCount);
+		// rowCount 变化（加载更多/列数变化）时重新评估
+		// biome-ignore lint/correctness/useExhaustiveDependencies: 仅需 rowCount 触发重算
+	}, [rowCount]);
 	useEffect(() => {
 		// 仅在有配对 id 且数据已就绪时恢复一次
 		if (restoreTargetRow < 0 || scrollRestoredRef.current) return;
-		scrollRestoredRef.current = true;
 		const savedY = savedRestoreY;
-		if (savedY === null) {
-			// 没有精确记录（如旧版/手动刷新）→ scrollToIndex 兜底居中
-			virtualizer.scrollToIndex(restoreTargetRow, { align: "auto" });
+		if (savedY === null || !restoreValid) {
+			// 没有精确记录，或数据布局已变 → 不恢复，保持当前位置
+			scrollRestoredRef.current = true;
 			return;
 		}
-		// 先锚定目标行（强制渲染 + 异步 measureElement 写真实行高），
-		// 双 rAF 后再覆盖精确记录 —— 此时逐行 offset 已与真实布局一致，
-		// window.scrollTo(savedY) 落在的实际内容位置与点击时相同（误差≈0）。
-		virtualizer.scrollToIndex(restoreTargetRow, { align: "start" });
-		requestAnimationFrame(() => {
-			requestAnimationFrame(() => {
-				window.scrollTo(0, savedY);
-			});
-		});
-	}, [restoreTargetRow, virtualizer, savedRestoreY]);
+		const navEntries = performance.getEntriesByType(
+			"navigation",
+		) as PerformanceNavigationTiming[];
+		const navType = navEntries[0]?.type;
+		if (navType !== "back_forward") {
+			// 首次加载 / F5 / 直接输入 URL：不清 scrollRestoration 的默认行为，
+			// 我们的记录是上一次会话的残留，不恢复。
+			scrollRestoredRef.current = true;
+			return;
+		}
+		if (savedY <= 0) {
+			// 目标在首屏附近：无需恢复，直接标记完成
+			scrollRestoredRef.current = true;
+			return;
+		}
+		let cancelled = false;
+		let frames = 0;
+		// 恢复分两步，终局都以"卡片回到点击时的视口位置"为准：
+		//  1. 首次 scrollToIndex 锚定目标行（强制渲染它及 overscan）；
+		//     上方行高来自 initialMeasurementsCache 预埋的真实值，
+		//     算出的 offset 直接就是真实 offset，不需要等待收敛。
+		//  2. 目标行挂载进 DOM 后（getVirtualItems 命中），实测该行内被点卡片
+		//     的顶部文档位置 cardTopNow，恢复 scrollY = cardTopNow − 点击时视口偏移。
+		//     用实测值而非预埋 offset：卡片顶部是 DOM 真值，不受任何估算/
+		//     图片加载/行高变化影响；差值同时抵消 header 高度变化等噪音。
+		// 用 virtualizer.scrollToOffset 而不是 window.scrollTo：
+		// 前者会设置 scrollState.lastTargetOffset 并开启 reconcile，
+		// 后续测量帧若算出同一目标不再二次滚动；直接写 window 则会被
+		// reconcile 当成外部滚动反复"纠正"。
+		const tick = () => {
+			if (cancelled) return;
+			frames++;
+			if (frames === 1) {
+				virtualizer.scrollToIndex(restoreTargetRow, { align: "start" });
+			}
+			const current = virtualizer.getVirtualItems();
+			const target = current.find(
+				(item) => item.index === restoreTargetRow,
+			);
+			// 多等 2 帧：让 ResizeObserver 的二次确认跑完，避免与
+			// applyScrollAdjustment 的调整帧打架。
+			if (target && frames >= 3) {
+				// 被点卡片的 DOM 真值：行容器内按 gameid 定位 Link。
+				// data-index 在行容器上，卡片是其子 Link；用 view-transition
+				// 的唯一配对（仅被点卡有 hasVT）定位最可靠。
+				const cardEl = document.querySelector(
+					`[style*="game-cover-${CSS.escape(clickedId ?? "")}"]`,
+				);
+				let finalY = savedY;
+				if (cardEl) {
+					const cardTopNow =
+						cardEl.getBoundingClientRect().top + window.scrollY;
+					const viewportOffset =
+						savedCardViewportOffset ??
+						(savedCardTop !== null ? savedCardTop - savedY : null);
+					if (viewportOffset !== null) {
+						finalY = Math.max(0, cardTopNow - viewportOffset);
+					}
+				}
+				scrollRestoredRef.current = true;
+				virtualizer.scrollToOffset(finalY, { align: "start" });
+				return;
+			}
+			// 最多等 60 帧（约 1s）：宁可先落位也不让用户卡在顶部。
+			if (frames >= 60) {
+				scrollRestoredRef.current = true;
+				virtualizer.scrollToOffset(savedY, { align: "start" });
+				return;
+			}
+			requestAnimationFrame(tick);
+		};
+		const raf = requestAnimationFrame(tick);
+		return () => {
+			cancelled = true;
+			cancelAnimationFrame(raf);
+		};
+	}, [
+		restoreTargetRow,
+		virtualizer,
+		savedRestoreY,
+		restoreValid,
+		clickedId,
+		savedCardTop,
+		savedCardViewportOffset,
+	]);
 
 	// useMemo + memo(Item)：fetchNextPage / 返回挂载时只新增/复用节点，
 	// 已有卡 props 不变则跳过重渲染；showR18 变化才全量更新（预期行为）。
