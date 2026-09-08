@@ -20,11 +20,33 @@ import {
 	useEffect,
 	useRef,
 	useState,
+	useSyncExternalStore,
 } from "react";
 
 const SKELETON_KEYS = ["first", "second", "third"] as const;
 const DETAIL_IMAGE_RATIO = 9 / 12;
 const LIST_IMAGE_RATIO = 9 / 13;
+
+// 触屏(coarse)指针检测：模块级一次性求值 matchMedia，避免每卡每帧查询。
+// SSR/测试环境（无 window.matchMedia）恒为 false，桌面全部保持现状。
+const coarseMediaQuery =
+	typeof window !== "undefined" && typeof window.matchMedia === "function"
+		? window.matchMedia("(pointer: coarse)")
+		: null;
+
+function subscribeCoarsePointer(onChange: () => void): () => void {
+	coarseMediaQuery?.addEventListener("change", onChange);
+	return () => coarseMediaQuery?.removeEventListener("change", onChange);
+}
+
+/** 触屏(coarse)指针 hook：SSR 快照恒 false（与服务端 markup 一致），水合后同步真实值。 */
+function useCoarsePointer(): boolean {
+	return useSyncExternalStore(
+		subscribeCoarsePointer,
+		() => coarseMediaQuery?.matches ?? false,
+		() => false,
+	);
+}
 
 // Unpic merges custom styles at runtime, but its ImageProps omits the style prop.
 type ImagePropsWithStyle = ImageProps & {
@@ -45,6 +67,9 @@ type ThumbHashImageProps = ImagePropsWithStyle & {
 	 * 详情页主封面（GameHeader.Image）可传 false 跳过缓存命中的动画，避免重复访问详情页的喧宾夺主。
 	 */
 	alwaysAnimate?: boolean;
+	/** 触屏敏感图未揭示态：只渲染 thumbhash 小图（替代 blur-xl 滤镜），
+	 * 真实图不渲染；thumbhash 未就绪的窗口期真实图带 blur-xl 兜底防泄漏。 */
+	placeholderOnly?: boolean;
 };
 
 const NO_IMAGE_SRC = "/No-Image-Placeholder.svg.webp";
@@ -57,42 +82,61 @@ function ThumbHashImage({
 	wrapperClassName = "absolute inset-0",
 	wrapperStyle,
 	alwaysAnimate = true,
+	placeholderOnly = false,
 	...props
 }: ThumbHashImageProps) {
 	// 缓存命中同步拿到 dataURL；未命中返回 null（此时渲染骨架底），
-	// 解码在 idle 回调中异步完成后由 state 承接，不再阻塞 render。
+	// 解码在 Worker（fallback: idle 分片）中异步完成后由 state 承接，不再阻塞 render。
 	const placeholder = useThumbHashDataUrl(thumbhash);
+	const coarse = useCoarsePointer();
 	const [loaded, setLoaded] = useState(false);
 	const [failed, setFailed] = useState(false);
 	const imgRef = useRef<HTMLImageElement | null>(null);
 
-	// 缓存命中时 load 事件可能在 hydration 前触发；未命中时使用原生事件补上加载状态。
+	// img.decode() 预解码提交：真实图下载并解码完成后才置 loaded ——
+	// 上屏首帧就是已解码位图，transition 首帧不再撞解码；同时把每图一次的
+	// load 事件提交风暴换成 decode 微任务（React 可批处理）。decode() reject
+	// （加载失败/不支持）静默回退 load/error 事件行为；缓存命中走 complete 快路径。
 	useEffect(() => {
 		const image = imgRef.current;
 		if (!image) return;
-
-		const handleLoad = () => setLoaded(true);
+		let cancelled = false;
+		const commit = () => {
+			if (!cancelled) setLoaded(true);
+		};
 		const handleError = () => {
-			setFailed(true);
-			setLoaded(true);
+			if (!cancelled) {
+				setFailed(true);
+				commit();
+			}
 		};
 
 		if (image.complete) {
 			if (image.naturalWidth === 0) {
 				handleError();
 			} else {
-				handleLoad();
+				commit();
 			}
 			return;
 		}
 
-		image.addEventListener("load", handleLoad, { once: true });
+		if (typeof image.decode === "function") {
+			image.decode().then(commit, handleError);
+			return () => {
+				cancelled = true;
+			};
+		}
+
+		image.addEventListener("load", commit, { once: true });
 		image.addEventListener("error", handleError, { once: true });
 		return () => {
-			image.removeEventListener("load", handleLoad);
+			image.removeEventListener("load", commit);
 			image.removeEventListener("error", handleError);
 		};
-	}, []);
+	}, [src, failed, placeholderOnly]);
+
+	// thumbhash 未就绪时的敏感图兜底：此时真实图必须保持模糊，防内容泄漏
+	const blurFallback = placeholderOnly && !placeholder ? " blur-xl" : "";
 
 	return (
 		<div className={wrapperClassName} style={wrapperStyle}>
@@ -101,7 +145,8 @@ function ThumbHashImage({
 			{!loaded && <Skeleton className="absolute inset-0 w-full h-full" />}
 			{/* 性能方案：占位图是 ~32px 级小图，object-cover 放大后天然模糊，
 				无需 filter blur（大面积 blur 光栅化很贵）；dataURL 就绪前由骨架底兜底。
-				加载完成后占位图只做廉价的 opacity 淡出，露出下方清晰图。 */}
+				加载完成后占位图只做廉价的 opacity 淡出，露出下方清晰图。
+				触屏(coarse)：无 opacity 过渡，直接终态，避免每图新建合成层。 */}
 			{placeholder && (
 				<img
 					aria-hidden="true"
@@ -109,40 +154,45 @@ function ThumbHashImage({
 					className={`galzy-thumbhash-placeholder absolute inset-0 w-full h-full object-cover ${className ?? ""}`}
 					src={placeholder ?? undefined}
 					style={{
-						opacity: loaded ? 0 : 1,
+						opacity: loaded && !placeholderOnly ? 0 : 1,
 						imageRendering: "auto",
-						transition: "opacity 320ms ease-out",
-						transitionDelay: "0s",
+						...(coarse
+							? {}
+							: {
+									transition: "opacity 320ms ease-out",
+									transitionDelay: "0s",
+								}),
 					}}
 				/>
 			)}
-			<div className="galzy-image-reveal absolute inset-0">
-				<ImageWithStyle
-					{...props}
-					src={failed ? NO_IMAGE_SRC : src}
-					ref={imgRef}
-					className={className}
-					style={{
-						...props.style,
-						...(alwaysAnimate
-							? {
-									transform: loaded ? "scale(1)" : "scale(1.04)",
-									// 只保留 opacity/transform（compositor 友好）；
-									// filter 过渡移除后 R18 blur-xl 显隐为瞬切（类名逻辑不动）。
-									transition: "transform 320ms ease-out",
-								}
-							: {}),
-					}}
-					onLoad={(event) => {
-						setLoaded(true);
-						onLoad?.(event);
-					}}
-					onError={() => {
-						setFailed(true);
-						setLoaded(true);
-					}}
-				/>
-			</div>
+			{placeholderOnly && placeholder ? null : (
+				<div className="galzy-image-reveal absolute inset-0">
+					<ImageWithStyle
+						{...props}
+						src={failed ? NO_IMAGE_SRC : src}
+						ref={imgRef}
+						className={`${className ?? ""}${blurFallback}`}
+						style={{
+							...props.style,
+							...(alwaysAnimate && !coarse
+								? {
+										transform: loaded ? "scale(1)" : "scale(1.04)",
+										// 只保留 opacity/transform（compositor 友好）；
+										// filter 过渡移除后 R18 blur-xl 显隐为瞬切（类名逻辑不动）。
+										transition: "transform 320ms ease-out",
+									}
+								: {}),
+						}}
+						onLoad={(event) => {
+							onLoad?.(event);
+						}}
+						onError={() => {
+							setFailed(true);
+							setLoaded(true);
+						}}
+					/>
+				</div>
+			)}
 		</div>
 	);
 }
@@ -192,7 +242,9 @@ export function Images({
 	const THRESHOLD = 1.0;
 	const showR18 = useSelector(r18Store, (s) => s.showR18);
 	const isSensitive = !showR18 && (cSexualAvg ?? 0) >= THRESHOLD;
+	const coarse = useCoarsePointer();
 	const [revealed, setRevealed] = useState(false);
+	const sensitiveHidden = isSensitive && !revealed;
 	const ratio = getImageRatio(
 		props.width as number | undefined,
 		props.height as number | undefined,
@@ -208,10 +260,13 @@ export function Images({
 				<ThumbHashImage
 					{...props}
 					thumbhash={thumbhash}
-					className={`w-full h-full object-cover transition-[filter] duration-500 ease-out ${isSensitive && !revealed ? "blur-xl" : ""} ${className ?? ""}`}
+					placeholderOnly={coarse && sensitiveHidden}
+					className={`w-full h-full object-cover transition-[filter] duration-500 ease-out${sensitiveHidden && !coarse ? " blur-xl" : ""} ${className ?? ""}`}
 				/>
-				{isSensitive && !revealed && (
-					<div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
+				{sensitiveHidden && (
+					<div
+						className={`absolute inset-0 flex flex-col items-center justify-center z-10 rounded-lg text-center px-2 pb-12 ${coarse ? "bg-black/40" : "bg-black/40 backdrop-blur-sm"}`}
+					>
 						<span className="text-white text-2xl font-bold">涩！</span>
 						<span className="text-white/70 text-xs mt-1">
 							图片包含不宜在公共场合查看的内容喵～
@@ -239,7 +294,9 @@ function SensitiveImage({
 	const THRESHOLD = 1.0;
 	const showR18 = useSelector(r18Store, (s) => s.showR18);
 	const isSensitive = !showR18 && (cSexualAvg ?? 0) >= THRESHOLD;
+	const coarse = useCoarsePointer();
 	const [revealed, setRevealed] = useState(false);
+	const sensitiveHidden = isSensitive && !revealed;
 
 	const w = (imageProps as Record<string, unknown>).width as number | undefined;
 	const h = (imageProps as Record<string, unknown>).height as
@@ -253,10 +310,13 @@ function SensitiveImage({
 				<ThumbHashImage
 					{...imageProps}
 					thumbhash={thumbhash}
-					className={`w-full h-full object-cover transition-[filter] duration-500 ease-out ${isSensitive && !revealed ? "blur-xl" : ""} ${className ?? ""}`}
+					placeholderOnly={coarse && sensitiveHidden}
+					className={`w-full h-full object-cover transition-[filter] duration-500 ease-out${sensitiveHidden && !coarse ? " blur-xl" : ""} ${className ?? ""}`}
 				/>
-				{isSensitive && !revealed && (
-					<div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
+				{sensitiveHidden && (
+					<div
+						className={`absolute inset-0 flex flex-col items-center justify-center z-10 rounded-lg text-center px-2 pb-12 ${coarse ? "bg-black/40" : "bg-black/40 backdrop-blur-sm"}`}
+					>
 						<span className="text-white text-2xl font-bold">涩！</span>
 						<span className="text-white/70 text-xs mt-1">
 							图片包含不宜在公共场合查看的内容喵～
@@ -314,7 +374,14 @@ function ItemInner({
 	const storeShowR18 = useSelector(r18Store, (s) => s.showR18);
 	const showR18 = showR18Prop ?? storeShowR18;
 	const isSensitive = !showR18 && (cSexualAvg ?? 0) >= THRESHOLD;
+	const coarse = useCoarsePointer();
 	const [revealed, setRevealed] = useState(false);
+	const sensitiveHidden = isSensitive && !revealed;
+	// 触屏下不渲染 hover:scale-105（Tailwind v4 独立 scale 属性，触屏点按粘滞
+	// 且 inline transform 覆盖不了它）；桌面保持现状。
+	const hoverClasses = coarse
+		? ""
+		: " hover:scale-105 transition duration-500 ease-out";
 	// 仅用视口预取（内部有 MAX_CONCURRENT 并发队列）：进入视口才预热详情，
 	// 未请求过的条目点击也秒开，且不触发 view 计数（onEnter 仅在真实进入页面时计）。
 	// 注意：不要再叠加挂载即 idle 预取 —— 「加载更多」一次性挂载几十张卡时
@@ -376,13 +443,17 @@ function ItemInner({
 			<AspectRatio
 				ref={coverRef}
 				ratio={LIST_IMAGE_RATIO}
-				className="block relative overflow-hidden rounded-lg [content-visibility:auto] [contain-intrinsic-size:auto_320px]"
+				// 不再用卡级 [content-visibility:auto]：行级虚拟化 + measureElement
+				// 已裁剪渲染范围，卡级 CVA 的 contain-intrinsic-size 估算与实测行高
+				// 不一致会叠加出测量噪声（RO 全量修正 + 滚动补偿），直接移除。
+				className="block relative overflow-hidden rounded-lg"
 				style={
 					hasVT ? { viewTransitionName: `game-cover-${gameid}` } : undefined
 				}
 			>
 				<div className="relative w-full h-full">
-					{/* 骨架已内移到 ThumbHashImage：加载完成后条件卸载，不再常驻 animate-pulse */}
+					{/* 骨架已内移到 ThumbHashImage：加载完成后条件卸载，不再常驻 animate-pulse。
+						触屏敏感图未揭示态：thumbhash 小图放大替代 blur-xl 滤镜（无双重滤波）。 */}
 					<ThumbHashImage
 						width={width ?? 200}
 						height={height ?? 300}
@@ -392,10 +463,13 @@ function ItemInner({
 						fetchPriority={fetchPriority}
 						src={src}
 						alt={title || " "}
-						className={`w-full h-full object-cover hover:scale-105 transition duration-500 ease-out${isSensitive && !revealed ? " blur-xl" : ""}`}
+						placeholderOnly={coarse && sensitiveHidden}
+						className={`w-full h-full object-cover${hoverClasses}${sensitiveHidden && !coarse ? " blur-xl" : ""}`}
 					/>
-					{isSensitive && !revealed && (
-						<div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 rounded-lg text-center px-2 pb-12">
+					{sensitiveHidden && (
+						<div
+							className={`absolute inset-0 flex flex-col items-center justify-center z-10 rounded-lg text-center px-2 pb-12 ${coarse ? "bg-black/40" : "bg-black/40 backdrop-blur-sm"}`}
+						>
 							<span className="text-white text-2xl font-bold">涩！</span>
 							<span className="text-white/70 text-xs mt-1">
 								图片包含不宜在公共场合查看的内容喵～

@@ -19,6 +19,23 @@ import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 import TanStackQueryProvider from '../integrations/tanstack-query/root-provider'
 import appCss from '../styles.css?url'
 
+// Dev-only 能力探针（WebView 真机调试）：延迟 3 秒自动跑一次，并挂载 window.__galzyProbe
+// 供手动触发。`import.meta.env.DEV` 是静态条件，prod 构建时该分支连同动态 import 一起被
+// tree-shake，探针模块不会进入产物。SSR 侧用 typeof window 排除。
+if (import.meta.env.DEV && typeof window !== 'undefined') {
+  window.setTimeout(() => {
+    import('../lib/capability-probe')
+      .then((probe) => {
+        window.__galzyProbe = {
+          run: probe.runCapabilityProbe,
+          stop: probe.stopCapabilityProbe,
+        }
+        return probe.runCapabilityProbe()
+      })
+      .catch(() => {})
+  }, 3000)
+}
+
 export type MyRouterContext = {
   queryClient: QueryClient
 }

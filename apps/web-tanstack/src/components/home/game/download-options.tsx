@@ -35,9 +35,10 @@ import { Skeleton } from "@web/components/ui/skeleton";
 import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
 import { dwAcConst, getFileList } from "@web/server/game";
 import { downCardStore, downmodalActions } from "@web/stores/downCardData";
+import { waitForViewTransitionEnd } from "@web/lib/view-transition";
 import { FileArchive } from "lucide-react";
 import { tryit } from "radash";
-import { useEffect, useState, useDeferredValue } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { GlgczujmDl } from "./tips";
 
@@ -57,12 +58,23 @@ export const DownloadOptions = () => {
 	// 懒加载文件列表：下载 tab 才请求，不阻塞进入详情页的点击导航
 	//（loader 侧已 prefetchQuery 预热，首次进入也大概率秒出）
 	const { data: filelist } = useQuery(filelistQueryOptions(id));
-	// useQuery 经 useSyncExternalStore 交付更新（同步、默认优先级），filelist
-	// 响应落在 VT 动画中途时其重渲染会打断动画帧；useDeferredValue 把这次渲染
-	// 降为可中断的低优先级，动画期间保持骨架，动画结束后再提交。
-	const deferredFilelist = useDeferredValue(filelist);
+	// VT 结束 gate：数据到达时若正处 View Transition 动画中，先保持骨架，
+	// 等 waitForViewTransitionEnd() resolve 再提交渲染 —— VT 进行中的重渲染
+	// 会打断动画帧；useDeferredValue 只降优先级，不保证等动画结束。
+	// 初值取当前 filelist：SSR/无 VT 时直接渲染，且与 SSR 输出一致（无 hydration 抖动）。
+	const [settledFilelist, setSettledFilelist] = useState(filelist);
+	useEffect(() => {
+		if (filelist === undefined) return;
+		let cancelled = false;
+		void waitForViewTransitionEnd().then(() => {
+			if (!cancelled) setSettledFilelist(filelist);
+		});
+		return () => {
+			cancelled = true;
+		};
+	}, [filelist]);
 
-	if (!deferredFilelist?.game) {
+	if (!settledFilelist?.game) {
 		return (
 			<>
 				<Skeleton className="w-[50%] h-7" />
@@ -75,7 +87,7 @@ export const DownloadOptions = () => {
 	return (
 		<>
 		<FileExplorer
-			items={deferredFilelist.game}
+			items={settledFilelist.game}
 				onFileClick={(item) => {
 					downmodalActions.open(item);
 				}}

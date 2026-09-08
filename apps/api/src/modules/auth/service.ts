@@ -217,6 +217,17 @@ const _authConfig = {
             }
           },
         },
+        {
+          providerId: 'hikarinagi',
+          clientId: process.env.HIKARINAGI_CLIENT_ID || '',
+          clientSecret: process.env.HIKARINAGI_KEY || '',
+          redirectURI: process.env.WEB_HOST + '/api/auth/callback/hikarinagi',
+          authorizationUrl: 'https://id.hikarinagi.org/oidc/auth',
+          tokenUrl: 'https://id.hikarinagi.org/oidc/token',
+          userInfoUrl: 'https://id.hikarinagi.org/oidc/userinfo',
+          scopes: ['openid', 'profile', 'email'],
+          pkce: true,
+        },
       ],
     }),
   ],

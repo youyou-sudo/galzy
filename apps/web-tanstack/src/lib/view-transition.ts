@@ -1,6 +1,26 @@
 let activeTransition: ViewTransition | undefined;
 let installed = false;
 
+let vtClassSupport: boolean | undefined;
+
+/**
+ * view-transition-class（Chrome/WebView 125+）特性检测，模块级惰性缓存。
+ * 111–124 上该 API 缺失：`.vt-text` 等选择器不匹配、style.viewTransitionClass
+ * 读不到 —— 文本共享元素的等比保护全部失效，rect.text 判定需走名称兜底。
+ */
+export function supportsViewTransitionClass(): boolean {
+	if (vtClassSupport !== undefined) return vtClassSupport;
+	try {
+		vtClassSupport =
+			typeof CSS !== "undefined" &&
+			typeof CSS.supports === "function" &&
+			CSS.supports("selector(::view-transition-group(.a))");
+	} catch {
+		vtClassSupport = false;
+	}
+	return vtClassSupport;
+}
+
 /**
  * 把 UA 生成的 ::view-transition-group 关键帧改写为 compositor-only（纯函数）。
  *
@@ -77,15 +97,23 @@ function collectSharedRects() {
 		if (!name || rects.has(name)) continue;
 		const rect = el.getBoundingClientRect();
 		// 标记文字类共享元素（挂了 view-transition-class）：它们交由
-		// object-fit: contain 保持等比，不做 compositor 改写
-		const text = Boolean(
-			(el.style as CSSStyleDeclaration & { viewTransitionClass?: string })
-				.viewTransitionClass,
-		);
+		// object-fit: contain 保持等比，不做 compositor 改写。
+		// API 缺失（<125）时 viewTransitionClass 读不到，按名称兜底判定：
+		// 标题/昵称/厂商名类共享元素（game-title-<id>、topic-nick-<id>、
+		// producer-name-<pid>…）一律视为文本，避免对文本 group 做非等比
+		// scale 改写（此时 CSS 端 object-fit: contain 也不生效，改写必拉伸）。
+		const text = supportsViewTransitionClass()
+			? Boolean(
+					(el.style as CSSStyleDeclaration & { viewTransitionClass?: string })
+						.viewTransitionClass,
+				)
+			: /-(?:title|nick|name)-/.test(name);
 		rects.set(name, { width: rect.width, height: rect.height, text });
 	}
 	return rects;
 }
+
+let rewriteFailureWarned = false;
 
 /** 遍历当前活动的 VT group 动画，逐个改写为 compositor-only */
 function makeGroupAnimationsCompositorOnly() {
@@ -118,15 +146,27 @@ function makeGroupAnimationsCompositorOnly() {
 		// 折算成非等比 scale，把文字快照拉伸变形。保留原生 width/height
 		// 动画，配合 CSS 的 object-fit: contain 让文字始终等比缩放。
 		if (rect?.text) continue;
-		effect.setKeyframes(
-			makeGroupCompositorKeyframes(
-				keyframes,
-				name,
-				rect?.width ?? 0,
-				rect?.height ?? 0,
-			),
-		);
-		rewritten++;
+		try {
+			effect.setKeyframes(
+				makeGroupCompositorKeyframes(
+					keyframes,
+					name,
+					rect?.width ?? 0,
+					rect?.height ?? 0,
+				),
+			);
+			rewritten++;
+		} catch (error) {
+			// setKeyframes 失败时保留 UA 的 width/height 主线程动画（掉帧回退）
+			// 而不是让整场改写静默中断；会话内只上报一次避免刷屏。
+			if (!rewriteFailureWarned) {
+				rewriteFailureWarned = true;
+				console.warn(
+					"[view-transition] group 关键帧改写失败，保留 UA 动画回退（后续失败不再重复上报）",
+					error,
+				);
+			}
+		}
 	}
 }
 
@@ -183,6 +223,20 @@ export function installViewTransitionTracker() {
 
 		return transition;
 	}) as typeof document.startViewTransition;
+}
+
+/**
+ * 当前是否正处于 View Transition 的采集/动画阶段（html 匹配 :active-view-transition）。
+ * 供在 startViewTransition 的 DOM 更新回调内挂载的组件同步检测「本次提交处于
+ * VT 中」—— 那个时刻 tracker 的 activeTransition 可能尚未赋值，不能依赖它。
+ */
+export function isViewTransitionActive(): boolean {
+	if (typeof document === "undefined") return false;
+	try {
+		return document.documentElement.matches(":active-view-transition");
+	} catch {
+		return false;
+	}
 }
 
 /**

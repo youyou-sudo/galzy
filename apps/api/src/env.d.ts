@@ -6,6 +6,8 @@ declare module 'bun' {
     EMAIL_KEY: string
     GITHUB_CLIENT_ID: string
     GITHUB_CLIENT_SECRET: string
+    HIKARINAGI_CLIENT_ID: string
+    HIKARINAGI_KEY: string
     KUNGAL_CLIENT_ID: string
     KUNGAL_CLIENT_SECRET: string
     LINUXDO_CLIENT_ID: string

@@ -279,13 +279,38 @@
   object-fit: contain;
 }
 
+/* 非 root group 的纯 opacity 淡入：低端 GPU 的系统 WebView（Android Via 等，
+   Chrome/WebView 111–124）上 translate + size morph 的 250ms group 动画不稳，
+   且此版本段 view-transition-class 缺失、vt-text 等比保护失效。收敛为
+   合成器友好的单属性 opacity 关键帧后彻底去掉 translate/scale 关键帧。 */
+@keyframes galzy-vt-group-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* 手机端（触屏）：整页 root 快照交叉淡化是全屏纹理加色混合的主要开销，
-   这里让 root 快照直接切换，只保留标题共享元素的飞行；
-   同时缩短标题飞行时长（350ms → 220ms），降低合成压力、手感更跟手。 */
+   这里让 root 快照直接切换。非 root group 按 view-transition-class 支持
+   分级：125+（@supports 未命中 not 分支）保留共享元素飞行，仅缩短时长
+   （350ms → 220ms），行为不回退；111–124 收敛为纯 opacity 淡入（160ms），
+   root group 无动画（内容瞬间切换）。 */
 @media (pointer: coarse) {
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none;
+  }
+
+  @supports not (view-transition-class: x) {
+    ::view-transition-group(*) {
+      animation: galzy-vt-group-fade 160ms ease both;
+    }
+
+    ::view-transition-group(root) {
+      animation: none;
+    }
   }
 
   ::view-transition-group(.article-title),

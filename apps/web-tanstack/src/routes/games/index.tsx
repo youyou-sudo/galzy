@@ -17,6 +17,7 @@ import { Button } from "@web/components/ui/button";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { seoMeta } from "@web/lib/seo";
 import { waitForViewTransitionEnd } from "@web/lib/view-transition";
+import { setThumbHashDecodePaused } from "@web/lib/image";
 import { setViewportPreloadPaused } from "@web/hooks/use-viewport-preload";
 import { getGameList } from "@web/server/game";
 import { r18Store } from "@web/stores/r18Store";
@@ -404,8 +405,12 @@ function RouteComponent() {
 		isReturnNavigation && savedRestoreY !== null && savedRestoreY > 0;
 	const virtualizer = useWindowVirtualizer({
 		count: rowCount,
-		// 行高估算：封面 13/9 + 标题 ~34px + gap 16；挂载后 measure 校准
-		estimateSize: () => 320,
+		// 行高估算按列数校准（gap 16 已含在值内），减小挂载后 measureElement
+		// 的 RO 修正幅度，避免每次修正触发全量 offset 重算 + 滚动补偿（滚动发涩）：
+		// - 移动端 3 列：cell 宽 ≈ (视口 412 − 页边距 32 − 2×gap 32)/3 ≈ 112，
+		//   封面高 112×13/9 ≈ 163 + 标题区 ~28 ≈ 191 → 估 200；
+		// - 桌面 6 列：保持原校准值 320。
+		estimateSize: () => (cols === 3 ? 200 : 320),
 		overscan: 3,
 		gap: 16,
 		// 回程时预埋真实测量：resizeItem 全是 0 delta，不触发
@@ -559,6 +564,14 @@ function RouteComponent() {
 		setViewportPreloadPaused(isFetchingNextPage);
 		return () => setViewportPreloadPaused(false);
 	}, [isFetchingNextPage]);
+
+	// 虚拟滚动进行中暂停 thumbhash 解码管线（Worker 派发 / fallback idle 分片
+	// drain / 结果通知均挂起，结果暂存）：解码完成的 setState 提交不再洒进
+	// 滚动帧；滚动结束一次性补发并恢复调度。
+	useEffect(() => {
+		setThumbHashDecodePaused(virtualizer.isScrolling === true);
+		return () => setThumbHashDecodePaused(false);
+	}, [virtualizer.isScrolling]);
 
 	// useMemo + memo(Item)：fetchNextPage / 返回挂载时只新增/复用节点，
 	// 已有卡 props 不变则跳过重渲染；showR18 变化才全量更新（预期行为）。

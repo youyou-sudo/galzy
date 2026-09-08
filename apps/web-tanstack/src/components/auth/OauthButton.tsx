@@ -6,7 +6,13 @@ import { FaDiscord, FaGithub, FaTwitter } from "react-icons/fa";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
 
-type Provider = "github" | "linuxdo" | "discord" | "kungal" | "twitter";
+type Provider =
+	| "github"
+	| "linuxdo"
+	| "discord"
+	| "kungal"
+	| "twitter"
+	| "hikarinagi";
 
 export const OauthButton = () => {
 	const [loading, setLoading] = useState<Provider | null>(null);
@@ -28,7 +34,11 @@ export const OauthButton = () => {
 		const callbackURL = new URL(return_to || "/", origin).toString();
 
 		try {
-			if (provider === "linuxdo" || provider === "kungal") {
+			if (
+				provider === "linuxdo" ||
+				provider === "kungal" ||
+				provider === "hikarinagi"
+			) {
 				return await authClient.signIn.social({
 					provider,
 					callbackURL,
@@ -106,6 +116,23 @@ export const OauthButton = () => {
 					{loading === "discord" && <Loader2 className="animate-spin" />}
 					<FaDiscord data-icon="inline-start" />
 					Discord
+				</Button>
+				<Button
+					disabled={loading === "hikarinagi"}
+					onClick={() => handleSocialSignIn("hikarinagi")}
+					aria-label="使用 Hikarinagi ID 登录"
+					title="使用 Hikarinagi ID 登录"
+				>
+					{loading === "hikarinagi" && <Loader2 className="animate-spin" />}
+					<Image
+						src="/hikarinagi-icon.webp"
+						width={16}
+						height={16}
+						alt="这是 Hikarinagi ID 登录按钮图标"
+						data-icon="inline-start"
+						className="rounded-4xl"
+					/>
+					Hikarinagi ID
 				</Button>
 			</div>
 		</div>
