@@ -142,8 +142,9 @@ export const Route = createFileRoute("/games/")({
 		// 搜索模式（q 存在）不启用 R18 过滤，敏感图片由卡片模糊组件兜底
 		const showR18 = q ? undefined : r18Store.state.showR18;
 		// 预取/复用 useInfiniteQuery 缓存（queryKey 与其完全一致）：
-		// 已访问过的排序/筛选组合直接命中缓存，排序切换零等待；首次访问只做一次请求
-		await context.queryClient.ensureInfiniteQueryData({
+		// 已访问过的排序/筛选组合直接命中缓存，排序切换零等待；首次访问只做一次请求。
+		// staleTime 与组件内 useInfiniteQuery 对齐：30s 内切回已看过的组合纯缓存命中。
+		const ensure = context.queryClient.ensureInfiniteQueryData({
 			queryKey: [
 				"gameList",
 				q,
@@ -175,7 +176,17 @@ export const Route = createFileRoute("/games/")({
 				lastPage && lastPage.currentPage < lastPage.totalPages
 					? lastPage.currentPage + 1
 					: null,
+			staleTime: 30_000,
 		});
+		if (typeof window === "undefined") {
+			// SSR：等待数据，保证首屏直出与 query 脱水
+			await ensure;
+		} else {
+			// 客户端导航：不阻塞路由切换 —— await 会因 defaultPendingMs=60 把整页
+			// 换成 pendingComponent（全屏骨架）。不等待时加载态由组件内
+			// useInfiniteQuery 的 isLoading → 底部 GameCard.ListSkeleton 承担。
+			void ensure.catch(() => {});
+		}
 		return {};
 	},
 	headers: () => ({

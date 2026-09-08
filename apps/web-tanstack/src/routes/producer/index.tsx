@@ -68,10 +68,18 @@ export const Route = createFileRoute("/producer/")({
 	},
 	validateSearch: producerSearchSchema,
 	loaderDeps: ({ search: { q, page } }) => ({ q, page }),
-	loader: async ({ deps }) => {
+	loader: async ({ deps, context }) => {
 		return {
-			producers: await getSearchProducers({
-				data: { q: deps.q, page: deps.page, hitsPerPage: PAGE_SIZE },
+			// ensureQueryData 缓存（key 与下方一致）：返回列表时直接命中 query
+			// 缓存渲染，不重新请求（与 games/tags 列表页同一模式）
+			producers: await context.queryClient.ensureQueryData({
+				queryKey: ["searchProducers", deps.q ?? "", deps.page ?? 1],
+				queryFn: () =>
+					getSearchProducers({
+						data: { q: deps.q, page: deps.page, hitsPerPage: PAGE_SIZE },
+					}),
+				staleTime: 30_000,
+				gcTime: 5 * 60_000,
 			}),
 			q: deps.q,
 			page: deps.page,

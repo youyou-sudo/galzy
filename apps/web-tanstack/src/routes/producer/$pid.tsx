@@ -15,12 +15,26 @@ import { producerGameList, producerInfo } from '@web/server/producer'
 
 export const Route = createFileRoute('/producer/$pid')({
   pendingComponent: () => <ProducerDetailPageSkeleton />,
-  loader: async ({ params }) => {
+  // 返回详情页（如从游戏详情回退）时直接用缓存渲染，不重新请求：
+  // loader 数据经 ensureQueryData 落入 query 缓存，60s 内秒开不闪骨架屏
+  staleTime: 60_000,
+  gcTime: 5 * 60_000,
+  loader: async ({ params, context }) => {
     const { pid } = params
     return {
       pid: pid,
-      producer: await producerInfo({ data: { pid } }),
-      gameList: producerGameList({ data: { pid } }),
+      producer: await context.queryClient.ensureQueryData({
+        queryKey: ['producerInfo', pid],
+        queryFn: () => producerInfo({ data: { pid } }),
+        staleTime: 60_000,
+        gcTime: 5 * 60_000,
+      }),
+      gameList: context.queryClient.ensureQueryData({
+        queryKey: ['producerGameList', pid],
+        queryFn: () => producerGameList({ data: { pid } }),
+        staleTime: 60_000,
+        gcTime: 5 * 60_000,
+      }),
     }
   },
   head: ({ loaderData, params }) =>
