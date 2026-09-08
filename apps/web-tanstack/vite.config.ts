@@ -26,7 +26,7 @@ const config = defineConfig({
 			),
 		},
 	},
-
+	// windows 端 dev 需关闭 ssr.noExternal
 	ssr: {
 		noExternal: true,
 	},
@@ -66,6 +66,7 @@ const config = defineConfig({
 		babel({ presets: [reactCompilerPreset()] }),
 		// 路由代码分割当前关闭（所有路由随主包加载，导航无 chunk 等待）；
 		// 如需开启：import { tanstackRouter } from "@tanstack/router-plugin/vite" 并启用
+		// windows 端 dev 需关闭代码分隔
 		tanstackRouter({ autoCodeSplitting: true }),
 	],
 });
