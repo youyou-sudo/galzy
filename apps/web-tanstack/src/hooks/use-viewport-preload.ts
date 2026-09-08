@@ -15,6 +15,20 @@ function notifyDegrade() {
 	for (const fn of degradeListeners) fn();
 }
 
+/** 全局暂停信号：games 列表「加载更多」请求进行中置 true，
+ * 视口预取暂停新的调度（已排队的并发队列自然消费完），
+ * 把带宽/主线程让给图片下载与解码。解除时已越界待预取的卡会补调度。 */
+let preloadPaused = false;
+const resumeListeners = new Set<() => void>();
+
+export function setViewportPreloadPaused(paused: boolean) {
+	if (preloadPaused === paused) return;
+	preloadPaused = paused;
+	if (!paused) {
+		for (const fn of resumeListeners) fn();
+	}
+}
+
 /** 当前是否处于降级模式（挂载卡片超阈值） */
 export function isViewportPreloadDegraded() {
 	return mountedCards > VIEWPORT_PRELOAD_DEGRADE_AFTER;
@@ -113,12 +127,31 @@ export function useViewportPreload(
 		// 降级模式下不建立视口观察（hover 意图预取见 useIntentPreload）
 		if (isViewportPreloadDegraded()) return;
 		let cancelPreload: (() => void) | null = null;
+		// 暂停期间已滚入视口但未调度的条目：解除暂停时补一次调度
+		let pendingResume = false;
+		const onResume = () => {
+			if (!pendingResume || cancelPreload) return;
+			pendingResume = false;
+			try {
+				const task = makeTaskRef.current(router);
+				if (task) cancelPreload = schedule(task);
+				else io.disconnect();
+			} catch {
+				// 预取失败静默忽略，不影响后续导航
+			}
+		};
+		resumeListeners.add(onResume);
 
 		const io = new IntersectionObserver(
 			(entries) => {
 				for (const entry of entries) {
 					if (entry.isIntersecting) {
 						if (cancelPreload) continue;
+						// 「加载更多」进行中：暂停新调度，等解除暂停后补发
+						if (preloadPaused) {
+							pendingResume = true;
+							continue;
+						}
 						try {
 							const task = makeTaskRef.current(router);
 							if (task) cancelPreload = schedule(task);
@@ -137,6 +170,7 @@ export function useViewportPreload(
 
 		io.observe(el);
 		return () => {
+			resumeListeners.delete(onResume);
 			cancelPreload?.();
 			io.disconnect();
 		};

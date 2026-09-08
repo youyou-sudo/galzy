@@ -37,23 +37,32 @@ import { dwAcConst, getFileList } from "@web/server/game";
 import { downCardStore, downmodalActions } from "@web/stores/downCardData";
 import { FileArchive } from "lucide-react";
 import { tryit } from "radash";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useDeferredValue } from "react";
 import { toast } from "sonner";
 import { GlgczujmDl } from "./tips";
 
 const apiroute = getRouteApi("/$id/_layout/");
 
+// queryOptions 提取：供 /$id/_layout loader 在导航关键路径上 prefetchQuery 预热，
+// 与组件内 useQuery 共用同一 queryKey/queryFn，首次进入即缓存命中。
+export const filelistQueryOptions = (id: string) => ({
+	queryKey: ["filelist", id],
+	queryFn: () => getFileList({ data: { id } }),
+	staleTime: 60_000,
+	gcTime: 5 * 60_000,
+});
+
 export const DownloadOptions = () => {
 	const { id } = apiroute.useParams();
 	// 懒加载文件列表：下载 tab 才请求，不阻塞进入详情页的点击导航
-	const { data: filelist } = useQuery({
-		queryKey: ["filelist", id],
-		queryFn: () => getFileList({ data: { id } }),
-		staleTime: 60_000,
-		gcTime: 5 * 60_000,
-	});
+	//（loader 侧已 prefetchQuery 预热，首次进入也大概率秒出）
+	const { data: filelist } = useQuery(filelistQueryOptions(id));
+	// useQuery 经 useSyncExternalStore 交付更新（同步、默认优先级），filelist
+	// 响应落在 VT 动画中途时其重渲染会打断动画帧；useDeferredValue 把这次渲染
+	// 降为可中断的低优先级，动画期间保持骨架，动画结束后再提交。
+	const deferredFilelist = useDeferredValue(filelist);
 
-	if (!filelist?.game) {
+	if (!deferredFilelist?.game) {
 		return (
 			<>
 				<Skeleton className="w-[50%] h-7" />
@@ -65,8 +74,8 @@ export const DownloadOptions = () => {
 
 	return (
 		<>
-			<FileExplorer
-				items={filelist.game}
+		<FileExplorer
+			items={deferredFilelist.game}
 				onFileClick={(item) => {
 					downmodalActions.open(item);
 				}}

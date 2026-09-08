@@ -17,6 +17,7 @@ import { Button } from "@web/components/ui/button";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { seoMeta } from "@web/lib/seo";
 import { waitForViewTransitionEnd } from "@web/lib/view-transition";
+import { setViewportPreloadPaused } from "@web/hooks/use-viewport-preload";
 import { getGameList } from "@web/server/game";
 import { r18Store } from "@web/stores/r18Store";
 import { ArrowUpDown, Flame, ListFilter } from "lucide-react";
@@ -551,6 +552,14 @@ function RouteComponent() {
 		savedCardViewportOffset,
 	]);
 
+	// 「加载更多」请求进行中暂停卡片视口预取调度（useViewportPreload 内全局信号）：
+	// preloadRoute RPC 不再与图片下载/解码抢带宽与主线程；
+	// 已排队的并发队列自然消费完，请求结束自动恢复调度。
+	useEffect(() => {
+		setViewportPreloadPaused(isFetchingNextPage);
+		return () => setViewportPreloadPaused(false);
+	}, [isFetchingNextPage]);
+
 	// useMemo + memo(Item)：fetchNextPage / 返回挂载时只新增/复用节点，
 	// 已有卡 props 不变则跳过重渲染；showR18 变化才全量更新（预期行为）。
 	// 虚拟化后只渲染可视行：10 页（240 卡）的常驻 DOM 从 240 降到 ~5 行 × cols。
@@ -681,12 +690,20 @@ function RouteComponent() {
 
 			{isLoading || isFetchingNextPage ? (
 				<div className="grid grid-cols-3 md:grid-cols-6 gap-4 mt-4">
-					<GameCard.ListSkeleton />
-					<GameCard.ListSkeleton />
-					<GameCard.ListSkeleton />
-					<GameCard.ListSkeleton />
-					<GameCard.ListSkeleton />
-					<GameCard.ListSkeleton />
+					{/* 首屏加载给满行骨架；加载更多只给 1 个：
+						animate-pulse 常驻合成层是滚动掉帧来源之一 */}
+					{isLoading ? (
+						<>
+							<GameCard.ListSkeleton />
+							<GameCard.ListSkeleton />
+							<GameCard.ListSkeleton />
+							<GameCard.ListSkeleton />
+							<GameCard.ListSkeleton />
+							<GameCard.ListSkeleton />
+						</>
+					) : (
+						<GameCard.ListSkeleton />
+					)}
 				</div>
 			) : null}
 

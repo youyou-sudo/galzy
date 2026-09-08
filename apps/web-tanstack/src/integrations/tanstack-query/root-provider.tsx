@@ -98,19 +98,118 @@ function slimGameListState(state: unknown) {
   }
 }
 
+/**
+ * gameDetail 详情裁剪：只保留详情页首屏恢复必需的字段。
+ * API（apps/api games.get）返回的大体积字段：
+ * - vn.releasesVn：完整 release 行 join 数组，UI 完全未消费（下载 tab 走独立的 filelist 查询）
+ * - otherData.other_media：媒体表 join 大数组，UI 完全未消费
+ * 这两者是详情快照体积的大头，直接裁掉。
+ * vn.description / otherData.description 是详情页首屏简介预览（GameInfo）与
+ * meta description 的数据源，裁掉会让恢复瞬间简介消失（破相），故保留。
+ * vn.image 裁剪为渲染所需字段（封面 URL/尺寸/thumbhash/分级），用于恢复瞬间封面「飞入」。
+ */
+function pickGameDetailImage(image: unknown) {
+  if (!image || typeof image !== 'object') return image
+  const img = image as Record<string, unknown>
+  return {
+    id: img.id,
+    url: img.url,
+    imageUrl: img.imageUrl,
+    width: img.width,
+    height: img.height,
+    thumbhash: img.thumbhash,
+    cSexualAvg: img.cSexualAvg,
+  }
+}
+
+function slimGameDetailData(data: unknown) {
+  if (!data || typeof data !== 'object') return data
+  const d = data as { vn?: unknown; otherData?: unknown } & Record<
+    string,
+    unknown
+  >
+  return {
+    ...d,
+    vn: slimGameDetailVn(d.vn),
+    otherData: slimGameDetailOtherData(d.otherData),
+  }
+}
+
+function slimGameDetailVn(vn: unknown) {
+  if (!vn || typeof vn !== 'object') return vn
+  const v = vn as { releasesVn?: unknown; image?: unknown } & Record<
+    string,
+    unknown
+  >
+  return {
+    ...v,
+    // 完整 release 行数组，UI 未消费；description/titles/alias 等首屏字段保留
+    releasesVn: undefined,
+    image: pickGameDetailImage(v.image),
+  }
+}
+
+function slimGameDetailOtherData(otherData: unknown) {
+  if (!otherData || typeof otherData !== 'object') return otherData
+  // other_media 为媒体 join 大数组，UI 未消费；description/title/alias 等保留
+  const o = otherData as { other_media?: unknown } & Record<string, unknown>
+  return {
+    ...o,
+    other_media: undefined,
+  }
+}
+
+function slimGameDetailState(state: unknown) {
+  if (!state || typeof state !== 'object') return state
+  const s = state as { data?: unknown } & Record<string, unknown>
+  if (!('data' in s)) return state
+  return { ...s, data: slimGameDetailData(s.data) }
+}
+
 function slimClientForPersist(client: PersistedClient): PersistedClient {
   const queries = client.clientState.queries.map((query) => {
-    if (String(query.queryKey[0]) !== 'gameList') return query
-    return { ...query, state: slimGameListState(query.state) as typeof query.state }
+    const key = String(query.queryKey[0])
+    if (key === 'gameList') {
+      return { ...query, state: slimGameListState(query.state) as typeof query.state }
+    }
+    if (key === 'gameDetail') {
+      return { ...query, state: slimGameDetailState(query.state) as typeof query.state }
+    }
+    return query
   })
   return { ...client, clientState: { ...client.clientState, queries } }
+}
+
+/** VT 动画约 250ms，每次让位后间隔 300ms 再探测，最多重试 3 次后强制写入 */
+const VT_RETRY_DELAY_MS = 300
+const VT_MAX_RETRIES = 3
+
+/**
+ * 探测 View Transition 是否正在播放。
+ * Router 在所有 loader resolve 后调用 document.startViewTransition（src/lib/view-transition.ts
+ * 已 monkey-patch），root 伪元素树上会出现 ::view-transition 运行动画；
+ * document.getAnimations() 能枚举到它们（effect.pseudoElement 以 ::view-transition 开头）。
+ */
+function isViewTransitionActive(): boolean {
+  try {
+    return document
+      .getAnimations()
+      .some(
+        (anim) =>
+          anim.effect instanceof KeyframeEffect &&
+          (anim.effect.pseudoElement ?? '').startsWith('::view-transition'),
+      )
+  } catch {
+    return false
+  }
 }
 
 /**
  * 整包快照式 localStorage Persister（v5 移除了 createSyncStoragePersister，
  * 这里按 Persister 接口手写等价实现：单 key 存整个 clientState 快照）。
- * - gameList 先裁剪再序列化（体积从 MB 级降到 KB 级）
- * - requestIdleCallback 空闲合并写：点击/返回的关键路径不被同步写阻塞
+ * - gameList / gameDetail 先裁剪再序列化（体积从 MB 级降到 KB 级）
+ * - requestIdleCallback 空闲合并写（timeout 5s）：点击/返回的关键路径不被同步写阻塞，
+ *   且 flush 会避让 View Transition 动画窗口
  * - QuotaExceeded 降级：清旧 key，避免异常影响应用
  */
 function createLocalStoragePersister({
@@ -140,19 +239,38 @@ function createLocalStoragePersister({
     }
   }
 
+  /**
+   * flush 排程（带 VT 避让）。
+   * 因果：首次进入详情页时 gameDetail 查询刚成功 → persistQueryClient 订阅触发 persistClient
+   * → rIC 恰好在 250ms VT 动画期间主线程空闲时 fire，flush 的 JSON.stringify + 同步
+   * localStorage.setItem 长任务落在动画窗口内，造成掉帧。故 flush 执行前探测
+   * ::view-transition 运行动画，仍在播放则让位 300ms 后重新排队；最多重试 3 次，
+   * 之后强制执行以免写入被持续动画饿死。
+   */
+  const scheduleFlush = (attempt: number) => {
+    const run = () => {
+      if (isViewTransitionActive() && attempt < VT_MAX_RETRIES) {
+        setTimeout(() => scheduleFlush(attempt + 1), VT_RETRY_DELAY_MS)
+        return
+      }
+      flush()
+    }
+    if (
+      typeof requestIdleCallback === 'function' &&
+      typeof cancelIdleCallback === 'function'
+    ) {
+      requestIdleCallback(run, { timeout: 5000 })
+    } else {
+      setTimeout(run, 0)
+    }
+  }
+
   return {
     async persistClient(client) {
       pending = client as PersistedClient
       if (scheduled) return
       scheduled = true
-      if (
-        typeof requestIdleCallback === 'function' &&
-        typeof cancelIdleCallback === 'function'
-      ) {
-        requestIdleCallback(flush, { timeout: 2000 })
-      } else {
-        setTimeout(flush, 0)
-      }
+      scheduleFlush(0)
     },
     async restoreClient() {
       const value = storage.getItem(key)

@@ -15,6 +15,8 @@ import {
 	BreadcrumbSeparator,
 } from "@web/components/ui/breadcrumb";
 import { seoTemplate } from "@web/config/seoTemplate";
+import { filelistQueryOptions } from "@web/components/home/game/download-options";
+import { gameTagsQueryOptions } from "@web/components/home/game/tags";
 import { gameTitleOf } from "@web/lib/seo";
 import { getGameDetail } from "@web/server/game";
 import { recordGameView } from "@web/server/views";
@@ -34,6 +36,13 @@ export const Route = createFileRoute("/$id/_layout")({
 	},
 	loader: async ({ params, context }) => {
 		const { id } = params;
+		// 非阻塞预热 tags / filelist：在 await gameDetail 之前 fire-and-forget，
+		// 保证 VT 动画开始前请求已发出（首访时响应大概率在动画结束前就绪，
+		// 组件内 useQuery 挂载即缓存命中，不再于动画中途触发重渲染）。
+		// 用 prefetchQuery 而非 ensureQueryData：不拖慢 loader 本身（VT 等待的是
+		// gameDetail），prefetch 失败被内部吞掉，不影响导航。
+		void context.queryClient.prefetchQuery(gameTagsQueryOptions(id));
+		void context.queryClient.prefetchQuery(filelistQueryOptions(id));
 		// 只阻塞 game，快速点击时首屏秒出；tags 由 TagsCard 组件内 useQuery 自行拉取，
 		// 不进入导航关键路径（折叠面板，晚一拍出现无感知）。
 		// ensureQueryData 同时把 game 写入查询缓存（key: gameDetail），

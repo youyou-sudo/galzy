@@ -45,6 +45,23 @@ export default function Header() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [mounted, setMounted] = useState(false);
 	const showR18 = useSelector(r18Store, (s) => s.showR18);
+	// backdrop-blur 按需启用：滚动全程重采样是列表滚动掉帧的主因之一
+	// （图片逐张上屏时 header 反复重滤波）。滚动中移除，静止 150ms 后恢复；
+	// bg-background/95 在滚动中仍保持近乎不透明，视觉几乎无差异。
+	const [scrolling, setScrolling] = useState(false);
+	useEffect(() => {
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const onScroll = () => {
+			setScrolling(true);
+			clearTimeout(timer);
+			timer = setTimeout(() => setScrolling(false), 150);
+		};
+		window.addEventListener("scroll", onScroll, { passive: true });
+		return () => {
+			window.removeEventListener("scroll", onScroll);
+			clearTimeout(timer);
+		};
+	}, []);
 	useEffect(() => {
 		setMounted(true);
 		// 移动端首屏空闲时预加载侧栏菜单 chunk：首次点击汉堡按钮时立即打开，不等待网络请求
@@ -58,7 +75,12 @@ export default function Header() {
 		}
 	}, []);
 	return (
-		<div className="sticky top-0 z-50 mx-auto w-full max-w-7xl border-b bg-background/95 backdrop-blur-sm px-4 sm:px-6 py-2 lg:mb-4 rounded-full lg:border dark:opacity-70">
+		<div
+			className={cn(
+				"sticky top-0 z-50 mx-auto w-full max-w-7xl border-b bg-background/95 px-4 sm:px-6 py-2 lg:mb-4 rounded-full lg:border dark:opacity-70",
+				!scrolling && "backdrop-blur-sm",
+			)}
+		>
 			<div className="flex items-center justify-between">
 				{/* Left block */}
 				<div className="flex items-center">

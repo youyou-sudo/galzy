@@ -8,7 +8,7 @@ import {
 	useIntentPreload,
 	useViewportPreload,
 } from "@web/hooks/use-viewport-preload";
-import { getImageRatio, getThumbHashDataUrl } from "@web/lib/image";
+import { getImageRatio, useThumbHashDataUrl } from "@web/lib/image";
 import { gameHeroActions } from "@web/stores/gameHeroStore";
 import { r18Store } from "@web/stores/r18Store";
 import {
@@ -59,7 +59,9 @@ function ThumbHashImage({
 	alwaysAnimate = true,
 	...props
 }: ThumbHashImageProps) {
-	const placeholder = getThumbHashDataUrl(thumbhash);
+	// 缓存命中同步拿到 dataURL；未命中返回 null（此时渲染骨架底），
+	// 解码在 idle 回调中异步完成后由 state 承接，不再阻塞 render。
+	const placeholder = useThumbHashDataUrl(thumbhash);
 	const [loaded, setLoaded] = useState(false);
 	const [failed, setFailed] = useState(false);
 	const imgRef = useRef<HTMLImageElement | null>(null);
@@ -94,10 +96,12 @@ function ThumbHashImage({
 
 	return (
 		<div className={wrapperClassName} style={wrapperStyle}>
-			{/* 性能方案：占位图保留静态模糊（绝不动画），真实图不模糊。
-				加载完成后占位图只做廉价的 opacity 淡出，露出下方清晰图，
-				避免对逐帧 box-blur 的 filter 动画造成 GPU 合成压力。
-				模糊半径从 24px 降到 12px：网格大量占位同时存在时显著减轻 GPU 填充。 */}
+			{/* 骨架底：thumbhash dataURL 就绪前 / 无占位时显示，加载完成后卸载。
+				animate-pulse 常驻会持续触发样式重算，必须条件渲染而不是盖在下面。 */}
+			{!loaded && <Skeleton className="absolute inset-0 w-full h-full" />}
+			{/* 性能方案：占位图是 ~32px 级小图，object-cover 放大后天然模糊，
+				无需 filter blur（大面积 blur 光栅化很贵）；dataURL 就绪前由骨架底兜底。
+				加载完成后占位图只做廉价的 opacity 淡出，露出下方清晰图。 */}
 			{placeholder && (
 				<img
 					aria-hidden="true"
@@ -106,7 +110,7 @@ function ThumbHashImage({
 					src={placeholder ?? undefined}
 					style={{
 						opacity: loaded ? 0 : 1,
-						filter: "blur(12px)",
+						imageRendering: "auto",
 						transition: "opacity 320ms ease-out",
 						transitionDelay: "0s",
 					}}
@@ -123,8 +127,9 @@ function ThumbHashImage({
 						...(alwaysAnimate
 							? {
 									transform: loaded ? "scale(1)" : "scale(1.04)",
-									// 同时保留 filter 过渡：R18 遮盖的 blur-xl → 清晰时仍平滑
-									transition: "transform 320ms ease-out, filter 320ms ease-out",
+									// 只保留 opacity/transform（compositor 友好）；
+									// filter 过渡移除后 R18 blur-xl 显隐为瞬切（类名逻辑不动）。
+									transition: "transform 320ms ease-out",
 								}
 							: {}),
 					}}
@@ -377,8 +382,7 @@ function ItemInner({
 				}
 			>
 				<div className="relative w-full h-full">
-					{/* 无 thumbhash 的图片加载期间露出骨架（有占位时被占位层盖住） */}
-					<Skeleton className="absolute inset-0 w-full h-full" />
+					{/* 骨架已内移到 ThumbHashImage：加载完成后条件卸载，不再常驻 animate-pulse */}
 					<ThumbHashImage
 						width={width ?? 200}
 						height={height ?? 300}
