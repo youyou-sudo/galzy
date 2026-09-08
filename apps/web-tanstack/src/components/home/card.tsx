@@ -154,6 +154,12 @@ function ThumbHashImage({
 	// thumbhash 未就绪时的敏感图兜底：此时真实图必须保持模糊，防内容泄漏
 	const blurFallback = placeholderOnly && !placeholder ? " blur-xl" : "";
 
+	// 占位图卸载条件：触屏揭示为瞬时终态（无 opacity 过渡），直接卸载占位图
+	// 减少常驻图层（移动端一次挂载几十张卡时合成节点/绘制树线性膨胀，滑动掉帧根因）；
+	// 桌面保留淡出（opacity 0 + 常驻），不引入 onTransitionEnd 卸载，避免桌面回归。
+	// placeholderOnly 时占位图是唯一可见内容（真实图不渲染），永不卸载。
+	const unloadPlaceholder = coarse && loaded && !placeholderOnly;
+
 	return (
 		<div className={wrapperClassName} style={wrapperStyle}>
 			{/* 骨架底：thumbhash dataURL 就绪前 / 无占位时显示，加载完成后卸载。
@@ -162,8 +168,9 @@ function ThumbHashImage({
 			{/* 性能方案：占位图是 ~32px 级小图，object-cover 放大后天然模糊，
 				无需 filter blur（大面积 blur 光栅化很贵）；dataURL 就绪前由骨架底兜底。
 				加载完成后占位图只做廉价的 opacity 淡出，露出下方清晰图。
-				触屏(coarse)：无 opacity 过渡，直接终态，避免每图新建合成层。 */}
-			{placeholder && (
+				触屏(coarse)：无 opacity 过渡，揭示是瞬时终态，直接卸载占位图减少常驻图层；
+				桌面保留淡出（opacity 0 + 常驻）。 */}
+			{placeholder && !unloadPlaceholder && (
 				<img
 					aria-hidden="true"
 					alt=""
