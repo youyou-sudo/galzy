@@ -16,16 +16,11 @@ import {
 import { Button } from "@web/components/ui/button";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { seoMeta } from "@web/lib/seo";
+import { waitForViewTransitionEnd } from "@web/lib/view-transition";
 import { getGameList } from "@web/server/game";
 import { r18Store } from "@web/stores/r18Store";
 import { ArrowUpDown, Flame, ListFilter } from "lucide-react";
-import {
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { object, string } from "zod/schemas";
 
 /** 上次点击的游戏 id：回程时从列表页返回该卡，且只有它保留 view-transition-name
@@ -45,7 +40,17 @@ const CLICKED_GAME_CARD_OFFSET_KEY = "galzy:games-card-offset";
  * 真实值，resizeItem 不再产生 delta，也就不会触发 applyScrollAdjustment
  * 把 window.scrollY 推离保存的位置（这正是之前 +100~200px 漂移的根因）。 */
 const CLICKED_GAME_SNAPSHOT_KEY = "galzy:games-snapshot";
+/** 点击瞬间当前 history 条目的 __TSR_key（TanStack Router 写入 history.state）。
+ * SPA 返回（popstate）时浏览器会恢复出该条目的 state —— 若本次挂载时
+ * history.state.__TSR_key 与保存值一致，即可确认这是「回程」而非首次加载
+ * /F5（后两者 key 不同）。这是 SPA 内可靠的 back 判定（performance
+ * navigation.type 在 SPA 里永远是 navigate，不能用于区分返回）。 */
+const CLICKED_GAME_HISTORY_KEY = "galzy:games-history-key";
 
+/** 保存当前 history 条目的 key：供返回判定使用。 */
+function readHistoryEntryKey(): string | null {
+	return readSessionStorage(CLICKED_GAME_HISTORY_KEY);
+}
 
 function readSessionStorage(key: string): string | null {
 	try {
@@ -103,8 +108,6 @@ function readSnapshot(): SnapshotRow[] | null {
 		return null;
 	}
 }
-
-
 
 const searchSchema = object({
 	q: string().optional().default(""),
@@ -208,56 +211,50 @@ function RouteComponent() {
 			lane: number;
 		}>;
 	} | null>(null);
-	const handleActivate = useCallback(
-		(id: string, cardTopY?: number) => {
-			setClickedId(id);
-			try {
-				sessionStorage.setItem(CLICKED_GAME_KEY, id);
-				const scrollY = window.scrollY || 0;
-				// 被点卡片顶部的文档绝对位置（调用方同步实测传入）。
-				// 同时记录：绝对 scrollY + 卡片顶 + 卡片视口偏移。
-				// 回程恢复 = 回程实测 cardTop − 点击时视口偏移：
-				// 差值抵消 header 高度变化等系统噪音，被点卡回到点击时视口位置。
-				if (typeof cardTopY === "number" && Number.isFinite(cardTopY)) {
-					const top = Math.max(0, cardTopY);
-					sessionStorage.setItem(
-						CLICKED_GAME_SCROLL_KEY,
-						String(scrollY),
-					);
-					sessionStorage.setItem(
-						CLICKED_GAME_CARD_TOP_KEY,
-						String(top),
-					);
-					sessionStorage.setItem(
-						CLICKED_GAME_CARD_OFFSET_KEY,
-						String(top - scrollY),
-					);
-				} else {
-					sessionStorage.setItem(
-						CLICKED_GAME_SCROLL_KEY,
-						String(scrollY),
-					);
-				}
-				// 同时记录测量快照：上方所有行的真实尺寸回程时预埋，
-				// 防止 resizeItem 的 delta 触发 applyScrollAdjustment 漂移 scrollY。
-				const snapshot = virtualizerRef.current?.takeSnapshot();
-				if (snapshot && snapshot.length > 0) {
-					try {
-						sessionStorage.setItem(
-							CLICKED_GAME_SNAPSHOT_KEY,
-							JSON.stringify(snapshot),
-						);
-					} catch {
-						// 快照过大写不进 storage：回退到纯 scrollY 恢复
-						sessionStorage.removeItem(CLICKED_GAME_SNAPSHOT_KEY);
-					}
-				}
-			} catch {
-				// sessionStorage 不可用时仅影响回程动画配对与精确恢复
+	const handleActivate = useCallback((id: string, cardTopY?: number) => {
+		setClickedId(id);
+		try {
+			sessionStorage.setItem(CLICKED_GAME_KEY, id);
+			const scrollY = window.scrollY || 0;
+			// 被点卡片顶部的文档绝对位置（调用方同步实测传入）。
+			// 同时记录：绝对 scrollY + 卡片顶 + 卡片视口偏移。
+			// 回程恢复 = 回程实测 cardTop − 点击时视口偏移：
+			// 差值抵消 header 高度变化等系统噪音，被点卡回到点击时视口位置。
+			if (typeof cardTopY === "number" && Number.isFinite(cardTopY)) {
+				const top = Math.max(0, cardTopY);
+				sessionStorage.setItem(CLICKED_GAME_SCROLL_KEY, String(scrollY));
+				sessionStorage.setItem(CLICKED_GAME_CARD_TOP_KEY, String(top));
+				sessionStorage.setItem(
+					CLICKED_GAME_CARD_OFFSET_KEY,
+					String(top - scrollY),
+				);
+			} else {
+				sessionStorage.setItem(CLICKED_GAME_SCROLL_KEY, String(scrollY));
 			}
-		},
-		[],
-	);
+			// 同时记录测量快照：上方所有行的真实尺寸回程时预埋，
+			// 防止 resizeItem 的 delta 触发 applyScrollAdjustment 漂移 scrollY。
+			const snapshot = virtualizerRef.current?.takeSnapshot();
+			if (snapshot && snapshot.length > 0) {
+				try {
+					sessionStorage.setItem(
+						CLICKED_GAME_SNAPSHOT_KEY,
+						JSON.stringify(snapshot),
+					);
+				} catch {
+					// 快照过大写不进 storage：回退到纯 scrollY 恢复
+					sessionStorage.removeItem(CLICKED_GAME_SNAPSHOT_KEY);
+				}
+			}
+			// 记录当前 history 条目的 key：SPA 返回（popstate）时浏览器
+			// 会恢复出同一 key 的 history.state，用它精确判定「回程」。
+			sessionStorage.setItem(
+				CLICKED_GAME_HISTORY_KEY,
+				window.history.state?.__TSR_key ?? "",
+			);
+		} catch {
+			// sessionStorage 不可用时仅影响回程动画配对与精确恢复
+		}
+	}, []);
 
 	const {
 		data: gameListData,
@@ -365,36 +362,7 @@ function RouteComponent() {
 	// 无快照（如首次访问/旧版）时传空数组，行为与之前一致。
 	const initialSnapshot = useMemo(() => readSnapshot() ?? [], []);
 	const rowCount = Math.ceil(flatItems.length / cols);
-	const virtualizer = useWindowVirtualizer({
-		count: rowCount,
-		// 行高估算：封面 13/9 + 标题 ~34px + gap 16；挂载后 measure 校准
-		estimateSize: () => 320,
-		overscan: 3,
-		gap: 16,
-		// 回程时预埋真实测量：resizeItem 全是 0 delta，不触发
-		// applyScrollAdjustment 漂移 scrollY（见文件顶部注释）。
-		initialMeasurementsCache: initialSnapshot,
-	});
-	useEffect(() => {
-		virtualizerRef.current = virtualizer;
-	}, [virtualizer]);
-
-	const virtualItems = virtualizer.getVirtualItems();
-
-	// 返回列表：基于 clickedId + 保存的绝对 scrollY 精确恢复。
-	// 恢复成立的前提（缺一即放弃恢复，保持当前位置）：
-	//   1. clickedId 在当前数据中（排序/搜索变化导致 id 不在 → 不恢复）；
-	//   2. 有保存的 scrollY；
-	//   3. 同一 tab 内的返回（performance navigation type === 'back_forward'，
-	//      首次加载/F5 不恢复 —— 之前版本缺了这个判断)。
-	const scrollRestoredRef = useRef(false);
-	const restoreTargetRow = useMemo(() => {
-		if (!clickedId) return -1;
-		const idx = flatItems.findIndex((item) => item.id === clickedId);
-		if (idx < 0) return -1;
-		return Math.floor(idx / cols);
-	}, [clickedId, flatItems, cols]);
-
+	// 点击瞬间记录的绝对 scrollY：回程恢复目标（见下方 restore effect）。
 	const savedRestoreY = useMemo(readClickedScrollY, []);
 	// 被点卡片顶的文档绝对位置 + 点击时卡片在视口内的偏移。
 	// 恢复目标 scrollY = 回程实测 cardTop − 点击时视口偏移：差值抵消
@@ -407,15 +375,74 @@ function RouteComponent() {
 		() => readStoredNumber(CLICKED_GAME_CARD_OFFSET_KEY),
 		[],
 	);
+	// 返回导航（SPA POP）时浏览器在「新页第一次提交」时采集 VT 新快照：
+	// 若列表此刻仍在顶部，被点卡还没渲染/没挂 view-transition-name，
+	// 详情页封面就没有配对元素，回程动画必然缺失。解决办法是把「目标滚动位置」
+	// 作为 initialOffset 预埋：virtualizer 在首个 layout effect 就会
+	// `scrollToOffset(savedY)`，配合 initialMeasurementsCache 的预埋真实行高，
+	// 首次提交时目标行（含被点卡）就直接处于视口内、且带 view-transition-name。
+	// 这样浏览器为新快照采集到的就是「正确的恢复位置 + 带名字的卡片」，
+	// 既修复了回程位置错误，也修复了回程 VT 动画缺失。
+	// 只有确认「本次确实是回程」才预埋：当前 history 条目的 __TSR_key 必须
+	// 与点击瞬间一致（SPA 返回会恢复出同一 key；F5/直达时 key 是新生成的）。
+	const isReturnNavigation =
+		typeof window !== "undefined" &&
+		(window.history.state?.__TSR_key ?? "") === readHistoryEntryKey();
+	const restoreTriggerRequested =
+		isReturnNavigation && savedRestoreY !== null && savedRestoreY > 0;
+	const virtualizer = useWindowVirtualizer({
+		count: rowCount,
+		// 行高估算：封面 13/9 + 标题 ~34px + gap 16；挂载后 measure 校准
+		estimateSize: () => 320,
+		overscan: 3,
+		gap: 16,
+		// 回程时预埋真实测量：resizeItem 全是 0 delta，不触发
+		// applyScrollAdjustment 漂移 scrollY（见文件顶部注释）。
+		initialMeasurementsCache: initialSnapshot,
+		// 回程（SPA 返回）时把目标滚动位置设为初始偏移：
+		// - 首个 layout effect 的 _scrollToOffset 会直接滚到该位置；
+		// - 配合 initialMeasurementsCache 预埋行高，首帧就能渲染出被点卡，
+		//   使浏览器 VT 新快照包含「带名字的卡片」→ 回程动画恢复。
+		// 只在确认是"返回"时启用，否则普通进入/刷新为 0（默认）。
+		...(restoreTriggerRequested ? { initialOffset: () => savedRestoreY } : {}),
+	});
+	useEffect(() => {
+		virtualizerRef.current = virtualizer;
+	}, [virtualizer]);
+
+	const virtualItems = virtualizer.getVirtualItems();
+
+	// 返回列表：基于 clickedId + 保存的绝对 scrollY 精确恢复。
+	// 恢复成立的前提（缺一即放弃恢复，保持当前位置）：
+	//   1. clickedId 在当前数据中（排序/搜索变化导致 id 不在 → 不恢复）；
+	//   2. 有保存的 scrollY；
+	//   3. 本次是「回程」：当前 history 条目的 __TSR_key 与点击瞬间一致。
+	//      （SPA 内 popstate 返回会恢复出同一 key 的 history.state；
+	//      首次加载/F5/直接输入 URL 的 key 是新生成的，天然不匹配。）
+	//      注意不能用 performance.navigation.type —— SPA 返回不触发整页重载，
+	//      其值始终是 'navigate'，无法区分返回与首次进入。
+	const scrollRestoredRef = useRef(false);
+	const restoreTargetRow = useMemo(() => {
+		if (!clickedId) return -1;
+		const idx = flatItems.findIndex((item) => item.id === clickedId);
+		if (idx < 0) return -1;
+		return Math.floor(idx / cols);
+	}, [clickedId, flatItems, cols]);
+
 	// 快照的行号是点击时的数据布局：若本次挂载的 queryKey（排序/搜索/R18）
 	// 与点击时不同，行号/offset 全部失效 —— 必须放弃恢复并清理旧记录。
+	// 注意：只校验「目标行之前」的行 —— 点击后新加载的更多页（rowCount 变大）
+	// 不影响上方各行的 offset 预埋，仍可精确恢复；仅数据排列变化才无效。
 	const restoreValid = useMemo(() => {
 		const snapshot = initialSnapshot;
 		if (snapshot.length === 0) return true;
+		const targetIdx = flatItems.findIndex((item) => item.id === clickedId);
+		if (targetIdx < 0 && clickedId) {
+			// 被点击的卡在当前数据中不存在（排序/搜索变化）→ 放弃恢复
+			return false;
+		}
 		return snapshot.every((row) => row.index < rowCount);
-		// rowCount 变化（加载更多/列数变化）时重新评估
-		// biome-ignore lint/correctness/useExhaustiveDependencies: 仅需 rowCount 触发重算
-	}, [rowCount]);
+	}, [rowCount, clickedId, flatItems]);
 	useEffect(() => {
 		// 仅在有配对 id 且数据已就绪时恢复一次
 		if (restoreTargetRow < 0 || scrollRestoredRef.current) return;
@@ -425,13 +452,9 @@ function RouteComponent() {
 			scrollRestoredRef.current = true;
 			return;
 		}
-		const navEntries = performance.getEntriesByType(
-			"navigation",
-		) as PerformanceNavigationTiming[];
-		const navType = navEntries[0]?.type;
-		if (navType !== "back_forward") {
-			// 首次加载 / F5 / 直接输入 URL：不清 scrollRestoration 的默认行为，
-			// 我们的记录是上一次会话的残留，不恢复。
+		// SPA 内返回判定：当前 history 条目的 key 必须与点击时一致。
+		// 首次加载/F5/直达 URL 时 key 是新生成的，与存储值不同 → 不恢复。
+		if (!isReturnNavigation) {
 			scrollRestoredRef.current = true;
 			return;
 		}
@@ -441,65 +464,71 @@ function RouteComponent() {
 			return;
 		}
 		let cancelled = false;
-		let frames = 0;
-		// 恢复分两步，终局都以"卡片回到点击时的视口位置"为准：
-		//  1. 首次 scrollToIndex 锚定目标行（强制渲染它及 overscan）；
-		//     上方行高来自 initialMeasurementsCache 预埋的真实值，
-		//     算出的 offset 直接就是真实 offset，不需要等待收敛。
-		//  2. 目标行挂载进 DOM 后（getVirtualItems 命中），实测该行内被点卡片
-		//     的顶部文档位置 cardTopNow，恢复 scrollY = cardTopNow − 点击时视口偏移。
-		//     用实测值而非预埋 offset：卡片顶部是 DOM 真值，不受任何估算/
-		//     图片加载/行高变化影响；差值同时抵消 header 高度变化等噪音。
-		// 用 virtualizer.scrollToOffset 而不是 window.scrollTo：
-		// 前者会设置 scrollState.lastTargetOffset 并开启 reconcile，
-		// 后续测量帧若算出同一目标不再二次滚动；直接写 window 则会被
-		// reconcile 当成外部滚动反复"纠正"。
-		const tick = () => {
+		const cancelRef: { current: () => void } = { current: () => {} };
+		// 恢复逻辑（配合 initialOffset 预埋目标滚动位置）：
+		//   initialOffset 让 virtualizer 在首个 layout effect 就滚动到 savedY，
+		//   因此首帧渲染出的就是目标行的卡片（含被点卡的 view-transition-name），
+		//   浏览器 POP 过渡的新快照能正确捕捉它 → 回程 VT 动画成立。
+		//   这里只做一次「卡片回到点击时视口位置」的微调，且等到路由
+		//   View Transition 结束后才执行——动画中途改滚动位置会破坏
+		//   快照伪元素的对齐，产生跳变。
+		void (async () => {
+			// 等待当前 VT 结束（含 POP 过渡），再跑微调
+			try {
+				await waitForViewTransitionEnd();
+			} catch {
+				// 忽略
+			}
 			if (cancelled) return;
-			frames++;
-			if (frames === 1) {
-				virtualizer.scrollToIndex(restoreTargetRow, { align: "start" });
-			}
-			const current = virtualizer.getVirtualItems();
-			const target = current.find(
-				(item) => item.index === restoreTargetRow,
-			);
-			// 多等 2 帧：让 ResizeObserver 的二次确认跑完，避免与
-			// applyScrollAdjustment 的调整帧打架。
-			if (target && frames >= 3) {
-				// 被点卡片的 DOM 真值：行容器内按 gameid 定位 Link。
-				// data-index 在行容器上，卡片是其子 Link；用 view-transition
-				// 的唯一配对（仅被点卡有 hasVT）定位最可靠。
-				const cardEl = document.querySelector(
-					`[style*="game-cover-${CSS.escape(clickedId ?? "")}"]`,
-				);
-				let finalY = savedY;
-				if (cardEl) {
-					const cardTopNow =
-						cardEl.getBoundingClientRect().top + window.scrollY;
-					const viewportOffset =
-						savedCardViewportOffset ??
-						(savedCardTop !== null ? savedCardTop - savedY : null);
-					if (viewportOffset !== null) {
-						finalY = Math.max(0, cardTopNow - viewportOffset);
+			let frames = 0;
+			const tick = () => {
+				if (cancelled) return;
+				frames++;
+				// 目标行已挂载（virtualItems 命中）且稳定两帧后，做一次亚像素修正
+				const hasTargetRow = virtualizer
+					.getVirtualItems()
+					.some((item) => item.index === restoreTargetRow);
+				if (hasTargetRow && frames >= 2) {
+					const cardEl = document.querySelector(
+						`[style*="game-cover-${CSS.escape(clickedId ?? "")}"]`,
+					);
+					let finalY = savedY;
+					if (cardEl) {
+						const cardTopNow =
+							cardEl.getBoundingClientRect().top + window.scrollY;
+						const viewportOffset =
+							savedCardViewportOffset ??
+							(savedCardTop !== null ? savedCardTop - savedY : null);
+						if (viewportOffset !== null) {
+							finalY = Math.max(0, cardTopNow - viewportOffset);
+						}
+						// 与当前相差 < 2px：不滚动（避免无谓的一次帧写）
+						if (Math.abs(finalY - window.scrollY) < 2) {
+							scrollRestoredRef.current = true;
+							return;
+						}
 					}
+					scrollRestoredRef.current = true;
+					virtualizer.scrollToOffset(finalY, { align: "start" });
+					return;
 				}
-				scrollRestoredRef.current = true;
-				virtualizer.scrollToOffset(finalY, { align: "start" });
-				return;
-			}
-			// 最多等 60 帧（约 1s）：宁可先落位也不让用户卡在顶部。
-			if (frames >= 60) {
-				scrollRestoredRef.current = true;
-				virtualizer.scrollToOffset(savedY, { align: "start" });
-				return;
-			}
-			requestAnimationFrame(tick);
-		};
-		const raf = requestAnimationFrame(tick);
+				// 最多等 60 帧（约 1s）：宁可先落位也不让用户卡在顶部。
+				if (frames >= 60) {
+					scrollRestoredRef.current = true;
+					virtualizer.scrollToOffset(savedY, { align: "start" });
+					return;
+				}
+				requestAnimationFrame(tick);
+			};
+			const raf = requestAnimationFrame(tick);
+			cancelRef.current = () => {
+				cancelled = true;
+				cancelAnimationFrame(raf);
+			};
+		})();
 		return () => {
 			cancelled = true;
-			cancelAnimationFrame(raf);
+			cancelRef.current();
 		};
 	}, [
 		restoreTargetRow,
@@ -625,9 +654,7 @@ function RouteComponent() {
 				</Button>
 			</div>
 
-			<div
-				style={{ height: virtualizer.getTotalSize(), position: "relative" }}
-			>
+			<div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
 				{virtualItems.map((virtualRow) => (
 					<div
 						key={virtualRow.key}
@@ -639,20 +666,18 @@ function RouteComponent() {
 						{gameList.renderRow(virtualRow.index)}
 					</div>
 				))}
-				{isLoading || isFetchingNextPage ? (
-					<div
-						className="grid grid-cols-3 md:grid-cols-6 gap-4 absolute left-0 w-full"
-						style={{ transform: `translateY(${virtualizer.getTotalSize()}px)` }}
-					>
-						<GameCard.ListSkeleton />
-						<GameCard.ListSkeleton />
-						<GameCard.ListSkeleton />
-						<GameCard.ListSkeleton />
-						<GameCard.ListSkeleton />
-						<GameCard.ListSkeleton />
-					</div>
-				) : null}
 			</div>
+
+			{isLoading || isFetchingNextPage ? (
+				<div className="grid grid-cols-3 md:grid-cols-6 gap-4 mt-4">
+					<GameCard.ListSkeleton />
+					<GameCard.ListSkeleton />
+					<GameCard.ListSkeleton />
+					<GameCard.ListSkeleton />
+					<GameCard.ListSkeleton />
+					<GameCard.ListSkeleton />
+				</div>
+			) : null}
 
 			{hasNextPage && (
 				<div className="flex justify-center mt-8">
@@ -666,7 +691,7 @@ function RouteComponent() {
 				</div>
 			)}
 
-		{!isLoading && flatItems.length === 0 && (
+			{!isLoading && flatItems.length === 0 && (
 				<div className="text-center py-20 text-muted-foreground">
 					<Flame className="size-12 mx-auto mb-3 opacity-30" />
 					<p>暂无游戏数据</p>

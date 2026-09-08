@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+	getActiveViewTransition,
 	makeGroupCompositorKeyframes,
 	MAX_REWRITE_GROUPS,
+	waitForViewTransitionEnd,
 } from "./view-transition";
 
 /**
@@ -114,5 +116,17 @@ describe("makeGroupCompositorKeyframes（compositor-only 改写）", () => {
 
 	it("改写上限存在且为正数：group 爆炸时导航动画改写有界", () => {
 		expect(MAX_REWRITE_GROUPS).toBeGreaterThan(0);
+	});
+});
+
+describe("waitForViewTransitionEnd（VT 结束后收尾）", () => {
+	it("无 document（SSR/Node）时不挂起，直接 resolve", async () => {
+		// 本仓库测试环境为 node（无 jsdom），document 未定义 →
+		// 该帮助函数必须优雅降级，调用方在服务端渲染/测试中不应等待。
+		await expect(waitForViewTransitionEnd()).resolves.toBeUndefined();
+	});
+
+	it("getActiveViewTransition 暴露稳定 API（无过渡时为 undefined）", () => {
+		expect(getActiveViewTransition()).toBeUndefined();
 	});
 });

@@ -192,6 +192,32 @@ export function skipActiveViewTransition() {
 }
 
 /**
+ * 最近一次仍在进行/刚结束的 View Transition 句柄（含路由层发起的 POP 过渡）。
+ * 供调用方在过渡结束后再做滚动校正/清理等收尾 —— 过渡进行中任何对共享元素
+ * 位置或滚动位置的改动都会让动画中途跳变。
+ */
+export function getActiveViewTransition(): ViewTransition | undefined {
+	return activeTransition;
+}
+
+/**
+ * 等待当前 View Transition 结束（并多跑一帧确认没有被同帧新过渡接管）。
+ * 用于「过渡结束后的收尾」：虚拟列表的恢复滚动/校正若在动画中途执行，
+ * 会与快照伪元素的位置产生肉眼可见的跳变，等结束再做最稳。
+ */
+export function waitForViewTransitionEnd(): Promise<void> {
+	if (typeof document === "undefined") return Promise.resolve();
+	const transition = activeTransition;
+	if (!transition) return Promise.resolve();
+	// finished 已被 tracker 预消化（不 reject），直接 await 安全
+	return transition.finished.then(() => {
+		return new Promise<void>((resolve) => {
+			requestAnimationFrame(() => resolve());
+		});
+	});
+}
+
+/**
  * 弹窗开关时调用：先跳过当前可能还在跑的路由 VT；
  * pushState 引发的新 VT 要到下一帧才创建，再用连续两帧 rAF 兜底跳过。
  */
