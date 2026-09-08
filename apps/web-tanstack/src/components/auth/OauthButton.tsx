@@ -76,21 +76,21 @@ export const OauthButton = () => {
 					Kun Galgame
 				</Button>
 				<Button
-					disabled={loading === "github"}
-					onClick={() => handleSocialSignIn("github")}
+					disabled={loading === "hikarinagi"}
+					onClick={() => handleSocialSignIn("hikarinagi")}
+					aria-label="使用 Hikarinagi ID 登录"
+					title="使用 Hikarinagi ID 登录"
 				>
-					{loading === "github" && <Loader2 className="animate-spin" />}
-					<FaGithub data-icon="inline-start" />
-					Github
-				</Button>
-
-				<Button
-					disabled={loading === "twitter"}
-					onClick={() => handleSocialSignIn("twitter")}
-				>
-					{loading === "twitter" && <Loader2 className="animate-spin" />}
-					<FaTwitter data-icon="inline-start" />
-					twitter
+					{loading === "hikarinagi" && <Loader2 className="animate-spin" />}
+					<Image
+						src="/hikarinagi-icon.webp"
+						width={16}
+						height={16}
+						alt="这是 Hikarinagi ID 登录按钮图标"
+						data-icon="inline-start"
+						className="rounded-4xl"
+					/>
+					Hikarinagi ID
 				</Button>
 
 				<Button
@@ -110,29 +110,29 @@ export const OauthButton = () => {
 				</Button>
 
 				<Button
+					disabled={loading === "github"}
+					onClick={() => handleSocialSignIn("github")}
+				>
+					{loading === "github" && <Loader2 className="animate-spin" />}
+					<FaGithub data-icon="inline-start" />
+					Github
+				</Button>
+
+				<Button
+					disabled={loading === "twitter"}
+					onClick={() => handleSocialSignIn("twitter")}
+				>
+					{loading === "twitter" && <Loader2 className="animate-spin" />}
+					<FaTwitter data-icon="inline-start" />
+					twitter
+				</Button>
+				<Button
 					disabled={loading === "discord"}
 					onClick={() => handleSocialSignIn("discord")}
 				>
 					{loading === "discord" && <Loader2 className="animate-spin" />}
 					<FaDiscord data-icon="inline-start" />
 					Discord
-				</Button>
-				<Button
-					disabled={loading === "hikarinagi"}
-					onClick={() => handleSocialSignIn("hikarinagi")}
-					aria-label="使用 Hikarinagi ID 登录"
-					title="使用 Hikarinagi ID 登录"
-				>
-					{loading === "hikarinagi" && <Loader2 className="animate-spin" />}
-					<Image
-						src="/hikarinagi-icon.webp"
-						width={16}
-						height={16}
-						alt="这是 Hikarinagi ID 登录按钮图标"
-						data-icon="inline-start"
-						className="rounded-4xl"
-					/>
-					Hikarinagi ID
 				</Button>
 			</div>
 		</div>
