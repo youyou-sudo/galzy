@@ -9,7 +9,13 @@ import {
 	CardTitle,
 } from "@web/components/ui/card";
 
-export default function ProducerDetailPage({ producer }: { producer: any }) {
+export default function ProducerDetailPage({
+	producer,
+	pid,
+}: {
+	producer: any;
+	pid?: string;
+}) {
 	const relationsMap =
 		producer?.producers_relations?.reduce(
 			(acc: any, item: any) => {
@@ -60,7 +66,13 @@ export default function ProducerDetailPage({ producer }: { producer: any }) {
 			<section className="space-y-3 w-full">
 				<Card className="w-full">
 					<CardHeader className="text-center ">
-						<CardTitle className="text-2xl items-center">
+						<CardTitle
+							className="text-2xl items-center"
+							style={{
+								viewTransitionName: pid ? `producer-name-${pid}` : undefined,
+								viewTransitionClass: "producer-name vt-text",
+							}}
+						>
 							{producer?.name}
 						</CardTitle>
 						{producer?.alias !== null && (

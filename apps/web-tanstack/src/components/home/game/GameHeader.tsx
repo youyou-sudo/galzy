@@ -50,7 +50,10 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 			<div className="overflow-hidden wrap-break-word">
 				<h1
 					className="font-semibold text-2xl leading-[1.2] mt-2 w-fit"
-					style={{ viewTransitionName: `game-title-${id}` }}
+					style={{
+						viewTransitionName: `game-title-${id}`,
+						viewTransitionClass: "vt-text",
+					}}
 				>
 					{olangTitle || "null"}
 				</h1>

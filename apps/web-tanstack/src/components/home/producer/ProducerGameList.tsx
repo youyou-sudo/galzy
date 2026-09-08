@@ -1,10 +1,38 @@
 import { Await, getRouteApi } from "@tanstack/react-router";
+import { useState } from "react";
 import { GameCard } from "../card";
 
 const apiroute = getRouteApi("/producer/$pid");
 
+function clickedGameKey(pid: string) {
+	return `galzy:vt:producer:${pid}`;
+}
+
+// 回程配对：从 sessionStorage 恢复被点卡，首帧挂 view-transition-name
+function readClickedGame(pid: string): string | null {
+	try {
+		if (typeof sessionStorage === "undefined") return null;
+		return sessionStorage.getItem(clickedGameKey(pid));
+	} catch {
+		return null;
+	}
+}
+
 export const ProducerGamelist = () => {
+	const { pid } = apiroute.useParams();
 	const { gameList } = apiroute.useLoaderData();
+	const [clickedId, setClickedId] = useState<string | null>(() =>
+		readClickedGame(pid),
+	);
+
+	const handleActivate = (gameid: string) => {
+		setClickedId(gameid);
+		try {
+			sessionStorage.setItem(clickedGameKey(pid), gameid);
+		} catch {
+			// sessionStorage 不可用时仅影响回程动画配对
+		}
+	};
 
 	return (
 		<div className="grid grid-cols-3 gap-4 md:grid-cols-6">
@@ -42,6 +70,8 @@ export const ProducerGamelist = () => {
 										src={item.image_url ?? "/No-Image-Placeholder.svg.webp"}
 										cSexualAvg={item.c_sexual_avg}
 										title={title}
+										hasVT={clickedId === String(item.id)}
+										onActivate={handleActivate}
 									/>
 								);
 							})

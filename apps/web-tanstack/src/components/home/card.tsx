@@ -15,8 +15,8 @@ import {
 	type ComponentProps,
 	type CSSProperties,
 	type ForwardRefExoticComponent,
-	type RefAttributes,
 	memo,
+	type RefAttributes,
 	useEffect,
 	useRef,
 	useState,
@@ -353,8 +353,7 @@ function ItemInner({
 				// 被点卡回到视口内同一位置（scrollY = cardTop − 点击时行内偏移，
 				// 在 /games index.tsx 的 handleActivate 内换算）。
 				const cardTopY =
-					(linkRef.current?.getBoundingClientRect().top ?? 0) +
-					window.scrollY;
+					(linkRef.current?.getBoundingClientRect().top ?? 0) + window.scrollY;
 				onActivate?.(gameid, cardTopY);
 				// 进入详情页前先用列表数据填充英雄区，详情 loader 完成前即可首屏渲染
 				gameHeroActions.set({
@@ -373,7 +372,9 @@ function ItemInner({
 				ref={coverRef}
 				ratio={LIST_IMAGE_RATIO}
 				className="block relative overflow-hidden rounded-lg [content-visibility:auto] [contain-intrinsic-size:auto_320px]"
-				style={hasVT ? { viewTransitionName: `game-cover-${gameid}` } : undefined}
+				style={
+					hasVT ? { viewTransitionName: `game-cover-${gameid}` } : undefined
+				}
 			>
 				<div className="relative w-full h-full">
 					{/* 无 thumbhash 的图片加载期间露出骨架（有占位时被占位层盖住） */}
@@ -413,7 +414,14 @@ function ItemInner({
 			<p
 				ref={titleRef}
 				className="text-sm truncate w-fit max-w-full mx-auto text-center px-2 pt-2"
-				style={hasVT ? { viewTransitionName: `game-title-${gameid}` } : undefined}
+				style={
+					hasVT
+						? {
+								viewTransitionName: `game-title-${gameid}`,
+								viewTransitionClass: "vt-text",
+							}
+						: undefined
+				}
 			>
 				{title}
 			</p>

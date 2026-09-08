@@ -66,14 +66,23 @@ export function makeGroupCompositorKeyframes(
 export const MAX_REWRITE_GROUPS = 64;
 
 function collectSharedRects() {
-	const rects = new Map<string, { width: number; height: number }>();
+	const rects = new Map<
+		string,
+		{ width: number; height: number; text: boolean }
+	>();
 	for (const el of document.querySelectorAll<HTMLElement>(
 		'[style*="view-transition-name"]',
 	)) {
 		const name = el.style.viewTransitionName;
 		if (!name || rects.has(name)) continue;
 		const rect = el.getBoundingClientRect();
-		rects.set(name, { width: rect.width, height: rect.height });
+		// 标记文字类共享元素（挂了 view-transition-class）：它们交由
+		// object-fit: contain 保持等比，不做 compositor 改写
+		const text = Boolean(
+			(el.style as CSSStyleDeclaration & { viewTransitionClass?: string })
+				.viewTransitionClass,
+		);
+		rects.set(name, { width: rect.width, height: rect.height, text });
 	}
 	return rects;
 }
@@ -105,6 +114,10 @@ function makeGroupAnimationsCompositorOnly() {
 		if (keyframes.length === 0) continue;
 
 		const rect = rects?.get(name);
+		// 文字类共享元素：两端宽高比通常不同，compositor 改写会把宽/高
+		// 折算成非等比 scale，把文字快照拉伸变形。保留原生 width/height
+		// 动画，配合 CSS 的 object-fit: contain 让文字始终等比缩放。
+		if (rect?.text) continue;
 		effect.setKeyframes(
 			makeGroupCompositorKeyframes(
 				keyframes,

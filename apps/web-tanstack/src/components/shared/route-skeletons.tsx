@@ -1,6 +1,8 @@
-import { GameCard } from '@web/components/home/card'
-import { GameTabSkeleton } from '@web/components/game/game-tab-skeleton'
-import { Skeleton } from '@web/components/ui/skeleton'
+import { useSelector } from "@tanstack/react-store";
+import { GameTabSkeleton } from "@web/components/game/game-tab-skeleton";
+import { GameCard } from "@web/components/home/card";
+import { Skeleton } from "@web/components/ui/skeleton";
+import { producerHeroStore } from "@web/stores/producerHeroStore";
 
 /**
  * 路由 pendingComponent 骨架屏集合。
@@ -17,7 +19,7 @@ function BreadcrumbSkeleton() {
 			<Skeleton className="h-4 w-2" />
 			<Skeleton className="h-4 w-24" />
 		</div>
-	)
+	);
 }
 
 function GameCardGridSkeleton() {
@@ -30,7 +32,7 @@ function GameCardGridSkeleton() {
 			<GameCard.ListSkeleton />
 			<GameCard.ListSkeleton />
 		</div>
-	)
+	);
 }
 
 export function GameDetailPageSkeleton() {
@@ -47,7 +49,7 @@ export function GameDetailPageSkeleton() {
 				<GameTabSkeleton />
 			</div>
 		</div>
-	)
+	);
 }
 
 export function GameListPageSkeleton() {
@@ -65,7 +67,7 @@ export function GameListPageSkeleton() {
 			</div>
 			<GameCardGridSkeleton />
 		</div>
-	)
+	);
 }
 
 export function ProducerListPageSkeleton() {
@@ -80,18 +82,29 @@ export function ProducerListPageSkeleton() {
 				))}
 			</div>
 		</div>
-	)
+	);
 }
 
 export function ProducerDetailPageSkeleton() {
+	const pid = useSelector(producerHeroStore, (s) => s.pid);
 	return (
 		<div aria-hidden>
 			<BreadcrumbSkeleton />
-			<Skeleton className="h-7 w-48 mb-2" />
+			<Skeleton
+				className="h-7 w-48 mb-2"
+				style={
+					pid
+						? {
+								viewTransitionName: `producer-name-${pid}`,
+								viewTransitionClass: "producer-name vt-text",
+							}
+						: undefined
+				}
+			/>
 			<Skeleton className="h-4 w-72 mb-6" />
 			<GameCardGridSkeleton />
 		</div>
-	)
+	);
 }
 
 export function TagDetailPageSkeleton() {
@@ -102,7 +115,7 @@ export function TagDetailPageSkeleton() {
 			<Skeleton className="h-4 w-3/4 max-w-2xl mb-6" />
 			<GameCardGridSkeleton />
 		</div>
-	)
+	);
 }
 
 export function TopicsListPageSkeleton() {
@@ -117,7 +130,7 @@ export function TopicsListPageSkeleton() {
 				<Skeleton key={i} className="h-24 w-full rounded-lg" />
 			))}
 		</div>
-	)
+	);
 }
 
 export function TopicDetailPageSkeleton() {
@@ -139,5 +152,5 @@ export function TopicDetailPageSkeleton() {
 			</div>
 			<GameTabSkeleton />
 		</div>
-	)
+	);
 }

@@ -12,6 +12,7 @@ import {
 import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
 import { formatLooseDate } from "@web/lib";
 import type { getGameDetail } from "@web/server/game";
+import { producerHeroActions } from "@web/stores/producerHeroStore";
 import { Search } from "lucide-react";
 import { useState } from "react";
 
@@ -29,6 +30,18 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 		onOpen: () => setDescriptionOpen(true),
 		onClose: () => setDescriptionOpen(false),
 	});
+	// 同一厂商会同时出现在开发/发行两栏：VT 同名快照重复会让浏览器中止
+	// 整场过渡（Unexpected duplicate view-transition-name），因此每个 pid
+	// 只给首个出现的元素挂名。
+	const vtNamedPids = new Set<string>();
+	const vtNameFor = (pid: string) => {
+		if (vtNamedPids.has(pid)) return undefined;
+		vtNamedPids.add(pid);
+		return {
+			viewTransitionName: `producer-name-${pid}`,
+			viewTransitionClass: "producer-name vt-text",
+		};
+	};
 
 	return (
 		<>
@@ -66,8 +79,12 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 								params={{ pid: producer.id }}
 								preload="viewport"
 								key={producer.id}
+								onClick={() => producerHeroActions.set(producer.id)}
 							>
-								<span className="relative inline-flex items-center gap-0.5 text-cyan-600 wrap-break-word hover:underline">
+								<span
+									className="relative inline-flex items-center gap-0.5 text-cyan-600 wrap-break-word hover:underline"
+									style={vtNameFor(producer.id)}
+								>
 									{producer.name}
 								</span>
 								{index < arr.length - 1 ? " & " : ""}
@@ -89,9 +106,11 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 									params={{ pid: producer.id }}
 									preload="viewport"
 									key={producer.id}
+									onClick={() => producerHeroActions.set(producer.id)}
 								>
 									<span
 										className={`${producer.type === "ng" ? "text-cyan-900 opacity-50 dark:opacity-100" : "text-cyan-600"} wrap-break-word hover:underline`}
+										style={vtNameFor(producer.id)}
 									>
 										{producer.name}
 									</span>

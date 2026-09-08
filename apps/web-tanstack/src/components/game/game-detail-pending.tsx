@@ -1,8 +1,8 @@
 import { useSelector } from "@tanstack/react-store";
-import { GameCard } from "@web/components/home/card";
 import { GameTabSkeleton } from "@web/components/game/game-tab-skeleton";
+import { GameCard } from "@web/components/home/card";
 import { Skeleton } from "@web/components/ui/skeleton";
-import { gameHeroStore, type GameHeroData } from "@web/stores/gameHeroStore";
+import { type GameHeroData, gameHeroStore } from "@web/stores/gameHeroStore";
 
 /**
  * 详情页 pending 英雄区：点击进入时先用列表已有的封面/标题即时渲染首屏，
@@ -56,7 +56,10 @@ function HeroFromStore({ hero }: { hero: GameHeroData }) {
 			<div className="overflow-hidden wrap-break-word">
 				<h1
 					className="font-semibold text-2xl leading-[1.2] mt-2 w-fit"
-					style={{ viewTransitionName: `game-title-${hero.id}` }}
+					style={{
+						viewTransitionName: `game-title-${hero.id}`,
+						viewTransitionClass: "vt-text",
+					}}
 				>
 					{hero.olangTitle || "null"}
 				</h1>
