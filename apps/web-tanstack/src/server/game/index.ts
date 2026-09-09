@@ -13,7 +13,21 @@ export const getGameDetail = createServerFn()
 			},
 		});
 		elysiaErrorF(error);
-		return getgame as StripUnknown<NonNullable<typeof getgame>> | null;
+		if (!getgame) return null;
+		const { vn, otherData, ...rest } = getgame;
+		// payload 瘦身：vn.releasesVn（完整 release join 数组）与 otherData.media
+		// （媒体 join 数组）体积达 MB 级且 UI 完全未消费（下载 tab 走独立 filelist 查询），
+		// 剔除以免 SSR dehydrate HTML 与客户端 RPC 全量传输。rest 解构剔除，保持类型安全。
+		const { releasesVn: _releasesVn, ...vnSlim } = vn ?? ({} as NonNullable<
+			typeof vn
+		>);
+		const { media: _media, ...otherDataSlim } =
+			otherData ?? ({} as NonNullable<typeof otherData>);
+		return {
+			...rest,
+			vn: vn ? vnSlim : null,
+			otherData: otherData ? otherDataSlim : null,
+		} as StripUnknown<NonNullable<typeof getgame>> | null;
 	});
 
 export const getGameTags = createServerFn()

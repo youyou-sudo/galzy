@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Accordion as AccordionPrimitive } from "@base-ui/react/accordion";
-import { motion, AnimatePresence, type HTMLMotionProps } from "motion/react";
+import { motion, type HTMLMotionProps } from "motion/react";
 
 import { useControlledState } from "@web/hooks/use-controlled-state";
 import { getStrictContext } from "@web/lib/get-strict-context";
@@ -89,72 +89,52 @@ type AccordionContentProps = Omit<
 
 function AccordionContent({
 	keepRendered = false,
-	transition = { duration: 0.35, ease: "easeInOut" },
+	transition = { duration: 0.25, ease: "easeOut" },
 	children,
 	...props
 }: AccordionContentProps) {
 	const { isOpen } = useAccordionItem();
 
+	// 合成器友好动画：仅 opacity + y 位移。不再对 height 做 auto 插值
+	// （逐帧 layout reflow），也不再动画 maskImage 遮罩（逐帧重绘）。
+	// 高度由内容自然撑开，收起时直接隐藏/卸载（高度瞬时变化，无逐帧布局动画）。
+	if (keepRendered) {
+		return (
+			<AccordionPrimitive.Panel
+				render={
+					<motion.div
+						key="accordion-content"
+						data-slot="accordion-content"
+						initial={{ opacity: 0, y: 20 }}
+						animate={isOpen ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+						transition={transition}
+						style={isOpen ? undefined : { display: "none" }}
+						{...props}
+					/>
+				}
+			>
+				{children}
+			</AccordionPrimitive.Panel>
+		);
+	}
+
+	if (!isOpen) return null;
+
 	return (
-		<AnimatePresence>
-			{keepRendered ? (
-				<AccordionPrimitive.Panel
-					render={
-						<motion.div
-							key="accordion-content"
-							data-slot="accordion-content"
-							initial={{ height: 0, opacity: 0, "--mask-stop": "0%", y: 20 }}
-							animate={
-								isOpen
-									? { height: "auto", opacity: 1, "--mask-stop": "100%", y: 0 }
-									: { height: 0, opacity: 0, "--mask-stop": "0%", y: 20 }
-							}
-							transition={transition}
-							style={{
-								maskImage:
-									"linear-gradient(black var(--mask-stop), transparent var(--mask-stop))",
-								WebkitMaskImage:
-									"linear-gradient(black var(--mask-stop), transparent var(--mask-stop))",
-								overflow: "hidden",
-							}}
-							{...props}
-						/>
-					}
-				>
-					{children}
-				</AccordionPrimitive.Panel>
-			) : (
-				isOpen && (
-					<AccordionPrimitive.Panel
-						render={
-							<motion.div
-								key="accordion-content"
-								data-slot="accordion-content"
-								initial={{ height: 0, opacity: 0, "--mask-stop": "0%", y: 20 }}
-								animate={{
-									height: "auto",
-									opacity: 1,
-									"--mask-stop": "100%",
-									y: 0,
-								}}
-								exit={{ height: 0, opacity: 0, "--mask-stop": "0%", y: 20 }}
-								transition={transition}
-								style={{
-									maskImage:
-										"linear-gradient(black var(--mask-stop), transparent var(--mask-stop))",
-									WebkitMaskImage:
-										"linear-gradient(black var(--mask-stop), transparent var(--mask-stop))",
-									overflow: "hidden",
-								}}
-								{...props}
-							/>
-						}
-					>
-						{children}
-					</AccordionPrimitive.Panel>
-				)
-			)}
-		</AnimatePresence>
+		<AccordionPrimitive.Panel
+			render={
+				<motion.div
+					key="accordion-content"
+					data-slot="accordion-content"
+					initial={{ opacity: 0, y: 20 }}
+					animate={{ opacity: 1, y: 0 }}
+					transition={transition}
+					{...props}
+				/>
+			}
+		>
+			{children}
+		</AccordionPrimitive.Panel>
 	);
 }
 

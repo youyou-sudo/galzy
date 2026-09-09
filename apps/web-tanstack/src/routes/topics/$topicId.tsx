@@ -46,7 +46,7 @@ import {
 } from "@web/server/topics";
 import { replycardActions } from "@web/stores/reply-edit-input";
 import { Bookmark, Heart, Pencil, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 
 function formatTime(dateStr: string) {
@@ -63,6 +63,9 @@ function formatTime(dateStr: string) {
 	if (days < 30) return `${days} 天前`;
 	return date.toLocaleDateString("zh-CN");
 }
+
+const byCreatedAtAsc = (a: any, b: any) =>
+	Date.parse(a.createdAt) - Date.parse(b.createdAt);
 
 export const Route = createFileRoute("/topics/$topicId")({
 	component: RouteComponent,
@@ -92,6 +95,7 @@ function RouteComponent() {
 		queryKey: ["topic", topicId],
 		queryFn: async () => await getTopic({ data: { id: Number(topicId) } }),
 		initialData: loaderData?.topic,
+		staleTime: 30_000,
 	});
 	const { data: session } = useQuery({
 		queryKey: ["auth"],
@@ -467,9 +471,7 @@ function ReplyList({
 	targetId: string;
 	session: any;
 }) {
-	const sorted = [...replies].sort(
-		(a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-	);
+	const sorted = useMemo(() => [...replies].sort(byCreatedAtAsc), [replies]);
 
 	return sorted.map((reply) => (
 		<div className="flex ml-6" key={reply.id}>

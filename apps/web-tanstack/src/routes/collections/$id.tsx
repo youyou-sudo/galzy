@@ -108,6 +108,7 @@ function RouteComponent() {
 		queryKey: ["collection", id],
 		queryFn: () => getCollectionById({ data: { id } }),
 		initialData: loaderData?.collection,
+		staleTime: 30_000,
 	});
 
 	const { data: previews } = useSuspenseQuery({
@@ -115,6 +116,7 @@ function RouteComponent() {
 		queryFn: () =>
 			getCollectionPreview({ data: { id, limit: 50 } }).catch(() => []),
 		initialData: loaderData?.previews,
+		staleTime: 30_000,
 	});
 
 	const coll = collection as CollectionData & { entries?: unknown[] };

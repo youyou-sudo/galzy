@@ -21,20 +21,23 @@ export const Route = createFileRoute('/producer/$pid')({
   gcTime: 5 * 60_000,
   loader: async ({ params, context }) => {
     const { pid } = params
+    // 两个请求同时启动；gameList 保持 Promise 返回，由 <Await> 流式渲染
+    const producerPromise = context.queryClient.ensureQueryData({
+      queryKey: ['producerInfo', pid],
+      queryFn: () => producerInfo({ data: { pid } }),
+      staleTime: 60_000,
+      gcTime: 5 * 60_000,
+    })
+    const gameListPromise = context.queryClient.ensureQueryData({
+      queryKey: ['producerGameList', pid],
+      queryFn: () => producerGameList({ data: { pid } }),
+      staleTime: 60_000,
+      gcTime: 5 * 60_000,
+    })
     return {
       pid: pid,
-      producer: await context.queryClient.ensureQueryData({
-        queryKey: ['producerInfo', pid],
-        queryFn: () => producerInfo({ data: { pid } }),
-        staleTime: 60_000,
-        gcTime: 5 * 60_000,
-      }),
-      gameList: context.queryClient.ensureQueryData({
-        queryKey: ['producerGameList', pid],
-        queryFn: () => producerGameList({ data: { pid } }),
-        staleTime: 60_000,
-        gcTime: 5 * 60_000,
-      }),
+      producer: await producerPromise,
+      gameList: gameListPromise,
     }
   },
   head: ({ loaderData, params }) =>

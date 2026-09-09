@@ -217,11 +217,23 @@ export function RichTextEditor({
 		}
 	}, [value, editor]);
 
-	// 挂载前/SSR 占位用的静态渲染内容（与编辑器同构）
-	const staticHtml = useMemo(
-		() => (value ? renderHtmlContent(value) : ""),
-		[value],
-	);
+	// 挂载前/SSR 占位用的静态渲染内容（与编辑器同构）。
+	// renderHtmlContent 走动态 import（异步），因此用 effect 同步到 state。
+	const [staticHtml, setStaticHtml] = useState("");
+
+	useEffect(() => {
+		if (!value) {
+			setStaticHtml("");
+			return;
+		}
+		let alive = true;
+		renderHtmlContent(value).then((html) => {
+			if (alive) setStaticHtml(html);
+		});
+		return () => {
+			alive = false;
+		};
+	}, [value]);
 
 	async function insertImageFile(file: File) {
 		if (uploadLock.current) {

@@ -193,16 +193,30 @@ function MotionHighlight<T extends string>({
 		const container = localRef.current;
 		if (!container) return;
 
-		const onScroll = () => {
+		// 滚动事件高频触发，直接 getBoundingClientRect 会每事件强制同步 layout；
+		// 用脏标记 + rAF 合并：一次 rAF 至多测量一次，unmount/依赖变化时 cancel
+		let rafId: number | null = null;
+		let dirty = false;
+		const measure = () => {
+			rafId = null;
+			if (!dirty) return;
+			dirty = false;
 			if (!activeValue) return;
 			const activeEl = container.querySelector<HTMLElement>(
 				`[data-value="${activeValue}"][data-highlight="true"]`,
 			);
 			if (activeEl) safeSetBounds(activeEl.getBoundingClientRect());
 		};
+		const onScroll = () => {
+			dirty = true;
+			if (rafId === null) rafId = requestAnimationFrame(measure);
+		};
 
 		container.addEventListener("scroll", onScroll, { passive: true });
-		return () => container.removeEventListener("scroll", onScroll);
+		return () => {
+			container.removeEventListener("scroll", onScroll);
+			if (rafId !== null) cancelAnimationFrame(rafId);
+		};
 	}, [mode, activeValue, safeSetBounds]);
 
 	const render = React.useCallback(

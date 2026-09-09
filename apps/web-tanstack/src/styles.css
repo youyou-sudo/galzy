@@ -116,6 +116,7 @@
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
     --font-heading: var(--font-sans);
+    --ease-out-quart: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @layer base {
@@ -128,6 +129,28 @@
   html {
     @apply font-sans;
     }
+}
+
+/* dvh 单位兜底：Chrome<108 / Safari<15.4 的 WebView 不识别 dvh。
+   基础规则给出 vh 上限；@supports (height: 100dvh) 命中时才覆盖为 dvh。
+   不用「同一规则内 vh 后跟 dvh」的写法——构建期的 lightningcss 压缩
+   会把同块内被覆盖的 max-height: 80vh 视为冗余声明直接删除。 */
+.galzy-max-h-80dvh {
+  max-height: 80vh;
+}
+
+.galzy-max-h-85dvh {
+  max-height: 85vh;
+}
+
+@supports (height: 100dvh) {
+  .galzy-max-h-80dvh {
+    max-height: 80dvh;
+  }
+
+  .galzy-max-h-85dvh {
+    max-height: 85dvh;
+  }
 }
 
 /* 移动端顶栏抽屉入场动画：面板从顶部向下滑入。

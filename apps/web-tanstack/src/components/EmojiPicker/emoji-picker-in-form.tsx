@@ -12,16 +12,13 @@ export const title = "Emoji Picker in Form";
 
 const KaomojiPickerExample = () => {
 	const [message, setMessage] = useState("");
-	const [selectedEmoji, setSelectedEmoji] = useState<string>("");
 
 	const handleEmojiSelect = (emoji: string) => {
-		setSelectedEmoji(emoji);
 		setMessage((prev) => prev + emoji);
 	};
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		console.log("Form submitted:", { message, selectedEmoji });
 		alert(`Message: ${message}`);
 	};
 

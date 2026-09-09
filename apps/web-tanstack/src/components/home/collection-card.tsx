@@ -75,7 +75,7 @@ function PokerStack({
 							"shadow-md shadow-black/15 dark:shadow-black/30",
 							// 扑克层 hover 旋转/位移的过渡类（内联动画只作用于组件内部动画层，
 							// 本层的 transform 恒由此类接管）
-							"transition-all duration-500 ease-out",
+							"transition-transform duration-500 ease-out-quart",
 							hoverStyles[i],
 						)}
 						wrapperStyle={{
@@ -90,7 +90,7 @@ function PokerStack({
 			{/* Count badge — bottom-right */}
 			<div
 				style={{ zIndex: 30 }}
-				className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-white/85 dark:bg-black/55 backdrop-blur-sm px-2 py-0.5 text-xs font-medium shadow-sm"
+				className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-white/85 dark:bg-black/60 px-2 py-0.5 text-xs font-medium shadow-sm"
 			>
 				<Layers className="size-3" />
 				{count} 部
@@ -117,7 +117,7 @@ export function CollectionItem({ collection }: { collection: CollectionData }) {
 			ref={linkRef}
 			to="/collections/$id"
 			params={{ id: String(collection.id) }}
-			className="group block rounded-2xl transition-all duration-300 hover:-translate-y-1"
+			className="group block rounded-2xl transition-transform duration-300 hover:-translate-y-1"
 		>
 			<PokerStack previews={collection.previews} count={gameCount} />
 			<h3 className="mt-2.5 text-sm font-medium text-center line-clamp-1 group-hover:text-primary transition-colors">

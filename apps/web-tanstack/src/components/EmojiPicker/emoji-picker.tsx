@@ -694,13 +694,17 @@ const categoryIcons: Record<
 	物品与其他: Flag,
 };
 
+// 模块级静态数据，对象引用稳定：以源数组下标作为确定性稳定 key 的序号
+const kaomojiSourceIndex = new WeakMap(
+	kaomojis.map((kaomoji, index) => [kaomoji, index] as const),
+);
+
 interface KaomojiGridProps {
 	kaomojis: typeof kaomojis;
 	showCategory?: boolean;
 	selectedIndex: number;
 	allVisibleKaomojis: typeof kaomojis;
 	onKaomojiClick: (kaomoji: string) => void;
-	setSelectedIndex: (index: number) => void;
 	kaomojiGridRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -710,39 +714,51 @@ const KaomojiGrid = ({
 	selectedIndex,
 	allVisibleKaomojis,
 	onKaomojiClick,
-	setSelectedIndex,
 	kaomojiGridRef,
-}: KaomojiGridProps) => (
-	<div className="grid grid-cols-4 gap-1.5 p-2" ref={kaomojiGridRef}>
-		{kaomojiList.map((kaomoji, index) => {
-			const globalIndex = showCategory
-				? allVisibleKaomojis.findIndex((k) => k.text === kaomoji.text)
-				: index;
+}: KaomojiGridProps) => {
+	const globalIndexByText = useMemo(() => {
+		const map = new Map<string, number>();
+		allVisibleKaomojis.forEach((kaomoji, index) => {
+			if (!map.has(kaomoji.text)) {
+				map.set(kaomoji.text, index);
+			}
+		});
+		return map;
+	}, [allVisibleKaomojis]);
 
-			return (
-				<Button
-					key={`${kaomoji.text}-${index}`}
-					variant="ghost"
-					size="sm"
-					className={`h-auto min-h-9 px-2 py-1.5 text-xs whitespace-nowrap transition-colors hover:bg-accent ${
-						selectedIndex === globalIndex ? "bg-accent ring-2 ring-primary" : ""
-					}`}
-					onClick={() => onKaomojiClick(kaomoji.text)}
-					title={kaomoji.name}
-					onMouseEnter={() => setSelectedIndex(globalIndex)}
-				>
-					<span
-						className="text-sm leading-none"
-						role="img"
-						aria-label={kaomoji.name}
+	return (
+		<div className="grid grid-cols-4 gap-1.5 p-2" ref={kaomojiGridRef}>
+			{kaomojiList.map((kaomoji, index) => {
+				const globalIndex = showCategory
+					? (globalIndexByText.get(kaomoji.text) ?? -1)
+					: index;
+
+				return (
+					<Button
+						key={`${kaomoji.category}-${kaomoji.text}-${kaomojiSourceIndex.get(kaomoji)}`}
+						variant="ghost"
+						size="sm"
+						className={`h-auto min-h-9 px-2 py-1.5 text-xs whitespace-nowrap transition-colors hover:bg-accent ${
+							selectedIndex === globalIndex
+								? "bg-accent ring-2 ring-primary"
+								: ""
+						}`}
+						onClick={() => onKaomojiClick(kaomoji.text)}
+						title={kaomoji.name}
 					>
-						{kaomoji.text}
-					</span>
-				</Button>
-			);
-		})}
-	</div>
-);
+						<span
+							className="text-sm leading-none"
+							role="img"
+							aria-label={kaomoji.name}
+						>
+							{kaomoji.text}
+						</span>
+					</Button>
+				);
+			})}
+		</div>
+	);
+};
 
 export default function KaomojiPicker({
 	onKaomojiSelect,
@@ -806,17 +822,20 @@ export default function KaomojiPicker({
 		});
 	}, [searchTerm]);
 
-	// 按分类对颜文字进行分组
+	// 按分类对颜文字进行分组（单次遍历，替代逐分类 filter 的 O(C×N)）
 	const kaomojisByCategory = useMemo(() => {
-		return categories.reduce(
-			(acc, category) => {
-				acc[category] = filteredKaomojis.filter(
-					(kaomoji) => kaomoji.category === category,
-				);
-				return acc;
-			},
-			{} as Record<string, typeof kaomojis>,
-		);
+		const acc: Record<string, typeof kaomojis> = {};
+		for (const category of categories) {
+			acc[category] = [];
+		}
+		for (const kaomoji of filteredKaomojis) {
+			const category = kaomoji.category;
+			if (!acc[category]) {
+				acc[category] = [];
+			}
+			acc[category].push(kaomoji);
+		}
+		return acc;
 	}, [categories, filteredKaomojis]);
 
 	// 获取所有可见的颜文字，用于键盘导航
@@ -961,7 +980,6 @@ export default function KaomojiPicker({
 								selectedIndex={selectedIndex}
 								allVisibleKaomojis={allVisibleKaomojis}
 								onKaomojiClick={handleKaomojiClick}
-								setSelectedIndex={setSelectedIndex}
 								kaomojiGridRef={kaomojiGridRef}
 							/>
 						) : (
@@ -1068,7 +1086,6 @@ export default function KaomojiPicker({
 												selectedIndex={selectedIndex}
 												allVisibleKaomojis={allVisibleKaomojis}
 												onKaomojiClick={handleKaomojiClick}
-												setSelectedIndex={setSelectedIndex}
 												kaomojiGridRef={kaomojiGridRef}
 											/>
 										</div>

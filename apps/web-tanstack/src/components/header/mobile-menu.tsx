@@ -60,7 +60,7 @@ export function HeaderMobileMenu({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="top"
-        className="gap-2 max-h-[80dvh] overflow-y-auto rounded-b-2xl px-2 pb-4"
+        className="gap-2 galzy-max-h-80dvh overflow-y-auto rounded-b-2xl px-2 pb-4"
       >
         <SheetHeader className="flex-row items-center gap-2 px-3 pt-4 pb-2">
           <Image

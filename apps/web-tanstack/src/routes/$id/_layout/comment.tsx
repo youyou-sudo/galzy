@@ -18,7 +18,7 @@ export const Route = createFileRoute("/$id/_layout/comment")({
 		};
 	},
 	headers: () => ({
-		"Cache-Control": "public, max-age=5, stale-while-revalidate=600",
+		"Cache-Control": "private, max-age=5, stale-while-revalidate=600",
 	}),
 
 	// Client-side caching (via TanStack Router)

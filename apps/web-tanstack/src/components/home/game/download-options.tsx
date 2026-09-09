@@ -38,7 +38,7 @@ import { downCardStore, downmodalActions } from "@web/stores/downCardData";
 import { waitForViewTransitionEnd } from "@web/lib/view-transition";
 import { FileArchive } from "lucide-react";
 import { tryit } from "radash";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { GlgczujmDl } from "./tips";
 
@@ -180,7 +180,9 @@ const FileExplorer = ({
 	items: GameModel.TreeNode[];
 	onFileClick: (item: GameModel.TreeNode) => void;
 }) => {
-	const simplifiedItems = (() => {
+	// 树变换（分卷识别 + md 同名判定）会递归遍历并新建节点，
+	// 用 useMemo 缓存，仅在 items 引用变化时重算，避免每次渲染重复执行。
+	const simplifiedItems = useMemo(() => {
 		if (
 			items &&
 			items[0]?.type === "folder" &&
@@ -189,7 +191,7 @@ const FileExplorer = ({
 			return groupSplitArchives(items[0].children);
 		}
 		return groupSplitArchives(items);
-	})();
+	}, [items]);
 
 	const renderTree = (nodes: GameModel.TreeNode[]): React.ReactNode => {
 		return nodes.map((item) => {
@@ -253,9 +255,6 @@ export const DownCardDialog = () => {
 	}, [open]);
 
 	const [mdReady, setMdReady] = useState(false);
-	useEffect(() => {
-		setMdReady(false);
-	}, []);
 	// 下载处理函数
 	const handleDownload = async (path: string, game_id: string) => {
 		setDownloadingMap((prev) => ({ ...prev, [path]: true }));

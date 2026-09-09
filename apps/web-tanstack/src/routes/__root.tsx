@@ -1,4 +1,5 @@
 import { BUILD_ID } from 'virtual:build-id'
+import geistWoff2Url from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import type { QueryClient } from '@tanstack/react-query'
 import {
@@ -72,6 +73,15 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       },
     ],
     links: [
+      {
+        // latin 子集可变字体 preload：省去 CSS @import 的额外 RTT，缓解 FOUT。
+        // href 经 Vite 处理带 hash，不可硬编码 node_modules 相对路径。
+        rel: 'preload',
+        as: 'font',
+        type: 'font/woff2',
+        crossOrigin: 'anonymous',
+        href: geistWoff2Url,
+      },
       {
         rel: 'stylesheet',
         href: appCss,

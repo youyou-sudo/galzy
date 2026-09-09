@@ -35,7 +35,7 @@ export default function RouteComponent() {
 				<div className="grid gap-4 sm:grid-cols-2">
 					{toolLinks.map(({ to, icon: Icon, title, description }) => (
 						<Link key={to} to={to} className="group">
-							<Card className="h-full transition-all hover:bg-accent/50 hover:border-primary/20">
+							<Card className="h-full transition-colors hover:bg-accent/50 hover:border-primary/20">
 								<CardHeader>
 									<CardTitle className="flex items-center gap-3 text-lg">
 										<span className="inline-flex items-center justify-center size-9 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/15 transition-colors">

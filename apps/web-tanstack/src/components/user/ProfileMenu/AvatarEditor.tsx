@@ -345,7 +345,7 @@ export default function AvatarComp({ name, image, editor }: AvatarEditorProps) {
 
 							{/* 拖拽悬停提示 */}
 							{isDragging && (
-								<div className="absolute inset-0 flex items-center justify-center rounded-full bg-primary/60 ring-4 ring-primary/40 transition-all">
+								<div className="absolute inset-0 flex items-center justify-center rounded-full bg-primary/60 ring-4 ring-primary/40 transition-opacity">
 									<div className="flex flex-col items-center gap-1">
 										<ImagePlus className="size-7 text-white" />
 										<span className="text-xs font-medium text-white drop-shadow-xs">
@@ -485,11 +485,11 @@ export default function AvatarComp({ name, image, editor }: AvatarEditorProps) {
 						<div className="space-y-1">
 							<div className="h-2 w-full overflow-hidden rounded-full bg-muted">
 								<div
-									className={`h-full bg-primary transition-all duration-300 ${
+									className={`h-full w-full origin-left bg-primary transition-transform duration-300 ${
 										phase === "saving" ? "animate-pulse" : ""
 									}`}
 									style={{
-										width: `${phase === "saving" ? 100 : uploadProgress}%`,
+										transform: `scaleX(${phase === "saving" ? 1 : uploadProgress / 100})`,
 									}}
 								/>
 							</div>

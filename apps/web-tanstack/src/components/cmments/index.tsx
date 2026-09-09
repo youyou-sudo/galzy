@@ -1,6 +1,7 @@
 'use client'
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
+import { memo, useMemo } from 'react'
 import { elysiaErrorF } from '@web/lib'
 import { authClient } from '@web/server/auth/auth-client'
 import { getCmments } from '@web/server/comments'
@@ -59,36 +60,31 @@ function formatTime(dateStr: string | Date) {
 
 const Route = getRouteApi('/$id/_layout/comment')
 
-function ReplyItem({
-  commentId,
-  targetType,
+type CommentsData = Exclude<Awaited<ReturnType<typeof getCmments>>, null>
+type CommentEntry = NonNullable<CommentsData['comments']>[number]
+
+const ReplyItem = memo(function ReplyItem({
+  comment,
+  commentMap,
+  targetId,
 }: {
-  commentId: string
-  targetType: string
+  comment: CommentEntry | undefined
+  commentMap: Map<string, CommentEntry>
+  targetId: string
 }) {
-  const { commentsData, id } = Route.useLoaderData()
-
-  const { data } = useQuery({
-    queryKey: ['comments', targetType, id],
-    queryFn: async () =>
-      await getCmments({
-        data: {
-          targetType: targetType,
-          targetId: id,
-        },
-      }),
-    initialData: commentsData,
-  })
-
-  const comment = data?.comments?.find((c) => c.id === commentId)
-  const replies = comment?.re.sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  const replies = useMemo(
+    () =>
+      [...(comment?.re ?? [])].sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      ),
+    [comment],
   )
 
   if (!comment) return null
-  if (replies?.length === 0) return <Separator />
+  if (replies.length === 0) return <Separator />
 
-  return replies?.map((reply) => (
+  return replies.map((reply) => (
     <div className="flex -ml-6" key={reply.id}>
       <Separator orientation="vertical" />
       <div className="flex space-x-3 pl-3 py-2 w-full">
@@ -132,16 +128,21 @@ function ReplyItem({
 
           <ReplyEidtInput
             reId={reply.id}
-            targetId={id}
+            targetId={targetId}
             commentscomp={false}
             targetType="game"
           />
-          <ReplyItem targetType="game" commentId={reply.id} />
+          <ReplyItem
+            comment={commentMap.get(reply.id)}
+            commentMap={commentMap}
+            targetId={targetId}
+          />
         </div>
       </div>
     </div>
   ))
-}
+})
+
 export function CommentItem({ targetType }: { targetType: string }) {
   const { commentsData, id } = Route.useLoaderData()
 
@@ -155,6 +156,8 @@ export function CommentItem({ targetType }: { targetType: string }) {
         },
       }),
     initialData: commentsData,
+    // loader 已提供 initialData；不设 staleTime 会在挂载时立即判 stale 重拉一次
+    staleTime: 30_000,
   })
   const { data: session } = useQuery({
     queryKey: ['auth'],
@@ -164,6 +167,11 @@ export function CommentItem({ targetType }: { targetType: string }) {
       return res
     },
   })
+
+  const commentMap = useMemo(
+    () => new Map((data?.comments ?? []).map((c) => [c.id, c] as const)),
+    [data?.comments],
+  )
 
   if (data?.comments.length === 0)
     return (
@@ -223,7 +231,11 @@ export function CommentItem({ targetType }: { targetType: string }) {
               targetType="game"
             />
             {items.re?.length > 0 && (
-              <ReplyItem targetType="game" commentId={items.id} />
+              <ReplyItem
+                comment={commentMap.get(items.id)}
+                commentMap={commentMap}
+                targetId={id}
+              />
             )}
           </div>
         </div>

@@ -14,7 +14,7 @@ import {
 	ShieldCheckIcon,
 	XIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 function isActive(to: string, exact: boolean | undefined, pathname: string) {
@@ -180,8 +180,30 @@ function AdminMobileNav({ pathname }: { pathname: string }) {
 
 // 顶栏：移动端菜单入口 + 当前页面标题 + 主题切换 + 返回站点
 function AdminTopBar({ pathname }: { pathname: string }) {
+	// backdrop-blur 按需启用：滚动全程重采样是列表滚动掉帧的主因之一
+	// （内容逐帧上屏时 header 反复重滤波）。滚动中移除，静止 150ms 后恢复；
+	// bg-background/85 在滚动中仍保持近不透明，视觉几乎无差异。
+	const [scrolling, setScrolling] = useState(false);
+	useEffect(() => {
+		let timer: ReturnType<typeof setTimeout> | undefined;
+		const onScroll = () => {
+			setScrolling(true);
+			clearTimeout(timer);
+			timer = setTimeout(() => setScrolling(false), 150);
+		};
+		window.addEventListener("scroll", onScroll, { passive: true });
+		return () => {
+			window.removeEventListener("scroll", onScroll);
+			clearTimeout(timer);
+		};
+	}, []);
 	return (
-		<header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/85 px-4 backdrop-blur sm:px-6 lg:px-8">
+		<header
+			className={cn(
+				"sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/85 px-4 sm:px-6 lg:px-8",
+				!scrolling && "backdrop-blur",
+			)}
+		>
 			<div className="lg:hidden">
 				<AdminMobileNav pathname={pathname} />
 			</div>

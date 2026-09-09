@@ -5,6 +5,7 @@ import {
   type Persister,
 } from '@tanstack/react-query-persist-client'
 import { useRouter } from '@tanstack/react-router'
+import { MotionConfig } from 'motion/react'
 import type { ReactNode } from 'react'
 
 const defaultOptions = {
@@ -329,7 +330,12 @@ export default function TanStackQueryProvider({
     queryClient: QueryClient
   }
 
+  // 全局减弱动态效果：reducedMotion="user" 让 motion 驱动的组件跟随系统
+  // 「减弱动态效果」设置（变换动画降级为透明度），仅包裹不改 Provider 逻辑。
+  // 本文件为客户端 Provider（useRouter/QueryClientProvider），适合作为包裹点。
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <MotionConfig reducedMotion="user">{children}</MotionConfig>
+    </QueryClientProvider>
   )
 }

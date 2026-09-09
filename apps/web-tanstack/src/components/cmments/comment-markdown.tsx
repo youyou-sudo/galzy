@@ -1,5 +1,5 @@
 import { cn } from "@web/lib/utils";
-import type { ComponentProps } from "react";
+import { memo, type ComponentProps } from "react";
 import Markdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
@@ -101,6 +101,8 @@ const commentComponents = {
 		<img
 			className={cn("rounded max-w-full my-1", className)}
 			alt={alt}
+			loading="lazy"
+			decoding="async"
 			{...props}
 		/>
 	),
@@ -127,7 +129,11 @@ const commentComponents = {
 	),
 };
 
-export function CommentMarkdown({ content }: { content: string }) {
+export const CommentMarkdown = memo(function CommentMarkdown({
+	content,
+}: {
+	content: string;
+}) {
 	return (
 		<div className="text-sm text-foreground/80 break-words">
 			<Markdown
@@ -139,4 +145,4 @@ export function CommentMarkdown({ content }: { content: string }) {
 			</Markdown>
 		</div>
 	);
-}
+});

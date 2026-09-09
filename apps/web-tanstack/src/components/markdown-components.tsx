@@ -82,7 +82,13 @@ export const MarkdownComponents = {
 		/>
 	),
 	img: ({ className, alt, ...props }: ComponentProps<"img">) => (
-		<img className={cn("rounded-md", className)} alt={alt} {...props} />
+		<img
+			className={cn("rounded-md", className)}
+			alt={alt}
+			loading="lazy"
+			decoding="async"
+			{...props}
+		/>
 	),
 	hr: ({ ...props }) => <hr className="my-4 md:my-8" {...props} />,
 	table: ({ className, ...props }: ComponentProps<"table">) => (
