@@ -67,8 +67,10 @@ function subscribeRevealed(onChange: () => void): () => void {
 }
 
 /** 客户端快照按 src 实时查询；SSR 快照恒 false，与服务端 markup 一致避免 hydration mismatch
- *（水合完成后 useSyncExternalStore 自动切换到客户端快照，命中即重渲染为终态）。 */
-function useRevealedOnce(src: string): boolean {
+（水合完成后 useSyncExternalStore 自动切换到客户端快照，命中即重渲染为终态）。
+导出给 GameHeader 使用：列表已揭示过的图（revealedSrcs 命中）在 VT 期间可跳过
+thumbhash 占位 gate，直接渲染真图，VT 快照拍到终态实现无缝飞入。 */
+export function useRevealedOnce(src: string): boolean {
 	return useSyncExternalStore(
 		subscribeRevealed,
 		() => revealedSrcs.has(src),
