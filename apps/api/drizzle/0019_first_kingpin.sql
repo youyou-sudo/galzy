@@ -1,0 +1,1 @@
+ALTER TABLE "galrc_account" DROP COLUMN "issuer";

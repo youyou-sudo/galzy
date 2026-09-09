@@ -19,7 +19,7 @@
     "db:up": "bun run src/db/up.ts"
   },
   "dependencies": {
-    "@better-auth/drizzle-adapter": "^1.7.1",
+    "@better-auth/drizzle-adapter": "^1.7.3",
     "@elysia/openapi": "^1.4.15",
     "@elysiajs/cors": "^1.4.2",
     "@elysiajs/opentelemetry": "1.4.11",

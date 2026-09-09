@@ -134,6 +134,13 @@
       "when": 1788272087548,
       "tag": "0018_tearful_logan",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1788957022031,
+      "tag": "0019_first_kingpin",
+      "breakpoints": true
     }
   ]
 }
