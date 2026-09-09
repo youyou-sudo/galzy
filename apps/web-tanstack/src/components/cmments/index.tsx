@@ -40,7 +40,9 @@ const typeLabelMap: Record<
   },
 }
 
-function formatTime(dateStr: string) {
+// 兼容 string 与 Date 两种形态：API 经 Eden/Elysia 返回的时间戳是 ISO 字符串，
+// 而 SSR 序列化（seroval）或某些内部路径可能给到真正的 Date 对象。
+function formatTime(dateStr: string | Date) {
   const date = new Date(dateStr)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
@@ -195,7 +197,7 @@ export function CommentItem({ targetType }: { targetType: string }) {
             <CommentMarkdown content={items.content} />
             <div className="flex items-center text-xs -mt-1">
               <span className="text-muted-foreground my-2">
-                {formatTime(items.createdAt.toISOString())}
+                {formatTime(items.createdAt)}
               </span>
               {session && (
                 <Button
