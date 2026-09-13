@@ -8,10 +8,13 @@ declare module 'bun' {
     GITHUB_CLIENT_SECRET: string
     HIKARINAGI_CLIENT_ID: string
     HIKARINAGI_KEY: string
+    HIKARINAGI_OAUTH_HOST?: string
     KUNGAL_CLIENT_ID: string
     KUNGAL_CLIENT_SECRET: string
+    KUNGAL_OAUTH_HOST?: string
     LINUXDO_CLIENT_ID: string
     LINUXDO_CLIENT_SECRET: string
+    LINUXDO_OAUTH_HOST?: string
     MEILISEARCH_HOST: string
     MEILISEARCH_INDEXNAME: string
     MEILISEARCH_MASTER: string

@@ -5,6 +5,16 @@ import { admin, genericOAuth, openAPI } from 'better-auth/plugins'
 import { localization } from 'better-auth-localization'
 import { emailOtpPlugin } from './emailOtp-plugin'
 
+const KUNGAL_OAUTH_HOST = (
+  process.env.KUNGAL_OAUTH_HOST || 'https://oauth.kungal.com'
+).replace(/\/+$/, '')
+const LINUXDO_OAUTH_HOST = (
+  process.env.LINUXDO_OAUTH_HOST || 'https://connect.linux.do'
+).replace(/\/+$/, '')
+const HIKARINAGI_OAUTH_HOST = (
+  process.env.HIKARINAGI_OAUTH_HOST || 'https://id.hikarinagi.org'
+).replace(/\/+$/, '')
+
 const readKungalOAuthBody = <T>(body: unknown, status: number): T => {
   if (body === null || typeof body !== 'object') {
     throw new APIError('BAD_REQUEST', {
@@ -78,8 +88,8 @@ const _authConfig = {
           clientId: process.env.KUNGAL_CLIENT_ID || '',
           clientSecret: process.env.KUNGAL_CLIENT_SECRET || '',
           redirectURI: process.env.WEB_HOST + '/api/auth/callback/kungal',
-          authorizationUrl: 'https://oauth.kungal.com/api/v1/oauth/authorize',
-          tokenUrl: 'https://oauth.kungal.com/api/v1/oauth/token',
+          authorizationUrl: `${KUNGAL_OAUTH_HOST}/api/v1/oauth/authorize`,
+          tokenUrl: `${KUNGAL_OAUTH_HOST}/api/v1/oauth/token`,
           scopes: ['openid', 'profile', 'email'],
           pkce: true,
           getToken: async ({ code, codeVerifier }) => {
@@ -90,7 +100,7 @@ const _authConfig = {
             const redirectURI =
               process.env.WEB_HOST + '/api/auth/callback/kungal'
             const res = await fetch(
-              'https://oauth.kungal.com/api/v1/oauth/token',
+              `${KUNGAL_OAUTH_HOST}/api/v1/oauth/token`,
               {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
@@ -123,7 +133,7 @@ const _authConfig = {
 
           getUserInfo: async (tokens) => {
             const res = await fetch(
-              'https://oauth.kungal.com/api/v1/oauth/userinfo',
+              `${KUNGAL_OAUTH_HOST}/api/v1/oauth/userinfo`,
               {
                 headers: {
                   Authorization: `Bearer ${tokens.accessToken}`,
@@ -152,16 +162,16 @@ const _authConfig = {
           providerId: 'linuxdo',
           clientId: process.env.LINUXDO_CLIENT_ID || '',
           clientSecret: process.env.LINUXDO_CLIENT_SECRET || '',
-          authorizationUrl: 'https://connect.linux.do/oauth2/authorize',
+          authorizationUrl: `${LINUXDO_OAUTH_HOST}/oauth2/authorize`,
           redirectURI: process.env.WEB_HOST + '/api/auth/callback/linuxdo',
-          tokenUrl: 'https://connect.linux.do/oauth2/token',
+          tokenUrl: `${LINUXDO_OAUTH_HOST}/oauth2/token`,
           scopes: ['openid', 'profile', 'email'],
           pkce: true,
           getToken: async ({ code, codeVerifier }) => {
             // 与授权请求的 redirect_uri 保持一致，理由同 kungal。
             const redirectURI =
               process.env.WEB_HOST + '/api/auth/callback/linuxdo'
-            const res = await fetch('https://connect.linux.do/oauth2/token', {
+            const res = await fetch(`${LINUXDO_OAUTH_HOST}/oauth2/token`, {
               method: 'POST',
               headers: { 'content-type': 'application/x-www-form-urlencoded' },
               body: new URLSearchParams({
@@ -193,7 +203,7 @@ const _authConfig = {
             }
           },
           getUserInfo: async (tokens) => {
-            const res = await fetch('https://connect.linux.do/api/user', {
+            const res = await fetch(`${LINUXDO_OAUTH_HOST}/api/user`, {
               headers: {
                 Authorization: `Bearer ${tokens.accessToken}`,
               },
@@ -222,9 +232,9 @@ const _authConfig = {
           clientId: process.env.HIKARINAGI_CLIENT_ID || '',
           clientSecret: process.env.HIKARINAGI_KEY || '',
           redirectURI: process.env.WEB_HOST + '/api/auth/callback/hikarinagi',
-          authorizationUrl: 'https://id.hikarinagi.org/oidc/auth',
-          tokenUrl: 'https://id.hikarinagi.org/oidc/token',
-          userInfoUrl: 'https://id.hikarinagi.org/oidc/userinfo',
+          authorizationUrl: `${HIKARINAGI_OAUTH_HOST}/oidc/auth`,
+          tokenUrl: `${HIKARINAGI_OAUTH_HOST}/oidc/token`,
+          userInfoUrl: `${HIKARINAGI_OAUTH_HOST}/oidc/userinfo`,
           scopes: ['openid', 'profile', 'email'],
           pkce: true,
         },
