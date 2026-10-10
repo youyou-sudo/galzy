@@ -5,6 +5,13 @@ import { Tags } from './service'
 export const tags = new Elysia({ prefix: '/tags' })
   .get('/categories', () => Tags.tagCategories())
   .get(
+    '/hub',
+    async ({ query }) => {
+      return await Tags.tagHub(query)
+    },
+    { query: TagsModel.tagHub },
+  )
+  .get(
     '/tag',
     async ({ query: { tagId } }) => {
       return await Tags.tag({ tagId })
@@ -31,8 +38,13 @@ export const tags = new Elysia({ prefix: '/tags' })
   )
   .post(
     '/taggames',
-    async ({ body: { tagId, pageSize, pageIndex } }) => {
-      return Tags.tagGames({ tagId, pageSize, pageIndex })
+    async ({ body: { tagId, pageSize, pageIndex, includeChildren } }) => {
+      return Tags.tagGames({
+        tagId,
+        pageSize,
+        pageIndex,
+        includeChildren,
+      })
     },
     {
       body: TagsModel.tagGames,

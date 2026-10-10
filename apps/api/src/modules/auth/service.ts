@@ -99,21 +99,18 @@ const _authConfig = {
             // invalid_grant 拒绝换码。
             const redirectURI =
               process.env.WEB_HOST + '/api/auth/callback/kungal'
-            const res = await fetch(
-              `${KUNGAL_OAUTH_HOST}/api/v1/oauth/token`,
-              {
-                method: 'POST',
-                headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({
-                  grant_type: 'authorization_code',
-                  code,
-                  redirect_uri: redirectURI,
-                  client_id: process.env.KUNGAL_CLIENT_ID || '',
-                  client_secret: process.env.KUNGAL_CLIENT_SECRET || '',
-                  code_verifier: codeVerifier,
-                }),
-              },
-            )
+            const res = await fetch(`${KUNGAL_OAUTH_HOST}/api/v1/oauth/token`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                grant_type: 'authorization_code',
+                code,
+                redirect_uri: redirectURI,
+                client_id: process.env.KUNGAL_CLIENT_ID || '',
+                client_secret: process.env.KUNGAL_CLIENT_SECRET || '',
+                code_verifier: codeVerifier,
+              }),
+            })
 
             const json = await res.json()
             const tokenData = readKungalOAuthBody(json, res.status) as {

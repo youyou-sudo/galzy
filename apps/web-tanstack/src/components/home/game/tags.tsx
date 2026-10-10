@@ -1,26 +1,23 @@
-import { useQuery } from '@tanstack/react-query'
-import { getRouteApi, Link } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
-import { Badge } from '@web/components/ui/badge'
+import { useQuery } from "@tanstack/react-query";
+import { getRouteApi } from "@tanstack/react-router";
 import {
-	Accordion,
-	AccordionContent,
-	AccordionItem,
-	AccordionTrigger,
-} from '@web/components/ui/accordion'
-import { getGameTags } from '@web/server/game'
-import { waitForViewTransitionEnd } from '@web/lib/view-transition'
+	CollapsibleTagList,
+	type FlowTag,
+} from "@web/components/tags/collapsible-tag-list";
+import { waitForViewTransitionEnd } from "@web/lib/view-transition";
+import { getGameTags } from "@web/server/game";
+import { useEffect, useState } from "react";
 
 // queryOptions 提取：供 /$id/_layout loader 在导航关键路径上 prefetchQuery 预热，
 // 与组件内 useQuery 共用同一 queryKey/queryFn，首次进入即缓存命中。
 export const gameTagsQueryOptions = (id: string) => ({
-	queryKey: ['gameTags', id],
+	queryKey: ["gameTags", id],
 	queryFn: () => getGameTags({ data: { id } }),
 	staleTime: 60_000,
 });
 
 export function TagsCard() {
-	const routeApi = getRouteApi('/$id/_layout');
+	const routeApi = getRouteApi("/$id/_layout");
 	const { id } = routeApi.useLoaderData();
 	const { data: tags } = useQuery(gameTagsQueryOptions(id));
 	// VT 结束 gate：数据到达时若正处 View Transition 动画中，先保持骨架，
@@ -39,35 +36,15 @@ export function TagsCard() {
 		};
 	}, [tags]);
 
+	// 顺序原样透传接口返回，不做任何排序/去重，保持旧实现的展示逻辑
+	const flowTags: FlowTag[] = (settledTags?.tags ?? [])
+		.map((item: any) => item.tag_data)
+		.filter(Boolean);
+
 	return (
 		<div className="mt-4 mb-5">
-			{!settledTags?.tags?.length ? null : (
-				<Accordion className="w-full">
-					<AccordionItem value="tags" className="px-3 border rounded-lg">
-						<AccordionTrigger className="text-sm opacity-70 hover:opacity-100 py-3">
-							游戏标签
-						</AccordionTrigger>
-						<AccordionContent className="pb-3">
-							<div className="flex flex-wrap gap-2">
-								{settledTags?.tags.map(
-									(item) =>
-										item.tag_data && (
-											<Badge variant="secondary" key={item.tag_data.id}>
-												<Link
-													to={"/tags/$tagId"}
-													params={{ tagId: item.tag_data.id }}
-													preload="viewport"
-													className="no-underline opacity-70"
-												>
-													{item.tag_data?.zht_name || item.tag_data?.name}
-												</Link>
-											</Badge>
-										),
-								)}
-							</div>
-						</AccordionContent>
-					</AccordionItem>
-				</Accordion>
+			{!flowTags.length ? null : (
+				<CollapsibleTagList tags={flowTags} preload="viewport" />
 			)}
 		</div>
 	);

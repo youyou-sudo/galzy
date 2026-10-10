@@ -141,6 +141,13 @@
       "when": 1788957022031,
       "tag": "0019_first_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791609097247,
+      "tag": "0020_tags_hierarchy",
+      "breakpoints": true
     }
   ]
 }

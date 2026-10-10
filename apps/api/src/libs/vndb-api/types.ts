@@ -78,6 +78,26 @@ export interface TagResult {
   vn_count: number
 }
 
+// ====== Tag dump（层级唯一来源）======
+//
+// Kuna API 的 POST /tag 不返回层级信息（parent/parents/meta 均不在 schema 中），
+// 只有官方 dump 带 parents/meta。dump 的 id 是裸整数，与 API 的 "gN" 对应关系为
+// `g${id}`，同步时需要转换。
+export interface TagDumpEntry {
+  id: number
+  name: string
+  cat: 'cont' | 'ero' | 'tech'
+  description: string
+  aliases: string[]
+  searchable: boolean
+  applicable: boolean
+  vns: number
+  /** meta=true 的组织节点（含 5 个根标签 Theme/Character/Setting/Plot/Style）*/
+  meta: boolean
+  /** 祖先标签的裸整数 id 数组；DAG 中可能有多个 */
+  parents: number[]
+}
+
 // ====== Release ======
 export interface ReleaseResult {
   id: string
