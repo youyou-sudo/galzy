@@ -8,7 +8,9 @@ import {
   releasesTitles,
   releasesVn,
   siteConfig,
+  sql,
   tags,
+  tagsRelations,
   tagsVn,
   vn,
   vnRelationsTable,
@@ -19,7 +21,12 @@ import { purgeAfterSync } from '@api/libs/cloudflare-cache'
 
 import { MeiliClient } from '@api/libs/meilisearch'
 import { acquireLockKv, delKvPattern, releaseLockKv } from '@api/libs/redis'
-import { idOrFilter, VndbClient } from '@api/libs/vndb-api'
+import {
+  dumpIdToTagId,
+  idOrFilter,
+  VndbClient,
+  VndbTagDump,
+} from '@api/libs/vndb-api'
 import type {
   ProducerResult,
   ReleaseResult,
@@ -141,6 +148,9 @@ export const VndbSync = {
         })
       })
       console.log(`✅ Tags synced: ${allTagIds.size} tags`)
+      // 层级只能从官方 dump 取（Kuna API 不返回 parents），且必须在标签写入后跑，
+      // 否则 dump 的边会因父标签尚未落库而被过滤掉
+      await this.trySyncTagHierarchy()
       await this.updateProgress({
         stage: 'releases',
         stageTotal: 0,
@@ -374,6 +384,7 @@ export const VndbSync = {
             stageTotal: total,
           })
         })
+        await this.trySyncTagHierarchy()
         await this.updateProgress({
           stage: 'releases',
           stageTotal: 0,
@@ -562,6 +573,10 @@ export const VndbSync = {
     )
     await delKvPattern('galzy:tag:games*').catch((e) =>
       console.warn('[Cache] tagGames invalidation failed:', e),
+    )
+    // 标签层级缓存（galzy:tags:rel:*）与分类页
+    await delKvPattern('galzy:tags:*').catch((e) =>
+      console.warn('[Cache] tags invalidation failed:', e),
     )
     await delKvPattern('galzy:producer*').catch((e) =>
       console.warn('[Cache] Producer* invalidation failed:', e),
@@ -811,6 +826,124 @@ export const VndbSync = {
       }
       await new Promise((r) => setTimeout(r, 2000))
     }
+  },
+
+  /**
+   * 流水线内的层级同步包装：dump 下载失败不应把整个标签阶段标记为失败，
+   * 标签本体已经同步成功，层级只是附加数据，下次同步会自行补上。
+   */
+  async trySyncTagHierarchy(): Promise<void> {
+    try {
+      const hier = await this.syncTagHierarchy()
+      await this.addLog(
+        'success',
+        `Tag hierarchy synced: ${hier.tags} tags, ${hier.edges} edges`,
+      )
+    } catch (err) {
+      console.error('❌ Tag hierarchy sync failed:', err)
+      await this.addLog(
+        'error',
+        `Tag hierarchy sync failed (不影响标签本体): ${String(err)}`,
+      )
+    }
+  },
+
+  /**
+   * 同步标签层级（parent/child 边 + meta + 全站作品数）。
+   *
+   * Kuna API 的 POST /tag 不返回层级，只能用官方 tag dump。
+   * dump 是权威全量快照（约 3000 条 / 350KB），因此这里做全量替换而非增量：
+   * 一次事务内先 upsert tags 全量，再整体重建 tags_relations。
+   * 边表用复合主键去重，重复写入无副作用。
+   */
+  async syncTagHierarchy(): Promise<{ tags: number; edges: number }> {
+    const dump = await VndbTagDump.fetchTagDump()
+    const now = new Date()
+
+    // dump 的裸整数 id → gN。
+    //
+    // 刻意写入 dump 中「全部」标签，而不是只更新本地 tags 表已有的那些：
+    // tags 表仅收录站内出现过的标签，若按本地 id 过滤边，某个中间节点缺失就会
+    // 同时丢掉它上下的边，递归 CTE 便无法穿过该缺口，导致面包屑丢祖先、
+    // includeChildren 少算游戏，而且不会报错。多出的行不影响既有查询——
+    // 读取路径基本都与 zhtags 做 innerJoin，未本地化的标签自然不会露出；
+    // MeiliSearch 标签索引同样按 zhtags.exhibition 裁剪。
+    // 5 个 meta 根标签（Theme/Character/…）本身极少被直接标注，最容易成为这种缺口。
+    const edges: Array<{ parent: string; child: string; syncedAt: Date }> = []
+    const tagRows: Array<{
+      id: string
+      cat: string
+      name: string
+      alias: string | null
+      description: string | null
+      searchable: boolean
+      applicable: boolean
+      meta: boolean
+      vnCount: number
+      syncedAt: Date
+    }> = []
+
+    for (const entry of dump) {
+      const child = dumpIdToTagId(entry.id)
+      for (const parentId of entry.parents) {
+        edges.push({
+          parent: dumpIdToTagId(parentId),
+          child,
+          syncedAt: now,
+        })
+      }
+      tagRows.push({
+        id: child,
+        cat: entry.cat,
+        name: entry.name,
+        alias: entry.aliases?.join(',') ?? null,
+        description: entry.description ?? null,
+        searchable: entry.searchable,
+        applicable: entry.applicable,
+        meta: entry.meta,
+        vnCount: entry.vns,
+        syncedAt: now,
+      })
+    }
+
+    await db.transaction(async (trx) => {
+      for (let i = 0; i < tagRows.length; i += BATCH_SIZE) {
+        await trx
+          .insert(tags)
+          .values(tagRows.slice(i, i + BATCH_SIZE))
+          .onConflictDoUpdate({
+            target: tags.id,
+            set: {
+              cat: sql`excluded.cat`,
+              name: sql`excluded.name`,
+              alias: sql`excluded.alias`,
+              description: sql`excluded.description`,
+              searchable: sql`excluded.searchable`,
+              applicable: sql`excluded.applicable`,
+              meta: sql`excluded.meta`,
+              vnCount: sql`excluded.vn_count`,
+            },
+          })
+      }
+      // 边表整体重建：dump 是全量权威快照，增量无法感知「父标签被移除」
+      await trx.delete(tagsRelations)
+      for (let i = 0; i < edges.length; i += BATCH_SIZE) {
+        await trx
+          .insert(tagsRelations)
+          .values(edges.slice(i, i + BATCH_SIZE))
+          .onConflictDoNothing()
+      }
+    })
+
+    // 层级变化会影响面包屑 / 子标签展开 / 按标签筛选的作品数
+    await delKvPattern('galzy:tag:*')
+    await delKvPattern('galzy:game:tags*')
+    await delKvPattern('galzy:tags:*')
+
+    console.log(
+      `✅ Tag hierarchy synced: ${tagRows.length} tags, ${edges.length} edges`,
+    )
+    return { tags: tagRows.length, edges: edges.length }
   },
 
   // ========== Release Sync ==========

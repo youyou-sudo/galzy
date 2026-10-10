@@ -66,3 +66,12 @@ export const vndbSync = new Elysia({ prefix: '/vndb-sync' })
     },
     { isAdmin: true },
   )
+  .post(
+    '/tag-hierarchy',
+    async () => {
+      // 层级只能从官方 dump 取，独立入口便于修正层级而不必重跑全量
+      const result = await VndbSync.syncTagHierarchy()
+      return { ok: true, ...result, message: '标签层级同步完成' }
+    },
+    { isAdmin: true },
+  )

@@ -18,7 +18,15 @@ export const TagGamelist = () => {
 		queryKey: ["tagGameList", tagId],
 		queryFn: async ({ pageParam }) => {
 			const items = await getVnListByTag({
-				data: { tagId, pageIndex: pageParam, pageSize: 24 },
+				// 必须与路由 loader 传入的 includeChildren 保持一致，
+				// 否则第 1 页按「含子标签」语义、后续页按「仅直接标注」语义，
+				// 翻页会出现内容跳变。
+				data: {
+					tagId,
+					pageIndex: pageParam,
+					pageSize: 24,
+					includeChildren: true,
+				},
 			});
 			if (!items) {
 				return null;

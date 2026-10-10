@@ -4,6 +4,7 @@ import {
   index,
   integer,
   pgTable,
+  primaryKey,
   real,
   smallint,
   text,
@@ -97,6 +98,11 @@ export const tags = pgTable(
     defaultspoil: smallint('defaultspoil'),
     searchable: boolean('searchable'),
     applicable: boolean('applicable'),
+    // meta=true 的 5 个根标签（Theme/Character/Setting/Plot/Style）及其子类节点，
+    // 仅用于组织层级，本身不可直接标注到作品（applicable=false）。
+    meta: boolean('meta'),
+    // VNDB 官方全站作品数，与站内 alistb 收录数口径不同，用于展示"全站热度"。
+    vnCount: integer('vn_count'),
     name: text('name'),
     alias: text('alias'),
     description: text('description'),
@@ -104,6 +110,27 @@ export const tags = pgTable(
   },
   (table) => ({
     catIdx: index('idx_tags_cat').on(table.cat),
+    metaIdx: index('idx_tags_meta').on(table.meta),
+  }),
+)
+
+// tags_relations — 标签层级边（parent = 祖先, child = 后代）
+//
+// VNDB 的标签层级是 DAG 而非树：490 个标签有 2 个父标签、37 个有 3 个、3 个有 4 个
+// （例如 g10 "Terrorized by Monsters" 同时挂在 g2 "Fantasy" 与 g996 之下）。
+// 因此不能用单列 parent_id 表达，必须用边表；复合主键天然去重。
+// 数据来自官方 tag dump 的 `parents` 字段（整数 id），同步时转成 gN 形式。
+export const tagsRelations = pgTable(
+  'tags_relations',
+  {
+    parent: text('parent').notNull(),
+    child: text('child').notNull(),
+    syncedAt: timestamp('synced_at', { withTimezone: true }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.parent, table.child] }),
+    parentIdx: index('idx_tags_relations_parent').on(table.parent),
+    childIdx: index('idx_tags_relations_child').on(table.child),
   }),
 )
 
@@ -259,6 +286,27 @@ export const vnRelations = relations(vn, ({ many, one }) => ({
     relationName: 'vnImage',
   }),
   releasesVn: many(releasesVn),
+}))
+
+// tags — 层级是 DAG，需双向声明（祖先边 / 后代边）才能用 with 查询
+export const tagsRelationsGraph = relations(tags, ({ many }) => ({
+  // 我作为 child 的边 → 我的祖先
+  ancestors: many(tagsRelations, { relationName: 'tagsRelationChild' }),
+  // 我作为 parent 的边 → 我的直接子标签
+  descendants: many(tagsRelations, { relationName: 'tagsRelationParent' }),
+}))
+
+export const tagsRelationsEdges = relations(tagsRelations, ({ one }) => ({
+  parentTag: one(tags, {
+    fields: [tagsRelations.parent],
+    references: [tags.id],
+    relationName: 'tagsRelationParent',
+  }),
+  childTag: one(tags, {
+    fields: [tagsRelations.child],
+    references: [tags.id],
+    relationName: 'tagsRelationChild',
+  }),
 }))
 
 export const vnTitlesRelations = relations(vnTitles, ({ one }) => ({

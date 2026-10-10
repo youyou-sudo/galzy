@@ -87,10 +87,7 @@ export default function ProducerDetailPage({
 					</CardHeader>
 				</Card>
 			</section>
-			<div className="text-sm text-center items-center opacity-30 italic">
-				相关游戏，过滤自 VNDB
-			</div>
-			<section>
+			<section className="mt-4">
 				<ProducerGamelist />
 			</section>
 		</>

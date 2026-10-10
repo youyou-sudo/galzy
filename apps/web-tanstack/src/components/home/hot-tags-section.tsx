@@ -73,7 +73,6 @@ export function HotTagsSection({ tags }: HotTagsSectionProps) {
 				</div>
 				<Link
 					to="/tags"
-					search={{ sort: "views" }}
 					className="text-xs text-muted-foreground transition-colors hover:text-primary lg:text-sm"
 				>
 					更多 →
