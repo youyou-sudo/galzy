@@ -81,6 +81,14 @@ export function groupSplitArchives(
 	const splitRegex = /(.*?)(?:\.part\d+)\.(rar|zip|7z)$/i;
 	const timestamp = Date.now();
 
+	// 先整体扫描一遍目录收集同名 md：readme 可能排在被关联文件之后，
+	// 边遍历边收集会因目录顺序不同而漏关联（与站内 download-options 一致）。
+	for (const item of items) {
+		if (item.type !== "folder" && item.name.endsWith(".md")) {
+			mdMap[item.name.replace(/\.md$/i, "")] = item.id;
+		}
+	}
+
 	items.forEach((item) => {
 		if (item.type === "folder") {
 			if (!item.name.startsWith("(分卷) ")) {
@@ -91,7 +99,6 @@ export function groupSplitArchives(
 		}
 
 		if (item.name.endsWith(".md")) {
-			mdMap[item.name.replace(/\.md$/i, "")] = item.id;
 			return;
 		}
 
@@ -109,12 +116,16 @@ export function groupSplitArchives(
 	});
 
 	const archiveFolders = Object.entries(archivesMap).map(
-		([fullName, files]) => ({
-			id: `archive-${fullName}-${timestamp}`,
-			type: "folder" as const,
-			name: `(分卷) ${fullName}`,
-			children: files,
-		}),
+		([fullName, files]) => {
+			const baseName = fullName.replace(/\.(rar|zip|7z)$/i, "");
+			return {
+				id: `archive-${fullName}-${timestamp}`,
+				redame: mdMap[baseName],
+				type: "folder" as const,
+				name: `(分卷) ${fullName}`,
+				children: files,
+			};
+		},
 	);
 
 	return [...others, ...archiveFolders];

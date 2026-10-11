@@ -1,13 +1,7 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { CalendarIcon, SearchIcon, XIcon } from "lucide-react";
 import type React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
-
-// SSR-safe: 服务端无 window 对象
-function getSearchParam(key: string): string {
-	if (typeof window === "undefined") return "";
-	return new URLSearchParams(window.location.search).get(key) ?? "";
-}
 
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
@@ -29,32 +23,53 @@ interface SearchInputProps {
 	liveSearch?: boolean;
 }
 
+// 以路由 search 作为初值来源（而非 window.location）：SSR 与客户端水合
+// 读取同一份值，且在浏览器前进/后退时能随 URL 变化同步。
+type SearchInputParams = {
+	q?: string;
+	startDate?: string;
+	endDate?: string;
+	sortBy?: string;
+	order?: string;
+};
+
 export default function SearchInput({
 	placeholder = "标题、标签、回车，喵喵喵～🐾",
 	liveSearch = false,
 }: SearchInputProps) {
 	const navigate = useNavigate();
+	// strict: false —— 本组件同时用于首页（无 search 校验）与 /games（有 schema）
+	const routeSearch = useSearch({
+		strict: false,
+	}) as unknown as SearchInputParams;
+	const currentQ = routeSearch.q ?? "";
+	const currentStartDate = routeSearch.startDate ?? "";
+	const currentEndDate = routeSearch.endDate ?? "";
 	const inputRef = useRef<HTMLInputElement>(null);
 	const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-	const [inputValue, setInputValue] = useState(() => getSearchParam("q"));
-	const [startDate, setStartDate] = useState(() => getSearchParam("startDate"));
-	const [endDate, setEndDate] = useState(() => getSearchParam("endDate"));
+	const [inputValue, setInputValue] = useState(currentQ);
+	const [startDate, setStartDate] = useState(currentStartDate);
+	const [endDate, setEndDate] = useState(currentEndDate);
 	const [dateOpen, setDateOpen] = useState(false);
+
+	// URL（导航 / 前进后退）变化时同步输入框与日期，保持本地状态与 search 一致
+	useEffect(() => {
+		setInputValue((prev) =>
+			prev.trim() === currentQ.trim() ? prev : currentQ,
+		);
+	}, [currentQ]);
+	useEffect(() => setStartDate(currentStartDate), [currentStartDate]);
+	useEffect(() => setEndDate(currentEndDate), [currentEndDate]);
 
 	const handleSearch = useCallback(
 		(searchValue: string) => {
 			const trimmed = searchValue.trim();
 
-			const params =
-				typeof window !== "undefined"
-					? new URLSearchParams(window.location.search)
-					: new URLSearchParams();
-
 			const isSame =
-				trimmed === params.get("q") &&
-				startDate === (params.get("startDate") ?? "") &&
-				endDate === (params.get("endDate") ?? "");
+				trimmed === currentQ.trim() &&
+				startDate === currentStartDate &&
+				endDate === currentEndDate;
 
 			if (isSame) return;
 
@@ -64,13 +79,22 @@ export default function SearchInput({
 					q: trimmed || undefined,
 					startDate: startDate || undefined,
 					endDate: endDate || undefined,
-					sortBy: params.get("sortBy") || "released",
-					order: params.get("order") || "desc",
+					sortBy: routeSearch.sortBy || "released",
+					order: routeSearch.order || "desc",
 				},
 				replace: true,
 			});
 		},
-		[navigate, startDate, endDate],
+		[
+			navigate,
+			startDate,
+			endDate,
+			currentQ,
+			currentStartDate,
+			currentEndDate,
+			routeSearch.sortBy,
+			routeSearch.order,
+		],
 	);
 
 	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,6 +132,9 @@ export default function SearchInput({
 
 	const handleClear = () => {
 		setInputValue("");
+		// 清除按钮同时移除日期筛选：URL 与本地状态一起清，避免 badge 与实际过滤不一致
+		setStartDate("");
+		setEndDate("");
 		if (debounceRef.current) {
 			clearTimeout(debounceRef.current);
 		}
@@ -122,6 +149,16 @@ export default function SearchInput({
 	const handleDateClear = () => {
 		setStartDate("");
 		setEndDate("");
+		// 立即把日期从 URL search 中移除：只改本地 state 会让列表继续被旧日期过滤
+		navigate({
+			to: "/games",
+			search: {
+				q: currentQ || undefined,
+				sortBy: routeSearch.sortBy || "released",
+				order: routeSearch.order || "desc",
+			},
+			replace: true,
+		});
 	};
 
 	// 全局 / 快捷键聚焦搜索框

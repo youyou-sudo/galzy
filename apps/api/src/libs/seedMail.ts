@@ -1,5 +1,5 @@
 import { createEmail } from 'unemail'
-import resend from 'unemail/driver/resend'
+import resend from 'unemail/drivers/resend'
 
 const emailServer = createEmail({
   driver: resend({

@@ -113,7 +113,14 @@ export default function ProfileTab({
 		if (!name.trim()) return;
 		setIsSaving(true);
 		try {
-			await authClient.updateUser({ name });
+			// better-auth 客户端方法 resolve 出 { data, error }，不 throw：
+			// 必须显式检查 error，否则保存失败会被静默吞掉
+			const { error } = await authClient.updateUser({ name });
+			if (error) {
+				toast.error(error.message || "保存失败，请重试");
+				return;
+			}
+			toast.success("资料已更新");
 			onProfileUpdated();
 		} catch {
 			toast.error("保存失败，请重试");
@@ -127,11 +134,16 @@ export default function ProfileTab({
 		try {
 			const callbackURL = `${window.location.origin}/user`;
 			const errorCallbackURL = callbackURL;
-			await authClient.linkSocial({
+			const { error } = await authClient.linkSocial({
 				provider: providerId,
 				callbackURL,
 				errorCallbackURL,
 			});
+			if (error) {
+				toast.error(error.message || "绑定失败，请稍后重试");
+			}
+		} catch {
+			toast.error("绑定失败，请稍后重试");
 		} finally {
 			setLinkingProvider(null);
 		}
@@ -142,9 +154,14 @@ export default function ProfileTab({
 		try {
 			// better-auth 的 unlinkAccount 仅接受 accountId（providerId 是旧 API）
 			const { error } = await authClient.unlinkAccount({ accountId });
-			if (!error) {
-				await refetchAccounts();
+			if (error) {
+				toast.error(error.message || "解绑失败，请稍后重试");
+				return;
 			}
+			toast.success("已解绑");
+			await refetchAccounts();
+		} catch {
+			toast.error("解绑失败，请稍后重试");
 		} finally {
 			setUnlinkingProvider(null);
 		}

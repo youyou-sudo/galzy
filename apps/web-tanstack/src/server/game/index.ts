@@ -51,15 +51,13 @@ export const getGameRelations = createServerFn()
 export const getFileList = createServerFn()
 	.validator(z.object({ id: z.string() }))
 	.handler(async ({ data }) => {
-		try {
-			const { data: filelist, error } = await api.games.openlistfiles.get({
-				query: { id: data.id },
-			});
-			elysiaErrorF(error);
-			return { game: filelist };
-		} catch {
-			return { game: [] };
-		}
+		// 不再吞错返回空列表：上游故障会被 UI 区分成「加载失败可重试」，
+		// 而不是伪装成「此游戏没有文件」
+		const { data: filelist, error } = await api.games.openlistfiles.get({
+			query: { id: data.id },
+		});
+		elysiaErrorF(error);
+		return { game: filelist };
 	});
 
 export const translateData = createServerFn()

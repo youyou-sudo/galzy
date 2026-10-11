@@ -117,10 +117,17 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       typeof error === 'object' &&
       error &&
       'status' in error &&
-      typeof (error as any).status === 'number'
-        ? (error as any).status
+      typeof (error as { status: unknown }).status === 'number'
+        ? (error as { status: number }).status
         : 500
-    return <Errors code={status} errormessage={error.message} />
+    // 路由升级后 error 为 unknown：安全地取 message，避免 stringify 出无意义内容
+    const message =
+      error instanceof Error
+        ? error.message
+        : typeof error === 'string'
+          ? error
+          : '页面加载出错喵～'
+    return <Errors code={status} errormessage={message} />
   },
 })
 
@@ -195,10 +202,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
             rel="noopener noreferrer"
             href="https://umami.galzy.moe/q/KrhnTk4vg"
           >
-            <div
-              id="sidebar-ad"
-              className="sm:hidden overflow-hidden rounded-lg"
-            >
+            <div className="sm:hidden overflow-hidden rounded-lg">
               <Image
                 width={1425}
                 height={120}
@@ -207,7 +211,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
                 className="object-cover scale-[1.03]"
               />
             </div>
-            <div id="sidebar-ad" className="hidden sm:block">
+            <div className="hidden sm:block">
               <Image
                 width={1425}
                 height={113}

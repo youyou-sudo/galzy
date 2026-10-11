@@ -57,7 +57,12 @@ export const DownloadOptions = () => {
 	const { id } = apiroute.useParams();
 	// 懒加载文件列表：下载 tab 才请求，不阻塞进入详情页的点击导航
 	//（loader 侧已 prefetchQuery 预热，首次进入也大概率秒出）
-	const { data: filelist } = useQuery(filelistQueryOptions(id));
+	const {
+		data: filelist,
+		isError,
+		error,
+		refetch,
+	} = useQuery(filelistQueryOptions(id));
 	// VT 结束 gate：数据到达时若正处 View Transition 动画中，先保持骨架，
 	// 等 waitForViewTransitionEnd() resolve 再提交渲染 —— VT 进行中的重渲染
 	// 会打断动画帧；useDeferredValue 只降优先级，不保证等动画结束。
@@ -73,6 +78,22 @@ export const DownloadOptions = () => {
 			cancelled = true;
 		};
 	}, [filelist]);
+
+	// 文件服务/上游故障：明确报错并可重试，不再伪装成空文件列表
+	if (isError && !settledFilelist) {
+		return (
+			<div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
+				<p className="text-sm text-muted-foreground">
+					{error instanceof Error && error.message
+						? error.message
+						: "文件列表加载失败喵～请稍后重试"}
+				</p>
+				<Button size="sm" variant="outline" onClick={() => void refetch()}>
+					重试
+				</Button>
+			</div>
+		);
+	}
 
 	if (!settledFilelist?.game) {
 		return (

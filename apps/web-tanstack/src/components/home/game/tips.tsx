@@ -50,7 +50,6 @@ export const Glgczujm = () => {
 
 			<aside>
 				<Alert
-					id="sidebar-ad"
 					className="border-cyan-600/30 border-x-0 border-b-0 flex items-center gap-2 py-1.5"
 				>
 					<span
@@ -103,7 +102,6 @@ export const Glgczujm = () => {
 
 			<aside>
 				<Alert
-					id="sidebar-ad"
 					className="border-cyan-600/30 border-x-0 border-b-0 flex items-start px-0 py-1.5"
 				>
 					<span

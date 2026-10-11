@@ -1,15 +1,14 @@
-import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
 import { Button } from "@web/components/ui/button";
 import { CodeBlock } from "./code-block";
 
 interface ErrorsProps {
-	code: string;
+	code: string | number;
 	errormessage?: any;
 }
 
 export default function Errors({ code, errormessage }: ErrorsProps) {
-	const navigate = useNavigate();
 	const router = useRouter();
 
 	return (
@@ -44,9 +43,10 @@ export default function Errors({ code, errormessage }: ErrorsProps) {
 				<Button
 					onClick={() => {
 						if (window.history.length > 1) {
-							navigate({ to: "." });
+							// 真正回退历史记录（to: "." 只会重载当前路由）
+							router.history.back();
 						} else {
-							navigate({ to: "/" });
+							void router.navigate({ to: "/" });
 						}
 					}}
 				>
