@@ -20,8 +20,7 @@ export const TagsSearchSchema = object({
 
 export const Route = createFileRoute("/tags/")({
 	component: () => {
-		const { q } = Route.useLoaderData();
-		const { sort } = Route.useSearch();
+		const { q, sort } = Route.useSearch();
 		return (
 			<div>
 				<Breadcrumb className="mb-4">
@@ -43,20 +42,31 @@ export const Route = createFileRoute("/tags/")({
 	loaderDeps: ({ search: { q } }) => ({ q: q?.trim() }),
 	loader: async ({ deps, context }) => {
 		const q = deps.q ?? "";
-		await Promise.all([
+		const pending: Array<Promise<unknown>> = [
 			context.queryClient.ensureQueryData({
 				queryKey: ["tagHub", "preview"],
 				queryFn: () => getTagHub({ data: { limit: 48 } }),
 				staleTime: 10 * 60_000,
 			}),
-			q
-				? context.queryClient.ensureQueryData({
-						queryKey: ["searchTags", q],
-						queryFn: () => getSearchTags({ data: { q, limit: 200 } }),
-						staleTime: 30_000,
-					})
-				: Promise.resolve(),
-		]);
+		];
+		if (q) {
+			pending.push(
+				context.queryClient.ensureQueryData({
+					queryKey: ["searchTags", q],
+					queryFn: () => getSearchTags({ data: { q, limit: 200 } }),
+					staleTime: 30_000,
+				}),
+			);
+		}
+		if (typeof window === "undefined") {
+			// SSR：等待数据，保证首屏直出与 query 脱水
+			await Promise.all(pending);
+		} else {
+			// 客户端导航：不阻塞路由切换 —— await 会因 defaultPendingMs=60
+			// 把整页换成 pendingComponent（全屏骨架）。输入关键词时加载态
+			// 交给组件内 useQuery 的局部加载承担。
+			void Promise.all(pending).catch(() => {});
+		}
 		return { q: q || undefined };
 	},
 	head: ({ loaderData }) => ({

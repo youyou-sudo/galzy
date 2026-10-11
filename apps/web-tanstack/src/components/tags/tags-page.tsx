@@ -1,6 +1,11 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import {
+	keepPreviousData,
+	useQuery,
+	useSuspenseQuery,
+} from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Skeleton } from "@web/components/ui/skeleton";
+import { cn } from "@web/lib/utils";
 import type { TagHubCategory } from "@web/server/tags";
 import { getSearchTags, getTagHub } from "@web/server/tags";
 import { SearchIcon, TagsIcon, XIcon } from "lucide-react";
@@ -27,14 +32,24 @@ export default function TagsIndexPage({
 	const navigate = useNavigate();
 	const [inputValue, setInputValue] = useState(q || "");
 	const debounceRef = useRef<DebounceTimer>(null);
+	// 当前 URL 里的关键词：输入未变化时跳过导航，避免同值 search 变化
+	// 触发一次无意义的路由导航（连带 loader 重跑）
+	const queryRef = useRef(q?.trim() ?? "");
+
+	useEffect(() => {
+		queryRef.current = q?.trim() ?? "";
+	}, [q]);
 
 	const handleSearch = useCallback(
 		(value: string) => {
 			const trimmed = value.trim();
+			if (trimmed === queryRef.current) return;
 			navigate({
 				to: "/tags",
 				search: { ...(trimmed ? { q: trimmed } : {}), sort },
 				replace: true,
+				// 只是同页参数变化，不需要整页 View Transition 过渡
+				viewTransition: false,
 			});
 		},
 		[navigate, sort],
@@ -51,7 +66,12 @@ export default function TagsIndexPage({
 
 	const handleClear = () => {
 		setInputValue("");
-		navigate({ to: "/tags", search: { sort }, replace: true });
+		navigate({
+			to: "/tags",
+			search: { sort },
+			replace: true,
+			viewTransition: false,
+		});
 	};
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -69,8 +89,11 @@ export default function TagsIndexPage({
 	}, []);
 
 	// URL 回退/前进时同步输入框
+	// 仅在内容（忽略首尾空格）真的不同时回写，避免输入过程中的回声覆盖
 	useEffect(() => {
-		setInputValue(q || "");
+		setInputValue((prev) =>
+			prev.trim() === (q ?? "").trim() ? prev : q || "",
+		);
 	}, [q]);
 
 	const searchQ = q?.trim();
@@ -121,13 +144,35 @@ export default function TagsIndexPage({
 }
 
 function TagSearchResults({ q }: { q: string }) {
-	const { data: searchTags } = useSuspenseQuery({
+	// 非 suspense：换关键词时留旧结果占位（keepPreviousData），
+	// 只在局部显示加载态，避免整块结果区闪骨架
+	const {
+		data: searchTags,
+		isPending,
+		isFetching,
+	} = useQuery({
 		queryKey: ["searchTags", q],
 		queryFn: () => getSearchTags({ data: { q, limit: 200 } }),
 		staleTime: 30_000,
+		placeholderData: keepPreviousData,
 	});
 
 	const tagItems = searchTags?.hits ?? [];
+
+	if (isPending) {
+		return (
+			<div className="w-full">
+				<p className="text-xs text-muted-foreground mb-3">搜索中…</p>
+				<ul className="grid grid-cols-2 gap-x-7 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
+					{Array.from({ length: 12 }, (_, i) => (
+						<li key={i} className="min-w-0 py-[5px]">
+							<Skeleton className="h-4 w-full" />
+						</li>
+					))}
+				</ul>
+			</div>
+		);
+	}
 
 	if (tagItems.length === 0) {
 		return (
@@ -140,9 +185,12 @@ function TagSearchResults({ q }: { q: string }) {
 	}
 
 	return (
-		<div className="w-full">
+		<div
+			className={cn("w-full transition-opacity", isFetching && "opacity-60")}
+		>
 			<p className="text-xs text-muted-foreground mb-3">
 				共找到 {searchTags?.totalHits ?? tagItems.length} 个标签
+				{isFetching && "（更新中…）"}
 			</p>
 			<ul className="grid grid-cols-2 gap-x-7 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
 				{tagItems.map((hit) => (
