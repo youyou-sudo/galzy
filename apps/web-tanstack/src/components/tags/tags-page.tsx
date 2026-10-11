@@ -189,23 +189,36 @@ function TagSearchResults({ q }: { q: string }) {
 				{isFetching && "（更新中…）"}
 			</p>
 			<ul className="grid grid-cols-2 gap-x-7 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
-				{tagItems.map((hit) => (
-					<li key={hit.id} className="min-w-0">
-						<Link
-							to="/tags/$tagId"
-							params={{ tagId: hit.id }}
-							title={`${hit.name}${hit.alias ? ` · ${hit.alias}` : ""}`}
-							className="-mx-1.5 flex items-baseline gap-3 border-b border-border/70 px-1.5 py-[5px] text-xs leading-[18px] no-underline transition-colors hover:bg-muted/40"
-						>
-							<span className="min-w-0 flex-1 truncate font-medium">
-								{hit.zh_name || hit.name}
-							</span>
-							<span className="shrink-0 truncate text-muted-foreground/80">
-								{hit.name}
-							</span>
-						</Link>
-					</li>
-				))}
+				{tagItems.map((hit) => {
+					const zhName = hit.zh_name?.trim();
+					const enName = hit.name?.trim() ?? "";
+					// 中文优先：没有中文名时只展示一次原文，避免同名重复渲染
+					const primary = zhName || enName || hit.id;
+					const tooltip = [primary, enName, hit.alias?.trim()]
+						.filter(Boolean)
+						.filter((v, i, arr) => arr.indexOf(v) === i)
+						.join(" · ");
+					return (
+						<li key={hit.id} className="min-w-0">
+							<Link
+								to="/tags/$tagId"
+								params={{ tagId: hit.id }}
+								title={tooltip}
+								className="-mx-1.5 flex items-baseline gap-3 border-b border-border/70 px-1.5 py-[5px] text-xs leading-[18px] no-underline transition-colors hover:bg-muted/40"
+							>
+								{/* 中文名压住英文名：最多占 7 成宽度，超出才截断 */}
+								<span className="min-w-0 max-w-[70%] shrink-0 truncate font-medium">
+									{primary}
+								</span>
+								{zhName && enName && (
+									<span className="min-w-0 flex-1 truncate text-right text-muted-foreground/80">
+										{enName}
+									</span>
+								)}
+							</Link>
+						</li>
+					);
+				})}
 			</ul>
 		</div>
 	);

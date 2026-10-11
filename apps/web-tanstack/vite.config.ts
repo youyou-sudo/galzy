@@ -12,16 +12,62 @@ import viteCompression from "vite-plugin-compression";
 
 const BUILD_ID = process.env.BUILD_ID || `dev-${Date.now().toString(36)}`;
 
+/**
+ * Vite 内部 preload 标记。动态 import 会被改写为
+ * `__vitePreload(factory, __VITE_PRELOAD__)`，正常情况下由 Vite 在客户端构建的
+ * generateBundle 阶段替换成依赖数组（或对孤立标记替换为 `void 0`）。
+ *
+ * 但当一个 chunk 由别的构建环境产出（TanStack Start 的 server-fn / cookies
+ * 运行时混入客户端 chunk 时出现过）却又作为客户端资源下发时，标记会原样进入
+ * 产物，浏览器执行即抛 `__VITE_PRELOAD__ is not defined`（生产事故）。
+ */
+const VITE_PRELOAD_MARKER = "__VITE_PRELOAD__";
+
+/** 把产物里残留的 preload 标记就地归一化为 `void 0`。
+ *  与 Vite 自己对孤立标记的处理一致：preload helper 内部是
+ *  `if (deps && deps.length > 0)`，undefined 是受支持的取值。
+ *  （导出仅为便于针对真实产物做回归验证。） */
+export function normalizeLeakedPreloadMarker(
+	warn: (message: string) => void,
+	fileName: string,
+	code: string,
+): string {
+	if (!code.includes(VITE_PRELOAD_MARKER)) return code;
+	warn(
+		`产物 ${fileName} 残留 ${VITE_PRELOAD_MARKER} 标记，已替换为 void 0；` +
+			`请检查是否仍有 server-only 模块混入了客户端 chunk`,
+	);
+	return code.split(VITE_PRELOAD_MARKER).join("void 0");
+}
+
 // vite-plugin-compression 在 configResolved 捕获顶层 build.outDir（此处最终
 // 解析为 server 产物目录），在 TanStack Start 的 Vite 8 environments 构建管道
 // 下其 closeBundle 永远不会覆盖 dist/client。改为在 client 环境构建的
-// generateBundle 阶段直接 emit .gz/.br 预压缩产物。
+// generateBundle 阶段直接 emit .gz/.br 预压缩产物；同时兜底清理 Vite preload
+// 标记，保证预压缩副本与原始产物同样干净（避免 CDN 下发到残留标记的旧副本）。
 function clientPrecompression(): Plugin {
 	return {
 		name: "galzy:client-precompression",
 		apply: "build",
 		enforce: "post",
 		generateBundle(_options, bundle) {
+			// 所有环境先做标记归一化（服务端产物残留同样会 crash SSR）
+			for (const file of Object.values(bundle)) {
+				if (file.type === "chunk") {
+					file.code = normalizeLeakedPreloadMarker(
+						(message) => this.warn(message),
+						file.fileName,
+						file.code,
+					);
+				} else if (typeof file.source === "string") {
+					file.source = normalizeLeakedPreloadMarker(
+						(message) => this.warn(message),
+						file.fileName,
+						file.source,
+					);
+				}
+			}
+
 			if (this.environment?.name !== "client") return;
 			for (const file of Object.values(bundle)) {
 				if (!/\.(js|mjs|json|css|html)$/i.test(file.fileName)) continue;
@@ -104,12 +150,14 @@ const config = defineConfig(({ command }) => {
 			react(),
 			viteCompression({ algorithm: "gzip", ext: ".gz" }),
 			viteCompression({ algorithm: "brotliCompress", ext: ".br" }),
-			clientPrecompression(),
 			babel({ presets: [reactCompilerPreset()] }),
 			// 路由代码分割：仅在构建期启用，保留 Windows 端 dev 体验；
 			// dev 下由 tanstackStart() 内置的路由生成/分割管线负责，
 			// 避免独立插件的双生成器叠加引起 dev 变慢与导航等待
 			isBuild && tanstackRouter({ autoCodeSplitting: true }),
+			// 放在最后：产物定稿后再做 preload 标记兜底清理 + 预压缩，
+			// 保证 .js 与 .gz/.br 三份内容一致
+			clientPrecompression(),
 		],
 	};
 });

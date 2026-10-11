@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@web/lib/utils";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, MousePointerClick } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 
 export type FlowTag = {
@@ -100,6 +100,7 @@ export function CollapsibleTagList({
 			aria-expanded={expanded}
 			className={cn(pill, "mr-1.5 mb-1.5 cursor-pointer")}
 		>
+			<MousePointerClick className="size-3" />
 			收起
 			<ChevronDown className="size-3 rotate-180 transition-transform" />
 		</button>
@@ -117,6 +118,7 @@ export function CollapsibleTagList({
 				!overflows && "pointer-events-none invisible",
 			)}
 		>
+			<MousePointerClick className="size-3" />
 			展开
 			<ChevronDown className="size-3 transition-transform" />
 		</button>
