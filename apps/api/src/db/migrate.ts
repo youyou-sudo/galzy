@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { setDeployStatus } from '@api/modules/status/service'
 import { redis } from 'bun'
 import { migrate } from 'drizzle-orm/bun-sql/migrator'
-import { db, sql } from './client'
+import { db, primeConnectionSettings, sql } from './client'
 
 /**
  * 定位迁移文件目录（drizzle/*.sql + meta/_journal.json）。
@@ -168,6 +168,19 @@ export const dbAction = async (): Promise<boolean> => {
     setDeployStatus('error')
     return false
   }
+
+  // 迁移完成后再给池内连接设置 statement_timeout（避免 30s 超时误杀长 DDL）。
+  // 失败只告警：服务端侧可能已通过 0010 的 ALTER DATABASE 设置了默认值。
+  try {
+    await primeConnectionSettings()
+    console.log('✅ statement_timeout primed on pool connections')
+  } catch (e) {
+    console.warn(
+      '⚠️ 连接池 statement_timeout 设置失败（继续，依赖服务端默认值）:',
+      e instanceof Error ? e.message : String(e),
+    )
+  }
+
   setDeployStatus('ready')
 
   try {

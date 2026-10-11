@@ -1,4 +1,12 @@
-import { db, queueJob, queueJobLog } from '@api/libs'
+import {
+  db,
+  eventViews,
+  gameDownloadStats,
+  queueJob,
+  queueJobLog,
+  sql,
+  statCounters,
+} from '@api/libs'
 import type { TaskPayload } from '@api/libs/queue'
 import {
   defaultJobOptions,
@@ -9,6 +17,8 @@ import {
   queueOf,
 } from '@api/libs/queue'
 import {
+  EVENT_VIEW_RETENTION_DAYS,
+  GAME_DOWNLOAD_STATS_RETENTION_DAYS,
   QUEUE_JOB_RETENTION_DAYS,
   QUEUE_LOG_TTL_DAYS,
 } from '@api/libs/queue/config'
@@ -512,24 +522,158 @@ async function runCloudreveHandler(payload: TaskPayload) {
   return await CronService.cloudreveSyncScript()
 }
 
-/** 队列日志/记录 TTL 清理（分批物理删除，避免长事务锁表）。 */
+/** 单批删除行数：既控制事务/锁的粒度，也避免一次性把全部被删 id 拉进内存。 */
+const PRUNE_BATCH_SIZE = 5000
+
+/**
+ * 按 id 分批物理删除（避免长事务锁表、避免一次性加载全部被删行）。
+ * `idCol` 必需是单列主键（serial 或 varchar 均可），用于 `IN (...)` 定位批；
+ * 两张表的 id 类型不同（number / string），故此处用 any 收敛签名，调用处仍传具体表与列。
+ */
+async function pruneByBatch(
+  table: any,
+  idCol: any,
+  timeCol: any,
+  cutoff: Date,
+): Promise<number> {
+  let deleted = 0
+  for (;;) {
+    const rows = await db
+      .select({ id: idCol })
+      .from(table)
+      .where(lt(timeCol, cutoff))
+      .limit(PRUNE_BATCH_SIZE)
+    if (rows.length === 0) break
+    const removed = await db
+      .delete(table)
+      .where(
+        inArray(
+          idCol,
+          rows.map((r) => r.id),
+        ),
+      )
+      .returning({ id: idCol })
+    deleted += removed.length
+    // 行数不足一批，或本批未删掉任何行（并发已删），都结束循环。
+    if (removed.length === 0) break
+    if (rows.length < PRUNE_BATCH_SIZE) break
+  }
+  return deleted
+}
+
+/**
+ * 分批删除过期事件明细，并把每批删除的行按 (event_type, target_id) 聚合进
+ * galrc_stat_counters。删除与聚合在同一条语句（CTE）里完成，要么都生效要么都回滚，
+ * 因此「累计值 = counters.total + 明细剩余行数」不会因并发/中途失败而重复计数。
+ */
+async function rollupAndPruneEventViews(cutoff: Date): Promise<number> {
+  let deleted = 0
+  for (;;) {
+    const res = await db.execute(sql`
+      WITH batch AS (
+        SELECT id FROM ${eventViews}
+        WHERE ${eventViews.createdAt} < ${cutoff}
+        ORDER BY ${eventViews.id}
+        LIMIT ${PRUNE_BATCH_SIZE}
+      ),
+      moved AS (
+        DELETE FROM ${eventViews} e
+        USING batch b
+        WHERE e.id = b.id
+        RETURNING e.event_type AS kind, e.target_id AS target_id
+      ),
+      rolled AS (
+        INSERT INTO ${statCounters} (kind, target_id, total, updated_at)
+        SELECT kind, target_id, COUNT(*), now() FROM moved GROUP BY kind, target_id
+        ON CONFLICT (kind, target_id)
+        DO UPDATE SET total = ${statCounters}.total + EXCLUDED.total, updated_at = now()
+        RETURNING 1
+      )
+      SELECT (SELECT COUNT(*) FROM moved)::int AS removed
+    `)
+    const removed = Number((res as Array<{ removed: number }>)[0]?.removed ?? 0)
+    if (removed === 0) break
+    deleted += removed
+    if (removed < PRUNE_BATCH_SIZE) break
+  }
+  return deleted
+}
+
+/** 分批删除过期下载明细并 rollup 进 counters（kind = 'game_download'）。 */
+async function rollupAndPruneGameDownloads(cutoff: Date): Promise<number> {
+  let deleted = 0
+  for (;;) {
+    const res = await db.execute(sql`
+      WITH batch AS (
+        SELECT id FROM ${gameDownloadStats}
+        WHERE ${gameDownloadStats.createdAt} < ${cutoff}
+        ORDER BY ${gameDownloadStats.id}
+        LIMIT ${PRUNE_BATCH_SIZE}
+      ),
+      moved AS (
+        DELETE FROM ${gameDownloadStats} d
+        USING batch b
+        WHERE d.id = b.id
+        RETURNING d.game_id AS target_id
+      ),
+      rolled AS (
+        INSERT INTO ${statCounters} (kind, target_id, total, updated_at)
+        SELECT 'game_download', target_id, COUNT(*), now() FROM moved GROUP BY target_id
+        ON CONFLICT (kind, target_id)
+        DO UPDATE SET total = ${statCounters}.total + EXCLUDED.total, updated_at = now()
+        RETURNING 1
+      )
+      SELECT (SELECT COUNT(*) FROM moved)::int AS removed
+    `)
+    const removed = Number((res as Array<{ removed: number }>)[0]?.removed ?? 0)
+    if (removed === 0) break
+    deleted += removed
+    if (removed < PRUNE_BATCH_SIZE) break
+  }
+  return deleted
+}
+
+/**
+ * 队列日志/记录 + 事件/下载明细的 TTL 清理（分批物理删除，避免长事务锁表）。
+ * 明细清理前先 rollup 进 galrc_stat_counters，保证累计统计不因清理而下降。
+ */
 async function runPruneHandler() {
   const logCutoff = new Date(Date.now() - QUEUE_LOG_TTL_DAYS * 86400_000)
   const jobCutoff = new Date(Date.now() - QUEUE_JOB_RETENTION_DAYS * 86400_000)
 
-  // 先删子日志，再删 job（返回被删 id 列表用于计数）。
-  const deletedLogs = await db
-    .delete(queueJobLog)
-    .where(lt(queueJobLog.createdAt, logCutoff))
-    .returning({ id: queueJobLog.id })
-  const deletedJobs = await db
-    .delete(queueJob)
-    .where(lt(queueJob.createdAt, jobCutoff))
-    .returning({ id: queueJob.id })
+  // 先删子日志，再删 job（FK ON DELETE CASCADE 只是兜底，显式顺序更清晰）。
+  const deletedLogs = await pruneByBatch(
+    queueJobLog,
+    queueJobLog.id,
+    queueJobLog.createdAt,
+    logCutoff,
+  )
+  const deletedJobs = await pruneByBatch(
+    queueJob,
+    queueJob.id,
+    queueJob.createdAt,
+    jobCutoff,
+  )
+
+  // 明细清理（保留天数 <= 0 视为关闭）
+  const deletedEventViews =
+    EVENT_VIEW_RETENTION_DAYS > 0
+      ? await rollupAndPruneEventViews(
+          new Date(Date.now() - EVENT_VIEW_RETENTION_DAYS * 86400_000),
+        )
+      : 0
+  const deletedDownloadStats =
+    GAME_DOWNLOAD_STATS_RETENTION_DAYS > 0
+      ? await rollupAndPruneGameDownloads(
+          new Date(Date.now() - GAME_DOWNLOAD_STATS_RETENTION_DAYS * 86400_000),
+        )
+      : 0
 
   return {
-    deletedLogs: deletedLogs.length,
-    deletedJobs: deletedJobs.length,
+    deletedLogs,
+    deletedJobs,
+    deletedEventViews,
+    deletedDownloadStats,
   }
 }
 

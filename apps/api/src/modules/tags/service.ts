@@ -79,6 +79,9 @@ async function getTagRelatedIds(
       SELECT r.${to}, w.depth + 1
       FROM ${tagsRelations} r
       INNER JOIN walk w ON r.${from} = w.id
+      -- 环保护：VNDB 标签层级实测无环（最大深度 7），一旦 dump 出现环，
+      -- UNION 会因 depth 递增而无限递归。深度上限远大于真实最大值，不会截断正常层级。
+      WHERE w.depth < 64
     )
     SELECT id, MIN(depth)::int AS depth
     FROM walk
@@ -592,7 +595,12 @@ export const Tags = {
         sql`SELECT tv.tag, count(DISTINCT tv.vid)::int AS cnt FROM tags_vn tv INNER JOIN galrc_alistb a ON a.vid = tv.vid GROUP BY tv.tag`,
       ),
       db.execute(
-        sql`SELECT target_id, count(*)::int AS cnt FROM galrc_event_views WHERE event_type = 'tag_view' GROUP BY target_id`,
+        // 累计标签浏览量 = 已 rollup 的历史计数 + 明细剩余行（明细会被 TTL 清理）
+        sql`SELECT target_id, SUM(cnt)::int AS cnt FROM (
+          SELECT target_id, count(*)::int AS cnt FROM galrc_event_views WHERE event_type = 'tag_view' GROUP BY target_id
+          UNION ALL
+          SELECT target_id, total::int AS cnt FROM galrc_stat_counters WHERE kind = 'tag_view'
+        ) s GROUP BY target_id`,
       ),
     ])
     const countMap = new Map(
@@ -628,6 +636,8 @@ export const Tags = {
           SELECT u.child_id, p.parent, u.depth + 1
           FROM up u
           INNER JOIN ${tagsRelations} p ON p.child = u.root_id
+          -- 环保护，理由同 getTagRelatedIds 的 walk（见上）。
+          WHERE u.depth < 64
         )
         SELECT child_id, root_id
         FROM up u
@@ -816,7 +826,12 @@ export const Tags = {
         sql`SELECT tv.tag, count(DISTINCT tv.vid)::int AS cnt FROM tags_vn tv INNER JOIN galrc_alistb a ON a.vid = tv.vid GROUP BY tv.tag`,
       ),
       db.execute(
-        sql`SELECT target_id, count(*)::int AS cnt FROM galrc_event_views WHERE event_type = 'tag_view' GROUP BY target_id`,
+        // 累计标签浏览量 = 已 rollup 的历史计数 + 明细剩余行（明细会被 TTL 清理）
+        sql`SELECT target_id, SUM(cnt)::int AS cnt FROM (
+          SELECT target_id, count(*)::int AS cnt FROM galrc_event_views WHERE event_type = 'tag_view' GROUP BY target_id
+          UNION ALL
+          SELECT target_id, total::int AS cnt FROM galrc_stat_counters WHERE kind = 'tag_view'
+        ) s GROUP BY target_id`,
       ),
     ])
 

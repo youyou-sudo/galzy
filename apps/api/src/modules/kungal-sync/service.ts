@@ -187,9 +187,23 @@ export const KungalSync = {
           }
         }
         const seenAnchors = new Set<string>()
+        // 同一个 kungal work.id 可能被两个不同的 vid 解析到（resolved 以 vid 为键，
+        // 而 vndbId 用的是各自的请求 vid，所以锚点去重抓不到）。若两条都留下：
+        // 1) works 的 `ON CONFLICT (id) DO UPDATE` 会在同一语句内二次命中同一行，
+        //    Postgres 直接报 21000 `cannot affect row a second time`；
+        // 2) titles 会写入重复的 (work_id, lang, title)，命中唯一索引 23505。
+        // 因此这里再按 work.id 去重（保留首条）。
+        const seenWorkIds = new Set<string>()
         const kept = normalized.filter(({ work }) => {
+          if (seenWorkIds.has(work.id)) {
+            console.warn(`⚠️ Kungal work ${work.id} 在本批重复出现，跳过`)
+            return false
+          }
           const anchor = work.vndbId
-          if (!anchor) return true
+          if (!anchor) {
+            seenWorkIds.add(work.id)
+            return true
+          }
           const owner = anchorOwner.get(anchor)
           if (owner !== undefined && owner !== work.id) {
             console.warn(
@@ -199,6 +213,7 @@ export const KungalSync = {
           }
           if (seenAnchors.has(anchor)) return false
           seenAnchors.add(anchor)
+          seenWorkIds.add(work.id)
           return true
         })
         const works = kept.map(({ work }) => ({

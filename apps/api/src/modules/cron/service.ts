@@ -3,8 +3,8 @@ import {
   buildCoverUrl,
   cloudrevePathExists,
   db,
-  eventViews,
-  gameDownloadStats,
+  eventViewCountSql,
+  gameDownloadCountSql,
   images,
   kungalWorks,
   kungalWorkTitles,
@@ -117,8 +117,9 @@ const gameMeiliDocBase = {
     (SELECT MIN(r.released) FROM ${releasesVn} rv INNER JOIN ${releases} r ON r.id = rv.id WHERE rv.vid = vn.id AND r.released IS NOT NULL),
     ''
   )`,
-  dl_count: sql`(SELECT COUNT(*)::int FROM ${gameDownloadStats} WHERE game_id = vn.id)`,
-  vw_count: sql`(SELECT COUNT(*)::int FROM ${eventViews} WHERE event_type = 'game_view' AND target_id = vn.id)`,
+  // 累计数：已 rollup 的历史计数 + 明细剩余行（明细会被 TTL 清理，见 libs/stats.ts）
+  dl_count: sql.raw(`${gameDownloadCountSql('vn.id')}::int`),
+  vw_count: sql.raw(`${eventViewCountSql('game_view', 'vn.id')}::int`),
   titles: sql`COALESCE(
     (SELECT json_agg(kt.title) FROM ${kungalWorkTitles} kt INNER JOIN ${kungalWorks} kw ON kw.id = kt.work_id WHERE kw.vndb_id = vn.id)::jsonb,
     '[]'::jsonb

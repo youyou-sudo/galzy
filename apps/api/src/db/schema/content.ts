@@ -79,7 +79,9 @@ export const alistb = pgTable(
   {
     id: varchar('id', { length: 512 }).notNull().primaryKey(),
     vid: varchar('vid', { length: 255 }),
-    other: bigint('other', { mode: 'number' }),
+    // 与 galrc_other.id（serial / int4）同型：bigint 会让 `o.id = a.other` 变成
+    // int4 = int8 比较，无法命中 galrc_other.id 上的索引。
+    other: integer('other'),
     path: jsonb('path'),
   },
   (table) => ({
@@ -95,7 +97,8 @@ export const articles = pgTable(
   {
     id: serial('id').primaryKey(),
     vid: varchar('vid', { length: 255 }),
-    otherid: bigint('otherid', { mode: 'number' }),
+    // 同型 galrc_other.id（int4），理由同 galrc_alistb.other。
+    otherid: integer('otherid'),
     author: text('author'),
     title: varchar('title', { length: 255 }),
     content: text('content'),

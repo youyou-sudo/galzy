@@ -16,7 +16,8 @@ export const users = pgTable(
     email: varchar('email', { length: 255 }).notNull().unique(),
     emailVerified: boolean('emailVerified').notNull().default(false),
     image: text('image'),
-    role: varchar('role', { length: 10 }).notNull().default('user'),
+    // better-auth admin 插件支持多角色（逗号拼接，如 'user,admin'），varchar(10) 会被截断。
+    role: varchar('role', { length: 32 }).notNull().default('user'),
     banned: boolean('banned').notNull().default(false),
     banReason: text('ban_reason'),
     banExpires: timestamp('ban_expires'),
@@ -38,7 +39,8 @@ export const sessions = pgTable(
       .notNull()
       .references(() => users.id),
     token: text('token').notNull().unique(),
-    expiresAt: timestamp('expiresAt', { withTimezone: true }).defaultNow(),
+    // 不要给 expiresAt 默认值：漏传时会退化成「创建即过期」，应显式写入真实过期时间。
+    expiresAt: timestamp('expiresAt', { withTimezone: true }),
     ipAddress: text('ipAddress'),
     userAgent: text('userAgent'),
     impersonatedBy: text('impersonatedBy'),

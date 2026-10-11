@@ -2,6 +2,8 @@ import {
   alistb,
   buildCoverUrl,
   db,
+  eventViewCountSql,
+  gameDownloadCountSql,
   hasUsablePortraitCover,
   kungalWorks,
   kungalWorkTitles,
@@ -108,11 +110,11 @@ export const Game = {
       )
     } else if (sortBy === 'downloads') {
       orderClause = sql.raw(
-        `(SELECT COUNT(*) FROM "galrc_gameDownloadStats" WHERE game_id = vn.id) ${dir} NULLS LAST, vn.id ${dir}`,
+        `${gameDownloadCountSql('vn.id')} ${dir} NULLS LAST, vn.id ${dir}`,
       )
     } else if (sortBy === 'views') {
       orderClause = sql.raw(
-        `(SELECT COUNT(*) FROM "galrc_event_views" WHERE event_type = 'game_view' AND target_id = vn.id) ${dir} NULLS LAST, vn.id ${dir}`,
+        `${eventViewCountSql('game_view', 'vn.id')} ${dir} NULLS LAST, vn.id ${dir}`,
       )
     } else {
       orderClause = sql.raw(`vn.id ${dir}, galrc_alistb.other ${dir}`)
@@ -151,12 +153,8 @@ export const Game = {
             WHERE o2.id = galrc_alistb.other
           ) o)
         `,
-        dl_count: sql.raw(
-          '(SELECT COUNT(*)::int FROM "galrc_gameDownloadStats" WHERE game_id = vn.id)',
-        ),
-        vw_count: sql.raw(
-          '(SELECT COUNT(*)::int FROM "galrc_event_views" WHERE event_type = \'game_view\' AND target_id = vn.id)',
-        ),
+        dl_count: sql.raw(`${gameDownloadCountSql('vn.id')}::int`),
+        vw_count: sql.raw(`${eventViewCountSql('game_view', 'vn.id')}::int`),
       })
       .from(alistb)
       .innerJoin(vn, eq(alistb.vid, vn.id))
@@ -963,7 +961,11 @@ export const Game = {
     GROUP BY bucket
   ),
   grand AS (
-    SELECT COUNT(*)::int AS total FROM "galrc_gameDownloadStats" WHERE game_id = ${id}
+    -- 累计下载数 = 已 rollup 的历史计数 + 明细剩余行（明细会被 TTL 清理）
+    SELECT (
+      COALESCE((SELECT c.total FROM galrc_stat_counters c WHERE c.kind = 'game_download' AND c.target_id = ${id}), 0)
+      + (SELECT COUNT(*) FROM "galrc_gameDownloadStats" WHERE game_id = ${id})
+    )::int AS total
   )
   SELECT
     CASE

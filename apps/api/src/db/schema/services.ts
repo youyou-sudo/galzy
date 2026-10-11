@@ -6,6 +6,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   real,
   serial,
   text,
@@ -135,6 +136,30 @@ export const eventViews = pgTable(
 export const collectionsRelations = relations(collections, ({ many }) => ({
   entries: many(collectionEntries),
 }))
+
+// galrc_stat_counters — 明细表被 TTL 清理后，累计计数落在这里。
+//
+// galrc_event_views / galrc_gameDownloadStats 既是「时间窗口排行榜」的数据源，
+// 也是「累计浏览量 / 累计下载次数」的数据源。前者只需要近期数据，后者的语义是
+// 终身累计。清理明细前先把即将删除的行按 (kind, target_id) 聚合进本表，
+// 读取侧的累计值 = 本表 total + 明细表剩余行数，于是明细可以安全 TTL 清理而
+// 累计数不下降（见 modules/tasks/service.ts 的 rollupAndPrune* 与 libs/stats.ts）。
+export const statCounters = pgTable(
+  'galrc_stat_counters',
+  {
+    /** 计数维度：'game_view' | 'tag_view' | 'game_download'（与 event_type 对齐）。 */
+    kind: varchar('kind', { length: 32 }).notNull(),
+    /** 计数对象：gameId / tagId / otherId。 */
+    targetId: varchar('target_id', { length: 255 }).notNull(),
+    total: bigint('total', { mode: 'number' }).notNull().default(0),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.kind, table.targetId] }),
+  }),
+)
 
 export const collectionEntriesRelations = relations(
   collectionEntries,

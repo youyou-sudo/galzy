@@ -50,8 +50,10 @@ export const queueJobLog = pgTable(
   'galrc_queue_job_log',
   {
     id: serial('id').primaryKey(),
-    /** 关联 queueJob.id。 */
-    jobId: varchar('job_id', { length: 255 }).notNull(),
+    /** 关联 queueJob.id；job 被清理时级联删除，避免残留孤儿日志。 */
+    jobId: varchar('job_id', { length: 255 })
+      .notNull()
+      .references(() => queueJob.id, { onDelete: 'cascade' }),
     /** info | warn | error | success */
     level: varchar('level', { length: 8 }).notNull(),
     message: text('message').notNull(),
