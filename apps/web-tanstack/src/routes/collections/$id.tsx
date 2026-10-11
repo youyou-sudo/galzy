@@ -8,7 +8,7 @@ import {
 	BreadcrumbList,
 	BreadcrumbPage,
 	BreadcrumbSeparator,
-} from "@web/components/ui/breadcrumb";
+} from "@web/components/shared/breadcrumb";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { seoTemplate } from "@web/config/seoTemplate";
 import type {

@@ -8,7 +8,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from '@web/components/ui/breadcrumb'
+} from '@web/components/shared/breadcrumb'
 import { Button } from '@web/components/ui/button'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { elysiaErrorF } from '@web/lib'

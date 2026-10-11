@@ -13,7 +13,7 @@ import {
 	BreadcrumbList,
 	BreadcrumbPage,
 	BreadcrumbSeparator,
-} from "@web/components/ui/breadcrumb";
+} from "@web/components/shared/breadcrumb";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { filelistQueryOptions } from "@web/components/home/game/download-options";
 import { gameTagsQueryOptions } from "@web/components/home/game/tags";

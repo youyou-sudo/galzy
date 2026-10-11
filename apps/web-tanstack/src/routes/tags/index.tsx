@@ -7,7 +7,7 @@ import {
 	BreadcrumbList,
 	BreadcrumbPage,
 	BreadcrumbSeparator,
-} from "@web/components/ui/breadcrumb";
+} from "@web/components/shared/breadcrumb";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { getSearchTags, getTagHub } from "@web/server/tags";
 import { z } from "zod";

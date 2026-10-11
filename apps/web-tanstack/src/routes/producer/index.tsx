@@ -8,7 +8,7 @@ import {
 	BreadcrumbList,
 	BreadcrumbPage,
 	BreadcrumbSeparator,
-} from "@web/components/ui/breadcrumb";
+} from "@web/components/shared/breadcrumb";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { seoMeta } from "@web/lib/seo";
 import { getSearchProducers } from "@web/server/producer";

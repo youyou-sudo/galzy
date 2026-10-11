@@ -6,7 +6,7 @@ import {
 	BreadcrumbList,
 	BreadcrumbPage,
 	BreadcrumbSeparator,
-} from "@web/components/ui/breadcrumb";
+} from "@web/components/shared/breadcrumb";
 import PlatePage from "@web/components/tools/plate-page";
 import { seoTemplate } from "@web/config/seoTemplate";
 
