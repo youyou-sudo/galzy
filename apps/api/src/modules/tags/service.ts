@@ -40,7 +40,8 @@ import type { TagsModel } from './model'
  *
  * @param direction 'up' 沿 parent 向上取祖先；'down' 沿 child 向下取后代
  * @returns id + 最短路径深度。DAG 中同一节点可能经多条路径到达，取 MIN(depth)
- *          后按 depth 升序即为「根 → 父」的顺序，可直接渲染面包屑。
+ *          后按 depth 降序即为「根 → 父」的顺序（根最远、深度最大），
+ *          可直接渲染面包屑。down 方向按 depth 升序（直接子标签在前）。
  */
 async function getTagRelatedIds(
   tagId: string,
@@ -54,7 +55,9 @@ async function getTagRelatedIds(
   // 两者都执行 delKvPattern('galzy:tags:*')。若将来新增写入层级的路径，
   // 必须同步补上失效，否则本缓存最长会滞留 24h（而依赖它的 tag / tagGames
   // 缓存只有 1h，它们的正确性也一并建立在这两个失效调用之上）。
-  const cacheKey = `galzy:tags:rel:${direction}:${tagId}`
+  // v2：'up' 的排序方向由升序改为降序（根→父）。旧 key 里存的是相反顺序，
+  // 版本号进 key 才能让存量缓存立即失效，而不是等 24h TTL 自然过期。
+  const cacheKey = `galzy:tags:rel:v2:${direction}:${tagId}`
   const cached = await getKv(cacheKey)
   if (cached) {
     try {
@@ -80,7 +83,7 @@ async function getTagRelatedIds(
     SELECT id, MIN(depth)::int AS depth
     FROM walk
     GROUP BY id
-    ORDER BY MIN(depth), id
+    ORDER BY MIN(depth) ${sql.raw(direction === 'up' ? 'DESC' : 'ASC')}, id
   `)
   const result = rows as Array<{ id: string; depth: number }>
   void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 24)
@@ -89,9 +92,18 @@ async function getTagRelatedIds(
 
 /**
  * 批量取标签的英文名 + 中文名，用于面包屑与子标签列表。
- * 入参保留 depth，输出按 depth 升序（根 → 父 → …），前端可直接渲染面包屑。
+ *
+ * 两个方向对排序的要求相反，所以顺序由调用方决定而不是写死：
+ * - 'up'（祖先）：depth 降序，根最远 → 面包屑「根 → 父 → …」
+ * - 'down'（后代）：depth 升序，直接子标签在前
+ *
+ * 只返回已本地化（zhtags 存在）的标签：层级同步会写入 dump 中全部标签，
+ * 而 Tags.tag 用 innerJoin(zhtags) 查询，未本地化的标签点进去必然 404。
  */
-async function fetchTagLabels(related: Array<{ id: string; depth: number }>) {
+async function fetchTagLabels(
+  related: Array<{ id: string; depth: number }>,
+  direction: 'up' | 'down',
+) {
   if (related.length === 0) return []
   const depthMap = new Map(related.map((r) => [r.id, r.depth]))
   const rows = await db
@@ -101,7 +113,7 @@ async function fetchTagLabels(related: Array<{ id: string; depth: number }>) {
       zht_name: zhtags.name,
     })
     .from(tags)
-    .leftJoin(zhtags, eq(tags.id, zhtags.id))
+    .innerJoin(zhtags, eq(tags.id, zhtags.id))
     .where(
       inArray(
         tags.id,
@@ -110,7 +122,11 @@ async function fetchTagLabels(related: Array<{ id: string; depth: number }>) {
     )
   return rows
     .map((r) => ({ ...r, depth: depthMap.get(r.id) ?? 0 }))
-    .sort((a, b) => a.depth - b.depth || a.id.localeCompare(b.id))
+    .sort(
+      (a, b) =>
+        (direction === 'up' ? b.depth - a.depth : a.depth - b.depth) ||
+        a.id.localeCompare(b.id),
+    )
 }
 
 /**
@@ -200,8 +216,9 @@ export const Tags = {
     return result
   },
   async tag({ tagId }: TagsModel.tagId) {
-    // v3：children 改为「直接子标签」（v2 误用全部后代），新增 descendantCount
-    const cacheKey = `galzy:tag:v3:${tagId}`
+    // v4：children 改为「直接子标签」（v2 误用全部后代），新增 descendantCount；
+    // ancestors 改为根→父顺序并过滤未本地化标签（v3 里顺序相反且含 404 项）
+    const cacheKey = `galzy:tag:v4:${tagId}`
     const redisdata = await getKv(cacheKey)
     if (redisdata !== null && redisdata !== undefined) {
       return JSON.parse(redisdata) as Tag
@@ -232,8 +249,8 @@ export const Tags = {
       getTagRelatedIds(tagId, 'down'),
     ])
     const [ancestors, descendants] = await Promise.all([
-      fetchTagLabels(ancestorIds),
-      fetchTagLabels(childIds),
+      fetchTagLabels(ancestorIds, 'up'),
+      fetchTagLabels(childIds, 'down'),
     ])
 
     // 直接子标签（深度=1）用于页面折叠展示；全部后代仅用于计数参考。
@@ -859,9 +876,12 @@ export const Tags = {
         .where(eq(zhtags.id, id))
       await purgeTagPages(String(id))
       // 标签详情 / 游戏标签 / 分类页缓存同步失效（含本地化名称、展示状态）
-      await delKv(`galzy:tag:v3:${id}`)
+      await delKv(`galzy:tag:v4:${id}`)
       await delKvPattern('galzy:game:tags:*')
       await delKv('galzy:tags:categories:v4')
+      // 标签库 hub 也读 zhtags.name，编辑后必须一并失效，
+      // 否则 /tags 会继续展示旧中文名直到 1h TTL 自然过期。
+      await delKvPattern('galzy:tags:hub:v2:*')
       return true
     } catch {
       return false
@@ -908,10 +928,13 @@ export const Tags = {
 
     // Batch import: purge tag list (individual pages too many)
     await purgeByTags(['page-tags'])
-    // 批量导入影响所有标签缓存：详情页 / 游戏标签 / 分类页 / 层级递归缓存
+    // 批量导入影响所有标签缓存：详情页 / 游戏标签 / 分类页 / 层级递归 / 标签库 hub。
+    // galzy:tag:* 匹配不到 galzy:tags:hub:v2:*（Redis MATCH 要求 tag 后紧跟冒号），
+    // 所以 hub 缓存必须单独按完整前缀删除。
     await delKvPattern('galzy:tag:*')
     await delKvPattern('galzy:game:tags:*')
     await delKvPattern('galzy:tags:rel:*')
+    await delKvPattern('galzy:tags:hub:v2:*')
     await delKv('galzy:tags:categories:v4')
 
     return true

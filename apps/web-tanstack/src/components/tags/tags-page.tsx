@@ -15,11 +15,6 @@ export type TagHit = {
 
 export type TagSort = "nameAsc" | "nameDesc";
 
-const SORT_LABEL: Record<TagSort, string> = {
-	nameAsc: "名称正序",
-	nameDesc: "名称倒序",
-};
-
 type DebounceTimer = ReturnType<typeof setTimeout>;
 
 export default function TagsIndexPage({
@@ -189,11 +184,12 @@ function TagHubBrowser({ sort }: { sort: TagSort }) {
 		<div className="flex flex-col gap-8">
 			<div className="flex items-center gap-3">
 				<p className="text-xs text-muted-foreground">
-					共 {categories.reduce((n, c) => n + c.tagCount, 0)} 个标签
+					共{" "}
+					{categories
+						.filter((c) => c.key !== "hot")
+						.reduce((n, c) => n + c.tagCount, 0)}{" "}
+					个标签
 				</p>
-				{/*<div className="ml-auto">
-					<SortSelect sort={sort} />
-				</div>*/}
 			</div>
 
 			{categories.length === 0 ? (
@@ -284,33 +280,6 @@ function TagHubSection({
 				</>
 			)}
 		</section>
-	);
-}
-
-function SortSelect({ sort }: { sort: TagSort }) {
-	const navigate = useNavigate();
-	return (
-		<div className="flex items-center gap-1.5">
-			<span className="text-xs text-muted-foreground">排序</span>
-			<div className="flex rounded-md border p-0.5">
-				{(Object.keys(SORT_LABEL) as TagSort[]).map((k) => (
-					<button
-						key={k}
-						type="button"
-						onClick={() =>
-							navigate({ to: "/tags", search: { sort: k }, replace: true })
-						}
-						className={`rounded px-2 py-1 text-xs transition-colors cursor-pointer ${
-							sort === k
-								? "bg-muted text-foreground"
-								: "text-muted-foreground hover:text-foreground"
-						}`}
-					>
-						{SORT_LABEL[k]}
-					</button>
-				))}
-			</div>
-		</div>
 	);
 }
 

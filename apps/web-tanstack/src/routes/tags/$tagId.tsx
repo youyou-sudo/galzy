@@ -63,7 +63,7 @@ export const Route = createFileRoute("/tags/$tagId")({
 	component: () => {
 		const loaderData = Route.useLoaderData();
 		const tagName = loaderData.tag?.zht_name || loaderData.tag?.name || "标签";
-		// VNDB 层级是 DAG，祖先由 API 按 depth 升序返回（根 → 父 → …）
+		// VNDB 层级是 DAG，祖先由 API 按 depth 降序返回（根最远 → 最近父级 → 当前标签）
 		const ancestors: Array<{
 			id: string;
 			name?: string | null;
