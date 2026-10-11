@@ -36,6 +36,11 @@ const GAP = 6;
  *    格式化上下文，其边框盒必须整体避开浮动封面（游戏详情页封面是
  *    sm:float-right），于是封面下方的每一行也被统一收窄到图片左侧。
  *    行内盒则会被浮动逐行缩短，这才是真正的「环绕图片」。
+ *
+ * 4. 容量必须基于「全量渲染」的 DOM 测量。收起态会按上次测出的容量截断，
+ *    被截掉的标签不在 DOM 里、量不到宽度，于是容量只降不升：切换标签页时若
+ *    上一页只放得下两三个，新页面就会一直只显示那两三个。所以 tags 内容或
+ *    行宽变化时一律让旧容量作废重测（见下方的 measurement 与宽度观察）。
  */
 export function CollapsibleTagList({
 	className,
@@ -49,43 +54,68 @@ export function CollapsibleTagList({
 	preload?: false | "intent" | "viewport" | "render";
 }) {
 	const [expanded, setExpanded] = useState(false);
-	// null = 尚未测量（首屏）。数字 = 第一行实际能容纳的标签数。
-	const [fitCount, setFitCount] = useState<number | null>(null);
+	// 已完成的第一行容量测量。sig 标记它对应哪一批标签；行宽变化时整体置空重测。
+	// null / sig 不匹配 = 尚未测量 → 先全量渲染，再由 layout effect 裁决。
+	const [measurement, setMeasurement] = useState<{
+		sig: string;
+		count: number;
+	} | null>(null);
+	const rowWidthRef = useRef(0);
 	const rowRef = useRef<HTMLDivElement>(null);
 	const btnRef = useRef<HTMLButtonElement>(null);
 
+	// 标签内容指纹：父组件每次都新建数组，用引用比对会误判，这里按内容判断。
+	const tagSig = tags
+		.map((t) => `${t.id}\u0002${t.zht_name ?? t.name ?? ""}`)
+		.join("\u0001");
+	const fitCount =
+		measurement && measurement.sig === tagSig ? measurement.count : null;
+
+	// 行宽变化（响应式断点、侧栏开合）会让旧容量作废，回到全量渲染重新测量。
 	useLayoutEffect(() => {
 		if (expanded) return;
+		const row = rowRef.current;
+		if (!row) return;
+
+		const check = () => {
+			const width = row.clientWidth;
+			if (width === 0 || width === rowWidthRef.current) return;
+			rowWidthRef.current = width;
+			setMeasurement(null);
+		};
+
+		check();
+		const ro = new ResizeObserver(check);
+		ro.observe(row);
+		return () => ro.disconnect();
+	}, [expanded]);
+
+	// 只在「尚未测量」（fitCount === null，此刻 DOM 是全量渲染）时量第一行容量。
+	useLayoutEffect(() => {
+		if (expanded || fitCount !== null) return;
 		const row = rowRef.current;
 		const btn = btnRef.current;
 		if (!row || !btn) return;
 
-		const measure = () => {
-			const limit = row.clientWidth;
-			// 容器尚未布局（例如父级还在隐藏），先不裁决
-			if (limit === 0) return;
+		const limit = row.clientWidth;
+		// 容器尚未布局（例如父级还在隐藏），先不裁决
+		if (limit === 0) return;
 
-			const btnOuter = btn.offsetWidth + GAP;
-			let used = 0;
-			let count = 0;
-			for (const child of row.children) {
-				if (child === btn) break;
-				const el = child as HTMLElement;
-				const outer = el.offsetWidth + GAP;
-				// 末尾按钮必须也能落在第一行，否则它会被 max-h-6 裁掉
-				if (used + outer + btnOuter > limit) break;
-				used += outer;
-				count++;
-			}
-			setFitCount(count);
-		};
-
-		measure();
-		const ro = new ResizeObserver(measure);
-		ro.observe(row);
-		ro.observe(btn);
-		return () => ro.disconnect();
-	}, [tags, expanded]);
+		const btnOuter = btn.offsetWidth + GAP;
+		let used = 0;
+		let count = 0;
+		for (const child of row.children) {
+			if (child === btn) break;
+			const el = child as HTMLElement;
+			const outer = el.offsetWidth + GAP;
+			// 末尾按钮必须也能落在第一行，否则它会被 max-h-6 裁掉
+			if (used + outer + btnOuter > limit) break;
+			used += outer;
+			count++;
+		}
+		rowWidthRef.current = limit;
+		setMeasurement({ sig: tagSig, count });
+	}, [expanded, fitCount, tagSig]);
 
 	// 展开态显示全部；收起态才按第一行容量截断（fitCount === null 时先全量渲染，
 	// 交给 CSS max-h-6 裁剪兜住首屏，useLayoutEffect 在 paint 前完成测量）。
