@@ -97,7 +97,8 @@ async function startServer() {
     // 任务队列 Worker + 定时调度（已替代 croner，见 docs/task-queue-migration.md）。
     await startQueueWorkers()
     // bun:sql 池卡死自动恢复：独立探针确认 DB 健康而池失败时退出进程，
-    // 由编排层重启（oven-sh/bun#30494 上游未修复，见 db/watchdog.ts）。
+    // 由编排层重启。上游 oven-sh/bun#30494 仍未关闭（1.4.x 已修一批同类问题，
+    // 余项与本地压测结论见 db/watchdog.ts、db/client.ts 的池上限注释）。
     startDbWatchdog()
   }
 

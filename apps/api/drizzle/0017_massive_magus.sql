@@ -1,1 +1,1 @@
-ALTER TABLE "galrc_kungal_works" ADD COLUMN "cover_thumbhash" text;
+ALTER TABLE "galrc_kungal_works" ADD COLUMN IF NOT EXISTS "cover_thumbhash" text;

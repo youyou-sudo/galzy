@@ -1,4 +1,4 @@
-ALTER TABLE "galrc_account" ADD COLUMN "issuer" text;--> statement-breakpoint
+ALTER TABLE "galrc_account" ADD COLUMN IF NOT EXISTS "issuer" text;--> statement-breakpoint
 UPDATE "galrc_account" SET "issuer" = CASE
 	WHEN "providerId" = 'credential' THEN 'local:credential'
 	ELSE 'local:oauth:' || "providerId"

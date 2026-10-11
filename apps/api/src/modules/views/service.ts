@@ -23,7 +23,9 @@ import { and, count, desc, eq, gte, inArray, isNull, or } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { ViewsModel } from './model'
 
-const WEEK_CACHE_TTL = 60 * 5
+// 周榜窗口是 date_trunc('week', …)，同一周内结果只随新事件增长而变，5 分钟重算
+// 纯属浪费（每次要 bitmap-scan 十几万到几十万行 event_views）。1 小时足够新鲜。
+const WEEK_CACHE_TTL = 60 * 60
 
 // ============================================================
 // 访问防刷：固定窗口计数（Redis INCR），每 IP 每端点独立限额。
@@ -182,9 +184,11 @@ export const ViewsService = {
     }
 
     const ids = rows.map((r) => r.id)
-    // Batch queries: VNDB image/title data and Kungal cover metadata in parallel
-    const [titleRows, kungalRows] = await Promise.all([
-      (await (db
+    // Batch queries: VNDB image/title data and Kungal cover metadata in parallel.
+    // 注意不要把第一个查询写成 `(await (…))` —— await 会在 Promise.all 被调用前
+    // 先执行，两个查询就变成严格串行，白付一次完整查询延迟。
+    const [titleRowsRaw, kungalRows] = await Promise.all([
+      db
         .select({
           id: vn.id,
           olang: vn.olang,
@@ -197,16 +201,7 @@ export const ViewsService = {
         })
         .from(vn)
         .leftJoin(images, eq(vn.cImage, images.id))
-        .where(inArray(vn.id, ids)) as any)) as Array<{
-        id: string
-        olang: string | null
-        imageId: string | null
-        imageWidth: number | null
-        imageHeight: number | null
-        cSexualAvg: number | null
-        imageUrl: string | null
-        titles: Array<{ lang: string; title: string }>
-      }>,
+        .where(inArray(vn.id, ids)) as any,
       db
         .select({
           vndbId: kungalWorks.vndbId,
@@ -218,6 +213,16 @@ export const ViewsService = {
         .from(kungalWorks)
         .where(inArray(kungalWorks.vndbId, ids)),
     ])
+    const titleRows = titleRowsRaw as Array<{
+      id: string
+      olang: string | null
+      imageId: string | null
+      imageWidth: number | null
+      imageHeight: number | null
+      cSexualAvg: number | null
+      imageUrl: string | null
+      titles: Array<{ lang: string; title: string }>
+    }>
     const kungalMap = new Map(kungalRows.map((row) => [row.vndbId, row]))
 
     const titleMap = new Map<string, string | null>()

@@ -1,4 +1,4 @@
-CREATE TABLE "galrc_queue_job" (
+CREATE TABLE IF NOT EXISTS "galrc_queue_job" (
 	"id" varchar(255) PRIMARY KEY NOT NULL,
 	"queue" varchar(64) NOT NULL,
 	"type" varchar(64) NOT NULL,
@@ -12,7 +12,7 @@ CREATE TABLE "galrc_queue_job" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "galrc_queue_job_log" (
+CREATE TABLE IF NOT EXISTS "galrc_queue_job_log" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"job_id" varchar(255) NOT NULL,
 	"level" varchar(8) NOT NULL,
@@ -20,9 +20,9 @@ CREATE TABLE "galrc_queue_job_log" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX "idx_queue_job_queue" ON "galrc_queue_job" USING btree ("queue");--> statement-breakpoint
-CREATE INDEX "idx_queue_job_type" ON "galrc_queue_job" USING btree ("type");--> statement-breakpoint
-CREATE INDEX "idx_queue_job_status" ON "galrc_queue_job" USING btree ("status");--> statement-breakpoint
-CREATE INDEX "idx_queue_job_created_at" ON "galrc_queue_job" USING btree ("created_at");--> statement-breakpoint
-CREATE INDEX "idx_queue_job_log_job_created" ON "galrc_queue_job_log" USING btree ("job_id","created_at");--> statement-breakpoint
-CREATE INDEX "idx_queue_job_log_created_at" ON "galrc_queue_job_log" USING btree ("created_at");
+CREATE INDEX IF NOT EXISTS "idx_queue_job_queue" ON "galrc_queue_job" USING btree ("queue");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_queue_job_type" ON "galrc_queue_job" USING btree ("type");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_queue_job_status" ON "galrc_queue_job" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_queue_job_created_at" ON "galrc_queue_job" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_queue_job_log_job_created" ON "galrc_queue_job_log" USING btree ("job_id","created_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_queue_job_log_created_at" ON "galrc_queue_job_log" USING btree ("created_at");

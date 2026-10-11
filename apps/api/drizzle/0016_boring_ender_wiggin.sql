@@ -1,4 +1,4 @@
-CREATE TABLE "vn_relations" (
+CREATE TABLE IF NOT EXISTS "vn_relations" (
 	"id" text,
 	"vid" text,
 	"relation" text,
@@ -7,6 +7,6 @@ CREATE TABLE "vn_relations" (
 	"synced_at" timestamp with time zone
 );
 --> statement-breakpoint
-CREATE INDEX "idx_vn_relations_id" ON "vn_relations" USING btree ("id");--> statement-breakpoint
-CREATE INDEX "idx_vn_relations_vid" ON "vn_relations" USING btree ("vid");--> statement-breakpoint
-CREATE INDEX "idx_vn_relations_id_vid" ON "vn_relations" USING btree ("id","vid");
+CREATE INDEX IF NOT EXISTS "idx_vn_relations_id" ON "vn_relations" USING btree ("id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_vn_relations_vid" ON "vn_relations" USING btree ("vid");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_vn_relations_id_vid" ON "vn_relations" USING btree ("id","vid");

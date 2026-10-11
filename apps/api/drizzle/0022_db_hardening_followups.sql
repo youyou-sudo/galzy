@@ -1,10 +1,12 @@
 -- 数据库加固后续：累计计数表 + 若干列类型/约束修正。
 -- 由 `bun run db:generate --name db_hardening_followups` 生成，手工补充了
 -- 「迁移前清理」语句（幂等，老库脏数据不会阻断迁移）。
+-- 本文件整体幂等：本文件可能在「已应用但日志缺行」的库上重跑（见 docs/migration-journal.md），
+-- 因此建表/加约束都带守卫；列类型 ALTER 在同类型时是 no-op。
 
 -- galrc_stat_counters：明细表（galrc_event_views / galrc_gameDownloadStats）被 TTL
 -- 清理后，累计计数落在这里，保证「累计浏览量 / 累计下载次数」不因清理明细而下降。
-CREATE TABLE "galrc_stat_counters" (
+CREATE TABLE IF NOT EXISTS "galrc_stat_counters" (
 	"kind" varchar(32) NOT NULL,
 	"target_id" varchar(255) NOT NULL,
 	"total" bigint DEFAULT 0 NOT NULL,
@@ -37,4 +39,12 @@ DELETE FROM "galrc_queue_job_log" l
 	WHERE NOT EXISTS (
 		SELECT 1 FROM "galrc_queue_job" j WHERE j."id" = l."job_id"
 	);--> statement-breakpoint
-ALTER TABLE "galrc_queue_job_log" ADD CONSTRAINT "galrc_queue_job_log_job_id_galrc_queue_job_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."galrc_queue_job"("id") ON DELETE cascade ON UPDATE no action;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'galrc_queue_job_log_job_id_galrc_queue_job_id_fk'
+      AND conrelid = 'galrc_queue_job_log'::regclass
+  ) THEN
+    ALTER TABLE "galrc_queue_job_log" ADD CONSTRAINT "galrc_queue_job_log_job_id_galrc_queue_job_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."galrc_queue_job"("id") ON DELETE cascade ON UPDATE no action;
+  END IF;
+END $$;

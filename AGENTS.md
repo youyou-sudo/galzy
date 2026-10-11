@@ -289,7 +289,7 @@ export const myActions = {
 | `packages/config/typescript/base.json` | Shared tsconfig with path aliases |
 | `scripts/run.ts` | Concurrent workspace command runner |
 | `biome.json` | Formatter + linter config |
-| `package.json` | Root workspace — `"packageManager": "bun@1.3.14"` |
+| `package.json` | Root workspace — `"packageManager": "bun@1.4.3"` |
 
 ## Runtime & Tooling Preferences
 
@@ -308,7 +308,7 @@ export const myActions = {
 | Scaffold | `bun create <template>` |
 
 - Lock file: `bun.lock` (delete any `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` found)
-- `package.json` declares `"packageManager": "bun@1.3.14"`
+- `package.json` declares `"packageManager": "bun@1.4.3"`
 - `.npmrc` enforces `engine-strict=true`
 
 ### Linting & Formatting

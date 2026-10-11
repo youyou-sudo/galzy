@@ -19,7 +19,7 @@
     "config": "workspace:*",
     "typescript": "^7.0.2"
   },
-  "packageManager": "bun@1.4.0",
+  "packageManager": "bun@1.4.3",
   "workspaces": [
     "apps/*",
     "packages/*"

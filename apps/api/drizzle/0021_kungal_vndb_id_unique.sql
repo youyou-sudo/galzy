@@ -12,5 +12,6 @@ WHERE a."vndb_id" IS NOT NULL
 	AND a."id" <> b."id"
 	AND (COALESCE(a."synced_at", '-infinity'::timestamptz), a."id")
 		< (COALESCE(b."synced_at", '-infinity'::timestamptz), b."id");--> statement-breakpoint
+-- 幂等：本文件可能在「已应用但日志缺行」的库上重跑，见 docs/migration-journal.md。
 DROP INDEX IF EXISTS "idx_galrc_kungal_works_vndb_id";--> statement-breakpoint
-CREATE UNIQUE INDEX "idx_galrc_kungal_works_vndb_id" ON "galrc_kungal_works" USING btree ("vndb_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_galrc_kungal_works_vndb_id" ON "galrc_kungal_works" USING btree ("vndb_id");

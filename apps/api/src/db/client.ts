@@ -3,10 +3,20 @@ import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/bun-sql'
 import * as schema from './schema'
 
-// 池上限：上游已证实 bun:sql 1.3.x 的池在并发获取竞态下会卡死（oven-sh/bun#30494，
-// 同款 max:10 + idleTimeout:0 + unsafe() 配置在高并发下约 50% 概率触发；max 越低越安全，
-// max:2 实测 100% 通过）。本项目流量不大（读多走 Redis 缓存），5 条连接足够，
-// 同时显著降低卡死概率。可用 POSTGRES_POOL_MAX 覆盖。
+// 池上限（兜底，保留）。背景：2026-08-02 生产事故——连接被掐断后 bun:sql 池永久停止
+// 派发，只能重启进程恢复（oven-sh/bun#30494）。该 issue 上游至今未关闭：2026-09-07 仍有
+// 1.3.14 用户反馈挂死约 5 次/小时，且挂死的查询会永久占住一个池槽。
+//
+// 1.4.x 已修掉一批同类问题：#33743（1.4.0，服务端在查询飞行中掐断连接导致的池槽计数
+// 错乱，最贴近本事故）、#39945（1.4.1）、#43898/#44327/#44235（1.4.3）；但收尾
+// 「池卡死 / 排队调用者被误杀」的 #44938、#44924 仍 open（2026-10-10 提出，未进 1.4.3）。
+// 2026-10-11 在 1.4.3 上按 #30494 的形状压测（max:10 + idleTimeout:0 + unsafe()、
+// 30~50 并发 + 高频 pg_terminate_backend）未复现卡死，但 1.3.14 同样跑不出来 → 该复现
+// 依赖线上远端库/中间层，本地验证不了，不足以据此解除。
+//
+// 原注释引用的「max:10 约 50% 触发、max:2 100% 通过」出自 #30494 的 1.3.x 复现报告，
+// 本次在 1.4.3 与 1.3.14 上均未复现。本项目流量不大（读多走 Redis 缓存），5 条连接足够，
+// 同时显著降低卡死概率。可用 POSTGRES_POOL_MAX 覆盖（线上若已设 10，以线上为准）。
 const poolMax = Number(process.env.POSTGRES_POOL_MAX ?? 5)
 
 // 单条语句超时。服务端默认值由迁移 0010（ALTER DATABASE）设置，这里在应用侧兜底，
@@ -24,6 +34,10 @@ const client = new SQL({
   // failed，但并发查询仍可能被派发到这些连接上，报 "Idle timeout reached after 5m"，
   // 导致长时间无流量后的首批请求 500。死连接会在下次使用时自动重建。
   // better-auth 也走此连接池（modules/auth/service.ts 的 drizzleAdapter）。
+  //
+  // 有意不做环境变量覆盖：曾经存在 POSTGRES_POOL_IDLETIMEOUT，但当前源码从不读取它
+  // （实测只有旧版 dist 产物在用），属于误导性配置，已从 .env 移除。
+  // 改动这个值会重新引入上面的 idle timeout 500，所以硬编码为 0。
   idleTimeout: 0,
 })
 

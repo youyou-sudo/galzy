@@ -16,7 +16,9 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:check": "drizzle-kit check",
-    "db:up": "bun run src/db/up.ts"
+    "db:up": "bun run src/db/up.ts",
+    "db:drop-legacy-indexes": "bun run scripts/drop-legacy-indexes.ts",
+    "db:verify-migrations": "bun run scripts/migration-journal.ts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.7",

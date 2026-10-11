@@ -177,21 +177,23 @@ export const Search = {
       facets: includeFacets ? ['olang', 'tags'] : undefined,
     })
 
-    // Record tag views from first search result (fire-and-forget)
-    // 注意：默认投影不含 tags，此时跳过计数；需要计数时调用方传 includeFacets=true
+    // Record tag view from first search result (fire-and-forget)
+    // 注意：默认投影不含 tags，此时跳过计数；需要计数时调用方传 includeFacets=true。
+    // 只记首个标签：命中结果里"出现过的标签"并不等于"用户看过该标签"，
+    // 原先按第一个结果的全部 tags 逐条写入，一次搜索就能往
+    // galrc_event_views（占全库 73% 的表）塞进几十行，写入放大且口径失真。
     if (safeQ && includeFacets && result.hits.length > 0) {
       const firstHit = result.hits[0] as Record<string, unknown>
       const hitTags = firstHit.tags as string[] | undefined
-      if (hitTags && hitTags.length > 0) {
+      const topTagId = hitTags?.[0]
+      if (topTagId) {
         void db
           .insert(eventViews)
-          .values(
-            hitTags.map((tagId) => ({
-              eventType: 'tag_view' as const,
-              targetId: tagId,
-              createdAt: new Date(),
-            })),
-          )
+          .values({
+            eventType: 'tag_view' as const,
+            targetId: topTagId,
+            createdAt: new Date(),
+          })
           .catch(() => {})
       }
     }

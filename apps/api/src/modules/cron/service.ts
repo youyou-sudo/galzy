@@ -1024,6 +1024,11 @@ const tagAllGet = async (pageSize: number, pageIndex: number) => {
     .from(tags)
     .innerJoin(zhtags, eq(tags.id, zhtags.id))
     .where(eq(zhtags.exhibition, true))
+    // 必须显式排序：无 ORDER BY 的 LIMIT/OFFSET 翻页不保证各页不重不漏
+    // （index-only scan、并行 worker 或并发写入都会改变顺序），
+    // 会让 Meilisearch 标签索引重建静默漏掉标签。与 tags/service.ts 的
+    // tagAllGet 保持同一顺序。
+    .orderBy(asc(tags.id))
     .limit(pageSize)
     .offset(offset)
 

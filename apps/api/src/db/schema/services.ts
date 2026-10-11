@@ -103,8 +103,11 @@ export const collectionEntries = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   },
   (table) => ({
-    collectionIdIdx: index('idx_collection_entries_collection_id').on(
+    // 合集详情/预览都按 (collection_id) 过滤后 ORDER BY sort_order；
+    // 组合索引让排序也能走索引（顶替原单列索引）。
+    collectionIdSortIdx: index('idx_collection_entries_collection_sort').on(
       table.collectionId,
+      table.sortOrder,
     ),
     vidIdx: index('idx_collection_entries_vid').on(table.vid),
   }),

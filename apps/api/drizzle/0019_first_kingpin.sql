@@ -1,1 +1,1 @@
-ALTER TABLE "galrc_account" DROP COLUMN "issuer";
+ALTER TABLE "galrc_account" DROP COLUMN IF EXISTS "issuer";

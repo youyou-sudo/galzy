@@ -176,9 +176,25 @@ export const comments = pgTable(
     statusPinnedCreatedIdx: index(
       'idx_galrc_comments_status_pinned_created',
     ).on(table.status, table.isPinned, table.createdAt),
-    rootIdDepthIdx: index('idx_galrc_comments_rootid_depth').on(
+    // 顶层评论列表的过滤组合是 (targetType, targetId, status) + 排除回复，
+    // 再按 isPinned DESC, createdAt DESC 排序。idx_galrc_comments_status_pinned_created
+    // 缺 target 前缀用不上，故补一条带 target 前缀的组合索引。
+    targetStatusPinnedCreatedIdx: index(
+      'idx_galrc_comments_target_status_pinned_created',
+    ).on(
+      table.targetType,
+      table.targetId,
+      table.status,
+      table.isPinned.desc(),
+      table.createdAt.desc(),
+    ),
+    // 回复列表按 rootId 批量取、depth > 0 过滤、createdAt 排序。
+    // 原来只到 (rootId, depth)，结尾的 createdAt 排序仍需额外 Sort 步骤，
+    // 故升级为三列（同时顶替原两列索引，不新增索引数量）。
+    rootIdDepthCreatedIdx: index('idx_galrc_comments_rootid_depth_created').on(
       table.rootId,
       table.depth,
+      table.createdAt,
     ),
   }),
 )
@@ -223,7 +239,12 @@ export const topicLikes = pgTable(
   },
   (table) => ({
     topicIdIdx: index('idx_galrc_topic_likes_topic_id').on(table.topicId),
-    userIdIdx: index('idx_galrc_topic_likes_user_id').on(table.userId),
+    // "我点赞过的帖子"按 userId 过滤 + createdAt DESC 排序；
+    // 单列 (userId) 无法支撑排序，升级为组合索引（顶替原单列索引）。
+    userIdCreatedIdx: index('idx_galrc_topic_likes_user_created').on(
+      table.userId,
+      table.createdAt,
+    ),
     uniqueLike: uniqueIndex('idx_galrc_topic_likes_unique').on(
       table.topicId,
       table.userId,
@@ -241,7 +262,10 @@ export const topicFavorites = pgTable(
   },
   (table) => ({
     topicIdIdx: index('idx_galrc_topic_favorites_topic_id').on(table.topicId),
-    userIdIdx: index('idx_galrc_topic_favorites_user_id').on(table.userId),
+    userIdCreatedIdx: index('idx_galrc_topic_favorites_user_created').on(
+      table.userId,
+      table.createdAt,
+    ),
     uniqueFav: uniqueIndex('idx_galrc_topic_favorites_unique').on(
       table.topicId,
       table.userId,

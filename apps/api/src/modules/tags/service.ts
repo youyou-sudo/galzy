@@ -148,6 +148,65 @@ function stripVndbMarkup(text: string): string {
     .trim()
 }
 
+/**
+ * 每个标签在「站内收录」口径下的游戏数（tags_vn ⋈ galrc_alistb，count(DISTINCT vid)）。
+ *
+ * tagHub 与 tagCategories 原本各自跑一次同样的全量聚合（实测 96ms），同一小时里
+ * 因为缓存 key 不同会重复算。抽成带缓存的共享 helper，两边共用一份结果。
+ *
+ * 失效依赖：key 在 `galzy:tags:*` 命名空间下，层级/本地化同步的
+ * delKvPattern('galzy:tags:*') 会一并清掉（见 syncTagHierarchy / purgeAfterSync）。
+ */
+async function getTagGameCountMap(): Promise<Map<string, number>> {
+  const cacheKey = 'galzy:tags:gamecount:v1'
+  const cached = await getKv(cacheKey)
+  if (cached) {
+    try {
+      return new Map(JSON.parse(cached) as Array<[string, number]>)
+    } catch {
+      await delKv(cacheKey)
+    }
+  }
+  const rows = (await db.execute(
+    sql`SELECT tv.tag, count(DISTINCT tv.vid)::int AS cnt FROM tags_vn tv INNER JOIN galrc_alistb a ON a.vid = tv.vid GROUP BY tv.tag`,
+  )) as Array<{ tag: string; cnt: number }>
+  const map = new Map(rows.map((r) => [r.tag, r.cnt]))
+  void setKv(cacheKey, JSON.stringify([...map]), 60 * 60)
+  return map
+}
+
+/**
+ * 每个标签的终身累计浏览量。
+ *
+ * 累计值 = 已 rollup 进 galrc_stat_counters 的历史部分 + 明细表剩余行
+ * （明细行按 EVENT_VIEW_RETENTION_DAYS 被 TTL 清理前会先 rollup，见
+ * modules/tasks/service.ts 的 rollupAndPruneEventViews 与 libs/stats.ts）。
+ *
+ * 这句聚合实测 237ms（要在约 250 万行 tag_view 分区上做全量 GROUP BY），是全站
+ * 最贵的单条读查询之一，因此必须缓存：原实现由 tagHub / tagCategories 各跑一遍。
+ */
+async function getTagViewCountMap(): Promise<Map<string, number>> {
+  const cacheKey = 'galzy:tags:viewcount:v1'
+  const cached = await getKv(cacheKey)
+  if (cached) {
+    try {
+      return new Map(JSON.parse(cached) as Array<[string, number]>)
+    } catch {
+      await delKv(cacheKey)
+    }
+  }
+  const rows = (await db.execute(
+    sql`SELECT target_id, SUM(cnt)::int AS cnt FROM (
+      SELECT target_id, count(*)::int AS cnt FROM galrc_event_views WHERE event_type = 'tag_view' GROUP BY target_id
+      UNION ALL
+      SELECT target_id, total::int AS cnt FROM galrc_stat_counters WHERE kind = 'tag_view'
+    ) s GROUP BY target_id`,
+  )) as Array<{ target_id: string; cnt: number }>
+  const map = new Map(rows.map((r) => [r.target_id, r.cnt]))
+  void setKv(cacheKey, JSON.stringify([...map]), 60 * 60)
+  return map
+}
+
 export const Tags = {
   async gameTags({ id }: TagsModel.gameTags) {
     const cacheKey = `galzy:game:tags:${id}`
@@ -292,7 +351,17 @@ export const Tags = {
     const tagMatch = inArray(tagsVn.tag, matchIds)
 
     // 并行执行 主查询 + 统计查询
-    const [mainResult, countResult] = await Promise.all([
+    // 总数只由 (tagId, includeChildren) 决定，与分页无关。原实现把它和分页结果塞进
+    // 同一个含 pageIndex 的缓存 key，导致每翻一页都重算一次 count(DISTINCT vid)
+    // （实测 g1 + includeChildren：count 94ms、主查询 252ms）。这里单独缓存总数。
+    const countCacheKey = `galzy:tag:games:count:v1:${tagId}:${includeChildren}`
+    const cachedCountRaw = await getKv(countCacheKey)
+    const cachedCount =
+      cachedCountRaw === null || cachedCountRaw === undefined
+        ? null
+        : Number(cachedCountRaw)
+
+    const [mainResult, resolvedCount] = await Promise.all([
       db
         .select({
           id: vn.id,
@@ -349,17 +418,22 @@ export const Tags = {
         .limit(pageSize)
         .offset(offset),
 
-      db
-        .select({ count: countDistinct(tagsVn.vid) })
-        .from(tagsVn)
-        .innerJoin(alistb, eq(alistb.vid, tagsVn.vid))
-        .where(tagMatch)
-        .then((r) => r[0]),
+      cachedCount !== null && Number.isFinite(cachedCount)
+        ? Promise.resolve(cachedCount)
+        : db
+            .select({ count: countDistinct(tagsVn.vid) })
+            .from(tagsVn)
+            .innerJoin(alistb, eq(alistb.vid, tagsVn.vid))
+            .where(tagMatch)
+            .then((r) => Number(r[0]?.count ?? 0)),
     ])
 
     const items = mainResult
 
-    const totalCount = Number(countResult?.count ?? 0)
+    const totalCount = resolvedCount
+    if (cachedCount === null) {
+      void setKv(countCacheKey, String(totalCount), 60 * 60)
+    }
 
     const kungalRows =
       items.length > 0
@@ -590,31 +664,11 @@ export const Tags = {
       .from(tags)
       .innerJoin(zhtags, eq(tags.id, zhtags.id))
 
-    const [countRows, viewRows] = await Promise.all([
-      db.execute(
-        sql`SELECT tv.tag, count(DISTINCT tv.vid)::int AS cnt FROM tags_vn tv INNER JOIN galrc_alistb a ON a.vid = tv.vid GROUP BY tv.tag`,
-      ),
-      db.execute(
-        // 累计标签浏览量 = 已 rollup 的历史计数 + 明细剩余行（明细会被 TTL 清理）
-        sql`SELECT target_id, SUM(cnt)::int AS cnt FROM (
-          SELECT target_id, count(*)::int AS cnt FROM galrc_event_views WHERE event_type = 'tag_view' GROUP BY target_id
-          UNION ALL
-          SELECT target_id, total::int AS cnt FROM galrc_stat_counters WHERE kind = 'tag_view'
-        ) s GROUP BY target_id`,
-      ),
+    // 两个全量聚合都走共享缓存 helper（与 tagCategories 共用同一份结果）
+    const [countMap, viewMap] = await Promise.all([
+      getTagGameCountMap(),
+      getTagViewCountMap(),
     ])
-    const countMap = new Map(
-      (countRows as Array<{ tag: string; cnt: number }>).map((r) => [
-        r.tag,
-        r.cnt,
-      ]),
-    )
-    const viewMap = new Map(
-      (viewRows as Array<{ target_id: string; cnt: number }>).map((r) => [
-        r.target_id,
-        r.cnt,
-      ]),
-    )
 
     // 顶层祖先（meta=true）决定分类。注意不能只看 cat：VNDB 的 cat 与标签树并不
     // 对齐——g24 Plot 有 84% 是 tech、g674 Style 有 97% 是 tech，而 g1 Theme 底下
@@ -813,7 +867,7 @@ export const Tags = {
     // 与详情页口径一致：仅展示已本地化（zhtags 存在）的标签，避免点进去 404
     // vnCount = 站内收录（alistb 存在）的关联游戏数，与标签详情页列表口径一致
     // views = 累计 tag_view 浏览量（供排序）
-    const [rows, countRows, viewRows] = await Promise.all([
+    const [rows, countMap, viewMap] = await Promise.all([
       db
         .select({
           id: tags.id,
@@ -822,31 +876,10 @@ export const Tags = {
         })
         .from(tags)
         .innerJoin(zhtags, eq(zhtags.id, tags.id)),
-      db.execute(
-        sql`SELECT tv.tag, count(DISTINCT tv.vid)::int AS cnt FROM tags_vn tv INNER JOIN galrc_alistb a ON a.vid = tv.vid GROUP BY tv.tag`,
-      ),
-      db.execute(
-        // 累计标签浏览量 = 已 rollup 的历史计数 + 明细剩余行（明细会被 TTL 清理）
-        sql`SELECT target_id, SUM(cnt)::int AS cnt FROM (
-          SELECT target_id, count(*)::int AS cnt FROM galrc_event_views WHERE event_type = 'tag_view' GROUP BY target_id
-          UNION ALL
-          SELECT target_id, total::int AS cnt FROM galrc_stat_counters WHERE kind = 'tag_view'
-        ) s GROUP BY target_id`,
-      ),
+      // 与 tagHub 共用同一份缓存结果，避免同一小时里重复算两遍
+      getTagGameCountMap(),
+      getTagViewCountMap(),
     ])
-
-    const countMap = new Map(
-      (countRows as Array<{ tag: string; cnt: number }>).map((r) => [
-        r.tag,
-        r.cnt,
-      ]),
-    )
-    const viewMap = new Map(
-      (viewRows as Array<{ target_id: string; cnt: number }>).map((r) => [
-        r.target_id,
-        r.cnt,
-      ]),
-    )
 
     const grouped: Record<
       string,

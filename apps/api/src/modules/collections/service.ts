@@ -429,6 +429,9 @@ export const CollectionService = {
         .where(
           inArray(releasesProducers.pid, collection.producerIds as string[]),
         )
+        // DISTINCT ON 必须配 ORDER BY 才能有界执行：否则 PG 要先对全部匹配行去重，
+        // limit 无法下推剪枝，等于扫完全部匹配 VN。按 vn.id 排序即可稳定去重。
+        .orderBy(asc(vn.id))
         .limit(limit)) as typeof entries
     } else {
       return []

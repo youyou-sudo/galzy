@@ -46,6 +46,7 @@ import {
   like,
   min,
   or,
+  type SQL,
 } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { GameModel } from './model'
@@ -62,6 +63,18 @@ type GameListData = {
   currentPage: number
   totalPages: number
   totalCount: number
+}
+
+/** `/games/gamelist` 单行结果形状（join 后显式收敛，见 List 内的条件 join）。 */
+type GameListRow = {
+  id: string
+  olang: string | null
+  titles: unknown
+  images: unknown
+  other: number | null
+  other_datas: unknown
+  dl_count: number
+  vw_count: number
 }
 
 export const Game = {
@@ -85,42 +98,66 @@ export const Game = {
     sortBy,
     order,
   }: GameModel.gameList): Promise<GameListData> {
-    const useCache = !sortBy || sortBy === 'id'
     const cacheKey = `galzy:game:list:${pageIndex}:${pageSize}:${sortBy ?? 'id'}:${order}`
+    // 三种排序都读写缓存：此前只有 id 排序走缓存，released/downloads/views
+    // 每次请求都跑完整查询（端到端实测 1.8–2.2s）。计数类排序的数值持续增长，
+    // 用短 TTL 换新鲜度；id/released 几乎不变，给长 TTL。
+    const cacheTtl =
+      sortBy === 'downloads' || sortBy === 'views' ? 60 * 10 : 60 * 60 * 2
     const offset = pageIndex * pageSize
     const dir = order === 'asc' ? 'ASC' : 'DESC'
 
-    // 命中缓存直接返回。此前这里只写不读，列表页每次请求都要跑完整查询
-    // （含十几个相关子查询），缓存形同虚设。
-    if (useCache) {
-      const cached = await getKv(cacheKey)
-      if (cached) {
-        try {
-          return JSON.parse(cached) as GameListData
-        } catch {
-          await delKv(cacheKey)
-        }
+    // 命中缓存直接返回：排序键聚合是这条查询里最贵的部分，重复访问不应重复付。
+    const cached = await getKv(cacheKey)
+    if (cached) {
+      try {
+        return JSON.parse(cached) as GameListData
+      } catch {
+        await delKv(cacheKey)
       }
     }
 
-    let orderClause
+    // 排序键预聚合：把「每个候选行求值一次」的相关子查询换成「整表聚合一次 + LEFT JOIN」。
+    //
+    // 旧写法 `ORDER BY (SELECT COUNT(*) … WHERE target_id = vn.id)` 会让 Planner 对
+    // alistb ⋈ vn 的全部候选行各跑一遍聚合 —— 实测 SubPlan loops=1984，
+    // sortBy=views 515ms / downloads 290ms；预聚合后 loops=3，实测 187ms / 80ms。
+    //
+    // 计数走「galrc_stat_counters + 明细表」的 UNION：明细行被 TTL 清理前会先
+    // rollup 进 counters，两者相加才是终身累计值（口径见 libs/stats.ts）。
+    const releasedAgg = sql`(SELECT rv.vid AS target_id, MIN(r.released) AS released_first
+      FROM releases_vn rv INNER JOIN releases r ON r.id = rv.id GROUP BY rv.vid) AS rel_agg`
+    const kungalAgg = sql`(SELECT vndb_id AS target_id, released_first
+      FROM galrc_kungal_works WHERE vndb_id IS NOT NULL) AS kw_agg`
+    const viewAgg = sql`(SELECT target_id, SUM(cnt)::int AS total FROM (
+        SELECT target_id, COUNT(*)::int AS cnt
+          FROM galrc_event_views WHERE event_type = 'game_view' GROUP BY target_id
+        UNION ALL
+        SELECT target_id, total::int AS cnt
+          FROM galrc_stat_counters WHERE kind = 'game_view'
+      ) s GROUP BY target_id) AS vw_agg`
+    const downloadAgg = sql`(SELECT target_id, SUM(cnt)::int AS total FROM (
+        SELECT game_id AS target_id, COUNT(*)::int AS cnt
+          FROM "galrc_gameDownloadStats" GROUP BY game_id
+        UNION ALL
+        SELECT target_id, total::int AS cnt
+          FROM galrc_stat_counters WHERE kind = 'game_download'
+      ) s GROUP BY target_id) AS dl_agg`
+
+    let orderClause: SQL
     if (sortBy === 'released') {
-      orderClause = sql.raw(
-        `COALESCE((SELECT kw.released_first FROM galrc_kungal_works kw WHERE kw.vndb_id = vn.id LIMIT 1), (SELECT MIN(r.released) FROM releases_vn rv JOIN releases r ON r.id = rv.id WHERE rv.vid = vn.id)) ${dir} NULLS LAST, vn.id ${dir}`,
-      )
+      orderClause = sql`COALESCE(kw_agg.released_first, rel_agg.released_first) ${sql.raw(dir)} NULLS LAST, vn.id ${sql.raw(dir)}`
     } else if (sortBy === 'downloads') {
-      orderClause = sql.raw(
-        `${gameDownloadCountSql('vn.id')} ${dir} NULLS LAST, vn.id ${dir}`,
-      )
+      orderClause = sql`COALESCE(dl_agg.total, 0) ${sql.raw(dir)} NULLS LAST, vn.id ${sql.raw(dir)}`
     } else if (sortBy === 'views') {
-      orderClause = sql.raw(
-        `${eventViewCountSql('game_view', 'vn.id')} ${dir} NULLS LAST, vn.id ${dir}`,
-      )
+      orderClause = sql`COALESCE(vw_agg.total, 0) ${sql.raw(dir)} NULLS LAST, vn.id ${sql.raw(dir)}`
     } else {
-      orderClause = sql.raw(`vn.id ${dir}, galrc_alistb.other ${dir}`)
+      orderClause = sql`vn.id ${sql.raw(dir)}, galrc_alistb.other ${sql.raw(dir)}`
     }
 
-    const items = await db
+    // 不同排序挂的聚合 join 不同，drizzle 的链式泛型会随之变化；这里只在拼 join
+    // 时放宽类型，结果行形状仍由下方 GameListRow 断言约束。
+    let listQuery: any = db
       .select({
         id: vn.id,
         olang: vn.olang,
@@ -158,10 +195,23 @@ export const Game = {
       })
       .from(alistb)
       .innerJoin(vn, eq(alistb.vid, vn.id))
-      .orderBy(orderClause)
-      .limit(pageSize)
-      .offset(offset)
-    const totalCount = await this.Count()
+
+    if (sortBy === 'released') {
+      listQuery = listQuery
+        .leftJoin(releasedAgg, sql`rel_agg.target_id = vn.id`)
+        .leftJoin(kungalAgg, sql`kw_agg.target_id = vn.id`)
+    } else if (sortBy === 'downloads') {
+      listQuery = listQuery.leftJoin(downloadAgg, sql`dl_agg.target_id = vn.id`)
+    } else if (sortBy === 'views') {
+      listQuery = listQuery.leftJoin(viewAgg, sql`vw_agg.target_id = vn.id`)
+    }
+
+    // 分页数据与总数互不依赖，并行发出：原来顺序 await 会白吃一次完整往返
+    // （跨机房时每次 200ms 级；同机部署时也能省掉一次排队）。
+    const [items, totalCount] = (await Promise.all([
+      listQuery.orderBy(orderClause).limit(pageSize).offset(offset),
+      this.Count(),
+    ])) as [GameListRow[], number]
     // Kungal 数据源优先：批量载入本页 vid 的 kungal 记录与标题，逐个覆盖
     const pageVids = items.map((i) => i.id)
     const kungalRows = pageVids.length
@@ -263,9 +313,7 @@ export const Game = {
       totalPages,
       totalCount,
     }
-    if (useCache) {
-      void setKv(cacheKey, JSON.stringify(datas), 60 * 60 * 2)
-    }
+    void setKv(cacheKey, JSON.stringify(datas), cacheTtl)
     return datas
   },
   async InfoGet({ id }: GameModel.infoId) {

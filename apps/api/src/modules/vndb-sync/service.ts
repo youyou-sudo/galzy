@@ -620,8 +620,13 @@ export const VndbSync = {
       idOrFilter(vids),
       BATCH_SIZE,
     )) {
-      for (const vnData of results) {
-        await db.transaction(async (trx) => {
+      // 一整页共用一个事务。原实现是在 for 里对每个 VN 各开一个事务
+      // （一页 100 个 VN = 100 次 BEGIN/COMMIT），一次全量同步约 2000 次事务，
+      // 每次都独占连接池（上限 10）里的一条连接并单独 fsync。
+      // 同页各 VN 的写入互不依赖（按 id upsert、子表按 id 先删后插），
+      // 合并成一个事务语义完全不变，往返次数从「行数」降到「页数」。
+      await db.transaction(async (trx) => {
+        for (const vnData of results) {
           await trx
             .insert(vn)
             .values({
@@ -734,21 +739,21 @@ export const VndbSync = {
               })),
             )
           }
-        })
 
-        // Build partial Meilisearch doc from VNDB API data
-        meiliDocs.push({
-          id: vnData.id,
-          alias: vnData.aliases?.[0] ?? null,
-          olang: vnData.olang,
-          devstatus: vnData.devstatus,
-          rating: vnData.rating == null ? null : Math.round(vnData.rating),
-          votecount: vnData.votecount,
-          description: vnData.description,
-          titles: vnData.titles?.map((t) => t.title) ?? [],
-        })
-      }
-      console.log(`  → transaction done, sleeping 2s...`)
+          // Build partial Meilisearch doc from VNDB API data（纯内存，随事务一起走）
+          meiliDocs.push({
+            id: vnData.id,
+            alias: vnData.aliases?.[0] ?? null,
+            olang: vnData.olang,
+            devstatus: vnData.devstatus,
+            rating: vnData.rating == null ? null : Math.round(vnData.rating),
+            votecount: vnData.votecount,
+            description: vnData.description,
+            titles: vnData.titles?.map((t) => t.title) ?? [],
+          })
+        }
+      })
+      console.log(`  → batch transaction done, sleeping 2s...`)
       await new Promise((r) => setTimeout(r, 2000))
     }
 
@@ -792,29 +797,35 @@ export const VndbSync = {
         idOrFilter(batch),
         BATCH_SIZE,
       )) {
-        for (const tag of results) {
+        // 单条多行 upsert：原实现每个 tag 一条 INSERT ... ON CONFLICT
+        // （一页 100 次往返），批量后一页只要 1 次。冲突时统一取 excluded.*，
+        // 语义与逐行 upsert 完全一致。
+        if (results.length > 0) {
+          const syncedAt = new Date()
           await db
             .insert(tags)
-            .values({
-              id: tag.id,
-              cat: tag.category,
-              name: tag.name,
-              alias: tag.aliases?.join(',') ?? null,
-              description: tag.description,
-              searchable: tag.searchable,
-              applicable: tag.applicable,
-              syncedAt: new Date(),
-            })
-            .onConflictDoUpdate({
-              target: tags.id,
-              set: {
+            .values(
+              results.map((tag) => ({
+                id: tag.id,
                 cat: tag.category,
                 name: tag.name,
                 alias: tag.aliases?.join(',') ?? null,
                 description: tag.description,
                 searchable: tag.searchable,
                 applicable: tag.applicable,
-                syncedAt: new Date(),
+                syncedAt,
+              })),
+            )
+            .onConflictDoUpdate({
+              target: tags.id,
+              set: {
+                cat: sql`excluded.cat`,
+                name: sql`excluded.name`,
+                alias: sql`excluded.alias`,
+                description: sql`excluded.description`,
+                searchable: sql`excluded.searchable`,
+                applicable: sql`excluded.applicable`,
+                syncedAt: sql`excluded.synced_at`,
               },
             })
         }
@@ -984,8 +995,10 @@ export const VndbSync = {
       BATCH_SIZE,
     )) {
       console.log(`  → release page: ${results.length} results`)
-      for (const rel of results) {
-        await db.transaction(async (trx) => {
+      // 同 syncVnBatch：一整页共用一个事务，而不是每个 release 一个。
+      // 原来一页就是 100 次 BEGIN/COMMIT，release 全量约 19000 次事务。
+      await db.transaction(async (trx) => {
+        for (const rel of results) {
           await trx
             .insert(releases)
             .values({
@@ -1068,8 +1081,8 @@ export const VndbSync = {
               })),
             )
           }
-        })
-      }
+        }
+      })
       await new Promise((r) => setTimeout(r, 2000))
     }
     console.log(
@@ -1099,34 +1112,40 @@ export const VndbSync = {
         idOrFilter(batch),
         BATCH_SIZE,
       )) {
-        for (const prod of results) {
+        // 单条多行 upsert：原实现每个 producer 一条 INSERT ... ON CONFLICT。
+        if (results.length > 0) {
+          const syncedAt = new Date()
           await db
             .insert(producers)
-            .values({
-              id: prod.id,
-              type: prod.type as any,
-              lang: prod.lang as any,
-              name: prod.name,
-              original: prod.original,
-              latin: prod.original,
-              alias: prod.aliases?.join(',') ?? null,
-              description: prod.description,
-              syncedAt: new Date(),
-            })
-            .onConflictDoUpdate({
-              target: producers.id,
-              set: {
+            .values(
+              results.map((prod) => ({
+                id: prod.id,
                 type: prod.type as any,
+                lang: prod.lang as any,
                 name: prod.name,
                 original: prod.original,
                 latin: prod.original,
                 alias: prod.aliases?.join(',') ?? null,
                 description: prod.description,
-                syncedAt: new Date(),
+                syncedAt,
+              })),
+            )
+            .onConflictDoUpdate({
+              target: producers.id,
+              set: {
+                type: sql`excluded.type`,
+                name: sql`excluded.name`,
+                original: sql`excluded.original`,
+                latin: sql`excluded.latin`,
+                alias: sql`excluded.alias`,
+                description: sql`excluded.description`,
+                syncedAt: sql`excluded.synced_at`,
               },
             })
+        }
 
-          // Build partial Meilisearch doc from VNDB API data
+        // Build partial Meilisearch doc from VNDB API data（纯内存）
+        for (const prod of results) {
           meiliDocs.push({
             id: prod.id,
             name: prod.name,
