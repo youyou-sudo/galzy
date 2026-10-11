@@ -1,8 +1,4 @@
-import {
-	keepPreviousData,
-	useQuery,
-	useSuspenseQuery,
-} from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { cn } from "@web/lib/utils";
@@ -220,11 +216,18 @@ function TagSearchResults({ q }: { q: string }) {
  * 视觉参考 dg.zi0.in/tags；网格用 auto-fill minmax(15rem) 自适应列数。
  */
 function TagHubBrowser({ sort }: { sort: TagSort }) {
-	const { data: hub } = useSuspenseQuery({
+	// 非 suspense：冷缓存进入（如从标签详情页点面包屑回列表）时，
+	// 只让分类区域显示骨架，不把整页换成路由的 pendingComponent。
+	// 数据优先命中路由 loader 的预取 / SSR 脱水结果。
+	const { data: hub, isPending } = useQuery({
 		queryKey: ["tagHub", "preview"],
 		queryFn: () => getTagHub({ data: { limit: 48 } }),
 		staleTime: 10 * 60_000,
 	});
+
+	if (isPending) {
+		return <TagHubBrowserSkeleton />;
+	}
 
 	const categories = hub?.categories ?? [];
 
@@ -331,11 +334,9 @@ function TagHubSection({
 	);
 }
 
-export function TagsHubSkeleton() {
+function TagHubCategoriesSkeleton() {
 	return (
-		<div className="flex flex-col gap-8">
-			<Skeleton className="h-8 w-32" />
-			<Skeleton className="h-9 w-full md:w-1/2" />
+		<>
 			{[0, 1, 2].map((i) => (
 				<div key={i} className="flex flex-col gap-3">
 					<Skeleton className="h-6 w-40" />
@@ -348,6 +349,26 @@ export function TagsHubSkeleton() {
 					</div>
 				</div>
 			))}
+		</>
+	);
+}
+
+/** 标签库内容区骨架：标题/搜索框已渲染时用它，避免整页骨架闪烁 */
+function TagHubBrowserSkeleton() {
+	return (
+		<div className="flex flex-col gap-8">
+			<Skeleton className="h-3 w-24" />
+			<TagHubCategoriesSkeleton />
+		</div>
+	);
+}
+
+export function TagsHubSkeleton() {
+	return (
+		<div className="flex flex-col gap-8">
+			<Skeleton className="h-8 w-32" />
+			<Skeleton className="h-9 w-full md:w-1/2" />
+			<TagHubCategoriesSkeleton />
 		</div>
 	);
 }
