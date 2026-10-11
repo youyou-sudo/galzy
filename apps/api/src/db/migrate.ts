@@ -41,6 +41,11 @@ type CountRow = { c: number }
  * 注意：drizzle-kit 0.31 的 `up` 命令只做快照格式升级（updateUpToV6/V7），
  * 不连接数据库、不应用迁移；此处用的是与生产启动路径相同的
  * drizzle-orm bun-sql migrator（drizzle.__drizzle_migrations 日志表，幂等）。
+ *
+ * ⚠️ 迁移顺序不变量：drizzle 迁移器用 `max(created_at) < journal.when` 判断是否应用，
+ * 且循环中不更新该基准。因此 `meta/_journal.json` 里每条 `when` 必须严格递增，
+ * 否则「when 偏小」的迁移会被永久静默跳过（曾发生在 0009/0010：手写时用了
+ * 2025 年的时间戳，小于 0008，导致 pg_trgm 索引 / 主键 / statement_timeout 一直没落地）。
  */
 export async function applyPendingMigrations(): Promise<MigrationApplyResult> {
   const migrationsFolder = resolveMigrationsFolder()

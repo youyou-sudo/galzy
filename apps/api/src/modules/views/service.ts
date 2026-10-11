@@ -12,7 +12,13 @@ import {
   vnTitles,
   zhtags,
 } from '@api/libs'
-import { getKv, getRedisClient, isRedisEnabled, setKv } from '@api/libs/redis'
+import {
+  delKv,
+  getKv,
+  getRedisClient,
+  isRedisEnabled,
+  setKv,
+} from '@api/libs/redis'
 import { and, count, desc, eq, gte, inArray, isNull, or } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { ViewsModel } from './model'
@@ -155,7 +161,20 @@ export const ViewsService = {
     const weekKey = weekStart.toISOString().slice(0, 10)
     const cacheKey = `galzy:views:hot:game:${weekKey}:${r18 ? '1' : '0'}`
 
-    const rows = await queryGameRankings(weekStart, r18 === false)
+    // 命中缓存直接返回。此前这里只写不读，排行榜的聚合查询每次请求都要重跑。
+    const cached = await getKv(cacheKey)
+    if (cached) {
+      try {
+        return JSON.parse(cached) as ViewsModel.GameRankingItem[]
+      } catch {
+        await delKv(cacheKey)
+      }
+    }
+
+    // r18 未开启（undefined / false）时必须在 SQL 层剔除涩涩游戏，
+    // 否则 LIMIT 30 会被 R18 作品占满，内存过滤后榜单名额不足。
+    const excludeR18 = r18 !== true
+    const rows = await queryGameRankings(weekStart, excludeR18)
 
     if (rows.length === 0) {
       void setKv(cacheKey, JSON.stringify([]), WEEK_CACHE_TTL)
@@ -261,7 +280,9 @@ export const ViewsService = {
     })
 
     // r18 关闭时剔除涩涩游戏（无封面 → cSexualAvg null → 保留）
-    const result = r18 ? mapped : mapped.filter((g) => (g.cSexualAvg ?? 0) < 1)
+    const result = excludeR18
+      ? mapped.filter((g) => (g.cSexualAvg ?? 0) < 1)
+      : mapped
 
     void setKv(cacheKey, JSON.stringify(result), WEEK_CACHE_TTL)
     return result

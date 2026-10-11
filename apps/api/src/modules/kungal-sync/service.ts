@@ -168,44 +168,79 @@ export const KungalSync = {
       const batch = entries.slice(i, i + RESOLVE_BATCH)
       try {
         const normalized = batch.map(([vid, item]) => normalizeWork(item, vid))
-        const works = normalized.map(({ work }) => ({
+
+        // galrc_kungal_works.vndb_id 上有唯一索引（见迁移 0021）：同一 VNDB 锚点
+        // 只允许一行。若本批某个 work 与库中另一 work 共用锚点，直接 upsert 会抛
+        // 23505 让整批失败；先把这类冲突条目剔除（保留库中已有行），并做批内锚点
+        // 去重，避免一条脏数据拖垮整批同步。
+        const anchors = normalized
+          .map(({ work }) => work.vndbId)
+          .filter((v): v is string => v !== null)
+        const anchorOwner = new Map<string, string>()
+        if (anchors.length > 0) {
+          const existing = await db
+            .select({ id: kungalWorks.id, vndbId: kungalWorks.vndbId })
+            .from(kungalWorks)
+            .where(inArray(kungalWorks.vndbId, anchors))
+          for (const row of existing) {
+            if (row.vndbId) anchorOwner.set(row.vndbId, row.id)
+          }
+        }
+        const seenAnchors = new Set<string>()
+        const kept = normalized.filter(({ work }) => {
+          const anchor = work.vndbId
+          if (!anchor) return true
+          const owner = anchorOwner.get(anchor)
+          if (owner !== undefined && owner !== work.id) {
+            console.warn(
+              `⚠️ Kungal 锚点冲突：work ${work.id} 的 ${anchor} 已被 ${owner} 占用，跳过`,
+            )
+            return false
+          }
+          if (seenAnchors.has(anchor)) return false
+          seenAnchors.add(anchor)
+          return true
+        })
+        const works = kept.map(({ work }) => ({
           ...work,
           syncedAt: new Date(),
         }))
-        const titles = normalized.flatMap(({ titles }) => titles)
-        const batchIds = batch.map(([, item]) => String(item.id))
-        await db.transaction(async (tx) => {
-          await tx
-            .insert(kungalWorks)
-            .values(works)
-            .onConflictDoUpdate({
-              target: kungalWorks.id,
-              set: {
-                vndbId: sql`excluded.vndb_id`,
-                olang: sql`excluded.olang`,
-                medium: sql`excluded.medium`,
-                contentRating: sql`excluded.content_rating`,
-                releasedFirst: sql`excluded.released_first`,
-                displayName: sql`excluded.display_name`,
-                coverUrl: sql`excluded.cover_url`,
-                coverWidth: sql`excluded.cover_width`,
-                coverHeight: sql`excluded.cover_height`,
-                coverThumbhash: sql`excluded.cover_thumbhash`,
-                intro: sql`excluded.intro`,
-                localized: sql`excluded.localized`,
-                covers: sql`excluded.covers`,
-                intros: sql`excluded.intros`,
-                ratings: sql`excluded.ratings`,
-                refs: sql`excluded.refs`,
-                syncedAt: sql`excluded.synced_at`,
-              },
-            })
-          await tx
-            .delete(kungalWorkTitles)
-            .where(inArray(kungalWorkTitles.workId, batchIds))
-          if (titles.length > 0)
-            await tx.insert(kungalWorkTitles).values(titles)
-        })
+        const titles = kept.flatMap(({ titles }) => titles)
+        const batchIds = kept.map(({ work }) => work.id)
+        if (works.length > 0) {
+          await db.transaction(async (tx) => {
+            await tx
+              .insert(kungalWorks)
+              .values(works)
+              .onConflictDoUpdate({
+                target: kungalWorks.id,
+                set: {
+                  vndbId: sql`excluded.vndb_id`,
+                  olang: sql`excluded.olang`,
+                  medium: sql`excluded.medium`,
+                  contentRating: sql`excluded.content_rating`,
+                  releasedFirst: sql`excluded.released_first`,
+                  displayName: sql`excluded.display_name`,
+                  coverUrl: sql`excluded.cover_url`,
+                  coverWidth: sql`excluded.cover_width`,
+                  coverHeight: sql`excluded.cover_height`,
+                  coverThumbhash: sql`excluded.cover_thumbhash`,
+                  intro: sql`excluded.intro`,
+                  localized: sql`excluded.localized`,
+                  covers: sql`excluded.covers`,
+                  intros: sql`excluded.intros`,
+                  ratings: sql`excluded.ratings`,
+                  refs: sql`excluded.refs`,
+                  syncedAt: sql`excluded.synced_at`,
+                },
+              })
+            await tx
+              .delete(kungalWorkTitles)
+              .where(inArray(kungalWorkTitles.workId, batchIds))
+            if (titles.length > 0)
+              await tx.insert(kungalWorkTitles).values(titles)
+          })
+        }
         upserted += works.length
       } catch (err) {
         errors += batch.length

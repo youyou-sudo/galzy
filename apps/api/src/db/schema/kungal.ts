@@ -36,7 +36,11 @@ export const kungalWorks = pgTable(
     syncedAt: timestamp('synced_at', { withTimezone: true }),
   },
   (table) => ({
-    vndbIdIdx: index('idx_galrc_kungal_works_vndb_id').on(table.vndbId),
+    // 唯一：vndb_id 是对齐锚点，多处（Meili 索引构建、列表排序、详情合并）
+    // 用 `(SELECT … WHERE kw.vndb_id = vn.id)` 标量子查询消费；一旦同一锚点
+    // 出现多行，标量子查询会抛 21000 并整体打断索引构建，故必须唯一。
+    // 可空列在 PG 唯一索引下允许多个 NULL（无 vndb 锚点的作品不受影响）。
+    vndbIdIdx: uniqueIndex('idx_galrc_kungal_works_vndb_id').on(table.vndbId),
   }),
 )
 

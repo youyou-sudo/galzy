@@ -109,11 +109,11 @@ const gameMeiliDocBase = {
   // Drizzle 在 sql`` 模板里嵌入列对象只渲染裸列名（如 "id"），
   // 在多表 JOIN 作用域下会造成列歧义（42702）或静默绑定到错误的表。
   description: sql`COALESCE(
-    (SELECT kw.intro FROM ${kungalWorks} kw WHERE kw.vndb_id = vn.id),
+    (SELECT kw.intro FROM ${kungalWorks} kw WHERE kw.vndb_id = vn.id LIMIT 1),
     vn.description
   )`,
   released_first: sql`COALESCE(
-    (SELECT kw.released_first FROM ${kungalWorks} kw WHERE kw.vndb_id = vn.id),
+    (SELECT kw.released_first FROM ${kungalWorks} kw WHERE kw.vndb_id = vn.id LIMIT 1),
     (SELECT MIN(r.released) FROM ${releasesVn} rv INNER JOIN ${releases} r ON r.id = rv.id WHERE rv.vid = vn.id AND r.released IS NOT NULL),
     ''
   )`,
@@ -156,6 +156,8 @@ const gameMeiliDocBase = {
       WHERE kw.vndb_id = vn.id AND kw.cover_url IS NOT NULL
         AND kw.cover_width IS NOT NULL AND kw.cover_height IS NOT NULL
         AND kw.cover_height >= kw.cover_width
+      ORDER BY kw.synced_at DESC NULLS LAST
+      LIMIT 1
     ) kimg),
     (SELECT row_to_json(i.*) FROM (SELECT i.id, i.height, i.width, COALESCE(i.c_sexual_avg, 0) AS c_sexual_avg FROM ${images} i WHERE i.id = vn.c_image) i)
   )`,

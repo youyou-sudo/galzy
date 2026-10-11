@@ -54,6 +54,14 @@ const RELATION_INVERSE: Record<string, string> = {
   preq: 'seq',
 }
 
+/** `/games/gamelist` 响应形状，同时也是 `galzy:game:list:*` 缓存的值形状。 */
+type GameListData = {
+  items: unknown[]
+  currentPage: number
+  totalPages: number
+  totalCount: number
+}
+
 export const Game = {
   async Count() {
     const redisData = await getKv('galzy:game:count')
@@ -69,15 +77,34 @@ export const Game = {
     void setKv('galzy:game:count', String(total), 60 * 30)
     return total
   },
-  async List({ pageIndex, pageSize, sortBy, order }: GameModel.gameList) {
+  async List({
+    pageIndex,
+    pageSize,
+    sortBy,
+    order,
+  }: GameModel.gameList): Promise<GameListData> {
     const useCache = !sortBy || sortBy === 'id'
     const cacheKey = `galzy:game:list:${pageIndex}:${pageSize}:${sortBy ?? 'id'}:${order}`
     const offset = pageIndex * pageSize
     const dir = order === 'asc' ? 'ASC' : 'DESC'
+
+    // 命中缓存直接返回。此前这里只写不读，列表页每次请求都要跑完整查询
+    // （含十几个相关子查询），缓存形同虚设。
+    if (useCache) {
+      const cached = await getKv(cacheKey)
+      if (cached) {
+        try {
+          return JSON.parse(cached) as GameListData
+        } catch {
+          await delKv(cacheKey)
+        }
+      }
+    }
+
     let orderClause
     if (sortBy === 'released') {
       orderClause = sql.raw(
-        `COALESCE((SELECT kw.released_first FROM galrc_kungal_works kw WHERE kw.vndb_id = vn.id), (SELECT MIN(r.released) FROM releases_vn rv JOIN releases r ON r.id = rv.id WHERE rv.vid = vn.id)) ${dir} NULLS LAST, vn.id ${dir}`,
+        `COALESCE((SELECT kw.released_first FROM galrc_kungal_works kw WHERE kw.vndb_id = vn.id LIMIT 1), (SELECT MIN(r.released) FROM releases_vn rv JOIN releases r ON r.id = rv.id WHERE rv.vid = vn.id)) ${dir} NULLS LAST, vn.id ${dir}`,
       )
     } else if (sortBy === 'downloads') {
       orderClause = sql.raw(
@@ -232,7 +259,7 @@ export const Game = {
       }
     }
     const totalPages = Math.ceil(totalCount / pageSize)
-    const datas = {
+    const datas: GameListData = {
       items,
       currentPage: pageIndex,
       totalPages,

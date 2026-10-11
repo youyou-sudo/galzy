@@ -68,14 +68,14 @@
     {
       "idx": 9,
       "version": "7",
-      "when": 1754000000000,
+      "when": 1791609097248,
       "tag": "0009_producers_trigram",
       "breakpoints": true
     },
     {
       "idx": 10,
       "version": "7",
-      "when": 1754100000000,
+      "when": 1791609097249,
       "tag": "0010_schema_hardening",
       "breakpoints": true
     },
@@ -147,6 +147,13 @@
       "version": "7",
       "when": 1791609097247,
       "tag": "0020_tags_hierarchy",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791707040464,
+      "tag": "0021_kungal_vndb_id_unique",
       "breakpoints": true
     }
   ]
