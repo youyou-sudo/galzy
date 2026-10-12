@@ -1,8 +1,4 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { CalendarIcon, SearchIcon, XIcon } from "lucide-react";
-import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
-
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
 import { Input } from "@web/components/ui/input";
@@ -17,6 +13,10 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from "@web/components/ui/popover";
+import type { GameOrderKey, GameSortKey } from "@web/server/game";
+import { CalendarIcon, SearchIcon, XIcon } from "lucide-react";
+import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface SearchInputProps {
 	placeholder?: string;
@@ -29,8 +29,8 @@ type SearchInputParams = {
 	q?: string;
 	startDate?: string;
 	endDate?: string;
-	sortBy?: string;
-	order?: string;
+	sortBy?: GameSortKey;
+	order?: GameOrderKey;
 };
 
 export default function SearchInput({
