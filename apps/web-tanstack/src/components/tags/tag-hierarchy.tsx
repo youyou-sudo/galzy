@@ -48,23 +48,21 @@ const GUTTER_Y = 34;
 
 // ---- 网格布局参数 ---------------------------------------------------------
 
-const COL_GAP = 12; // 子标签网格相邻两列之间的水平间隙
-const ROW_GAP = 12; // 子标签网格相邻两行之间的垂直间隙
+const ROW_GAP = 12; // 祖先列内相邻两个节点之间的垂直间隙
 const ANC_GAP = 26; // 祖先链末节点 → 当前标签左缘
 const ANC_LINK = 24; // 祖先链内相邻两节点之间的连线长度
-const FAN_GAP = 26; // 当前标签右缘 → 子标签总线
-const STUB = 18; // 总线 → 子标签网格左缘
-const PANEL_TITLE_H = 20; // 底板顶部留给标题的那一条
-const MAX_COLS = 12; // 列数上限：再多就成了一条几万像素宽的横幅
-const GRID_TARGET_AR = 2.2; // 网格的目标宽高比，太扁像横幅、太长像目录
 const MIN_READABLE_ZOOM = 0.72; // 全览缩放的下限：低于此值字就糊了，宁可裁一点
 
-// ---- 子标签卡片（子标签过多时的收纳盒）------------------------------------
+// ---- 子标签卡片（子标签唯一的呈现方式）------------------------------------
 //
-// 78 个子标签一个个铺成独立节点时，为了让它们全塞进画布得缩到 50% 出头，字全糊了。
-// 换成「一张卡片装下全部、一根线接过来」：卡片里是等宽对齐的小药丸，格子的行列数
-// 是算出来的（不是量出来的），所以卡片尺寸确定、缩放确定，能一直保持在 100% 附近。
-const CHILD_CHIP_MAX = 18; // 超过这个数就收进卡片，不再一个个铺节点
+// 子标签一律收进一张卡片，只用**一根**线接过来：卡片里是等宽对齐的小药丸，格子的
+// 行列数是算出来的（不是量出来的），所以卡片尺寸确定、缩放确定。
+//
+// 为什么不是「一个子标签一个节点 + 总线 + 支线」：子标签一多，为了让它们全塞进画布
+// 得一路缩到 50% 出头，字全糊了，几十根支线本身也是一片噪点（g96 有 21 个、g835 有
+// 80 个）。收进卡片后格子压到 106×24，80 个也只是一张几百像素宽的卡，整图能稳稳
+// 保持在 100% 附近；子标签少的时候同一套结构就是一张小卡 —— 形态一致，不必维护
+// 两套版式，也不会出现「同一个组件一会儿是零散节点、一会儿是卡片」。
 const CARD_BORDER = 1;
 const CARD_PAD = 10; // 卡片内边距
 const CARD_CELL_W = 106; // 卡片内标签格子的宽
@@ -77,6 +75,7 @@ const CARD_GAP = 76;
 const CARD_LABEL_W = 44; // 「子标签」三个字 + 左右各一点呼吸
 const CARD_LABEL_H = 14;
 const CARD_MAX_COLS = 7;
+const CARD_MIN_COLS = 3; // 列数下限：窄到一两列就成了竖条，三列起才有「一组」的样子
 const CARD_TARGET_AR = 1.5; // 卡片自己的目标宽高比：略宽于方
 
 const ZOOM_MIN = 0.2;
@@ -115,11 +114,13 @@ type GraphNode = {
 /** 祖先链上一段连线：父节点左缘 → 子节点右缘，中间的直线上标着层级 */
 type GraphLink = { d: string; intoCurrent: boolean };
 
-/** 子标签底板的包围盒（含总线留白与标题那一条），用来画虚线框与标题 */
-type Panel = { x: number; y: number; w: number; h: number; count: number };
-
-/** 子标签过多时的收纳卡片：一张卡装下全部，再用一根线接过来 */
-type ChildCard = Panel & {
+/** 装子标签的收纳卡片：一张卡装下全部，只用一根线接过来 */
+type ChildCard = {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+	count: number;
 	cols: number;
 	/** 「子标签」三个字压在连线上，这是它占的那块位置 */
 	label: { x: number; y: number; w: number; h: number };
@@ -129,15 +130,9 @@ type Graph = {
 	nodes: GraphNode[];
 	/** 祖先链（含汇入当前标签的那几段），逐段给主链上的节点用 */
 	links: GraphLink[];
-	/** 当前标签右缘 → 子标签总线（或卡片）的横向主干 */
+	/** 当前标签右缘 → 子标签卡片的主干；中间断开，断口上压「子标签」三个字 */
 	trunk: string;
-	/** 子标签总线的纵向段；只有卡片模式或单行子标签时为空串 */
-	spine: string;
-	/** 每条支线：总线 → 该子标签的左缘；卡片模式为空 */
-	stubs: string[];
-	/** 子标签底板与标题（独立节点模式）；没有子标签或走卡片时为 null */
-	childPanel: Panel | null;
-	/** 子标签收纳卡片；子标签不够多时为 null（那就还是一个节点一个格子） */
+	/** 子标签收纳卡片；没有子标签时为 null */
 	childCard: ChildCard | null;
 	width: number;
 	height: number;
@@ -146,11 +141,6 @@ type Graph = {
 /** 极短的水平连线（节点框之间那几十像素） */
 function hline(x1: number, x2: number, y: number): string {
 	return `M ${x1.toFixed(1)} ${y.toFixed(1)} H ${x2.toFixed(1)}`;
-}
-
-/** 一条竖向总线：子标签铺成多行时，从第一行的中线垂到最后一行的中线 */
-function vline(x: number, y1: number, y2: number): string {
-	return `M ${x.toFixed(1)} ${y1.toFixed(1)} V ${y2.toFixed(1)}`;
 }
 
 type Box = {
@@ -174,19 +164,25 @@ const boxH = (b: Box, count: number, n: number) => {
  * 「行满换列」铺 count 个格子时该用几列。
  *
  * 两头都要夹：只夹上界（容器宽度）会把窄容器压成 1…2 列的竖条；只夹下界
- * （纯宽高比）会把 12 个格子摊成一行 2000px 的横幅。所以先在「缩到可读缩放还
+ * （纯宽高比）会把十几个格子摊成一行 2000px 的横幅。所以先在「缩到可读缩放还
  * 放得下」的列数里筛，再按宽高比取最优 —— 取景因此总是落在可读区间。
+ *
+ * minCols 是给「子标签很少」兜底的那一档：格子本身又扁又宽（106×24），按宽高比
+ * 选出来的最优解会是一列竖排（40 个格子也是一列），看着就不像「一组」。所以
+ * 少于 minCols 个时按个数铺满一行，够 minCols 个之后才交给宽高比去算。
  */
-function chooseCols(count: number, b: Box): number {
+function chooseCols(count: number, b: Box, minCols = 1): number {
 	if (count <= 1) return 1;
 	const fits = Math.max(
 		1,
 		Math.min(b.maxCols, Math.floor((b.maxW + b.gapX) / (b.cellW + b.gapX))),
 	);
+	if (count <= minCols) return Math.min(count, fits);
 	const shortest = boxH(b, count, fits);
 	let cols = fits;
 	let best = Number.POSITIVE_INFINITY;
 	for (let n = 1; n <= fits; n++) {
+		if (n < minCols) continue;
 		// 比最扁的那一档还高 60% 以上 = 竖条，淘汰
 		if (n < fits && boxH(b, count, n) > shortest * 1.6) continue;
 		const dist = Math.log(boxW(b, n) / boxH(b, count, n) / b.targetAr) ** 2;
@@ -198,21 +194,17 @@ function chooseCols(count: number, b: Box): number {
 	return cols;
 }
 
-// 把祖先路径 + 子标签摊成一张三段式版面：祖先链 | 当前标签 | 子标签。
+// 把祖先路径 + 子标签摊成一张三段式版面：祖先链 | 当前标签 | 子标签卡片。
 //
 // 祖先链按「到当前标签的跳数」分列，同跳同列。用跳数而不是最长路径层级：祖先
 // 本来就少（g835 只有 2 个），同跳同列就是最自然的网格语义，也不会把某个节点
 // 为了「父必须比子更左」而推到几跳之外去。
 //
-// 右侧那一块按数量二选一：
+// 右侧永远是那张卡片：子标签多也好少也好，都收进同一个「分组容器」，只用一根线
+// 接过来。所以整张图从左到右只有四个东西 —— 祖先链、当前标签、那根线、卡片 ——
+// 连线条数不随子标签数量增长，子标签再多也只是卡片里的格子变多。
 //
-// - 子标签不多（≤ CHILD_CHIP_MAX）：一个个铺成独立节点，总线 + 支线接过去，
-//   一眼看得出「这些都是它的下级」。
-// - 子标签太多：整块收进一张卡片，只留**一根**线。78 个独立节点为了让它们全塞进
-//   画布得一路缩到 50% 出头，字全糊了，而且 78 根支线本身就是一片噪点；收进卡片
-//   后格子压到 106×24，78 个也只是一张 576×490 的卡，整图能稳稳保持 100%。
-//
-// 为什么不是放射图：放射布局把 78 个子标签摊成六圈同心弧，弧上每个框都占一段
+// 为什么不是放射图：放射布局把几十个子标签摊成六圈同心弧，弧上每个框都占一段
 // 角度，圈子越大同样的弧长能装的框越少 —— 于是外圈挤成一团、内圈稀稀拉拉，
 // 框与框擦边甚至重叠（用户反馈的「糊成一团」）。
 function buildGraph(
@@ -285,27 +277,17 @@ function buildGraph(
 	);
 	const chainH = ancPerCol * NODE_H + (ancPerCol - 1) * ROW_GAP;
 
-	// ---- 右侧那一块：子标签要么一个个铺，要么收进一张卡片 ----
+	// ---- 右侧那张卡片 ----
 	//
-	// 祖先链最多也就三四列（十几跳），不能让它跟子标签抢宽度 —— 抢了就是
-	// 「右边几个孤零零的框、左边一大片空白」。所以宽度预算先扣掉祖先段，剩下的
-	// 给右侧：够铺得下就一个个铺（看得出层级），铺不下就整块收进卡片。
-	const ancW = maxHop > 0 ? maxHop * NODE_W + maxHop * ANC_LINK : 0;
+	// 祖先链最多也就三四列（十几跳），不能让它跟卡片抢宽度 —— 抢了就是
+	// 「右边一张孤零零的卡、左边一大片空白」。所以宽度预算先扣掉祖先段，剩下的
+	// 给卡片：列数按「缩到 MIN_READABLE_ZOOM 还放得下」倒推，卡片不会横向失控。
+	const ancW = maxHop > 0 ? maxHop * (NODE_W + ANC_LINK) : 0;
 	// 缩到 MIN_READABLE_ZOOM 后仍要放得下容器 ⇒ 整图宽 ≤ availW / MIN_READABLE_ZOOM
 	const budget = Math.max(
 		NODE_W * 2,
 		availW / MIN_READABLE_ZOOM - (GUTTER_X * 2 + ANC_GAP + ancW),
 	);
-	const useCard = children.length > CHILD_CHIP_MAX;
-	const gridBox: Box = {
-		cellW: NODE_W,
-		cellH: NODE_H,
-		gapX: COL_GAP,
-		gapY: ROW_GAP,
-		maxCols: MAX_COLS,
-		targetAr: GRID_TARGET_AR,
-		maxW: Math.max(NODE_W * 2, budget - FAN_GAP - STUB),
-	};
 	// 卡片的内边距与边框要从预算里先扣掉，否则卡片外框会溢出一圈
 	const cardBox: Box = {
 		cellW: CARD_CELL_W,
@@ -320,26 +302,20 @@ function buildGraph(
 		),
 	};
 	const cols = children.length
-		? chooseCols(children.length, useCard ? cardBox : gridBox)
+		? chooseCols(children.length, cardBox, CARD_MIN_COLS)
 		: 0;
-	// 右侧块的尺寸：卡片模式把内边距与边框都算进去（「子标签」三个字压在连线上，
-	// 不占卡片的高度）
+	// 卡片的尺寸：内边距与边框都算进去（「子标签」三个字压在连线上，不占卡片的高度）
 	const rightW = !children.length
 		? 0
-		: useCard
-			? boxW(cardBox, cols) + CARD_PAD * 2 + CARD_BORDER * 2
-			: boxW(gridBox, cols);
+		: boxW(cardBox, cols) + CARD_PAD * 2 + CARD_BORDER * 2;
 	const rightH = !children.length
 		? 0
-		: useCard
-			? boxH(cardBox, children.length, cols) + CARD_PAD * 2 + CARD_BORDER * 2
-			: boxH(gridBox, children.length, cols);
+		: boxH(cardBox, children.length, cols) + CARD_PAD * 2 + CARD_BORDER * 2;
 
 	// ---- 坐标：整条版面垂直居中在同一条中线上 ----
 	//
-	// 所有节点共用一个 y 中线（当前标签），祖先链与子标签网格各自在自己的方向上
-	// 从这条中线向上下展开。于是每条连线都是水平线或一条短竖线，没有斜的，
-	// 也没有任何两条线交叉。
+	// 所有节点共用一个 y 中线（当前标签），祖先链与子标签卡片各自在自己的方向上
+	// 从这条中线向上下展开。于是每条连线都是水平线，没有斜的，也没有任何两条线交叉。
 	// 中线要算上 GUTTER_Y：画布高度是「内容高 + 上下各一条留白」，而内容的 y 是从
 	// 0 起算的。少了这一条，内容会贴住画布上边缘、两条留白全堆在下面，整块看着
 	// 就是「没居中」。（x 方向没这个问题：内容的 x 从 GUTTER_X 起算。）
@@ -368,18 +344,7 @@ function buildGraph(
 	// 都从它上半部分擦过去，看着就是「没对齐」。
 	placed.push({ id: tag.id, x: currentX, y: midY - NODE_H / 2, current: true });
 
-	const gridX = currentX + NODE_W + FAN_GAP;
 	const cardX = currentX + NODE_W + CARD_GAP;
-	if (!useCard) {
-		children.forEach((child, i) => {
-			placed.push({
-				id: child.id,
-				x: gridX + (i % cols) * (NODE_W + COL_GAP),
-				y: midY - rightH / 2 + Math.floor(i / cols) * (NODE_H + ROW_GAP),
-				current: false,
-			});
-		});
-	}
 
 	const nodes: GraphNode[] = placed.map((p) => ({
 		id: p.id,
@@ -418,18 +383,10 @@ function buildGraph(
 		}
 	}
 
-	// 子标签，两种接法：
-	//
-	// 少量（≤ CHILD_CHIP_MAX）：当前标签右缘 → 总线 → 每个子标签一根支线。总线
-	// 固定在网格左侧 STUB 处，支线长度因此与标签名无关。
-	// 大量：一整个卡片当做一个节点，只用**一根**线接过去 —— 78 根支线就算排整齐
-	// 也是一片噪点，而且为了排下它们整图得缩到一半。
+	// 子标签只有一个接法：整张卡片当一个节点，用**一根**线接过来。
 	let trunk = "";
-	let spine = "";
-	const stubs: string[] = [];
-	let childPanel: Panel | null = null;
 	let childCard: ChildCard | null = null;
-	if (current && useCard && children.length > 0) {
+	if (current && children.length > 0) {
 		// 线在中间断开，把「子标签」三个字放在断口上：这样不用给文字垫一块底色
 		// 去盖住线，画布上的点阵背景也不会被切出一块补丁。
 		const x1 = current.x + NODE_W;
@@ -454,36 +411,13 @@ function buildGraph(
 				h: CARD_LABEL_H,
 			},
 		};
-	} else if (current && children.length > 0) {
-		const busX = gridX - STUB;
-		const busTop = midY - rightH / 2 + NODE_H / 2;
-		const busBottom = midY + rightH / 2 - NODE_H / 2;
-		trunk = hline(current.x + NODE_W, busX, midY);
-		spine = vline(busX, busTop, busBottom);
-		for (const child of children) {
-			const node = nodeById.get(child.id);
-			if (!node) continue;
-			stubs.push(hline(busX, node.x, node.y + NODE_H / 2));
-		}
-		childPanel = {
-			x: gridX - STUB - 6,
-			y: midY - rightH / 2 - PANEL_TITLE_H,
-			w: rightW + STUB + 6,
-			h: rightH + PANEL_TITLE_H,
-			count: children.length,
-		};
 	}
 
-	const right = children.length
-		? (useCard ? cardX : gridX) + rightW
-		: currentX + NODE_W;
+	const right = children.length ? cardX + rightW : currentX + NODE_W;
 	return {
 		nodes,
 		links,
 		trunk,
-		spine,
-		stubs,
-		childPanel,
 		childCard,
 		width: right + GUTTER_X,
 		height: Math.max(chainH, rightH) + GUTTER_Y * 2,
@@ -515,6 +449,8 @@ function NodeChip({
 	style?: CSSProperties;
 }) {
 	const base = cn(
+		// 圆角矩形：节点是链上的一个「站点」，框宽固定、圆角统一（132×30、8px 圆角），
+		// 长短不一的标签名一律居中截断，边缘因此总是齐的。
 		"flex items-center justify-center rounded-lg border px-2.5 text-xs leading-none transition-all duration-150",
 		// 普通节点不加投影。g835 这类标签有 80 个节点，每个都带一层 box-shadow 时
 		// 阴影会沿子标签列叠成一条黑带（用户反馈的「阴影叠起来」）。边框已经足够
@@ -523,8 +459,8 @@ function NodeChip({
 			? "border-primary/40 bg-primary font-medium text-primary-foreground shadow-md ring-[3px] ring-primary/20"
 			: navigable
 				? "border-border/80 bg-card text-foreground hover:-translate-y-px hover:border-primary/50 hover:bg-muted hover:shadow-sm"
-				// 未本地化的祖先不可点击：不给 hover 反馈，虚线边框示意「到此为止」
-				: "border-border/70 border-dashed bg-muted/30 text-muted-foreground",
+				: // 未本地化的祖先不可点击：不给 hover 反馈，虚线边框示意「到此为止」
+					"border-border/70 border-dashed bg-muted/30 text-muted-foreground",
 		className,
 	);
 	if (current) {
@@ -569,18 +505,18 @@ function NodeChip({
 // 标签层级关系图。
 //
 // 面包屑只保留「首页 › 标签 › 当前标签」；关系细节收进这里。默认收起，展开后是
-// 一块画布，从左到右三段：祖先链 → 当前标签 → 子标签。
+// 一块画布，从左到右三段：祖先链 → 当前标签 → 子标签卡片。
 //
 // 三个刻意的取舍：
 //
-// 1. 子标签走网格，不走放射。放射布局把 78 个子标签摊成六圈同心弧，圈越大同
+// 1. 子标签走网格，不走放射。放射布局把几十个子标签摊成六圈同心弧，圈越大同
 //    一段弧长能装的框越少，结果就是外圈挤成一团、框框擦边甚至重叠。网格里每个
 //    标签都占自己的格子，行列对齐，谁也不压谁（用户反馈的「糊成一团」）。
-// 2. 子标签太多（当前是 18 个以上）就整块收进一张卡片，只被一根线连着。这时
-//    再一个个铺节点，为了让它们全进画布得缩到一半、字全糊；卡片里的格子和「一根
-//    线」的接法都是用户点名要的。
-// 3. 格子数（网格列数 / 卡片列数）按可用宽度算，取景再按整图缩放；高度上限
-//    70vh。列数与 fitZoom 是配套的，所以框内不会出现被裁掉的节点。
+// 2. 子标签一律整块收进一张卡片，只被一根线连着 —— 无论 2 个还是 80 个。一个个
+//    铺成独立节点的话，为了让它们全进画布得缩到一半、字全糊，而且几十根支线本身
+//    就是一片噪点；卡片里的格子和「一根线」的接法都是用户点名要的。
+// 3. 卡片列数按可用宽度算，取景再按整图缩放；高度上限 70vh。列数与 fitZoom 是
+//    配套的，所以框内不会出现被裁掉的格子。
 //
 // 交互：画布默认不接管输入，点击一次激活；激活后空白处拖拽平移、滚轮以光标为
 // 锚点缩放、双击空白处复位，点击画布外立即把滚动权交还页面。已本地化的节点可
@@ -913,19 +849,6 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 								height={graph.height}
 								aria-hidden="true"
 							>
-								{/* 子标签组的底板：把「一对多的下级」和祖先链在视觉上切开 */}
-								{graph.childPanel && (
-									<rect
-										x={graph.childPanel.x}
-										y={graph.childPanel.y}
-										width={graph.childPanel.w}
-										height={graph.childPanel.h}
-										rx={12}
-										className="fill-muted/40 stroke-border/70"
-										strokeWidth={1}
-										strokeDasharray="4 4"
-									/>
-								)}
 								{/* 祖先链：逐段水平线，汇入当前标签的那几段加粗 */}
 								{graph.links.map((link, i) => (
 									<path
@@ -941,7 +864,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 										}
 									/>
 								))}
-								{/* 子标签汇流线：主干 + 竖向总线 + 每个子标签一段支线 */}
+								{/* 子标签那条唯一的主干：当前标签 → 卡片 */}
 								{graph.trunk && (
 									<g
 										className="stroke-muted-foreground/40"
@@ -949,24 +872,9 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 										strokeWidth={1.25}
 									>
 										<path d={graph.trunk} />
-										{graph.spine && <path d={graph.spine} />}
-										{graph.stubs.map((d, i) => (
-											<path key={`stub-${i}`} d={d} />
-										))}
 									</g>
 								)}
 							</svg>
-							{graph.childPanel && (
-								<div
-									className="pointer-events-none absolute text-[10px] font-medium text-muted-foreground"
-									style={{
-										left: graph.childPanel.x + 10,
-										top: graph.childPanel.y + 3,
-									}}
-								>
-									子标签 {graph.childPanel.count}
-								</div>
-							)}
 							{graph.nodes.map((node) => (
 								<NodeChip
 									key={node.id}
@@ -1000,13 +908,11 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 							)}
 							{/* 子标签太多时的收纳卡片：整块当做一个节点，只被一根线连着。
 							    卡片里的格子是固定尺寸的 CSS grid，所以卡片高度与 buildGraph
-							    算出来的一致（行列数就是那里定下来的），不会被裁掉一格。
-							    虚线 + 透明底：它是个「把这些标签归到一组」的框，不是又一个节点 ——
-							    实心卡片会和真正的标签节点抢视线。留 `data-node` 在药丸上而不是
-							    框上，于是框内的空白处照样能拖拽平移。 */}
+							    算出来的一致（行列数就是那里定下来的），不会被裁掉一格。 */}
 							{graph.childCard && (
 								<div
-									className="absolute overflow-hidden rounded-xl border border-border/70 border-dashed"
+									data-node
+									className="absolute overflow-hidden rounded-xl border border-border/70 bg-card/95 shadow-sm"
 									style={{
 										left: graph.childCard.x,
 										top: graph.childCard.y,
@@ -1028,7 +934,6 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 												key={child.id}
 												to="/tags/$tagId"
 												params={{ tagId: child.id }}
-												data-node
 												title={labelOf(child)}
 												className="flex items-center justify-center rounded-md border border-border/70 bg-muted/40 px-1.5 text-[11px] text-foreground leading-none transition-colors hover:border-primary/50 hover:bg-muted"
 												style={{ height: CARD_CELL_H }}
