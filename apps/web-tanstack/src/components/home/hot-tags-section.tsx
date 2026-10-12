@@ -72,7 +72,11 @@ export function HotTagsSection({ tags }: HotTagsSectionProps) {
 					<h2 className="text-base font-semibold lg:text-xl">热门标签</h2>
 				</div>
 				<Link
-					to="/tags"
+					// 首页这块展示的就是「本周热门」标签，所以「更多」落到热门分类页的
+					// 本周热门排序上，翻页时榜单顺序不断层（分类页可再切本月/收录数）
+					to="/tags/category/$categoryKey"
+					params={{ categoryKey: "hot" }}
+					search={{ sort: "hotWeek", order: "desc" }}
 					className="text-xs text-muted-foreground transition-colors hover:text-primary lg:text-sm"
 				>
 					更多 →

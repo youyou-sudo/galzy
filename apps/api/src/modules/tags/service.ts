@@ -18,6 +18,7 @@ import {
 } from '@api/libs'
 import { purgeByTags, purgeTagPages } from '@api/libs/cloudflare-cache'
 import { delKv, delKvPattern, getKv, setKv } from '@api/libs/redis'
+import { getEffectiveWeekStart, getMonthStart } from '@api/libs/time-window'
 import {
   and,
   asc,
@@ -274,6 +275,33 @@ async function getTagViewCountMap(): Promise<Map<string, number>> {
   return map
 }
 
+/**
+ * 本周 / 本月每个标签的浏览量（分类页「本周热门 / 本月热门」排序的数据源）。
+ *
+ * 只用明细表：galrc_stat_counters 是终身累计，没有时间桶，切不出时间窗；
+ * 明细保留 EVENT_VIEW_RETENTION_DAYS（默认 90 天），「本月」窗口最长 31 天，
+ * 始终落在保留期内。「本周」用 getEffectiveWeekStart 口径，与首页周榜一致。
+ *
+ * 时间窗聚合走 idx_galrc_event_views_type_created，只扫窗口内的行，
+ * 比上面那句终身累计（237ms）便宜得多；而且只在 getTagGroups 缓存未命中时跑。
+ */
+async function getTagRecentViewCountMap(
+  weekStart: Date,
+  monthStart: Date,
+): Promise<Map<string, { week: number; month: number }>> {
+  const rows = (await db.execute(
+    sql`SELECT target_id,
+          count(*) FILTER (WHERE created_at >= ${weekStart})::int AS week_cnt,
+          count(*)::int AS month_cnt
+        FROM galrc_event_views
+        WHERE event_type = 'tag_view' AND created_at >= ${monthStart}
+        GROUP BY target_id`,
+  )) as Array<{ target_id: string; week_cnt: number; month_cnt: number }>
+  return new Map(
+    rows.map((r) => [r.target_id, { week: r.week_cnt, month: r.month_cnt }]),
+  )
+}
+
 type TagGroupKey =
   | 'character'
   | 'theme'
@@ -297,8 +325,14 @@ type TagGroupMeta = {
 export type TagGroupItem = {
   id: string
   name: string
+  /** 站内收录（alistb 存在）的关联游戏数 */
   vnCount: number
+  /** 终身累计 tag_view 浏览量 */
   views: number
+  /** 本周 tag_view 浏览量（分类页「本周热门」排序） */
+  viewsWeek: number
+  /** 本月 tag_view 浏览量（分类页「本月热门」排序） */
+  viewsMonth: number
 }
 
 export type TagGroupCategory = TagGroupMeta & { tags: TagGroupItem[] }
@@ -388,11 +422,14 @@ const CAT_FALLBACK: Record<string, TagGroupKey> = {
  * 与层级递归被算两遍。标签一律按收录游戏数降序（参考站口径），同分按中文名
  * 排序，保证输出稳定、缓存可比对。
  *
- * 失效依赖：key 落在 `galzy:tags:hub:v2:*` 命名空间内 —— tagEdit / tagFileAdd /
+ * 失效依赖：key 落在 `galzy:tags:hub:v3:*` 命名空间内 —— tagEdit / tagFileAdd /
  * vndb-sync / kungal-sync 的既有失效 pattern 会一并清掉，无需新增失效点。
+ *
+ * v3：条目新增 viewsWeek / viewsMonth（分类页「本周热门 / 本月热门」排序），
+ * 旧缓存里没有这两个字段，必须换 key 而不是等 1h TTL 自然过期。
  */
 async function getTagGroups(): Promise<TagGroups> {
-  const cacheKey = 'galzy:tags:hub:v2:groups'
+  const cacheKey = 'galzy:tags:hub:v3:groups'
   const cached = await getKv(cacheKey)
   if (cached) {
     try {
@@ -414,9 +451,11 @@ async function getTagGroups(): Promise<TagGroups> {
     .innerJoin(zhtags, eq(tags.id, zhtags.id))
 
   // 两个全量聚合都走共享缓存 helper（与 tagCategories 共用同一份结果）
-  const [countMap, viewMap] = await Promise.all([
+  // 时间窗聚合没有单独缓存：它只在 getTagGroups 缓存未命中时跑一次
+  const [countMap, viewMap, recentViewMap] = await Promise.all([
     getTagGameCountMap(),
     getTagViewCountMap(),
+    getTagRecentViewCountMap(getEffectiveWeekStart(), getMonthStart()),
   ])
 
   const tagIds = rows.map((r) => r.id)
@@ -493,6 +532,8 @@ async function getTagGroups(): Promise<TagGroups> {
         name: t.name || t.id,
         vnCount: countMap.get(t.id) ?? 0,
         views: viewMap.get(t.id) ?? 0,
+        viewsWeek: recentViewMap.get(t.id)?.week ?? 0,
+        viewsMonth: recentViewMap.get(t.id)?.month ?? 0,
       }))
 
   const groups: TagGroupCategory[] = TAG_HUB_GROUPS.map((g) => ({
@@ -528,39 +569,59 @@ async function getTagGroups(): Promise<TagGroups> {
   return data
 }
 
-/** 分类标签的排序键，与 TagsModel.tagHub 的 sort 字面量联合对齐 */
-type TagHubSort = 'count' | 'views' | 'nameAsc' | 'nameDesc'
+/** 分类标签的排序依据，与 TagsModel.tagHub 的 sort 字面量联合对齐 */
+type TagHubSort = 'count' | 'views' | 'hotWeek' | 'hotMonth' | 'name'
+
+/** 排序方向，与 TagsModel.tagHub 的 order 字面量联合对齐 */
+type TagHubOrder = 'desc' | 'asc'
+
+/** 数值型排序依据的取值器（name 是唯一走字符串比较的依据，单独处理） */
+const SORT_METRIC: Record<
+  Exclude<TagHubSort, 'name'>,
+  (t: TagGroupItem) => number
+> = {
+  count: (t) => t.vnCount,
+  views: (t) => t.views,
+  hotWeek: (t) => t.viewsWeek,
+  hotMonth: (t) => t.viewsMonth,
+}
 
 /**
- * 按排序键排列分类标签。
+ * 按「依据 + 方向」排列分类标签。
  *
- * count 直接返回 getTagGroups 的规范顺序（收录数降序 + 中文名升序）；
- * 其余键在这里读时排序 —— 全量列表只缓存一份，不值得为每种排序各缓存一遍。
- * 必须**先排序再切片**，否则「按浏览次数取前 N」会退化成「收录数前 N 条里
- * 再按浏览次数排」，两个口径完全不是一回事（实测 恋爱 661 收录 / 2.7 万浏览，
- * 处女丧失 869 收录 / 36 浏览，两者经常不在同一批候选里）。
+ * count + desc 就是 getTagGroups 的规范顺序（收录数降序 + 中文名升序），
+ * 直接原样返回；其余组合在这里读时排序 —— 全量列表只缓存一份，不值得为
+ * 每种排序各缓存一遍。必须**先排序再切片**，否则「按浏览次数取前 N」会退化
+ * 成「收录数前 N 条里再按浏览次数排」，两个口径完全不是一回事（实测 恋爱
+ * 661 收录 / 2.7 万浏览，处女丧失 869 收录 / 36 浏览，两者经常不在同一批
+ * 候选里）。
+ *
+ * hotWeek / hotMonth 是时间窗热度（本周 / 本月 tag_view 浏览量），窗口内
+ * 数据会随事件增长而变化。方向只翻转主键，并列时一律回落规范次序
+ * （收录数降序 + 中文名升序），保证输出稳定、缓存可比对。
  */
 function sortTagItems(
   list: TagGroupItem[],
   sort: TagHubSort = 'count',
+  order: TagHubOrder = 'desc',
 ): TagGroupItem[] {
-  if (sort === 'count') return list
+  if (sort === 'count' && order === 'desc') return list
   const sorted = [...list]
-  if (sort === 'views') {
-    // 浏览次数并列时用收录数、名称兜底，保证输出顺序稳定（缓存可比对）
+  const dir = order === 'asc' ? 1 : -1
+  if (sort === 'name') {
     sorted.sort(
       (a, b) =>
-        b.views - a.views ||
-        b.vnCount - a.vnCount ||
-        a.name.localeCompare(b.name, 'zh'),
+        dir * a.name.localeCompare(b.name, 'zh') || b.vnCount - a.vnCount,
     )
     return sorted
   }
-  if (sort === 'nameAsc') {
-    sorted.sort((a, b) => a.name.localeCompare(b.name, 'zh'))
-    return sorted
-  }
-  sorted.sort((a, b) => b.name.localeCompare(a.name, 'zh'))
+  const metric = SORT_METRIC[sort]
+  sorted.sort(
+    (a, b) =>
+      dir * (metric(a) - metric(b)) ||
+      b.vnCount - a.vnCount ||
+      a.name.localeCompare(b.name, 'zh'),
+  )
   return sorted
 }
 
@@ -966,18 +1027,20 @@ export const Tags = {
    * 「每个分类下还有多少标签」由 tagCount 诚实给出，前端的「查看全部」
    * 走 tagGroup() 拿未截断的全量列表。
    *
-   * sort 在切片之前生效，前端的「收录数 / 浏览次数 / 名称」切换因此拿到的是
-   * 真正的前 N 名，而不是在某一批预览里二次排序。
+   * sort + order 在切片之前生效，前端的「依据（收录数 / 总浏览量 / 本周 /
+   * 本月 / 名称）」与「方向（倒序 / 正序）」两个筛选因此拿到的是真正的前
+   * N 名，而不是在某一批预览里二次排序。
    */
   async tagHub(
     {
       group,
       limit = 24,
       sort = 'count',
+      order = 'desc',
     }: TagsModel.tagHub = {} as TagsModel.tagHub,
   ) {
-    // v2：新增「热门标签」分类
-    const cacheKey = `galzy:tags:hub:v2:${group ?? 'all'}:${limit}:${sort}`
+    // v3：条目带 viewsWeek / viewsMonth，与 getTagGroups 的缓存版本同步
+    const cacheKey = `galzy:tags:hub:v3:${group ?? 'all'}:${limit}:${sort}:${order}`
     const cached = await getKv(cacheKey)
     if (cached) {
       try {
@@ -997,7 +1060,7 @@ export const Tags = {
         description: g.description,
         sortOrder: g.sortOrder,
         tagCount: g.tags.length,
-        previewTags: sortTagItems(g.tags, sort).slice(0, limit),
+        previewTags: sortTagItems(g.tags, sort, order).slice(0, limit),
       }))
 
     const data = { categories }
@@ -1108,7 +1171,7 @@ export const Tags = {
       await delKv('galzy:tags:categories:v4')
       // 标签库 hub 也读 zhtags.name，编辑后必须一并失效，
       // 否则 /tags 会继续展示旧中文名直到 1h TTL 自然过期。
-      await delKvPattern('galzy:tags:hub:v2:*')
+      await delKvPattern('galzy:tags:hub:v3:*')
       return true
     } catch {
       return false
@@ -1156,12 +1219,12 @@ export const Tags = {
     // Batch import: purge tag list (individual pages too many)
     await purgeByTags(['page-tags'])
     // 批量导入影响所有标签缓存：详情页 / 游戏标签 / 分类页 / 层级递归 / 标签库 hub。
-    // galzy:tag:* 匹配不到 galzy:tags:hub:v2:*（Redis MATCH 要求 tag 后紧跟冒号），
+    // galzy:tag:* 匹配不到 galzy:tags:hub:v3:*（Redis MATCH 要求 tag 后紧跟冒号），
     // 所以 hub 缓存必须单独按完整前缀删除。
     await delKvPattern('galzy:tag:*')
     await delKvPattern('galzy:game:tags:*')
     await delKvPattern('galzy:tags:rel:*')
-    await delKvPattern('galzy:tags:hub:v2:*')
+    await delKvPattern('galzy:tags:hub:v3:*')
     await delKv('galzy:tags:categories:v4')
 
     return true

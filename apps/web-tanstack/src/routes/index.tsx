@@ -83,6 +83,14 @@ function App() {
 			void router.preloadRoute({ to: "/tags" });
 		},
 		(router) => {
+			// 「热门标签 → 更多」的落点：热门分类页 + 本周热门排序
+			void router.preloadRoute({
+				to: "/tags/category/$categoryKey",
+				params: { categoryKey: "hot" },
+				search: { sort: "hotWeek", order: "desc" },
+			});
+		},
+		(router) => {
 			void router.preloadRoute({ to: "/producer" });
 		},
 	]);

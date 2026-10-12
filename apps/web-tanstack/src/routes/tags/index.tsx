@@ -12,19 +12,26 @@ import TagsPage, {
 	TagsHubSkeleton,
 } from "@web/components/tags/tags-page";
 import { seoTemplate } from "@web/config/seoTemplate";
-import { getSearchTags, getTagHub, TAG_SORT_KEYS } from "@web/server/tags";
+import {
+	getSearchTags,
+	getTagHub,
+	TAG_ORDER_KEYS,
+	TAG_SORT_KEYS,
+} from "@web/server/tags";
 import { z } from "zod";
 import { object, string } from "zod/schemas";
 
 export const TagsSearchSchema = object({
 	q: string().optional(),
-	// 默认按浏览量：这是用户最常想看的「大家都在看什么」
-	sort: z.enum(TAG_SORT_KEYS).optional().default("views"),
+	// 默认按总浏览量倒序：这是用户最常想看的「大家都在看什么」
+	// catch：旧链接里的排序键（如已下线的 nameAsc）落到默认值，而不是整页 500
+	sort: z.enum(TAG_SORT_KEYS).catch("views").optional().default("views"),
+	order: z.enum(TAG_ORDER_KEYS).catch("desc").optional().default("desc"),
 });
 
 export const Route = createFileRoute("/tags/")({
 	component: () => {
-		const { q, sort } = Route.useSearch();
+		const { q, sort, order } = Route.useSearch();
 		return (
 			<div>
 				<Breadcrumb className="mb-4">
@@ -38,19 +45,29 @@ export const Route = createFileRoute("/tags/")({
 						</BreadcrumbItem>
 					</BreadcrumbList>
 				</Breadcrumb>
-				<TagsPage q={q} sort={sort} />
+				<TagsPage q={q} sort={sort} order={order} />
 			</div>
 		);
 	},
 	validateSearch: TagsSearchSchema,
-	loaderDeps: ({ search: { q, sort } }) => ({ q: q?.trim(), sort }),
+	loaderDeps: ({ search: { q, sort, order } }) => ({
+		q: q?.trim(),
+		sort,
+		order,
+	}),
 	loader: async ({ deps, context }) => {
 		const q = deps.q ?? "";
 		const pending: Array<Promise<unknown>> = [
 			context.queryClient.ensureQueryData({
-				queryKey: ["tagHub", "preview", deps.sort],
+				queryKey: ["tagHub", "preview", deps.sort, deps.order],
 				queryFn: () =>
-					getTagHub({ data: { limit: HUB_PREVIEW_LIMIT, sort: deps.sort } }),
+					getTagHub({
+						data: {
+							limit: HUB_PREVIEW_LIMIT,
+							sort: deps.sort,
+							order: deps.order,
+						},
+					}),
 				staleTime: 10 * 60_000,
 			}),
 		];

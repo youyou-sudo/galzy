@@ -2,13 +2,7 @@ import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import type { StripUnknown } from "@web/lib/serializable";
-import {
-	boolean,
-	enum as zEnum,
-	number,
-	object,
-	string,
-} from "zod/schemas";
+import { boolean, number, object, string, enum as zEnum } from "zod/schemas";
 
 export const getTagData = createServerFn()
 	.validator(
@@ -71,25 +65,53 @@ export const getTagCategories = createServerFn().handler(async () => {
 });
 
 /**
- * 标签列表可用的排序键，与 API 的 hub / 分类页口径一致：
- * count 收录游戏数 · views 站内浏览次数 · nameAsc/nameDesc 中文名称
+ * 标签排序筛选的第一个维度：依据。与 API 的 hub / 分类页口径一致 ——
+ * count 收录游戏数 · views 累计浏览量 · hotWeek/hotMonth 本周/本月浏览量
+ * （时间窗热度，窗口口径见 API 的 time-window：周一展示上周，与首页周榜一致）
+ * · name 中文名称。
  */
-export const TAG_SORT_KEYS = ["count", "views", "nameAsc", "nameDesc"] as const;
+export const TAG_SORT_KEYS = [
+	"count",
+	"views",
+	"hotWeek",
+	"hotMonth",
+	"name",
+] as const;
 
 export type TagSortKey = (typeof TAG_SORT_KEYS)[number];
 
+/**
+ * 第二个维度：方向。这里存的是物理方向（desc 降序 / asc 升序），只翻转主键，
+ * 并列时回落规范次序；界面上显示成「正序 / 倒序」（= 榜单自然顺序及其反向，
+ * 数值指标正序为降序、名称为升序），映射在 tag-sort-bar 里做。
+ */
+export const TAG_ORDER_KEYS = ["desc", "asc"] as const;
+
+export type TagOrderKey = (typeof TAG_ORDER_KEYS)[number];
+
 const TagHubSchema = object({
-	group: zEnum(["character", "theme", "plot", "setting", "gameplay"])
-		.optional(),
+	group: zEnum([
+		"character",
+		"theme",
+		"plot",
+		"setting",
+		"gameplay",
+	]).optional(),
 	limit: number().optional(),
 	sort: zEnum([...TAG_SORT_KEYS]).optional(),
+	order: zEnum([...TAG_ORDER_KEYS]).optional(),
 });
 
 export type TagHubTag = {
 	id: string;
 	name: string;
 	vnCount: number;
+	/** 终身累计标签浏览量 */
 	views: number;
+	/** 本周标签浏览量（「本周热门」排序键） */
+	viewsWeek: number;
+	/** 本月标签浏览量（「本月热门」排序键） */
+	viewsMonth: number;
 };
 
 export type TagHubCategory = {
@@ -109,7 +131,12 @@ export const getTagHub = createServerFn()
 	.validator(TagHubSchema)
 	.handler(async ({ data }) => {
 		const { data: res, error } = await api.tags.hub.get({
-			query: { group: data.group, limit: data.limit, sort: data.sort },
+			query: {
+				group: data.group,
+				limit: data.limit,
+				sort: data.sort,
+				order: data.order,
+			},
 		});
 		elysiaErrorF(error);
 		return res as unknown as TagHubResult;

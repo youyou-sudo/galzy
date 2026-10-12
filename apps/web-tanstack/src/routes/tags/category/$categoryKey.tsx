@@ -14,6 +14,7 @@ import { seoTemplate } from "@web/config/seoTemplate";
 import {
 	getTagGroupTags,
 	TAG_GROUP_KEYS,
+	TAG_ORDER_KEYS,
 	TAG_SORT_KEYS,
 	type TagGroupKey,
 } from "@web/server/tags";
@@ -21,8 +22,10 @@ import { z } from "zod";
 import { object } from "zod/schemas";
 
 export const TagCategorySearchSchema = object({
-	// 与标签库一致：默认按浏览量
-	sort: z.enum(TAG_SORT_KEYS).optional().default("views"),
+	// 与标签库一致：默认按总浏览量倒序
+	// catch：旧链接里的排序键（如已下线的 nameAsc）落到默认值，而不是整页 500
+	sort: z.enum(TAG_SORT_KEYS).catch("views").optional().default("views"),
+	order: z.enum(TAG_ORDER_KEYS).catch("desc").optional().default("desc"),
 });
 
 const isTagGroupKey = (value: string): value is TagGroupKey =>
@@ -62,7 +65,7 @@ export const Route = createFileRoute("/tags/category/$categoryKey")({
 	}),
 	component: () => {
 		const { category } = Route.useLoaderData();
-		const { sort } = Route.useSearch();
+		const { sort, order } = Route.useSearch();
 		const name = category?.name ?? "标签分类";
 		return (
 			<div>
@@ -81,7 +84,7 @@ export const Route = createFileRoute("/tags/category/$categoryKey")({
 						</BreadcrumbItem>
 					</BreadcrumbList>
 				</Breadcrumb>
-				<TagCategoryPage category={category} sort={sort} />
+				<TagCategoryPage category={category} sort={sort} order={order} />
 			</div>
 		);
 	},

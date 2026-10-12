@@ -35,9 +35,11 @@ export namespace TagsModel {
    * 标签库 hub（参考 dg.zi0.in/tags 的分组浏览）。
    * - group: 只取某一分类；缺省返回全部分类
    * - limit: 每类预览标签数（参考站固定 24，这里放开便于「展开更多」）
-   * - sort: 预览排序键；count 收录数（缺省，参考站口径）、views 站内浏览次数、
-   *   nameAsc / nameDesc 中文名称。**排序在服务端切片之前完成**，否则「按查看次数
-   *   排前 24」会退化成「收录数前 24 条里再按查看次数排」。
+   * - sort: 预览排序依据；count 收录数（缺省，参考站口径）、views 累计
+   *   浏览量、hotWeek / hotMonth 本周 / 本月浏览量（时间窗热度）、name 中文名称
+   * - order: 排序方向；desc 降序（缺省，数值从大到小 / 名称 Z→A）、asc 升序。
+   *   **排序在服务端切片之前完成**，否则「按查看次数排前 24」会退化成
+   *   「收录数前 24 条里再按查看次数排」。
    */
   export const tagHub = t.Object({
     group: t.Optional(
@@ -55,10 +57,12 @@ export namespace TagsModel {
       t.Union([
         t.Literal('count'),
         t.Literal('views'),
-        t.Literal('nameAsc'),
-        t.Literal('nameDesc'),
+        t.Literal('hotWeek'),
+        t.Literal('hotMonth'),
+        t.Literal('name'),
       ]),
     ),
+    order: t.Optional(t.Union([t.Literal('desc'), t.Literal('asc')])),
   })
   /**
    * 标签库分类页：取某一分类下的**全部**标签（不设上限）。
