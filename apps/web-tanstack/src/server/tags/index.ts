@@ -70,10 +70,19 @@ export const getTagCategories = createServerFn().handler(async () => {
 	return res;
 });
 
+/**
+ * 标签列表可用的排序键，与 API 的 hub / 分类页口径一致：
+ * count 收录游戏数 · views 站内浏览次数 · nameAsc/nameDesc 中文名称
+ */
+export const TAG_SORT_KEYS = ["count", "views", "nameAsc", "nameDesc"] as const;
+
+export type TagSortKey = (typeof TAG_SORT_KEYS)[number];
+
 const TagHubSchema = object({
 	group: zEnum(["character", "theme", "plot", "setting", "gameplay"])
 		.optional(),
 	limit: number().optional(),
+	sort: zEnum([...TAG_SORT_KEYS]).optional(),
 });
 
 export type TagHubTag = {
@@ -100,8 +109,51 @@ export const getTagHub = createServerFn()
 	.validator(TagHubSchema)
 	.handler(async ({ data }) => {
 		const { data: res, error } = await api.tags.hub.get({
-			query: { group: data.group, limit: data.limit },
+			query: { group: data.group, limit: data.limit, sort: data.sort },
 		});
 		elysiaErrorF(error);
 		return res as unknown as TagHubResult;
+	});
+
+/**
+ * 标签库分类页可访问的分类键。与 API 的 tagGroup 字面量联合一一对应，
+ * 路由用它挡掉非法 URL（先去 API 只会换来一个 422）。
+ */
+export const TAG_GROUP_KEYS = [
+	"character",
+	"theme",
+	"plot",
+	"setting",
+	"gameplay",
+	"hot",
+	"cont",
+] as const;
+
+export type TagGroupKey = (typeof TAG_GROUP_KEYS)[number];
+
+const TagGroupSchema = object({
+	group: zEnum([...TAG_GROUP_KEYS]),
+});
+
+export type TagGroupCategory = {
+	key: string;
+	name: string;
+	slug: string;
+	description: string;
+	sortOrder: number;
+	tagCount: number;
+	tags: TagHubTag[];
+};
+
+export type TagGroupResult = { category: TagGroupCategory | null };
+
+// 分类页：某一分类下的**全部**标签（hub 的 previewTags 只给前 N 条，且 limit 上限 500）
+export const getTagGroupTags = createServerFn()
+	.validator(TagGroupSchema)
+	.handler(async ({ data }) => {
+		const { data: res, error } = await api.tags.group.get({
+			query: { group: data.group },
+		});
+		elysiaErrorF(error);
+		return res as unknown as TagGroupResult;
 	});

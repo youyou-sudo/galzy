@@ -1,5 +1,14 @@
 import { Link } from "@tanstack/react-router";
+import {
+	TagTooltip,
+	TagTooltipContent,
+} from "@web/components/tags/tag-tooltip";
 import { Button } from "@web/components/ui/button";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@web/components/ui/tooltip";
 import { cn } from "@web/lib/utils";
 import {
 	Hand,
@@ -642,40 +651,47 @@ function NodeChip({
 	);
 	if (current) {
 		return (
-			<div
-				data-node
-				className={base}
-				style={style}
-				title={label}
-				aria-current="page"
-			>
-				<span className="truncate">{label}</span>
-			</div>
+			<TagTooltip>
+				<TooltipTrigger
+					render={
+						<div data-node className={base} style={style} aria-current="page" />
+					}
+				>
+					<span className="truncate">{label}</span>
+				</TooltipTrigger>
+				<TagTooltipContent>{label}</TagTooltipContent>
+			</TagTooltip>
 		);
 	}
 	if (!navigable) {
 		return (
-			<div
-				data-node
-				className={base}
-				style={style}
-				title={`${label}（暂无中文名，无法进入）`}
-			>
-				<span className="truncate">{label}</span>
-			</div>
+			<TagTooltip>
+				<TooltipTrigger
+					render={<div data-node className={base} style={style} />}
+				>
+					<span className="truncate">{label}</span>
+				</TooltipTrigger>
+				<TagTooltipContent>{`${label}（暂无中文名，无法进入）`}</TagTooltipContent>
+			</TagTooltip>
 		);
 	}
 	return (
-		<Link
-			to="/tags/$tagId"
-			params={{ tagId: id }}
-			data-node
-			className={base}
-			style={style}
-			title={label}
-		>
-			<span className="truncate">{label}</span>
-		</Link>
+		<TagTooltip>
+			<TooltipTrigger
+				render={
+					<Link
+						to="/tags/$tagId"
+						params={{ tagId: id }}
+						data-node
+						className={base}
+						style={style}
+					/>
+				}
+			>
+				<span className="truncate">{label}</span>
+			</TooltipTrigger>
+			<TagTooltipContent>{label}</TagTooltipContent>
+		</TagTooltip>
 	);
 }
 
@@ -1229,16 +1245,21 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 									}}
 								>
 									{children.map((child) => (
-										<Link
-											key={child.id}
-											to="/tags/$tagId"
-											params={{ tagId: child.id }}
-											title={labelOf(child)}
-											className="flex items-center justify-center rounded-md border border-border/70 bg-muted/40 px-1.5 text-[11px] text-foreground leading-none transition-colors hover:border-primary/50 hover:bg-muted"
-											style={{ height: CARD_CELL_H }}
-										>
-											<span className="truncate">{labelOf(child)}</span>
-										</Link>
+										<Tooltip key={child.id}>
+											<TooltipTrigger
+												render={
+													<Link
+														to="/tags/$tagId"
+														params={{ tagId: child.id }}
+														className="flex items-center justify-center rounded-md border border-border/70 bg-muted/40 px-1.5 text-[11px] text-foreground leading-none transition-colors hover:border-primary/50 hover:bg-muted"
+														style={{ height: CARD_CELL_H }}
+													>
+														<span className="truncate">{labelOf(child)}</span>
+													</Link>
+												}
+											/>
+											<TooltipContent>{labelOf(child)}</TooltipContent>
+										</Tooltip>
 									))}
 								</div>
 							</div>
@@ -1274,60 +1295,95 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 							    明确的出口，免得手指被困在画布里、页面滚不动。 */}
 							{coarse && active && (
 								<>
-									<Button
-										size="icon-xs"
-										variant="ghost"
-										className="size-8 rounded-full sm:size-6"
-										onClick={() => setActive(false)}
-										title="退出手势（恢复页面滚动）"
-									>
-										<X />
-									</Button>
+									<Tooltip>
+										<TooltipTrigger
+											render={
+												<Button
+													size="icon-xs"
+													variant="ghost"
+													aria-label="退出手势（恢复页面滚动）"
+													className="size-8 rounded-full sm:size-6"
+													onClick={() => setActive(false)}
+												>
+													<X />
+												</Button>
+											}
+										/>
+										<TooltipContent>退出手势（恢复页面滚动）</TooltipContent>
+									</Tooltip>
 									<span className="mx-0.5 h-4 w-px bg-border" />
 								</>
 							)}
-							<Button
-								size="icon-xs"
-								variant="ghost"
-								className="size-8 rounded-full sm:size-6"
-								onClick={() => zoomBy(1 / ZOOM_STEP)}
-								disabled={view.zoom <= ZOOM_MIN}
-								title="缩小"
-							>
-								<Minus />
-							</Button>
+							<Tooltip>
+								<TooltipTrigger
+									render={
+										<Button
+											size="icon-xs"
+											variant="ghost"
+											aria-label="缩小"
+											className="size-8 rounded-full sm:size-6"
+											onClick={() => zoomBy(1 / ZOOM_STEP)}
+											disabled={view.zoom <= ZOOM_MIN}
+										>
+											<Minus />
+										</Button>
+									}
+								/>
+								<TooltipContent>缩小</TooltipContent>
+							</Tooltip>
 							<span className="w-9 text-center text-[11px] text-muted-foreground tabular-nums">
 								{Math.round(view.zoom * 100)}%
 							</span>
-							<Button
-								size="icon-xs"
-								variant="ghost"
-								className="size-8 rounded-full sm:size-6"
-								onClick={() => zoomBy(ZOOM_STEP)}
-								disabled={view.zoom >= ZOOM_MAX}
-								title="放大"
-							>
-								<Plus />
-							</Button>
+							<Tooltip>
+								<TooltipTrigger
+									render={
+										<Button
+											size="icon-xs"
+											variant="ghost"
+											aria-label="放大"
+											className="size-8 rounded-full sm:size-6"
+											onClick={() => zoomBy(ZOOM_STEP)}
+											disabled={view.zoom >= ZOOM_MAX}
+										>
+											<Plus />
+										</Button>
+									}
+								/>
+								<TooltipContent>放大</TooltipContent>
+							</Tooltip>
 							<span className="mx-0.5 h-4 w-px bg-border" />
-							<Button
-								size="icon-xs"
-								variant="ghost"
-								className="size-8 rounded-full sm:size-6"
-								onClick={() => setFraming(fitZoom)}
-								title="适应画布（全览）"
-							>
-								<Maximize2 />
-							</Button>
-							<Button
-								size="icon-xs"
-								variant="ghost"
-								className="size-8 rounded-full sm:size-6"
-								onClick={() => setFraming(1)}
-								title="回到 1:1"
-							>
-								<LocateFixed />
-							</Button>
+							<Tooltip>
+								<TooltipTrigger
+									render={
+										<Button
+											size="icon-xs"
+											variant="ghost"
+											aria-label="适应画布（全览）"
+											className="size-8 rounded-full sm:size-6"
+											onClick={() => setFraming(fitZoom)}
+										>
+											<Maximize2 />
+										</Button>
+									}
+								/>
+								<TooltipContent>适应画布（全览）</TooltipContent>
+							</Tooltip>
+							<Tooltip>
+								<TooltipTrigger
+									render={
+										<Button
+											size="icon-xs"
+											variant="ghost"
+											aria-label="回到 1:1"
+											className="size-8 rounded-full sm:size-6"
+											onClick={() => setFraming(1)}
+										>
+											<LocateFixed />
+										</Button>
+									}
+								/>
+								<TooltipContent>回到 1:1</TooltipContent>
+							</Tooltip>
 						</div>
 					</div>
 				</div>

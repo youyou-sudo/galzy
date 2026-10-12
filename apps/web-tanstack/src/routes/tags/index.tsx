@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import TagsPage, { TagsHubSkeleton } from "@web/components/tags/tags-page";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -8,14 +7,19 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@web/components/shared/breadcrumb";
+import TagsPage, {
+	HUB_PREVIEW_LIMIT,
+	TagsHubSkeleton,
+} from "@web/components/tags/tags-page";
 import { seoTemplate } from "@web/config/seoTemplate";
-import { getSearchTags, getTagHub } from "@web/server/tags";
+import { getSearchTags, getTagHub, TAG_SORT_KEYS } from "@web/server/tags";
 import { z } from "zod";
 import { object, string } from "zod/schemas";
 
 export const TagsSearchSchema = object({
 	q: string().optional(),
-	sort: z.enum(["nameAsc", "nameDesc"]).optional().default("nameAsc"),
+	// 默认按浏览量：这是用户最常想看的「大家都在看什么」
+	sort: z.enum(TAG_SORT_KEYS).optional().default("views"),
 });
 
 export const Route = createFileRoute("/tags/")({
@@ -39,13 +43,14 @@ export const Route = createFileRoute("/tags/")({
 		);
 	},
 	validateSearch: TagsSearchSchema,
-	loaderDeps: ({ search: { q } }) => ({ q: q?.trim() }),
+	loaderDeps: ({ search: { q, sort } }) => ({ q: q?.trim(), sort }),
 	loader: async ({ deps, context }) => {
 		const q = deps.q ?? "";
 		const pending: Array<Promise<unknown>> = [
 			context.queryClient.ensureQueryData({
-				queryKey: ["tagHub", "preview"],
-				queryFn: () => getTagHub({ data: { limit: 48 } }),
+				queryKey: ["tagHub", "preview", deps.sort],
+				queryFn: () =>
+					getTagHub({ data: { limit: HUB_PREVIEW_LIMIT, sort: deps.sort } }),
 				staleTime: 10 * 60_000,
 			}),
 		];

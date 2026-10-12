@@ -12,6 +12,13 @@ export const tags = new Elysia({ prefix: '/tags' })
     { query: TagsModel.tagHub },
   )
   .get(
+    '/group',
+    async ({ query: { group } }) => {
+      return await Tags.tagGroup({ group })
+    },
+    { query: TagsModel.tagGroup },
+  )
+  .get(
     '/tag',
     async ({ query: { tagId } }) => {
       return await Tags.tag({ tagId })

@@ -1,10 +1,16 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { TagSortBar, tagMetricsTitle } from "@web/components/tags/tag-sort-bar";
+import {
+	TagTooltip,
+	TagTooltipContent,
+} from "@web/components/tags/tag-tooltip";
 import { Skeleton } from "@web/components/ui/skeleton";
+import { TooltipTrigger } from "@web/components/ui/tooltip";
 import { cn } from "@web/lib/utils";
-import type { TagHubCategory } from "@web/server/tags";
+import type { TagHubCategory, TagSortKey } from "@web/server/tags";
 import { getSearchTags, getTagHub } from "@web/server/tags";
-import { SearchIcon, TagsIcon, XIcon } from "lucide-react";
+import { ArrowRightIcon, SearchIcon, TagsIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type TagHit = {
@@ -14,8 +20,6 @@ export type TagHit = {
 	alias?: string;
 };
 
-export type TagSort = "nameAsc" | "nameDesc";
-
 type DebounceTimer = ReturnType<typeof setTimeout>;
 
 export default function TagsIndexPage({
@@ -23,7 +27,7 @@ export default function TagsIndexPage({
 	sort,
 }: {
 	q: string | undefined;
-	sort: TagSort;
+	sort: TagSortKey;
 }) {
 	const navigate = useNavigate();
 	const [inputValue, setInputValue] = useState(q || "");
@@ -133,7 +137,7 @@ export default function TagsIndexPage({
 			{searchQ ? (
 				<TagSearchResults q={searchQ} />
 			) : (
-				<TagHubBrowser key={sort} sort={sort} />
+				<TagHubBrowser sort={sort} />
 			)}
 		</section>
 	);
@@ -200,22 +204,28 @@ function TagSearchResults({ q }: { q: string }) {
 						.join(" · ");
 					return (
 						<li key={hit.id} className="min-w-0">
-							<Link
-								to="/tags/$tagId"
-								params={{ tagId: hit.id }}
-								title={tooltip}
-								className="-mx-1.5 flex items-baseline gap-3 border-b border-border/70 px-1.5 py-[5px] text-xs leading-[18px] no-underline transition-colors hover:bg-muted/40"
-							>
-								{/* 中文名压住英文名：最多占 7 成宽度，超出才截断 */}
-								<span className="min-w-0 max-w-[70%] shrink-0 truncate font-medium">
-									{primary}
-								</span>
-								{zhName && enName && (
-									<span className="min-w-0 flex-1 truncate text-right text-muted-foreground/80">
-										{enName}
-									</span>
-								)}
-							</Link>
+							<TagTooltip>
+								<TooltipTrigger
+									render={
+										<Link
+											to="/tags/$tagId"
+											params={{ tagId: hit.id }}
+											className="-mx-1.5 flex items-baseline gap-3 border-b border-border/70 px-1.5 py-[5px] text-xs leading-[18px] no-underline transition-colors hover:bg-muted/40"
+										>
+											{/* 中文名压住英文名：最多占 7 成宽度，超出才截断 */}
+											<span className="min-w-0 max-w-[70%] shrink-0 truncate font-medium">
+												{primary}
+											</span>
+											{zhName && enName && (
+												<span className="min-w-0 flex-1 truncate text-right text-muted-foreground/80">
+													{enName}
+												</span>
+											)}
+										</Link>
+									}
+								/>
+								<TagTooltipContent>{tooltip}</TagTooltipContent>
+							</TagTooltip>
 						</li>
 					);
 				})}
@@ -224,18 +234,26 @@ function TagSearchResults({ q }: { q: string }) {
 	);
 }
 
+/** hub 每个分类块展示的预览条数，同时也是 hub 接口的 limit */
+export const HUB_PREVIEW_LIMIT = 24;
+
 /**
  * 标签库 hub：五个语义分类顺序平铺，每类标题 + 描述 + 分隔线 + 行式标签网格。
  * 视觉参考 dg.zi0.in/tags；网格用 auto-fill minmax(15rem) 自适应列数。
  */
-function TagHubBrowser({ sort }: { sort: TagSort }) {
+function TagHubBrowser({ sort }: { sort: TagSortKey }) {
 	// 非 suspense：冷缓存进入（如从标签详情页点面包屑回列表）时，
 	// 只让分类区域显示骨架，不把整页换成路由的 pendingComponent。
 	// 数据优先命中路由 loader 的预取 / SSR 脱水结果。
+	//
+	// 排序键进 queryKey：接口在切片前排序，换排序要重新取数（不是二次排序
+	// 已经在手的预览，那样得到的是「收录数前 N 条里的浏览次数榜」）。
+	// 切换瞬间用 keepPreviousData 顶住，避免六个分类块一起闪骨架。
 	const { data: hub, isPending } = useQuery({
-		queryKey: ["tagHub", "preview"],
-		queryFn: () => getTagHub({ data: { limit: 48 } }),
+		queryKey: ["tagHub", "preview", sort],
+		queryFn: () => getTagHub({ data: { limit: HUB_PREVIEW_LIMIT, sort } }),
 		staleTime: 10 * 60_000,
+		placeholderData: keepPreviousData,
 	});
 
 	if (isPending) {
@@ -246,7 +264,7 @@ function TagHubBrowser({ sort }: { sort: TagSort }) {
 
 	return (
 		<div className="flex flex-col gap-8">
-			<div className="flex items-center gap-3">
+			<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
 				<p className="text-xs text-muted-foreground">
 					共{" "}
 					{categories
@@ -254,6 +272,8 @@ function TagHubBrowser({ sort }: { sort: TagSort }) {
 						.reduce((n, c) => n + c.tagCount, 0)}{" "}
 					个标签
 				</p>
+				{/* 一处切换，下面所有分类块按同一口径排序 */}
+				<TagSortBar scope="hub" value={sort} />
 			</div>
 
 			{categories.length === 0 ? (
@@ -269,77 +289,100 @@ function TagHubBrowser({ sort }: { sort: TagSort }) {
 	);
 }
 
+/**
+ * hub 的单个分类块。标题区整块可点击 → 分类页，底部「查看全部」同样指向
+ * 分类页，由那边列出该分类下的**全部**标签（收录数 / 浏览次数 / 名称可再排）。
+ *
+ * 预览直接取接口给的前 N 条 —— 排序已在服务端切片之前完成，前端不再对预览
+ * 二次排序（那只会得到「收录数前 N 条里再排」，与「站内前 N」不是一回事）。
+ *
+ * 原来这里是就地「展开其余 N 个标签」：hub 固定只返回 48 条预览，
+ * 展开后永远显示「其余 24 个」，既对不上分类的真实规模（单个分类可超
+ * 1000 个标签），也没有承接长列表的能力。
+ */
 function TagHubSection({
 	category,
 	sort,
 }: {
 	category: TagHubCategory;
-	sort: TagSort;
+	sort: TagSortKey;
 }) {
-	const [expanded, setExpanded] = useState(false);
-
-	// hub 接口按收录数降序返回（参考站口径）；排序切换在前端做，避免多打一次接口。
-	// 「热门标签」是横切分类，按收录数排序才有意义（浏览量已从排序项移除），
-	// 所以这一类忽略名称排序，保持接口给出的热度顺序。
-	const tags = [...category.previewTags].sort((a, b) => {
-		if (category.key === "hot") return b.vnCount - a.vnCount;
-		if (sort === "nameAsc") return a.name.localeCompare(b.name, "zh");
-		if (sort === "nameDesc") return b.name.localeCompare(a.name, "zh");
-		return b.vnCount - a.vnCount;
-	});
-
-	const shown = expanded ? tags : tags.slice(0, 24);
-	const hidden = tags.length - 24;
+	const tags = category.previewTags;
+	const hasMore = category.tagCount > tags.length;
+	const categoryTo = {
+		to: "/tags/category/$categoryKey" as const,
+		params: { categoryKey: category.key },
+		// 把当前排序带到分类页：在标签库按浏览次数看，点进某个块也按浏览次数列
+		search: { sort },
+	};
 
 	return (
 		<section>
-			<div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-				<h2 className="text-lg font-semibold">{category.name}</h2>
-				<span className="text-xs text-muted-foreground tabular-nums">
-					{category.tagCount}
-				</span>
-			</div>
-			{category.description && (
-				<p className="mt-1.5 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-					{category.description}
-				</p>
-			)}
-			<div className="mt-4 border-t border-border/80" />
+			<Link
+				{...categoryTo}
+				className="group -mx-2 flex flex-col gap-1.5 rounded-md px-2 py-1.5 no-underline transition-colors hover:bg-muted/40"
+			>
+				<div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+					<h2 className="text-lg font-semibold transition-colors group-hover:text-primary">
+						{category.name}
+					</h2>
+					<span className="text-xs text-muted-foreground tabular-nums">
+						{category.tagCount}
+					</span>
+					<ArrowRightIcon className="size-3.5 self-center text-muted-foreground opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" />
+				</div>
+				{category.description && (
+					<p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
+						{category.description}
+					</p>
+				)}
+			</Link>
+			<div className="mt-2.5 border-t border-border/80" />
 
 			{tags.length === 0 ? (
 				<p className="mt-4 text-xs text-muted-foreground">该分类暂无标签</p>
 			) : (
 				<>
 					<ul className="mt-4 grid grid-cols-2 gap-x-7 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
-						{shown.map((t) => (
-							<li key={t.id} className="min-w-0">
-								<Link
-									to="/tags/$tagId"
-									params={{ tagId: t.id }}
-									title={t.name}
-									className="-mx-1.5 flex items-baseline gap-3 border-b border-border/70 px-1.5 py-[5px] text-xs leading-[18px] no-underline transition-colors hover:bg-muted/40"
-								>
-									<span className="min-w-0 flex-1 truncate">{t.name}</span>
-									{t.vnCount > 0 && (
-										<span className="shrink-0 font-mono tabular-nums text-muted-foreground/80">
-											{t.vnCount}
-										</span>
-									)}
-								</Link>
-							</li>
-						))}
+						{tags.map((t) => {
+							// 尾部固定显示收录游戏数（站内口径，与游戏列表一致）。
+							// 换排序不改这一列，避免同一位置上的数字含义跟着漂移；
+							// 浏览量放在 tooltip 里给。
+							return (
+								<li key={t.id} className="min-w-0">
+									<TagTooltip>
+										<TooltipTrigger
+											render={
+												<Link
+													to="/tags/$tagId"
+													params={{ tagId: t.id }}
+													className="-mx-1.5 flex items-baseline gap-3 border-b border-border/70 px-1.5 py-[5px] text-xs leading-[18px] no-underline transition-colors hover:bg-muted/40"
+												>
+													<span className="min-w-0 flex-1 truncate">
+														{t.name}
+													</span>
+													{t.vnCount > 0 && (
+														<span className="shrink-0 font-mono tabular-nums text-muted-foreground/80">
+															{t.vnCount}
+														</span>
+													)}
+												</Link>
+											}
+										/>
+										<TagTooltipContent>{tagMetricsTitle(t)}</TagTooltipContent>
+									</TagTooltip>
+								</li>
+							);
+						})}
 					</ul>
-					{hidden > 0 && (
-						<button
-							type="button"
-							onClick={() => setExpanded((v) => !v)}
-							aria-expanded={expanded}
-							className="mt-3 text-xs text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
+					{hasMore && (
+						<Link
+							{...categoryTo}
+							className="mt-3 inline-flex items-center gap-1 text-xs text-muted-foreground no-underline transition-colors hover:text-foreground"
 						>
-							{expanded
-								? `收起其余 ${hidden} 个标签`
-								: `展开其余 ${hidden} 个标签`}
-						</button>
+							查看全部 {category.tagCount} 个标签
+							<ArrowRightIcon className="size-3.5" />
+						</Link>
 					)}
 				</>
 			)}

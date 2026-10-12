@@ -53,6 +53,7 @@ import { Route as ApiUploadIndexRouteImport } from './routes/api/upload/index'
 import { Route as AuthSignupIndexRouteImport } from './routes/auth/signup/index'
 import { Route as AuthSignupVerificationRouteImport } from './routes/auth/signup/Verification'
 import { Route as IntroductionArticleIdEditRouteImport } from './routes/introduction/$articleId.edit'
+import { Route as TagsCategoryCategoryKeyRouteImport } from './routes/tags/category/$categoryKey'
 import { Route as TopicsTopicIdEditRouteImport } from './routes/topics/$topicId.edit'
 import { Route as IdLayoutIntroductionIndexRouteImport } from './routes/$id/_layout/introduction/index'
 import { Route as IdLayoutIntroductionArticleIdRouteImport } from './routes/$id/_layout/introduction/$articleId'
@@ -279,6 +280,11 @@ const IntroductionArticleIdEditRoute =
     path: '/introduction/$articleId/edit',
     getParentRoute: () => rootRouteImport,
   } as any)
+const TagsCategoryCategoryKeyRoute = TagsCategoryCategoryKeyRouteImport.update({
+  id: '/tags/category/$categoryKey',
+  path: '/tags/category/$categoryKey',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TopicsTopicIdEditRoute = TopicsTopicIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -343,6 +349,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
   '/introduction/$articleId/edit': typeof IntroductionArticleIdEditRoute
+  '/tags/category/$categoryKey': typeof TagsCategoryCategoryKeyRoute
   '/topics/$topicId/edit': typeof TopicsTopicIdEditRoute
   '/$id/': typeof IdLayoutIndexRoute
   '/admin/': typeof AdminAuthLIndexRoute
@@ -391,6 +398,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
   '/introduction/$articleId/edit': typeof IntroductionArticleIdEditRoute
+  '/tags/category/$categoryKey': typeof TagsCategoryCategoryKeyRoute
   '/topics/$topicId/edit': typeof TopicsTopicIdEditRoute
   '/$id': typeof IdLayoutIndexRoute
   '/admin': typeof AdminAuthLIndexRoute
@@ -442,6 +450,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/signup/Verification': typeof AuthSignupVerificationRoute
   '/introduction/$articleId/edit': typeof IntroductionArticleIdEditRoute
+  '/tags/category/$categoryKey': typeof TagsCategoryCategoryKeyRoute
   '/topics/$topicId/edit': typeof TopicsTopicIdEditRoute
   '/$id/_layout/': typeof IdLayoutIndexRoute
   '/admin/_authL/': typeof AdminAuthLIndexRoute
@@ -494,6 +503,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/auth/signup/Verification'
     | '/introduction/$articleId/edit'
+    | '/tags/category/$categoryKey'
     | '/topics/$topicId/edit'
     | '/$id/'
     | '/admin/'
@@ -542,6 +552,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/auth/signup/Verification'
     | '/introduction/$articleId/edit'
+    | '/tags/category/$categoryKey'
     | '/topics/$topicId/edit'
     | '/$id'
     | '/admin'
@@ -592,6 +603,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/auth/signup/Verification'
     | '/introduction/$articleId/edit'
+    | '/tags/category/$categoryKey'
     | '/topics/$topicId/edit'
     | '/$id/_layout/'
     | '/admin/_authL/'
@@ -632,6 +644,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   AuthSignupVerificationRoute: typeof AuthSignupVerificationRoute
   IntroductionArticleIdEditRoute: typeof IntroductionArticleIdEditRoute
+  TagsCategoryCategoryKeyRoute: typeof TagsCategoryCategoryKeyRoute
   ApiUploadImageIndexRoute: typeof ApiUploadImageIndexRoute
   ApiUploadIndexRoute: typeof ApiUploadIndexRoute
   AuthSignupIndexRoute: typeof AuthSignupIndexRoute
@@ -947,6 +960,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IntroductionArticleIdEditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/tags/category/$categoryKey': {
+      id: '/tags/category/$categoryKey'
+      path: '/tags/category/$categoryKey'
+      fullPath: '/tags/category/$categoryKey'
+      preLoaderRoute: typeof TagsCategoryCategoryKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/topics/$topicId/edit': {
       id: '/topics/$topicId/edit'
       path: '/edit'
@@ -1080,6 +1100,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   AuthSignupVerificationRoute: AuthSignupVerificationRoute,
   IntroductionArticleIdEditRoute: IntroductionArticleIdEditRoute,
+  TagsCategoryCategoryKeyRoute: TagsCategoryCategoryKeyRoute,
   ApiUploadImageIndexRoute: ApiUploadImageIndexRoute,
   ApiUploadIndexRoute: ApiUploadIndexRoute,
   AuthSignupIndexRoute: AuthSignupIndexRoute,

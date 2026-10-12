@@ -1,4 +1,9 @@
 import { Link } from "@tanstack/react-router";
+import {
+	TagTooltip,
+	TagTooltipContent,
+} from "@web/components/tags/tag-tooltip";
+import { TooltipTrigger } from "@web/components/ui/tooltip";
 import { cn } from "@web/lib/utils";
 import { ChevronDown, MousePointerClick } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
@@ -173,16 +178,21 @@ export function CollapsibleTagList({
 				)}
 			>
 				{shown.map((t) => (
-					<Link
-						key={t.id}
-						to="/tags/$tagId"
-						params={{ tagId: t.id }}
-						title={tagLabel(t)}
-						preload={preload}
-						className={cn(pill, "mr-1.5 mb-1.5 max-w-full")}
-					>
-						<span className="truncate">#{tagLabel(t)}</span>
-					</Link>
+					<TagTooltip key={t.id}>
+						<TooltipTrigger
+							render={
+								<Link
+									to="/tags/$tagId"
+									params={{ tagId: t.id }}
+									preload={preload}
+									className={cn(pill, "mr-1.5 mb-1.5 max-w-full")}
+								>
+									<span className="truncate">#{tagLabel(t)}</span>
+								</Link>
+							}
+						/>
+						<TagTooltipContent>{tagLabel(t)}</TagTooltipContent>
+					</TagTooltip>
 				))}
 				{toggle}
 			</div>

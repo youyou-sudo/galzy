@@ -274,6 +274,296 @@ async function getTagViewCountMap(): Promise<Map<string, number>> {
   return map
 }
 
+type TagGroupKey =
+  | 'character'
+  | 'theme'
+  | 'plot'
+  | 'setting'
+  | 'gameplay'
+  // 层级未同步时的降级分类
+  | 'cont'
+  // 横切视角的「热门标签」，不参与语义分组
+  | 'hot'
+
+type TagGroupMeta = {
+  key: TagGroupKey
+  name: string
+  slug: string
+  description: string
+  sortOrder: number
+}
+
+/** 分类下的标签条目（分类页与 hub 预览共用同一份结构） */
+export type TagGroupItem = {
+  id: string
+  name: string
+  vnCount: number
+  views: number
+}
+
+export type TagGroupCategory = TagGroupMeta & { tags: TagGroupItem[] }
+
+type TagGroups = {
+  /** 层级同步是否已跑过；未就绪时分类会塌缩到降级分组 */
+  hierarchyReady: boolean
+  /** 输出顺序：热门在前，语义分类居中，降级分组（如有）在末尾 */
+  groups: TagGroupCategory[]
+}
+
+// 每类固定文案（与参考站一致），标签列表由实际数据填充
+const TAG_HUB_GROUPS: TagGroupMeta[] = [
+  {
+    key: 'character',
+    name: '角色与关系',
+    slug: 'character',
+    description: '妹妹、傲娇、大小姐、青梅竹马……',
+    sortOrder: 10,
+  },
+  {
+    key: 'theme',
+    name: '题材与世界观',
+    slug: 'theme',
+    description: '异世界、校园、奇幻、科幻、悬疑……',
+    sortOrder: 30,
+  },
+  {
+    key: 'plot',
+    name: '剧情与情节',
+    slug: 'plot',
+    description: '线性剧情、多结局、单一结局、专属路线……',
+    sortOrder: 40,
+  },
+  {
+    key: 'setting',
+    name: '世界观与舞台',
+    slug: 'setting',
+    description: '日本、海外、校园、都会、幻想世界……',
+    sortOrder: 50,
+  },
+  {
+    key: 'gameplay',
+    name: '玩法与风格',
+    slug: 'gameplay',
+    description: 'ADV、RPG、SLG、视觉小说、像素……',
+    sortOrder: 60,
+  },
+]
+
+// 层级未同步时的降级分组：把未经细分的 cont 标签原样呈现，
+// 而不是错误地把上千个标签塞进「角色与关系」。
+const TAG_HUB_FALLBACK_GROUP: TagGroupMeta = {
+  key: 'cont',
+  name: '其他剧情标签',
+  slug: 'cont',
+  description: '剧情与设定标签（层级同步后按主题细分）',
+  sortOrder: 60,
+}
+
+// 顶层祖先（meta=true）决定分类。注意不能只看 cat：VNDB 的 cat 与标签树并不
+// 对齐——g24 Plot 有 84% 是 tech、g674 Style 有 97% 是 tech，而 g1 Theme 底下
+// 反而藏着 616 个 ero 标签。若按 cat 优先，剧情类会被玩法类吃掉。
+// 同一标签可能挂在多个 meta 根下（VNDB 约 250 个），按固定优先级取第一个，
+// 保证每次同步分类都稳定。
+const META_ROOT_PRIORITY = ['g20', 'g1', 'g24', 'g22', 'g674']
+
+const META_TO_GROUP: Record<string, TagGroupKey> = {
+  g20: 'character', // Character → 角色与关系
+  g1: 'theme', // Theme → 题材与世界观
+  g24: 'plot', // Plot → 剧情与情节
+  g22: 'setting', // Setting → 世界观与舞台
+  g674: 'gameplay', // Style → 玩法与风格
+}
+
+// 无 meta 祖先时的兜底：按 VNDB 原始 cat 归类
+const CAT_FALLBACK: Record<string, TagGroupKey> = {
+  cont: 'character',
+  ero: 'theme',
+  tech: 'gameplay',
+}
+
+/**
+ * 计算标签库的全部分类，以及每个分类下的**全部**标签（不截断），并缓存。
+ *
+ * hub（预览若干条）与分类页（列全部）都从这里取数，避免同一份全量聚合
+ * 与层级递归被算两遍。标签一律按收录游戏数降序（参考站口径），同分按中文名
+ * 排序，保证输出稳定、缓存可比对。
+ *
+ * 失效依赖：key 落在 `galzy:tags:hub:v2:*` 命名空间内 —— tagEdit / tagFileAdd /
+ * vndb-sync / kungal-sync 的既有失效 pattern 会一并清掉，无需新增失效点。
+ */
+async function getTagGroups(): Promise<TagGroups> {
+  const cacheKey = 'galzy:tags:hub:v2:groups'
+  const cached = await getKv(cacheKey)
+  if (cached) {
+    try {
+      return JSON.parse(cached) as TagGroups
+    } catch {
+      await delKv(cacheKey)
+    }
+  }
+
+  // 仅展示已本地化（zhtags 存在）的标签，避免点进去 404
+  const rows = await db
+    .select({
+      id: tags.id,
+      cat: tags.cat,
+      meta: tags.meta,
+      name: zhtags.name,
+    })
+    .from(tags)
+    .innerJoin(zhtags, eq(tags.id, zhtags.id))
+
+  // 两个全量聚合都走共享缓存 helper（与 tagCategories 共用同一份结果）
+  const [countMap, viewMap] = await Promise.all([
+    getTagGameCountMap(),
+    getTagViewCountMap(),
+  ])
+
+  const tagIds = rows.map((r) => r.id)
+  const rootOf = new Map<string, string>()
+  let hierarchyReady = false
+  if (tagIds.length > 0) {
+    const rootRows = await db.execute(sql`
+      WITH RECURSIVE up(child_id, root_id, depth) AS (
+        SELECT c.id::text, p.parent, 1
+        FROM ${tags} c
+        INNER JOIN ${tagsRelations} p ON p.child = c.id
+        WHERE c.id IN ${tagIds}
+        UNION
+        SELECT u.child_id, p.parent, u.depth + 1
+        FROM up u
+        INNER JOIN ${tagsRelations} p ON p.child = u.root_id
+        -- 环保护，理由同 getTagDescendantIds 的 walk（见上）。
+        WHERE u.depth < 64
+      )
+      SELECT child_id, root_id
+      FROM up u
+      INNER JOIN ${tags} t ON t.id = u.root_id
+      WHERE t.meta = TRUE
+    `)
+    // DAG 中同一标签可能同深度挂在多个 meta 根下（VNDB 有 ~250 个这种 cont 标签，
+    // 例如同时属于 g20 Character 与 g1 Theme）。按固定优先级取第一个，保证分类稳定。
+    const rootsByChild = new Map<string, Set<string>>()
+    for (const r of rootRows as Array<{
+      child_id: string
+      root_id: string
+    }>) {
+      let set = rootsByChild.get(r.child_id)
+      if (!set) {
+        set = new Set()
+        rootsByChild.set(r.child_id, set)
+      }
+      set.add(r.root_id)
+    }
+    for (const [childId, roots] of rootsByChild) {
+      const metaRoot = META_ROOT_PRIORITY.find((g) => roots.has(g))
+      if (metaRoot) rootOf.set(childId, metaRoot)
+    }
+    hierarchyReady = rootOf.size > 0
+  }
+
+  const itemsByGroup = new Map<TagGroupKey, typeof rows>()
+  for (const g of TAG_HUB_GROUPS) itemsByGroup.set(g.key, [])
+  // 必须预置降级分组，否则层级未同步时 key='cont' 查不到桶，
+  // `?.push()` 会静默丢弃全部标签（tagCount 全为 0）。
+  itemsByGroup.set('cont', [])
+
+  for (const r of rows) {
+    const root = rootOf.get(r.id)
+    // meta 树优先；层级缺失时回退到原始 cat，避免分类塌缩成一类
+    const key: TagGroupKey = root
+      ? META_TO_GROUP[root]
+      : hierarchyReady
+        ? CAT_FALLBACK[r.cat ?? 'cont']
+        : 'cont'
+    itemsByGroup.get(key)?.push(r)
+  }
+
+  // 收录数降序 + 中文名升序 → 稳定的 TagGroupItem 列表
+  const toItems = (list: typeof rows): TagGroupItem[] =>
+    [...list]
+      .sort((a, b) => {
+        const c = (countMap.get(b.id) ?? 0) - (countMap.get(a.id) ?? 0)
+        return c !== 0
+          ? c
+          : String(a.name ?? '').localeCompare(String(b.name ?? ''), 'zh')
+      })
+      .map((t) => ({
+        id: t.id,
+        name: t.name || t.id,
+        vnCount: countMap.get(t.id) ?? 0,
+        views: viewMap.get(t.id) ?? 0,
+      }))
+
+  const groups: TagGroupCategory[] = TAG_HUB_GROUPS.map((g) => ({
+    ...g,
+    tags: toItems(itemsByGroup.get(g.key) ?? []),
+  }))
+
+  // 「热门标签」：跨全部语义分类，按站内收录游戏数全局降序。
+  // 与分类的排序口径一致（收录数），但不做分类归属限制 ——
+  // 「热门」本身就是一个横切视角，同一主题下的高频标签理应聚在一起。
+  const hotItems = toItems(rows.filter((r) => (countMap.get(r.id) ?? 0) > 0))
+  if (hotItems.length > 0) {
+    groups.unshift({
+      key: 'hot',
+      name: '热门标签',
+      slug: 'hot',
+      description: '全站收录游戏数最高的标签，按热度排序……',
+      sortOrder: 0,
+      tags: hotItems,
+    })
+  }
+
+  // 仅在层级缺失且降级分组确有内容时追加，避免正常路径出现第六个分类
+  if (!hierarchyReady) {
+    const contItems = toItems(itemsByGroup.get('cont') ?? [])
+    if (contItems.length > 0) {
+      groups.push({ ...TAG_HUB_FALLBACK_GROUP, tags: contItems })
+    }
+  }
+
+  const data = { hierarchyReady, groups }
+  void setKv(cacheKey, JSON.stringify(data), 60 * 60)
+  return data
+}
+
+/** 分类标签的排序键，与 TagsModel.tagHub 的 sort 字面量联合对齐 */
+type TagHubSort = 'count' | 'views' | 'nameAsc' | 'nameDesc'
+
+/**
+ * 按排序键排列分类标签。
+ *
+ * count 直接返回 getTagGroups 的规范顺序（收录数降序 + 中文名升序）；
+ * 其余键在这里读时排序 —— 全量列表只缓存一份，不值得为每种排序各缓存一遍。
+ * 必须**先排序再切片**，否则「按浏览次数取前 N」会退化成「收录数前 N 条里
+ * 再按浏览次数排」，两个口径完全不是一回事（实测 恋爱 661 收录 / 2.7 万浏览，
+ * 处女丧失 869 收录 / 36 浏览，两者经常不在同一批候选里）。
+ */
+function sortTagItems(
+  list: TagGroupItem[],
+  sort: TagHubSort = 'count',
+): TagGroupItem[] {
+  if (sort === 'count') return list
+  const sorted = [...list]
+  if (sort === 'views') {
+    // 浏览次数并列时用收录数、名称兜底，保证输出顺序稳定（缓存可比对）
+    sorted.sort(
+      (a, b) =>
+        b.views - a.views ||
+        b.vnCount - a.vnCount ||
+        a.name.localeCompare(b.name, 'zh'),
+    )
+    return sorted
+  }
+  if (sort === 'nameAsc') {
+    sorted.sort((a, b) => a.name.localeCompare(b.name, 'zh'))
+    return sorted
+  }
+  sorted.sort((a, b) => b.name.localeCompare(a.name, 'zh'))
+  return sorted
+}
+
 export const Tags = {
   async gameTags({ id }: TagsModel.gameTags) {
     const cacheKey = `galzy:game:tags:${id}`
@@ -671,12 +961,23 @@ export const Tags = {
    * 分级轴而非主题轴，与标签树大量交叉（g1 Theme 下有 608 个 cat=ero 标签）。
    * 若按 ero 单独分组，就得让同一个标签同时出现在两个分类里。
    * 分类归属由 tags_relations 的祖先关系推导，因此依赖层级同步已跑过。
+   *
+   * 完整分类树来自 getTagGroups()（缓存），这里只做预览截断。
+   * 「每个分类下还有多少标签」由 tagCount 诚实给出，前端的「查看全部」
+   * 走 tagGroup() 拿未截断的全量列表。
+   *
+   * sort 在切片之前生效，前端的「收录数 / 浏览次数 / 名称」切换因此拿到的是
+   * 真正的前 N 名，而不是在某一批预览里二次排序。
    */
   async tagHub(
-    { group, limit = 24 }: TagsModel.tagHub = {} as TagsModel.tagHub,
+    {
+      group,
+      limit = 24,
+      sort = 'count',
+    }: TagsModel.tagHub = {} as TagsModel.tagHub,
   ) {
     // v2：新增「热门标签」分类
-    const cacheKey = `galzy:tags:hub:v2:${group ?? 'all'}:${limit}`
+    const cacheKey = `galzy:tags:hub:v2:${group ?? 'all'}:${limit}:${sort}`
     const cached = await getKv(cacheKey)
     if (cached) {
       try {
@@ -686,259 +987,45 @@ export const Tags = {
       }
     }
 
-    // 每类固定文案（与参考站一致），tagCount 由实际数据填充
-    const GROUPS = [
-      {
-        key: 'character',
-        name: '角色与关系',
-        slug: 'character',
-        description: '妹妹、傲娇、大小姐、青梅竹马……',
-        sortOrder: 10,
-      },
-      {
-        key: 'theme',
-        name: '题材与世界观',
-        slug: 'theme',
-        description: '异世界、校园、奇幻、科幻、悬疑……',
-        sortOrder: 30,
-      },
-      {
-        key: 'plot',
-        name: '剧情与情节',
-        slug: 'plot',
-        description: '线性剧情、多结局、单一结局、专属路线……',
-        sortOrder: 40,
-      },
-      {
-        key: 'setting',
-        name: '世界观与舞台',
-        slug: 'setting',
-        description: '日本、海外、校园、都会、幻想世界……',
-        sortOrder: 50,
-      },
-      {
-        key: 'gameplay',
-        name: '玩法与风格',
-        slug: 'gameplay',
-        description: 'ADV、RPG、SLG、视觉小说、像素……',
-        sortOrder: 60,
-      },
-    ]
-
-    // 'hot' 是横切视角的「热门标签」分类，不参与语义分组，只在输出时插入
-    type GroupKey = (typeof GROUPS)[number]['key'] | 'cont' | 'hot'
-    type GroupMeta = {
-      key: GroupKey
-      name: string
-      slug: string
-      description: string
-      sortOrder: number
-    }
-
-    // 层级未同步时的降级分组：把未经细分的 cont 标签原样呈现，
-    // 而不是错误地把上千个标签塞进「角色与关系」。
-    const FALLBACK_GROUP: GroupMeta = {
-      key: 'cont',
-      name: '其他剧情标签',
-      slug: 'cont',
-      description: '剧情与设定标签（层级同步后按主题细分）',
-      sortOrder: 60,
-    }
-
-    // 仅展示已本地化（zhtags 存在）的标签，避免点进去 404
-    const rows = await db
-      .select({
-        id: tags.id,
-        cat: tags.cat,
-        meta: tags.meta,
-        name: zhtags.name,
-      })
-      .from(tags)
-      .innerJoin(zhtags, eq(tags.id, zhtags.id))
-
-    // 两个全量聚合都走共享缓存 helper（与 tagCategories 共用同一份结果）
-    const [countMap, viewMap] = await Promise.all([
-      getTagGameCountMap(),
-      getTagViewCountMap(),
-    ])
-
-    // 顶层祖先（meta=true）决定分类。注意不能只看 cat：VNDB 的 cat 与标签树并不
-    // 对齐——g24 Plot 有 84% 是 tech、g674 Style 有 97% 是 tech，而 g1 Theme 底下
-    // 反而藏着 616 个 ero 标签。若按 cat 优先，剧情类会被玩法类吃掉。
-    // 同一标签可能挂在多个 meta 根下（VNDB 约 250 个），按固定优先级取第一个，
-    // 保证每次同步分类都稳定。
-    const META_ROOT_PRIORITY = ['g20', 'g1', 'g24', 'g22', 'g674']
-    const tagIds = rows.map((r) => r.id)
-    const rootOf = new Map<string, string>()
-    let hierarchyReady = false
-    if (tagIds.length > 0) {
-      const rootRows = await db.execute(sql`
-        WITH RECURSIVE up(child_id, root_id, depth) AS (
-          SELECT c.id::text, p.parent, 1
-          FROM ${tags} c
-          INNER JOIN ${tagsRelations} p ON p.child = c.id
-          WHERE c.id IN ${tagIds}
-          UNION
-          SELECT u.child_id, p.parent, u.depth + 1
-          FROM up u
-          INNER JOIN ${tagsRelations} p ON p.child = u.root_id
-          -- 环保护，理由同 getTagDescendantIds 的 walk（见上）。
-          WHERE u.depth < 64
-        )
-        SELECT child_id, root_id
-        FROM up u
-        INNER JOIN ${tags} t ON t.id = u.root_id
-        WHERE t.meta = TRUE
-      `)
-      // DAG 中同一标签可能同深度挂在多个 meta 根下（VNDB 有 ~250 个这种 cont 标签，
-      // 例如同时属于 g20 Character 与 g1 Theme）。按固定优先级取第一个，保证分类稳定。
-      const rootsByChild = new Map<string, Set<string>>()
-      for (const r of rootRows as Array<{
-        child_id: string
-        root_id: string
-      }>) {
-        let set = rootsByChild.get(r.child_id)
-        if (!set) {
-          set = new Set()
-          rootsByChild.set(r.child_id, set)
-        }
-        set.add(r.root_id)
-      }
-      for (const [childId, roots] of rootsByChild) {
-        const metaRoot = META_ROOT_PRIORITY.find((g) => roots.has(g))
-        if (metaRoot) rootOf.set(childId, metaRoot)
-      }
-      hierarchyReady = rootOf.size > 0
-    }
-
-    const META_TO_GROUP: Record<string, GroupKey> = {
-      g20: 'character', // Character → 角色与关系
-      g1: 'theme', // Theme → 题材与世界观
-      g24: 'plot', // Plot → 剧情与情节
-      g22: 'setting', // Setting → 世界观与舞台
-      g674: 'gameplay', // Style → 玩法与风格
-    }
-    // 无 meta 祖先时的兜底：按 VNDB 原始 cat 归类
-    const CAT_FALLBACK: Record<string, GroupKey> = {
-      cont: 'character',
-      ero: 'theme',
-      tech: 'gameplay',
-    }
-
-    const itemsByGroup = new Map<GroupKey, typeof rows>()
-    for (const g of GROUPS) itemsByGroup.set(g.key, [])
-    // 必须预置降级分组，否则层级未同步时 key='cont' 查不到桶，
-    // `?.push()` 会静默丢弃全部标签（tagCount 全为 0）。
-    itemsByGroup.set('cont', [])
-
-    for (const r of rows) {
-      const root = rootOf.get(r.id)
-      // meta 树优先；层级缺失时回退到原始 cat，避免分类塌缩成一类
-      const key: GroupKey = root
-        ? META_TO_GROUP[root]
-        : hierarchyReady
-          ? CAT_FALLBACK[r.cat ?? 'cont']
-          : 'cont'
-      itemsByGroup.get(key)?.push({
-        ...r,
-        name: r.name || r.id,
-      })
-    }
-
-    const categories = GROUPS.filter((g) => !group || g.key === group).map(
-      (g) => {
-        const list = itemsByGroup.get(g.key) ?? []
-        // 预览按收录游戏数降序（参考站口径），与分类页默认「浏览量」不同
-        const preview = [...list]
-          .sort((a, b) => {
-            const c = (countMap.get(b.id) ?? 0) - (countMap.get(a.id) ?? 0)
-            return c !== 0
-              ? c
-              : String(a.name).localeCompare(String(b.name), 'zh')
-          })
-          .slice(0, limit)
-          .map((t) => ({
-            id: t.id,
-            name: t.name,
-            vnCount: countMap.get(t.id) ?? 0,
-            views: viewMap.get(t.id) ?? 0,
-          }))
-        return {
-          key: g.key,
-          name: g.name,
-          slug: g.slug,
-          description: g.description,
-          sortOrder: g.sortOrder,
-          tagCount: list.length,
-          previewTags: preview,
-        }
-      },
-    )
-
-    // 「热门标签」：跨全部语义分类，按站内收录游戏数全局降序。
-    // 与分类预览的排序口径一致（收录数），但不做分类归属限制——
-    // 「热门」本身就是一个横切视角，同一主题下的高频标签理应聚在一起。
-    if (!group || group === 'hot') {
-      const allTags = rows
-        .filter((r) => (countMap.get(r.id) ?? 0) > 0)
-        .sort((a, b) => {
-          const c = (countMap.get(b.id) ?? 0) - (countMap.get(a.id) ?? 0)
-          return c !== 0
-            ? c
-            : String(a.name ?? '').localeCompare(String(b.name ?? ''), 'zh')
-        })
-      const hotPreview = allTags.slice(0, limit).map((t) => ({
-        id: t.id,
-        name: t.name || t.id,
-        vnCount: countMap.get(t.id) ?? 0,
-        views: viewMap.get(t.id) ?? 0,
+    const { groups } = await getTagGroups()
+    const categories = groups
+      .filter((g) => !group || g.key === group)
+      .map((g) => ({
+        key: g.key,
+        name: g.name,
+        slug: g.slug,
+        description: g.description,
+        sortOrder: g.sortOrder,
+        tagCount: g.tags.length,
+        previewTags: sortTagItems(g.tags, sort).slice(0, limit),
       }))
-      // tagCount 用全量热门标签数（排除 0 收录的冷门），让标题旁的数字诚实
-      if (hotPreview.length > 0) {
-        categories.unshift({
-          key: 'hot',
-          name: '热门标签',
-          slug: 'hot',
-          description: '全站收录游戏数最高的标签，按热度排序……',
-          sortOrder: 0,
-          tagCount: allTags.length,
-          previewTags: hotPreview,
-        })
-      }
-    }
-
-    // 仅在层级缺失且降级分组确有内容时追加，避免正常路径出现第六个分类
-    if (!hierarchyReady && (!group || group === FALLBACK_GROUP.key)) {
-      const contList = itemsByGroup.get('cont') ?? []
-      if (contList.length > 0) {
-        categories.push({
-          key: FALLBACK_GROUP.key,
-          name: FALLBACK_GROUP.name,
-          slug: FALLBACK_GROUP.slug,
-          description: FALLBACK_GROUP.description,
-          sortOrder: FALLBACK_GROUP.sortOrder,
-          tagCount: contList.length,
-          previewTags: [...contList]
-            .sort((a, b) => {
-              const c = (countMap.get(b.id) ?? 0) - (countMap.get(a.id) ?? 0)
-              return c !== 0
-                ? c
-                : String(a.name).localeCompare(String(b.name), 'zh')
-            })
-            .slice(0, limit)
-            .map((t) => ({
-              id: t.id,
-              name: t.name,
-              vnCount: countMap.get(t.id) ?? 0,
-              views: viewMap.get(t.id) ?? 0,
-            })),
-        })
-      }
-    }
 
     const data = { categories }
     void setKv(cacheKey, JSON.stringify(data), 60 * 60)
     return data
+  },
+  /**
+   * 标签库分类页：某一分类下的**全部**标签（不截断）。
+   *
+   * hub 的 previewTags 只给前 N 条，limit 上限 500 —— 而单个分类实测可超
+   * 1000 个标签，所以「查看全部」必须走这个接口。分类不存在（例如层级未
+   * 同步时访问 cont 之外的降级分类）时返回 category: null，由页面兜底。
+   */
+  async tagGroup({ group }: TagsModel.tagGroup) {
+    const { groups } = await getTagGroups()
+    const found = groups.find((g) => g.key === group)
+    if (!found) return { category: null }
+    return {
+      category: {
+        key: found.key,
+        name: found.name,
+        slug: found.slug,
+        description: found.description,
+        sortOrder: found.sortOrder,
+        tagCount: found.tags.length,
+        tags: found.tags,
+      },
+    }
   },
   async tagCategories(): Promise<
     Record<

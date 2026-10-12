@@ -25,6 +25,7 @@ function TooltipTrigger({ ...props }: TooltipPrimitive.Trigger.Props) {
 
 function TooltipContent({
 	className,
+	positionerClassName,
 	side = "top",
 	sideOffset = 4,
 	align = "center",
@@ -35,7 +36,10 @@ function TooltipContent({
 	Pick<
 		TooltipPrimitive.Positioner.Props,
 		"align" | "alignOffset" | "side" | "sideOffset"
-	>) {
+	> & {
+		/** 外层 Positioner 的额外样式，例如 pointer-events-none 让气泡不抢指针事件 */
+		positionerClassName?: string;
+	}) {
 	return (
 		<TooltipPrimitive.Portal>
 			<TooltipPrimitive.Positioner
@@ -43,7 +47,7 @@ function TooltipContent({
 				alignOffset={alignOffset}
 				side={side}
 				sideOffset={sideOffset}
-				className="isolate z-50"
+				className={cn("isolate z-50", positionerClassName)}
 			>
 				<TooltipPrimitive.Popup
 					data-slot="tooltip-content"
@@ -61,4 +65,4 @@ function TooltipContent({
 	);
 }
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger };
