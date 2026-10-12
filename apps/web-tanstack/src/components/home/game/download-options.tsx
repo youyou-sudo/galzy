@@ -15,6 +15,7 @@ import { Download } from "@web/components/animate-ui/icons/download";
 import { AnimateIcon } from "@web/components/animate-ui/icons/icon";
 import { MarkdownAsync } from "@web/components/markdownAync";
 import { CopyButton } from "@web/components/shadcn-io/copy-button";
+import { Alert, AlertDescription } from "@web/components/ui/alert";
 import { Button } from "@web/components/ui/button";
 import {
 	Dialog,
@@ -36,7 +37,7 @@ import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
 import { dwAcConst, getFileList } from "@web/server/game";
 import { downCardStore, downmodalActions } from "@web/stores/downCardData";
 import { waitForViewTransitionEnd } from "@web/lib/view-transition";
-import { FileArchive } from "lucide-react";
+import { FileArchive, Info } from "lucide-react";
 import { tryit } from "radash";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -52,6 +53,33 @@ export const filelistQueryOptions = (id: string) => ({
 	staleTime: 60_000,
 	gcTime: 5 * 60_000,
 });
+
+// 解压密码统一为 玖辞；密码的复制按钮复用下载弹窗（文件信息）中的 CopyButton 组件
+const UNZIP_PASSWORD = "玖辞";
+
+const UnzipPasswordAlert = () => {
+	return (
+		// flex + items-center：图标与文本在同一水平线上居中对齐；文本本身保持左对齐
+		<Alert className="mb-2 flex items-center gap-1.5 border-cyan-600/30 px-2.5 py-1.5 text-left text-sm">
+			<Info className="size-4 shrink-0" />
+			<AlertDescription className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-left text-sm">
+				<span>解压密码均为</span>
+				<span className="relative inline-flex items-center">
+					<span className="rounded-md border px-2 py-0.5 pr-7 leading-6">
+						{UNZIP_PASSWORD}
+					</span>
+					<CopyButton
+						size="default"
+						variant="secondary"
+						content={UNZIP_PASSWORD}
+						aria-label={`复制解压密码 ${UNZIP_PASSWORD}`}
+						className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0"
+					/>
+				</span>
+			</AlertDescription>
+		</Alert>
+	);
+};
 
 export const DownloadOptions = () => {
 	const { id } = apiroute.useParams();
@@ -107,8 +135,9 @@ export const DownloadOptions = () => {
 
 	return (
 		<>
-		<FileExplorer
-			items={settledFilelist.game}
+			<UnzipPasswordAlert />
+			<FileExplorer
+				items={settledFilelist.game}
 				onFileClick={(item) => {
 					downmodalActions.open(item);
 				}}
