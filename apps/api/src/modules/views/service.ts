@@ -19,6 +19,7 @@ import {
   isRedisEnabled,
   setKv,
 } from '@api/libs/redis'
+import { getEffectiveWeekStart } from '@api/libs/time-window'
 import { and, count, desc, eq, gte, inArray, isNull, or } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { ViewsModel } from './model'
@@ -50,30 +51,6 @@ async function hitViewRateLimit(
   } catch {
     return false
   }
-}
-
-function getWeekStart(): Date {
-  const now = new Date()
-  const day = now.getDay()
-  const diff = day === 0 ? 6 : day - 1
-  const weekStart = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() - diff,
-  )
-  weekStart.setHours(0, 0, 0, 0)
-  return weekStart
-}
-
-// 周一始终展示上周数据，周二起展示本周数据
-function getEffectiveWeekStart(): Date {
-  if (new Date().getDay() === 1) {
-    const ws = getWeekStart()
-    const prev = new Date(ws)
-    prev.setDate(prev.getDate() - 7)
-    return prev
-  }
-  return getWeekStart()
 }
 
 async function queryGameRankings(weekStart: Date, excludeR18 = false) {
