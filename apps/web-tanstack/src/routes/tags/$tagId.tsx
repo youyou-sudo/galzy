@@ -12,7 +12,6 @@ import {
 import { seoTemplate } from "@web/config/seoTemplate";
 import { getTagData, getVnListByTag } from "@web/server/tags";
 import { recordTagView } from "@web/server/views";
-import { Fragment } from "react";
 
 export const Route = createFileRoute("/tags/$tagId")({
 	pendingComponent: () => <TagDetailPageSkeleton />,
@@ -63,14 +62,10 @@ export const Route = createFileRoute("/tags/$tagId")({
 	component: () => {
 		const loaderData = Route.useLoaderData();
 		const tagName = loaderData.tag?.zht_name || loaderData.tag?.name || "标签";
-		// VNDB 层级是 DAG，祖先由 API 按 depth 降序返回（根最远 → 最近父级 → 当前标签）
-		const ancestors: Array<{
-			id: string;
-			name?: string | null;
-			zht_name?: string | null;
-		}> = loaderData.tag?.ancestors ?? [];
 		return (
 			<div>
+				{/* 面包屑只保留最小路径：VNDB 层级是 DAG，把多路径铺开会占满首屏。
+				    祖先关系交给下方可折叠的标签层级关系图（TagHierarchy）。 */}
 				<Breadcrumb className="mb-4">
 					<BreadcrumbList>
 						<BreadcrumbItem>
@@ -80,18 +75,6 @@ export const Route = createFileRoute("/tags/$tagId")({
 						<BreadcrumbItem>
 							<BreadcrumbLink render={<Link to="/tags" />}>标签</BreadcrumbLink>
 						</BreadcrumbItem>
-						{ancestors.map((a) => (
-							<Fragment key={a.id}>
-								<BreadcrumbSeparator />
-								<BreadcrumbItem>
-									<BreadcrumbLink
-										render={<Link to="/tags/$tagId" params={{ tagId: a.id }} />}
-									>
-										{a.zht_name || a.name || a.id}
-									</BreadcrumbLink>
-								</BreadcrumbItem>
-							</Fragment>
-						))}
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
 							<BreadcrumbPage>{tagName}</BreadcrumbPage>

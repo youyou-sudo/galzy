@@ -24,7 +24,28 @@ const markdownDescription = [
 	"\\[Form [Steam](https://store.steampowered.com/app/931560)]",
 ].join("\n");
 
+const tagDescription = [
+	"这部视觉小说包含以寝取れ（NTR）为焦点的场景。",
+	"",
+	"一款游戏要被归类为寝取れ（NTR），必须满足以下条件：",
+	"",
+	"1. 主角的重要伴侣被他人夺走。",
+	"",
+	"2. 失去所爱之人的一方几乎总是会察觉到这种情况。",
+	"",
+	"3. 如果主角在得知该行为后并未体验到嫉妒等负面情绪，则该特征[b]不[/b]适用。",
+].join("\n");
+
 describe("BBCodeRenderer", () => {
+	it("renders the localized tag description without source markup", () => {
+		const { container } = render(<BBCodeRenderer text={tagDescription} />);
+
+		expect(container.textContent).not.toContain("[b]");
+		expect(container.textContent).not.toContain("[/b]");
+		expect(container.querySelector("strong")?.textContent).toBe("不");
+		expect(container.querySelectorAll("ol > li")).toHaveLength(3);
+	});
+
 	it("renders the mixed Kungal description without source markup", () => {
 		const { container } = render(<BBCodeRenderer text={kungalDescription} />);
 
