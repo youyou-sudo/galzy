@@ -1,0 +1,23 @@
+# 默认按内容自动识别文本，入库与检出统一使用 LF（覆盖本机 core.autocrlf=true）。
+* text=auto eol=lf
+
+# 常见二进制资源显式声明，避免被误判为文本而改写内容。
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.pdf binary
+*.mp4 binary
+*.webm binary
+*.zip binary
+*.gz binary
+*.7z binary
+*.jar binary
