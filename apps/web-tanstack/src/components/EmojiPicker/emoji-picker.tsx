@@ -16,6 +16,11 @@ import {
 	TabsTrigger,
 } from "@web/components/ui/tabs";
 import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@web/components/ui/tooltip";
+import {
 	Activity,
 	Clock,
 	Flag,
@@ -734,26 +739,33 @@ const KaomojiGrid = ({
 					: index;
 
 				return (
-					<Button
+					<Tooltip
 						key={`${kaomoji.category}-${kaomoji.text}-${kaomojiSourceIndex.get(kaomoji)}`}
-						variant="ghost"
-						size="sm"
-						className={`h-auto min-h-9 px-2 py-1.5 text-xs whitespace-nowrap transition-colors hover:bg-accent ${
-							selectedIndex === globalIndex
-								? "bg-accent ring-2 ring-primary"
-								: ""
-						}`}
-						onClick={() => onKaomojiClick(kaomoji.text)}
-						title={kaomoji.name}
 					>
-						<span
-							className="text-sm leading-none"
-							role="img"
-							aria-label={kaomoji.name}
-						>
-							{kaomoji.text}
-						</span>
-					</Button>
+						<TooltipTrigger
+							render={
+								<Button
+									variant="ghost"
+									size="sm"
+									className={`h-auto min-h-9 px-2 py-1.5 text-xs whitespace-nowrap transition-colors hover:bg-accent ${
+										selectedIndex === globalIndex
+											? "bg-accent ring-2 ring-primary"
+											: ""
+									}`}
+									onClick={() => onKaomojiClick(kaomoji.text)}
+								>
+									<span
+										className="text-sm leading-none"
+										role="img"
+										aria-label={kaomoji.name}
+									>
+										{kaomoji.text}
+									</span>
+								</Button>
+							}
+						/>
+						<TooltipContent>{kaomoji.name}</TooltipContent>
+					</Tooltip>
 				);
 			})}
 		</div>
@@ -1003,31 +1015,44 @@ export default function KaomojiPicker({
 							}}
 						>
 							{recentKaomojis.length > 0 && (
-								<TabsTrigger
-									value="recent"
-									className="flex items-center gap-1 px-2 py-1 text-xs"
-									title="最近使用"
-								>
-									<Clock className="h-3 w-3" />
-									<span className="hidden sm:inline">最近</span>
-								</TabsTrigger>
+								<Tooltip>
+									<TooltipTrigger
+										render={
+											<TabsTrigger
+												value="recent"
+												aria-label="最近使用"
+												className="flex items-center gap-1 px-2 py-1 text-xs"
+											>
+												<Clock className="h-3 w-3" />
+												<span className="hidden sm:inline">最近</span>
+											</TabsTrigger>
+										}
+									/>
+									<TooltipContent>最近使用</TooltipContent>
+								</Tooltip>
 							)}
 							{categories
 								.slice(0, recentKaomojis.length > 0 ? 3 : 4)
 								.map((category) => {
 									const IconComponent = categoryIcons[category] || Smile;
 									return (
-										<TabsTrigger
-											key={category}
-											value={category}
-											className="flex items-center gap-1 px-2 py-1 text-xs"
-											title={category}
-										>
-											<IconComponent className="h-3 w-3" />
-											<span className="hidden sm:inline">
-												{category.slice(0, 2)}
-											</span>
-										</TabsTrigger>
+										<Tooltip key={category}>
+											<TooltipTrigger
+												render={
+													<TabsTrigger
+														value={category}
+														aria-label={category}
+														className="flex items-center gap-1 px-2 py-1 text-xs"
+													>
+														<IconComponent className="h-3 w-3" />
+														<span className="hidden sm:inline">
+															{category.slice(0, 2)}
+														</span>
+													</TabsTrigger>
+												}
+											/>
+											<TooltipContent>{category}</TooltipContent>
+										</Tooltip>
 									);
 								})}
 						</TabsList>
@@ -1043,18 +1068,26 @@ export default function KaomojiPicker({
 										</div>
 										<div className="grid grid-cols-4 gap-1.5">
 											{recentKaomojis.map((kaomoji, index) => (
-												<Button
-													key={`recent-${kaomoji}-${index}`}
-													variant="ghost"
-													size="sm"
-													className="h-auto min-h-9 px-2 py-1.5 text-xs whitespace-nowrap transition-colors hover:bg-accent"
-													onClick={() => handleKaomojiClick(kaomoji)}
-													title={`最近使用: ${kaomoji}`}
-												>
-													<span className="text-sm leading-none" role="img">
-														{kaomoji}
-													</span>
-												</Button>
+												<Tooltip key={`recent-${kaomoji}-${index}`}>
+													<TooltipTrigger
+														render={
+															<Button
+																variant="ghost"
+																size="sm"
+																className="h-auto min-h-9 px-2 py-1.5 text-xs whitespace-nowrap transition-colors hover:bg-accent"
+																onClick={() => handleKaomojiClick(kaomoji)}
+															>
+																<span
+																	className="text-sm leading-none"
+																	role="img"
+																>
+																	{kaomoji}
+																</span>
+															</Button>
+														}
+													/>
+													<TooltipContent>{`最近使用: ${kaomoji}`}</TooltipContent>
+												</Tooltip>
 											))}
 										</div>
 									</div>

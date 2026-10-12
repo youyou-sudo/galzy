@@ -10,6 +10,11 @@ import {
 } from '@web/components/ui/card'
 import { Input } from '@web/components/ui/input'
 import { Label } from '@web/components/ui/label'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@web/components/ui/tooltip'
 import { getPropertyList } from '@web/server/admin/meilisearch'
 import { CopyIcon, SearchIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -144,27 +149,32 @@ export function PropertiesTab({ indexType }: { indexType: IndexType }) {
         {filtered.length > 0 ? (
           <div className="flex flex-wrap gap-1.5 max-h-[400px] overflow-y-auto p-3 rounded-lg border bg-muted/30">
             {filtered.map((prop) => (
-              <button
-                key={prop}
-                type="button"
-                className="cursor-pointer"
-                onClick={async () => {
-                  try {
-                    await navigator.clipboard.writeText(prop)
-                    toast.success(`已复制: ${prop}`)
-                  } catch {
-                    toast.error('复制失败')
+              <Tooltip key={prop}>
+                <TooltipTrigger
+                  render={
+                    <button
+                      type="button"
+                      className="cursor-pointer"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(prop)
+                          toast.success(`已复制: ${prop}`)
+                        } catch {
+                          toast.error('复制失败')
+                        }
+                      }}
+                    >
+                      <Badge
+                        variant="secondary"
+                        className="font-mono text-xs hover:bg-secondary/80 transition-colors"
+                      >
+                        {prop}
+                      </Badge>
+                    </button>
                   }
-                }}
-                title="点击复制"
-              >
-                <Badge
-                  variant="secondary"
-                  className="font-mono text-xs hover:bg-secondary/80 transition-colors"
-                >
-                  {prop}
-                </Badge>
-              </button>
+                />
+                <TooltipContent>点击复制</TooltipContent>
+              </Tooltip>
             ))}
           </div>
         ) : search ? (

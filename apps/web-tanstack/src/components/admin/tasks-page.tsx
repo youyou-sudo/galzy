@@ -25,6 +25,11 @@ import {
 	SelectValue,
 } from "@web/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@web/components/ui/tabs";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@web/components/ui/tooltip";
 import { cn } from "@web/lib/utils";
 import {
 	batchDeleteTasks,
@@ -829,25 +834,43 @@ export default function TasksPage() {
 												<td className="px-4 py-3">
 													<div className="flex items-center justify-end gap-1">
 														{retryable && (
-															<Button
-																variant="ghost"
-																size="sm"
-																title="重试"
-																disabled={retryMutation.isPending}
-																onClick={() => retryMutation.mutate(job.id)}
-															>
-																<RotateCcwIcon className="size-4" />
-															</Button>
+															<Tooltip>
+																<TooltipTrigger
+																	render={
+																		<Button
+																			variant="ghost"
+																			size="sm"
+																			aria-label="重试"
+																			disabled={retryMutation.isPending}
+																			onClick={() =>
+																				retryMutation.mutate(job.id)
+																			}
+																		>
+																			<RotateCcwIcon className="size-4" />
+																		</Button>
+																	}
+																/>
+																<TooltipContent>重试</TooltipContent>
+															</Tooltip>
 														)}
-														<Button
-															variant="ghost"
-															size="sm"
-															title="删除记录"
-															disabled={deleteMutation.isPending}
-															onClick={() => deleteMutation.mutate(job.id)}
-														>
-															<Trash2Icon className="size-4 text-destructive" />
-														</Button>
+														<Tooltip>
+															<TooltipTrigger
+																render={
+																	<Button
+																		variant="ghost"
+																		size="sm"
+																		aria-label="删除记录"
+																		disabled={deleteMutation.isPending}
+																		onClick={() =>
+																			deleteMutation.mutate(job.id)
+																		}
+																	>
+																		<Trash2Icon className="size-4 text-destructive" />
+																	</Button>
+																}
+															/>
+															<TooltipContent>删除记录</TooltipContent>
+														</Tooltip>
 													</div>
 												</td>
 											</tr>

@@ -10,6 +10,11 @@ import {
 	TabsTrigger,
 } from "@web/components/ui/tabs";
 import { Textarea } from "@web/components/ui/textarea";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@web/components/ui/tooltip";
 import { cn } from "@web/lib/utils";
 import {
 	Bold,
@@ -292,15 +297,21 @@ function ToolbarButton({
 	onClick: () => void;
 }) {
 	return (
-		<Button
-			type="button"
-			variant="ghost"
-			size="icon-sm"
-			onClick={onClick}
-			title={label}
-			aria-label={label}
-		>
-			<Icon />
-		</Button>
+		<Tooltip>
+			<TooltipTrigger
+				render={
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon-sm"
+						onClick={onClick}
+						aria-label={label}
+					>
+						<Icon />
+					</Button>
+				}
+			/>
+			<TooltipContent>{label}</TooltipContent>
+		</Tooltip>
 	);
 }

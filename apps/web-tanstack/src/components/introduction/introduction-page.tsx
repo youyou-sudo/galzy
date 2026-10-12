@@ -2,6 +2,11 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@web/components/ui/tooltip";
 import { useViewportPreload } from "@web/hooks/use-viewport-preload";
 import { elysiaErrorF } from "@web/lib";
 import { authClient } from "@web/server/auth/auth-client";
@@ -176,39 +181,53 @@ export default function IntroductionPage({
 								{/* Admin / author action buttons */}
 								{canEdit && (
 									<div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-										<Button
-											variant="ghost"
-											size="icon-sm"
-											onClick={(e) => {
-												e.preventDefault();
-												e.stopPropagation();
-												navigate({
-													to: "/introduction/$articleId/edit",
-													params: { articleId: String(item.id) },
-												});
-											}}
-											title="编辑"
-										>
-											<Pencil className="size-3.5" />
-										</Button>
+										<Tooltip>
+											<TooltipTrigger
+												render={
+													<Button
+														variant="ghost"
+														size="icon-sm"
+														aria-label="编辑"
+														onClick={(e) => {
+															e.preventDefault();
+															e.stopPropagation();
+															navigate({
+																to: "/introduction/$articleId/edit",
+																params: { articleId: String(item.id) },
+															});
+														}}
+													>
+														<Pencil className="size-3.5" />
+													</Button>
+												}
+											/>
+											<TooltipContent>编辑</TooltipContent>
+										</Tooltip>
 										{isAdmin && (
-											<Button
-												variant="ghost"
-												size="icon-sm"
-												onClick={(e) => {
-													e.preventDefault();
-													e.stopPropagation();
-													handleDelete(item.id);
-												}}
-												disabled={deletingIds.has(item.id)}
-												title="删除"
-											>
-												{deletingIds.has(item.id) ? (
-													<Loader2 className="size-3.5 animate-spin" />
-												) : (
-													<Trash2 className="size-3.5 text-destructive" />
-												)}
-											</Button>
+											<Tooltip>
+												<TooltipTrigger
+													render={
+														<Button
+															variant="ghost"
+															size="icon-sm"
+															aria-label="删除"
+															onClick={(e) => {
+																e.preventDefault();
+																e.stopPropagation();
+																handleDelete(item.id);
+															}}
+															disabled={deletingIds.has(item.id)}
+														>
+															{deletingIds.has(item.id) ? (
+																<Loader2 className="size-3.5 animate-spin" />
+															) : (
+																<Trash2 className="size-3.5 text-destructive" />
+															)}
+														</Button>
+													}
+												/>
+												<TooltipContent>删除</TooltipContent>
+											</Tooltip>
 										)}
 									</div>
 								)}

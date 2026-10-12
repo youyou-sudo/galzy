@@ -5,6 +5,7 @@ import { useState } from "react";
 import { FaDiscord, FaGithub, FaTwitter } from "react-icons/fa";
 import { Button } from "../ui/button";
 import { Separator } from "../ui/separator";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 type Provider =
 	| "github"
@@ -75,23 +76,31 @@ export const OauthButton = () => {
 					/>
 					Kun Galgame
 				</Button>
-				<Button
-					disabled={loading === "hikarinagi"}
-					onClick={() => handleSocialSignIn("hikarinagi")}
-					aria-label="使用 Hikarinagi ID 登录"
-					title="使用 Hikarinagi ID 登录"
-				>
-					{loading === "hikarinagi" && <Loader2 className="animate-spin" />}
-					<Image
-						src="/hikarinagi-icon.webp"
-						width={16}
-						height={16}
-						alt="这是 Hikarinagi ID 登录按钮图标"
-						data-icon="inline-start"
-						className="rounded-4xl"
+				<Tooltip>
+					<TooltipTrigger
+						render={
+							<Button
+								disabled={loading === "hikarinagi"}
+								onClick={() => handleSocialSignIn("hikarinagi")}
+								aria-label="使用 Hikarinagi ID 登录"
+							>
+								{loading === "hikarinagi" && (
+									<Loader2 className="animate-spin" />
+								)}
+								<Image
+									src="/hikarinagi-icon.webp"
+									width={16}
+									height={16}
+									alt="这是 Hikarinagi ID 登录按钮图标"
+									data-icon="inline-start"
+									className="rounded-4xl"
+								/>
+								Hikarinagi ID
+							</Button>
+						}
 					/>
-					Hikarinagi ID
-				</Button>
+					<TooltipContent>使用 Hikarinagi ID 登录</TooltipContent>
+				</Tooltip>
 
 				<Button
 					disabled={loading === "linuxdo"}

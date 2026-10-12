@@ -8,6 +8,11 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@web/components/ui/dialog";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@web/components/ui/tooltip";
 import { authClient } from "@web/server/auth/auth-client";
 import {
 	Camera,
@@ -467,17 +472,23 @@ export default function AvatarComp({ name, image, editor }: AvatarEditorProps) {
 							<Plus className="size-3.5" />
 						</Button>
 
-						<Button
-							type="button"
-							variant="ghost"
-							size="icon-sm"
-							onClick={handleZoomReset}
-							disabled={zoomAtMin || isProcessing}
-							aria-label="重置缩放"
-							title="重置缩放"
-						>
-							<RotateCw className="size-3.5" />
-						</Button>
+						<Tooltip>
+							<TooltipTrigger
+								render={
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon-sm"
+										onClick={handleZoomReset}
+										disabled={zoomAtMin || isProcessing}
+										aria-label="重置缩放"
+									>
+										<RotateCw className="size-3.5" />
+									</Button>
+								}
+							/>
+							<TooltipContent>重置缩放</TooltipContent>
+						</Tooltip>
 					</div>
 
 					{/* 进度条 */}
