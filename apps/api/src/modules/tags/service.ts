@@ -18,7 +18,11 @@ import {
 } from '@api/libs'
 import { purgeByTags, purgeTagPages } from '@api/libs/cloudflare-cache'
 import { delKv, delKvPattern, getKv, setKv } from '@api/libs/redis'
-import { getEffectiveWeekStart, getMonthStart } from '@api/libs/time-window'
+import {
+  getEffectiveWeekStart,
+  getMonthStart,
+  getWindowKey,
+} from '@api/libs/time-window'
 import {
   and,
   asc,
@@ -427,9 +431,12 @@ const CAT_FALLBACK: Record<string, TagGroupKey> = {
  *
  * v3：条目新增 viewsWeek / viewsMonth（分类页「本周热门 / 本月热门」排序），
  * 旧缓存里没有这两个字段，必须换 key 而不是等 1h TTL 自然过期。
+ * key 里还带窗口标识（getWindowKey）：这两个字段是时间窗聚合，换周 / 换月之后
+ * 旧条目描述的已经是上一个窗口，靠 TTL 兜最多会让边界后的一小时内继续按旧窗口
+ * 排序。窗口段在版本段之后，上面的 `galzy:tags:hub:v3:*` 失效 pattern 照旧覆盖。
  */
 async function getTagGroups(): Promise<TagGroups> {
-  const cacheKey = 'galzy:tags:hub:v3:groups'
+  const cacheKey = `galzy:tags:hub:v3:${getWindowKey()}:groups`
   const cached = await getKv(cacheKey)
   if (cached) {
     try {
@@ -1040,7 +1047,9 @@ export const Tags = {
     }: TagsModel.tagHub = {} as TagsModel.tagHub,
   ) {
     // v3：条目带 viewsWeek / viewsMonth，与 getTagGroups 的缓存版本同步
-    const cacheKey = `galzy:tags:hub:v3:${group ?? 'all'}:${limit}:${sort}:${order}`
+    // 窗口标识与 getTagGroups 同理：切到「本周热门 / 本月热门」时，跨过窗口
+    // 边界必须换键，否则返回的是上一个窗口切片出来的前 N 名。
+    const cacheKey = `galzy:tags:hub:v3:${getWindowKey()}:${group ?? 'all'}:${limit}:${sort}:${order}`
     const cached = await getKv(cacheKey)
     if (cached) {
       try {

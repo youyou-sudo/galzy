@@ -19,7 +19,7 @@ import {
   isRedisEnabled,
   setKv,
 } from '@api/libs/redis'
-import { getEffectiveWeekStart } from '@api/libs/time-window'
+import { getEffectiveWeekStart, getWeekKey } from '@api/libs/time-window'
 import { and, count, desc, eq, gte, inArray, isNull, or } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { ViewsModel } from './model'
@@ -137,7 +137,7 @@ export const ViewsService = {
     r18,
   }: ViewsModel.hotGame = {}): Promise<ViewsModel.GameRankingItem[]> {
     const weekStart = getEffectiveWeekStart()
-    const weekKey = weekStart.toISOString().slice(0, 10)
+    const weekKey = getWeekKey(weekStart)
     const cacheKey = `galzy:views:hot:game:${weekKey}:${r18 ? '1' : '0'}`
 
     // 命中缓存直接返回。此前这里只写不读，排行榜的聚合查询每次请求都要重跑。
@@ -272,7 +272,7 @@ export const ViewsService = {
 
   async getHotTags(): Promise<ViewsModel.TagRankingItem[]> {
     const weekStart = getEffectiveWeekStart()
-    const weekKey = weekStart.toISOString().slice(0, 10)
+    const weekKey = getWeekKey(weekStart)
     const cacheKey = `galzy:views:hot:tag:${weekKey}`
     const cached = await getKv(cacheKey)
     if (cached) return JSON.parse(cached) as ViewsModel.TagRankingItem[]
