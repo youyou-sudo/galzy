@@ -5,7 +5,12 @@ import {
 	type FlowTag,
 } from "@web/components/tags/collapsible-tag-list";
 import { TagHierarchy } from "@web/components/tags/tag-hierarchy";
-import { Card, CardHeader, CardTitle } from "@web/components/ui/card";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "@web/components/ui/card";
 import {
 	Tabs,
 	TabsContent,
@@ -37,44 +42,48 @@ export default function TagDetailPage({ tag }: { tag: any }) {
 							</div>
 						)}
 					</CardHeader>
+
+					{/* 页签搬进介绍卡片里：标签名、介绍、子标签、层级关系说的都是同一个标签，
+					    拆成两张卡会读成两块不相干的内容。 */}
+					<CardContent>
+						<Tabs
+							// 没有子标签时「子标签」页签不渲染，选中态只能落在关系图上，
+							// 否则会停在一个不存在的面板上、整块空掉。
+							value={hasChildren ? tab : "hierarchy"}
+							onValueChange={setTab}
+							className="w-full"
+						>
+							<TabsList className="h-8">
+								{hasChildren && (
+									<TabsTrigger value="children">
+										<Tags className="size-3.5" />
+										子标签
+										<span className="text-muted-foreground text-xs tabular-nums">
+											{children.length}
+										</span>
+									</TabsTrigger>
+								)}
+								<TabsTrigger value="hierarchy">
+									<Network className="size-3.5" />
+									标签层级关系
+								</TabsTrigger>
+							</TabsList>
+
+							{hasChildren && (
+								<TabsContent value="children">
+									<CollapsibleTagList tags={children} />
+								</TabsContent>
+							)}
+
+							<TabsContent value="hierarchy">
+								<TagHierarchy tag={tag} />
+							</TabsContent>
+						</Tabs>
+					</CardContent>
 				</Card>
 			</section>
 
-			<Tabs
-				// 没有子标签时「子标签」页签不渲染，选中态只能落在关系图上，
-				// 否则会停在一个不存在的面板上、整块空掉。
-				value={hasChildren ? tab : "hierarchy"}
-				onValueChange={setTab}
-				className="w-full"
-			>
-				<TabsList className="h-8">
-					{hasChildren && (
-						<TabsTrigger value="children">
-							<Tags className="size-3.5" />
-							子标签
-							<span className="text-muted-foreground text-xs tabular-nums">
-								{children.length}
-							</span>
-						</TabsTrigger>
-					)}
-					<TabsTrigger value="hierarchy">
-						<Network className="size-3.5" />
-						标签层级关系
-					</TabsTrigger>
-				</TabsList>
-
-				{hasChildren && (
-					<TabsContent value="children">
-						<CollapsibleTagList tags={children} />
-					</TabsContent>
-				)}
-
-				<TabsContent value="hierarchy">
-					<TagHierarchy tag={tag} />
-				</TabsContent>
-			</Tabs>
-
-			<div className="text-sm text-center items-center opacity-30 italic">
+			<div className="mt-4 text-sm text-center items-center opacity-30 italic">
 				相关游戏，过滤自 VNDB
 			</div>
 			<section>

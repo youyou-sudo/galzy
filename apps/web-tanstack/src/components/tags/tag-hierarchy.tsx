@@ -1,16 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@web/components/ui/button";
 import { cn } from "@web/lib/utils";
-import {
-	ChevronDown,
-	Hand,
-	LocateFixed,
-	Maximize2,
-	Minus,
-	Move,
-	Network,
-	Plus,
-} from "lucide-react";
+import { Hand, LocateFixed, Maximize2, Minus, Move, Plus } from "lucide-react";
 import {
 	type CSSProperties,
 	type PointerEvent as ReactPointerEvent,
@@ -521,8 +512,11 @@ function NodeChip({
 // 交互：画布默认不接管输入，点击一次激活；激活后空白处拖拽平移、滚轮以光标为
 // 锚点缩放、双击空白处复位，点击画布外立即把滚动权交还页面。已本地化的节点可
 // 点击跳转。
+//
+// 展开/收起不在这里管：标签页（子标签 / 标签层级关系）已经决定了画布显不显示，
+// 组件里再挂一个折叠按钮就是同一件事的第二道开关。统计数字（几条路径、几个上级、
+// 几个子标签）原先印在那个按钮上，现在挪到画布左上角悬浮。
 export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
-	const [open, setOpen] = useState(false);
 	const [view, setView] = useState<View>({ zoom: 1, dx: 0, dy: 0 });
 	const [metrics, setMetrics] = useState({ availW: 0 });
 	const [panning, setPanning] = useState(false);
@@ -588,7 +582,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 	// 用 layout effect：首帧就拿到尺寸，网格不会先按兜底宽度摆一次再跳回来。
 	useLayoutEffect(() => {
 		const wrap = wrapRef.current;
-		if (!open || !wrap) return;
+		if (!wrap) return;
 		const measure = () => {
 			const availW = wrap.clientWidth;
 			setMetrics((m) => (m.availW === availW ? m : { availW }));
@@ -597,7 +591,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 		const observer = new ResizeObserver(measure);
 		observer.observe(wrap);
 		return () => observer.disconnect();
-	}, [open]);
+	}, []);
 
 	/**
 	 * 取景缩放：让整张网格完整落进画布框。
@@ -649,12 +643,12 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 		return { zoom, dx: 0, dy: 0 };
 	};
 
-	// 展开 / 容器尺寸变化时重新取景；用户动过之后不再打扰。
+	// 容器尺寸变化时重新取景；用户动过之后不再打扰。
 	// shownTagId 进依赖是为了让「切换标签」也重新取景一次。
 	useEffect(() => {
-		if (!open || touchedRef.current) return;
+		if (touchedRef.current) return;
 		setView(viewFor(baseZoom));
-	}, [open, baseZoom, frameW, frameH, shownTagId]);
+	}, [baseZoom, frameW, frameH, shownTagId]);
 
 	// 未激活时完全不监听：滚轮正常冒泡给页面，用户能滑过这张图。
 	// 激活后滚轮一律以光标为锚点缩放（不再有「平移」这一档，滚轮就是缩放）。
@@ -662,7 +656,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 	// root 上是 passive 的，拦不住。
 	useEffect(() => {
 		const el = frameRef.current;
-		if (!el || !open || !graph || !active) return;
+		if (!el || !graph || !active) return;
 		// 整图中心在图坐标系里的位置
 		const origin = { x: graph.width / 2, y: graph.height / 2 };
 		const onWheel = (e: WheelEvent) => {
@@ -696,7 +690,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 		};
 		el.addEventListener("wheel", onWheel, { passive: false });
 		return () => el.removeEventListener("wheel", onWheel);
-	}, [open, graph, frameW, frameH, active]);
+	}, [graph, frameW, frameH, active]);
 
 	// 激活时点外部 → 交还页面
 	useEffect(() => {
@@ -768,252 +762,234 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 
 	return (
 		<section className="w-full">
-			<button
-				type="button"
-				onClick={() => setOpen((v) => !v)}
-				aria-expanded={open}
-				className={cn(
-					"group inline-flex items-center gap-2 rounded-full border border-border bg-card py-1.5 pr-2.5 pl-3 text-xs transition-colors hover:border-primary/40 hover:bg-muted",
-					open && "border-primary/40 bg-muted",
-				)}
+			<div
+				ref={wrapRef}
+				className="animate-in fade-in-0 zoom-in-95 duration-200"
 			>
-				<Network className="size-3.5 text-muted-foreground group-hover:text-primary" />
-				<span className="font-medium text-foreground">标签层级关系</span>
-				<span className="text-muted-foreground tabular-nums">
-					{paths.length} 条路径 · {ancestorCount} 个上级
-					{children.length > 0 && ` · ${children.length} 个子标签`}
-				</span>
-				<ChevronDown
-					className={cn(
-						"size-3.5 text-muted-foreground transition-transform duration-200",
-						open && "rotate-180",
-					)}
-				/>
-			</button>
-
-			{open && (
 				<div
-					ref={wrapRef}
-					className="mt-2 animate-in fade-in-0 zoom-in-95 duration-200"
+					ref={frameRef}
+					role="group"
+					aria-label="标签层级关系图"
+					tabIndex={0}
+					onPointerDown={onPointerDown}
+					onPointerMove={onPointerMove}
+					onPointerUp={endPan}
+					onPointerCancel={endPan}
+					onDoubleClick={(e) => {
+						if ((e.target as HTMLElement).closest("[data-node]")) return;
+						setFraming(baseZoom);
+					}}
+					className={cn(
+						"relative mx-auto overflow-hidden rounded-2xl border select-none outline-none",
+						// 量到尺寸之前先不显形，避免首帧按整行宽度闪一下再收窄
+						ready ? "border-border/60" : "border-transparent",
+						// 激活态：边框加粗 + 焦点环，明确告诉用户「现在这块归你了」
+						active
+							? "cursor-grab border-2 border-primary shadow-lg ring-[3px] ring-primary/20"
+							: "cursor-pointer border",
+						panning && "cursor-grabbing",
+					)}
+					style={{
+						width: ready ? frameW : "100%",
+						// 宽度同样受容器约束：自适应缩放保证「以焦点为中心」所需的
+						// 半宽能放下，但节点列在容器比公式结果更窄时仍会溢出边框。
+						maxWidth: "100%",
+						height: naturalH,
+						maxHeight: "70vh",
+						backgroundColor: ready ? CANVAS_BG : "transparent",
+						backgroundImage: ready
+							? `${SPOTLIGHT}, radial-gradient(circle, ${DOT} 1px, transparent 1px)`
+							: "none",
+						backgroundSize: `100% 100%, ${GRID * view.zoom}px ${GRID * view.zoom}px`,
+						backgroundPosition: `0 0, ${tx}px ${ty}px`,
+					}}
 				>
+					{/* 统计数字悬浮在画布左上角：它描述的是这张图本身，挂在折叠开关上
+					    既放错了位置，开关一去掉也没地方放了。pointer-events-none 是因为
+					    它不是可点的东西，不该挡住从左上角起手的拖拽平移。 */}
+					<div className="pointer-events-none absolute top-2 left-2 z-10 rounded-full border border-border/60 bg-popover/85 px-2.5 py-1 text-[11px] text-muted-foreground tabular-nums shadow-sm backdrop-blur">
+						{paths.length} 条路径 · {ancestorCount} 个上级
+						{children.length > 0 && ` · ${children.length} 个子标签`}
+					</div>
 					<div
-						ref={frameRef}
-						role="group"
-						aria-label="标签层级关系图"
-						tabIndex={0}
-						onPointerDown={onPointerDown}
-						onPointerMove={onPointerMove}
-						onPointerUp={endPan}
-						onPointerCancel={endPan}
-						onDoubleClick={(e) => {
-							if ((e.target as HTMLElement).closest("[data-node]")) return;
-							setFraming(baseZoom);
-						}}
-						className={cn(
-							"relative mx-auto overflow-hidden rounded-2xl border select-none outline-none",
-							// 量到尺寸之前先不显形，避免首帧按整行宽度闪一下再收窄
-							ready ? "border-border/60" : "border-transparent",
-							// 激活态：边框加粗 + 焦点环，明确告诉用户「现在这块归你了」
-							active
-								? "cursor-grab border-2 border-primary shadow-lg ring-[3px] ring-primary/20"
-								: "cursor-pointer border",
-							panning && "cursor-grabbing",
-						)}
+						className="absolute top-0 left-0 origin-top-left"
 						style={{
-							width: ready ? frameW : "100%",
-							// 宽度同样受容器约束：自适应缩放保证「以焦点为中心」所需的
-							// 半宽能放下，但节点列在容器比公式结果更窄时仍会溢出边框。
-							maxWidth: "100%",
-							height: naturalH,
-							maxHeight: "70vh",
-							backgroundColor: ready ? CANVAS_BG : "transparent",
-							backgroundImage: ready
-								? `${SPOTLIGHT}, radial-gradient(circle, ${DOT} 1px, transparent 1px)`
-								: "none",
-							backgroundSize: `100% 100%, ${GRID * view.zoom}px ${GRID * view.zoom}px`,
-							backgroundPosition: `0 0, ${tx}px ${ty}px`,
+							width: graph.width,
+							height: graph.height,
+							opacity: ready ? 1 : 0,
+							transform: `translate(${tx}px, ${ty}px) scale(${view.zoom})`,
 						}}
 					>
-						<div
-							className="absolute top-0 left-0 origin-top-left"
-							style={{
-								width: graph.width,
-								height: graph.height,
-								opacity: ready ? 1 : 0,
-								transform: `translate(${tx}px, ${ty}px) scale(${view.zoom})`,
-							}}
+						<svg
+							className="absolute inset-0 overflow-visible"
+							width={graph.width}
+							height={graph.height}
+							aria-hidden="true"
 						>
-							<svg
-								className="absolute inset-0 overflow-visible"
-								width={graph.width}
-								height={graph.height}
-								aria-hidden="true"
-							>
-								{/* 祖先链：逐段水平线，汇入当前标签的那几段加粗 */}
-								{graph.links.map((link, i) => (
-									<path
-										key={`link-${i}`}
-										d={link.d}
-										fill="none"
-										strokeLinecap="round"
-										strokeWidth={link.intoCurrent ? 2 : 1.25}
-										className={
-											link.intoCurrent
-												? "stroke-primary/60"
-												: "stroke-muted-foreground/30"
-										}
-									/>
-								))}
-								{/* 子标签那条唯一的主干：当前标签 → 卡片 */}
-								{graph.trunk && (
-									<g
-										className="stroke-muted-foreground/40"
-										fill="none"
-										strokeWidth={1.25}
-									>
-										<path d={graph.trunk} />
-									</g>
-								)}
-							</svg>
-							{graph.nodes.map((node) => (
-								<NodeChip
-									key={node.id}
-									id={node.id}
-									label={node.label}
-									current={node.current}
-									navigable={node.navigable}
-									className="absolute"
-									style={{
-										left: node.x,
-										top: node.y,
-										width: node.w,
-										height: NODE_H,
-									}}
+							{/* 祖先链：逐段水平线，汇入当前标签的那几段加粗 */}
+							{graph.links.map((link, i) => (
+								<path
+									key={`link-${i}`}
+									d={link.d}
+									fill="none"
+									strokeLinecap="round"
+									strokeWidth={link.intoCurrent ? 2 : 1.25}
+									className={
+										link.intoCurrent
+											? "stroke-primary/60"
+											: "stroke-muted-foreground/30"
+									}
 								/>
 							))}
-							{/* 「子标签」三个字压在连线的断口上，替代卡片自己的标题条 —— 卡片里
-							    再留一条标题就重复了，连线光秃秃的也看不出它通向什么。 */}
-							{graph.childCard && (
-								<div
-									className="pointer-events-none absolute flex items-center justify-center text-[10px] text-muted-foreground leading-none"
-									style={{
-										left: graph.childCard.label.x,
-										top: graph.childCard.label.y,
-										width: graph.childCard.label.w,
-										height: graph.childCard.label.h,
-									}}
+							{/* 子标签那条唯一的主干：当前标签 → 卡片 */}
+							{graph.trunk && (
+								<g
+									className="stroke-muted-foreground/40"
+									fill="none"
+									strokeWidth={1.25}
 								>
-									子标签
-								</div>
+									<path d={graph.trunk} />
+								</g>
 							)}
-							{/* 子标签太多时的收纳卡片：整块当做一个节点，只被一根线连着。
+						</svg>
+						{graph.nodes.map((node) => (
+							<NodeChip
+								key={node.id}
+								id={node.id}
+								label={node.label}
+								current={node.current}
+								navigable={node.navigable}
+								className="absolute"
+								style={{
+									left: node.x,
+									top: node.y,
+									width: node.w,
+									height: NODE_H,
+								}}
+							/>
+						))}
+						{/* 「子标签」三个字压在连线的断口上，替代卡片自己的标题条 —— 卡片里
+							    再留一条标题就重复了，连线光秃秃的也看不出它通向什么。 */}
+						{graph.childCard && (
+							<div
+								className="pointer-events-none absolute flex items-center justify-center text-[10px] text-muted-foreground leading-none"
+								style={{
+									left: graph.childCard.label.x,
+									top: graph.childCard.label.y,
+									width: graph.childCard.label.w,
+									height: graph.childCard.label.h,
+								}}
+							>
+								子标签
+							</div>
+						)}
+						{/* 子标签太多时的收纳卡片：整块当做一个节点，只被一根线连着。
 							    卡片里的格子是固定尺寸的 CSS grid，所以卡片高度与 buildGraph
 							    算出来的一致（行列数就是那里定下来的），不会被裁掉一格。 */}
-							{graph.childCard && (
+						{graph.childCard && (
+							<div
+								data-node
+								className="absolute overflow-hidden rounded-xl border border-border/70 bg-card/95 shadow-sm"
+								style={{
+									left: graph.childCard.x,
+									top: graph.childCard.y,
+									width: graph.childCard.w,
+									height: graph.childCard.h,
+								}}
+							>
 								<div
-									data-node
-									className="absolute overflow-hidden rounded-xl border border-border/70 bg-card/95 shadow-sm"
+									className="grid"
 									style={{
-										left: graph.childCard.x,
-										top: graph.childCard.y,
-										width: graph.childCard.w,
-										height: graph.childCard.h,
+										padding: CARD_PAD,
+										gridTemplateColumns: `repeat(${graph.childCard.cols}, ${CARD_CELL_W}px)`,
+										columnGap: CARD_CELL_GAP_X,
+										rowGap: CARD_CELL_GAP_Y,
 									}}
 								>
-									<div
-										className="grid"
-										style={{
-											padding: CARD_PAD,
-											gridTemplateColumns: `repeat(${graph.childCard.cols}, ${CARD_CELL_W}px)`,
-											columnGap: CARD_CELL_GAP_X,
-											rowGap: CARD_CELL_GAP_Y,
-										}}
-									>
-										{children.map((child) => (
-											<Link
-												key={child.id}
-												to="/tags/$tagId"
-												params={{ tagId: child.id }}
-												title={labelOf(child)}
-												className="flex items-center justify-center rounded-md border border-border/70 bg-muted/40 px-1.5 text-[11px] text-foreground leading-none transition-colors hover:border-primary/50 hover:bg-muted"
-												style={{ height: CARD_CELL_H }}
-											>
-												<span className="truncate">{labelOf(child)}</span>
-											</Link>
-										))}
-									</div>
+									{children.map((child) => (
+										<Link
+											key={child.id}
+											to="/tags/$tagId"
+											params={{ tagId: child.id }}
+											title={labelOf(child)}
+											className="flex items-center justify-center rounded-md border border-border/70 bg-muted/40 px-1.5 text-[11px] text-foreground leading-none transition-colors hover:border-primary/50 hover:bg-muted"
+											style={{ height: CARD_CELL_H }}
+										>
+											<span className="truncate">{labelOf(child)}</span>
+										</Link>
+									))}
 								</div>
-							)}
-						</div>
+							</div>
+						)}
+					</div>
 
-						{/* 画布内浮层：左下角操作提示 + 右下角工具条。
+					{/* 画布内浮层：左下角操作提示 + 右下角工具条。
 						    刻意不用 `pointer-events-none` 外层 + `pointer-events-auto` 内层：
 						    pointer-events 是继承属性，实测这里 auto 没盖住继承来的 none，
 						    按钮直接点不动。改成「浮层本身就是可交互的」，靠 onPointerDown 里
 						    的 [data-overlay] 守卫避免在工具条上误触发平移。 */}
-						<div className="absolute inset-x-2 bottom-2 flex items-end justify-between gap-2">
-							<div
-								data-overlay
-								className="flex items-center gap-1 rounded-full border border-border/60 bg-popover/85 px-2.5 py-1 text-[11px] text-muted-foreground shadow-sm backdrop-blur select-none"
+					<div className="absolute inset-x-2 bottom-2 flex items-end justify-between gap-2">
+						<div
+							data-overlay
+							className="flex items-center gap-1 rounded-full border border-border/60 bg-popover/85 px-2.5 py-1 text-[11px] text-muted-foreground shadow-sm backdrop-blur select-none"
+						>
+							{active ? (
+								<Move className="size-3" />
+							) : (
+								<Hand className="size-3" />
+							)}
+							{active ? "拖拽平移 · 滚轮缩放" : "点击以交互"}
+						</div>
+						<div
+							data-overlay
+							className="ml-auto flex items-center gap-0.5 rounded-full border border-border/60 bg-popover/85 p-0.5 shadow-sm backdrop-blur"
+						>
+							<Button
+								size="icon-xs"
+								variant="ghost"
+								className="rounded-full"
+								onClick={() => zoomBy(1 / ZOOM_STEP)}
+								disabled={view.zoom <= ZOOM_MIN}
+								title="缩小"
 							>
-								{active ? (
-									<Move className="size-3" />
-								) : (
-									<Hand className="size-3" />
-								)}
-								{active ? "拖拽平移 · 滚轮缩放" : "点击以交互"}
-							</div>
-							<div
-								data-overlay
-								className="ml-auto flex items-center gap-0.5 rounded-full border border-border/60 bg-popover/85 p-0.5 shadow-sm backdrop-blur"
+								<Minus />
+							</Button>
+							<span className="w-9 text-center text-[11px] text-muted-foreground tabular-nums">
+								{Math.round(view.zoom * 100)}%
+							</span>
+							<Button
+								size="icon-xs"
+								variant="ghost"
+								className="rounded-full"
+								onClick={() => zoomBy(ZOOM_STEP)}
+								disabled={view.zoom >= ZOOM_MAX}
+								title="放大"
 							>
-								<Button
-									size="icon-xs"
-									variant="ghost"
-									className="rounded-full"
-									onClick={() => zoomBy(1 / ZOOM_STEP)}
-									disabled={view.zoom <= ZOOM_MIN}
-									title="缩小"
-								>
-									<Minus />
-								</Button>
-								<span className="w-9 text-center text-[11px] text-muted-foreground tabular-nums">
-									{Math.round(view.zoom * 100)}%
-								</span>
-								<Button
-									size="icon-xs"
-									variant="ghost"
-									className="rounded-full"
-									onClick={() => zoomBy(ZOOM_STEP)}
-									disabled={view.zoom >= ZOOM_MAX}
-									title="放大"
-								>
-									<Plus />
-								</Button>
-								<span className="mx-0.5 h-4 w-px bg-border" />
-								<Button
-									size="icon-xs"
-									variant="ghost"
-									className="rounded-full"
-									onClick={() => setFraming(fitZoom)}
-									title="适应画布（全览）"
-								>
-									<Maximize2 />
-								</Button>
-								<Button
-									size="icon-xs"
-									variant="ghost"
-									className="rounded-full"
-									onClick={() => setFraming(1)}
-									title="回到 1:1"
-								>
-									<LocateFixed />
-								</Button>
-							</div>
+								<Plus />
+							</Button>
+							<span className="mx-0.5 h-4 w-px bg-border" />
+							<Button
+								size="icon-xs"
+								variant="ghost"
+								className="rounded-full"
+								onClick={() => setFraming(fitZoom)}
+								title="适应画布（全览）"
+							>
+								<Maximize2 />
+							</Button>
+							<Button
+								size="icon-xs"
+								variant="ghost"
+								className="rounded-full"
+								onClick={() => setFraming(1)}
+								title="回到 1:1"
+							>
+								<LocateFixed />
+							</Button>
 						</div>
 					</div>
 				</div>
-			)}
+			</div>
 		</section>
 	);
 }
