@@ -1,7 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import { Button } from "@web/components/ui/button";
 import { cn } from "@web/lib/utils";
-import { Hand, LocateFixed, Maximize2, Minus, Move, Plus } from "lucide-react";
+import {
+	Hand,
+	LocateFixed,
+	Maximize2,
+	Minus,
+	Move,
+	Plus,
+	X,
+} from "lucide-react";
 import {
 	type CSSProperties,
 	type PointerEvent as ReactPointerEvent,
@@ -73,6 +81,22 @@ const ZOOM_MIN = 0.2;
 const ZOOM_MAX = 2.5;
 const ZOOM_STEP = 1.2;
 
+// ---- 竖版版面（窄屏）------------------------------------------------------
+//
+// 容器窄于这个宽度就换竖版：横版在这种宽度下取景只能缩到 40% 出头，字糊、框点
+// 不中（见 buildStackedGraph）。取 640 是因为它就是横版还读得清的临界点 ——
+// 横版要 MIN_READABLE_ZOOM 才放得下，图宽 886px 倒推回容器正好是 640px 上下。
+const MOBILE_BREAKPOINT = 640;
+const V_GUTTER = 20; // 竖版：左右留白（比横版窄，省下的宽度留给卡片列数）
+const V_INDENT = 18; // 竖版：每深一层向右缩进
+const V_ROW_GAP = 12; // 竖版：相邻两行之间的垂直间隙
+const V_CARD_GAP = 34; // 竖版：当前标签 → 卡片，留出「子标签」三个字
+const V_ELBOW = 8; // 竖版：肘线在父级底边上的出线点，距父级左缘多远
+const V_CELL_W = 84; // 竖版：卡片格子的宽（四层深时仍放得下两列）
+
+/** 触屏：抬手时累计位移超过这个像素数就算「拖过」，那一次 click 要吞掉 */
+const CLICK_SLOP = 6;
+
 /**
  * 画布高度上限。用 CSS 里的 70vh 表达，但取景计算需要 JS 侧的同一个数 ——
  * 不能用「量到的框高」代替，那会形成 自锁（见 naturalH 处的说明）。
@@ -113,6 +137,9 @@ type ChildCard = {
 	h: number;
 	count: number;
 	cols: number;
+	/** 格子的宽。横版与竖版取值不同，渲染的 CSS grid 必须跟 buildGraph 算的一致，
+	 *  否则格子会溢出一圈、被 overflow-hidden 裁掉。 */
+	cellW: number;
 	/** 「子标签」三个字压在连线上，这是它占的那块位置 */
 	label: { x: number; y: number; w: number; h: number };
 };
@@ -183,6 +210,149 @@ function chooseCols(count: number, b: Box, minCols = 1): number {
 		}
 	}
 	return cols;
+}
+
+/**
+ * 竖版版面（窄屏）：祖先自上而下逐行排（同跳数同缩进）、当前标签接在最后、
+ * 子标签卡片再往下，连线走「父级底边下行、再拐进子级左缘」的树形肘线。
+ *
+ * 为什么窄屏要另起一套：横版那条「祖先链 → 当前标签 → 卡片」是横向摊开的，
+ * 手机上整图 730px 宽落进 316px 的容器，取景只能缩到 43% —— 字是 5px、框是
+ * 57×13，既看不清也点不中（用户反馈的「手机端无法交互」）。横排的层级在 316px
+ * 里没有第二种排法，所以窄屏换竖排：宽度只由最长的一行决定，取景因此能停在
+ * 100% 附近，字看得清、节点点得中；真超出画布的部分才交给拖拽/双指。
+ */
+function buildStackedGraph(
+	tag: TagHierarchyTag,
+	meta: Map<string, TagHierarchyNode>,
+	parentsOf: Map<string, Set<string>>,
+	byColumn: Map<number, string[]>,
+	isChild: Set<string>,
+	maxHop: number,
+	children: TagHierarchyNode[],
+	availW: number,
+): Graph {
+	// 行的顺序与缩进都按「根在上、越深的越靠下也越往右」：hop 是到当前标签的
+	// 跳数（根最大），所以从 maxHop 往小排。反着排会读成「父级在根上面」，
+	// 缩进也会倒过来 —— 父级比子级更靠右，连线全都画不出来。
+	const placed: { id: string; x: number; y: number; current: boolean }[] = [];
+	let y = GUTTER_Y;
+	for (let h = maxHop; h >= 1; h--) {
+		for (const id of byColumn.get(h) ?? []) {
+			placed.push({
+				id,
+				x: V_GUTTER + (maxHop - h) * V_INDENT,
+				y,
+				current: false,
+			});
+			y += NODE_H + V_ROW_GAP;
+		}
+	}
+
+	const currentX = V_GUTTER + maxHop * V_INDENT;
+	placed.push({ id: tag.id, x: currentX, y, current: true });
+	const currentBottom = y + NODE_H;
+
+	// 卡片比节点缩进更深，所以列数只能吃「它自己那一行剩下的宽度」——按容器整宽
+	// 算出来的列数会让卡片顶出画布右边。
+	const cardX = currentX + V_INDENT;
+	const cardBox: Box = {
+		cellW: V_CELL_W,
+		cellH: CARD_CELL_H,
+		gapX: CARD_CELL_GAP_X,
+		gapY: CARD_CELL_GAP_Y,
+		maxCols: CARD_MAX_COLS,
+		targetAr: CARD_TARGET_AR,
+		maxW: Math.max(
+			V_CELL_W,
+			availW - cardX - V_GUTTER - CARD_PAD * 2 - CARD_BORDER * 2,
+		),
+	};
+	// 列数下限降到 2：竖版里每列还要让出缩进与两边留白，硬要三列会把格子挤到
+	// 放不下字，不如两列、让卡片高一点。
+	const cols = children.length ? chooseCols(children.length, cardBox, 2) : 0;
+	const cardW = children.length
+		? boxW(cardBox, cols) + CARD_PAD * 2 + CARD_BORDER * 2
+		: 0;
+	const cardH = children.length
+		? boxH(cardBox, children.length, cols) + CARD_PAD * 2 + CARD_BORDER * 2
+		: 0;
+
+	const nodes: GraphNode[] = placed.map((p) => ({
+		id: p.id,
+		label: labelOf(meta.get(p.id) ?? { id: p.id }),
+		x: p.x,
+		y: p.y,
+		w: NODE_W,
+		current: p.current,
+		navigable: Boolean((meta.get(p.id)?.zht_name ?? "").trim()),
+	}));
+	const nodeById = new Map(nodes.map((n) => [n.id, n]));
+	const current = nodeById.get(tag.id);
+
+	// 连线：父级底边 → 下行 → 拐进子级左缘。父级一定在子级上方、且缩进更浅，
+	// 所以肘线只在空白处拐弯，不会从任何一个框里穿过去。
+	const links: GraphLink[] = [];
+	for (const [childId, parents] of parentsOf) {
+		if (isChild.has(childId)) continue;
+		const to = nodeById.get(childId);
+		if (!to) continue;
+		for (const parentId of parents) {
+			const from = nodeById.get(parentId);
+			if (!from || from.y + NODE_H >= to.y) continue;
+			const bx = from.x + V_ELBOW;
+			if (bx >= to.x - 4) continue;
+			links.push({
+				d: `M ${bx} ${from.y + NODE_H} V ${to.y + NODE_H / 2} H ${to.x}`,
+				intoCurrent: childId === tag.id,
+			});
+		}
+	}
+
+	// 子标签卡片：从当前标签底边中心竖下来，拐到卡片顶边中心。横版是「线在中间
+	// 断开、字压在断口上」，竖版没有横线可断：拐点够长就断在拐线上，拐点太短
+	// （卡片的列数少、两个中心几乎重合）就把字挪到竖线左边。
+	let trunk = "";
+	let childCard: ChildCard | null = null;
+	let bottom = currentBottom;
+	if (current && children.length > 0) {
+		const cardY = currentBottom + V_CARD_GAP;
+		const gapMid = currentBottom + V_CARD_GAP / 2;
+		const nodeCx = current.x + NODE_W / 2;
+		const cardCx = cardX + cardW / 2;
+		const labelMid = (nodeCx + cardCx) / 2;
+		const gapL = labelMid - CARD_LABEL_W / 2;
+		const gapR = labelMid + CARD_LABEL_W / 2;
+		const bared = gapL > nodeCx + 4 && gapR < cardCx - 4;
+		trunk = bared
+			? `M ${nodeCx} ${currentBottom} V ${gapMid} H ${gapL} M ${gapR} ${gapMid} H ${cardCx} V ${cardY}`
+			: `M ${nodeCx} ${currentBottom} V ${gapMid} H ${cardCx} V ${cardY}`;
+		childCard = {
+			x: cardX,
+			y: cardY,
+			w: cardW,
+			h: cardH,
+			count: children.length,
+			cols,
+			cellW: V_CELL_W,
+			label: {
+				x: bared ? gapL : nodeCx - CARD_LABEL_W - 10,
+				y: gapMid - CARD_LABEL_H / 2,
+				w: CARD_LABEL_W,
+				h: CARD_LABEL_H,
+			},
+		};
+		bottom = cardY + cardH;
+	}
+
+	const width =
+		Math.max(
+			...nodes.map((n) => n.x + n.w),
+			childCard ? childCard.x + childCard.w : 0,
+			childCard ? childCard.label.x + childCard.label.w : 0,
+		) + V_GUTTER;
+
+	return { nodes, links, trunk, childCard, width, height: bottom + GUTTER_Y };
 }
 
 // 把祖先路径 + 子标签摊成一张三段式版面：祖先链 | 当前标签 | 子标签卡片。
@@ -262,6 +432,21 @@ function buildGraph(
 		);
 	}
 	const maxHop = Math.max(0, ...byColumn.keys());
+
+	// 窄屏换竖版：横版在这种宽度下只能缩到 40% 出头（见 buildStackedGraph）
+	if (availW < MOBILE_BREAKPOINT) {
+		return buildStackedGraph(
+			tag,
+			meta,
+			parentsOf,
+			byColumn,
+			isChild,
+			maxHop,
+			children,
+			availW,
+		);
+	}
+
 	const ancPerCol = Math.max(
 		1,
 		...[...byColumn.values()].map((ids) => ids.length),
@@ -395,6 +580,7 @@ function buildGraph(
 			h: rightH,
 			count: children.length,
 			cols,
+			cellW: CARD_CELL_W,
 			label: {
 				x: gapL,
 				y: midY - CARD_LABEL_H / 2,
@@ -523,9 +709,22 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 	// 交互锁：滚轮要留给页面滚动，所以画布默认「不接管输入」，点击一次才激活。
 	// 激活期间吞掉滚轮（缩放）与拖拽（平移）；点击外部立即交还给页面。
 	const [active, setActive] = useState(false);
+	// 粗指针（触屏）：没有滚轮，手势是单指拖拽 + 双指捏合，提示文案与 touch-action
+	// 都要跟着换一套。
+	const [coarse, setCoarse] = useState(false);
 	const wrapRef = useRef<HTMLDivElement>(null);
 	const frameRef = useRef<HTMLDivElement>(null);
 	const dragRef = useRef<{ x: number; y: number } | null>(null);
+	// 触屏手势：同时按下的指针（双指 = 捏合缩放），以及捏合的基准
+	const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+	const pinchRef = useRef<{
+		dist: number;
+		mid: { x: number; y: number };
+		view: View;
+	} | null>(null);
+	// 本次按下累计移动的像素：触屏上拖完抬手浏览器还会补一次 click，位移够大就
+	// 该吞掉它，否则「滑动看图」的收尾会被当成点击、直接跳走。
+	const movedRef = useRef(0);
 	// 用户一旦手动平移/缩放，就不再自动取景（否则窗口尺寸变化会把视角跳回去）
 	const touchedRef = useRef(false);
 	// 记住当前画的是哪个标签。`useState` 不会在导航后重挂载这个组件（路由只是换了
@@ -534,12 +733,24 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 	const [shownTagId, setShownTagId] = useState<string | null>(null);
 	useEffect(() => {
 		if (!tag?.id || tag.id === shownTagId) return;
+		pointersRef.current.clear();
+		pinchRef.current = null;
+		dragRef.current = null;
+		movedRef.current = 0;
 		setShownTagId(tag.id);
 		touchedRef.current = false;
 		setView({ zoom: 1, dx: 0, dy: 0 });
 		setPanning(false);
 		setActive(false);
 	}, [tag?.id, shownTagId]);
+
+	useEffect(() => {
+		const mq = window.matchMedia("(pointer: coarse)");
+		const read = () => setCoarse(mq.matches);
+		read();
+		mq.addEventListener("change", read);
+		return () => mq.removeEventListener("change", read);
+	}, []);
 
 	// 视口高度：画布高度上限 70vh 的 JS 侧等价物。取 window.innerHeight 而不是量
 	// 画布自身，因此不会与画布高度互相影响（那正是 5px 塌陷的成因）。
@@ -616,7 +827,13 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 	}, [graph, metrics.availW, maxCanvasH]);
 
 	/** 基准缩放：在整图可见的前提下尽量大 */
-	const baseZoom = Math.max(ZOOM_MIN, fitZoom);
+	// 窄屏（竖版）再兜一个可读下限：内容高过 70vh 时宁可裁一点、让用户拖，
+	// 也别把整块缩成 40% 那种看不清、点不中的样子。
+	const narrow = metrics.availW > 0 && metrics.availW < MOBILE_BREAKPOINT;
+	const baseZoom = Math.min(
+		1,
+		Math.max(fitZoom, narrow ? MIN_READABLE_ZOOM : ZOOM_MIN),
+	);
 
 	/**
 	 * 画布尺寸 = 整图 × 基准缩放，然后按 70vh 截断。
@@ -635,12 +852,20 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 				Math.round(graph.height * baseZoom),
 			)
 		: 0;
-	const frameW = naturalW;
+	// 竖版整图通常比容器窄：画布铺满容器宽度，底部那条浮层（提示 + 工具条）才放
+	// 得下。内容依旧居中 —— tx/ty 本来就是按「整图居中于画布」算的。
+	const frameW = narrow ? metrics.availW : naturalW;
 	const frameH = naturalH;
 
-	/** 取景：整图在框里居中。dx/dy 是相对居中的偏移，正中央就是 0 */
+	/**
+	 * 取景：整图在框里居中。dx/dy 是相对居中的偏移，正中央就是 0。
+	 *
+	 * 竖版内容高过画布时例外：从顶部开始看。竖版是「祖先在上、子标签在下」的
+	 * 纵向阅读顺序，居中会把两头各切一半，读起来不知道从哪儿接上。
+	 */
 	const viewFor = (zoom: number): View => {
-		return { zoom, dx: 0, dy: 0 };
+		const overflowY = Math.max(0, (graph?.height ?? 0) * zoom - frameH);
+		return { zoom, dx: 0, dy: narrow ? overflowY / 2 : 0 };
 	};
 
 	// 容器尺寸变化时重新取景；用户动过之后不再打扰。
@@ -722,22 +947,101 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 		});
 	};
 
+	/**
+	 * 触屏手势：单指拖拽平移、双指捏合缩放。
+	 *
+	 * 手机上的老问题是整块画布「点了没反应」：`touch-action` 是默认的 auto，手指
+	 * 一拖就被浏览器当成滚页面，随即发出 pointercancel，画布再也收不到 pointermove。
+	 * 这里给激活后的画布加 `touch-action: none` 接管手势，并自己实现捏合缩放 ——
+	 * 移动端没有滚轮，缩放只能靠双指；工具条上的 ± 是给单指的退路。
+	 */
 	const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+		// 每次按下都清零：上一次拖拽的位移不能把这一次点击吞掉（见 onClickCapture）
+		movedRef.current = 0;
 		// 第一次点击只用于「激活」，不当作平移起点
 		if (!active) {
 			setActive(true);
 			return;
 		}
-		// 节点上按下不拖拽，避免和「点击跳转」抢手势；工具条/提示浮层同理 ——
-		// 一旦在它们上面开始拖拽，setPointerCapture 会把后续 click 重定向到画布，
-		// 按钮就彻底点不动了。
-		if ((e.target as HTMLElement).closest("[data-node],[data-overlay]")) return;
+		// 工具条/提示浮层：一旦在它们上面开始拖拽，setPointerCapture 会把后续
+		// click 重定向到画布，按钮就彻底点不动了。
+		if ((e.target as HTMLElement).closest("[data-overlay]")) return;
+		if (e.pointerType === "touch") {
+			// 触屏上从节点上起手也要能拖：拇指按在框上顺手一划就是平移。点击跳转
+			// 由 onClickCapture 按「位移超过阈值就吞掉这次 click」兜住。
+			pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+			e.currentTarget.setPointerCapture(e.pointerId);
+			if (pointersRef.current.size >= 2) {
+				const [a, b] = [...pointersRef.current.values()];
+				pinchRef.current = {
+					dist: Math.hypot(a.x - b.x, a.y - b.y),
+					mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+					view,
+				};
+				dragRef.current = null;
+			} else {
+				dragRef.current = { x: e.clientX, y: e.clientY };
+			}
+			touchedRef.current = true;
+			setPanning(true);
+			return;
+		}
+		// 鼠标/触控笔：节点上按下不拖拽，把手势留给「点击跳转」
+		if ((e.target as HTMLElement).closest("[data-node]")) return;
 		e.currentTarget.setPointerCapture(e.pointerId);
 		dragRef.current = { x: e.clientX, y: e.clientY };
 		touchedRef.current = true;
 		setPanning(true);
 	};
 	const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+		if (e.pointerType === "touch") {
+			if (!pointersRef.current.has(e.pointerId)) return;
+			pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+			const pinch = pinchRef.current;
+			if (pinch && pointersRef.current.size >= 2) {
+				const [a, b] = [...pointersRef.current.values()];
+				const dist = Math.hypot(a.x - b.x, a.y - b.y);
+				if (pinch.dist > 0 && dist > 0) {
+					const zoom = clampZoom(pinch.view.zoom * (dist / pinch.dist));
+					const rect = e.currentTarget.getBoundingClientRect();
+					const ox = graph.width / 2;
+					const oy = graph.height / 2;
+					// 捏合前压在两根手指中点下那个图坐标点，捏合后要还压在新的中点下
+					const from = {
+						x: pinch.mid.x - rect.left,
+						y: pinch.mid.y - rect.top,
+					};
+					const to = {
+						x: (a.x + b.x) / 2 - rect.left,
+						y: (a.y + b.y) / 2 - rect.top,
+					};
+					const tx0 = frameW / 2 - ox * pinch.view.zoom + pinch.view.dx;
+					const ty0 = frameH / 2 - oy * pinch.view.zoom + pinch.view.dy;
+					const gx = (from.x - tx0) / pinch.view.zoom;
+					const gy = (from.y - ty0) / pinch.view.zoom;
+					const tx = to.x - gx * zoom;
+					const ty = to.y - gy * zoom;
+					movedRef.current = CLICK_SLOP + 1;
+					touchedRef.current = true;
+					setPanning(true);
+					setView({
+						zoom,
+						dx: tx - frameW / 2 + ox * zoom,
+						dy: ty - frameH / 2 + oy * zoom,
+					});
+				}
+				return;
+			}
+			const drag = dragRef.current;
+			if (!drag) return;
+			const tdx = e.clientX - drag.x;
+			const tdy = e.clientY - drag.y;
+			drag.x = e.clientX;
+			drag.y = e.clientY;
+			movedRef.current += Math.hypot(tdx, tdy);
+			setView((v) => ({ ...v, dx: v.dx + tdx, dy: v.dy + tdy }));
+			return;
+		}
 		const drag = dragRef.current;
 		if (!drag) return;
 		const dx = e.clientX - drag.x;
@@ -747,9 +1051,16 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 		setView((v) => ({ ...v, dx: v.dx + dx, dy: v.dy + dy }));
 	};
 	const endPan = (e: ReactPointerEvent<HTMLDivElement>) => {
-		if (!dragRef.current) return;
-		dragRef.current = null;
-		setPanning(false);
+		if (e.pointerType === "touch") pointersRef.current.delete(e.pointerId);
+		if (pointersRef.current.size < 2) pinchRef.current = null;
+		if (dragRef.current) {
+			dragRef.current = null;
+			setPanning(false);
+		}
+		if (pointersRef.current.size === 0) {
+			pinchRef.current = null;
+			setPanning(false);
+		}
 		if (e.currentTarget.hasPointerCapture(e.pointerId)) {
 			e.currentTarget.releasePointerCapture(e.pointerId);
 		}
@@ -775,6 +1086,14 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 					onPointerMove={onPointerMove}
 					onPointerUp={endPan}
 					onPointerCancel={endPan}
+					// 触屏上拖完抬手，浏览器还会补一次 click：位移够大就吞掉它，
+					// 否则「滑动看图」的收尾会被当成点了一次节点、直接跳走。
+					onClickCapture={(e) => {
+						if (movedRef.current <= CLICK_SLOP) return;
+						movedRef.current = 0;
+						e.preventDefault();
+						e.stopPropagation();
+					}}
 					onDoubleClick={(e) => {
 						if ((e.target as HTMLElement).closest("[data-node]")) return;
 						setFraming(baseZoom);
@@ -796,6 +1115,9 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 						maxWidth: "100%",
 						height: naturalH,
 						maxHeight: "70vh",
+						// 激活后由画布接管手势（单指拖拽平移、双指捏合缩放）。不激活时
+						// 保持 auto：手指划过去仍然是在滚页面，不会被这块画布吃掉。
+						touchAction: active ? "none" : "auto",
 						backgroundColor: ready ? CANVAS_BG : "transparent",
 						backgroundImage: ready
 							? `${SPOTLIGHT}, radial-gradient(circle, ${DOT} 1px, transparent 1px)`
@@ -901,7 +1223,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 									className="grid"
 									style={{
 										padding: CARD_PAD,
-										gridTemplateColumns: `repeat(${graph.childCard.cols}, ${CARD_CELL_W}px)`,
+										gridTemplateColumns: `repeat(${graph.childCard.cols}, ${graph.childCard.cellW}px)`,
 										columnGap: CARD_CELL_GAP_X,
 										rowGap: CARD_CELL_GAP_Y,
 									}}
@@ -938,16 +1260,36 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 							) : (
 								<Hand className="size-3" />
 							)}
-							{active ? "拖拽平移 · 滚轮缩放" : "点击以交互"}
+							{active
+								? coarse
+									? "单指拖拽 · 双指缩放"
+									: "拖拽平移 · 滚轮缩放"
+								: "点击以交互"}
 						</div>
 						<div
 							data-overlay
 							className="ml-auto flex items-center gap-0.5 rounded-full border border-border/60 bg-popover/85 p-0.5 shadow-sm backdrop-blur"
 						>
+							{/* 触屏上一屏几乎全是画布，「点空白处退出」没那么顺手：给一个
+							    明确的出口，免得手指被困在画布里、页面滚不动。 */}
+							{coarse && active && (
+								<>
+									<Button
+										size="icon-xs"
+										variant="ghost"
+										className="size-8 rounded-full sm:size-6"
+										onClick={() => setActive(false)}
+										title="退出手势（恢复页面滚动）"
+									>
+										<X />
+									</Button>
+									<span className="mx-0.5 h-4 w-px bg-border" />
+								</>
+							)}
 							<Button
 								size="icon-xs"
 								variant="ghost"
-								className="rounded-full"
+								className="size-8 rounded-full sm:size-6"
 								onClick={() => zoomBy(1 / ZOOM_STEP)}
 								disabled={view.zoom <= ZOOM_MIN}
 								title="缩小"
@@ -960,7 +1302,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 							<Button
 								size="icon-xs"
 								variant="ghost"
-								className="rounded-full"
+								className="size-8 rounded-full sm:size-6"
 								onClick={() => zoomBy(ZOOM_STEP)}
 								disabled={view.zoom >= ZOOM_MAX}
 								title="放大"
@@ -971,7 +1313,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 							<Button
 								size="icon-xs"
 								variant="ghost"
-								className="rounded-full"
+								className="size-8 rounded-full sm:size-6"
 								onClick={() => setFraming(fitZoom)}
 								title="适应画布（全览）"
 							>
@@ -980,7 +1322,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 							<Button
 								size="icon-xs"
 								variant="ghost"
-								className="rounded-full"
+								className="size-8 rounded-full sm:size-6"
 								onClick={() => setFraming(1)}
 								title="回到 1:1"
 							>
