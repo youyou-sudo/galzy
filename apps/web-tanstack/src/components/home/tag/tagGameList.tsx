@@ -33,13 +33,17 @@ export const TagGamelist = () => {
 			}
 			return items;
 		},
-		initialPageParam: 1,
+		initialPageParam: 0,
 		initialData: {
 			pages: [game],
 			pageParams: [0],
 		},
+		// currentPage 是 0 基页索引（与请求的 pageIndex 一致），totalPages 是 1 基总页数。
+		// 还有下一页 ⇔ currentPage + 1 < totalPages：原先的 `currentPage < totalPages`
+		// 在「总数不满一页」（totalPages === 1、currentPage === 0）时恒为真，
+		// 会错误地渲染出「加载更多」并触发一次返回空列表的多余请求。
 		getNextPageParam: (lastPage) =>
-			lastPage && lastPage.currentPage < lastPage.totalPages
+			lastPage && lastPage.currentPage + 1 < lastPage.totalPages
 				? lastPage.currentPage + 1
 				: null,
 	});

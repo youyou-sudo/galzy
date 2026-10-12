@@ -172,10 +172,13 @@ export const Route = createFileRoute("/games/")({
 				return gamelist ?? null;
 			},
 			initialPageParam: 0,
+			// currentPage 是 0 基页索引，totalPages 是 1 基总页数：
+			// 还有下一页 ⇔ currentPage + 1 < totalPages，否则「不满一页」时
+			// 也会误显示「加载更多」。
 			getNextPageParam: (
 				lastPage: { currentPage: number; totalPages: number } | null,
 			) =>
-				lastPage && lastPage.currentPage < lastPage.totalPages
+				lastPage && lastPage.currentPage + 1 < lastPage.totalPages
 					? lastPage.currentPage + 1
 					: null,
 			staleTime: 30_000,
@@ -301,8 +304,9 @@ function RouteComponent() {
 			return gamelist ?? null;
 		},
 		initialPageParam: 0,
+		// 同 loader：currentPage 为 0 基索引，与 1 基的 totalPages 比较需 +1
 		getNextPageParam: (lastPage) =>
-			lastPage && lastPage.currentPage < lastPage.totalPages
+			lastPage && lastPage.currentPage + 1 < lastPage.totalPages
 				? lastPage.currentPage + 1
 				: null,
 		// 返回列表页时直接用缓存渲染，不 refetch 第一页：避免挂载瞬间整屏网格重建
