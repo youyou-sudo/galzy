@@ -38,14 +38,12 @@ import type { TagsModel } from './model'
  * 标签层级是 DAG（VNDB 中 530 个标签有多个父标签），但实测无环，
  * 因此递归 CTE 是安全的。用 UNION 而非 UNION ALL 做幂等去重，兼作环保护。
  *
- * @param direction 'up' 沿 parent 向上取祖先；'down' 沿 child 向下取后代
- * @returns id + 最短路径深度。DAG 中同一节点可能经多条路径到达，取 MIN(depth)
- *          后按 depth 降序即为「根 → 父」的顺序（根最远、深度最大），
- *          可直接渲染面包屑。down 方向按 depth 升序（直接子标签在前）。
+ * 只用于取后代：祖先方向不能这么走，见 getTagAncestorPaths 的说明。
+ *
+ * @returns id + 最短路径深度，按 depth 升序（直接子标签在前）。
  */
-async function getTagRelatedIds(
+async function getTagDescendantIds(
   tagId: string,
-  direction: 'up' | 'down',
 ): Promise<Array<{ id: string; depth: number }>> {
   // 层级边只有约 3600 行，递归本身很便宜，但 detail/taggames 每次请求都会走到这。
   // 根标签扇出很大（g1 Theme 有 1399 个后代），缓存解析结果避免重复递归。
@@ -55,9 +53,7 @@ async function getTagRelatedIds(
   // 两者都执行 delKvPattern('galzy:tags:*')。若将来新增写入层级的路径，
   // 必须同步补上失效，否则本缓存最长会滞留 24h（而依赖它的 tag / tagGames
   // 缓存只有 1h，它们的正确性也一并建立在这两个失效调用之上）。
-  // v2：'up' 的排序方向由升序改为降序（根→父）。旧 key 里存的是相反顺序，
-  // 版本号进 key 才能让存量缓存立即失效，而不是等 24h TTL 自然过期。
-  const cacheKey = `galzy:tags:rel:v2:${direction}:${tagId}`
+  const cacheKey = `galzy:tags:rel:v2:down:${tagId}`
   const cached = await getKv(cacheKey)
   if (cached) {
     try {
@@ -67,18 +63,14 @@ async function getTagRelatedIds(
     }
   }
 
-  // 向上：child -> parent；向下：parent -> child
-  // 列名是内部常量而非用户输入，用 sql.raw 明确按标识符插入
-  // （drizzle 的 ${string} 会绑定成参数，那样会变成错误的查询）
-  const from = sql.raw(direction === 'up' ? 'child' : 'parent')
-  const to = sql.raw(direction === 'up' ? 'parent' : 'child')
+  // 向下：parent -> child（列名直接写在 SQL 里，不做动态拼接）
   const rows = await db.execute(sql`
     WITH RECURSIVE walk(id, depth) AS (
-      SELECT ${to}, 1 FROM ${tagsRelations} WHERE ${from} = ${tagId}
+      SELECT child, 1 FROM ${tagsRelations} WHERE parent = ${tagId}
       UNION
-      SELECT r.${to}, w.depth + 1
+      SELECT r.child, w.depth + 1
       FROM ${tagsRelations} r
-      INNER JOIN walk w ON r.${from} = w.id
+      INNER JOIN walk w ON r.parent = w.id
       -- 环保护：VNDB 标签层级实测无环（最大深度 7），一旦 dump 出现环，
       -- UNION 会因 depth 递增而无限递归。深度上限远大于真实最大值，不会截断正常层级。
       WHERE w.depth < 64
@@ -86,7 +78,7 @@ async function getTagRelatedIds(
     SELECT id, MIN(depth)::int AS depth
     FROM walk
     GROUP BY id
-    ORDER BY MIN(depth) ${sql.raw(direction === 'up' ? 'DESC' : 'ASC')}, id
+    ORDER BY MIN(depth) ASC, id
   `)
   const result = rows as Array<{ id: string; depth: number }>
   void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 24)
@@ -94,19 +86,71 @@ async function getTagRelatedIds(
 }
 
 /**
- * 批量取标签的英文名 + 中文名，用于面包屑与子标签列表。
+ * 取标签到根的全部祖先路径，每条路径按「根 → … → 直接父级」返回。
  *
- * 两个方向对排序的要求相反，所以顺序由调用方决定而不是写死：
- * - 'up'（祖先）：depth 降序，根最远 → 面包屑「根 → 父 → …」
- * - 'down'（后代）：depth 升序，直接子标签在前
+ * VNDB 的层级是 DAG 而非树：530 个标签有多个父标签，因此一个标签往往有多条
+ * 到根的路径（g513 Netorare 同时挂在 Jealousy 与 Sex with Others 之下，
+ * 两条链一直到「Theme」才汇合）。面包屑必须逐条展示——把不同分支的节点合并成
+ * 一条线会渲染出「Drama > Sexual Content > …」这类根本不存在的路径（旧实现
+ * 取 MIN(depth) 后按深度排序，正是这个效果）。
+ *
+ * 实测：最大深度 7，单个标签最多 7 条路径（g2962），全库共 4076 条到根的路径，
+ * 量级很小。环保护用「当前路径内不重复」而非 UNION 去重——按路径去重才能保留
+ * 同一节点的多条分支，而深度上限只是兜底。
+ */
+async function getTagAncestorPaths(tagId: string): Promise<string[][]> {
+  // 失效依赖与 getTagDescendantIds 相同（层级只在 tag dump 同步时变化，
+  // syncTagHierarchy / purgeAfterSync 都会 delKvPattern('galzy:tags:*')）。
+  // 前缀故意选 galzy:tags: 而不是 galzy:tag:，好被那条 pattern 覆盖到。
+  const cacheKey = `galzy:tags:paths:v1:${tagId}`
+  const cached = await getKv(cacheKey)
+  if (cached) {
+    try {
+      return JSON.parse(cached) as string[][]
+    } catch {
+      await delKv(cacheKey)
+    }
+  }
+
+  const rows = await db.execute(sql`
+    WITH RECURSIVE up(id, path, depth) AS (
+      SELECT r.parent, ARRAY[r.parent], 1
+      FROM ${tagsRelations} r
+      WHERE r.child = ${tagId}
+      UNION ALL
+      SELECT rr.parent, u.path || rr.parent, u.depth + 1
+      FROM up u
+      INNER JOIN ${tagsRelations} rr ON rr.child = u.id
+      -- 环保护：同一路径内不重复，且深度不超过 64（真实最大 7）
+      WHERE u.depth < 64 AND NOT (rr.parent = ANY(u.path))
+    )
+    SELECT path
+    FROM up
+    -- 只保留终点：自身没有父标签的才是根
+    WHERE NOT EXISTS (
+      SELECT 1 FROM ${tagsRelations} p WHERE p.child = up.id
+    )
+  `)
+
+  const paths = (rows as Array<{ path: string[] }>)
+    // CTE 累积的是「父 → … → 根」，反转成「根 → … → 父」
+    .map((r) => [...r.path].reverse())
+    // 排序只为稳定输出（同一标签每次拿到的顺序一致，便于缓存与快照对比）
+    .sort((a, b) => a.join(',').localeCompare(b.join(',')))
+
+  void setKv(cacheKey, JSON.stringify(paths), 60 * 60 * 24)
+  return paths
+}
+
+/**
+ * 批量取标签的英文名 + 中文名，用于子标签列表。
+ *
+ * 按 depth 升序（直接子标签在前）。
  *
  * 只返回已本地化（zhtags 存在）的标签：层级同步会写入 dump 中全部标签，
  * 而 Tags.tag 用 innerJoin(zhtags) 查询，未本地化的标签点进去必然 404。
  */
-async function fetchTagLabels(
-  related: Array<{ id: string; depth: number }>,
-  direction: 'up' | 'down',
-) {
+async function fetchTagLabels(related: Array<{ id: string; depth: number }>) {
   if (related.length === 0) return []
   const depthMap = new Map(related.map((r) => [r.id, r.depth]))
   const rows = await db
@@ -125,11 +169,34 @@ async function fetchTagLabels(
     )
   return rows
     .map((r) => ({ ...r, depth: depthMap.get(r.id) ?? 0 }))
-    .sort(
-      (a, b) =>
-        (direction === 'up' ? b.depth - a.depth : a.depth - b.depth) ||
-        a.id.localeCompare(b.id),
-    )
+    .sort((a, b) => a.depth - b.depth || a.id.localeCompare(b.id))
+}
+
+/**
+ * 批量取标签名（英文 + 中文），供祖先路径使用。
+ *
+ * 与 fetchTagLabels 的区别是「不过滤未本地化标签」：祖先路径是一条完整链路，
+ * 中间节点被剔除会让链路断开甚至错位，因此这里保留全部节点，由前端把缺少
+ * 中文名的节点渲染成不可点击的纯文本（点进去必然 404）。
+ * 与 tags / tags_relations 一样，是 LEFT JOIN 而不是 INNER JOIN。
+ */
+async function fetchTagLabelMap(ids: string[]) {
+  const map = new Map<
+    string,
+    { id: string; name: string | null; zht_name: string | null }
+  >()
+  if (ids.length === 0) return map
+  const rows = await db
+    .select({
+      id: tags.id,
+      name: tags.name,
+      zht_name: zhtags.name,
+    })
+    .from(tags)
+    .leftJoin(zhtags, eq(tags.id, zhtags.id))
+    .where(inArray(tags.id, ids))
+  for (const r of rows) map.set(r.id, r)
+  return map
 }
 
 /**
@@ -278,9 +345,12 @@ export const Tags = {
     return result
   },
   async tag({ tagId }: TagsModel.tagId) {
-    // v4：children 改为「直接子标签」（v2 误用全部后代），新增 descendantCount；
-    // ancestors 改为根→父顺序并过滤未本地化标签（v3 里顺序相反且含 404 项）
-    const cacheKey = `galzy:tag:v4:${tagId}`
+    // v5：新增 ancestorPaths —— 层级是 DAG，同一个标签可能有多条到根的路径
+    // （g513 Netorare 同时属于 Jealousy 与 Sex with Others 两条链）。
+    // ancestors 保持 v4 的旧语义（扁平 + 最短距离）仅供不关心分支的调用方使用；
+    // 面包屑改用 ancestorPaths，否则把不同分支按深度拼成一条线会渲染出
+    // 「Drama > Sexual Content > …」这类并不存在的祖先链。
+    const cacheKey = `galzy:tag:v5:${tagId}`
     const redisdata = await getKv(cacheKey)
     if (redisdata !== null && redisdata !== undefined) {
       return JSON.parse(redisdata) as Tag
@@ -306,14 +376,35 @@ export const Tags = {
       throw status(404, `Tag ${tagId} 不存在`)
     }
 
-    const [ancestorIds, childIds] = await Promise.all([
-      getTagRelatedIds(tagId, 'up'),
-      getTagRelatedIds(tagId, 'down'),
+    const [ancestorPathIds, childIds] = await Promise.all([
+      getTagAncestorPaths(tagId),
+      getTagDescendantIds(tagId),
     ])
-    const [ancestors, descendants] = await Promise.all([
-      fetchTagLabels(ancestorIds, 'up'),
-      fetchTagLabels(childIds, 'down'),
+    const [labelMap, descendants] = await Promise.all([
+      fetchTagLabelMap([...new Set(ancestorPathIds.flat())]),
+      fetchTagLabels(childIds),
     ])
+
+    const labelOf = (id: string) =>
+      labelMap.get(id) ?? { id, name: null, zht_name: null }
+    // 每条路径直接渲染成一行面包屑（根 → … → 直接父级）
+    const ancestorPaths = ancestorPathIds.map((path) => path.map(labelOf))
+    // 兼容字段：扁平祖先集合（不区分分支），保持 v4 的「最短距离降序」语义。
+    // v4 走 fetchTagLabels（innerJoin zhtags），未本地化的祖先会被过滤掉；这里
+    // 同样过滤，避免旧调用方拿到必然 404 的节点。未本地化的祖先只出现在
+    // ancestorPaths 里（那里必须保留，否则链路会断），由前端渲染成不可点击文本。
+    const depthOf = new Map<string, number>()
+    for (const path of ancestorPathIds) {
+      path.forEach((id, index) => {
+        const depth = path.length - index
+        const prev = depthOf.get(id)
+        if (prev === undefined || depth < prev) depthOf.set(id, depth)
+      })
+    }
+    const ancestors = [...depthOf.keys()]
+      .filter((id) => Boolean(labelMap.get(id)?.zht_name))
+      .map((id) => ({ ...labelOf(id), depth: depthOf.get(id) ?? 0 }))
+      .sort((a, b) => b.depth - a.depth || a.id.localeCompare(b.id))
 
     // 直接子标签（深度=1）用于页面折叠展示；全部后代仅用于计数参考。
     // 两者不能混用：g360「其他要素」有 430 个后代，但直接子标签只有 94 个。
@@ -326,6 +417,7 @@ export const Tags = {
         ? stripVndbMarkup(items.description)
         : items.description,
       ancestors,
+      ancestorPaths,
       children: directChildren,
       descendantCount: descendants.length,
     }
@@ -346,7 +438,7 @@ export const Tags = {
     // includeChildren 对齐 VNDB `tag` 过滤器的语义：命中该标签或任意后代标签。
     // 不开启时等价于 VNDB 的 `dtag`（仅直接标注）。
     const matchIds = includeChildren
-      ? [tagId, ...(await getTagRelatedIds(tagId, 'down')).map((r) => r.id)]
+      ? [tagId, ...(await getTagDescendantIds(tagId)).map((r) => r.id)]
       : [tagId]
     const tagMatch = inArray(tagsVn.tag, matchIds)
 
@@ -690,7 +782,7 @@ export const Tags = {
           SELECT u.child_id, p.parent, u.depth + 1
           FROM up u
           INNER JOIN ${tagsRelations} p ON p.child = u.root_id
-          -- 环保护，理由同 getTagRelatedIds 的 walk（见上）。
+          -- 环保护，理由同 getTagDescendantIds 的 walk（见上）。
           WHERE u.depth < 64
         )
         SELECT child_id, root_id
@@ -924,7 +1016,7 @@ export const Tags = {
         .where(eq(zhtags.id, id))
       await purgeTagPages(String(id))
       // 标签详情 / 游戏标签 / 分类页缓存同步失效（含本地化名称、展示状态）
-      await delKv(`galzy:tag:v4:${id}`)
+      await delKv(`galzy:tag:v5:${id}`)
       await delKvPattern('galzy:game:tags:*')
       await delKv('galzy:tags:categories:v4')
       // 标签库 hub 也读 zhtags.name，编辑后必须一并失效，
