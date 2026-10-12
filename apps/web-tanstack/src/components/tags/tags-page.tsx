@@ -8,9 +8,15 @@ import {
 import { Skeleton } from "@web/components/ui/skeleton";
 import { TooltipTrigger } from "@web/components/ui/tooltip";
 import { cn } from "@web/lib/utils";
-import type { TagHubCategory, TagSortKey } from "@web/server/tags";
+import type { TagHubCategory, TagOrderKey, TagSortKey } from "@web/server/tags";
 import { getSearchTags, getTagHub } from "@web/server/tags";
-import { ArrowRightIcon, SearchIcon, TagsIcon, XIcon } from "lucide-react";
+import {
+	ArrowRightIcon,
+	Loader2Icon,
+	SearchIcon,
+	TagsIcon,
+	XIcon,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type TagHit = {
@@ -25,9 +31,11 @@ type DebounceTimer = ReturnType<typeof setTimeout>;
 export default function TagsIndexPage({
 	q,
 	sort,
+	order,
 }: {
 	q: string | undefined;
 	sort: TagSortKey;
+	order: TagOrderKey;
 }) {
 	const navigate = useNavigate();
 	const [inputValue, setInputValue] = useState(q || "");
@@ -46,13 +54,13 @@ export default function TagsIndexPage({
 			if (trimmed === queryRef.current) return;
 			navigate({
 				to: "/tags",
-				search: { ...(trimmed ? { q: trimmed } : {}), sort },
+				search: { ...(trimmed ? { q: trimmed } : {}), sort, order },
 				replace: true,
 				// 只是同页参数变化，不需要整页 View Transition 过渡
 				viewTransition: false,
 			});
 		},
-		[navigate, sort],
+		[navigate, sort, order],
 	);
 
 	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,7 +76,7 @@ export default function TagsIndexPage({
 		setInputValue("");
 		navigate({
 			to: "/tags",
-			search: { sort },
+			search: { sort, order },
 			replace: true,
 			viewTransition: false,
 		});
@@ -137,7 +145,7 @@ export default function TagsIndexPage({
 			{searchQ ? (
 				<TagSearchResults q={searchQ} />
 			) : (
-				<TagHubBrowser sort={sort} />
+				<TagHubBrowser sort={sort} order={order} />
 			)}
 		</section>
 	);
@@ -186,11 +194,21 @@ function TagSearchResults({ q }: { q: string }) {
 
 	return (
 		<div
-			className={cn("w-full transition-opacity", isFetching && "opacity-60")}
+			aria-busy={isFetching}
+			className={cn(
+				"w-full transition-opacity duration-200",
+				// 换关键词时旧结果保持可见但变暗、不可点，等新结果到达
+				isFetching && "pointer-events-none opacity-60",
+			)}
 		>
-			<p className="text-xs text-muted-foreground mb-3">
+			<p className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
 				共找到 {searchTags?.totalHits ?? tagItems.length} 个标签
-				{isFetching && "（更新中…）"}
+				{isFetching && (
+					<>
+						<Loader2Icon className="size-3 animate-spin" />
+						更新中…
+					</>
+				)}
 			</p>
 			<ul className="grid grid-cols-2 gap-x-7 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
 				{tagItems.map((hit) => {
@@ -241,17 +259,28 @@ export const HUB_PREVIEW_LIMIT = 24;
  * 标签库 hub：五个语义分类顺序平铺，每类标题 + 描述 + 分隔线 + 行式标签网格。
  * 视觉参考 dg.zi0.in/tags；网格用 auto-fill minmax(15rem) 自适应列数。
  */
-function TagHubBrowser({ sort }: { sort: TagSortKey }) {
+function TagHubBrowser({
+	sort,
+	order,
+}: {
+	sort: TagSortKey;
+	order: TagOrderKey;
+}) {
 	// 非 suspense：冷缓存进入（如从标签详情页点面包屑回列表）时，
 	// 只让分类区域显示骨架，不把整页换成路由的 pendingComponent。
 	// 数据优先命中路由 loader 的预取 / SSR 脱水结果。
 	//
-	// 排序键进 queryKey：接口在切片前排序，换排序要重新取数（不是二次排序
-	// 已经在手的预览，那样得到的是「收录数前 N 条里的浏览次数榜」）。
-	// 切换瞬间用 keepPreviousData 顶住，避免六个分类块一起闪骨架。
-	const { data: hub, isPending } = useQuery({
-		queryKey: ["tagHub", "preview", sort],
-		queryFn: () => getTagHub({ data: { limit: HUB_PREVIEW_LIMIT, sort } }),
+	// 排序依据 + 方向进 queryKey：接口在切片前排序，换任一维度都要重新取数
+	//（不是二次排序已经在手的预览，那样得到的是「收录数前 N 条里的浏览次数
+	// 榜」）。切换瞬间用 keepPreviousData 顶住，避免六个分类块一起闪骨架。
+	const {
+		data: hub,
+		isPending,
+		isFetching,
+	} = useQuery({
+		queryKey: ["tagHub", "preview", sort, order],
+		queryFn: () =>
+			getTagHub({ data: { limit: HUB_PREVIEW_LIMIT, sort, order } }),
 		staleTime: 10 * 60_000,
 		placeholderData: keepPreviousData,
 	});
@@ -273,7 +302,7 @@ function TagHubBrowser({ sort }: { sort: TagSortKey }) {
 					个标签
 				</p>
 				{/* 一处切换，下面所有分类块按同一口径排序 */}
-				<TagSortBar scope="hub" value={sort} />
+				<TagSortBar scope="hub" value={sort} order={order} />
 			</div>
 
 			{categories.length === 0 ? (
@@ -281,9 +310,30 @@ function TagHubBrowser({ sort }: { sort: TagSortKey }) {
 					暂无标签数据
 				</p>
 			) : (
-				categories.map((c) => (
-					<TagHubSection key={c.key} category={c} sort={sort} />
-				))
+				<div className="relative">
+					{/* 换筛选时旧数据留在原位但变暗且不可点，避免点到已经作废的条目 */}
+					<div
+						aria-busy={isFetching}
+						className={cn(
+							"flex flex-col gap-8 transition-opacity duration-200",
+							isFetching && "pointer-events-none opacity-40",
+						)}
+					>
+						{categories.map((c) => (
+							<TagHubSection
+								key={c.key}
+								category={c}
+								sort={sort}
+								order={order}
+							/>
+						))}
+					</div>
+					{isFetching && (
+						<div className="pointer-events-none absolute inset-x-0 top-16 flex justify-center">
+							<Loader2Icon className="size-6 animate-spin text-muted-foreground" />
+						</div>
+					)}
+				</div>
 			)}
 		</div>
 	);
@@ -291,7 +341,7 @@ function TagHubBrowser({ sort }: { sort: TagSortKey }) {
 
 /**
  * hub 的单个分类块。标题区整块可点击 → 分类页，底部「查看全部」同样指向
- * 分类页，由那边列出该分类下的**全部**标签（收录数 / 浏览次数 / 名称可再排）。
+ * 分类页，由那边列出该分类下的**全部**标签（依据 × 方向可再排）。
  *
  * 预览直接取接口给的前 N 条 —— 排序已在服务端切片之前完成，前端不再对预览
  * 二次排序（那只会得到「收录数前 N 条里再排」，与「站内前 N」不是一回事）。
@@ -303,17 +353,24 @@ function TagHubBrowser({ sort }: { sort: TagSortKey }) {
 function TagHubSection({
 	category,
 	sort,
+	order,
 }: {
 	category: TagHubCategory;
 	sort: TagSortKey;
+	order: TagOrderKey;
 }) {
 	const tags = category.previewTags;
 	const hasMore = category.tagCount > tags.length;
+	// 热门标签是首页周榜的落点：不管在标签库按什么排序，进去都看「本周热门」，
+	// 其余分类才把当前排序带过去
+	const search: { sort: TagSortKey; order: TagOrderKey } =
+		category.key === "hot"
+			? { sort: "hotWeek", order: "desc" }
+			: { sort, order };
 	const categoryTo = {
 		to: "/tags/category/$categoryKey" as const,
 		params: { categoryKey: category.key },
-		// 把当前排序带到分类页：在标签库按浏览次数看，点进某个块也按浏览次数列
-		search: { sort },
+		search,
 	};
 
 	return (
