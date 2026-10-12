@@ -38,3 +38,32 @@ export function getMonthStart(now: Date = new Date()): Date {
   monthStart.setHours(0, 0, 0, 0)
   return monthStart
 }
+
+/**
+ * 本地时区日期（YYYY-MM-DD），缓存键用。
+ *
+ * 刻意不走 toISOString().slice(0, 10)：东八区的本地周一 00:00 是 UTC 周日
+ * 16:00，ISO 切片会给出「前一天」。键值同样唯一，但排查缓存时会误判成另一个
+ * 窗口。
+ */
+function localDateKey(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+/** 周窗口标识：排行榜口径的周起始日（周一当周仍算上一周，见 getEffectiveWeekStart） */
+export function getWeekKey(now: Date = new Date()): string {
+  return localDateKey(getEffectiveWeekStart(now))
+}
+
+/**
+ * 时间窗聚合结果的缓存键标识：周窗口 + 月窗口。
+ *
+ * 时间窗聚合（热门榜、标签库的「本周 / 本月热门」）只能服务同一个窗口：窗口一
+ * 翻页（周二 00:00 换周、每月 1 日 00:00 换月），旧键里的数据就不再是「本周 /
+ * 本月」了。缓存键带上它，边界一过自然 miss 并重新聚合，不必指望 TTL 恰好
+ * 在边界前后过期。
+ */
+export function getWindowKey(now: Date = new Date()): string {
+  return `${getWeekKey(now)}:${localDateKey(getMonthStart(now))}`
+}
