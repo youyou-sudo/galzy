@@ -4,6 +4,18 @@ import { elysiaErrorF } from "@web/lib";
 import type { StripUnknown } from "@web/lib/serializable";
 import z from "zod";
 
+/**
+ * 游戏列表可用的排序依据 / 方向，与 API 的 sortBy / order 字面量对齐。
+ * 列表页的筛选条与首页搜索框都从这里取型，避免各写一份字符串联合。
+ */
+export const GAME_SORT_KEYS = ["released", "downloads", "views"] as const;
+
+export type GameSortKey = (typeof GAME_SORT_KEYS)[number];
+
+export const GAME_ORDER_KEYS = ["desc", "asc"] as const;
+
+export type GameOrderKey = (typeof GAME_ORDER_KEYS)[number];
+
 export const getGameDetail = createServerFn()
 	.validator(z.object({ id: z.string() }))
 	.handler(async ({ data }) => {
@@ -18,9 +30,8 @@ export const getGameDetail = createServerFn()
 		// payload 瘦身：vn.releasesVn（完整 release join 数组）与 otherData.media
 		// （媒体 join 数组）体积达 MB 级且 UI 完全未消费（下载 tab 走独立 filelist 查询），
 		// 剔除以免 SSR dehydrate HTML 与客户端 RPC 全量传输。rest 解构剔除，保持类型安全。
-		const { releasesVn: _releasesVn, ...vnSlim } = vn ?? ({} as NonNullable<
-			typeof vn
-		>);
+		const { releasesVn: _releasesVn, ...vnSlim } =
+			vn ?? ({} as NonNullable<typeof vn>);
 		const { media: _media, ...otherDataSlim } =
 			otherData ?? ({} as NonNullable<typeof otherData>);
 		return {

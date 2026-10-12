@@ -4,7 +4,6 @@ import { useSelector } from "@tanstack/react-store";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { GameCard } from "@web/components/home/card";
 import SearchInput from "@web/components/home/search/Search";
-import { GameListPageSkeleton } from "@web/components/shared/route-skeletons";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -13,17 +12,31 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@web/components/shared/breadcrumb";
+import { GameListPageSkeleton } from "@web/components/shared/route-skeletons";
 import { Button } from "@web/components/ui/button";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@web/components/ui/select";
 import { seoTemplate } from "@web/config/seoTemplate";
+import { setViewportPreloadPaused } from "@web/hooks/use-viewport-preload";
+import { setThumbHashDecodePaused } from "@web/lib/image";
 import { seoMeta } from "@web/lib/seo";
 import { waitForViewTransitionEnd } from "@web/lib/view-transition";
-import { setThumbHashDecodePaused } from "@web/lib/image";
-import { setViewportPreloadPaused } from "@web/hooks/use-viewport-preload";
-import { getGameList } from "@web/server/game";
+import {
+	GAME_ORDER_KEYS,
+	GAME_SORT_KEYS,
+	type GameOrderKey,
+	type GameSortKey,
+	getGameList,
+} from "@web/server/game";
 import { r18Store } from "@web/stores/r18Store";
-import { ArrowUpDown, Flame, ListFilter } from "lucide-react";
+import { Flame, ListFilter } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { object, string } from "zod/schemas";
+import { object, string, enum as zEnum } from "zod/schemas";
 
 /** 上次点击的游戏 id：回程时从列表页返回该卡，且只有它保留 view-transition-name
  * 与详情页封面/标题配对（2N group → 2）。sessionStorage 保证刷新/重开后仍有效。 */
@@ -111,12 +124,48 @@ function readSnapshot(): SnapshotRow[] | null {
 	}
 }
 
+/**
+ * 排序筛选的两个下拉，与标签页（TagSortBar）同一套样式：
+ * 「依据」（发布时间 / 下载量 / 浏览量）+「方向」（降序 / 升序）。
+ */
+const GAME_SORT_ITEMS: ReadonlyArray<{ key: GameSortKey; label: string }> = [
+	{ key: "released", label: "发布时间" },
+	{ key: "downloads", label: "下载量" },
+	{ key: "views", label: "浏览量" },
+];
+
+const GAME_ORDER_ITEMS: ReadonlyArray<{ key: GameOrderKey; label: string }> = [
+	{ key: "desc", label: "降序" },
+	{ key: "asc", label: "升序" },
+];
+
+/**
+ * Select.Root 的 items：触发按钮上的文字由它解析。
+ *
+ * 不传的话 base-ui 只能从弹层里已注册的 Item 取标签，而弹层走 Portal、
+ * SSR 时段并不渲染 —— 首屏会先渲染出原始值 "released"，hydration 后再跳成
+ * 「发布时间」，既难看又会报水合不一致。
+ */
+const SORT_SELECT_ITEMS = GAME_SORT_ITEMS.map(({ key, label }) => ({
+	label,
+	value: key,
+}));
+
+const ORDER_SELECT_ITEMS = GAME_ORDER_ITEMS.map(({ key, label }) => ({
+	label,
+	value: key,
+}));
+
 const searchSchema = object({
 	q: string().optional().default(""),
 	startDate: string().optional(),
 	endDate: string().optional(),
-	sortBy: string().optional().default("released"),
-	order: string().optional().default("desc"),
+	// catch：URL 里的旧值 / 手改值落到默认排序，而不是整页 500
+	sortBy: zEnum(GAME_SORT_KEYS)
+		.catch("released")
+		.optional()
+		.default("released"),
+	order: zEnum(GAME_ORDER_KEYS).catch("desc").optional().default("desc"),
 });
 
 export const Route = createFileRoute("/games/")({
@@ -635,60 +684,50 @@ function RouteComponent() {
 			</div>
 
 			<div className="flex flex-wrap items-center gap-2 mb-6 pb-4 border-b">
-				<ListFilter className="size-4 text-muted-foreground shrink-0" />
-				<span className="text-sm text-muted-foreground shrink-0">排序：</span>
-				<Button
-					variant={sortBy === "released" ? "default" : "outline"}
-					size="sm"
-					onClick={() =>
+				<ListFilter className="size-4 shrink-0 text-muted-foreground" />
+				<span className="shrink-0 text-sm text-muted-foreground">排序：</span>
+				<Select
+					value={sortBy}
+					onValueChange={(next) => {
+						if (!next || next === sortBy) return;
 						navigate({
-							search: { q, startDate, endDate, sortBy: "released", order },
-						})
-					}
+							search: { q, startDate, endDate, sortBy: next, order },
+						});
+					}}
+					items={SORT_SELECT_ITEMS}
 				>
-					发布时间
-				</Button>
-				<Button
-					variant={sortBy === "downloads" ? "default" : "outline"}
-					size="sm"
-					onClick={() =>
+					<SelectTrigger size="sm" className="w-28" aria-label="排序依据">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{GAME_SORT_ITEMS.map((item) => (
+							<SelectItem key={item.key} value={item.key}>
+								{item.label}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+				<Select
+					value={order}
+					onValueChange={(next) => {
+						if (!next || next === order) return;
 						navigate({
-							search: { q, startDate, endDate, sortBy: "downloads", order },
-						})
-					}
+							search: { q, startDate, endDate, sortBy, order: next },
+						});
+					}}
+					items={ORDER_SELECT_ITEMS}
 				>
-					下载量
-				</Button>
-				<Button
-					variant={sortBy === "views" ? "default" : "outline"}
-					size="sm"
-					onClick={() =>
-						navigate({
-							search: { q, startDate, endDate, sortBy: "views", order },
-						})
-					}
-				>
-					浏览量
-				</Button>
-				<Button
-					variant="outline"
-					size="sm"
-					onClick={() =>
-						navigate({
-							search: {
-								q,
-								startDate,
-								endDate,
-								sortBy,
-								order: order === "desc" ? "asc" : "desc",
-							},
-						})
-					}
-					className="ml-auto"
-				>
-					<ArrowUpDown className="size-3.5 mr-1" />
-					{order === "desc" ? "降序" : "升序"}
-				</Button>
+					<SelectTrigger size="sm" className="w-20" aria-label="排序方向">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{GAME_ORDER_ITEMS.map((item) => (
+							<SelectItem key={item.key} value={item.key}>
+								{item.label}
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
 			</div>
 
 			<div style={{ height: virtualizer.getTotalSize(), position: "relative" }}>
