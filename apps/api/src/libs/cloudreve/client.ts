@@ -175,6 +175,38 @@ export function cloudreveUriToPath(uri: string): string {
   }
 }
 
+/**
+ * 取 Cloudreve 文件 URI 的文件名（最后一个路径段，已解码）。
+ * `cloudreve://my/Games/%5Bvndb-v123%5D/游戏.7z` → `游戏.7z`；根路径/空路径返回 null。
+ */
+export function cloudreveUriFilename(uri: string): string | null {
+  const rest = uri.startsWith(`${CLOUDREVE_FS_PREFIX}/`)
+    ? uri.slice(CLOUDREVE_FS_PREFIX.length)
+    : uri
+  const last = rest.split('/').filter(Boolean).pop()
+  if (!last) return null
+  try {
+    return decodeURIComponent(last)
+  } catch {
+    return last
+  }
+}
+
+/**
+ * 在 Cloudreve 直链尾部追加 `filename` 查询参数。
+ * 对象存储 key 是随机 ID，不带该参数浏览器/下载器拿不到真实文件名；
+ * Cloudreve 侧据此把响应头 `Content-Disposition` 的 filename 改写为真实文件名。
+ * 原 URL 已带查询串时用 `&` 追加，避免拼出两个 `?`。
+ */
+function withFilenameQuery(url: string, filename: string | null): string {
+  if (!filename) return url
+  const hashIndex = url.indexOf('#')
+  const base = hashIndex === -1 ? url : url.slice(0, hashIndex)
+  const hash = hashIndex === -1 ? '' : url.slice(hashIndex)
+  const sep = base.includes('?') ? '&' : '?'
+  return `${base}${sep}filename=${encodeURIComponent(filename)}${hash}`
+}
+
 // ── 文件列表 / 搜索 ───────────────────────────────────
 interface ListFileData {
   files?: CloudreveFile[]
@@ -263,6 +295,7 @@ export async function cloudrevePathExists(path: string): Promise<boolean> {
  * 通过 Cloudreve API 创建临时匿名下载链接（v4 `POST /api/v4/file/url`）。
  * 输入 Cloudreve 文件 URI（如 `cloudreve://my/Games/...`），返回可直接访问的签名直链。
  * 注意：对象存储 key 并非完整 FS 路径，不能用 HOST + 路径拼接，必须走该接口。
+ * 返回的直链尾部会带上 `filename=<Cloudreve 文件名>` 查询参数（见 withFilenameQuery）。
  */
 export async function createCloudreveDownloadUrl(uri: string): Promise<string> {
   const data = await cloudreveData<{ urls?: { url?: string }[] }>(
@@ -274,7 +307,7 @@ export async function createCloudreveDownloadUrl(uri: string): Promise<string> {
   )
   const url = data.urls?.[0]?.url
   if (!url) throw new CloudreveError(-1, 'Cloudreve 未返回下载 URL')
-  return url
+  return withFilenameQuery(url, cloudreveUriFilename(uri))
 }
 
 // ── 删除 ──────────────────────────────────────────────
