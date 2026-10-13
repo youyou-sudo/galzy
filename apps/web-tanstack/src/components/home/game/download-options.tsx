@@ -30,13 +30,16 @@ import {
 	ItemActions,
 	ItemContent,
 	ItemDescription,
+	ItemMedia,
 	ItemTitle,
 } from "@web/components/ui/item";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
+import { groupSplitArchives } from "@web/lib/split-archives";
+import { cn } from "@web/lib/utils";
+import { waitForViewTransitionEnd } from "@web/lib/view-transition";
 import { dwAcConst, getFileList } from "@web/server/game";
 import { downCardStore, downmodalActions } from "@web/stores/downCardData";
-import { waitForViewTransitionEnd } from "@web/lib/view-transition";
 import { FileArchive, Info } from "lucide-react";
 import { tryit } from "radash";
 import { useEffect, useMemo, useState } from "react";
@@ -146,81 +149,6 @@ export const DownloadOptions = () => {
 		</>
 	);
 };
-
-// ---------- 分卷文件识别处理 ----------
-// ---------- 分卷文件识别处理 + md 同名判定 ----------
-function groupSplitArchives(
-	items: GameModel.TreeNode[] | undefined,
-): GameModel.TreeNode[] | undefined {
-	if (!items || items.length === 0) return items;
-
-	const archivesMap: Record<string, GameModel.TreeNode[]> = {};
-	const others: GameModel.TreeNode[] = [];
-
-	// 先收集当前目录的所有 md 文件
-	const mdMap: Record<string, string> = {}; // name -> id
-	items.forEach((item) => {
-		if (item.type !== "folder" && item.name.endsWith(".md")) {
-			const nameWithoutExt = item.name.replace(/\.md$/i, "");
-			mdMap[nameWithoutExt] = item.id;
-		}
-	});
-
-	// 匹配分卷文件，捕获 baseName 和扩展名
-	const splitRegex = /(.*?)(?:\.part\d+)\.(rar|zip|7z)$/i;
-
-	items.forEach((item) => {
-		if (item.type === "folder") {
-			// 避免重复包装分卷文件夹
-			if (!item.name.startsWith("(分卷) ")) {
-				item.children = groupSplitArchives(
-					item.children ?? [],
-				) as typeof item.children;
-			}
-			others.push(item);
-		} else if (!item.name.endsWith(".md")) {
-			// 忽略 md 文件本身
-			const match = item.name.match(splitRegex);
-			if (match) {
-				const baseName = match[1];
-				const ext = match[2];
-				const key = `${baseName}.${ext}`;
-				if (!archivesMap[key]) archivesMap[key] = [];
-
-				// // 检查同名 md 文件
-				// if (mdMap[baseName]) {
-				//   item.redame = mdMap[baseName]
-				// }
-
-				archivesMap[key].push(item);
-			} else {
-				// 普通文件也检查同名 md
-				const nameWithoutExt = item.name.replace(/\.[^/.]+$/, "");
-				if (mdMap[nameWithoutExt]) {
-					item.redame = mdMap[nameWithoutExt];
-				}
-				others.push(item);
-			}
-		}
-	});
-
-	const archiveFolders = Object.entries(archivesMap).map(
-		([fullName, files]) => {
-			const baseName = fullName.replace(/\.(rar|zip|7z)$/i, "");
-
-			return {
-				id: `archive-${fullName}-${Date.now()}`,
-				redame: mdMap[baseName],
-				type: "folder" as const,
-				name: `(分卷) ${fullName}`,
-				volumes: true,
-				children: files!,
-			};
-		},
-	);
-
-	return [...others, ...archiveFolders];
-}
 
 // ---------- 文件浏览器组件 ----------
 const FileExplorer = ({
@@ -338,32 +266,48 @@ export const DownCardDialog = () => {
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-h-[85%] overflow-y-auto">
+			<DialogContent
+				className={cn(
+					"max-h-[85%] overflow-y-auto",
+					// 分卷列表里文件名很长（CJK + 宽字符 + 序号），窄弹窗会把它们挤成
+					// 竖条；分卷场景下放宽一档，配合更小的字号保证可读性。
+					data?.volumes && "sm:max-w-md",
+				)}
+			>
 				<DialogHeader>
 					<DialogTitle>{data?.volumes ? `分卷列表` : `文件信息`}</DialogTitle>
 				</DialogHeader>
 
 				{data?.volumes ? (
-					<div className="flex w-full max-w-md flex-col">
+					<div className="flex w-full flex-col gap-1.5">
 						{data.children?.map((item: any) => (
-							<Item key={item.id} variant="outline">
-								<ItemContent>
-									<ItemTitle>{item.name}</ItemTitle>
-									<ItemDescription className="ml-2">
+							<Item key={item.id} variant="outline" className="gap-2 py-2">
+								{/* 与文件树保持一致的「文件图标 + 名称」行结构 */}
+								<ItemMedia
+									variant="icon"
+									className="size-8 rounded-lg border bg-muted/40 text-muted-foreground"
+								>
+									<FileArchive className="size-4" strokeWidth={1.75} />
+								</ItemMedia>
+								<ItemContent className="min-w-0">
+									<ItemTitle className="line-clamp-2 w-full text-xs leading-snug break-all">
+										{item.name}
+									</ItemTitle>
+									<ItemDescription className="text-xs leading-none tabular-nums">
 										{item.size}
 									</ItemDescription>
 								</ItemContent>
-								<ItemActions>
+								<ItemActions className="gap-1">
 									<AnimateIcon animateOnHover>
 										<Button
 											variant="outline"
 											onClick={() => handleCopy(item?.id || "", game_id)}
-											size="icon"
+											size="icon-xs"
 											disabled={isCopying[item?.id] || false}
 										>
 											{isCopying[item?.id] ? (
 												<svg
-													className="w-4 h-4 animate-spin"
+													className="size-3 animate-spin"
 													viewBox="0 0 24 24"
 													fill="none"
 													stroke="currentColor"
@@ -391,11 +335,12 @@ export const DownCardDialog = () => {
 											onClick={() => handleDownload(item?.id, game_id)}
 											disabled={downloadingMap[item?.id] || false}
 											variant="outline"
+											size="xs"
 										>
 											{downloadingMap[item?.id] ? (
-												<span className="flex items-center gap-2">
+												<span className="flex items-center gap-1">
 													<svg
-														className="animate-spin h-4 w-4"
+														className="size-3.5 animate-spin"
 														viewBox="0 0 24 24"
 													>
 														<circle
@@ -426,8 +371,8 @@ export const DownCardDialog = () => {
 							</Item>
 						))}
 
-						<DialogDescription className="ml-2 mt-1 text-center">
-							<span>全部下载到一个目录中解压 part1 分卷</span>
+						<DialogDescription className="mt-2 text-center text-xs">
+							<span>全部下载到同一目录后，解压第一个分卷（part1 / .001）</span>
 						</DialogDescription>
 
 						<div className="flex text-center justify-center mt-2">

@@ -42,6 +42,7 @@
         "id": "archive-【PC电脑端官中】HD重置.rar-1762971143876",
         "type": "folder",
         "name": "(分卷) 【PC电脑端官中】HD重置.rar",
+        "volumes": true,
         "children": [
           {
             "id": "GalGame/系列整合/KEY社合集/[vndb-v4] 03.Clannad/【PC电脑端官中】HD重置.part1.rar",
@@ -56,6 +57,28 @@
             "type": "file",
             "size": "225899814",
             "format": "RAR"
+          }
+        ]
+      },
+      {
+        "id": "archive-【PC电脑端中文】Full of Stars.7z-1762971143876",
+        "type": "folder",
+        "name": "(分卷) 【PC电脑端中文】Full of Stars.7z",
+        "volumes": true,
+        "children": [
+          {
+            "id": "GalGame/系列整合/[vndb-v16560]/【PC电脑端中文】Full of Stars.7z.001",
+            "name": "【PC电脑端中文】Full of Stars.7z.001",
+            "type": "file",
+            "size": "4294967296",
+            "format": "7Z"
+          },
+          {
+            "id": "GalGame/系列整合/[vndb-v16560]/【PC电脑端中文】Full of Stars.7z.002",
+            "name": "【PC电脑端中文】Full of Stars.7z.002",
+            "type": "file",
+            "size": "225899814",
+            "format": "7Z"
           }
         ]
       }
@@ -122,6 +145,11 @@ export interface FileItem {
   type: 'file' | 'folder'
   size?: string
   format?: string
+  // 分卷整合文件夹：name 以「(分卷) 」开头，children 为按序号排列的分卷
+  // （支持 `xxx.part1.rar` 与 7-Zip 的 `xxx.7z.001` 两种命名）
+  volumes?: boolean
+  // 同名 readme 的 md 文件 id
+  redame?: string
   children?: FileItem[]
 }
 

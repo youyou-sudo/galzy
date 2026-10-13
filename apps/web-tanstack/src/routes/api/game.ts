@@ -1,6 +1,7 @@
 import type { GameModel } from "@api/modules/games/model";
 import { api } from "@libs";
 import { createFileRoute } from "@tanstack/react-router";
+import { groupSplitArchives } from "@web/lib/split-archives";
 
 const vltdma = {
 	code: 400,
@@ -70,66 +71,9 @@ async function getData(vid: string) {
 	};
 }
 
-export function groupSplitArchives(
-	items: GameModel.TreeNode[] | undefined,
-): GameModel.TreeNode[] | undefined {
-	if (!items || items.length === 0) return items;
-
-	const mdMap: Record<string, string> = {};
-	const archivesMap: Record<string, GameModel.TreeNode[]> = {};
-	const others: GameModel.TreeNode[] = [];
-	const splitRegex = /(.*?)(?:\.part\d+)\.(rar|zip|7z)$/i;
-	const timestamp = Date.now();
-
-	// 先整体扫描一遍目录收集同名 md：readme 可能排在被关联文件之后，
-	// 边遍历边收集会因目录顺序不同而漏关联（与站内 download-options 一致）。
-	for (const item of items) {
-		if (item.type !== "folder" && item.name.endsWith(".md")) {
-			mdMap[item.name.replace(/\.md$/i, "")] = item.id;
-		}
-	}
-
-	items.forEach((item) => {
-		if (item.type === "folder") {
-			if (!item.name.startsWith("(分卷) ")) {
-				item.children = groupSplitArchives(item.children ?? []);
-			}
-			others.push(item);
-			return;
-		}
-
-		if (item.name.endsWith(".md")) {
-			return;
-		}
-
-		const match = item.name.match(splitRegex);
-		const nameWithoutExt = item.name.replace(/\.[^/.]+$/, "");
-		if (nameWithoutExt in mdMap) item.redame = mdMap[nameWithoutExt];
-
-		if (match) {
-			const key = `${match[1]}.${match[2]}`;
-			if (!(key in archivesMap)) archivesMap[key] = [];
-			archivesMap[key].push(item);
-		} else {
-			others.push(item);
-		}
-	});
-
-	const archiveFolders = Object.entries(archivesMap).map(
-		([fullName, files]) => {
-			const baseName = fullName.replace(/\.(rar|zip|7z)$/i, "");
-			return {
-				id: `archive-${fullName}-${timestamp}`,
-				redame: mdMap[baseName],
-				type: "folder" as const,
-				name: `(分卷) ${fullName}`,
-				children: files,
-			};
-		},
-	);
-
-	return [...others, ...archiveFolders];
-}
+// 分卷整合（`.partN` / `.7z.001`）与站内文件树共用同一实现，
+// 避免两处正则各改各的导致公开 API 与页面展示不一致。
+export { groupSplitArchives };
 
 export const Route = createFileRoute("/api/game")({
 	server: {
