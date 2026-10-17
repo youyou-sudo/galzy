@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm'
+import { relations, sql } from 'drizzle-orm'
 import {
   bigint,
   boolean,
@@ -6,6 +6,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   serial,
   text,
   timestamp,
@@ -74,6 +75,13 @@ export const otherMedia = pgTable(
 )
 
 // galrc_alistb — 游戏文件条目关联（由 Cloudreve 目录同步，历史名保留 alistb）
+//
+// 锚点模型（见 apps/api/src/libs/identity/CONTRACT.md）：
+// - id  = 锚点键：'vNNN'（VNDB 锚点）或 'kgX'（kungal work 锚点）；
+// - vid = VNDB 锚点（可空）；kungal_id = kungal work id（可空，原样大小写）；
+// - display_id = 展示身份（'vNNN' 优先，否则 'kgX'）——路由 / Meili 文档 id /
+//   event_views.target_id / gameDownloadStats.game_id / 热榜一律只用它。
+//   只要有 vndb 锚点，展示身份就是 vNNN；kungal 侧后补 vndb 锚点时该行原地升级。
 export const alistb = pgTable(
   'galrc_alistb',
   {
@@ -83,11 +91,50 @@ export const alistb = pgTable(
     // int4 = int8 比较，无法命中 galrc_other.id 上的索引。
     other: integer('other'),
     path: jsonb('path'),
+    /** 'vndb' | 'kungal' | 'other'，存量行 backfill 为 'vndb' */
+    anchorKind: text('anchor_kind').notNull().default('vndb'),
+    /** kungal work id（原样大小写；唯一索引建在 lower(kungal_id) 上） */
+    kungalId: text('kungal_id'),
+    /** 展示身份：'vNNN' 或 'kgX'。存量行 backfill 为 id；非空才让唯一索引真正生效 */
+    displayId: text('display_id').notNull(),
   },
   (table) => ({
     vidIdx: index('idx_galrc_alistb_vid').on(table.vid),
     otherIdx: index('idx_galrc_alistb_other').on(table.other),
     vidOtherIdx: index('idx_galrc_alistb_vid_other').on(table.vid, table.other),
+    // 不变量：每个展示身份只允许一行（kungal → vndb 原地升级时同事务改 id/display_id）
+    displayIdIdx: uniqueIndex('uq_galrc_alistb_display_id').on(table.displayId),
+    // 同一 kungal work id 大小写不敏感唯一
+    kungalIdIdx: uniqueIndex('uq_galrc_alistb_kungal_id').on(
+      sql`lower(${table.kungalId})`,
+    ),
+  }),
+)
+
+// galrc_external_ids — 外部锚点别名 → 展示身份归一（见 CONTRACT.md §3）
+//
+// 用途：① kungal/bangumi/dlsite/… 的 external_id 统一归一到 vndb 锚点，
+// 保证同一作品无论网盘用哪种命名都落到同一条目；② 旧 'kgX' 链接永久可解析
+// （kind='kungal'）→ 302 到当前 vndb 路由。
+// 语义：kind 小写；external_id 在 vndb 侧小写、kungal 侧原样（与 alistb.kungal_id 一致）。
+export const externalIds = pgTable(
+  'galrc_external_ids',
+  {
+    kind: varchar('kind', { length: 32 }).notNull(),
+    externalId: varchar('external_id', { length: 255 }).notNull(),
+    canonicalKind: varchar('canonical_kind', { length: 32 })
+      .notNull()
+      .default('vndb'),
+    canonicalId: varchar('canonical_id', { length: 255 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    // 复合主键：一个外部锚点只允许一条归一目标
+    pk: primaryKey({ columns: [table.kind, table.externalId] }),
+    canonicalIdIdx: index('idx_galrc_external_ids_canonical_id').on(
+      table.canonicalId,
+    ),
   }),
 )
 

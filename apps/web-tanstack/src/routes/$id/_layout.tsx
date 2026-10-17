@@ -1,6 +1,7 @@
 import {
 	createFileRoute,
 	Link,
+	redirect,
 	useParams,
 	useRouterState,
 } from "@tanstack/react-router";
@@ -17,6 +18,12 @@ import {
 import { seoTemplate } from "@web/config/seoTemplate";
 import { filelistQueryOptions } from "@web/components/home/game/download-options";
 import { gameTagsQueryOptions } from "@web/components/home/game/tags";
+import {
+	canonicalGameId,
+	isGameRouteId,
+	isSameGameRouteId,
+	normalizeGameRouteId,
+} from "@web/lib/game-id";
 import { gameTitleOf } from "@web/lib/seo";
 import { getGameDetail } from "@web/server/game";
 import { recordGameView } from "@web/server/views";
@@ -24,10 +31,13 @@ import { recordGameView } from "@web/server/views";
 export const Route = createFileRoute("/$id/_layout")({
 	params: {
 		parse: ({ id }) => {
-			const match = id.match(/^([vd])(\d+)$/);
-			if (!match) return false;
+			// 路由身份命名空间见 lib/game-id.ts：vNNN / dNNN（vndb 侧）与
+			// kgX（kungal work id，大小写敏感、原样保留）。非法形态返回 false，
+			// 由路由 404 兜底。
+			if (!isGameRouteId(id)) return false;
+			// v/d 归一为小写；kgX 只归一前缀，work id 保持原样（/kgAbC ≠ /kgabc）
 			return {
-				id,
+				id: normalizeGameRouteId(id),
 			};
 		},
 		stringify: ({ id }) => ({
@@ -52,9 +62,22 @@ export const Route = createFileRoute("/$id/_layout")({
 			queryFn: () => getGameDetail({ data: { id } }),
 			staleTime: 60_000,
 		});
+		// 契约 §5：canonicalId 是该条目的最终展示身份（有 vndb 锚点 → vNNN，
+		// 否则 kgX）。请求 id 与展示身份不一致时（典型：旧的 /kgX 链接已被
+		// vndb 锚点收编）302 到最终路由身份。必须 replace，别让别名页留在
+		// 历史栈里造成后退死循环。
+		const gameId = canonicalGameId(game, id);
+		if (!isSameGameRouteId(gameId, id)) {
+			// 把刚取到的数据挂到最终身份的缓存键上，redirect 后的第二次
+			// loader 直接命中，不再多打一次 API。
+			context.queryClient.setQueryData(["gameDetail", gameId], game);
+			throw redirect({ to: "/$id", params: { id: gameId }, replace: true });
+		}
+		// loader 里的 id 一律是最终路由身份：head / Cache-Tag / recordGameView /
+		// 子路由 Link 都跟随它，不再出现别名 id 与展示 id 混用。
 		return {
 			game,
-			id,
+			id: gameId,
 		};
 	},
 	// 仅在真实进入页面(点击/直达/SSR 首屏)时计 view；悬停与空闲预加载不触发 onEnter，不会污染热榜

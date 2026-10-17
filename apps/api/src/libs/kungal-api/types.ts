@@ -54,6 +54,20 @@ export interface KungalWorksListData {
   next_cursor?: string | null
 }
 
+/** catalog redirects feed 行：id 收敛（merge）事件 */
+export interface KungalRedirect {
+  old_id: string
+  current_id: string
+  target_object?: string
+  merged_at?: string
+}
+
+/** 目录 redirects 列表响应（v2 统一 list 形状） */
+export interface KungalRedirectListData {
+  items: KungalRedirect[]
+  next_cursor?: string | null
+}
+
 /** RFC 9457 错误体 */
 export interface KungalProblem {
   type?: string

@@ -4,6 +4,7 @@ import {
   cloudrevePathExists,
   db,
   eventViewCountSql,
+  externalIds,
   gameDownloadCountSql,
   images,
   kungalWorks,
@@ -28,7 +29,7 @@ import { purgeByTags } from '@api/libs/cloudflare-cache'
 
 import { acquireLockKv, delKvPattern, releaseLockKv } from '@api/libs/redis'
 import { VndbSync } from '@api/modules/vndb-sync/service'
-import { asc, count, desc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, count, eq, inArray, isNull } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { Index } from 'meilisearch'
 import {
@@ -46,18 +47,87 @@ async function getAlistbRows(): Promise<AlistbRow[]> {
       vid: alistb.vid,
       other: alistb.other,
       path: alistb.path,
+      anchorKind: alistb.anchorKind,
+      kungalId: alistb.kungalId,
+      displayId: alistb.displayId,
     })
     .from(alistb)
   return rows.map((r) => ({ ...r, path: r.path as string[] | null }))
 }
 
 /**
- * 搜索 Cloudreve 中名称含 [vndb- 的文件夹并与 alistb 现有数据计算差异。
+ * kungal work id（小写）→ 展示身份。两种来源：
+ * ① `galrc_kungal_works.vndb_id`：该 work 已有 vndb 锚点 → 'vNNN'；
+ * ② `galrc_external_ids`(kind='kungal', canonical_kind='kungal')：该 work 被合并到
+ *    另一个 kungal work（且尚无 vndb 锚点）→ 'kg<currentId>'。
+ *
+ * 两者都归一到「展示身份」，网盘里仍在用旧 kungal id 命名的目录才不会另建条目。
+ */
+async function getKungalDisplayMap(): Promise<Map<string, string>> {
+  const [works, merged] = await Promise.all([
+    db
+      .select({ id: kungalWorks.id, vndbId: kungalWorks.vndbId })
+      .from(kungalWorks),
+    db
+      .select({
+        externalId: externalIds.externalId,
+        canonicalId: externalIds.canonicalId,
+      })
+      .from(externalIds)
+      .where(
+        and(
+          eq(externalIds.kind, 'kungal'),
+          eq(externalIds.canonicalKind, 'kungal'),
+        ),
+      ),
+  ])
+  const map = new Map<string, string>()
+  for (const r of works) {
+    if (!r.id) continue
+    // 已知 work：展示身份用目录里的权威 id 写法（有 vndb 锚点则直接归到 vNNN）
+    map.set(r.id.toLowerCase(), r.vndbId ? r.vndbId.toLowerCase() : `kg${r.id}`)
+  }
+  // kungal→kungal 合并后写，覆盖同 key 的旧映射
+  for (const r of merged) {
+    if (r.externalId && r.canonicalId) {
+      map.set(r.externalId.toLowerCase(), `kg${r.canonicalId}`)
+    }
+  }
+  return map
+}
+
+/**
+ * 搜索 Cloudreve 中名称含 `[vndb-` 与 `[kungal-` 的文件夹并与 alistb 现有数据计算差异。
  * 同步（cloudreveSyncScript）与巡检（cloudreveSyncCheck）共用。
+ *
+ * 两次搜索按路径去重后并成一批交给 diff：同一作品若同时以两种命名出现，
+ * 会在 resolveAnchors 里归并成一条（多路径），不会产生两个条目。
  */
 async function collectCloudreveDiff() {
-  const items = await searchCloudreveFolders('[vndb-')
-  const existing = await getAlistbRows()
+  // `[vndb-` 是主通道，失败必须整体失败（否则会把整库误判成"搜索不到"）。
+  // `[kungal-` 是新增通道，单独失败只降级为空结果并告警：
+  // 缺失时 diff 仍靠路径校验保护存量行，不会误删。
+  const vndbItems = await searchCloudreveFolders('[vndb-')
+  let kungalItems: Awaited<ReturnType<typeof searchCloudreveFolders>> = []
+  try {
+    kungalItems = await searchCloudreveFolders('[kungal-')
+  } catch (e) {
+    console.warn(
+      `[Cloudreve] '[kungal-' 搜索失败，本次跳过 kungal 命名（存量行由路径校验保护）: ${e instanceof Error ? e.message : String(e)}`,
+    )
+  }
+
+  const seen = new Set<string>()
+  const items = [...vndbItems, ...kungalItems].filter((item) => {
+    if (seen.has(item.path)) return false
+    seen.add(item.path)
+    return true
+  })
+
+  const [existing, kungalDisplay] = await Promise.all([
+    getAlistbRows(),
+    getKungalDisplayMap(),
+  ])
   const diff = await diffCloudreveData(
     items.map((item) => ({
       name: item.name,
@@ -68,6 +138,7 @@ async function collectCloudreveDiff() {
     })),
     existing,
     cloudrevePathExists,
+    kungalDisplay,
   )
   return { foldersFound: items.length, diff }
 }
@@ -227,6 +298,7 @@ export const CronService = {
         updated: diff.updated,
         kept: diff.toKeep.length,
         deleted: diff.toDelete.length,
+        renamed: diff.renamed,
       }
       const record: CloudreveSyncStats = {
         lastUpdate: Date.now(),
@@ -237,10 +309,25 @@ export const CronService = {
       await db.transaction(async (trx) => {
         const CHUNK_SIZE = 500
 
-        // Bulk UPSERT in chunks to avoid N per-row round trips。
-        // 仅覆盖 vid/path：保留 existing.other，防止覆盖管理员手工绑定的 other 关联。
-        for (let i = 0; i < diff.chunks.length; i += CHUNK_SIZE) {
-          const chunk = diff.chunks.slice(i, i + CHUNK_SIZE)
+        // ① 改名/升级收口：先删旧主键行，再由下面的 upsert 写入新行。
+        // 必须「先删后写」且同事务：alistb.display_id 上有唯一索引，
+        // 顺序反了会直接撞 23505；不删则会留下两条指向同一作品的可见条目。
+        for (let i = 0; i < diff.renames.length; i += CHUNK_SIZE) {
+          const chunk = diff.renames.slice(i, i + CHUNK_SIZE)
+          await trx.delete(alistb).where(
+            inArray(
+              alistb.id,
+              chunk.map((r) => r.fromId),
+            ),
+          )
+        }
+
+        // ② Bulk UPSERT in chunks to avoid N per-row round trips。
+        // 仅覆盖 vid/anchor 相关列与 path：保留 existing.other，
+        // 防止覆盖管理员手工绑定的 other 关联。
+        const upsertRows = [...diff.renames.map((r) => r.row), ...diff.chunks]
+        for (let i = 0; i < upsertRows.length; i += CHUNK_SIZE) {
+          const chunk = upsertRows.slice(i, i + CHUNK_SIZE)
           await trx
             .insert(alistb)
             .values(
@@ -249,6 +336,9 @@ export const CronService = {
                 vid: r.vid,
                 other: r.other,
                 path: r.path,
+                anchorKind: r.anchorKind,
+                kungalId: r.kungalId,
+                displayId: r.displayId,
               })),
             )
             .onConflictDoUpdate({
@@ -257,11 +347,14 @@ export const CronService = {
                 vid: sql.raw('excluded.vid'),
                 other: sql.raw('galrc_alistb.other'),
                 path: sql.raw('excluded.path'),
+                anchorKind: sql.raw('excluded.anchor_kind'),
+                kungalId: sql.raw('excluded.kungal_id'),
+                displayId: sql.raw('excluded.display_id'),
               },
             })
         }
 
-        // 删除已确认不存在的行（搜索结果缺失且所有存储路径均已验证失效），分块删除
+        // ③ 删除已确认不存在的行（搜索结果缺失且所有存储路径均已验证失效），分块删除
         for (let i = 0; i < diff.toDelete.length; i += CHUNK_SIZE) {
           const chunk = diff.toDelete.slice(i, i + CHUNK_SIZE)
           await trx.delete(alistb).where(
@@ -327,8 +420,13 @@ export const CronService = {
       updated: diff.updated,
       kept: diff.toKeep.length,
       deleted: diff.toDelete.length,
+      renamed: diff.renamed,
+      anchorHits: diff.anchorHits,
+      /** >0 表示同一作品存在多种网盘命名，已归并成一条（多路径） */
+      collapsed: diff.collapsed,
       addedRows: diff.addedRows,
       updatedRows: diff.updatedRows,
+      renamedRows: diff.renamedRows,
       staleDeadRows: diff.staleDeadRows,
       staleAliveRows: diff.staleAliveRows,
       vnWithoutAlistb: {
@@ -367,28 +465,36 @@ export const CronService = {
 
   // 提取数据处理逻辑为独立方法，便于优化和测试
   processAlistData(alistData: Array<{ name: string }>) {
-    const results: { vid?: string; other?: string; id: string }[] = []
-    const idPattern = /\[(vndb-(v\d+)|other-(\w+))\]/g
+    const results: {
+      vid?: string
+      kungal?: string
+      other?: string
+      id: string
+    }[] = []
+    // [vndb-v123] / [kungal-X] / [other-xxx] 可同时出现，按优先级取展示键
+    const idPattern = /\[(vndb-(v\d+)|kungal-([^\]\s/]+)|other-(\w+))\]/gi
 
     for (const item of alistData) {
       const matches = Array.from(item.name.matchAll(idPattern))
-      const record: { vid?: string; other?: string } = {}
+      const record: { vid?: string; kungal?: string; other?: string } = {}
 
       for (const match of matches) {
         if (match[2]) record.vid = match[2] // vndb-vxxx
-        if (match[3]) record.other = match[3] // other-xxx
+        if (match[3]) record.kungal = match[3] // kungal-xxxx（原样大小写）
+        if (match[4]) record.other = match[4] // other-xxx
       }
 
       // 只收集至少有一个字段的项
       if (Object.keys(record).length > 0) {
         let id = ''
-        if (record.vid && record.other) {
-          id = `${record.vid}-${record.other}`
-        } else if (record.vid) {
+        if (record.vid) {
           id = record.vid
+        } else if (record.kungal) {
+          id = `kg${record.kungal}`
         } else if (record.other) {
           id = record.other
         }
+        if (record.other) id = `${id}-${record.other}`
         results.push({ ...record, id })
       }
     }
@@ -397,15 +503,24 @@ export const CronService = {
   },
 
   deduplicateResults(
-    results: Array<{ vid?: string; other?: string; id: string }>,
+    results: Array<{
+      vid?: string
+      kungal?: string
+      other?: string
+      id: string
+    }>,
   ) {
     const dedupedMap = new Map<
       string,
-      { vid?: string; other?: string; id: string }
+      { vid?: string; kungal?: string; other?: string; id: string }
     >()
 
     for (const item of results) {
-      const key = item.vid || crypto.randomUUID()
+      // kungal 锚点也参与去重，否则同一 kungal 条目会重复出现
+      const key =
+        item.vid ||
+        (item.kungal ? `kg${item.kungal}` : undefined) ||
+        crypto.randomUUID()
       if (!dedupedMap.has(key)) {
         dedupedMap.set(key, item)
       }
@@ -568,10 +683,12 @@ export const CronService = {
         '已更新索引设置（筛选、排序、搜索字段）',
       )
 
-      // 差集删除：DB 中有文件的 vid（alistb.vid）之外的游戏文档视为过期，分批删除。
+      // 差集删除：DB 中有文件的展示身份（alistb.display_id）之外的游戏文档视为过期。
+      // 口径必须是「展示身份」而不是 vid：kungal-only 条目没有 vid，
+      // 用 vid 集合会把它自己的索引文档当成过期文档删掉。
       const liveVids = new Set(
-        (await db.selectDistinct({ vid: alistb.vid }).from(alistb))
-          .map((r) => r.vid)
+        (await db.selectDistinct({ displayId: alistb.displayId }).from(alistb))
+          .map((r) => r.displayId)
           .filter((v): v is string => v != null),
       )
       const pruned = await pruneStaleDocs(index, liveVids)
@@ -994,19 +1111,108 @@ export const CronService = {
   },
 }
 
-const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
+/**
+ * kungal-only 条目的 Meilisearch 文档列（无 vn 行，数据全部来自 galrc_kungal_works）。
+ *
+ * R18 门控：vn 侧的 c_sexual_avg 来自 VNDB 图片投票；kungal-only 没有该数据，
+ * 用 content_rating='r18' 映射为 c_sexual_avg=1，让搜索侧的 `c_sexual_avg >= 1`
+ * 过滤口径对两类条目一致（见 CONTRACT.md §7）。
+ */
+const kungalOnlyMeiliDoc = {
+  id: alistb.displayId,
+  alias: kungalWorks.displayName,
+  olang: kungalWorks.olang,
+  devstatus: sql`NULL::smallint`,
+  rating: sql`NULL::real`,
+  votecount: sql`NULL::int`,
+  description: kungalWorks.intro,
+  released_first: sql`COALESCE(${kungalWorks.releasedFirst}, '')`,
+  dl_count: sql.raw(`${gameDownloadCountSql('galrc_alistb.display_id')}::int`),
+  vw_count: sql.raw(
+    `${eventViewCountSql('game_view', 'galrc_alistb.display_id')}::int`,
+  ),
+  // json_agg 返回 json（不是 jsonb），与 '[]'::jsonb 做 COALESCE 前必须显式转 jsonb
+  titles: sql`COALESCE((SELECT json_agg(kt.title) FROM galrc_kungal_work_titles kt WHERE kt.work_id = ${kungalWorks.id})::jsonb, '[]'::jsonb)`,
+  tag_names: sql`'[]'::json`,
+  tags: sql`'[]'::json`,
+  titles_obj: sql`COALESCE((SELECT json_agg(row_to_json(kt.*)) FROM (SELECT kt.title, kt.latin, kt.lang FROM galrc_kungal_work_titles kt WHERE kt.work_id = ${kungalWorks.id}) kt)::jsonb, '[]'::jsonb)`,
+  // 封面直接由「当前 join 到的这一行」构造，不能再写子查询：
+  // 子查询里 FROM galrc_kungal_works 会遮蔽外层同名表引用，
+  // 变成"全表任意一条有竖版封面的行"，等于给所有 kungal-only 文档贴错封面。
+  images: sql`CASE
+      WHEN ${kungalWorks.coverUrl} IS NOT NULL
+       AND ${kungalWorks.coverWidth} IS NOT NULL
+       AND ${kungalWorks.coverHeight} IS NOT NULL
+       AND ${kungalWorks.coverHeight} >= ${kungalWorks.coverWidth}
+      THEN jsonb_build_object(
+        'id', NULL,
+        'url', ${kungalWorks.coverUrl},
+        'width', ${kungalWorks.coverWidth},
+        'height', ${kungalWorks.coverHeight},
+        'thumbhash', ${kungalWorks.coverThumbhash},
+        'c_sexual_avg',
+          CASE WHEN ${kungalWorks.contentRating} = 'r18' THEN 1 ELSE 0 END
+      )
+      ELSE NULL
+    END`,
+  releases: sql`'[]'::json`,
+  tags_obj: sql`'[]'::json`,
+  has_download: sql`TRUE`,
+  other: alistb.other,
+  otherData: gameMeiliDocOtherDirect.otherData,
+}
+
+/**
+ * 分页构造游戏索引文档。
+ *
+ * 驱动表必须是 alistb：kungal-only 条目没有 vn 行，早先的 `innerJoin(vn)` 会把
+ * 这类条目整条漏掉（既不被索引，也会在差集删除里被当成过期文档）。
+ * 因此按 alistb 分页后再分两路取数：有 vid 的走 vn 聚合，没有的走 kungal 聚合。
+ *
+ * 导出以便单测/校验脚本直接验证文档形状（两路查询的字段必须对齐）。
+ */
+export const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
   const offset = pageIndex * pageSize
 
-  const items = await db
+  const page = await db
     .select({
-      ...gameMeiliDocBase,
-      ...gameMeiliDocOtherDirect,
+      displayId: alistb.displayId,
+      vid: alistb.vid,
+      kungalId: alistb.kungalId,
     })
     .from(alistb)
-    .innerJoin(vn, eq(alistb.vid, vn.id))
-    .orderBy(desc(vn.id), desc(alistb.other))
+    // 必须显式排序：无 ORDER BY 的 LIMIT/OFFSET 翻页不保证各页不重不漏
+    .orderBy(asc(alistb.displayId))
     .limit(pageSize)
     .offset(offset)
+
+  const vndbDisplayIds = page.filter((r) => r.vid).map((r) => r.displayId)
+  const kungalDisplayIds = page
+    .filter((r) => !r.vid && r.kungalId)
+    .map((r) => r.displayId)
+
+  const [vndbDocs, kungalDocs] = await Promise.all([
+    vndbDisplayIds.length > 0
+      ? db
+          .select({
+            ...gameMeiliDocBase,
+            id: alistb.displayId,
+            ...gameMeiliDocOtherDirect,
+          })
+          .from(alistb)
+          .innerJoin(vn, eq(alistb.vid, vn.id))
+          .where(inArray(alistb.displayId, vndbDisplayIds))
+      : Promise.resolve([] as Array<Record<string, unknown>>),
+    kungalDisplayIds.length > 0
+      ? db
+          .select(kungalOnlyMeiliDoc)
+          .from(alistb)
+          .innerJoin(kungalWorks, eq(kungalWorks.id, alistb.kungalId))
+          .where(inArray(alistb.displayId, kungalDisplayIds))
+      : Promise.resolve([] as Array<Record<string, unknown>>),
+  ])
+
+  const items = [...vndbDocs, ...kungalDocs] as Array<Record<string, unknown>>
   addImageUrlToDocs(items)
   return { items }
 }

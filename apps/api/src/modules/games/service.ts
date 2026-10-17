@@ -21,6 +21,7 @@ import {
   vnTitles,
 } from '@api/libs'
 import { purgeGamePages } from '@api/libs/cloudflare-cache'
+import { displayIdWhere, resolveDisplayId } from '@api/libs/identity'
 import {
   acquireIdempotentKey,
   acquireLockKv,
@@ -77,6 +78,47 @@ type GameListRow = {
   vw_count: number
 }
 
+/**
+ * 取作品的 kungal 记录：优先按 VNDB 锚点（refs 对齐），其次按 kungal work id
+ * （kungal-only 条目没有 vndb 锚点）。
+ */
+async function loadKungalWork(
+  lookupVid: string | null,
+  lookupKungalId: string | null,
+) {
+  const columns = {
+    id: kungalWorks.id,
+    vndbId: kungalWorks.vndbId,
+    olang: kungalWorks.olang,
+    displayName: kungalWorks.displayName,
+    contentRating: kungalWorks.contentRating,
+    coverUrl: kungalWorks.coverUrl,
+    coverWidth: kungalWorks.coverWidth,
+    coverHeight: kungalWorks.coverHeight,
+    coverThumbhash: kungalWorks.coverThumbhash,
+    intro: kungalWorks.intro,
+    releasedFirst: kungalWorks.releasedFirst,
+  }
+  if (lookupVid) {
+    const byVid = await db
+      .select(columns)
+      .from(kungalWorks)
+      .where(eq(kungalWorks.vndbId, lookupVid))
+      .limit(1)
+      .then((r) => r[0])
+    if (byVid) return byVid
+  }
+  if (lookupKungalId) {
+    return await db
+      .select(columns)
+      .from(kungalWorks)
+      .where(eq(kungalWorks.id, lookupKungalId))
+      .limit(1)
+      .then((r) => r[0])
+  }
+  return undefined
+}
+
 export const Game = {
   async Count() {
     const redisData = await getKv('galzy:game:count')
@@ -86,7 +128,10 @@ export const Game = {
     const totalCountResult = await db
       .select({ count: countAll() })
       .from(alistb)
-      .innerJoin(vn, eq(alistb.vid, vn.id))
+      .leftJoin(vn, eq(alistb.vid, vn.id))
+      // 有 vn 行（常规作品）或 kungal 锚点（kungal-only 条目）都算收录；
+      // vid 指向不存在 vn 的幽灵行不计入。
+      .where(or(isNotNull(vn.id), isNotNull(alistb.kungalId)))
       .then((r) => r[0])
     const total = Number(totalCountResult?.count || 0)
     void setKv('galzy:game:count', String(total), 60 * 30)
@@ -317,7 +362,14 @@ export const Game = {
     return datas
   },
   async InfoGet({ id }: GameModel.infoId) {
-    const cacheKey = `galzy:game:info:${id}`
+    // 请求 id 可能是旧链接（kgX 已升级成 vNNN）或大小写异构：
+    // 先归一到「展示身份」，响应里带 canonicalId 让前端 302 到最终路由。
+    const canonicalId = await resolveDisplayId(id)
+    if (!canonicalId) {
+      throw status(404, `未找到 id=${id} 对应的游戏信息`)
+    }
+
+    const cacheKey = `galzy:game:info:${canonicalId}`
     type InfoResult = Awaited<ReturnType<typeof queryDb>>
     const redisData = await getKv(cacheKey)
 
@@ -340,22 +392,21 @@ export const Game = {
       }
     }
 
-    const idIsNumber = /^\d+$/.test(id)
     const queryDb = async () => {
-      // Determine VNDB vid from the input early, so we can parallelize
-      let lookupVid: string | null = null
-      if (!idIsNumber) {
-        lookupVid = id
-      } else {
-        // Resolve vid from alistb first (single indexed lookup)
-        const row = await db
-          .select({ vid: alistb.vid })
-          .from(alistb)
-          .where(eq(alistb.other, Number(id)))
-          .limit(1)
-          .then((r) => r[0])
-        lookupVid = row?.vid ?? null
-      }
+      // 锚点行：拿到 vid（VNDB）与 kungalId（kungal work），供下面并行查询
+      const anchorRow = await db
+        .select({
+          id: alistb.id,
+          vid: alistb.vid,
+          kungalId: alistb.kungalId,
+          anchorKind: alistb.anchorKind,
+        })
+        .from(alistb)
+        .where(displayIdWhere(canonicalId))
+        .limit(1)
+        .then((r) => r[0])
+      const lookupVid = anchorRow?.vid ?? null
+      const lookupKungalId = anchorRow?.kungalId ?? null
 
       // Run main data fetch and producer query in parallel
       const officialExpr = sql<boolean>`BOOL_OR(${releases.official})`
@@ -411,7 +462,15 @@ export const Game = {
 
       const [data, producersData] = await Promise.all([
         db.query.alistb.findFirst({
-          columns: { id: true, vid: true, other: true, path: true },
+          columns: {
+            id: true,
+            vid: true,
+            other: true,
+            path: true,
+            anchorKind: true,
+            kungalId: true,
+            displayId: true,
+          },
           with: {
             vn: {
               with: {
@@ -434,7 +493,7 @@ export const Game = {
               },
             },
           },
-          where: idIsNumber ? eq(alistb.other, Number(id)) : eq(alistb.vid, id),
+          where: displayIdWhere(canonicalId),
         }),
         producersPromise,
       ])
@@ -473,33 +532,67 @@ export const Game = {
 
       // ── Kungal 数据源优先合并（第二数据源）：有 kungal 记录 → 覆盖标题/封面/简介/首发日，
       //    缺字段回退 vndb。前端零改动（仍消费 vn.titles / vn.image / vn.description / released_first）。
-      if (lookupVid) {
-        const kungalWork = await db
+      // ── Kungal 数据源优先合并（第二数据源）：有 kungal 记录 → 覆盖标题/封面/简介/首发日，
+      //    缺字段回退 vndb。前端零改动（仍消费 vn.titles / vn.image / vn.description / released_first）。
+      //    两条来源都要查：vndb 锚点（正常作品）、kungal 锚点（kungal-only 条目，无 vn 行）。
+      const kungalWork = await loadKungalWork(lookupVid, lookupKungalId)
+      const kungalOnly = !data.vn
+      if (kungalWork) {
+        const ktitles = await db
           .select({
-            id: kungalWorks.id,
-            vndbId: kungalWorks.vndbId,
-            coverUrl: kungalWorks.coverUrl,
-            coverWidth: kungalWorks.coverWidth,
-            coverHeight: kungalWorks.coverHeight,
-            coverThumbhash: kungalWorks.coverThumbhash,
-            intro: kungalWorks.intro,
-            releasedFirst: kungalWorks.releasedFirst,
+            lang: kungalWorkTitles.lang,
+            official: kungalWorkTitles.official,
+            title: kungalWorkTitles.title,
+            latin: kungalWorkTitles.latin,
+            main: kungalWorkTitles.main,
           })
-          .from(kungalWorks)
-          .where(eq(kungalWorks.vndbId, lookupVid))
-          .limit(1)
-          .then((r) => r[0])
-        if (kungalWork && data.vn) {
-          const ktitles = await db
-            .select({
-              lang: kungalWorkTitles.lang,
-              official: kungalWorkTitles.official,
-              title: kungalWorkTitles.title,
-              latin: kungalWorkTitles.latin,
-              main: kungalWorkTitles.main,
-            })
-            .from(kungalWorkTitles)
-            .where(eq(kungalWorkTitles.workId, kungalWork.id))
+          .from(kungalWorkTitles)
+          .where(eq(kungalWorkTitles.workId, kungalWork.id))
+
+        if (kungalOnly) {
+          // kungal-only：没有 vn 行，按 kungal 数据合成一个 vn 形状的对象，
+          // 让详情页/SEO/卡片无需分支即可渲染（见 CONTRACT.md §5）。
+          const synthesizedImage = hasUsablePortraitCover({
+            url: kungalWork.coverUrl,
+            width: kungalWork.coverWidth,
+            height: kungalWork.coverHeight,
+          })
+            ? {
+                id: null,
+                url: kungalWork.coverUrl,
+                imageUrl: kungalWork.coverUrl,
+                width: kungalWork.coverWidth,
+                height: kungalWork.coverHeight,
+                thumbhash: kungalWork.coverThumbhash,
+                cSexualAvg: kungalWork.contentRating === 'r18' ? 1 : 0,
+              }
+            : null
+          ;(data as any).vn = {
+            id: null,
+            olang: kungalWork.olang,
+            alias: kungalWork.displayName,
+            description: kungalWork.intro,
+            cImage: null,
+            imageUrl: null,
+            cVotecount: null,
+            cRating: null,
+            cAverage: null,
+            length: null,
+            devstatus: null,
+            syncedAt: null,
+            titles: ktitles.map((t) => ({
+              id: kungalWork.id,
+              lang: t.lang,
+              official: t.official,
+              title: t.title,
+              latin: t.latin,
+              main: t.main,
+            })),
+            image: synthesizedImage,
+            releasesVn: [],
+          }
+          released_first = kungalWork.releasedFirst ?? released_first
+        } else if (data.vn) {
           // 标题按语言合并：kungal 优先，kungal 缺的语言用 vndb 补
           // （kungal localized 常缺 olang 标题，整体替换会让前端按 lang 查找扑空显示 null）
           const vndbTitles = ((data.vn as any).titles ?? []) as Array<{
@@ -560,6 +653,11 @@ export const Game = {
         ...data,
         released_first,
         producers: producersData,
+        // 展示身份契约（CONTRACT.md §5）：前端据此把 /kgX 302 到 /vNNN
+        canonicalId,
+        displayId: data.displayId ?? canonicalId,
+        anchorKind: data.anchorKind ?? (lookupVid ? 'vndb' : 'kungal'),
+        kungalOnly,
       }
     }
 
@@ -603,7 +701,9 @@ export const Game = {
   async OpenListFiles({
     id,
   }: GameModel.OpenListFiles): Promise<GameModel.TreeNode[]> {
-    const cacheKey = `OpenListFiles:${id}`
+    // 统一按展示身份取资源行：/kgX 与 /vNNN 都能命中同一条目
+    const canonicalId = (await resolveDisplayId(id)) ?? id
+    const cacheKey = `OpenListFiles:${canonicalId}`
     const redisData = await getKv(cacheKey)
 
     if (redisData) {
@@ -621,7 +721,7 @@ export const Game = {
         path: alistb.path,
       })
       .from(alistb)
-      .where(eq(alistb.vid, id))
+      .where(displayIdWhere(canonicalId))
       .limit(1)
       .then((r: any) => r[0])) as
       | { id: string; vid: string | null; other: number | null; path: any }
@@ -957,6 +1057,8 @@ export const Game = {
       await tx.insert(alistb).values({
         id: String(newOther.id),
         other: newOther.id,
+        anchorKind: 'other',
+        displayId: String(newOther.id),
       })
 
       return newOther
@@ -1172,7 +1274,10 @@ export const Game = {
 
   /** 游戏关系（VNDB relations：前作/续作/衍生等），正反向合并去重 */
   async Relations({ id }: GameModel.infoId) {
-    const cacheKey = `galzy:game:relations:${id}`
+    // 与 InfoGet 同一套解析：任意形态 id → 展示身份 → 锚点行 → vid
+    const canonicalId = await resolveDisplayId(id)
+    if (!canonicalId) throw status(404, `未找到 id=${id} 对应的游戏信息`)
+    const cacheKey = `galzy:game:relations:${canonicalId}`
     type RelResult = typeof data
     const redisData = await getKv(cacheKey)
     if (redisData) {
@@ -1183,21 +1288,15 @@ export const Game = {
       }
     }
 
-    // 解析 vid（与 InfoGet 一致：数字 id → alistb.other，v 前缀直接）
-    let lookupVid: string | null
-    if (/^\d+$/.test(id)) {
-      lookupVid =
-        (
-          await db
-            .select({ vid: alistb.vid })
-            .from(alistb)
-            .where(eq(alistb.other, Number(id)))
-            .limit(1)
-        )[0]?.vid ?? null
-    } else {
-      lookupVid = id
-    }
-    if (!lookupVid) throw status(404, `未找到 id=${id} 对应的游戏信息`)
+    const lookupVid = await db
+      .select({ vid: alistb.vid })
+      .from(alistb)
+      .where(displayIdWhere(canonicalId))
+      .limit(1)
+      .then((r) => r[0]?.vid ?? null)
+    // kungal-only 条目没有 vndb 锚点 → 无 VNDB relations 可言，返回空而非 404，
+    // 让详情页「关系」标签正常显示"无关联作品"。
+    if (!lookupVid) return []
 
     // BFS 传递闭包：显示整个关系连通簇（如某系列的全部作品），而非仅直接相邻。
     // 一条递归 CTE 拉出连通簇全部边（1 次往返），JS 内 BFS 分方向；

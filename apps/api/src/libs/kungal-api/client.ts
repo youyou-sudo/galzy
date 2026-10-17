@@ -1,5 +1,7 @@
 import type {
   KungalProblem,
+  KungalRedirect,
+  KungalRedirectListData,
   KungalWorkItem,
   KungalWorksListData,
 } from './types'
@@ -113,6 +115,14 @@ async function fetchWorksByRefs(refs: string[]): Promise<KungalWorkItem[]> {
   return data.items ?? []
 }
 
+/** ids= 批量通道：一次取回 ≤100 个 kungal work id 对应的 works-list 行。 */
+async function fetchWorksByIds(ids: string[]): Promise<KungalWorkItem[]> {
+  const data = await request<KungalWorksListData>(
+    `/catalog/works?ids=${ids.map(encodeURIComponent).join(',')}&include=${WORKS_INCLUDE}&nsfw=true&limit=${REFS_BATCH}`,
+  )
+  return data.items ?? []
+}
+
 /** 按 VNDB 锚点精确解析作品（refs= 批量通道；未命中/被隐藏 → null）。 */
 export async function resolveWorkByVndbId(
   vid: string,
@@ -158,19 +168,78 @@ export async function resolveWorksByVndbIds(
   return result
 }
 
+/** 按 kungal work id 批量解析（ids= 批量通道 ≤100/次，并发 4），返回 id → item；未命中不出现。 */
+export async function resolveWorksByKungalIds(
+  ids: string[],
+  onProgress?: (processed: number, total: number) => void,
+): Promise<Map<string, KungalWorkItem>> {
+  const result = new Map<string, KungalWorkItem>()
+  const unique = [...new Set(ids.map((i) => i?.trim()).filter(Boolean))]
+  const chunks: string[][] = []
+  for (let i = 0; i < unique.length; i += REFS_BATCH) {
+    chunks.push(unique.slice(i, i + REFS_BATCH))
+  }
+  let idx = 0
+  let done = 0
+  const worker = async () => {
+    while (idx < chunks.length) {
+      const chunk = chunks[idx++]
+      try {
+        const items = await fetchWorksByIds(chunk)
+        for (const id of chunk) {
+          const hit = items.find((item) => String(item.id) === id)
+          if (hit) result.set(id, hit)
+        }
+      } catch (err) {
+        console.error(`❌ Kungal resolve(ids) chunk ${chunk[0]}… failed:`, err)
+      }
+      done += chunk.length
+      if (onProgress) onProgress(done, unique.length)
+    }
+  }
+  await Promise.all(
+    Array.from(
+      { length: Math.min(RESOLVE_CONCURRENCY, chunks.length) },
+      worker,
+    ),
+  )
+  return result
+}
+
 /** 按 kungal work id 批量水合（≤100/次，缺 id 静默丢弃）。 */
 export async function hydrateWorksByIds(
   ids: string[],
 ): Promise<KungalWorkItem[]> {
   const chunks: KungalWorkItem[] = []
   for (let i = 0; i < ids.length; i += REFS_BATCH) {
-    const chunk = ids.slice(i, i + REFS_BATCH)
-    const data = await request<KungalWorksListData>(
-      `/catalog/works?ids=${chunk.join(',')}&include=${WORKS_INCLUDE}&nsfw=true`,
-    )
-    chunks.push(...(data.items ?? []))
+    chunks.push(...(await fetchWorksByIds(ids.slice(i, i + REFS_BATCH))))
   }
   return chunks
+}
+
+/** redirects feed：id 收敛（merge）事件，按 work 族过滤、游标翻页（最多 maxPages 页）。 */
+export async function fetchWorkRedirects(options?: {
+  limit?: number
+  maxPages?: number
+}): Promise<KungalRedirect[]> {
+  const limit = Math.min(Math.max(options?.limit ?? REFS_BATCH, 1), REFS_BATCH)
+  const maxPages = Math.max(options?.maxPages ?? 10, 1)
+  const out: KungalRedirect[] = []
+  let cursor: string | undefined
+  for (let page = 0; page < maxPages; page++) {
+    const params = new URLSearchParams({
+      object: 'work',
+      limit: String(limit),
+    })
+    if (cursor) params.set('cursor', cursor)
+    const data = await request<KungalRedirectListData>(
+      `/catalog/redirects?${params.toString()}`,
+    )
+    out.push(...(data.items ?? []))
+    cursor = data.next_cursor ?? undefined
+    if (!cursor) break
+  }
+  return out
 }
 
 /** 单条反查（备用；批量解析走 resolveWorksByVndbIds）。 */
@@ -185,6 +254,8 @@ export async function lookupWork(
 export const KungalClient = {
   resolveWorkByVndbId,
   resolveWorksByVndbIds,
+  resolveWorksByKungalIds,
   hydrateWorksByIds,
+  fetchWorkRedirects,
   lookupWork,
 }

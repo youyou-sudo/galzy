@@ -488,12 +488,34 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 					</p>
 					<div className="max-h-48 overflow-y-auto rounded-lg bg-muted p-3 font-mono text-xs flex flex-col gap-2">
 						{report.updatedRows.map((r) => (
-							<div key={r.vid} className="flex flex-col">
-								<span className="text-primary">{r.vid}</span>
+							<div key={r.displayId} className="flex flex-col">
+								<span className="text-primary">{r.displayId}</span>
 								<span className="text-muted-foreground line-through">
 									{r.oldPaths.join(" / ") || "（无路径）"}
 								</span>
 								<span className="text-green-600">{r.newPaths.join(" / ")}</span>
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+
+			{report.renamedRows.length > 0 && (
+				<div className="flex flex-col gap-1">
+					<p className="text-sm font-medium">
+						条目身份已收口（kungal 锚点补到 vndb / 文件夹改名，同步后合并为一条）
+					</p>
+					<div className="max-h-48 overflow-y-auto rounded-lg bg-muted p-3 font-mono text-xs flex flex-col gap-2">
+						{report.renamedRows.map((r) => (
+							<div key={`${r.fromId}->${r.toId}`} className="flex flex-col">
+								<span className="text-primary">
+									<span className="line-through">{r.fromId}</span>
+									{" → "}
+									{r.toId}
+								</span>
+								<span className="text-green-600">
+									{r.paths.join(" / ")}
+								</span>
 							</div>
 						))}
 					</div>
@@ -505,8 +527,8 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 					<p className="text-sm font-medium">Cloudreve 新增文件夹</p>
 					<div className="max-h-40 overflow-y-auto rounded-lg bg-muted p-3 font-mono text-xs flex flex-col gap-1">
 						{report.addedRows.map((r) => (
-							<div key={r.vid}>
-								<span className="text-primary">{r.vid}</span>{" "}
+							<div key={r.displayId}>
+								<span className="text-primary">{r.displayId}</span>{" "}
 								{r.paths.join(" / ")}
 							</div>
 						))}
@@ -521,8 +543,8 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 					</p>
 					<div className="max-h-40 overflow-y-auto rounded-lg bg-muted p-3 font-mono text-xs flex flex-col gap-1">
 						{report.staleDeadRows.map((r) => (
-							<div key={r.vid}>
-								<span className="text-primary">{r.vid}</span>{" "}
+							<div key={r.displayId}>
+								<span className="text-primary">{r.displayId}</span>{" "}
 								{r.paths.join(" / ")}
 							</div>
 						))}
@@ -534,7 +556,7 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 				<p className="text-xs text-muted-foreground">
 					搜索结果缺失但路径仍存在 {report.staleAliveRows.length}{" "}
 					个（保留不动）：
-					{report.staleAliveRows.map((r) => r.vid).join(", ")}
+					{report.staleAliveRows.map((r) => r.displayId).join(", ")}
 				</p>
 			)}
 

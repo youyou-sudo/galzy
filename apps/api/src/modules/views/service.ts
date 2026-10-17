@@ -161,34 +161,54 @@ export const ViewsService = {
     }
 
     const ids = rows.map((r) => r.id)
+    // 热榜 id 是「展示身份」，可能是 'vNNN'（VNDB）或 'kgX'（kungal-only）。
+    // 两类要分开查：vndb 侧按 vn.id，kungal-only 侧按 kungal work id。
+    const vndbIds = ids.filter((id) => /^v\d+$/i.test(id))
+    const kungalIds = ids
+      .filter((id) => /^kg.+/i.test(id))
+      .map((id) => id.slice(2))
+    const kungalCoverCols = {
+      id: kungalWorks.id,
+      vndbId: kungalWorks.vndbId,
+      displayName: kungalWorks.displayName,
+      contentRating: kungalWorks.contentRating,
+      coverUrl: kungalWorks.coverUrl,
+      coverWidth: kungalWorks.coverWidth,
+      coverHeight: kungalWorks.coverHeight,
+      coverThumbhash: kungalWorks.coverThumbhash,
+    }
     // Batch queries: VNDB image/title data and Kungal cover metadata in parallel.
     // 注意不要把第一个查询写成 `(await (…))` —— await 会在 Promise.all 被调用前
     // 先执行，两个查询就变成严格串行，白付一次完整查询延迟。
-    const [titleRowsRaw, kungalRows] = await Promise.all([
-      db
-        .select({
-          id: vn.id,
-          olang: vn.olang,
-          imageId: images.id,
-          imageWidth: images.width,
-          imageHeight: images.height,
-          imageUrl: images.url,
-          cSexualAvg: images.cSexualAvg,
-          titles: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT lang, title FROM ${vnTitles} t WHERE t.id = ${sql.identifier('vn')}.${sql.identifier('id')}) t), '[]'::json)`,
-        })
-        .from(vn)
-        .leftJoin(images, eq(vn.cImage, images.id))
-        .where(inArray(vn.id, ids)) as any,
-      db
-        .select({
-          vndbId: kungalWorks.vndbId,
-          coverUrl: kungalWorks.coverUrl,
-          coverWidth: kungalWorks.coverWidth,
-          coverHeight: kungalWorks.coverHeight,
-          coverThumbhash: kungalWorks.coverThumbhash,
-        })
-        .from(kungalWorks)
-        .where(inArray(kungalWorks.vndbId, ids)),
+    const [titleRowsRaw, kungalRowsByVid, kungalRowsById] = await Promise.all([
+      vndbIds.length > 0
+        ? (db
+            .select({
+              id: vn.id,
+              olang: vn.olang,
+              imageId: images.id,
+              imageWidth: images.width,
+              imageHeight: images.height,
+              imageUrl: images.url,
+              cSexualAvg: images.cSexualAvg,
+              titles: sql`COALESCE((SELECT json_agg(row_to_json(t.*)) FROM (SELECT lang, title FROM ${vnTitles} t WHERE t.id = ${sql.identifier('vn')}.${sql.identifier('id')}) t), '[]'::json)`,
+            })
+            .from(vn)
+            .leftJoin(images, eq(vn.cImage, images.id))
+            .where(inArray(vn.id, vndbIds)) as any)
+        : Promise.resolve([]),
+      vndbIds.length > 0
+        ? db
+            .select(kungalCoverCols)
+            .from(kungalWorks)
+            .where(inArray(kungalWorks.vndbId, vndbIds))
+        : Promise.resolve([]),
+      kungalIds.length > 0
+        ? db
+            .select(kungalCoverCols)
+            .from(kungalWorks)
+            .where(inArray(kungalWorks.id, kungalIds))
+        : Promise.resolve([]),
     ])
     const titleRows = titleRowsRaw as Array<{
       id: string
@@ -200,7 +220,14 @@ export const ViewsService = {
       imageUrl: string | null
       titles: Array<{ lang: string; title: string }>
     }>
-    const kungalMap = new Map(kungalRows.map((row) => [row.vndbId, row]))
+    // 键统一成展示身份：vndb 行用 vndbId，kungal-only 行用 'kg'+workId
+    const kungalMap = new Map<string, (typeof kungalRowsByVid)[number]>()
+    for (const row of kungalRowsByVid) {
+      if (row.vndbId) kungalMap.set(row.vndbId, row)
+    }
+    for (const row of kungalRowsById) {
+      kungalMap.set(`kg${row.id}`, row)
+    }
 
     const titleMap = new Map<string, string | null>()
     const imageMap = new Map<
@@ -240,7 +267,8 @@ export const ViewsService = {
       })
       return {
         id: r.id,
-        title: titleMap.get(r.id) ?? null,
+        // kungal-only 条目没有 vn 标题，用 kungal 主显示名兜底
+        title: titleMap.get(r.id) ?? kungal?.displayName ?? null,
         total: r.total,
         imageId: useKungal ? null : (img?.imageId ?? null),
         imageWidth: useKungal
@@ -257,7 +285,9 @@ export const ViewsService = {
           : img?.imageId
             ? buildCoverUrl(img.imageId, img.imageWidth, img.imageHeight)
             : transformStoredUrl(img?.imageUrl ?? null),
-        cSexualAvg: img?.cSexualAvg ?? null,
+        // kungal-only 没有 VNDB 图片投票，用 content_rating 映射 R18 门控口径
+        cSexualAvg:
+          img?.cSexualAvg ?? (kungal?.contentRating === 'r18' ? 1 : null),
       }
     })
 
