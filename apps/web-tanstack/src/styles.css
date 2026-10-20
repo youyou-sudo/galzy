@@ -2,6 +2,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+/* 灯箱样式必须走全局 CSS：路由级 CSS 在客户端导航时不会随 chunk 注入，
+   只靠 SSR <link>，SPA 进入详情页后灯箱会完全失去定位/层级。 */
+@import "react-photo-view/dist/react-photo-view.css";
+@import "./components/game/game-cover-lightbox.css";
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));

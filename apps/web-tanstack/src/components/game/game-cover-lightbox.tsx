@@ -1,15 +1,14 @@
 import { X } from "lucide-react";
 import { type ReactElement, useEffect, useRef, useState } from "react";
 import { PhotoProvider, PhotoView } from "react-photo-view";
-import "react-photo-view/dist/react-photo-view.css";
-import "./game-cover-lightbox.css";
 
 /**
  * 游戏封面灯箱。
  *
  * 沿用 Yohaku 同款交互：点击封面时从缩略图所在位置展开，支持拖拽/双指缩放、
  * 双击放大、下滑关闭、Esc 关闭；多图时可左右切换（当前详情页只有封面一张）。
- * react-photo-view 负责手势与展开动画，外观在本目录 CSS 里收敛。
+ * react-photo-view 负责手势与展开动画；本组件及库的 CSS 在 styles.css 全局引入，
+ * 不随路由 chunk 懒加载（客户端导航时路由 CSS 不会注入，SPA 进入详情页会丢样式）。
  */
 export function GameCoverLightbox({
 	alt,
