@@ -2,12 +2,12 @@ import {
   alistb,
   buildCoverUrl,
   db,
-  hasUsablePortraitCover,
   images,
   kungalWorks,
   media,
   otherMedia,
   others,
+  shouldUseKungalCover,
   tags,
   tagsRelations,
   tagsVn,
@@ -924,11 +924,14 @@ export const Tags = {
       const img = item.images as Record<string, unknown> | null
       const kungal = kungalMap.get(item.id)
       if (
-        hasUsablePortraitCover({
-          url: kungal?.coverUrl,
-          width: kungal?.coverWidth,
-          height: kungal?.coverHeight,
-        })
+        shouldUseKungalCover(
+          {
+            url: kungal?.coverUrl,
+            width: kungal?.coverWidth,
+            height: kungal?.coverHeight,
+          },
+          Boolean(img?.id || img?.url),
+        )
       ) {
         ;(item as any).images = {
           ...(img ?? { c_sexual_avg: 0 }),

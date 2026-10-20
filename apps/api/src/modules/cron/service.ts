@@ -231,7 +231,23 @@ const gameMeiliDocBase = {
       ORDER BY kw.synced_at DESC NULLS LAST
       LIMIT 1
     ) kimg),
-    (SELECT row_to_json(i.*) FROM (SELECT i.id, i.height, i.width, COALESCE(i.c_sexual_avg, 0) AS c_sexual_avg FROM ${images} i WHERE i.id = vn.c_image) i)
+    (SELECT row_to_json(i.*) FROM (SELECT i.id, i.height, i.width, COALESCE(i.c_sexual_avg, 0) AS c_sexual_avg FROM ${images} i WHERE i.id = vn.c_image) i),
+    -- 最后兜底：vndb 也没有图（c_image 为空）时，横版 kungal 封面也好过没有图。
+    -- 口径与 libs/image-url 的 shouldUseKungalCover 一致：竖版 > vndb > 横版。
+    (SELECT row_to_json(kimg2.*) FROM (
+      SELECT NULL::text AS id,
+        kw.cover_url AS url,
+         kw.cover_url AS imageUrl,
+         kw.cover_width AS width,
+         kw.cover_height AS height,
+         kw.cover_thumbhash AS thumbhash,
+        COALESCE((SELECT i.c_sexual_avg FROM ${images} i WHERE i.id = vn.c_image), 0) AS c_sexual_avg
+      FROM ${kungalWorks} kw
+      WHERE kw.vndb_id = vn.id AND kw.cover_url IS NOT NULL
+        AND kw.cover_width IS NOT NULL AND kw.cover_height IS NOT NULL
+      ORDER BY kw.synced_at DESC NULLS LAST
+      LIMIT 1
+    ) kimg2)
   )`,
   releases: sql`COALESCE((SELECT json_agg(row_to_json(rel.*)) FROM (SELECT r.title, r.released FROM ${releasesVn} rv INNER JOIN ${releases} r ON r.id = rv.id WHERE rv.vid = vn.id) rel), '[]'::json)`,
   tags_obj: sql`COALESCE((SELECT json_agg(row_to_json(tag.*)) FROM (SELECT DISTINCT z.alias, z.name, z.id FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = vn.id AND z.exhibition = TRUE) tag), '[]'::json)`,
@@ -1170,12 +1186,14 @@ const kungalOnlyMeiliDoc = {
   titles_obj: sql`COALESCE((SELECT json_agg(row_to_json(kt.*)) FROM (SELECT kt.title, kt.latin, kt.lang FROM galrc_kungal_work_titles kt WHERE kt.work_id = ${kungalWorks.id}) kt)::jsonb, '[]'::jsonb)`,
   // 封面直接由「当前 join 到的这一行」构造，不能再写子查询：
   // 子查询里 FROM galrc_kungal_works 会遮蔽外层同名表引用，
-  // 变成"全表任意一条有竖版封面的行"，等于给所有 kungal-only 文档贴错封面。
+  // 变成"全表任意一条有封面的行"，等于给所有 kungal-only 文档贴错封面。
+  //
+  // 方向不设限：kungal-only 条目没有任何 vndb 图可回退，横版封面也必须用上，
+  // 否则列表/搜索里这类条目永远只有占位图（口径见 libs/image-url）。
   images: sql`CASE
       WHEN ${kungalWorks.coverUrl} IS NOT NULL
        AND ${kungalWorks.coverWidth} IS NOT NULL
        AND ${kungalWorks.coverHeight} IS NOT NULL
-       AND ${kungalWorks.coverHeight} >= ${kungalWorks.coverWidth}
       THEN jsonb_build_object(
         'id', NULL,
         'url', ${kungalWorks.coverUrl},

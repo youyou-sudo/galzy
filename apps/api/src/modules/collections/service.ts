@@ -3,11 +3,11 @@ import {
   collectionEntries,
   collections,
   db,
-  hasUsablePortraitCover,
   images,
   kungalWorks,
   releasesProducers,
   releasesVn,
+  shouldUseKungalCover,
   sql,
   vn,
   vnTitles,
@@ -258,11 +258,14 @@ export const CollectionService = {
             vids.map((vid) => {
               const v = vnMap.get(vid)
               const kungal = kungalMap.get(vid)
-              const useKungal = hasUsablePortraitCover({
-                url: kungal?.coverUrl,
-                width: kungal?.coverWidth,
-                height: kungal?.coverHeight,
-              })
+              const useKungal = shouldUseKungalCover(
+                {
+                  url: kungal?.coverUrl,
+                  width: kungal?.coverWidth,
+                  height: kungal?.coverHeight,
+                },
+                Boolean(v?.imageId),
+              )
               return {
                 id: vid,
                 alias: v?.alias ?? null,
@@ -480,11 +483,14 @@ export const CollectionService = {
 
     return entries.map((e) => {
       const kungal = kungalMap.get(e.id)
-      const useKungal = hasUsablePortraitCover({
-        url: kungal?.coverUrl,
-        width: kungal?.coverWidth,
-        height: kungal?.coverHeight,
-      })
+      const useKungal = shouldUseKungalCover(
+        {
+          url: kungal?.coverUrl,
+          width: kungal?.coverWidth,
+          height: kungal?.coverHeight,
+        },
+        Boolean(e.imageId),
+      )
       return {
         id: e.id,
         alias: e.alias,

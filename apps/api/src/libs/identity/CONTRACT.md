@@ -101,11 +101,25 @@ export function parseDisplayId(raw: string): DisplayId | null
 kungal-only（`kungalOnly === true`）时：**`vn` 不是 null，而是由 kungal 数据合成的 vn 形状对象**
 （`id` 为 null），这样详情页 / SEO / 卡片无需分支即可渲染。其余规则：`otherData` 可为 `null`；
 `vn.titles` 取 `kungalWorkTitles`（按语言原样），`vn.alias` 取 `kungalWorks.displayName`，
-`vn.image` 取 `kungalWorks.coverUrl/coverWidth/coverHeight/coverThumbhash`（沿用
-`hasUsablePortraitCover` 竖版门控，不满足则为 `null`），`vn.description` 取
-`kungalWorks.intro`，`released_first` 取 `kungalWorks.releasedFirst`，
+`vn.image` 取 `kungalWorks.coverUrl/coverWidth/coverHeight/coverThumbhash`
+（方向见下方「封面选取口径」），`vn.description` 取 `kungalWorks.intro`，
+`released_first` 取 `kungalWorks.releasedFirst`，
 `c_sexual_avg` 由 `contentRating='r18'` 映射为 1。
 `Relations` 对 kungal-only 返回空数组（不 404），`OpenListFiles` 按展示身份取资源行。
+
+**封面选取口径（全站统一，实现见 `libs/image-url` 的 `shouldUseKungalCover`）**：
+
+```
+竖版 kungal 封面  >  现有图（VNDB images）  >  横版 kungal 封面
+```
+
+- `hasUsablePortraitCover`：`url` 非空 + 宽高为正 + `height >= width`。
+- `hasUsableCover`：只要求 `url` 非空 + 宽高为正（任意方向）。
+- **有 VNDB 图时**只用竖版 kungal 封面覆盖（横版多为截图/横幅，属目录数据错误）。
+- **没有 VNDB 图时**（kungal-only 条目、或 `vn.c_image IS NULL`）横版封面也必须采用 ——
+  这里竖版门控只会让条目永远显示占位图，没有任何替代来源可回退。
+- 因为横版可能被采用，消费方（web 卡片、Meili 文档）**必须按 `width/height` 自适应**，
+  不能假定封面恒为竖版。
 
 **work 行缺失时的兜底（§6.1 的水合尚未跑到时的降级路径）**：仍合成 `vn` 形状对象
 （`id: null`、`image: null`、`titles: []`，或从 `alistb.path` 目录名推出一个占位标题），

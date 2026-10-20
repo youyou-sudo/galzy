@@ -4,7 +4,6 @@ import {
   db,
   eventViewCountSql,
   gameDownloadCountSql,
-  hasUsablePortraitCover,
   kungalWorks,
   kungalWorkTitles,
   listCloudreveFiles,
@@ -15,6 +14,7 @@ import {
   releases,
   releasesProducers,
   releasesVn,
+  shouldUseKungalCover,
   sql,
   transformStoredUrl,
   vn,
@@ -61,6 +61,16 @@ import type { GameModel } from './model'
  * 这里保证两者一致即可让标题正常渲染，而不是再次显示空标题。
  */
 const DISPLAY_FALLBACK_LANG = 'zh-Hans'
+
+/**
+ * 详情缓存的响应版本。
+ *
+ * 响应形状或「数据来源口径」变化时递增，让已写入 Redis 的旧响应自动作废 ——
+ * 否则最长要等 6 小时 TTL 才生效。
+ * v2：kungal 封面兜底（无其它图时横版封面也会被采用），此前的缓存里
+ *     kungal-only 条目的 vn.image 恒为 null。
+ */
+const GAME_INFO_CACHE_VERSION = 2
 
 /** VNDB relation 反向映射（seq↔preq；其余保持原值） */
 const RELATION_INVERSE: Record<string, string> = {
@@ -359,11 +369,14 @@ export const Game = {
       }
       if (
         kungalWork &&
-        hasUsablePortraitCover({
-          url: kungalWork.coverUrl,
-          width: kungalWork.coverWidth,
-          height: kungalWork.coverHeight,
-        })
+        shouldUseKungalCover(
+          {
+            url: kungalWork.coverUrl,
+            width: kungalWork.coverWidth,
+            height: kungalWork.coverHeight,
+          },
+          Boolean(img?.id || img?.url),
+        )
       ) {
         ;(item as any).images = {
           ...(img ?? { c_sexual_avg: 0 }),
@@ -407,33 +420,50 @@ export const Game = {
 
     const cacheKey = `galzy:game:info:${canonicalId}`
     type InfoResult = Awaited<ReturnType<typeof queryDb>>
-    const redisData = await getKv(cacheKey)
 
-    if (redisData) {
+    /**
+     * 读取并校验详情缓存；版本不符、结构残缺或损坏 → 删除该键并返回 null。
+     *
+     * 校验点：
+     * - `__cacheVersion` 必须匹配，否则是旧口径写入的响应（见常量注释）；
+     * - `vn` 键必须存在：契约 §5 要求响应恒带 vn（kungal-only 也要合成），
+     *   整个键不见说明是旧版本写的残缺缓存。注意「vn 为 null」不再算残缺。
+     * - image 若是 Drizzle 关系行（cSexualAvg 驼峰），必须已带 imageUrl。
+     */
+    const readInfoCache = async (): Promise<InfoResult | null> => {
+      const raw = await getKv(cacheKey)
+      if (!raw) return null
       try {
-        const cached = JSON.parse(redisData)
-        // 历史缓存条目缺 imageUrl（imageUrl 特性上线前写入）→ 删除重建。
-        // 注意：详情响应的 image 是 Drizzle 关系行（cSexualAvg 驼峰），
-        // 不要用列表面的 c_sexual_avg 判存亡（此前误用导致缓存永远失效、每次全量查库）。
-        //
-        // vn 缺失不再算「缓存坏了」：kungal-only 兜底路径合成出来的 vn 是合法响应
-        // （CONTRACT §5），早先的 !cached?.vn 判据会让这类条目每次请求都删缓存重建
-        // —— 6 小时 TTL 形同虚设，并发下还会穿透到 DB。
-        // 只有「契约要求的 vn 键整个不见」才重建（旧版本写入的残缺缓存）。
+        const parsed = JSON.parse(raw) as InfoResult & {
+          __cacheVersion?: number
+        }
         if (
-          typeof cached !== 'object' ||
-          cached === null ||
-          !('vn' in cached) ||
-          (cached?.vn?.image && !('imageUrl' in cached.vn.image))
+          parsed === null ||
+          typeof parsed !== 'object' ||
+          parsed.__cacheVersion !== GAME_INFO_CACHE_VERSION ||
+          !('vn' in parsed) ||
+          (parsed.vn?.image && !('imageUrl' in parsed.vn.image))
         ) {
           await delKv(cacheKey)
-        } else {
-          return cached as InfoResult
+          return null
         }
+        const { __cacheVersion: _cacheVersion, ...rest } = parsed
+        return rest as InfoResult
       } catch {
         await delKv(cacheKey)
+        return null
       }
     }
+
+    const writeInfoCache = (value: InfoResult) =>
+      setKv(
+        cacheKey,
+        JSON.stringify({ ...value, __cacheVersion: GAME_INFO_CACHE_VERSION }),
+        60 * 60 * 6,
+      )
+
+    const cachedInfo = await readInfoCache()
+    if (cachedInfo) return cachedInfo
 
     const queryDb = async () => {
       // 锚点行：拿到 vid（VNDB）与 kungalId（kungal work），供下面并行查询
@@ -595,11 +625,16 @@ export const Game = {
         if (kungalOnly) {
           // kungal-only：没有 vn 行，按 kungal 数据合成一个 vn 形状的对象，
           // 让详情页/SEO/卡片无需分支即可渲染（见 CONTRACT.md §5）。
-          const synthesizedImage = hasUsablePortraitCover({
-            url: kungalWork.coverUrl,
-            width: kungalWork.coverWidth,
-            height: kungalWork.coverHeight,
-          })
+          // kungal-only 条目没有 vn 图可回退，横版封面直接用 —— 竖版门控在这里
+          // 只会让页面永远空着（见 libs/image-url shouldUseKungalCover）。
+          const synthesizedImage = shouldUseKungalCover(
+            {
+              url: kungalWork.coverUrl,
+              width: kungalWork.coverWidth,
+              height: kungalWork.coverHeight,
+            },
+            false,
+          )
             ? {
                 id: null,
                 url: kungalWork.coverUrl,
@@ -661,13 +696,18 @@ export const Game = {
           if (mergedTitles.length > 0) {
             ;(data.vn as any).titles = mergedTitles
           }
-          // 封面：kungal 竖版封面才优先（横版多为目录数据错误，如把同人图/截图当封面，回退 vndb）
+          // 封面：竖版 kungal 封面优先（横版多为目录数据错误，如把同人图/截图
+          // 当封面）→ 有 vndb 图就回退 vndb；vndb 也没有图时横版封面顶上，
+          // 否则页面永远只有占位图。
           if (
-            hasUsablePortraitCover({
-              url: kungalWork.coverUrl,
-              width: kungalWork.coverWidth,
-              height: kungalWork.coverHeight,
-            })
+            shouldUseKungalCover(
+              {
+                url: kungalWork.coverUrl,
+                width: kungalWork.coverWidth,
+                height: kungalWork.coverHeight,
+              },
+              Boolean(data.vn?.image),
+            )
           ) {
             const img = data.vn.image as unknown as Record<
               string,
@@ -749,18 +789,12 @@ export const Game = {
     const locked = await acquireLockKv(lockKey, lockVal, 5000)
     if (locked) {
       try {
-        const doubleCheck = await getKv(cacheKey)
-        if (doubleCheck) {
-          try {
-            return JSON.parse(doubleCheck) as InfoResult
-          } catch {
-            await delKv(cacheKey)
-          }
-        }
+        const doubleCheck = await readInfoCache()
+        if (doubleCheck) return doubleCheck
 
         const data = await queryDb()
         const result = structuredClone(data)
-        void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 6)
+        void writeInfoCache(result)
 
         return result
       } finally {
@@ -768,14 +802,8 @@ export const Game = {
       }
     } else {
       await new Promise((resolve) => setTimeout(resolve, 100))
-      const retryData = await getKv(cacheKey)
-      if (retryData) {
-        try {
-          return JSON.parse(retryData) as InfoResult
-        } catch {
-          await delKv(cacheKey)
-        }
-      }
+      const retryCached = await readInfoCache()
+      if (retryCached) return retryCached
 
       const data = await queryDb()
       return data
@@ -1297,11 +1325,14 @@ export const Game = {
           }
           if (
             kungalWork &&
-            hasUsablePortraitCover({
-              url: kungalWork.coverUrl,
-              width: kungalWork.coverWidth,
-              height: kungalWork.coverHeight,
-            })
+            shouldUseKungalCover(
+              {
+                url: kungalWork.coverUrl,
+                width: kungalWork.coverWidth,
+                height: kungalWork.coverHeight,
+              },
+              Boolean(img?.id || img?.url),
+            )
           ) {
             // id 置空：外层 buildCoverUrl 兜底（img?.id）不会覆盖 kungal 封面
             ;(row as any).images = {
@@ -1560,12 +1591,16 @@ export const Game = {
         height: number | null
         c_sexual_avg: number | null
       } | null
-      const kcoverPortrait = hasUsablePortraitCover({
-        url: kungalWork?.coverUrl,
-        width: kungalWork?.coverWidth,
-        height: kungalWork?.coverHeight,
-      })
-      const images = kcoverPortrait
+      // 竖版 kungal 封面优先；vndb 无图时横版也顶上（否则卡片永远占位图）。
+      const useKungalCover = shouldUseKungalCover(
+        {
+          url: kungalWork?.coverUrl,
+          width: kungalWork?.coverWidth,
+          height: kungalWork?.coverHeight,
+        },
+        Boolean(vndbImg),
+      )
+      const images = useKungalCover
         ? {
             id: null,
             url: kungalWork!.coverUrl,

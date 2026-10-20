@@ -2,9 +2,9 @@ import {
   buildCoverUrl,
   db,
   eventViews,
-  hasUsablePortraitCover,
   images,
   kungalWorks,
+  shouldUseKungalCover,
   sql,
   tags,
   transformStoredUrl,
@@ -260,11 +260,16 @@ export const ViewsService = {
     const mapped: ViewsModel.GameRankingItem[] = rows.map((r) => {
       const img = imageMap.get(r.id)
       const kungal = kungalMap.get(r.id)
-      const useKungal = hasUsablePortraitCover({
-        url: kungal?.coverUrl,
-        width: kungal?.coverWidth,
-        height: kungal?.coverHeight,
-      })
+      // 竖版 kungal 封面优先；该条目没有任何 vndb 图（kungal-only 或 c_image 为空）
+      // 时用横版兜底，避免热榜卡片只剩占位图。
+      const useKungal = shouldUseKungalCover(
+        {
+          url: kungal?.coverUrl,
+          width: kungal?.coverWidth,
+          height: kungal?.coverHeight,
+        },
+        Boolean(img?.imageId || img?.imageUrl),
+      )
       return {
         id: r.id,
         // kungal-only 条目没有 vn 标题，用 kungal 主显示名兜底

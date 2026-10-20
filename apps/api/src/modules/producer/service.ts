@@ -2,12 +2,12 @@ import {
   alistb,
   buildCoverUrl,
   db,
-  hasUsablePortraitCover,
   images,
   kungalWorks,
   producers,
   releasesProducers,
   releasesVn,
+  shouldUseKungalCover,
   vn,
 } from '@api/libs'
 import { getKv, setKv } from '@api/libs/redis'
@@ -124,11 +124,14 @@ export const Producer = {
     for (const item of producerGamelists) {
       const kungal = kungalMap.get(item.id)
       if (
-        hasUsablePortraitCover({
-          url: kungal?.coverUrl,
-          width: kungal?.coverWidth,
-          height: kungal?.coverHeight,
-        })
+        shouldUseKungalCover(
+          {
+            url: kungal?.coverUrl,
+            width: kungal?.coverWidth,
+            height: kungal?.coverHeight,
+          },
+          Boolean(item.image_id),
+        )
       ) {
         item.image_id = null
         item.image_url = kungal?.coverUrl ?? null
