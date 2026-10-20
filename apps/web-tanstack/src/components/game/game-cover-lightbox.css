@@ -1,0 +1,78 @@
+/* react-photo-view 灯箱外观：收敛成站内的圆角胶囊 + 毛玻璃。 */
+.galzy-lightbox .PhotoView-Slider__BannerWrap {
+	align-items: flex-start;
+	background: linear-gradient(to bottom, rgb(0 0 0 / 0.45), transparent);
+	box-sizing: border-box;
+	height: 64px;
+	padding: 12px 14px;
+	padding-top: calc(12px + env(safe-area-inset-top));
+}
+
+/* 计数胶囊居中，关闭按钮靠右（单图时计数隐藏，BannerRight 仍贴右）。 */
+.galzy-lightbox .PhotoView-Slider__Counter {
+	background: rgb(18 18 18 / 0.6);
+	border: 1px solid rgb(255 255 255 / 0.14);
+	border-radius: 999px;
+	color: rgb(255 255 255 / 0.92);
+	font-size: 12px;
+	font-variant-numeric: tabular-nums;
+	left: 50%;
+	line-height: 1;
+	padding: 7px 11px;
+	position: absolute;
+	top: calc(12px + env(safe-area-inset-top));
+	transform: translateX(-50%);
+	-webkit-backdrop-filter: blur(10px);
+	backdrop-filter: blur(10px);
+}
+
+.galzy-lightbox .PhotoView-Slider__BannerRight {
+	height: auto;
+	margin-left: auto;
+}
+
+/* 默认关闭图标无 aria-label，统一换成自定义按钮（见 GameCoverLightbox）。 */
+.galzy-lightbox .PhotoView-Slider__toolbarIcon {
+	display: none;
+}
+
+.galzy-lightbox--single .PhotoView-Slider__Counter {
+	display: none;
+}
+
+.galzy-lightbox__close {
+	align-items: center;
+	background: rgb(18 18 18 / 0.6);
+	border: 1px solid rgb(255 255 255 / 0.14);
+	border-radius: 999px;
+	color: white;
+	cursor: pointer;
+	display: inline-flex;
+	height: 38px;
+	justify-content: center;
+	width: 38px;
+	-webkit-backdrop-filter: blur(10px);
+	backdrop-filter: blur(10px);
+	transition:
+		background-color 160ms ease-out,
+		transform 160ms ease-out;
+}
+
+.galzy-lightbox__close:hover {
+	background: rgb(18 18 18 / 0.82);
+}
+
+.galzy-lightbox__close:active {
+	transform: scale(0.94);
+}
+
+.galzy-lightbox__close:focus-visible {
+	outline: 2px solid rgb(103 232 249 / 0.9);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.galzy-lightbox__close {
+		transition: none;
+	}
+}

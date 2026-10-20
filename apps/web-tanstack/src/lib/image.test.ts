@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	DEFAULT_GAME_IMAGE_RATIO,
+	fullSizeCoverUrl,
 	getImageRatio,
 	getThumbHashDataUrl,
 } from "./image";
@@ -15,6 +16,23 @@ describe("getImageRatio", () => {
 		expect(getImageRatio(300, 0)).toBe(DEFAULT_GAME_IMAGE_RATIO);
 		expect(getImageRatio(Number.NaN, 400)).toBe(DEFAULT_GAME_IMAGE_RATIO);
 		expect(getImageRatio(null, null, 2 / 3)).toBe(2 / 3);
+	});
+});
+
+describe("fullSizeCoverUrl", () => {
+	it("restores the original VNDB cover path from a thumbnail URL", () => {
+		expect(fullSizeCoverUrl("https://vndb-t.galzy.moe/cv.t/12/79412.jpg")).toBe(
+			"https://vndb-t.galzy.moe/cv/12/79412.jpg",
+		);
+	});
+
+	it("leaves non-thumbnail URLs untouched", () => {
+		expect(fullSizeCoverUrl("https://vndb-t.galzy.moe/cv/12/79412.jpg")).toBe(
+			"https://vndb-t.galzy.moe/cv/12/79412.jpg",
+		);
+		expect(fullSizeCoverUrl("https://cdn.example.com/cover.jpg")).toBe(
+			"https://cdn.example.com/cover.jpg",
+		);
 	});
 });
 

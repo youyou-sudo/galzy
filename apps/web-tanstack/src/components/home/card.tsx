@@ -367,13 +367,25 @@ function SensitiveImage({
 	cSexualAvg,
 	className,
 	thumbhash,
+	revealed: revealedProp,
+	onReveal,
 	...imageProps
-}: ThumbHashImageProps & { cSexualAvg?: number | null }) {
+}: ThumbHashImageProps & {
+	cSexualAvg?: number | null;
+	/** 受控揭示态：详情页灯箱只在揭示后挂载触发器，避免绕过遮挡直接开大图。 */
+	revealed?: boolean;
+	onReveal?: () => void;
+}) {
 	const THRESHOLD = 1.0;
 	const showR18 = useSelector(r18Store, (s) => s.showR18);
 	const isSensitive = !showR18 && (cSexualAvg ?? 0) >= THRESHOLD;
 	const coarse = useCoarsePointer();
-	const [revealed, setRevealed] = useState(false);
+	const [internalRevealed, setInternalRevealed] = useState(false);
+	const revealed = revealedProp ?? internalRevealed;
+	const reveal = () => {
+		if (revealedProp === undefined) setInternalRevealed(true);
+		onReveal?.();
+	};
 	const sensitiveHidden = isSensitive && !revealed;
 
 	const w = (imageProps as Record<string, unknown>).width as number | undefined;
@@ -402,7 +414,7 @@ function SensitiveImage({
 						<Button
 							size="sm"
 							className="absolute bottom-2 right-2"
-							onClick={() => setRevealed(true)}
+							onClick={reveal}
 						>
 							显示
 						</Button>

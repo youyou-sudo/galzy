@@ -1,10 +1,22 @@
-import { thumbHashToDataURL } from "thumbhash";
 import { useEffect, useState } from "react";
+import { thumbHashToDataURL } from "thumbhash";
 
 export const DEFAULT_GAME_IMAGE_RATIO = 9 / 13;
 
+/**
+ * 把 VNDB 封面缩略图路径还原成原图路径（`/cv.t/12/794.jpg` → `/cv/12/794.jpg`）。
+ * API 的 `buildCoverUrl` 对大于 256x400 的封面统一输出 `.t` 缩略图，
+ * 灯箱展示原尺寸时使用；不含 `.t` 段的 URL 原样返回。
+ */
+export function fullSizeCoverUrl(url: string): string {
+	return url.replace(/\/([a-z]{2})\.t\//, "/$1/");
+}
+
 const thumbHashCache = new Map<string, string | null>();
-const thumbHashListeners = new Map<string, Set<(dataUrl: string | null) => void>>();
+const thumbHashListeners = new Map<
+	string,
+	Set<(dataUrl: string | null) => void>
+>();
 const decodeQueue: string[] = [];
 /** fallback drain（无 Worker 路径）是否已排程 */
 let decodeScheduled = false;
@@ -254,9 +266,7 @@ function subscribeThumbHash(
  * 完全移出主线程），Worker 不可用时回退主线程 requestIdleCallback /
  * setTimeout（8ms 分片）管线，完成后通过 state 更新。
  * 虚拟滚动进行中（setThumbHashDecodePaused）解码与通知整体挂起。 */
-export function useThumbHashDataUrl(
-	thumbhash?: string | null,
-): string | null {
+export function useThumbHashDataUrl(thumbhash?: string | null): string | null {
 	const [dataUrl, setDataUrl] = useState<string | null>(() => {
 		if (!thumbhash) return null;
 		return thumbHashCache.get(thumbhash.trim()) ?? null;
