@@ -30,6 +30,15 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 		onOpen: () => setDescriptionOpen(true),
 		onClose: () => setDescriptionOpen(false),
 	});
+	// 先算出过滤结果再决定是否渲染整行：producers 为空数组（kungal-only 条目
+	// 常无厂商数据）时，只判断 game?.producers 仍会渲染出「开发：」「发行：」
+	// 两个只有标签没有内容的空行。
+	const developers =
+		game?.producers
+			?.filter((producer) => producer.type === "co")
+			.filter((producer) => producer.is_dev === true) ?? [];
+	const publishers =
+		game?.producers?.filter((producer) => producer.is_pub === true) ?? [];
 	// 同一厂商会同时出现在开发/发行两栏：VT 同名快照重复会让浏览器中止
 	// 整场过渡（Unexpected duplicate view-transition-name），因此每个 pid
 	// 只给首个出现的元素挂名。
@@ -67,13 +76,35 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 			)}
 
 			{/* 开发组织 */}
-			{game?.producers && (
+			{developers.length > 0 && (
 				<div className="text-sm text-zinc-500 dark:text-zinc-400">
 					开发：
-					{game.producers
-						.filter((producer) => producer.type === "co")
-						.filter((producer) => producer.is_dev === true)
-						.map((producer, index, arr) => (
+					{developers.map((producer, index, arr) => (
+						<Link
+							to={`/producer/$pid`}
+							params={{ pid: producer.id }}
+							preload="viewport"
+							key={producer.id}
+							onClick={() => producerHeroActions.set(producer.id)}
+						>
+							<span
+								className="relative inline-flex items-center gap-0.5 text-cyan-600 wrap-break-word hover:underline"
+								style={vtNameFor(producer.id)}
+							>
+								{producer.name}
+							</span>
+							{index < arr.length - 1 ? " & " : ""}
+						</Link>
+					))}
+				</div>
+			)}
+
+			{/* 发行组织 */}
+			{publishers.length > 0 && (
+				<div className="text-sm">
+					<span className="text-zinc-500 dark:text-zinc-400">发行：</span>
+					<span className="">
+						{publishers.map((producer, index, arr) => (
 							<Link
 								to={`/producer/$pid`}
 								params={{ pid: producer.id }}
@@ -82,48 +113,21 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 								onClick={() => producerHeroActions.set(producer.id)}
 							>
 								<span
-									className="relative inline-flex items-center gap-0.5 text-cyan-600 wrap-break-word hover:underline"
+									className={`${producer.type === "ng" ? "text-cyan-900 opacity-50 dark:opacity-100" : "text-cyan-600"} wrap-break-word hover:underline`}
 									style={vtNameFor(producer.id)}
 								>
 									{producer.name}
 								</span>
-								{index < arr.length - 1 ? " & " : ""}
+								{index < arr.length - 1 ? (
+									<span className="text-zinc-500 dark:text-zinc-400 opacity-100">
+										{" "}
+										&{" "}
+									</span>
+								) : (
+									""
+								)}
 							</Link>
 						))}
-				</div>
-			)}
-
-			{/* 发行组织 */}
-			{game?.producers && (
-				<div className="text-sm">
-					<span className="text-zinc-500 dark:text-zinc-400">发行：</span>
-					<span className="">
-						{game.producers
-							.filter((producer) => producer.is_pub === true)
-							.map((producer, index, arr) => (
-								<Link
-									to={`/producer/$pid`}
-									params={{ pid: producer.id }}
-									preload="viewport"
-									key={producer.id}
-									onClick={() => producerHeroActions.set(producer.id)}
-								>
-									<span
-										className={`${producer.type === "ng" ? "text-cyan-900 opacity-50 dark:opacity-100" : "text-cyan-600"} wrap-break-word hover:underline`}
-										style={vtNameFor(producer.id)}
-									>
-										{producer.name}
-									</span>
-									{index < arr.length - 1 ? (
-										<span className="text-zinc-500 dark:text-zinc-400 opacity-100">
-											{" "}
-											&{" "}
-										</span>
-									) : (
-										""
-									)}
-								</Link>
-							))}
 					</span>
 				</div>
 			)}

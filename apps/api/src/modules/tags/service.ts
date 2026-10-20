@@ -17,6 +17,7 @@ import {
   zhtags,
 } from '@api/libs'
 import { purgeByTags, purgeTagPages } from '@api/libs/cloudflare-cache'
+import { isKungalDisplayId, resolveDisplayId } from '@api/libs/identity'
 import { delKv, delKvPattern, getKv, setKv } from '@api/libs/redis'
 import {
   getEffectiveWeekStart,
@@ -649,6 +650,19 @@ export const Tags = {
 
     // 2. 判断 id 是否为数字
     const idIsNumber = /^\d+$/.test(id)
+
+    // 2.5 kungal-only 条目（无 vn 行）没有 VNDB 标签数据，直接返回空数组。
+    //     必须先 resolveDisplayId 归一到展示身份（CONTRACT §7）：否则 /kgX 的
+    //     别名写法会走到下面 innerJoin(vn) 的零行分支，被误判成 404。
+    if (!idIsNumber) {
+      const canonicalId = await resolveDisplayId(id)
+      if (canonicalId && isKungalDisplayId(canonicalId)) {
+        // 形状与下面查库分支一致（{ tags: [...] }），前端 TagsCard 直接消费。
+        const empty = { tags: [] as Array<Record<string, any>> }
+        void setKv(cacheKey, JSON.stringify(empty), 60 * 60)
+        return empty
+      }
+    }
 
     // 3. 查询数据库
     const items = await db

@@ -12,6 +12,7 @@ import {
   extractVndbRef,
   jsonbArray,
   KungalClient,
+  type KungalWorkItem,
   normalizeWork,
   parseRefs,
   refsToAliasPairs,
@@ -19,7 +20,7 @@ import {
 import { acquireLockKv, delKvPattern, releaseLockKv } from '@api/libs/redis'
 import { CronService } from '@api/modules/cron/service'
 import { VndbSync } from '@api/modules/vndb-sync/service'
-import { eq, inArray, isNotNull } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
 
 const RESOLVE_BATCH = 100
 
@@ -113,19 +114,25 @@ export const KungalSync = {
     }
   },
 
-  /** full = 全部 alistb vid；delta = 新作品及缺少封面尺寸的旧记录。 */
+  /** full = 全部 alistb 锚点；delta = 新作品及缺少封面尺寸的旧记录。 */
   async runSync(
     type: 'full' | 'delta',
     onProgress?: (processed: number, total: number) => void,
   ) {
+    // 两路锚点：① vndb 锚点（走 refs= 批量通道）② 只有 kungal 锚点的条目
+    // （走 ids= 批量通道）。后者此前完全没有同步入口 —— 网盘先出现
+    // [kungal-X] 目录、目录里又没有 vndb 锚点时，galrc_alistb 有行而
+    // galrc_kungal_works 永远缺行，详情页只能渲染空壳（标题 null / 无封面）。
     const vids = await this.getAlistbVids()
-    if (vids.length === 0) {
-      // delta 即使没有需要同步的 VN，也要消费一次 redirects（合并事件与 VN 无关）
+    const kungalOnlyIds = await this.getKungalOnlyWorkIds()
+    if (vids.length === 0 && kungalOnlyIds.length === 0) {
+      // delta 即使没有需要同步的条目，也要消费一次 redirects（合并事件与条目无关）
       if (type === 'delta') await this.consumeRedirects()
       return
     }
 
     let target = vids
+    let kungalTarget = kungalOnlyIds
     if (type === 'delta') {
       const existing = new Map(
         (
@@ -156,14 +163,52 @@ export const KungalSync = {
           (row.coverUrl !== null && (!hasCoverDimensions || !hasThumbhash))
         )
       })
+
+      // kungal-only 通道的增量口径：只要本地已有该 work 行且封面尺寸/thumbhash
+      // 齐全就跳过；缺行或数据不全才重新水合（避免每次 delta 全量重刷）。
+      const existingKungal = new Map(
+        (
+          await db
+            .select({
+              id: kungalWorks.id,
+              coverUrl: kungalWorks.coverUrl,
+              coverWidth: kungalWorks.coverWidth,
+              coverHeight: kungalWorks.coverHeight,
+              coverThumbhash: kungalWorks.coverThumbhash,
+            })
+            .from(kungalWorks)
+            .where(
+              inArray(
+                kungalWorks.id,
+                kungalOnlyIds.map((r) => r.kungalId),
+              ),
+            )
+        ).map((r) => [r.id.toLowerCase(), r]),
+      )
+      kungalTarget = kungalOnlyIds.filter(({ kungalId }) => {
+        const row = existingKungal.get(kungalId.toLowerCase())
+        if (!row) return true
+        const hasCoverDimensions =
+          typeof row.coverWidth === 'number' &&
+          row.coverWidth > 0 &&
+          typeof row.coverHeight === 'number' &&
+          row.coverHeight > 0
+        const hasThumbhash =
+          typeof row.coverThumbhash === 'string' &&
+          row.coverThumbhash.length > 0
+        const hasCover = row.coverUrl !== null
+        return !hasCover || !hasCoverDimensions || !hasThumbhash
+      })
     }
-    if (target.length === 0) {
-      console.log('🔄 Kungal 增量同步: 无新 VN')
+    if (target.length === 0 && kungalTarget.length === 0) {
+      console.log('🔄 Kungal 增量同步: 无新条目')
       if (type === 'delta') await this.consumeRedirects()
       return
     }
 
-    console.log(`🔄 Kungal ${type} 同步开始: ${target.length} 个 VN`)
+    console.log(
+      `🔄 Kungal ${type} 同步开始: ${target.length} 个 VN + ${kungalTarget.length} 个 kungal-only 条目`,
+    )
     await this.updateProgress({
       status: 'running',
       type,
@@ -183,26 +228,45 @@ export const KungalSync = {
       ],
     })
 
-    // 阶段 1：vndb 锚点 → kungal work 解析（refs= 批量通道 ≤100/次，并发 4）
-    const resolved = await KungalClient.resolveWorksByVndbIds(
-      target,
-      (processed) => {
+    // 阶段 1：两路解析并发
+    // ① vndb 锚点 → work（refs= 批量通道 ≤100/次，并发 4）
+    // ② kungal-only 锚点 → work（ids= 批量通道；这类条目在网盘里只有
+    //    [kungal-X] 目录，从没有 vndb 锚点，此前完全没有同步入口）
+    const [resolvedByVndb, resolvedKungalOnly] = await Promise.all([
+      KungalClient.resolveWorksByVndbIds(target, (processed) => {
         void this.updateProgress({
           processedItems: processed,
           stage: 'resolve',
         })
         onProgress?.(processed, target.length)
-      },
+      }),
+      KungalClient.resolveWorksByKungalIds(
+        kungalTarget.map((r) => r.kungalId),
+        (processed) => {
+          onProgress?.(processed, kungalTarget.length)
+        },
+      ),
+    ])
+    // 统一成 [锚点 vid | null, item]：kungal-only 通道没有 vndb 锚点，传给
+    // normalizeWork 的 vid 为 null，vndbId 只由 item.refs 裁定。
+    const resolvedEntries: Array<[string | null, KungalWorkItem]> = [
+      ...resolvedByVndb.entries(),
+      ...[...resolvedKungalOnly.values()].map(
+        (item): [string | null, KungalWorkItem] => [null, item],
+      ),
+    ]
+    const resolvedTotal = resolvedEntries.length
+    console.log(
+      `✅ Kungal 解析完成: ${resolvedTotal}/${target.length + kungalTarget.length}（vndb ${resolvedByVndb.size} + kungal-only ${resolvedKungalOnly.size}）`,
     )
-    console.log(`✅ Kungal 解析完成: ${resolved.size}/${target.length}`)
     await this.updateProgress({
       stage: 'works',
-      resolvedCount: resolved.size,
-      processedItems: resolved.size,
+      resolvedCount: resolvedTotal,
+      processedItems: resolvedTotal,
     })
     await this.addLog(
       'info',
-      `解析完成: ${resolved.size}/${target.length} 命中`,
+      `解析完成: ${resolvedTotal}/${target.length + kungalTarget.length} 命中（vndb ${resolvedByVndb.size} + kungal-only ${resolvedKungalOnly.size}）`,
     )
 
     // 阶段 2：批量 upsert（每批 3 条语句：works upsert、titles 清、titles 插）
@@ -210,10 +274,12 @@ export const KungalSync = {
     let errors = 0
     let upserted = 0
     let aliases = 0
-    const entries = [...resolved.entries()]
+    const entries = resolvedEntries
     for (let i = 0; i < entries.length; i += RESOLVE_BATCH) {
       const batch = entries.slice(i, i + RESOLVE_BATCH)
       try {
+        // vid 为 null 的是 kungal-only 通道（网盘只有 [kungal-X] 目录）：
+        // vndbId 只由 refs 裁定，接不到就是纯 kungal 条目。
         const normalized = batch.map(([vid, item]) => normalizeWork(item, vid))
 
         // galrc_kungal_works.vndb_id 上有唯一索引（见迁移 0021）：同一 VNDB 锚点
@@ -359,7 +425,14 @@ export const KungalSync = {
     // 阶段 3：缓存与 CDN 失效
     await this.updateProgress({ stage: 'cache' })
     // Meilisearch 的游戏文档也包含封面尺寸，否则搜索页会继续使用旧比例。
-    await CronService.syncGameBatchToMeili([...resolved.keys()])
+    await CronService.syncGameBatchToMeili([...resolvedByVndb.keys()])
+    // kungal-only 条目没有 vn 行，走独立的文档通道；否则这次补建出来的
+    // work 行只对详情页生效，列表/搜索仍搜不到。
+    if (kungalTarget.length > 0) {
+      await CronService.syncKungalOnlyBatchToMeili(
+        kungalTarget.map((r) => r.displayId),
+      )
+    }
     await this.invalidateCache()
     await purgeAfterSync()
     await this.updateProgress({
@@ -722,6 +795,37 @@ export const KungalSync = {
       .from(alistb)
       .where(isNotNull(alistb.vid))
     return rows.map((r) => r.vid!).filter((v) => /^v\d+$/i.test(v))
+  },
+
+  /**
+   * alistb 中「只有 kungal 锚点」的条目（vid 为空、kungal_id 非空）。
+   *
+   * 这类行来自网盘里的 `[kungal-X]` 目录：kungal 侧先有作品、VNDB 侧还没有，
+   * 或者还接不上 vndb 锚点。它们**不会**出现在 getAlistbVids 里，因此此前
+   * 从没被同步过 —— galrc_kungal_works 缺行 → 详情页拿不到标题/封面/简介。
+   *
+   * 返回去重后的 (kungal work id, 展示身份) 列表，供 ids= 批量通道水合。
+   */
+  async getKungalOnlyWorkIds(): Promise<
+    Array<{ kungalId: string; displayId: string }>
+  > {
+    const rows = await db
+      .select({
+        kungalId: alistb.kungalId,
+        displayId: alistb.displayId,
+      })
+      .from(alistb)
+      .where(and(isNull(alistb.vid), isNotNull(alistb.kungalId)))
+    const out = new Map<string, { kungalId: string; displayId: string }>()
+    for (const row of rows) {
+      const kungalId = row.kungalId?.trim()
+      if (!kungalId) continue
+      const key = kungalId.toLowerCase()
+      if (!out.has(key)) {
+        out.set(key, { kungalId, displayId: row.displayId })
+      }
+    }
+    return [...out.values()]
   },
 
   /** 复用 VNDB 同步的缓存失效键集（games 读侧缓存） + kungal 专属键。 */

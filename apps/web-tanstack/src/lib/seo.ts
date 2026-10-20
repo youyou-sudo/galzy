@@ -29,7 +29,18 @@ export function truncateText(text: string, max = 120): string {
 	return clean.length > max ? `${clean.slice(0, max)}…` : clean;
 }
 
-/** 从 game detail 取官方语言标题（与 vn.olang 一致），无则回退 "Galgame" */
+/** 从 alias 多行文本里取首个非空行（kungal-only 条目常只有 alias 可用） */
+function firstAliasLine(alias?: string | null): string | undefined {
+	return (
+		alias
+			?.split("\n")
+			.map((line) => line.trim())
+			.find((line) => line !== "") || undefined
+	);
+}
+
+/** 从 game detail 取官方语言标题（与 vn.olang 一致）
+ *  兜底顺序：olang 标题 → alias 首个非空行 → "Galgame" */
 export function gameTitleOf(
 	game:
 		| {
@@ -39,6 +50,7 @@ export function gameTitleOf(
 						lang?: string | null;
 						title?: string | null;
 					}> | null;
+					alias?: string | null;
 				} | null;
 		  }
 		| null
@@ -48,7 +60,7 @@ export function gameTitleOf(
 	const title = vn?.titles?.find(
 		(t) => t.lang === vn?.olang && t.title?.trim() !== "",
 	)?.title;
-	return title || "Galgame";
+	return title || firstAliasLine(vn?.alias) || "Galgame";
 }
 
 type LayoutGameMatch = { routeId: string; loaderData?: unknown };
@@ -77,6 +89,7 @@ type GameTitleSource = {
 	vn?: {
 		olang?: string | null;
 		titles?: Array<{ lang?: string | null; title?: string | null }>;
+		alias?: string | null;
 	};
 };
 

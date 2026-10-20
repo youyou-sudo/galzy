@@ -52,6 +52,16 @@ import {
 import { status } from 'elysia'
 import type { GameModel } from './model'
 
+/**
+ * 合成 vn 对象时的占位语言。
+ *
+ * 条目只有 kungal 锚点、本地又没有 work 行时，唯一可用的标题是网盘目录名；
+ * 本仓库的 Cloudreve 目录名是中文（如「转生魅魔迷宫历险记」），故按 zh-Hans 标注。
+ * 具体取值不参与语义判断 —— 前端按「title.lang === vn.olang」取标题，
+ * 这里保证两者一致即可让标题正常渲染，而不是再次显示空标题。
+ */
+const DISPLAY_FALLBACK_LANG = 'zh-Hans'
+
 /** VNDB relation 反向映射（seq↔preq；其余保持原值） */
 const RELATION_INVERSE: Record<string, string> = {
   seq: 'preq',
@@ -119,6 +129,29 @@ async function loadKungalWork(
   return undefined
 }
 
+/**
+ * 从网盘路径里推导一个可展示的标题（kungal work 行缺失时的最后兜底）。
+ *
+ * 目录命名约定是 `[kungal-X]作品名` / `[vndb-vNNN]作品名`，取最后一个路径段、
+ * 去掉方括号锚点前缀即可。多路径取第一条能解析出名字的。
+ */
+function titleFromAlistbPath(path: unknown): string | null {
+  const paths = Array.isArray(path)
+    ? (path as unknown[])
+    : typeof path === 'string'
+      ? [path]
+      : []
+  for (const entry of paths) {
+    if (typeof entry !== 'string') continue
+    const segment = entry.split('/').filter(Boolean).pop()
+    if (!segment) continue
+    // 去掉开头的 [vndb-…] / [kungal-…] / [other-…]，保留作品名
+    const title = segment.replace(/^\[[^\]]*\]\s*/, '').trim()
+    if (title) return title
+  }
+  return null
+}
+
 export const Game = {
   async Count() {
     const redisData = await getKv('galzy:game:count')
@@ -131,6 +164,9 @@ export const Game = {
       .leftJoin(vn, eq(alistb.vid, vn.id))
       // 有 vn 行（常规作品）或 kungal 锚点（kungal-only 条目）都算收录；
       // vid 指向不存在 vn 的幽灵行不计入。
+      // 口径必须与 Meilisearch 列表（真正的前端列表数据源）一致：那里按
+      // alistb 逐行建文档，kungal 锚点缺 work 行时该条目仍会被计入总数，
+      // 因此这里保留 kungal_id 判定即可，不要改成只看 vn。
       .where(or(isNotNull(vn.id), isNotNull(alistb.kungalId)))
       .then((r) => r[0])
     const total = Number(totalCountResult?.count || 0)
@@ -379,8 +415,15 @@ export const Game = {
         // 历史缓存条目缺 imageUrl（imageUrl 特性上线前写入）→ 删除重建。
         // 注意：详情响应的 image 是 Drizzle 关系行（cSexualAvg 驼峰），
         // 不要用列表面的 c_sexual_avg 判存亡（此前误用导致缓存永远失效、每次全量查库）。
+        //
+        // vn 缺失不再算「缓存坏了」：kungal-only 兜底路径合成出来的 vn 是合法响应
+        // （CONTRACT §5），早先的 !cached?.vn 判据会让这类条目每次请求都删缓存重建
+        // —— 6 小时 TTL 形同虚设，并发下还会穿透到 DB。
+        // 只有「契约要求的 vn 键整个不见」才重建（旧版本写入的残缺缓存）。
         if (
-          !cached?.vn ||
+          typeof cached !== 'object' ||
+          cached === null ||
+          !('vn' in cached) ||
           (cached?.vn?.image && !('imageUrl' in cached.vn.image))
         ) {
           await delKv(cacheKey)
@@ -400,6 +443,8 @@ export const Game = {
           vid: alistb.vid,
           kungalId: alistb.kungalId,
           anchorKind: alistb.anchorKind,
+          displayId: alistb.displayId,
+          path: alistb.path,
         })
         .from(alistb)
         .where(displayIdWhere(canonicalId))
@@ -532,8 +577,6 @@ export const Game = {
 
       // ── Kungal 数据源优先合并（第二数据源）：有 kungal 记录 → 覆盖标题/封面/简介/首发日，
       //    缺字段回退 vndb。前端零改动（仍消费 vn.titles / vn.image / vn.description / released_first）。
-      // ── Kungal 数据源优先合并（第二数据源）：有 kungal 记录 → 覆盖标题/封面/简介/首发日，
-      //    缺字段回退 vndb。前端零改动（仍消费 vn.titles / vn.image / vn.description / released_first）。
       //    两条来源都要查：vndb 锚点（正常作品）、kungal 锚点（kungal-only 条目，无 vn 行）。
       const kungalWork = await loadKungalWork(lookupVid, lookupKungalId)
       const kungalOnly = !data.vn
@@ -646,6 +689,46 @@ export const Game = {
           if (kungalWork.releasedFirst) {
             released_first = kungalWork.releasedFirst
           }
+        }
+      } else if (kungalOnly) {
+        // 兜底：条目只有 kungal 锚点（网盘里是 [kungal-X] 目录），但本地
+        // galrc_kungal_works 还没有对应行 —— 典型场景是新目录刚被扫描进
+        // alistb、kungal 同步尚未补建 work 行，或该 work 在 kungal 侧已下线。
+        //
+        // 此时不合成 vn 会违反 CONTRACT §5（kungalOnly=true 必须给出 vn 形状），
+        // 前端会渲染出字面 "null" 的标题与空壳封面；而且下面缓存入口的
+        // 「!cached?.vn 就删缓存」判据会让这个条目永远缓存不命中。
+        //
+        // 数据只能从 alistb 自身取：展示标题用网盘目录名（去掉 [kungal-X] 前缀），
+        // 其余字段留空，等下一次 kungal 同步补齐。
+        const fallbackTitle = titleFromAlistbPath(anchorRow?.path)
+        ;(data as any).vn = {
+          id: null,
+          olang: fallbackTitle ? DISPLAY_FALLBACK_LANG : null,
+          alias: null,
+          description: null,
+          cImage: null,
+          imageUrl: null,
+          cVotecount: null,
+          cRating: null,
+          cAverage: null,
+          length: null,
+          devstatus: null,
+          syncedAt: null,
+          titles: fallbackTitle
+            ? [
+                {
+                  id: lookupKungalId,
+                  lang: DISPLAY_FALLBACK_LANG,
+                  official: null,
+                  title: fallbackTitle,
+                  latin: null,
+                  main: true,
+                },
+              ]
+            : [],
+          image: null,
+          releasesVn: [],
         }
       }
 

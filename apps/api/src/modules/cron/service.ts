@@ -1031,6 +1031,38 @@ export const CronService = {
     }
   },
 
+  /**
+   * 增量同步「kungal-only 条目」的 Meilisearch 文档（无 vn 行，数据全部来自
+   * galrc_kungal_works）。
+   *
+   * 与 syncGameBatchToMeili 的区别：那条以 vn 为驱动表，kungal-only 条目
+   * 没有 vn 行，永远进不去。kungal 同步补建 work 行后必须走这条通道，
+   * 否则详情页修好了、列表与搜索仍然搜不到。
+   *
+   * @param displayIds 展示身份（'kgX'），不是 kungal work id
+   */
+  async syncKungalOnlyBatchToMeili(displayIds: string[]) {
+    if (displayIds.length === 0) return
+    const index = MeiliClient.index(
+      process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
+    )
+    try {
+      const docs = await db
+        .select(kungalOnlyMeiliDoc)
+        .from(alistb)
+        .innerJoin(kungalWorks, eq(kungalWorks.id, alistb.kungalId))
+        .where(inArray(alistb.displayId, displayIds))
+      if (docs.length > 0) {
+        const items = docs as Array<Record<string, unknown>>
+        addImageUrlToDocs(items)
+        await index.updateDocuments(items, { primaryKey: 'id' })
+        console.log(`[Meili] kungal-only 增量更新: ${items.length} docs`)
+      }
+    } catch (e) {
+      console.error('[Meili] kungal-only 增量更新失败:', e)
+    }
+  },
+
   // Incremental sync: push one producer to Meilisearch by ID
   async syncProducerToMeili(pid: string) {
     const index = MeiliClient.index(

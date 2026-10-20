@@ -14,6 +14,18 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 	const olangTitle = game?.vn?.titles?.find(
 		(t) => t.lang === game.vn?.olang && (t.title ?? "").trim() !== "",
 	)?.title;
+	// 展示标题兜底链：kungal-only 条目（vn 缺失或未水合）没有 olang 标题，
+	// 直接用 olangTitle 会渲染成字面 "null" 或空 h1。
+	// 顺序：olang 标题 → 任意非空标题 → alias 首个非空行 → "未知作品"。
+	const anyTitle = game?.vn?.titles?.find(
+		(t) => (t.title ?? "").trim() !== "",
+	)?.title;
+	const aliasFirstLine = game?.vn?.alias
+		?.split("\n")
+		.map((line) => line.trim())
+		.find((line) => line !== "");
+	const displayTitle =
+		olangTitle?.trim() || anyTitle?.trim() || aliasFirstLine || "未知作品";
 	const image = game?.vn?.image as unknown as {
 		imageUrl?: string | null;
 		thumbhash?: string | null;
@@ -103,7 +115,7 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 								// 详情页主封面：缓存命中时跳过浮现动画，避免重复访问的喧宾夺主
 								alwaysAnimate={false}
 								src={src}
-								alt={olangTitle || "null"}
+								alt={displayTitle}
 								cSexualAvg={game?.vn?.image?.cSexualAvg}
 								className="rounded-lg w-full h-full object-cover"
 							/>
@@ -121,7 +133,7 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 						viewTransitionClass: "vt-text",
 					}}
 				>
-					{olangTitle || "null"}
+					{displayTitle}
 				</h1>
 
 				{/* Aliases */}

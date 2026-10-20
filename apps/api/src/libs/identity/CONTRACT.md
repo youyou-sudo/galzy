@@ -107,6 +107,11 @@ kungal-only（`kungalOnly === true`）时：**`vn` 不是 null，而是由 kunga
 `c_sexual_avg` 由 `contentRating='r18'` 映射为 1。
 `Relations` 对 kungal-only 返回空数组（不 404），`OpenListFiles` 按展示身份取资源行。
 
+**work 行缺失时的兜底（§6.1 的水合尚未跑到时的降级路径）**：仍合成 `vn` 形状对象
+（`id: null`、`image: null`、`titles: []`，或从 `alistb.path` 目录名推出一个占位标题），
+**不得**省略 `vn` 键 —— 省略会让前端渲染出字面 `null`，并触发详情缓存的
+「`vn` 键缺失就重建」判据导致该条目永久缓存不命中。
+
 ## 6. 扫描 / apply 契约（cron）
 
 - 搜索关键词：`[vndb-` 与 `[kungal-` **两次并集**，按 `path` 去重后进 diff。同一次 lock / 同一次统计。
@@ -123,6 +128,19 @@ kungal-only（`kungalOnly === true`）时：**`vn` 不是 null，而是由 kunga
   3. 插入真正新增的行（`id = displayId`）；
   4. 最后才处理 stale/隐藏（沿用现有 `pathExists` 保守策略）。
 - 升级路径（kungal → vndb）：同一行原地把 `id`/`vid`/`display_id` 从 `kgX` 改为 `vNNN`；旧的 `kgX` 先 `linkAlias('kungal', X, 'vNNN')`，解析器永久可 302。
+
+## 6.1 kungal-only 条目的 work 行水合（`kungal-sync`）
+
+扫描只负责落 `galrc_alistb` 行，**不**建 `galrc_kungal_works`。两者必须由 kungal-sync 对齐：
+
+- 锚点来源两路，缺一不可：
+  - `getAlistbVids()` —— `vid IS NOT NULL`，走 `refs=` 批量通道（vndb → work）；
+  - `getKungalOnlyWorkIds()` —— `vid IS NULL AND kungal_id IS NOT NULL`，走 `ids=` 批量通道（kungal work id → work）。
+- 不变量：**每个 `alistb.kungal_id` 都应有对应 `galrc_kungal_works` 行**。
+  只有前者时，网盘先出现 `[kungal-X]` 目录、VNDB 侧尚无对应作品的条目永远拿不到行，
+  详情页/列表/搜索全部降级为空壳（历史故障 `kg218897`）。
+- 写库后必须同时刷新两个搜索文档通道：`syncGameBatchToMeili`（vn 驱动）+ `syncKungalOnlyBatchToMeili`（`kgX` 驱动）。后者以 `vn` 为主键的增量路径永远覆盖不到 kungal-only 条目。
+- delta 口径：work 行缺失，或 `cover_url`/封面尺寸/`thumbhash` 不全时重新水合；齐全则跳过。
 
 ## 7. 读取侧统一规则
 
