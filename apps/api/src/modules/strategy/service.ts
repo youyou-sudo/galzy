@@ -328,8 +328,13 @@ export const Strategy = {
       db
         .select({
           ...getTableColumns(articles),
-          user: sql<{ id: string; name: string; image: string }>`
-            (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "image" FROM "galrc_user" WHERE "id" = ${articles.author}) "u")
+          user: sql<{
+            id: string
+            name: string
+            email: string
+            image: string
+          }>`
+            (SELECT row_to_json("u".*) FROM (SELECT "id", "name", "email", "image" FROM "galrc_user" WHERE "id" = ${articles.author}) "u")
           `.as('user'),
         })
         .from(articles)

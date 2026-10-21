@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { AdminPageHeader } from "@web/components/admin/admin-page-header";
+import { AdminUserTooltip } from "@web/components/admin/admin-user-tooltip";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
 import { Card, CardContent, CardHeader } from "@web/components/ui/card";
@@ -308,9 +309,10 @@ function CommentsTable() {
 													{isReply && (
 														<CornerDownRightIcon className="size-3.5 text-muted-foreground shrink-0" />
 													)}
-													<span className="text-sm font-medium">
-														{comment.user?.name || "未知"}
-													</span>
+													<AdminUserTooltip
+														user={comment.user}
+														className="text-sm font-medium"
+													/>
 												</div>
 												{isReply && (
 													<span className="text-[11px] text-muted-foreground block mt-0.5">

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { AdminPageHeader } from "@web/components/admin/admin-page-header";
+import { AdminUserTooltip } from "@web/components/admin/admin-user-tooltip";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
 import { Card, CardContent, CardHeader } from "@web/components/ui/card";
@@ -43,6 +44,7 @@ import { toast } from "sonner";
 interface AdminArticleUser {
 	id: string;
 	name: string;
+	email?: string | null;
 	image?: string | null;
 }
 
@@ -280,9 +282,10 @@ function ArticlesTable() {
 												</span>
 											</td>
 											<td className="px-4 py-3">
-												<span className="text-sm text-muted-foreground">
-													{article.user?.name || "未知"}
-												</span>
+												<AdminUserTooltip
+													user={article.user}
+													className="text-sm text-muted-foreground"
+												/>
 											</td>
 											<td className="px-4 py-3">
 												<span className="text-xs text-muted-foreground">
