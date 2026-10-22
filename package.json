@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@elysiajs/cron": "^1.4.2",
-    "@types/bun": "^1.4.2",
+    "@types/bun": "^1.4.3",
     "babel-plugin-react-compiler": "1.0.0",
     "config": "workspace:*",
     "typescript": "^7.0.2"
@@ -29,14 +29,14 @@
     "protobufjs"
   ],
   "dependencies": {
-    "@biomejs/biome": "^2.5.15",
+    "@biomejs/biome": "^2.6.2",
     "@mdx-js/loader": "^3.1.1",
     "@mdx-js/react": "^3.1.1",
     "@types/mdx": "^2.0.14",
-    "better-auth": "^1.7.7",
+    "better-auth": "^1.7.12",
     "concurrently": "^10.0.6",
     "radash": "^12.1.1",
     "try": "^1.0.3",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   }
 }

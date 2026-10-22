@@ -19,12 +19,11 @@ DisplayId = `v${digits}`        // VNDB 锚点（优先）
 
 ## 2. `galrc_alistb` 新增列（只增列，不改主键）
 
-| 列 | 类型 | 语义 |
-|---|---|---|
-| `anchor_kind` | text | `'vndb' \| 'kungal' \| 'other'`，默认 `'vndb'` |
-| `kungal_id` | text null | 锚点 X（**原样大小写**，唯一索引 `lower(kungal_id)`） |
-| `display_id` | text | §1 的展示身份；非空且唯一，索引 `uq_galrc_alistb_display_id` |
-
+| 列            | 类型      | 语义                                                         |
+| ------------- | --------- | ------------------------------------------------------------ |
+| `anchor_kind` | text      | `'vndb' \| 'kungal' \| 'other'`，默认 `'vndb'`               |
+| `kungal_id`   | text null | 锚点 X（**原样大小写**，唯一索引 `lower(kungal_id)`）        |
+| `display_id`  | text      | §1 的展示身份；非空且唯一，索引 `uq_galrc_alistb_display_id` |
 - `id` 保持现状语义：**等于锚点键**（`vNNN` 或 `kgX`）。存量行 backfill：`anchor_kind='vndb'`, `kungal_id=NULL`, `display_id=id`。
 - 不变量：apply 完成后，同一 `display_id` 只允许一行；同一 `lower(kungal_id)` 只允许一行。
 - 不变量：`(anchor_kind='vndb')` ⇒ `display_id = vid = id`。
@@ -91,12 +90,12 @@ export function parseDisplayId(raw: string): DisplayId | null
 
 `GET /games?id=…` 的返回体新增：
 
-| 字段 | 类型 | 语义 |
-|---|---|---|
-| `canonicalId` | string | 本条目的展示身份（§1）。前端 `id !== canonicalId` ⇒ 302 到 `/$id` |
-| `displayId` | string | 同 `canonicalId`，供列表/卡片直接用作路由参数 |
-| `anchorKind` | `'vndb' \| 'kungal' \| 'other'` | 当前锚点类型 |
-| `kungalOnly` | boolean | `true` = 无 vndb 行，标题/封面/简介全部来自 `galrc_kungal_works` |
+| 字段          | 类型                            | 语义                                                              |
+| ------------- | ------------------------------- | ----------------------------------------------------------------- |
+| `canonicalId` | string                          | 本条目的展示身份（§1）。前端 `id !== canonicalId` ⇒ 302 到 `/$id` |
+| `displayId`   | string                          | 同 `canonicalId`，供列表/卡片直接用作路由参数                     |
+| `anchorKind`  | `'vndb' \| 'kungal' \| 'other'` | 当前锚点类型                                                      |
+| `kungalOnly`  | boolean                         | `true` = 无 vndb 行，标题/封面/简介全部来自 `galrc_kungal_works`  |
 
 kungal-only（`kungalOnly === true`）时：**`vn` 不是 null，而是由 kungal 数据合成的 vn 形状对象**
 （`id` 为 null），这样详情页 / SEO / 卡片无需分支即可渲染。其余规则：`otherData` 可为 `null`；
@@ -130,6 +129,7 @@ kungal-only（`kungalOnly === true`）时：**`vn` 不是 null，而是由 kunga
 
 - 搜索关键词：`[vndb-` 与 `[kungal-` **两次并集**，按 `path` 去重后进 diff。同一次 lock / 同一次统计。
 - 锚点提取（`cron/lib.ts`）：
+
   ```
   [vndb-v123]  → { kind:'vndb',  id:'v123' }
   [kungal-X]   → { kind:'kungal', id:'X' }   // 大小写不敏感匹配，id 原样
@@ -146,7 +146,6 @@ kungal-only（`kungalOnly === true`）时：**`vn` 不是 null，而是由 kunga
 ## 6.1 kungal-only 条目的 work 行水合（`kungal-sync`）
 
 扫描只负责落 `galrc_alistb` 行，**不**建 `galrc_kungal_works`。两者必须由 kungal-sync 对齐：
-
 - 锚点来源两路，缺一不可：
   - `getAlistbVids()` —— `vid IS NOT NULL`，走 `refs=` 批量通道（vndb → work）；
   - `getKungalOnlyWorkIds()` —— `vid IS NULL AND kungal_id IS NOT NULL`，走 `ids=` 批量通道（kungal work id → work）。
@@ -165,15 +164,15 @@ kungal-only（`kungalOnly === true`）时：**`vn` 不是 null，而是由 kunga
 
 ## 8. 写作用域归属（避免同文件双写）
 
-| 文件 / 目录 | 唯一 owner |
-|---|---|
-| `apps/api/drizzle/**`, `apps/api/src/db/schema/*` | Lead |
-| `apps/api/src/libs/identity/**` | Lead |
-| `apps/api/src/modules/cron/**` | Lead |
-| `apps/api/src/modules/vndb-sync/service.ts`（vid 口径） | Lead |
-| `apps/api/src/modules/games/**`, `apps/api/src/modules/views/**` | Lead |
-| `apps/api/src/modules/kungal-sync/**`, `apps/api/src/libs/kungal-api/**` | kungal-anchors |
-| `apps/web-tanstack/src/routes/$id/**`, `apps/web-tanstack/src/server/game/index.ts`, `apps/web-tanstack/src/lib/game-id.ts`（新建） | web-route |
-| `apps/api/src/modules/tasks/**`（扫描文案/统计展示） | tasks-panel |
+| 文件 / 目录                                                                                                                         | 唯一 owner     |
+| ----------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| `apps/api/drizzle/**`, `apps/api/src/db/schema/*`                                                                                   | Lead           |
+| `apps/api/src/libs/identity/**`                                                                                                     | Lead           |
+| `apps/api/src/modules/cron/**`                                                                                                      | Lead           |
+| `apps/api/src/modules/vndb-sync/service.ts`（vid 口径）                                                                             | Lead           |
+| `apps/api/src/modules/games/**`, `apps/api/src/modules/views/**`                                                                    | Lead           |
+| `apps/api/src/modules/kungal-sync/**`, `apps/api/src/libs/kungal-api/**`                                                            | kungal-anchors |
+| `apps/web-tanstack/src/routes/$id/**`, `apps/web-tanstack/src/server/game/index.ts`, `apps/web-tanstack/src/lib/game-id.ts`（新建） | web-route      |
+| `apps/api/src/modules/tasks/**`（扫描文案/统计展示）                                                                                | tasks-panel    |
 
 写入他人作用域前必须先发消息给 owner。
