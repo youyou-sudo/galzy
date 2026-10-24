@@ -16,6 +16,11 @@ import { and, asc, count, countDistinct, desc, eq, inArray } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { CollectionModel } from './model'
 
+/** 保序去重：同一作品可能经多个 release/多条条目重复命中，预览只展示一次。 */
+function uniqueVids(vids: string[]): string[] {
+  return [...new Set(vids)]
+}
+
 export const CollectionService = {
   // 获取合集列表（传 status 则按状态过滤，不传则返回全部）
   async list(params: CollectionModel.list) {
@@ -150,9 +155,9 @@ export const CollectionService = {
       // Manual collections: use entriesMap (already populated above)
       for (const item of itemsWithCount) {
         if (item.type === 'manual') {
-          const vids = (entriesMap.get(item.id) ?? [])
-            .slice(0, includePreview)
-            .map((e) => e.vid)
+          const vids = uniqueVids(
+            (entriesMap.get(item.id) ?? []).map((e) => e.vid),
+          ).slice(0, includePreview)
           if (vids.length > 0) {
             perCollection.set(item.id, vids)
             for (const v of vids) vidSet.add(v)
@@ -190,9 +195,9 @@ export const CollectionService = {
           // Assign to each producer collection
           for (const item of pItems) {
             const pIds = (item.producerIds as string[] | null) ?? []
-            const vids = pIds
-              .flatMap((pid) => pidVids.get(pid) ?? [])
-              .slice(0, includePreview)
+            const vids = uniqueVids(
+              pIds.flatMap((pid) => pidVids.get(pid) ?? []),
+            ).slice(0, includePreview)
             if (vids.length > 0) {
               perCollection.set(item.id, vids)
               for (const v of vids) vidSet.add(v)
