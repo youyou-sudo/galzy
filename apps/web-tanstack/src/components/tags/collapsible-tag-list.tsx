@@ -5,6 +5,7 @@ import {
 } from "@web/components/tags/tag-tooltip";
 import { TooltipTrigger } from "@web/components/ui/tooltip";
 import { cn } from "@web/lib/utils";
+import { tagHeroActions } from "@web/stores/tagHeroStore";
 import { ChevronDown, MousePointerClick } from "lucide-react";
 import { useLayoutEffect, useRef, useState } from "react";
 
@@ -185,6 +186,8 @@ export function CollapsibleTagList({
 									to="/tags/$tagId"
 									params={{ tagId: t.id }}
 									preload={preload}
+									// 点击时回写展示名，标签详情 pending 态复用
+									onClick={() => tagHeroActions.fromTag(t)}
 									className={cn(pill, "mr-1.5 mb-1.5 max-w-full")}
 								>
 									<span className="truncate">#{tagLabel(t)}</span>

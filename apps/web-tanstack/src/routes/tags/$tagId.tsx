@@ -1,6 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { TagDetailPageSkeleton } from "@web/components/shared/route-skeletons";
-import TagDetailPage from "@web/components/tags/tag-detail-page";
+import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -9,12 +7,14 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@web/components/shared/breadcrumb";
+import TagDetailPage from "@web/components/tags/tag-detail-page";
+import { TagDetailPending } from "@web/components/tags/tag-detail-pending";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { getTagData, getVnListByTag } from "@web/server/tags";
 import { recordTagView } from "@web/server/views";
 
 export const Route = createFileRoute("/tags/$tagId")({
-	pendingComponent: () => <TagDetailPageSkeleton />,
+	pendingComponent: PendingTagDetail,
 	loader: async ({ params }) => {
 		const { tagId } = params;
 		const [tag, game] = await Promise.all([
@@ -86,3 +86,9 @@ export const Route = createFileRoute("/tags/$tagId")({
 		);
 	},
 });
+
+// pending 态需要 tagId 才能复用入口带过来的标签名（tagHeroStore 按 id 匹配）
+function PendingTagDetail() {
+	const { tagId } = useParams({ from: "/tags/$tagId" });
+	return <TagDetailPending tagId={tagId} />;
+}

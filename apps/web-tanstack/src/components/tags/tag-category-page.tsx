@@ -13,6 +13,7 @@ import type {
 	TagOrderKey,
 	TagSortKey,
 } from "@web/server/tags";
+import { tagHeroActions } from "@web/stores/tagHeroStore";
 import { Loader2Icon, TagsIcon } from "lucide-react";
 import { memo, startTransition, useEffect, useMemo, useState } from "react";
 
@@ -244,6 +245,8 @@ const TagRow = memo(function TagRow({ tag }: { tag: TagHubTag }) {
 						<Link
 							to="/tags/$tagId"
 							params={{ tagId: tag.id }}
+							// 点击时回写展示名，标签详情 pending 态复用
+							onClick={() => tagHeroActions.fromTag(tag)}
 							className="-mx-1.5 flex items-baseline gap-3 border-b border-border/70 px-1.5 py-[5px] text-xs leading-[18px] no-underline transition-colors hover:bg-muted/40"
 						>
 							<span className="min-w-0 flex-1 truncate">{tag.name}</span>
