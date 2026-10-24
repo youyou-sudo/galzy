@@ -13,6 +13,7 @@ import {
 import { Copy } from "@web/components/animate-ui/icons/copy";
 import { Download } from "@web/components/animate-ui/icons/download";
 import { AnimateIcon } from "@web/components/animate-ui/icons/icon";
+import { FileListSkeleton } from "@web/components/game/game-tab-skeleton";
 import { MarkdownAsync } from "@web/components/markdownAync";
 import { CopyButton } from "@web/components/shadcn-io/copy-button";
 import { Alert, AlertDescription } from "@web/components/ui/alert";
@@ -122,13 +123,8 @@ export const DownloadOptions = () => {
 	}
 
 	if (!settledFilelist?.game) {
-		return (
-			<>
-				<Skeleton className="w-[50%] h-7" />
-				<Skeleton className="w-[70%] h-7 mt-2" />
-				<Skeleton className="w-full h-7 mt-2" />
-			</>
-		);
+		// 与详情页 pending 态共用同一份文件列表骨架，数据到达前后视觉/高度一致
+		return <FileListSkeleton />;
 	}
 
 	// 局部包裹（不再由全站 Provider 包裹）：reducedMotion="user" 让 animate-ui /
