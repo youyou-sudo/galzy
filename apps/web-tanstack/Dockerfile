@@ -2,7 +2,7 @@
 #
 # 构建阶段用 Bun 安装依赖并构建：`bun run build` 产出 .output/，
 # `bun run build:binary` 再用 bun build --compile 编成 .output/server-bin
-# （.output/public/** 全部内嵌）。运行阶段只有 distroless/base + 二进制：
+# （.output/public/** 全部内嵌）。运行阶段只有 Chainguard glibc-dynamic + 二进制：
 # 没有 Bun 运行时、没有 node_modules、没有 public 目录。
 #
 # 运行期密钥绝不写入镜像，只通过部署平台注入；构建期公开变量只有 BUILD_ID。
@@ -39,7 +39,11 @@ WORKDIR /app/apps/web-tanstack
 RUN bun run build
 RUN bun run build:binary
 
-FROM gcr.io/distroless/base
+# 运行阶段：Chainguard glibc-dynamic（Wolfi 基础镜像，glibc + libgcc/libstdc++ +
+# ca-certificates，无 shell / 无包管理器），只有二进制。默认非 root（65532:65532）
+# 运行。需要可复现构建时可把 FROM 固定到 digest，例如
+#   FROM cgr.dev/chainguard/glibc-dynamic@sha256:...
+FROM cgr.dev/chainguard/glibc-dynamic:latest
 
 WORKDIR /app
 
@@ -51,11 +55,13 @@ ENV HOST=0.0.0.0
 ENV PORT=3000
 
 # 单文件二进制：Nitro 服务端 + 全部静态资源都在这一个文件里
-COPY --from=build /app/apps/web-tanstack/.output/server-bin /app/server
+COPY --from=build --chown=65532:65532 /app/apps/web-tanstack/.output/server-bin /app/server
+
+USER 65532:65532
 
 # 运行镜像里没有 curl/wget：二进制自带 --healthcheck 模式（请求本机 /api/health）
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD ["/app/server", "--healthcheck"]
 
 EXPOSE 3000
-CMD ["./server"]
+ENTRYPOINT ["/app/server"]
