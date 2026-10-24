@@ -1,4 +1,3 @@
-import { mkdirSync, writeFileSync } from "node:fs";
 import { brotliCompressSync, gzipSync } from "node:zlib";
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
@@ -6,8 +5,8 @@ import { devtools } from "@tanstack/devtools-vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import { nitro } from "nitro/vite";
 import { defineConfig, type Plugin } from "vite";
-import viteCompression from "vite-plugin-compression";
 import { modulePreloadPriority } from "./vite-plugins/module-preload-priority.ts";
 
 const BUILD_ID = process.env.BUILD_ID || `dev-${Date.now().toString(36)}`;
@@ -141,12 +140,6 @@ const config = defineConfig(({ command }) => {
 						return `export const BUILD_ID = ${JSON.stringify(BUILD_ID)};`;
 					}
 				},
-				buildEnd(error) {
-					if (!error) {
-						mkdirSync("dist", { recursive: true });
-						writeFileSync("dist/.build-id", BUILD_ID);
-					}
-				},
 			},
 			devtools(),
 			// 把 TanStack router manifest 里写死的 modulepreload fetchPriority:"low"
@@ -154,14 +147,53 @@ const config = defineConfig(({ command }) => {
 			modulePreloadPriority(),
 			tailwindcss(),
 			tanstackStart(),
+			// 生产服务端交给 Nitro（TanStack Start 官方 Hosting → Nitro 配方），
+			// 不再自写 Bun server（旧的 server-prod.ts 已缩成二进制入口）。
+			// 产物为 .output/{server,public}；bun run build:binary 再由它编成单文件二进制。
+			// 静态资源（含 clientPrecompression 产出的 .gz/.br 预压缩副本）由 Nitro
+			// 静态处理器按 Accept-Encoding 下发；/assets/** 带内容哈希，永久缓存。
+			// SSR 文本响应的压缩交给前置 CDN，应用内不再做流式压缩。
+			nitro({
+				preset: "bun",
+				// 第三方包为兼容 React Server Components 在模块顶层写 "use client"；
+				// 本项目不是 RSC 应用，该指令没有语义，Rolldown 打包时丢弃是正确的，
+				// 但每次构建都会刷屏 [MODULE_LEVEL_DIRECTIVE] 警告。只关这一项检查，
+				// 其余 Rolldown 警告（循环依赖、未解析导入等）照常输出。
+				rolldownConfig: {
+					checks: {
+						moduleLevelDirective: false,
+					},
+				},
+				// /_build：客户端在标签页重新可见时轮询构建指纹，不一致就整页刷新
+				// （避免部署后旧页面继续调用已不存在的 server function 哈希）。
+				handlers: [
+					{
+						route: "/_build",
+						method: "GET",
+						handler: "./nitro/handlers/build-id.ts",
+					},
+				],
+				routeRules: {
+					"/assets/**": {
+						headers: {
+							"cache-control": "public, max-age=31536000, immutable",
+						},
+					},
+				},
+			}),
 			react(),
-			viteCompression({ algorithm: "gzip", ext: ".gz" }),
-			viteCompression({ algorithm: "brotliCompress", ext: ".br" }),
 			babel({ presets: [reactCompilerPreset()] }),
 			// 路由代码分割：仅在构建期启用，保留 Windows 端 dev 体验；
 			// dev 下由 tanstackStart() 内置的路由生成/分割管线负责，
-			// 避免独立插件的双生成器叠加引起 dev 变慢与导航等待
-			isBuild && tanstackRouter({ autoCodeSplitting: true }),
+			// 避免独立插件的双生成器叠加引起 dev 变慢与导航等待。
+			// enableRouteGeneration: false —— 路由树仍由 tanstackStart() 生成
+			// （它才会写入 Start 的 Register 模块声明）；独立插件的生成器会把
+			// src/routeTree.gen.ts 覆盖成缺少 Start 声明的版本，每次构建都弄脏工作区。
+			isBuild &&
+				tanstackRouter({
+					autoCodeSplitting: true,
+					enableRouteGeneration: false,
+				}),
 			// 放在最后：产物定稿后再做 preload 标记兜底清理 + 预压缩，
 			// 保证 .js 与 .gz/.br 三份内容一致
 			clientPrecompression(),

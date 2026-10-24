@@ -11,11 +11,19 @@ bun --bun run dev
 
 # Building For Production
 
-To build this application for production:
+生产构建由 Nitro（`nitro/vite` 插件，preset `bun`）完成，产物在 `.output/`，再编译成单文件二进制：
 
 ```bash
-bun --bun run build
+bun --bun run build         # Vite + Nitro → .output/{server,public}
+bun --bun run build:binary  # → .output/server-bin（Windows 为 .output/server-bin.exe）
+bun --bun run start         # 本地运行 .output/server/index.mjs
 ```
+
+- `build`：Nitro 在 Vite 构建流程里产出 `.output/server`（SSR 入口）与 `.output/public`（客户端静态资源）。
+- `build:binary`：`scripts/build-binary.ts` 把 `.output/public/**` 以 `with { type: "file" }` 内嵌，再用 `bun build --compile` 编成单个可执行文件。
+- Docker 运行阶段（`gcr.io/distroless/base`）只放一个 `/app/server` 二进制：没有 Bun 运行时、`node_modules` 和 `public` 目录。
+
+运行时 Nitro 负责 SSR 与静态资源：`/assets/**` 走 `immutable` 长缓存，`.gz`/`.br` 预压缩副本按 `Accept-Encoding` 直接下发。SSR 文本响应的流式压缩交给前置 CDN（Cloudflare 自动 br/gzip），应用自身不再做。
 
 ## Testing
 

@@ -1,7 +1,20 @@
 {
   "extends": "config/typescript/base.json",
-  "include": ["**/*.ts", "**/*.tsx", "env.d.ts", "server.ts"],
-  "exclude": ["node_modules", "coverage", ".storybook", "dist", ".output", ".tanstack"],
+  "include": ["**/*.ts", "**/*.tsx", "env.d.ts"],
+  // server-prod.ts 与 .assets.generated.ts 是二进制入口/构建产物（Bun 专属 API、
+  // 内嵌资源导入），不参与应用类型检查；scripts/build-binary.ts 同理。
+  "exclude": [
+    "node_modules",
+    "coverage",
+    ".storybook",
+    "dist",
+    ".output",
+    ".nitro",
+    ".tanstack",
+    "server-prod.ts",
+    ".assets.generated.ts",
+    "scripts/build-binary.ts",
+  ],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",
