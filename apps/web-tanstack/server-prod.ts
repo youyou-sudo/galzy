@@ -20,13 +20,23 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 // ── 健康检查模式 ───────────────────────────────────────────────
-// 供 Docker HEALTHCHECK 调用：请求本机 /api/health，成功退出 0，失败退出 1。
+// 请求本机 /api/health，成功退出 0，失败退出 1。
+// 兼容两种拼写（两种都有真实调用方，不能只认一种）：
+//   - `/app/server --healthcheck`：镜像自带的 Dockerfile HEALTHCHECK；
+//   - `/app/server healthcheck`：Dokploy 上已配置的健康检查命令（旧服务器用这个拼写，
+//     新入口只认 --healthcheck 时会误当成正常启动，二次 bind 3000 失败 → 容器被判 unhealthy
+//     并触发 Swarm 重启循环）。
 // 必须在 import Nitro 入口之前返回，否则会重复启动一个监听进程。
-if (process.argv.includes("--healthcheck")) {
+const isHealthcheck =
+	process.argv.includes("--healthcheck") || process.argv.includes("healthcheck");
+
+if (isHealthcheck) {
 	const port = Number(process.env.PORT || 3000);
 	const url = `http://127.0.0.1:${port}/api/health`;
 	try {
-		const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+		// 比编排层给的健康检查超时（常见 5s）略短：留出进程启动余量，
+		// 避免被 SIGKILL 后只留下"超时"而看不到真实原因。
+		const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
 		const body = (await res.json().catch(() => ({}))) as { ok?: boolean };
 		if (!res.ok || body.ok !== true) {
 			console.error(`[healthcheck] ${url} -> ${res.status} ${res.statusText}`);

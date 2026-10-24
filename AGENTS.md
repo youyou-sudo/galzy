@@ -331,7 +331,7 @@ export const myActions = {
 - API 运行镜像：`gcr.io/distroless/base`；Web 运行镜像：`cgr.dev/chainguard/glibc-dynamic`（glibc + ca-certificates，非 root 65532）
 - API: `bun build --compile` → single binary
 - Web: Vite build + Nitro → `.output/` → `bun build --compile` 单文件二进制（静态资源内嵌）
-- Web 运行镜像只有 `/app/server`，`HEALTHCHECK` 调用二进制自带的 `--healthcheck`（请求本机 `/api/health`）
+- Web 运行镜像只有 `/app/server`，`HEALTHCHECK` 调用二进制自带的 `--healthcheck`（请求本机 `/api/health`）；入口同时兼容 Dokploy 既有的 `healthcheck` 拼写
 - CI: GitHub Actions → `ghcr.io` → webhook deploy
 
 ## Testing & QA

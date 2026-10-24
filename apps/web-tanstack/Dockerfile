@@ -59,7 +59,9 @@ COPY --from=build --chown=65532:65532 /app/apps/web-tanstack/.output/server-bin 
 
 USER 65532:65532
 
-# 运行镜像里没有 curl/wget：二进制自带 --healthcheck 模式（请求本机 /api/health）
+# 运行镜像里没有 curl/wget：二进制自带健康检查（请求本机 /api/health）。
+# 兼容两种拼写：本文件用 --healthcheck；Dokploy 上该服务的既有配置是
+# ["CMD","/app/server","healthcheck"]（无前导 --），入口也认，避免被误判 unhealthy。
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD ["/app/server", "--healthcheck"]
 
