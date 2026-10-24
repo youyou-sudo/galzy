@@ -4,6 +4,7 @@ import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { redact } from "@tanstack/redact/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
@@ -111,15 +112,12 @@ const config = defineConfig(({ command }) => {
 			// 若该包被 externalize，运行时会从 node_modules 读取未改写的
 			// fetchPriority:"low"（module-preload-priority 插件只作用于被 bundle 的源码），
 			// 构建期改写就会对 SSR HTML 失效。
-			noExternal: isBuild
-				? [
-						"@tanstack/react-router",
-						"@tanstack/react-router/ssr/server",
-						"@tanstack/router-core",
-					]
-				: process.platform === "win32"
-					? []
-					: true,
+			//
+			// React → Redact 之后必须整包内联：redact 只通过 Vite 的 resolve.alias
+			// 生效，被 externalize 的依赖由 Node 原生解析，会拿到 node_modules 里
+			// 的真实 react，与渲染树里的 redact 形成两套 dispatcher，SSR 直接抛
+			// "ReactSharedInternals.H is null"（实测 @tanstack/react-query 首屏即崩）。
+			noExternal: isBuild ? [/.*/] : process.platform === "win32" ? [] : true,
 		},
 		build: {
 			ssrManifest: true,
@@ -155,6 +153,10 @@ const config = defineConfig(({ command }) => {
 			tailwindcss(),
 			tanstackStart(),
 			react(),
+			// React → Redact：把 react / react-dom / jsx-runtime / scheduler /
+			// use-sync-external-store 等导入别名到 @tanstack/redact 的同步实现，
+			// 应用源码 import 保持不变。默认 full 预设（除原生动画外全开）。
+			redact(),
 			viteCompression({ algorithm: "gzip", ext: ".gz" }),
 			viteCompression({ algorithm: "brotliCompress", ext: ".br" }),
 			babel({ presets: [reactCompilerPreset()] }),
