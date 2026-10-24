@@ -6,15 +6,21 @@ import { GameCard } from "./card";
 
 // jsdom 无 canvas 实现，thumbHashToDataURL 必然抛错且解码走异步兜底管线，
 // 占位 dataURL 永远不会同步就绪 —— mock 为同步固定值，聚焦揭示动画断言。
+// 个别用例要验证「没有 thumbhash 占位」的兜底，通过 hoisted 开关临时置 null。
+const thumbhashMock = vi.hoisted(() => ({
+	value: "data:image/webp;base64,XakJ" as string | null,
+}));
+
 vi.mock("@web/lib/image", async (importOriginal) => {
 	const actual = await importOriginal<typeof import("@web/lib/image")>();
 	return {
 		...actual,
-		useThumbHashDataUrl: () => "data:image/webp;base64,XakJ",
+		useThumbHashDataUrl: () => thumbhashMock.value,
 	};
 });
 
 afterEach(() => {
+	thumbhashMock.value = "data:image/webp;base64,XakJ";
 	vi.restoreAllMocks();
 });
 
@@ -56,7 +62,7 @@ describe("GameCard.ThumbHashImage transition", () => {
 });
 
 describe("GameCard.ThumbHashImage revealed-src cache", () => {
-	it("首次加载成功后卸载重挂：首帧无骨架、无占位，真实图直接 scale(1)", () => {
+	it("重挂命中揭示缓存：首帧无骨架、无缩放动画，但 ThumbHash 占位保留到本次真图加载", () => {
 		vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(
 			false,
 		);
@@ -69,16 +75,63 @@ describe("GameCard.ThumbHashImage revealed-src cache", () => {
 		);
 		first.unmount();
 
-		// 重挂（模拟虚拟列表重挂/路由返回）：同一 src 命中已揭示缓存，首帧即终态。
+		// 重挂（模拟虚拟列表重挂/路由返回）：同一 src 命中已揭示缓存 ——
+		// 终态样式直出（无骨架、无缩放动画），但缓存不代表当前 document 里
+		// 这张图已经解码可上屏：位图就绪前必须用 thumbhash 占位兜住，否则
+		// 路由返回时整屏封面会先空白一段。
 		const { container } = render(
 			<GameCard.ThumbHashImage alt="缓存" height={300} src={src} width={200} />,
 		);
 		expect(container.querySelector('[data-slot="skeleton"]')).toBeNull();
-		expect(
-			container.querySelector("img.galzy-thumbhash-placeholder"),
-		).toBeNull();
+		const placeholder = container.querySelector<HTMLImageElement>(
+			"img.galzy-thumbhash-placeholder",
+		);
+		expect(placeholder).not.toBeNull();
+		expect(placeholder?.style.opacity).toBe("1");
 		const image = container.querySelector<HTMLImageElement>('img[alt="缓存"]');
 		expect(image?.style.transform).toBe("scale(1)");
+
+		// 本次挂载的真图加载完成后，占位才淡出（桌面保留 320ms 淡出）。
+		fireEvent.load(image!);
+		expect(
+			container.querySelector<HTMLImageElement>(
+				"img.galzy-thumbhash-placeholder",
+			)?.style.opacity,
+		).toBe("0");
+	});
+
+	it("缓存命中但该图没有 ThumbHash：位图就绪前用骨架兜住空白", () => {
+		thumbhashMock.value = null;
+		vi.spyOn(HTMLImageElement.prototype, "complete", "get").mockReturnValue(
+			false,
+		);
+		const src = "https://example.com/cached-no-thumbhash.webp";
+		const first = render(
+			<GameCard.ThumbHashImage
+				alt="无占位"
+				height={300}
+				src={src}
+				width={200}
+			/>,
+		);
+		fireEvent.load(
+			first.container.querySelector<HTMLImageElement>('img[alt="无占位"]')!,
+		);
+		first.unmount();
+
+		const { container } = render(
+			<GameCard.ThumbHashImage
+				alt="无占位"
+				height={300}
+				src={src}
+				width={200}
+			/>,
+		);
+		expect(container.querySelector('[data-slot="skeleton"]')).not.toBeNull();
+		fireEvent.load(
+			container.querySelector<HTMLImageElement>('img[alt="无占位"]')!,
+		);
+		expect(container.querySelector('[data-slot="skeleton"]')).toBeNull();
 	});
 
 	it("已揭示缓存命中后重挂再失败：仍回退 No-Image 而非停留破图", () => {

@@ -130,23 +130,22 @@ function ThumbHashImage({
 	if (imageState.src !== src) {
 		setImageState({ src, loaded: false, failed: false });
 	}
-	// loaded 含缓存命中（跨实例首帧直出）；failed 不被缓存抑制 ——
-	// 已揭示的 URL 重挂后再次加载失败时仍回退 No-Image，不能停留破图。
-	const loaded = imageState.loaded || cachedRevealed;
+	// 本次挂载内真实图是否已经「可绘制」（download + decode 完成）。
+	// 与 loaded 的区别：loaded 额外含 revealedSrcs 缓存命中，用于首帧直出
+	// （无骨架、无缩放动画）；但缓存只保证「这个 URL 以前成功加载过」，
+	// 不保证浏览器此刻已经把它解码成可上屏的位图 —— 路由返回时图片缓存
+	// 可能已被淘汰/需要重新解码，直接按 loaded 撤掉占位就会露出一段空白。
+	// 因此占位图/骨架的撤下条件一律用 imageLoaded，loaded 只负责终态样式。
+	const imageLoaded = imageState.loaded;
+	const loaded = imageLoaded || cachedRevealed;
 	const failed = imageState.failed;
-	// 本次挂载（或切到该 src）时即命中缓存：首帧直接终态渲染（无骨架、无占位、
-	// 无切换动画）。首次加载过程中的揭示不入此标记，桌面淡出动画不受影响。
-	const cachedAtMountRef = useRef<{ src: string; hit: boolean } | null>(null);
-	if (cachedAtMountRef.current?.src !== src) {
-		cachedAtMountRef.current = { src, hit: cachedRevealed };
-	}
-	const cachedAtMount = cachedAtMountRef.current.hit;
 	const imgRef = useRef<HTMLImageElement | null>(null);
 
 	// img.decode() 预解码提交：真实图下载并解码完成后才置 loaded ——
 	// 上屏首帧就是已解码位图，transition 首帧不再撞解码；同时把每图一次的
 	// load 事件提交风暴换成 decode 微任务（React 可批处理）。decode() reject
-	// （加载失败/不支持）静默回退 load/error 事件行为；缓存命中走 complete 快路径。
+	// 视为加载失败（回退 No-Image）。无 decode() 的环境（含 jsdom/旧引擎）
+	// 仍走 complete / load / error 事件兜底。
 	useEffect(() => {
 		const image = imgRef.current;
 		if (!image) return;
@@ -172,20 +171,37 @@ function ThumbHashImage({
 			});
 		};
 
-		if (image.complete) {
-			if (image.naturalWidth === 0) {
+		// decode() 优先于 complete：complete 只代表「资源已下载完」，解码可能
+		// 还没发生（浏览器按需/在合成线程解码，图片缓存被回收后重新解码尤其
+		// 明显）。旧实现把 complete 当成就绪，路由返回缓存图片时立刻撤掉占位，
+		// 位图尚未上屏的那段时间就是用户看到的「图片空白」。
+		// decode() 的 resolve 才代表可以无闪烁地上屏；对未开始加载的
+		// lazy 图片它会一直 pending（保持占位），对已失败图片则 reject。
+		if (typeof image.decode === "function") {
+			let decoding: Promise<void>;
+			try {
+				decoding = image.decode();
+			} catch {
+				// decode() 同步抛错（如已脱离文档）：按失败处理，交回 No-Image 兜底
 				handleError();
-			} else {
-				commit();
+				return () => {
+					cancelled = true;
+					cancelGate?.();
+				};
 			}
+			decoding.then(commit, handleError);
 			return () => {
 				cancelled = true;
 				cancelGate?.();
 			};
 		}
 
-		if (typeof image.decode === "function") {
-			image.decode().then(commit, handleError);
+		if (image.complete) {
+			if (image.naturalWidth === 0) {
+				handleError();
+			} else {
+				commit();
+			}
 			return () => {
 				cancelled = true;
 				cancelGate?.();
@@ -209,38 +225,43 @@ function ThumbHashImage({
 	// 减少常驻图层（移动端一次挂载几十张卡时合成节点/绘制树线性膨胀，滑动掉帧根因）；
 	// 桌面保留淡出（opacity 0 + 常驻），不引入 onTransitionEnd 卸载，避免桌面回归。
 	// placeholderOnly 时占位图是唯一可见内容（真实图不渲染），永不卸载。
-	const unloadPlaceholder = coarse && loaded && !placeholderOnly;
+	const unloadPlaceholder = coarse && imageLoaded && !placeholderOnly;
 
 	return (
 		<div className={wrapperClassName} style={wrapperStyle}>
-			{/* 骨架底：thumbhash dataURL 就绪前 / 无占位时显示，加载完成后卸载。
-				animate-pulse 常驻会持续触发样式重算，必须条件渲染而不是盖在下面。 */}
-			{!loaded && <Skeleton className="absolute inset-0 w-full h-full" />}
+			{/* 骨架底：thumbhash dataURL 就绪前 / 无占位时显示，本次挂载的真图
+				可绘制后卸载。animate-pulse 常驻会持续触发样式重算，必须条件渲染
+				而不是盖在下面。缓存命中（loaded）时通常不显示骨架避免脉冲闪烁；
+				但如果该图没有 thumbhash 占位，仍要用骨架兜住「位图未就绪」的空白。 */}
+			{(!loaded || (!imageLoaded && !placeholder)) && (
+				<Skeleton className="absolute inset-0 w-full h-full" />
+			)}
 			{/* 性能方案：占位图是 ~32px 级小图，object-cover 放大后天然模糊，
 				无需 filter blur（大面积 blur 光栅化很贵）；dataURL 就绪前由骨架底兜底。
 				加载完成后占位图只做廉价的 opacity 淡出，露出下方清晰图。
 				触屏(coarse)：无 opacity 过渡，揭示是瞬时终态，直接卸载占位图减少常驻图层；
 				桌面保留淡出（opacity 0 + 常驻）。 */}
-			{placeholder &&
-				!unloadPlaceholder &&
-				!(cachedAtMount && !placeholderOnly) && (
-					<img
-						aria-hidden="true"
-						alt=""
-						className={`galzy-thumbhash-placeholder absolute inset-0 w-full h-full object-cover ${className ?? ""}`}
-						src={placeholder ?? undefined}
-						style={{
-							opacity: loaded && !placeholderOnly ? 0 : 1,
-							imageRendering: "auto",
-							...(coarse
-								? {}
-								: {
-										transition: "opacity 320ms ease-out",
-										transitionDelay: "0s",
-									}),
-						}}
-					/>
-				)}
+			{placeholder && !unloadPlaceholder && (
+				<img
+					aria-hidden="true"
+					alt=""
+					className={`galzy-thumbhash-placeholder absolute inset-0 w-full h-full object-cover ${className ?? ""}`}
+					src={placeholder ?? undefined}
+					style={{
+						// 始终渲染在真实图下方（DOM 顺序在后 = 在上层的是真图），
+						// 只在本次挂载的真图解码完成后才淡出 —— 路由返回时即使
+						// 命中揭示缓存、位图仍需重新解码，也有 thumbhash 占位兜底。
+						opacity: imageLoaded && !placeholderOnly ? 0 : 1,
+						imageRendering: "auto",
+						...(coarse
+							? {}
+							: {
+									transition: "opacity 320ms ease-out",
+									transitionDelay: "0s",
+								}),
+					}}
+				/>
+			)}
 			{placeholderOnly && placeholder ? null : (
 				<div className="galzy-image-reveal absolute inset-0">
 					<ImageWithStyle
