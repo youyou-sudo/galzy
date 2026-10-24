@@ -53,3 +53,6 @@ reasonix.toml
 .playwright-mcp/*
 
 todo.md
+
+# React → Redact 迁移期的临时工作区（基线/审计/复测产物）
+.redact-work/

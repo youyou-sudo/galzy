@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Galzy is a Chinese-language Galgame resource platform — a Bun monorepo with an ElysiaJS backend API and a TanStack Start (React 19) frontend. It provides game discovery via VNDB data sync, Meilisearch full-text search, OAuth authentication, nested comments, strategy guides, download management via Alist + Cloudflare Workers, and an admin panel.
+Galzy is a Chinese-language Galgame resource platform — a Bun monorepo with an ElysiaJS backend API and a TanStack Start frontend. The web app keeps the React 19 API surface but runs on [`@tanstack/redact`](https://github.com/TanStack/redact) — synchronous rendering, no concurrent scheduler; see the React runtime section below for its hard constraints. It provides game discovery via VNDB data sync, Meilisearch full-text search, OAuth authentication, nested comments, strategy guides, download management via Alist + Cloudflare Workers, and an admin panel.
 
 **Stack:** Bun 1.3+, TypeScript 6 strict, PostgreSQL 16+ (Drizzle ORM), Redis 7+, Meilisearch, Better Auth, Biome 2.x, Docker multi-stage builds.
 
@@ -22,7 +22,7 @@ PostgreSQL    Redis     Meilisearch
 ```
 
 - **API** (`apps/api/`): ElysiaJS HTTP server. 18 domain modules, each a three-file Elysia plugin (`index.ts` routes, `model.ts` TypeBox schemas, `service.ts` business logic). Better Auth handles authentication with `auth`/`isAdmin` macros. Drizzle ORM (bun-sql adapter) for PostgreSQL. Redis for caching + distributed locks. Meilisearch for full-text search.
-- **Web** (`apps/web-tanstack/`): TanStack Start SSR app. TanStack Router file-based routing. Server Functions (`createServerFn`) act as BFF layer, calling the API via Eden Treaty. TanStack Query v5 for server state. TanStack React Store for UI state. shadcn/ui (base-nova style) + Tailwind CSS v4.
+- **Web** (`apps/web-tanstack/`): TanStack Start SSR app. Runtime is `@tanstack/redact` instead of real React (React-API compatible, synchronous; wired only through the Vite plugin). TanStack Router file-based routing. Server Functions (`createServerFn`) act as BFF layer, calling the API via Eden Treaty. TanStack Query v5 for server state. TanStack React Store for UI state. shadcn/ui (base-nova style) + Tailwind CSS v4.
 - **Shared** (`packages/`): `libs` provides the Eden Treaty client (`treaty<app>`) with cookie forwarding and timeout. `config` provides shared TypeScript configs with path aliases (`@api`, `@web`, `@libs`). Pure TypeScript source — no build step.
 - **Data flow:** Browser → SSR (server functions) → Eden Treaty → Elysia API → Drizzle ORM → PostgreSQL. Redis sits alongside as cache. Meilisearch is populated by cron jobs and queried by the search module.
 
@@ -51,7 +51,7 @@ galzy/
 │   │   ├── lib/                  # cn(), cookiePass(), elysiaErrorF(), etc.
 │   │   ├── integrations/         # TanStack Query provider, Better Auth
 │   │   └── styles.css            # Tailwind CSS v4 entry + theme variables
-│   └── vite.config.ts            # Vite 8 + TanStack Start + Tailwind
+│   └── vite.config.ts            # Vite 8 + TanStack Start + Tailwind + redact()
 ├── packages/
 │   ├── libs/src/api/index.ts     # Eden Treaty client — treaty<app>(host, opts)
 │   └── config/typescript/        # Shared tsconfig (base.json, react-library.json)
@@ -251,6 +251,32 @@ export const myActions = {
 - Toasts from `sonner`
 - Theme: light/dark/auto via `document.documentElement.classList` + CSS variables (OKLCH), persisted to localStorage
 
+### React 运行时注意事项（Redact）
+
+Web 端不跑真实 React：`@tanstack/redact` 提供 React 19 API 兼容的同步运行时，没有并发调度器。`react` / `react-dom` 依赖仍保留（上游要求保留依赖与框架插件），应用源码里的 `import` 不变。
+
+接入点只有 `apps/web-tanstack/vite.config.ts` 里的 `redact()` 插件（排在 `tanstackStart()` 与 `react()` 之后，默认 `full` 预设）。它**只**通过 Vite 的 `resolve.alias` 生效——下面三条约束都源于这一点。
+
+**三条硬约束：**
+
+1. **构建期 `ssr.noExternal` 必须是 `[/.*/]`（全量内联）。** 被 externalize 的依赖由 Node 原生解析，会拿到 `node_modules` 里的真实 react，与渲染树里的 redact 形成两套 dispatcher，SSR 首屏即崩。实测现象：`@tanstack/react-query` 首屏报 `ReactSharedInternals.H is null`。测试同理——`apps/web-tanstack/vitest.config.ts` 把依赖 inline，让测试运行在 redact 而非真实 react 上。
+2. **没有并发特性。** `useTransition` / `startTransition` 同步执行、`pending` 恒为 `false`；`useDeferredValue` 直接返回入参；`useActionState` / `useOptimistic` / `useFormStatus` 是空实现。新代码不要依赖这些行为（例如拿 transition 的 pending 当 loading 态，永远不会亮）。
+3. **不要绕过别名。** 不新增直接走 Node 解析的 `import 'react-dom/server'` 之类写法，也不要在配置里手写 react 别名。确需真实 React 的场景由插件自己处理：redact 对 `rsc` 环境不做别名。
+
+**已知差异（上游 `docs/compatibility.md`）：**
+
+| 能力 | redact 行为 |
+|------|-------------|
+| 核心渲染 | JSX、hooks、context、refs、memo、lazy、portal、error boundary 均支持；旧版 class 生命周期为空操作 |
+| Suspense / hydration | fallback、流式边界、事件重放可用；无优先级调度 |
+| Transition | 同步执行，`pending` 恒为 `false`；`useDeferredValue` 返回入参 |
+| Action 相关 | `useActionState` / `useOptimistic` / `useFormStatus` 空实现 |
+| RSC / Flight | 仍用上游 React（插件对 `rsc` 环境不别名） |
+| 调试 | 无 React DevTools 检查；`StrictMode` / `Profiler` 不双调用、不采样 |
+| React Compiler | `react/compiler-runtime` 入口已实现并被别名 |
+
+上游仓库：<https://github.com/TanStack/redact>
+
 ### Error Handling
 
 - **API:** `throw status(code, message)` from Elysia for business errors. Top-level `onError` catches `VALIDATION` errors. Better Auth `APIError` for auth errors.
@@ -284,7 +310,8 @@ export const myActions = {
 | `apps/web-tanstack/src/server/auth/betterPlugins.ts` | Shared Better Auth plugin config |
 | `apps/web-tanstack/src/lib/cookie-pass.ts` | SSR cookie forwarding for Eden calls |
 | `apps/web-tanstack/src/lib/elysia-error.ts` | Eden error → redirect/throw |
-| `apps/web-tanstack/vite.config.ts` | Vite config — TanStack Start, Tailwind, React Compiler |
+| `apps/web-tanstack/vite.config.ts` | Vite config — TanStack Start, Tailwind, React Compiler, **`redact()`** plugin |
+| `apps/web-tanstack/vitest.config.ts` | Vitest config — 测试跑在 redact 上（依赖全量 inline，不落回真实 react） |
 | `packages/libs/src/api/index.ts` | Eden Treaty client — `treaty<app>(host, opts)` |
 | `packages/config/typescript/base.json` | Shared tsconfig with path aliases |
 | `scripts/run.ts` | Concurrent workspace command runner |
@@ -332,9 +359,9 @@ export const myActions = {
 
 ## Testing & QA
 
-- **Web:** Vitest v4 + Testing Library + jsdom. Run via `bun --cwd apps/web-tanstack test`.
+- **Web:** Vitest + Testing Library + jsdom. Run via `bun --cwd apps/web-tanstack test`. 测试运行在 redact 而非真实 react 上：`vitest.config.ts` 把依赖全量 inline（`ssr.noExternal: [/.*/]`），`vitest.setup.ts` 再用原生模块钩子把 CJS 依赖的 `require("react")` 桥回同一份 redact 实例，并把 `queueMicrotask` 收敛成同步排空，使 `render()` / `fireEvent` 返回时 DOM 已是终态。因此：不要断言并发特性（transition pending、`useDeferredValue` 延迟等）；新测试若要依赖真实微任务时序，需显式 `await` flush。
 - **API:** No test infrastructure yet (no vitest config, no test files).
-- Test files do not currently exist in any workspace — testing is declared but not yet implemented.
+- 现状：Web 端有 13 个测试文件 / 78 个用例；API 端仍无测试基础设施。
 - Before adding tests, follow existing patterns: Vitest for the web app, no established convention for the API.
 - Run `bun run lint` before committing — it checks all workspaces.
 

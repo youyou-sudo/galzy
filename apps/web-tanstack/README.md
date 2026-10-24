@@ -17,6 +17,31 @@ To build this application for production:
 bun --bun run build
 ```
 
+# React 运行时（@tanstack/redact）
+
+本应用不跑真实 React：[`@tanstack/redact`](https://github.com/TanStack/redact) 提供 React 19 API 兼容的同步运行时，没有并发调度器。源码不变，仍然 `import` `react` / `react-dom`。
+
+**接入方式**：`vite.config.ts` 里的 `redact()` 插件，排在 `tanstackStart()` 与 `react()` 之后，使用默认 `full` 预设（除原生动画外全开）。它通过 Vite `resolve.alias` 把 `react`、`react-dom`、`jsx-runtime`、`compiler-runtime`、`scheduler`、`use-sync-external-store` 指向 redact 实现。
+
+**两条硬约束**：
+
+- 构建期 `ssr.noExternal` 必须是 `[/.*/]`（全量内联）。被 externalize 的依赖由 Node 原生解析，会拿到 `node_modules` 里的真实 react，SSR 首屏直接抛 `ReactSharedInternals.H is null`。
+- 测试同理：`vitest.config.ts` 把依赖 inline，让 Vitest 跑在 redact 而非真实 react 上。
+
+**本地验证**：
+
+```bash
+cd apps/web-tanstack
+bun run build
+bun run preview   # http://localhost:4173
+```
+
+首屏正常渲染、控制台无 `ReactSharedInternals` / dispatcher 相关报错即为通过。
+
+**已知差异**：`useTransition` / `startTransition` 同步执行且 `pending` 恒为 `false`；`useDeferredValue` 返回入参；`useActionState` / `useOptimistic` / `useFormStatus` 是空实现；无 React DevTools 支持；RSC / Flight 仍走上游 React。完整清单见上游 [compatibility.md](https://github.com/TanStack/redact/blob/main/docs/compatibility.md)。
+
+**升级注意**：`@tanstack/redact` 的 peer 依赖要求 `vite >= 5`（当前 `vite ^8.3.5` 满足，锁定 `^0.1.4`）。升级后重跑上面的 build + preview。
+
 ## Testing
 
 This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
