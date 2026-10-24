@@ -8,17 +8,27 @@ import {
 	TrendingUp,
 } from "lucide-react";
 
+const TAB_SEGMENTS = new Set([
+	"introduction",
+	"comment",
+	"translate",
+	"relations",
+]);
+
+/**
+ * 由 pathname 推断当前页签：/<id>/<segment> 的第二段属于页签段就用它，
+ * 否则（含 /<id> 本身，以及 introduction 下嵌套的 /$articleId）归到默认的下载页签。
+ * 详情页 pending 态（game-detail-pending.tsx）复用同一判定，避免两处逻辑漂移：
+ * 以后新增页签只改这里，pending 的内容区骨架不会掉回文件列表。
+ */
+export function gameTabOf(pathname: string): string {
+	const segment = pathname.split("/").filter(Boolean)[1];
+	return segment && TAB_SEGMENTS.has(segment) ? segment : "download";
+}
+
 export function GameTabs({ id }: { id: string }) {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
-	// segment after /<id>/ determines the tab; introduction handles nested /$articleId
-	const segments = pathname.split("/").filter(Boolean);
-	const currentTab =
-		segments[1] === "introduction" ||
-		segments[1] === "comment" ||
-		segments[1] === "translate" ||
-		segments[1] === "relations"
-			? segments[1]
-			: "download";
+	const currentTab = gameTabOf(pathname);
 
 	return (
 		<Tabs value={currentTab}>
