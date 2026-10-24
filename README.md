@@ -22,7 +22,7 @@
 - **📄 OpenAPI 文档** — 由 `@elysia/openapi` 自动生成 Swagger 文档
 - **📡 OpenTelemetry** — 分布式链路追踪（生产环境按需开启）
 - **🎨 现代前端** — React 19 + TanStack 全家桶 + Tailwind CSS v4 + shadcn/ui，深色/浅色主题，React Compiler 加持
-- **🐳 容器化交付** — Docker 多阶段构建生成 distroless 精简镜像，GitHub Actions 自动构建推送 ghcr.io 并通过 webhook 触发部署
+- **🐳 容器化交付** — Docker 多阶段构建生成 distroless / Chainguard 精简镜像，GitHub Actions 自动构建推送 ghcr.io 并通过 webhook 触发部署
 
 ---
 
@@ -39,7 +39,7 @@
 | **⚡ 缓存** | Redis 7+（KV 缓存、分布式锁、幂等键；开发模式可选关闭） |
 | **🔐 认证** | Better Auth ^1.7 + Drizzle Adapter + 中文本地化 |
 | **📮 任务队列** | @stacksjs/bun-queue（复用 Bun 内置 Redis 客户端） |
-| **📦 容器化** | Docker 多阶段构建 → `gcr.io/distroless/base` |
+| **📦 容器化** | Docker 多阶段构建 → distroless / Chainguard 精简镜像 |
 | **🔄 CI/CD** | GitHub Actions → ghcr.io → Dokploy webhook 部署 |
 | **🔧 代码质量** | Biome 2.x + oxlint + TypeScript 6 strict + EditorConfig |
 | **🔄 依赖管理** | Renovate 自动更新 + Bun workspaces 单体仓库 |
@@ -220,7 +220,7 @@ bun --cwd apps/api db:check
 
 ## Docker 部署
 
-多阶段构建，最终产物为 `gcr.io/distroless/base` 之上的单二进制运行时：
+多阶段构建，最终产物为精简运行时镜像之上的单二进制：API 用 `gcr.io/distroless/base`，Web 用 `cgr.dev/chainguard/glibc-dynamic`。
 
 ```bash
 # 一键构建全部镜像
@@ -233,8 +233,8 @@ bun --cwd apps/web-tanstack docker
 
 镜像特性：
 
-- API：`bun build --compile` 编译为单二进制
-- Web：Vite 构建产物嵌入单二进制
+- API：`bun build --compile` 编译为单二进制，运行在 `gcr.io/distroless/base`
+- Web：Vite + Nitro 构建产物嵌入单二进制，运行在 `cgr.dev/chainguard/glibc-dynamic`（非 root 65532）
 - 最小攻击面，无 shell、无包管理器
 
 ### CI/CD
