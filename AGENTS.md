@@ -255,7 +255,25 @@ export const myActions = {
 
 Web 端不跑真实 React：`@tanstack/redact` 提供 React 19 API 兼容的同步运行时，没有并发调度器。`react` / `react-dom` 依赖仍保留（上游要求保留依赖与框架插件），应用源码里的 `import` 不变。
 
-接入点只有 `apps/web-tanstack/vite.config.ts` 里的 `redact()` 插件（排在 `tanstackStart()` 与 `react()` 之后，默认 `full` 预设）。它**只**通过 Vite 的 `resolve.alias` 生效——下面三条约束都源于这一点。
+接入点只有 `apps/web-tanstack/vite.config.ts` 里的 `redact()` 插件（排在 `tanstackStart()` 与 `react()` 之后）。它**只**通过 Vite 的 `resolve.alias` 生效——下面三条约束都源于这一点。
+
+**特性开关（`preset: "nano"` + 显式开启，不用 `full` 预设）**：可选特性每个都是「真实实现 / 降级 stub」二选一，关掉即从 bundle 里剥离。本项目只开实际用到的：
+
+| 特性 | 本项目 | 依据 |
+|------|--------|------|
+| `hydration` | 开 | TanStack Start SSR 走 `hydrateRoot`，关掉会直接抛错 |
+| `suspense` | 开 | 路由、`Header`、`RichContent`、`Count` 使用 `<Suspense>` fallback |
+| `context` | 开 | 应用与 `@base-ui/react` 等依赖大量使用 `createContext` |
+| `portal` | 开 | `sonner` / `@base-ui/react` / `react-photo-view` 的弹层全走 `createPortal` |
+| `memo` | 开 | `card` / `comments` / `tag-category` / `games` 使用 `React.memo` |
+| `lazy` | 开 | `Header`、`ThemeToggle`、`markdownAync`、`__root` 使用 `React.lazy` |
+| `forwardRef` | 开 | `@tanstack/react-router` / `@dnd-kit` / `@tiptap` / `motion` / `lucide-react` 使用 |
+| `classComponents` | 开 | `@tanstack/react-router` 的 `CatchBoundary` 是 class（`getDerivedStateFromError` + `componentDidCatch`），路由错误边界依赖它 |
+| `activity` | 关 | 无 React 19 `<Activity>` 用法（emoji-picker 里的 `Activity` 是 lucide 图标） |
+| `fragmentRefs` | 关 | 无 Fragment ref 用法 |
+| `viewTransitions` | 关 | 页面过渡走原生 `document.startViewTransition`（`router.tsx` 的 `defaultViewTransition`），不用 React 的 `ViewTransition` API |
+
+新增依赖或新写法若引入上表之外的能力，必须同步改 `features` 并重跑 `bun run test` + `bun run build` + 浏览器冒烟——关掉的特性不会报错，只会静默降级（portal 变原地渲染、Suspense 无 fallback、lazy 直接抛错等）。
 
 **三条硬约束：**
 

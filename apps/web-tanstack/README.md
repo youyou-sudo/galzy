@@ -21,7 +21,11 @@ bun --bun run build
 
 本应用不跑真实 React：[`@tanstack/redact`](https://github.com/TanStack/redact) 提供 React 19 API 兼容的同步运行时，没有并发调度器。源码不变，仍然 `import` `react` / `react-dom`。
 
-**接入方式**：`vite.config.ts` 里的 `redact()` 插件，排在 `tanstackStart()` 与 `react()` 之后，使用默认 `full` 预设（除原生动画外全开）。它通过 Vite `resolve.alias` 把 `react`、`react-dom`、`jsx-runtime`、`compiler-runtime`、`scheduler`、`use-sync-external-store` 指向 redact 实现。
+**接入方式**：`vite.config.ts` 里的 `redact()` 插件，排在 `tanstackStart()` 与 `react()` 之后。它通过 Vite `resolve.alias` 把 `react`、`react-dom`、`jsx-runtime`、`compiler-runtime`、`scheduler`、`use-sync-external-store` 指向 redact 实现。
+
+**特性开关**：不用 `full` 预设，而是 `preset: "nano"` 后只开本应用实际用到的 8 项——`hydration`、`suspense`、`context`、`portal`、`memo`、`lazy`、`forwardRef`、`classComponents`；`activity`、`fragmentRefs`、`viewTransitions` 关闭（全仓库与依赖均无使用，页面过渡走原生 `document.startViewTransition`）。逐项依据见根目录 [AGENTS.md](../../AGENTS.md) 的「React 运行时注意事项（Redact）」一节。
+
+关掉的特性**不会报错，只会静默降级**（portal 变原地渲染、Suspense 无 fallback UI、lazy 异步解析直接抛错）。新增依赖或新写法引入表外能力时，必须同步开启对应 flag 并重跑测试 + 浏览器冒烟。
 
 **两条硬约束**：
 
