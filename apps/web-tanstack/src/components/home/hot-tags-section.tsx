@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { useViewportPreload } from "@web/hooks/use-viewport-preload";
 import { cn } from "@web/lib/utils";
+import { tagHeroActions } from "@web/stores/tagHeroStore";
 import { Hash } from "lucide-react";
 import { useRef } from "react";
 
@@ -46,6 +47,11 @@ function TagChip({
 			ref={linkRef}
 			to="/tags/$tagId"
 			params={{ tagId: tag.tag }}
+			// 点击时回写展示名，标签详情 pending 态复用；榜单没有中文标题时用
+			// 榜单上展示的 id 兜底，和用户刚看到的文案保持一致
+			onClick={() =>
+				tagHeroActions.fromTag({ id: tag.tag, name: tag.title || tag.tag })
+			}
 			className={cn(
 				BASE_CHIP,
 				RANK_STYLES[index] ?? "border-border text-foreground",

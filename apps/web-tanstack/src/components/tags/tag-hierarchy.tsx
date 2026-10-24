@@ -10,6 +10,7 @@ import {
 	TooltipTrigger,
 } from "@web/components/ui/tooltip";
 import { cn } from "@web/lib/utils";
+import { tagHeroActions } from "@web/stores/tagHeroStore";
 import {
 	Hand,
 	LocateFixed,
@@ -682,6 +683,8 @@ function NodeChip({
 					<Link
 						to="/tags/$tagId"
 						params={{ tagId: id }}
+						// 点击时回写展示名，标签详情 pending 态复用
+						onClick={() => tagHeroActions.fromTag({ id, name: label })}
 						data-node
 						className={base}
 						style={style}
@@ -1251,6 +1254,14 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 													<Link
 														to="/tags/$tagId"
 														params={{ tagId: child.id }}
+														// 点击时回写展示名，标签详情 pending 态复用
+														onClick={() =>
+															tagHeroActions.fromTag({
+																id: child.id,
+																zht_name: child.zht_name,
+																name: child.name,
+															})
+														}
 														className="flex items-center justify-center rounded-md border border-border/70 bg-muted/40 px-1.5 text-[11px] text-foreground leading-none transition-colors hover:border-primary/50 hover:bg-muted"
 														style={{ height: CARD_CELL_H }}
 													>

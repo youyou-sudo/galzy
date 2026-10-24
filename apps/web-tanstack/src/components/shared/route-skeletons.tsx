@@ -107,17 +107,6 @@ export function ProducerDetailPageSkeleton() {
 	);
 }
 
-export function TagDetailPageSkeleton() {
-	return (
-		<div aria-hidden>
-			<BreadcrumbSkeleton />
-			<Skeleton className="h-7 w-40 mb-2" />
-			<Skeleton className="h-4 w-3/4 max-w-2xl mb-6" />
-			<GameCardGridSkeleton />
-		</div>
-	);
-}
-
 export function TopicsListPageSkeleton() {
 	return (
 		<div className="space-y-4" aria-hidden>
