@@ -155,8 +155,42 @@ const config = defineConfig(({ command }) => {
 			react(),
 			// React → Redact：把 react / react-dom / jsx-runtime / scheduler /
 			// use-sync-external-store 等导入别名到 @tanstack/redact 的同步实现，
-			// 应用源码 import 保持不变。默认 full 预设（除原生动画外全开）。
-			redact(),
+			// 应用源码 import 保持不变。
+			//
+			// 不用 full 预设：从 nano（全部可选特性关闭）出发，只打开本仓库
+			// 实际用到的特性。开启项按「应用源码 / 会被内联进 bundle 的依赖」
+			// 双向取证，见 AGENTS.md 的 React 运行时一节。
+			redact({
+				preset: "nano",
+				features: {
+					// TanStack Start SSR 走 hydrateRoot
+					hydration: true,
+					// 路由、Header、RichContent、Count 等使用 <Suspense>
+					suspense: true,
+					// 应用与 @base-ui/react 等依赖大量使用 createContext
+					context: true,
+					// sonner / @base-ui/react / react-photo-view 的弹层全走 createPortal
+					portal: true,
+					// card / comments / tag-category / games 使用 React.memo
+					memo: true,
+					// Header、ThemeToggle、markdownAync、__root 使用 React.lazy
+					lazy: true,
+					// react-router / @dnd-kit / @tiptap / motion / lucide 使用 forwardRef
+					forwardRef: true,
+					// @tanstack/react-router 的 CatchBoundary 是 class 组件
+					// （getDerivedStateFromError + componentDidCatch），路由错误边界依赖它
+					classComponents: true,
+					// 以下三项关闭：全仓库与依赖均无使用
+					// 未使用 React 19 <Activity>（emoji-picker 里的 Activity 是 lucide 图标）
+					activity: false,
+					// 未使用 Fragment ref；关闭后 Fragment ref 拿到 null（静默降级）。
+					// 未来引入测量/动画库的新 API 时若出现 <Fragment ref>，必须改回 true
+					fragmentRefs: false,
+					// 页面过渡走原生 document.startViewTransition，不用 React 的
+					// ViewTransition API / addTransitionType
+					viewTransitions: false,
+				},
+			}),
 			viteCompression({ algorithm: "gzip", ext: ".gz" }),
 			viteCompression({ algorithm: "brotliCompress", ext: ".br" }),
 			babel({ presets: [reactCompilerPreset()] }),
