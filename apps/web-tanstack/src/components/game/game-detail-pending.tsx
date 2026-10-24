@@ -229,7 +229,10 @@ export function PendingGameInfo() {
 				</div>
 			))}
 
-			<div className="mt-2">
+			{/* flow-root 建立 BFC：真实简介的正文是 inline 内容，会自动避开右侧
+			    浮动封面；骨架是整行块级元素，不加 BFC 会横穿/压在封面上（截图里的
+			    「突出来」）。建 BFC 后骨架与真实正文一样收在封面左侧。 */}
+			<div className="mt-2 flow-root">
 				<div className="text-xs text-zinc-500 uppercase mb-1">游戏简介</div>
 				<div className="space-y-1.5">
 					{DESCRIPTION_LINE_WIDTHS.map((width) => (
