@@ -51,7 +51,7 @@ galzy/
 │   │   ├── lib/                  # cn(), cookiePass(), elysiaErrorF(), etc.
 │   │   ├── integrations/         # TanStack Query provider, Better Auth
 │   │   └── styles.css            # Tailwind CSS v4 entry + theme variables
-│   └── vite.config.ts            # Vite 8 + TanStack Start + Tailwind
+│   └── vite.config.ts            # Vite 8 + TanStack Start + Tailwind + Nitro
 ├── packages/
 │   ├── libs/src/api/index.ts     # Eden Treaty client — treaty<app>(host, opts)
 │   └── config/typescript/        # Shared tsconfig (base.json, react-library.json)
@@ -76,6 +76,8 @@ galzy/
 | `bun run docker` | Build all Docker images |
 | `bun --cwd apps/api dev` | Start API only (watch mode, port 3001) |
 | `bun --cwd apps/web-tanstack dev` | Start Web only (Vite dev, port 3000) |
+| `bun --cwd apps/web-tanstack start` | Run Nitro production server (`.output/server/index.mjs`, port 3000) |
+| `bun --cwd apps/web-tanstack build:binary` | Compile Nitro output into single-file binary (`.output/server-bin`) |
 | `bun --cwd apps/api db:generate` | Generate Drizzle migration |
 | `bun --cwd apps/api db:up` | Apply migrations |
 | `bun --cwd apps/api db:check` | Verify schema ↔ database consistency |
@@ -284,7 +286,7 @@ export const myActions = {
 | `apps/web-tanstack/src/server/auth/betterPlugins.ts` | Shared Better Auth plugin config |
 | `apps/web-tanstack/src/lib/cookie-pass.ts` | SSR cookie forwarding for Eden calls |
 | `apps/web-tanstack/src/lib/elysia-error.ts` | Eden error → redirect/throw |
-| `apps/web-tanstack/vite.config.ts` | Vite config — TanStack Start, Tailwind, React Compiler |
+| `apps/web-tanstack/vite.config.ts` | Vite config — TanStack Start, Tailwind, React Compiler, Nitro (preset `bun`) |
 | `packages/libs/src/api/index.ts` | Eden Treaty client — `treaty<app>(host, opts)` |
 | `packages/config/typescript/base.json` | Shared tsconfig with path aliases |
 | `scripts/run.ts` | Concurrent workspace command runner |
@@ -327,7 +329,8 @@ export const myActions = {
 ### Docker
 - Multi-stage builds → `gcr.io/distroless/base` runtime
 - API: `bun build --compile` → single binary
-- Web: Vite build + `bun build --compile` → single binary with embedded assets
+- Web: Vite build + Nitro → `.output/` → `bun build --compile` 单文件二进制（静态资源内嵌）
+- Web 运行镜像只有 `/app/server`，`HEALTHCHECK` 调用二进制自带的 `--healthcheck`（请求本机 `/api/health`）
 - CI: GitHub Actions → `ghcr.io` → webhook deploy
 
 ## Testing & QA

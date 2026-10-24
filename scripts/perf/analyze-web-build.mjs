@@ -3,8 +3,8 @@
  * analyze-web-build.mjs - 只读测量 Galzy Web 首屏资源优先级与体积
  *
  * 数据来源：
- *   1. dist/client/assets：原始体积 + 同名 .br/.gz 预压缩体积；
- *   2. dist/client/.vite/ssr-manifest.json：SSR 路由 chunk 映射（只读统计）；
+ *   1. .output/public/assets：原始体积 + 同名 .br/.gz 预压缩体积；
+ *   2. .output/public/.vite/ssr-manifest.json：SSR 路由 chunk 映射（只读统计）；
  *   3. 可选：抓取 SSR 首页 HTML（或 --html 读入已保存的 HTML），统计 head 中
  *      modulepreload / image preload / stylesheet / script 的数量、顺序、
  *      fetchpriority 分布与 raw/br 体积。
@@ -21,7 +21,7 @@
  *   --url <url>     SSR 服务地址（默认 http://127.0.0.1:3000）
  *   --path <path>   抓取的路径（默认 /）
  *   --html <file>   分析已保存的 HTML（优先于 --url，不发起请求）
- *   --dist <dir>    client 产物目录（默认 apps/web-tanstack/dist/client）
+ *   --dist <dir>    client 产物目录（默认 apps/web-tanstack/.output/public）
  *   --top <n>       顺序列表最多打印多少条资源标签（默认 12）
  *   --timeout <ms>  HTML 请求超时（默认 5000）
  *   --json          输出 JSON（便于两次构建对比 / CI）
@@ -41,7 +41,8 @@ const REPO_ROOT = path.resolve(HERE, "..", "..");
 const DEFAULTS = {
 	url: "http://127.0.0.1:3000",
 	path: "/",
-	dist: path.join(REPO_ROOT, "apps", "web-tanstack", "dist", "client"),
+	// Nitro（bun preset）把客户端产物写到 .output/public；旧的 dist/client 已不再生成。
+	dist: path.join(REPO_ROOT, "apps", "web-tanstack", ".output", "public"),
 	top: 12,
 	timeout: 5000,
 	html: null,
@@ -58,7 +59,7 @@ const HELP = [
 	"  --url <url>     SSR 服务地址（默认 http://127.0.0.1:3000）",
 	"  --path <path>   抓取的路径（默认 /）",
 	"  --html <file>   分析已保存的 HTML（优先于 --url）",
-	"  --dist <dir>    client 产物目录（默认 apps/web-tanstack/dist/client）",
+	"  --dist <dir>    client 产物目录（默认 apps/web-tanstack/.output/public）",
 	"  --top <n>       顺序列表最多打印多少条（默认 12）",
 	"  --timeout <ms>  HTML 请求超时（默认 5000）",
 	"  --json          输出 JSON",
@@ -575,7 +576,7 @@ function printReport(report) {
 	if (report.distExists) {
 		const totals = report.assets;
 		out.push("");
-		out.push("[1] client assets inventory (dist/client/assets)");
+		out.push("[1] client assets inventory (.output/public/assets)");
 		row("js", String(totals.js.count).padStart(4) + " files  " +
 			fmtBytes(totals.js.raw).padStart(10) + " raw / " +
 			fmtBytes(totals.js.brEffective).padStart(10) + " br-effective");
