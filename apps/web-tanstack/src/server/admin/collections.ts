@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { cookiePass } from "@web/lib/cookie-pass";
 import { elysiaErrorF } from "@web/lib/elysia-error";
 import type { StripUnknown } from "@web/lib/serializable";
-import z from "zod";
+import * as z from "zod/mini";
 
 export const adminGetCollections = createServerFn()
 	.validator(
@@ -32,7 +32,7 @@ export const adminGetCollections = createServerFn()
 export const adminCreateCollection = createServerFn()
 	.validator(
 		z.object({
-			title: z.string().min(1),
+			title: z.string().check(z.minLength(1)),
 			description: z.optional(z.string()),
 			type: z.optional(z.string()),
 			producerIds: z.optional(z.array(z.string())),
@@ -101,7 +101,7 @@ export const adminUpdateCollectionEntries = createServerFn()
 export const adminSearchProducers = createServerFn()
 	.validator(
 		z.object({
-			q: z.string().min(1),
+			q: z.string().check(z.minLength(1)),
 			limit: z.optional(z.number()),
 		}),
 	)
@@ -117,7 +117,7 @@ export const adminSearchProducers = createServerFn()
 export const adminSearchGames = createServerFn()
 	.validator(
 		z.object({
-			q: z.string().min(1),
+			q: z.string().check(z.minLength(1)),
 			limit: z.optional(z.number()),
 		}),
 	)

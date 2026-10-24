@@ -17,10 +17,10 @@ import { seoTemplate } from "@web/config/seoTemplate";
 import { seoMeta } from "@web/lib/seo";
 import { getCollectionsWithPreview } from "@web/server/collections";
 import { ChevronLeft, ChevronRight, Library, Package } from "lucide-react";
-import { number, object } from "zod/schemas";
+import * as z from "zod/mini";
 
-const searchSchema = object({
-	page: number().catch(1),
+const searchSchema = z.object({
+	page: z.catch(z.number(), 1),
 });
 
 export const Route = createFileRoute("/collections/")({

@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import { cookiePass } from "@web/lib/cookie-pass";
 import type { StripUnknown } from "@web/lib/serializable";
-import z from "zod";
+import * as z from "zod/mini";
 
 export const adminGetComments = createServerFn({ method: "GET" })
 	.validator(
@@ -36,7 +36,7 @@ export const adminUpdateComment = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			id: z.string(),
-			content: z.string().min(1),
+			content: z.string().check(z.minLength(1)),
 		}),
 	)
 	.handler(async ({ data }) => {

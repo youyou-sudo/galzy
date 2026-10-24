@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import z from "zod";
+import * as z from "zod/mini";
 import { authServerClient } from "./auth.server";
 
 export const getSession = createServerFn({ method: "GET" }).handler(

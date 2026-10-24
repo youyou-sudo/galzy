@@ -2,17 +2,17 @@ import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import { cookiePass } from "@web/lib/cookie-pass";
-import { z } from "zod";
+import * as z from "zod/mini";
 
 const uploadAvatarInputSchema = z.object({
-	image: z
-		.instanceof(File)
-		.refine((f) => f.type.startsWith("image/"), {
+	image: z.instanceof(File).check(
+		z.refine((f) => f.type.startsWith("image/"), {
 			message: "请选择图片文件喵",
-		})
-		.refine((f) => f.size <= 5 * 1024 * 1024, {
+		}),
+		z.refine((f) => f.size <= 5 * 1024 * 1024, {
 			message: "图片大小不能超过 5MB 喵",
 		}),
+	),
 	name: z.string(),
 	type: z.string(),
 });

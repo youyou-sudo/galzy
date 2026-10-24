@@ -7,7 +7,7 @@ import type {
   CollectionPreviewGame,
 } from '@web/lib/collections'
 import { elysiaErrorF } from '@web/lib/elysia-error'
-import z from 'zod'
+import * as z from 'zod/mini'
 
 export const getCollections = createServerFn()
   .validator(
@@ -54,9 +54,9 @@ export const getCollectionPreview = createServerFn()
 export const getCollectionsWithPreview = createServerFn()
   .validator(
     z.object({
-      page: z.optional(z.number().default(1)),
-      limit: z.optional(z.number().default(12)),
-      previewLimit: z.optional(z.number().default(4)),
+      page: z.optional(z._default(z.number(), 1)),
+      limit: z.optional(z._default(z.number(), 12)),
+      previewLimit: z.optional(z._default(z.number(), 4)),
       type: z.optional(z.enum(['manual', 'producer'])),
       showR18: z.optional(z.boolean()),
     }),

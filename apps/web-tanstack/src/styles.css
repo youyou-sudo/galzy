@@ -8,6 +8,21 @@
 @import "./components/game/game-cover-lightbox.css";
 @plugin "@tailwindcss/typography";
 
+/* 未被任何代码 import 的组件不参与 Tailwind 扫描：
+   这些文件仍保留在仓库里供后续取用，但它们的类名不应进入全局 CSS。
+   开始使用其中某个组件时，删除对应的一行（否则该组件样式不会生成）。 */
+@source not "./components/ui/accordion.tsx";
+@source not "./components/ui/calendar.tsx";
+@source not "./components/ui/sonner.tsx";
+@source not "./components/animate-ui/components/radix/accordion.tsx";
+@source not "./components/animate-ui/components/radix/collapsible.tsx";
+@source not "./components/animate-ui/components/radix/dialog.tsx";
+@source not "./components/animate-ui/components/radix/dropdown-menu.tsx";
+@source not "./components/animate-ui/components/radix/progress.tsx";
+@source not "./components/animate-ui/components/radix/sidebar.tsx";
+@source not "./components/animate-ui/components/radix/switch.tsx";
+@source not "./components/animate-ui/icons/trash-2.tsx";
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

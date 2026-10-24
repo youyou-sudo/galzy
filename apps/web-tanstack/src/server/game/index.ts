@@ -2,7 +2,7 @@ import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import type { StripUnknown } from "@web/lib/serializable";
-import z from "zod";
+import * as z from "zod/mini";
 
 /**
  * 游戏列表可用的排序依据 / 方向，与 API 的 sortBy / order 字面量对齐。
@@ -97,21 +97,23 @@ export const dwAcConst = createServerFn()
 
 export const getGameList = createServerFn()
 	.validator(
-		z
-			.object({
-				pageSize: z.optional(z.number()),
-				pageIndex: z.optional(z.number()),
-				sortBy: z.optional(z.string()),
-				order: z.optional(z.string()),
-				q: z.optional(z.string()),
-				olang: z.optional(z.string()),
-				tags: z.optional(z.union([z.string(), z.array(z.string())])),
-				startDate: z.optional(z.string()),
-				endDate: z.optional(z.string()),
-				showR18: z.optional(z.boolean()),
-			})
-			.partial()
-			.default({}),
+		z._default(
+			z.partial(
+				z.object({
+					pageSize: z.optional(z.number()),
+					pageIndex: z.optional(z.number()),
+					sortBy: z.optional(z.string()),
+					order: z.optional(z.string()),
+					q: z.optional(z.string()),
+					olang: z.optional(z.string()),
+					tags: z.optional(z.union([z.string(), z.array(z.string())])),
+					startDate: z.optional(z.string()),
+					endDate: z.optional(z.string()),
+					showR18: z.optional(z.boolean()),
+				}),
+			),
+			{},
+		),
 	)
 	.handler(async ({ data }) => {
 		// Map legacy sortBy values to Meilisearch sortable attributes

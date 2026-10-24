@@ -1,5 +1,4 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { brotliCompressSync, gzipSync } from "node:zlib";
 import babel from "@rolldown/plugin-babel";
 import tailwindcss from "@tailwindcss/vite";
@@ -9,6 +8,7 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { defineConfig, type Plugin } from "vite";
 import viteCompression from "vite-plugin-compression";
+import { modulePreloadPriority } from "./vite-plugins/module-preload-priority.ts";
 
 const BUILD_ID = process.env.BUILD_ID || `dev-${Date.now().toString(36)}`;
 
@@ -100,22 +100,26 @@ const config = defineConfig(({ command }) => {
 		resolve: {
 			tsconfigPaths: true,
 			dedupe: ["react", "react-dom"],
-			alias: {
-				// 路由 validateSearch 只需 zod 经典 API 子集：指向 classic/schemas.js
-				// （具名导出可 tree-shake，避免整个 zod 主入口进客户端 bundle）
-				"zod/schemas": fileURLToPath(
-					new URL(
-						"../../node_modules/zod/v4/classic/schemas.js",
-						import.meta.url,
-					),
-				),
-			},
 		},
 		// windows 端 dev 需关闭 ssr.noExternal
 		ssr: {
 			// rolldown 只接受 true / 数组，传 false 会直接报错；
-			// 空数组等效于「不额外 noExternal」，即 Windows dev 需要的形态
-			noExternal: process.platform === "win32" ? [] : true,
+			// 空数组等效于「不额外 noExternal」，即 Windows dev 需要的形态。
+			//
+			// 构建期必须把 @tanstack/react-router 打进 SSR bundle：SSR 首屏 head 的
+			// modulepreload 标签由它的 headContentUtils → router-core manifest.js 生成。
+			// 若该包被 externalize，运行时会从 node_modules 读取未改写的
+			// fetchPriority:"low"（module-preload-priority 插件只作用于被 bundle 的源码），
+			// 构建期改写就会对 SSR HTML 失效。
+			noExternal: isBuild
+				? [
+						"@tanstack/react-router",
+						"@tanstack/react-router/ssr/server",
+						"@tanstack/router-core",
+					]
+				: process.platform === "win32"
+					? []
+					: true,
 		},
 		build: {
 			ssrManifest: true,
@@ -145,6 +149,9 @@ const config = defineConfig(({ command }) => {
 				},
 			},
 			devtools(),
+			// 把 TanStack router manifest 里写死的 modulepreload fetchPriority:"low"
+			// 改写为首屏 JS 应有的高优先级（详见插件内注释）。
+			modulePreloadPriority(),
 			tailwindcss(),
 			tanstackStart(),
 			react(),

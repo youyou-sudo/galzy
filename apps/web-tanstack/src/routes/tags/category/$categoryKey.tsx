@@ -18,14 +18,19 @@ import {
 	TAG_SORT_KEYS,
 	type TagGroupKey,
 } from "@web/server/tags";
-import { z } from "zod";
-import { object } from "zod/schemas";
+import * as z from "zod/mini";
 
-export const TagCategorySearchSchema = object({
+export const TagCategorySearchSchema = z.object({
 	// 与标签库一致：默认按总浏览量倒序
 	// catch：旧链接里的排序键（如已下线的 nameAsc）落到默认值，而不是整页 500
-	sort: z.enum(TAG_SORT_KEYS).catch("views").optional().default("views"),
-	order: z.enum(TAG_ORDER_KEYS).catch("desc").optional().default("desc"),
+	sort: z._default(
+		z.optional(z.catch(z.enum(TAG_SORT_KEYS), "views")),
+		"views",
+	),
+	order: z._default(
+		z.optional(z.catch(z.enum(TAG_ORDER_KEYS), "desc")),
+		"desc",
+	),
 });
 
 const isTagGroupKey = (value: string): value is TagGroupKey =>

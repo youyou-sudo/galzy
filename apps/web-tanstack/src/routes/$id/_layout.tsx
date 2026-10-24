@@ -16,8 +16,8 @@ import {
 	BreadcrumbSeparator,
 } from "@web/components/shared/breadcrumb";
 import { seoTemplate } from "@web/config/seoTemplate";
-import { filelistQueryOptions } from "@web/components/home/game/download-options";
-import { gameTagsQueryOptions } from "@web/components/home/game/tags";
+import { filelistQueryOptions } from "@web/components/home/game/download-options-queries";
+import { gameTagsQueryOptions } from "@web/components/home/game/game-tags-queries";
 import {
 	canonicalGameId,
 	isGameRouteId,

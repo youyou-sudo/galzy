@@ -5,16 +5,12 @@ import {
 	type FlowTag,
 } from "@web/components/tags/collapsible-tag-list";
 import { waitForViewTransitionEnd } from "@web/lib/view-transition";
-import { getGameTags } from "@web/server/game";
 import { useEffect, useState } from "react";
+import { gameTagsQueryOptions } from "./game-tags-queries";
 
 // queryOptions 提取：供 /$id/_layout loader 在导航关键路径上 prefetchQuery 预热，
 // 与组件内 useQuery 共用同一 queryKey/queryFn，首次进入即缓存命中。
-export const gameTagsQueryOptions = (id: string) => ({
-	queryKey: ["gameTags", id],
-	queryFn: () => getGameTags({ data: { id } }),
-	staleTime: 60_000,
-});
+// 声明在独立零 UI 模块，避免 route 模块把它提升进 entry chunk（见该文件注释）。
 
 export function TagsCard() {
 	const routeApi = getRouteApi("/$id/_layout");

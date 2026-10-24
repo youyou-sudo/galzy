@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import { cookiePass } from "@web/lib/cookie-pass";
 import type { StripUnknown } from "@web/lib/serializable";
-import z from "zod";
+import * as z from "zod/mini";
 
 export const getCmments = createServerFn()
 	.validator(

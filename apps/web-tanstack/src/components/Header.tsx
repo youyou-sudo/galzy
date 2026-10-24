@@ -85,7 +85,16 @@ export default function Header() {
 				{/* Left block */}
 				<div className="flex items-center">
 					<Link to="/" className="hidden md:flex items-center">
-						<Image src="/favicon.ico" width={32} height={32} />
+						{/* 小图标不参与首屏关键路径：fetchPriority="low" 同时会抑制
+						React 19 自动注入的 <link rel="preload" as="image">（它会被
+						排到 stylesheet / modulepreload 之前抢占关键带宽）。 */}
+						<Image
+							src="/favicon.ico"
+							width={32}
+							height={32}
+							fetchPriority="low"
+							decoding="async"
+						/>
 					</Link>
 					<div className="md:hidden">
 						<Button

@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { SearchSchema } from "@web/server/search";
-import type { z } from "zod";
+import type * as z from "zod/mini";
 
 type SearchParams = z.infer<typeof SearchSchema>;
 

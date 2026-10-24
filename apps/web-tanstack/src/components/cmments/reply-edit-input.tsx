@@ -11,7 +11,7 @@ import { replyCardStore, replycardActions } from "@web/stores/reply-edit-input";
 import { PawPrint } from "lucide-react";
 import { type ComponentProps, useMemo, useRef } from "react";
 import { toast } from "sonner";
-import { object, string, enum as zEnum } from "zod/schemas";
+import * as z from "zod/mini";
 import KaomojiPicker from "../EmojiPicker/emoji-picker";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
@@ -72,16 +72,22 @@ export const ReplyEidtInput = ({
 	const formSchema = useMemo(
 		() =>
 			showTypeSelector
-				? object({
-						comments: string()
-							.min(1, "说点什么喵～")
-							.max(2000, "2000 字作文喵喵记不住喵"),
-						type: zEnum(items.map((i) => i.value) as [string, ...string[]]),
+				? z.object({
+						comments: z
+							.string()
+							.check(
+								z.minLength(1, "说点什么喵～"),
+								z.maxLength(2000, "2000 字作文喵喵记不住喵"),
+							),
+						type: z.enum(items.map((i) => i.value) as [string, ...string[]]),
 					})
-				: object({
-						comments: string()
-							.min(1, "说点什么喵～")
-							.max(2000, "2000 字作文喵喵记不住喵"),
+				: z.object({
+						comments: z
+							.string()
+							.check(
+								z.minLength(1, "说点什么喵～"),
+								z.maxLength(2000, "2000 字作文喵喵记不住喵"),
+							),
 					}),
 		[showTypeSelector],
 	);

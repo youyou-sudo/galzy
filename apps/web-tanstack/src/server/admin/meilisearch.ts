@@ -2,7 +2,7 @@ import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import { cookiePass } from "@web/lib/cookie-pass";
-import z from "zod";
+import * as z from "zod/mini";
 
 const INDEX_NAME_MAP = {
 	game: process.env.MEILISEARCH_INDEXNAME || "galzy_games",
@@ -56,11 +56,13 @@ export const getEmbedders = createServerFn({ method: "GET" }).handler(
 export const updateEmbedders = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
-			url: z.string().min(1, "URL 不能为空"),
+			url: z.string().check(z.minLength(1, "URL 不能为空")),
 			embeddingApiKey: z.string(),
-			model: z.string().min(1, "Model 不能为空"),
-			documentTemplateMaxBytes: z.number().min(1),
-			documentTemplate: z.string().min(1, "Document Template 不能为空"),
+			model: z.string().check(z.minLength(1, "Model 不能为空")),
+			documentTemplateMaxBytes: z.number().check(z.minimum(1)),
+			documentTemplate: z
+				.string()
+				.check(z.minLength(1, "Document Template 不能为空")),
 		}),
 	)
 	.handler(async ({ data: body }) => {
@@ -78,7 +80,10 @@ export const updateEmbedders = createServerFn({ method: "POST" })
 export const getPropertyList = createServerFn({ method: "GET" })
 	.validator(
 		z.object({
-			indexType: z.enum(["game", "tag", "producer"]).optional().default("game"),
+			indexType: z._default(
+				z.optional(z.enum(["game", "tag", "producer"])),
+				"game",
+			),
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -98,7 +103,10 @@ export const getPropertyList = createServerFn({ method: "GET" })
 export const getSearchableAttributes = createServerFn({ method: "GET" })
 	.validator(
 		z.object({
-			indexType: z.enum(["game", "tag", "producer"]).optional().default("game"),
+			indexType: z._default(
+				z.optional(z.enum(["game", "tag", "producer"])),
+				"game",
+			),
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -119,7 +127,10 @@ export const updateSearchableAttributes = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			fields: z.array(z.string()),
-			indexType: z.enum(["game", "tag", "producer"]).optional().default("game"),
+			indexType: z._default(
+				z.optional(z.enum(["game", "tag", "producer"])),
+				"game",
+			),
 		}),
 	)
 	.handler(async ({ data: { fields, indexType } }) => {

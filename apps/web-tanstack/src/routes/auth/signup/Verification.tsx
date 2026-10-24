@@ -22,11 +22,11 @@ import { authClient } from '@web/server/auth/auth-client'
 import { RefreshCwIcon } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { email, object, optional, string } from 'zod/schemas'
+import * as z from 'zod/mini'
 
-export const validateSearchSchema = object({
-  email: email(),
-  return_to: optional(string()),
+export const validateSearchSchema = z.object({
+  email: z.email(),
+  return_to: z.optional(z.string()),
 })
 
 export const Route = createFileRoute('/auth/signup/Verification')({

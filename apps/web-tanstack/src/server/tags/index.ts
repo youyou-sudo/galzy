@@ -2,12 +2,12 @@ import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import type { StripUnknown } from "@web/lib/serializable";
-import { boolean, number, object, string, enum as zEnum } from "zod/schemas";
+import * as z from "zod/mini";
 
 export const getTagData = createServerFn()
 	.validator(
-		object({
-			tagId: string(),
+		z.object({
+			tagId: z.string(),
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -18,9 +18,9 @@ export const getTagData = createServerFn()
 		return res;
 	});
 
-export const SearchTagsSchema = object({
-	q: string().optional(),
-	limit: number().optional(),
+export const SearchTagsSchema = z.object({
+	q: z.optional(z.string()),
+	limit: z.optional(z.number()),
 });
 
 export const getSearchTags = createServerFn()
@@ -35,15 +35,15 @@ export const getSearchTags = createServerFn()
 
 export const getVnListByTag = createServerFn()
 	.validator(
-		object({
-			tagId: string(),
-			pageSize: number(),
-			pageIndex: number(),
+		z.object({
+			tagId: z.string(),
+			pageSize: z.number(),
+			pageIndex: z.number(),
 			/**
 			 * 是否计入子标签（任意深度后代）的作品。
 			 * 对齐 VNDB `tag` 过滤器语义；关闭时等价于 `dtag`（仅直接标注）。
 			 */
-			includeChildren: boolean().optional(),
+			includeChildren: z.optional(z.boolean()),
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -89,17 +89,13 @@ export const TAG_ORDER_KEYS = ["desc", "asc"] as const;
 
 export type TagOrderKey = (typeof TAG_ORDER_KEYS)[number];
 
-const TagHubSchema = object({
-	group: zEnum([
-		"character",
-		"theme",
-		"plot",
-		"setting",
-		"gameplay",
-	]).optional(),
-	limit: number().optional(),
-	sort: zEnum([...TAG_SORT_KEYS]).optional(),
-	order: zEnum([...TAG_ORDER_KEYS]).optional(),
+const TagHubSchema = z.object({
+	group: z.optional(
+		z.enum(["character", "theme", "plot", "setting", "gameplay"]),
+	),
+	limit: z.optional(z.number()),
+	sort: z.optional(z.enum([...TAG_SORT_KEYS])),
+	order: z.optional(z.enum([...TAG_ORDER_KEYS])),
 });
 
 export type TagHubTag = {
@@ -158,8 +154,8 @@ export const TAG_GROUP_KEYS = [
 
 export type TagGroupKey = (typeof TAG_GROUP_KEYS)[number];
 
-const TagGroupSchema = object({
-	group: zEnum([...TAG_GROUP_KEYS]),
+const TagGroupSchema = z.object({
+	group: z.enum([...TAG_GROUP_KEYS]),
 });
 
 export type TagGroupCategory = {

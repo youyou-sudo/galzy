@@ -2,7 +2,7 @@ import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import { cookiePass } from "@web/lib/cookie-pass";
-import z from "zod";
+import * as z from "zod/mini";
 
 /** 任务队列状态（后端 galrc_queue_job 一行的驼峰形状，与 Drizzle 返回一致）。 */
 export type QueueJobRow = {
@@ -60,11 +60,11 @@ export type TaskListResult = {
 export const listTasks = createServerFn({ method: "GET" })
 	.validator(
 		z.object({
-			queue: z.string().optional(),
-			type: z.string().optional(),
-			status: z.string().optional(),
-			pageSize: z.number().min(1).max(100).default(20),
-			pageIndex: z.number().min(0).default(0),
+			queue: z.optional(z.string()),
+			type: z.optional(z.string()),
+			status: z.optional(z.string()),
+			pageSize: z._default(z.number().check(z.minimum(1), z.maximum(100)), 20),
+			pageIndex: z._default(z.number().check(z.minimum(0)), 0),
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -96,7 +96,7 @@ export const getQueueStats = createServerFn({ method: "GET" }).handler(
 
 /** 重试失败/中断/死信任务。 */
 export const retryTask = createServerFn({ method: "POST" })
-	.validator(z.object({ jobId: z.string().min(1) }))
+	.validator(z.object({ jobId: z.string().check(z.minLength(1)) }))
 	.handler(async ({ data: { jobId } }) => {
 		const { data: result, error } = await api
 			.tasks({ jobId })
@@ -107,7 +107,7 @@ export const retryTask = createServerFn({ method: "POST" })
 
 /** 删除单条任务记录。 */
 export const deleteTask = createServerFn({ method: "POST" })
-	.validator(z.object({ jobId: z.string().min(1) }))
+	.validator(z.object({ jobId: z.string().check(z.minLength(1)) }))
 	.handler(async ({ data: { jobId } }) => {
 		const { data: result, error } = await api
 			.tasks({ jobId })
@@ -118,7 +118,11 @@ export const deleteTask = createServerFn({ method: "POST" })
 
 /** 批量删除任务记录。 */
 export const batchDeleteTasks = createServerFn({ method: "POST" })
-	.validator(z.object({ ids: z.array(z.string().min(1)).min(1) }))
+	.validator(
+		z.object({
+			ids: z.array(z.string().check(z.minLength(1))).check(z.minLength(1)),
+		}),
+	)
 	.handler(async ({ data: { ids } }) => {
 		const { data: result, error } = await api.tasks.batchDelete.post(
 			{ ids },
@@ -130,7 +134,7 @@ export const batchDeleteTasks = createServerFn({ method: "POST" })
 
 /** 单个任务详情。 */
 export const getTaskDetail = createServerFn({ method: "GET" })
-	.validator(z.object({ jobId: z.string().min(1) }))
+	.validator(z.object({ jobId: z.string().check(z.minLength(1)) }))
 	.handler(async ({ data: { jobId } }) => {
 		const { data: result, error } = await api
 			.tasks({ jobId })
@@ -143,9 +147,9 @@ export const getTaskDetail = createServerFn({ method: "GET" })
 export const getTaskLogs = createServerFn({ method: "GET" })
 	.validator(
 		z.object({
-			jobId: z.string().min(1),
-			pageSize: z.number().min(1).max(500).default(100),
-			pageIndex: z.number().min(0).default(0),
+			jobId: z.string().check(z.minLength(1)),
+			pageSize: z._default(z.number().check(z.minimum(1), z.maximum(500)), 100),
+			pageIndex: z._default(z.number().check(z.minimum(0)), 0),
 		}),
 	)
 	.handler(async ({ data: { jobId, pageSize, pageIndex } }) => {
@@ -160,8 +164,8 @@ export const getTaskLogs = createServerFn({ method: "GET" })
 export const enqueueTask = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
-			queue: z.string().min(1),
-			type: z.string().min(1),
+			queue: z.string().check(z.minLength(1)),
+			type: z.string().check(z.minLength(1)),
 		}),
 	)
 	.handler(async ({ data: { queue, type } }) => {
@@ -186,9 +190,9 @@ export type DeadLetterJobRow = {
 export const listDeadLetterTasks = createServerFn({ method: "GET" })
 	.validator(
 		z.object({
-			queue: z.string().min(1),
-			pageSize: z.number().min(1).max(500).default(50),
-			pageIndex: z.number().min(0).default(0),
+			queue: z.string().check(z.minLength(1)),
+			pageSize: z._default(z.number().check(z.minimum(1), z.maximum(500)), 50),
+			pageIndex: z._default(z.number().check(z.minimum(0)), 0),
 		}),
 	)
 	.handler(async ({ data: { queue, pageSize, pageIndex } }) => {
@@ -201,7 +205,12 @@ export const listDeadLetterTasks = createServerFn({ method: "GET" })
 
 /** 死信重放（回原队列）。 */
 export const republishDeadLetterTask = createServerFn({ method: "POST" })
-	.validator(z.object({ queue: z.string().min(1), jobId: z.string().min(1) }))
+	.validator(
+		z.object({
+			queue: z.string().check(z.minLength(1)),
+			jobId: z.string().check(z.minLength(1)),
+		}),
+	)
 	.handler(async ({ data: { queue, jobId } }) => {
 		const { data: result, error } = await api.tasks
 			.deadLetter({ queue })
@@ -212,7 +221,12 @@ export const republishDeadLetterTask = createServerFn({ method: "POST" })
 
 /** 丢弃死信。 */
 export const removeDeadLetterTask = createServerFn({ method: "POST" })
-	.validator(z.object({ queue: z.string().min(1), jobId: z.string().min(1) }))
+	.validator(
+		z.object({
+			queue: z.string().check(z.minLength(1)),
+			jobId: z.string().check(z.minLength(1)),
+		}),
+	)
 	.handler(async ({ data: { queue, jobId } }) => {
 		const { data: result, error } = await api.tasks
 			.deadLetter({ queue })

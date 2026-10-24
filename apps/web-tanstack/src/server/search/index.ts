@@ -2,12 +2,12 @@ import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import { format, parseISO } from "date-fns";
-import { object, string } from "zod/schemas";
+import * as z from "zod/mini";
 
-export const SearchSchema = object({
-	q: string().optional(),
-	startDate: string().optional(),
-	endDate: string().optional(),
+export const SearchSchema = z.object({
+	q: z.optional(z.string()),
+	startDate: z.optional(z.string()),
+	endDate: z.optional(z.string()),
 });
 
 export const getSearch = createServerFn()

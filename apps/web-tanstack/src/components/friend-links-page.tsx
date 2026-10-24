@@ -1,5 +1,6 @@
 import { MotionHighlight } from '@web/components/animate-ui/effects/motion-highlight'
 import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
+import { MotionConfig } from 'motion/react'
 
 const linksList: {
   title: string
@@ -62,43 +63,47 @@ const linksList: {
 ]
 
 export default function RouteComponent() {
+  // 局部包裹（不再由全站 Provider 包裹）：reducedMotion="user" 让 motion 组件跟随
+  // 系统「减弱动态效果」设置，同时避免 motion/react 进入全站首屏 chunk。
   return (
-    <section>
-      <div>
-        <div className="mb-6 ml-1 space-y-4">
-          <h1 className="flex justify-center items-center text-4xl font-semibold ">
-            🐾喵の朋友们
-          </h1>
-          <p className="ml-1 text-center">
-            喵世界再大，有缘的小伙伴也能像在身边一样呢
-          </p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ">
-          <MotionHighlight hover className="rounded-xl">
-            {linksList.map((item) => (
-              <a
-                href={item.href}
-                key={item.href}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <div className="h-32 flex flex-col border rounded-md p-4">
-                  <div className="flex gap-5">
-                    <Avatar className="flex">
-                      <AvatarImage src={item.avatar} />
-                      <AvatarFallback>{item.title}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 items-center justify-center space-y-2">
-                      <div className="font-semibold">{item.title}</div>
-                      <div className="text-sm">{item.description}</div>
+    <MotionConfig reducedMotion="user">
+      <section>
+        <div>
+          <div className="mb-6 ml-1 space-y-4">
+            <h1 className="flex justify-center items-center text-4xl font-semibold ">
+              🐾喵の朋友们
+            </h1>
+            <p className="ml-1 text-center">
+              喵世界再大，有缘的小伙伴也能像在身边一样呢
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ">
+            <MotionHighlight hover className="rounded-xl">
+              {linksList.map((item) => (
+                <a
+                  href={item.href}
+                  key={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <div className="h-32 flex flex-col border rounded-md p-4">
+                    <div className="flex gap-5">
+                      <Avatar className="flex">
+                        <AvatarImage src={item.avatar} />
+                        <AvatarFallback>{item.title}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 items-center justify-center space-y-2">
+                        <div className="font-semibold">{item.title}</div>
+                        <div className="text-sm">{item.description}</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </a>
-            ))}
-          </MotionHighlight>
+                </a>
+              ))}
+            </MotionHighlight>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </MotionConfig>
   )
 }

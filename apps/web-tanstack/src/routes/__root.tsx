@@ -1,6 +1,5 @@
 import { BUILD_ID } from 'virtual:build-id'
 import geistWoff2Url from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url'
-import { TanStackDevtools } from '@tanstack/react-devtools'
 import type { QueryClient } from '@tanstack/react-query'
 import {
   createRootRouteWithContext,
@@ -9,14 +8,13 @@ import {
   Scripts,
   useMatches,
 } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { Image } from '@unpic/react'
 import Errors from '@web/components/error'
 import { TooltipProvider } from '@web/components/ui/tooltip'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Toaster } from 'sonner'
 import Footer from '../components/Footer'
 import Header from '../components/Header'
-import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 import TanStackQueryProvider from '../integrations/tanstack-query/root-provider'
 import appCss from '../styles.css?url'
 
@@ -36,6 +34,13 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
       .catch(() => {})
   }, 3000)
 }
+
+// Dev-only 开发者工具：`import.meta.env.DEV` 是构建期静态常量，生产构建会把这个
+// 三元表达式折叠为 null，React.lazy 里的动态 import 连同三个 devtools 包一起被
+// tree-shake（与上方 capability-probe 同一套路）。dev 下仍按原样渲染面板。
+const Devtools = import.meta.env.DEV
+  ? lazy(() => import('@web/components/devtools/devtools'))
+  : null
 
 export type MyRouterContext = {
   queryClient: QueryClient
@@ -147,18 +152,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <AppChrome>{children}</AppChrome>
           </TooltipProvider>
           <Toaster position="top-center" />
-          <TanStackDevtools
-            config={{
-              position: 'bottom-right',
-            }}
-            plugins={[
-              {
-                name: 'Tanstack Router',
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-              TanStackQueryDevtools,
-            ]}
-          />
+          {Devtools ? (
+            <Suspense fallback={null}>
+              <Devtools />
+            </Suspense>
+          ) : null}
         </TanStackQueryProvider>
         <Scripts />
       </body>
@@ -183,10 +181,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
   return (
     <>
       {/* 背景层 */}
-      <div
-        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-30 dark:opacity-10"
-        style={{ backgroundImage: 'url("/background.webp")' }}
-      />
+      <DeferredBackground />
       <Header />
       <main className="mx-auto w-full max-w-7xl px-4 sm:px-6">
         {/* 广告 */}
@@ -209,6 +204,9 @@ function AppChrome({ children }: { children: React.ReactNode }) {
                 src="/dzmm.webp"
                 alt="dzmm 广告图片"
                 className="object-cover scale-[1.03]"
+                loading="lazy"
+                fetchPriority="low"
+                decoding="async"
               />
             </div>
             <div className="hidden sm:block">
@@ -218,6 +216,9 @@ function AppChrome({ children }: { children: React.ReactNode }) {
                 src="/dzmm.webp"
                 alt="dzmm 广告图片"
                 className="object-cover rounded-lg"
+                loading="lazy"
+                fetchPriority="low"
+                decoding="async"
               />
             </div>
           </a>
@@ -226,5 +227,61 @@ function AppChrome({ children }: { children: React.ReactNode }) {
       </main>
       <Footer />
     </>
+  )
+}
+
+/**
+ * 背景层：/background.webp 约 104KB，是纯装饰资源。
+ *
+ * 之前用内联 style 直接挂背景图，浏览器解析完样式立刻发起请求，会和首屏
+ * CSS/JS（entry + 路由 chunk）抢带宽，慢网下表现为「背景图先到、页面迟迟不能交互」。
+ * 现在 SSR/首帧只保留纯色底，等 window load 后的空闲帧（rIC，兜底 2.5s）才注入
+ * background-image，把这条 104KB 请求完全挪出关键路径；宽度/高度由 fixed inset-0
+ * 决定，不存在布局偏移。
+ */
+function DeferredBackground() {
+  const [src, setSrc] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    let idleHandle: number | undefined
+    const apply = () => {
+      if (!cancelled) setSrc('/background.webp')
+    }
+    const schedule = () => {
+      if (cancelled) return
+      if (typeof requestIdleCallback === 'function') {
+        idleHandle = requestIdleCallback(apply, { timeout: 1500 })
+      } else {
+        setTimeout(apply, 200)
+      }
+    }
+
+    if (document.readyState === 'complete') {
+      schedule()
+    } else {
+      window.addEventListener('load', schedule, { once: true })
+    }
+    // 兜底：load 事件可能被慢资源拖很久，最多等 2.5s 后照常注入。
+    const timer = setTimeout(schedule, 2500)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+      window.removeEventListener('load', schedule)
+      if (
+        idleHandle !== undefined &&
+        typeof cancelIdleCallback === 'function'
+      ) {
+        cancelIdleCallback(idleHandle)
+      }
+    }
+  }, [])
+
+  return (
+    <div
+      className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-30 dark:opacity-10"
+      style={src ? { backgroundImage: `url("${src}")` } : undefined}
+    />
   )
 }

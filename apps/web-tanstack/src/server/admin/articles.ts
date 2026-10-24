@@ -2,7 +2,7 @@ import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import { cookiePass } from "@web/lib/cookie-pass";
-import z from "zod";
+import * as z from "zod/mini";
 
 export const adminGetAllArticles = createServerFn({ method: "GET" })
 	.validator(

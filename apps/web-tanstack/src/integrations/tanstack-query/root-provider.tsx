@@ -5,7 +5,6 @@ import {
   type Persister,
 } from '@tanstack/react-query-persist-client'
 import { useRouter } from '@tanstack/react-router'
-import { MotionConfig } from 'motion/react'
 import type { ReactNode } from 'react'
 
 const defaultOptions = {
@@ -330,12 +329,9 @@ export default function TanStackQueryProvider({
     queryClient: QueryClient
   }
 
-  // 全局减弱动态效果：reducedMotion="user" 让 motion 驱动的组件跟随系统
-  // 「减弱动态效果」设置（变换动画降级为透明度），仅包裹不改 Provider 逻辑。
-  // 本文件为客户端 Provider（useRouter/QueryClientProvider），适合作为包裹点。
-  return (
-    <QueryClientProvider client={queryClient}>
-      <MotionConfig reducedMotion="user">{children}</MotionConfig>
-    </QueryClientProvider>
-  )
+  // 注意：这里不要再包裹 motion 的 MotionConfig。全站 Provider 一旦静态引用
+  // `motion/react`，framer-motion 就会进入全站首屏 JS（首页也要下载 137KB raw）。
+  // 减弱动态效果改由真正使用 motion 的页面组件局部包裹（见 friend-links-page /
+  // download-options / plate-page），既保留无障碍行为，又让首屏零 motion 体积。
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 }

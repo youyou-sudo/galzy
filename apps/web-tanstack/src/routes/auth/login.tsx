@@ -26,17 +26,19 @@ import { authClient } from '@web/server/auth/auth-client'
 import { Eye, EyeOff, Loader2, LogIn, Mail } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { object, string } from 'zod/schemas'
+import * as z from 'zod/mini'
 
-const loginSchema = object({
-  email: string().min(1, '请输入邮箱地址').email('请输入有效的邮箱地址'),
-  password: string().min(1, '请输入密码'),
+const loginSchema = z.object({
+  email: z
+    .string()
+    .check(z.minLength(1, '请输入邮箱地址'), z.email('请输入有效的邮箱地址')),
+  password: z.string().check(z.minLength(1, '请输入密码')),
 })
 
-export const ReturnToSchema = object({
-  return_to: string().optional(),
-  error: string().optional(),
-  error_description: string().optional(),
+export const ReturnToSchema = z.object({
+  return_to: z.optional(z.string()),
+  error: z.optional(z.string()),
+  error_description: z.optional(z.string()),
 })
 
 // Better Auth 的错误重定向携带机器码 `error`（如 access_denied / invalid_code）

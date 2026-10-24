@@ -36,7 +36,7 @@ import {
 import { r18Store } from "@web/stores/r18Store";
 import { Flame, ListFilter } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { object, string, enum as zEnum } from "zod/schemas";
+import * as z from "zod/mini";
 
 /** 上次点击的游戏 id：回程时从列表页返回该卡，且只有它保留 view-transition-name
  * 与详情页封面/标题配对（2N group → 2）。sessionStorage 保证刷新/重开后仍有效。 */
@@ -156,16 +156,19 @@ const ORDER_SELECT_ITEMS = GAME_ORDER_ITEMS.map(({ key, label }) => ({
 	value: key,
 }));
 
-const searchSchema = object({
-	q: string().optional().default(""),
-	startDate: string().optional(),
-	endDate: string().optional(),
+const searchSchema = z.object({
+	q: z._default(z.optional(z.string()), ""),
+	startDate: z.optional(z.string()),
+	endDate: z.optional(z.string()),
 	// catch：URL 里的旧值 / 手改值落到默认排序，而不是整页 500
-	sortBy: zEnum(GAME_SORT_KEYS)
-		.catch("released")
-		.optional()
-		.default("released"),
-	order: zEnum(GAME_ORDER_KEYS).catch("desc").optional().default("desc"),
+	sortBy: z._default(
+		z.optional(z.catch(z.enum(GAME_SORT_KEYS), "released")),
+		"released",
+	),
+	order: z._default(
+		z.optional(z.catch(z.enum(GAME_ORDER_KEYS), "desc")),
+		"desc",
+	),
 });
 
 export const Route = createFileRoute("/games/")({

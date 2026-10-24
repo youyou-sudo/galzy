@@ -12,11 +12,11 @@ import {
 import { seoTemplate } from "@web/config/seoTemplate";
 import { seoMeta } from "@web/lib/seo";
 import { getSearchProducers } from "@web/server/producer";
-import { number, object, optional, string } from "zod/schemas";
+import * as z from "zod/mini";
 
-const producerSearchSchema = object({
-	q: string().optional(),
-	page: optional(number().default(1)).catch(1),
+const producerSearchSchema = z.object({
+	q: z.optional(z.string()),
+	page: z.catch(z.optional(z._default(z.number(), 1)), 1),
 });
 
 const PAGE_SIZE = 24;

@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import { cookiePass } from "@web/lib/cookie-pass";
 import { authServerClient } from "@web/server/auth/auth.server";
-import z from "zod";
+import * as z from "zod/mini";
 
 export const getTopics = createServerFn()
 	.validator(
@@ -99,8 +99,8 @@ export const getTopic = createServerFn()
 export const createTopic = createServerFn()
 	.validator(
 		z.object({
-			title: z.string().min(1),
-			content: z.string().min(1),
+			title: z.string().check(z.minLength(1)),
+			content: z.string().check(z.minLength(1)),
 			contentType: z.optional(z.enum(["markdown", "html"])),
 		}),
 	)

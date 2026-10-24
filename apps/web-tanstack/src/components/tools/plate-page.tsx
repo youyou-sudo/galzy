@@ -11,6 +11,7 @@ import {
 } from "@web/components/ui/card";
 import { Input } from "@web/components/ui/input";
 import { ExternalLink, Hash } from "lucide-react";
+import { MotionConfig } from "motion/react";
 import { useState } from "react";
 
 type PlateSite = {
@@ -105,110 +106,113 @@ export default function RouteComponent() {
 		url.replace("{id}", plate.trim() || "{id}");
 
 	return (
-		<section className="flex justify-center items-start min-h-[60vh]">
-			<div className="w-full max-w-2xl">
-				{/* Header */}
-				<div className="text-center mb-6">
-					<h1 className="text-3xl font-bold mb-2">车牌号跳转工具</h1>
-					<p className="text-muted-foreground">输入车牌号，直通车喵～</p>
-				</div>
+		<MotionConfig reducedMotion="user">
+			<section className="flex justify-center items-start min-h-[60vh]">
+				<div className="w-full max-w-2xl">
+					{/* Header */}
+					<div className="text-center mb-6">
+						<h1 className="text-3xl font-bold mb-2">车牌号跳转工具</h1>
+						<p className="text-muted-foreground">输入车牌号，直通车喵～</p>
+					</div>
 
-				{/* Prominent Input — THE primary action */}
-				<div className="relative mb-8">
-					<Hash className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none" />
-					<Input
-						value={plate}
-						onChange={(e) => setPlate(e.target.value)}
-						placeholder="输入车牌号..."
-						className="h-12 pl-12 text-lg rounded-xl"
-					/>
-				</div>
+					{/* Prominent Input — THE primary action */}
+					<div className="relative mb-8">
+						<Hash className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none" />
+						<Input
+							value={plate}
+							onChange={(e) => setPlate(e.target.value)}
+							placeholder="输入车牌号..."
+							className="h-12 pl-12 text-lg rounded-xl"
+						/>
+					</div>
 
-				{/* Site Grid — always visible */}
-				<h2 className="text-sm font-medium text-muted-foreground mb-3">
-					选择班次喵～
-				</h2>
-				<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-					{sites.map((site) => {
-						const channel =
-							site.channels?.find((c) => c.id === selectedChannels[site.id]) ??
-							site.channels?.[0];
-						const url = channel?.url ?? site.url ?? "";
-						return (
-							<Card key={site.id}>
-								<CardHeader className="pb-2">
-									<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-										<CardTitle className="text-base flex items-center gap-2">
-											<span
-												className={`inline-flex items-center justify-center size-6 rounded ${site.bg} ${site.color} text-xs font-bold`}
-											>
-												{site.icon}
-											</span>
-											{site.name}
-										</CardTitle>
-										{site.channels && (
-											<RadioGroup
-												value={channel?.id ?? ""}
-												onValueChange={(value: string) =>
-													setSelectedChannels((current) => ({
-														...current,
-														[site.id]: value,
-													}))
-												}
-												className="flex flex-row items-center gap-4"
-											>
-												{site.channels.map((c) => (
-													<label
-														key={c.id}
-														htmlFor={`plate-channel-${site.id}-${c.id}`}
-														className="flex items-center gap-2 text-sm cursor-pointer"
-													>
-														<RadioGroupItem
-															id={`plate-channel-${site.id}-${c.id}`}
-															value={c.id}
-														/>
-														{c.name}
-													</label>
-												))}
-											</RadioGroup>
-										)}
-									</div>
-								</CardHeader>
-								<CardContent className="pt-0">
-									{plate.trim() ? (
-										<>
-											<p className="text-xs text-muted-foreground truncate mb-2">
-												{resolvedUrl(url)}
-											</p>
+					{/* Site Grid — always visible */}
+					<h2 className="text-sm font-medium text-muted-foreground mb-3">
+						选择班次喵～
+					</h2>
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+						{sites.map((site) => {
+							const channel =
+								site.channels?.find(
+									(c) => c.id === selectedChannels[site.id],
+								) ?? site.channels?.[0];
+							const url = channel?.url ?? site.url ?? "";
+							return (
+								<Card key={site.id}>
+									<CardHeader className="pb-2">
+										<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+											<CardTitle className="text-base flex items-center gap-2">
+												<span
+													className={`inline-flex items-center justify-center size-6 rounded ${site.bg} ${site.color} text-xs font-bold`}
+												>
+													{site.icon}
+												</span>
+												{site.name}
+											</CardTitle>
+											{site.channels && (
+												<RadioGroup
+													value={channel?.id ?? ""}
+													onValueChange={(value: string) =>
+														setSelectedChannels((current) => ({
+															...current,
+															[site.id]: value,
+														}))
+													}
+													className="flex flex-row items-center gap-4"
+												>
+													{site.channels.map((c) => (
+														<label
+															key={c.id}
+															htmlFor={`plate-channel-${site.id}-${c.id}`}
+															className="flex items-center gap-2 text-sm cursor-pointer"
+														>
+															<RadioGroupItem
+																id={`plate-channel-${site.id}-${c.id}`}
+																value={c.id}
+															/>
+															{c.name}
+														</label>
+													))}
+												</RadioGroup>
+											)}
+										</div>
+									</CardHeader>
+									<CardContent className="pt-0">
+										{plate.trim() ? (
+											<>
+												<p className="text-xs text-muted-foreground truncate mb-2">
+													{resolvedUrl(url)}
+												</p>
+												<Button
+													size="sm"
+													variant="outline"
+													className="w-full cursor-pointer"
+													onClick={() =>
+														openSite(url.replace("{id}", plate.trim()))
+													}
+												>
+													<ExternalLink data-icon="inline-start" />
+													打开
+												</Button>
+											</>
+										) : (
 											<Button
 												size="sm"
 												variant="outline"
 												className="w-full cursor-pointer"
-												onClick={() =>
-													openSite(url.replace("{id}", plate.trim()))
-												}
+												disabled
 											>
 												<ExternalLink data-icon="inline-start" />
-												打开
+												输入车牌号后可上车喵～
 											</Button>
-										</>
-									) : (
-										<Button
-											size="sm"
-											variant="outline"
-											className="w-full cursor-pointer"
-											disabled
-										>
-											<ExternalLink data-icon="inline-start" />
-											输入车牌号后可上车喵～
-										</Button>
-									)}
-								</CardContent>
-							</Card>
-						);
-					})}
+										)}
+									</CardContent>
+								</Card>
+							);
+						})}
+					</div>
 				</div>
-			</div>
-		</section>
+			</section>
+		</MotionConfig>
 	);
 }

@@ -2,7 +2,7 @@ import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import { cookiePass } from "@web/lib/cookie-pass";
-import z from "zod";
+import * as z from "zod/mini";
 
 export const getIntroductionArticle = createServerFn()
 	.validator(
@@ -39,10 +39,10 @@ export const createIntroduction = createServerFn()
 	.validator(
 		z.object({
 			gameId: z.string(),
-			title: z.string().min(1, "标题不能为空"),
-			content: z.string().min(1, "内容不能为空"),
+			title: z.string().check(z.minLength(1, "标题不能为空")),
+			content: z.string().check(z.minLength(1, "内容不能为空")),
 			contentType: z.optional(z.enum(["markdown", "html"])),
-			copyright: z.string().nullable().optional(),
+			copyright: z.optional(z.nullable(z.string())),
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -67,10 +67,10 @@ export const updateIntroduction = createServerFn()
 		z.object({
 			id: z.string(),
 			data: z.object({
-				title: z.string().min(1, "标题不能为空"),
-				content: z.string().min(1, "内容不能为空"),
+				title: z.string().check(z.minLength(1, "标题不能为空")),
+				content: z.string().check(z.minLength(1, "内容不能为空")),
 				contentType: z.optional(z.enum(["markdown", "html"])),
-				copyright: z.string().nullable().optional(),
+				copyright: z.optional(z.nullable(z.string())),
 			}),
 		}),
 	)

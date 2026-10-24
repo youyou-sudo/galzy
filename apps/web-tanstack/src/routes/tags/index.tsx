@@ -18,15 +18,20 @@ import {
 	TAG_ORDER_KEYS,
 	TAG_SORT_KEYS,
 } from "@web/server/tags";
-import { z } from "zod";
-import { object, string } from "zod/schemas";
+import * as z from "zod/mini";
 
-export const TagsSearchSchema = object({
-	q: string().optional(),
+export const TagsSearchSchema = z.object({
+	q: z.optional(z.string()),
 	// 默认按总浏览量倒序：这是用户最常想看的「大家都在看什么」
 	// catch：旧链接里的排序键（如已下线的 nameAsc）落到默认值，而不是整页 500
-	sort: z.enum(TAG_SORT_KEYS).catch("views").optional().default("views"),
-	order: z.enum(TAG_ORDER_KEYS).catch("desc").optional().default("desc"),
+	sort: z._default(
+		z.optional(z.catch(z.enum(TAG_SORT_KEYS), "views")),
+		"views",
+	),
+	order: z._default(
+		z.optional(z.catch(z.enum(TAG_ORDER_KEYS), "desc")),
+		"desc",
+	),
 });
 
 export const Route = createFileRoute("/tags/")({

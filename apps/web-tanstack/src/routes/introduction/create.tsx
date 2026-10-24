@@ -3,12 +3,12 @@ import { ArticleForm } from "@web/components/introduction/article-form";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { seoMeta } from "@web/lib/seo";
 import { getSession } from "@web/server/auth/auth.functions";
-import z from "zod";
+import * as z from "zod/mini";
 
 export const Route = createFileRoute("/introduction/create")({
 	component: RouteComponent,
 	validateSearch: z.object({
-		gameId: z.string().optional(),
+		gameId: z.optional(z.string()),
 	}),
 	head: () =>
 		seoMeta({

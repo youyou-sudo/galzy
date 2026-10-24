@@ -17,12 +17,12 @@ import { authClient } from '@web/server/auth/auth-client'
 import { getTopics } from '@web/server/topics'
 import { TopicsListPageSkeleton } from '@web/components/shared/route-skeletons'
 import { FileText, Plus } from 'lucide-react'
-import { number, object } from 'zod/schemas'
+import * as z from 'zod/mini'
 
 // `?page=abc` / `?page=0` 等非法值回退到第 1 页，避免 Number() 得到 NaN 后
 // 传给 API 触发校验错误（其他分页路由同样用 .catch 兜底）
-const topicsSearchSchema = object({
-  page: number().int().min(1).catch(1).default(1),
+const topicsSearchSchema = z.object({
+  page: z._default(z.catch(z.int().check(z.minimum(1)), 1), 1),
 })
 
 export const Route = createFileRoute('/topics/')({

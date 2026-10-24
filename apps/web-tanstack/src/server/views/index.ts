@@ -2,7 +2,7 @@ import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
 import { ipPass } from "@web/lib/ip-pass";
-import z from "zod";
+import * as z from "zod/mini";
 
 // 记录游戏访问（热榜计数）。IP 在服务端通过 ipPass 透传（客户端无法触达
 // @tanstack/react-start/server，必须放在 server function 层），供 API 按 IP 防刷。
@@ -10,7 +10,7 @@ import z from "zod";
 export const recordGameView = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
-			id: z.string().min(1),
+			id: z.string().check(z.minLength(1)),
 		}),
 	)
 	.handler(async ({ data }) => {
@@ -21,7 +21,7 @@ export const recordGameView = createServerFn({ method: "POST" })
 export const recordTagView = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
-			tagId: z.string().min(1),
+			tagId: z.string().check(z.minLength(1)),
 		}),
 	)
 	.handler(async ({ data }) => {

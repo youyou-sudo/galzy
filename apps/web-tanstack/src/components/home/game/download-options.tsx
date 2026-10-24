@@ -38,24 +38,19 @@ import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
 import { groupSplitArchives } from "@web/lib/split-archives";
 import { cn } from "@web/lib/utils";
 import { waitForViewTransitionEnd } from "@web/lib/view-transition";
-import { dwAcConst, getFileList } from "@web/server/game";
+import { dwAcConst } from "@web/server/game";
 import { downCardStore, downmodalActions } from "@web/stores/downCardData";
 import { FileArchive, Info } from "lucide-react";
+import { MotionConfig } from "motion/react";
 import { tryit } from "radash";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+// 查询配置独立成模块：见 download-options-queries.ts 顶部注释（避免本组件的
+// animate-ui / motion 依赖经 route loader 的 import 被提升进 entry chunk）。
+import { filelistQueryOptions } from "./download-options-queries";
 import { GlgczujmDl } from "./tips";
 
 const apiroute = getRouteApi("/$id/_layout/");
-
-// queryOptions 提取：供 /$id/_layout loader 在导航关键路径上 prefetchQuery 预热，
-// 与组件内 useQuery 共用同一 queryKey/queryFn，首次进入即缓存命中。
-export const filelistQueryOptions = (id: string) => ({
-	queryKey: ["filelist", id],
-	queryFn: () => getFileList({ data: { id } }),
-	staleTime: 60_000,
-	gcTime: 5 * 60_000,
-});
 
 // 解压密码统一为 玖辞；密码的复制按钮复用下载弹窗（文件信息）中的 CopyButton 组件
 const UNZIP_PASSWORD = "玖辞";
@@ -136,17 +131,21 @@ export const DownloadOptions = () => {
 		);
 	}
 
+	// 局部包裹（不再由全站 Provider 包裹）：reducedMotion="user" 让 animate-ui /
+	// motion 组件跟随系统「减弱动态效果」设置，同时避免 motion/react 进入全站首屏。
 	return (
-		<>
-			<UnzipPasswordAlert />
-			<FileExplorer
-				items={settledFilelist.game}
-				onFileClick={(item) => {
-					downmodalActions.open(item);
-				}}
-			/>
-			<DownCardDialog />
-		</>
+		<MotionConfig reducedMotion="user">
+			<>
+				<UnzipPasswordAlert />
+				<FileExplorer
+					items={settledFilelist.game}
+					onFileClick={(item) => {
+						downmodalActions.open(item);
+					}}
+				/>
+				<DownCardDialog />
+			</>
+		</MotionConfig>
 	);
 };
 
