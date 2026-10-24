@@ -35,8 +35,25 @@ const PERSIST_PREFIXES = new Set([
 /** 持久化缓存最长保留 30 分钟，超时自动清理 */
 const PERSIST_MAX_AGE = 30 * 60 * 1000
 
-function shouldPersistQuery(query: { queryKey: readonly unknown[] }) {
-  return PERSIST_PREFIXES.has(String(query.queryKey[0]))
+/**
+ * 只持久化「已成功」的查询。
+ *
+ * 原来的白名单只判 key 前缀，漏了状态：进行中的查询会被 dehydrate 成
+ * `{ state, promise }`，其中 `promise` 是真实 Promise。它进不了 JSON
+ * （JSON.stringify 后变成 `{}`），下次启动 hydrate 走 tryResolveSync(promise)
+ * 调 `promise.then` 直接抛 "promise.then is not a function"，
+ * persistQueryClient 于是丢弃整份缓存并退订 —— F5 秒开能力静默失效，
+ * 控制台每次启动都刷一条 "Encountered an error attempting to restore client cache"。
+ * 默认的 defaultShouldDehydrateQuery 就是 `status === 'success'`，这里补上同一条件。
+ */
+export function shouldPersistQuery(query: {
+  queryKey: readonly unknown[]
+  state?: { status?: string }
+}) {
+  return (
+    PERSIST_PREFIXES.has(String(query.queryKey[0])) &&
+    query.state?.status === 'success'
+  )
 }
 
 /**
