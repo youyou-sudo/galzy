@@ -1,27 +1,17 @@
 import { createFileRoute, getRouteApi } from "@tanstack/react-router";
 import CountComponent from "@web/components/home/Count";
-import {
-	CollectionsSection,
-	CollectionsSectionSkeleton,
-} from "@web/components/home/collections-section";
-import {
-	HotGamesSection,
-	HotGamesSectionSkeleton,
-} from "@web/components/home/hot-games-section";
-import {
-	HotTagsSection,
-	HotTagsSectionSkeleton,
-} from "@web/components/home/hot-tags-section";
+import { CollectionsSection } from "@web/components/home/collections-section";
+import { HomeHero } from "@web/components/home/home-hero";
+import { HomePagePending } from "@web/components/home/home-page-pending";
+import { HotGamesSection } from "@web/components/home/hot-games-section";
+import { HotTagsSection } from "@web/components/home/hot-tags-section";
 import SearchInput from "@web/components/home/search/Search";
-import { Badge } from "@web/components/ui/badge";
-import { Skeleton } from "@web/components/ui/skeleton";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { useIdlePreload } from "@web/hooks/use-idle-preload";
 import { seoMeta } from "@web/lib/seo";
 import { getCollectionsWithPreview } from "@web/server/collections";
 import { getCritical, getTotalCount } from "@web/server/game";
 import { r18Store } from "@web/stores/r18Store";
-import { ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/")({
 	component: App,
@@ -54,7 +44,8 @@ export const Route = createFileRoute("/")({
 		return { rankings };
 	},
 
-	pendingComponent: () => <HomePageSkeleton />,
+	// pending 期间外壳（标题/计数文案/搜索栏/区块标题）固定渲染，只有内容出骨架
+	pendingComponent: () => <HomePagePending />,
 	headers: () => ({
 		"Cache-Control": "public, s-maxage=10, stale-while-revalidate=60",
 		"Cache-Tag": "page-home",
@@ -97,18 +88,7 @@ function App() {
 
 	return (
 		<>
-			<h1 className="text-4xl font-semibold text-center mt-6">紫缘社</h1>
-			<div className="flex justify-center mt-2">
-				<Badge
-					variant="outline"
-					render={
-						<a href="https://galzy.top/" target="_blank" rel="noreferrer" />
-					}
-				>
-					<ExternalLink data-icon="inline-start" />
-					防失联地址：galzy.top
-				</Badge>
-			</div>
+			<HomeHero />
 
 			<CountComponent />
 
@@ -122,26 +102,5 @@ function App() {
 
 			<CollectionsSection />
 		</>
-	);
-}
-
-function HomePageSkeleton() {
-	return (
-		<div className="min-h-screen flex flex-col">
-			<div className="flex justify-center p-6">
-				<div className="w-full max-w-2xl flex flex-col gap-6">
-					<Skeleton className="h-10 w-3/4 mx-auto" />
-					<Skeleton className="h-5 w-44 mx-auto" />
-					<div className="flex justify-center gap-3">
-						<Skeleton className="h-4 w-24" />
-						<Skeleton className="h-4 w-32" />
-					</div>
-					<Skeleton className="h-10 w-full rounded-lg" />
-				</div>
-			</div>
-			<HotTagsSectionSkeleton />
-			<HotGamesSectionSkeleton />
-			<CollectionsSectionSkeleton />
-		</div>
 	);
 }

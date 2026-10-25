@@ -22,10 +22,36 @@ interface HotGamesSectionProps {
 	games: HotGame[] | null;
 }
 
+// 24 张骨架 + 与真实栅格相同的断点隐藏：移动端 3×4=12、sm 4×4=16、md+ 6×4=24，
+// 各断点下骨架行数与数据到达后的真实行数一致，桌面端不会从两行跳到四行。
 const HOT_GAME_SKELETON_KEYS = Array.from(
-	{ length: 12 },
+	{ length: 24 },
 	(_, index) => `hot-game-skeleton-${index}`,
 );
+
+/**
+ * 本周热门区块的标题行（图标 + 「本周热门」+「更多游戏 →」）。
+ *
+ * 真实区块、切 R18 时的加载态与首页 pending 骨架共用，标题行始终是真实 HTML。
+ */
+export function HotGamesSectionHeader() {
+	return (
+		<div className="flex items-center justify-between mb-4">
+			<div className="flex items-center gap-2">
+				<Flame className="size-5 text-orange-500" />
+				<h2 className="text-xl font-semibold">本周热门</h2>
+				<TrendingUp className="size-4 text-muted-foreground" />
+			</div>
+			<Link
+				to="/games"
+				search={{ sortBy: "downloads", order: "desc" }}
+				className="text-sm text-muted-foreground hover:text-primary transition-colors"
+			>
+				更多游戏 →
+			</Link>
+		</div>
+	);
+}
 
 export function HotGamesSection({ games: initialGames }: HotGamesSectionProps) {
 	const showR18 = useSelector(r18Store, (s) => s.showR18);
@@ -46,20 +72,7 @@ export function HotGamesSection({ games: initialGames }: HotGamesSectionProps) {
 
 	return (
 		<section className="mb-8">
-			<div className="flex items-center justify-between mb-4">
-				<div className="flex items-center gap-2">
-					<Flame className="size-5 text-orange-500" />
-					<h2 className="text-xl font-semibold">本周热门</h2>
-					<TrendingUp className="size-4 text-muted-foreground" />
-				</div>
-				<Link
-					to="/games"
-					search={{ sortBy: "downloads", order: "desc" }}
-					className="text-sm text-muted-foreground hover:text-primary transition-colors"
-				>
-					更多游戏 →
-				</Link>
-			</div>
+			<HotGamesSectionHeader />
 			<div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
 				{displayGames.map((game, index) => (
 					// 每档断点固定四排：移动端 3×4=12、sm 4×4=16、md+ 6×4=24，超出项按断点隐藏
@@ -90,16 +103,24 @@ export function HotGamesSection({ games: initialGames }: HotGamesSectionProps) {
 	);
 }
 
+// pending 期间外壳固定：标题行与「更多游戏 →」是真实 HTML，只有卡片栅格出加载态
 export function HotGamesSectionSkeleton() {
 	return (
 		<section className="mb-8">
-			<div className="flex items-center gap-2 mb-4">
-				<div className="size-5 rounded bg-muted animate-pulse" />
-				<div className="h-6 w-24 rounded bg-muted animate-pulse" />
-			</div>
+			<HotGamesSectionHeader />
 			<div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-				{HOT_GAME_SKELETON_KEYS.map((key) => (
-					<GameCard.ListSkeleton key={key} />
+				{HOT_GAME_SKELETON_KEYS.map((key, index) => (
+					// 与真实栅格的断点隐藏规则保持一致（见 HotGamesSection 里的同款 cn）
+					<div
+						key={key}
+						className={cn(
+							"relative",
+							index >= 12 && index < 16 && "hidden sm:block",
+							index >= 16 && "hidden md:block",
+						)}
+					>
+						<GameCard.ListSkeleton />
+					</div>
 				))}
 			</div>
 		</section>
