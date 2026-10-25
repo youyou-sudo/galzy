@@ -53,6 +53,10 @@ export function HotGamesSectionHeader() {
 	);
 }
 
+/**
+ * 本周热门列表。首屏数据由路由 loader 取（SSR 直接出真实卡片），这里用 useQuery
+ * 订阅同一 key：切 R18 或 loader 未提供时自己补拉，加载窗口期只显示内容骨架。
+ */
 export function HotGamesSection({ games: initialGames }: HotGamesSectionProps) {
 	const showR18 = useSelector(r18Store, (s) => s.showR18);
 	const { data: games, isLoading } = useQuery({

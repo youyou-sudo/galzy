@@ -37,11 +37,14 @@ export function CollectionsSectionHeader() {
 
 export function CollectionsSection() {
 	const showR18 = useSelector(r18Store, (s) => s.showR18);
+	// 刻意不用 Suspense / useSuspenseQuery：SSR 阶段一旦挂起，整页 HTML 都要等这份
+	// 数据（合集预览是最重的一个接口），首字节会被它拖住。普通 useQuery 让服务端
+	// 先出「区块外壳 + 卡片骨架」，数据在客户端补齐。
 	const { data: collections, isLoading } = useQuery({
 		queryKey: ["homeCollections", showR18],
 		queryFn: () =>
 			getCollectionsWithPreview({
-				data: { limit: 5, previewLimit: 3, showR18 },
+				data: { limit: 6, previewLimit: 3, showR18 },
 			}).then((r) => r.items),
 		staleTime: 5 * 60_000,
 	});
