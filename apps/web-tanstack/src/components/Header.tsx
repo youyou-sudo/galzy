@@ -1,69 +1,61 @@
-import { Link } from "@tanstack/react-router";
-import { useSelector } from "@tanstack/react-store";
+import { Link, useRouterState } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
-import { Button } from "@web/components/ui/button";
-import {
-	NavigationMenu,
-	NavigationMenuContent,
-	NavigationMenuItem,
-	NavigationMenuLink,
-	NavigationMenuList,
-	NavigationMenuTrigger,
-	navigationMenuTriggerStyle,
-} from "@web/components/ui/navigation-menu";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@web/components/ui/tooltip";
 import { cn } from "@web/lib/utils";
-import { r18Actions, r18Store } from "@web/stores/r18Store";
-import {
-	ExternalLink,
-	Eye,
-	EyeOff,
-	Home,
-	Mail,
-	Megaphone,
-	Menu,
-	Wrench,
-} from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
-import ThemeToggle from "./ThemeToggle";
+import { DesktopNav } from "./header/desktop-nav";
+import HeaderActions from "./header/header-actions";
+import { MobileMenuTrigger } from "./header/mobile-trigger";
 
-// 仅客户端懒加载：auth-client/better-auth、头像裁剪等只在用户菜单挂载后进入客户端，
-// SSR 不渲染该组件（输出骨架），首屏不下载其代码
-const UserMenu = lazy(() => import("./user/UserMenu"));
-// 懒加载：dialog/scroll-lock 代码不进首屏 bundle，空闲时预加载、首次打开前就绪
+// 懒加载：全屏菜单的代码不进首屏 bundle，移动端首屏空闲时预加载、首次打开前就绪
 const loadHeaderMobileMenu = () =>
 	import("./header/mobile-menu").then((m) => ({
 		default: m.HeaderMobileMenu,
 	}));
 const HeaderMobileMenu = lazy(loadHeaderMobileMenu);
 
+/**
+ * 滚动超过这个像素就收起为「玻璃药丸」。
+ * 8px 而不是几十像素：顶栏在页面顶部是完全透明的，内容一旦开始上移就必须
+ * 立刻给出一块可读的底（药丸 + 背景模糊），否则标题会从透明顶栏里穿过去。
+ */
+const SCROLL_PILL_THRESHOLD = 8;
+
+/**
+ * 用户端顶栏。
+ *
+ * 布局参考 new-api 的 PublicHeader：
+ * - 固定定位，页面顶部完全透明（内容靠 __root 的 pt-14 让位）；
+ * - 滚动后向中间收缩成 4xl 宽的悬浮药丸：高度 56→44、圆角 2xl、发丝描边 + 阴影；
+ * - 背景模糊按需启用：滚动全程重采样是列表滚动掉帧的主因之一（图片逐张上屏时
+ *   header 反复重滤波）。滚动中只留 bg-background/95，静止 150ms 后恢复 blur，
+ *   视觉几乎无差异。
+ */
 export default function Header() {
+	const pathname = useRouterState({ select: (s) => s.location.pathname });
 	const [isOpen, setIsOpen] = useState(false);
-	const [mounted, setMounted] = useState(false);
-	const showR18 = useSelector(r18Store, (s) => s.showR18);
-	// backdrop-blur 按需启用：滚动全程重采样是列表滚动掉帧的主因之一
-	// （图片逐张上屏时 header 反复重滤波）。滚动中移除，静止 150ms 后恢复；
-	// bg-background/95 在滚动中仍保持近乎不透明，视觉几乎无差异。
+	// 首次打开后保持挂载：关闭动画由 mobile-menu 自己用 open 过渡，卸载会丢掉动画
+	const [menuReady, setMenuReady] = useState(false);
+	const [scrolled, setScrolled] = useState(false);
 	const [scrolling, setScrolling] = useState(false);
+
 	useEffect(() => {
 		let timer: ReturnType<typeof setTimeout> | undefined;
 		const onScroll = () => {
+			setScrolled(window.scrollY > SCROLL_PILL_THRESHOLD);
 			setScrolling(true);
 			clearTimeout(timer);
 			timer = setTimeout(() => setScrolling(false), 150);
 		};
+		// 首帧校正：刷新时可能已经停在页面中部
+		onScroll();
 		window.addEventListener("scroll", onScroll, { passive: true });
 		return () => {
 			window.removeEventListener("scroll", onScroll);
 			clearTimeout(timer);
 		};
 	}, []);
+
 	useEffect(() => {
-		setMounted(true);
 		// 移动端首屏空闲时预加载侧栏菜单 chunk：首次点击汉堡按钮时立即打开，不等待网络请求
 		if (window.matchMedia("(max-width: 767px)").matches) {
 			const run = () => void loadHeaderMobileMenu();
@@ -74,280 +66,102 @@ export default function Header() {
 			}
 		}
 	}, []);
-	return (
-		<div
-			className={cn(
-				"sticky top-0 z-50 mx-auto w-full max-w-7xl border-b bg-background/95 px-4 sm:px-6 py-2 lg:mb-4 rounded-full lg:border dark:opacity-70",
-				!scrolling && "backdrop-blur-sm",
-			)}
-		>
-			<div className="flex items-center justify-between">
-				{/* Left block */}
-				<div className="flex items-center">
-					<Link to="/" className="hidden md:flex items-center">
-						{/* 小图标不参与首屏关键路径：fetchPriority="low" 同时会抑制
-						React 19 自动注入的 <link rel="preload" as="image">（它会被
-						排到 stylesheet / modulepreload 之前抢占关键带宽）。 */}
-						<Image
-							src="/favicon.ico"
-							width={32}
-							height={32}
-							fetchPriority="low"
-							decoding="async"
-						/>
-					</Link>
-					<div className="md:hidden">
-						<Button
-							variant="ghost"
-							size="icon"
-							aria-label="打开菜单"
-							onClick={() => setIsOpen(true)}
-							onPointerEnter={() => void loadHeaderMobileMenu()}
-						>
-							<Menu className="size-5" />
-							<span className="sr-only">打开菜单</span>
-						</Button>
-						{isOpen && (
-							<Suspense fallback={null}>
-								<HeaderMobileMenu open={isOpen} onOpenChange={setIsOpen} />
-							</Suspense>
-						)}
-					</div>
-					<div className="hidden md:block">
-						<NavigationMenu>
-							<NavigationMenuList>
-								<NavigationMenuItem>
-									<NavigationMenuTrigger>主页</NavigationMenuTrigger>
-									<NavigationMenuContent>
-										<ul className="grid w-[280px] gap-1">
-											<li>
-												<NavigationMenuLink
-													className={cn(
-														navigationMenuTriggerStyle(),
-														"h-auto w-full justify-start gap-3",
-													)}
-													render={<Link to="/" />}
-												>
-													<Home className="size-4 shrink-0" />
-													<div className="flex flex-col items-start gap-0.5">
-														<span className="text-sm font-medium">主站</span>
-														<span className="text-xs font-normal text-muted-foreground">
-															GalZY 游戏资源主页
-														</span>
-													</div>
-												</NavigationMenuLink>
-											</li>
-											<li>
-												<NavigationMenuLink
-													className={cn(
-														navigationMenuTriggerStyle(),
-														"h-auto w-full justify-start gap-3",
-													)}
-													render={
-														<a
-															href="https://list.galzy.moe"
-															target="_blank"
-															rel="noreferrer"
-														/>
-													}
-												>
-													<ExternalLink className="size-4 shrink-0" />
-													<div className="flex flex-col items-start gap-0.5">
-														<span className="text-sm font-medium">
-															OpList 站
-														</span>
-														<span className="text-xs font-normal text-muted-foreground">
-															Openlist 搭建 · list.galzy.moe
-														</span>
-													</div>
-												</NavigationMenuLink>
-											</li>
-											<li>
-												<NavigationMenuLink
-													className={cn(
-														navigationMenuTriggerStyle(),
-														"h-auto w-full justify-start gap-3",
-													)}
-													render={
-														<a
-															href="https://galzy.top/"
-															target="_blank"
-															rel="noreferrer"
-														/>
-													}
-												>
-													<Megaphone className="size-4 shrink-0" />
-													<div className="flex flex-col items-start gap-0.5">
-														<span className="text-sm font-medium">
-															防失联&发布页
-														</span>
-														<span className="text-xs font-normal text-muted-foreground">
-															维护公告 · 防失联 · 地址发布
-														</span>
-													</div>
-												</NavigationMenuLink>
-											</li>
-											<li>
-												<NavigationMenuLink
-													className={cn(
-														navigationMenuTriggerStyle(),
-														"h-auto w-full justify-start gap-3",
-													)}
-													render={<Link to="/contact" />}
-												>
-													<Mail className="size-4 shrink-0" />
-													<div className="flex flex-col items-start gap-0.5">
-														<span className="text-sm font-medium">联系</span>
-														<span className="text-xs font-normal text-muted-foreground">
-															问题反馈 · 合作赞助
-														</span>
-													</div>
-												</NavigationMenuLink>
-											</li>
-										</ul>
-									</NavigationMenuContent>
-								</NavigationMenuItem>
-								<NavigationMenuItem>
-									<NavigationMenuLink
-										className={navigationMenuTriggerStyle()}
-										render={<Link to="/tags" preload="viewport" />}
-									>
-										标签
-									</NavigationMenuLink>
-								</NavigationMenuItem>
-								<NavigationMenuItem>
-									<NavigationMenuLink
-										className={navigationMenuTriggerStyle()}
-										render={<Link to="/producer" preload="viewport" />}
-									>
-										会社
-									</NavigationMenuLink>
-								</NavigationMenuItem>
-								<NavigationMenuItem>
-									<NavigationMenuLink
-										className={navigationMenuTriggerStyle()}
-										render={
-											<Link
-												to="/collections"
-												search={{ page: 1 }}
-												preload="viewport"
-											/>
-										}
-									>
-										合集
-									</NavigationMenuLink>
-								</NavigationMenuItem>
-								<NavigationMenuItem>
-									<NavigationMenuTrigger>工具</NavigationMenuTrigger>
-									<NavigationMenuContent>
-										<ul className="grid w-[220px] gap-1 p-3">
-											<li>
-												<NavigationMenuLink
-													className={cn(
-														navigationMenuTriggerStyle(),
-														"h-auto w-full justify-start gap-3",
-													)}
-													render={<Link to="/tools" />}
-												>
-													<Wrench className="size-4 shrink-0" />
-													<div className="flex flex-col items-start gap-0.5">
-														<span className="text-sm font-medium">
-															所有工具
-														</span>
-														<span className="text-xs font-normal text-muted-foreground">
-															查看全部实用工具
-														</span>
-													</div>
-												</NavigationMenuLink>
-											</li>
-											<li>
-												<NavigationMenuLink
-													className={cn(
-														navigationMenuTriggerStyle(),
-														"h-auto w-full justify-start gap-3",
-													)}
-													render={<Link to="/tools/plate" />}
-												>
-													<ExternalLink className="size-4 shrink-0" />
-													<div className="flex flex-col items-start gap-0.5">
-														<span className="text-sm font-medium">
-															车牌号跳转
-														</span>
-														<span className="text-xs font-normal text-muted-foreground">
-															快速跳转到 nhentai、禁漫天堂等网站
-														</span>
-													</div>
-												</NavigationMenuLink>
-											</li>
-										</ul>
-									</NavigationMenuContent>
-								</NavigationMenuItem>
-								<NavigationMenuItem>
-									<NavigationMenuLink
-										className={navigationMenuTriggerStyle()}
-										render={
-											<Link
-												to="/topics"
-												search={{ page: 1 }}
-												preload="viewport"
-											/>
-										}
-									>
-										论坛
-									</NavigationMenuLink>
-								</NavigationMenuItem>
-							</NavigationMenuList>
-						</NavigationMenu>
-					</div>
-				</div>
 
-				{/* Right block */}
-				<div className="flex items-center gap-2">
-					<Tooltip>
-						<TooltipTrigger
-							render={
-								<Button
-									variant="ghost"
-									size="sm"
-									className={cn(
-										"gap-1 px-1.5 min-w-0",
-										showR18
-											? "text-pink-500 hover:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/20"
-											: "text-green-500 hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20",
-									)}
-									onClick={r18Actions.toggle}
-								>
-									{showR18 ? (
-										<Eye className="size-4 shrink-0" />
-									) : (
-										<EyeOff className="size-4 shrink-0" />
-									)}
-									<span className="text-[10px] font-bold leading-none">
-										涩！
-									</span>
-								</Button>
-							}
-						/>
-						<TooltipContent>
-							{showR18
-								? "点击关闭涩！过滤 R18 游戏"
-								: "点击开启涩！显示 R18 游戏"}
-						</TooltipContent>
-					</Tooltip>
-					<ThemeToggle />
-					{mounted ? (
-						<Suspense
-							fallback={
-								<div className="size-8 rounded-full bg-muted animate-pulse" />
-							}
-						>
-							<UserMenu />
-						</Suspense>
-					) : (
-						<div className="size-8 rounded-full bg-muted animate-pulse" />
+	// 路由变化时收起菜单：点击条目本身会关，这一条兜住浏览器前进/后退。
+	// 顺便同步一次滚动态：路由切换后可能停在页面顶部，而 scroll 事件不保证派发。
+	useEffect(() => {
+		setIsOpen(false);
+		setScrolled(window.scrollY > SCROLL_PILL_THRESHOLD);
+	}, [pathname]);
+
+	// 视口从移动端变宽到 md：汉堡入口消失，覆盖层却仍会盖住页面、锁住 body 滚动，
+	// 必须在断点变化时主动收起
+	useEffect(() => {
+		const media = window.matchMedia("(min-width: 768px)");
+		const onChange = () => {
+			if (media.matches) setIsOpen(false);
+		};
+		media.addEventListener("change", onChange);
+		return () => media.removeEventListener("change", onChange);
+	}, []);
+
+	const showMenu = () => {
+		setMenuReady(true);
+		setIsOpen(true);
+	};
+
+	return (
+		<>
+			<header className="fixed inset-x-0 top-0 z-50">
+				<div
+					className={cn(
+						// 只过渡真正变化的布局属性：transition-all 会把 backdrop-filter
+						// 也纳入过渡，停手那一下多一次整条顶栏重绘
+						"mx-auto w-full transition-[max-width,padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+						scrolled ? "max-w-4xl px-3 pt-2" : "max-w-7xl px-4 sm:px-6",
 					)}
+				>
+					<nav
+						aria-label="主导航"
+						className={cn(
+							"flex items-center justify-between gap-3",
+							"transition-[height,padding,background-color,box-shadow,border-radius] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+							scrolled
+								? cn(
+										"h-11 rounded-2xl pl-2 pr-1.5 ring-1 ring-border/60 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.45)]",
+										scrolling
+											? "bg-background/95"
+											: "bg-background/70 backdrop-blur-xl",
+									)
+								: "h-14 bg-transparent",
+						)}
+					>
+						{/* 左：移动端菜单入口 → 站点标识 → 桌面端主导航 */}
+						<div className="flex min-w-0 items-center gap-0.5">
+							<MobileMenuTrigger
+								open={isOpen}
+								menuMounted={menuReady}
+								onToggle={() => (isOpen ? setIsOpen(false) : showMenu())}
+								onPrefetch={() => void loadHeaderMobileMenu()}
+							/>
+							<Link
+								to="/"
+								aria-label="GalZY 首页"
+								className="group/brand flex min-w-0 items-center gap-2 rounded-lg px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+							>
+								{/* 小图标不参与首屏关键路径：fetchPriority="low" 同时会抑制
+								React 19 自动注入的 <link rel="preload" as="image">（它会被
+								排到 stylesheet / modulepreload 之前抢占关键带宽）。 */}
+								<span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[10px] transition-transform duration-300 group-hover/brand:scale-105">
+									<Image
+										src="/favicon.ico"
+										width={32}
+										height={32}
+										fetchPriority="low"
+										decoding="async"
+										className="size-8"
+									/>
+								</span>
+								<span className="hidden truncate text-[15px] leading-none font-semibold tracking-tight sm:block">
+									GalZY
+								</span>
+							</Link>
+							<div className="ml-1 hidden items-center md:flex">
+								<DesktopNav />
+							</div>
+						</div>
+
+						{/* 右：涩！/ 主题 / 用户 */}
+						<HeaderActions />
+					</nav>
 				</div>
-			</div>
-		</div>
+			</header>
+
+			{menuReady && (
+				<Suspense fallback={null}>
+					<HeaderMobileMenu open={isOpen} onOpenChange={setIsOpen} />
+				</Suspense>
+			)}
+		</>
 	);
 }

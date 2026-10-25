@@ -155,7 +155,7 @@ describe("HomePagePending", () => {
 		// 三个区块旧骨架里「图标 + 假标题」的占位条
 		expect(markup).not.toContain("h-6 w-24 rounded bg-muted");
 		expect(markup).not.toContain("size-5 rounded bg-muted");
-		// 顶栏（Header）挂在 __root 外层、本来就固定；pending 不能再渲染一份
-		expect(markup).not.toContain("sticky top-0 z-50");
+		// 顶栏（Header）挂在 __root 外层、本来就固定（fixed 药丸）；pending 不能再渲染一份
+		expect(markup).not.toContain("fixed inset-x-0 top-0 z-50");
 	});
 });

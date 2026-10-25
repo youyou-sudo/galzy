@@ -183,7 +183,9 @@ function AppChrome({ children }: { children: React.ReactNode }) {
       {/* 背景层 */}
       <DeferredBackground />
       <Header />
-      <main className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+      {/* 顶栏是 fixed（滚动后收缩成悬浮药丸），首屏在文档流里让出 56px 高度，
+          否则广告位与页面标题会钻到透明顶栏底下。 */}
+      <main className="mx-auto w-full max-w-7xl px-4 pt-14 sm:px-6">
         {/* 广告 */}
         <aside
           id="sidebar-ad"

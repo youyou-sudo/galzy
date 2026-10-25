@@ -35,12 +35,13 @@ export default function UserMenu() {
   if (!session) {
     return (
       <Button
-        variant="outline"
+        variant="default"
         size="sm"
         nativeButton={false}
+        className="h-8 rounded-lg px-3"
         render={<Link to="/auth/login" />}
       >
-        <User className="size-3" />
+        <User className="size-3.5" />
         登录
       </Button>
     )
@@ -50,8 +51,16 @@ export default function UserMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring">
-        <AvatarComp name={user.name} image={user.image} editor={false} />
+      <DropdownMenuTrigger
+        aria-label="账户菜单"
+        className="rounded-full ring-offset-2 ring-offset-background outline-none transition-shadow hover:ring-2 hover:ring-border focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <AvatarComp
+          name={user.name}
+          image={user.image}
+          editor={false}
+          size="sm"
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuGroup>
@@ -63,6 +72,7 @@ export default function UserMenu() {
               email={user.email}
               image={user.image}
               profileMenu={true}
+              avatarSize="sm"
             />
           </div>
         </DropdownMenuGroup>

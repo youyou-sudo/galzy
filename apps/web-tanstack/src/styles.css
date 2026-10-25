@@ -154,47 +154,14 @@
    基础规则给出 vh 上限；@supports (height: 100dvh) 命中时才覆盖为 dvh。
    不用「同一规则内 vh 后跟 dvh」的写法——构建期的 lightningcss 压缩
    会把同块内被覆盖的 max-height: 80vh 视为冗余声明直接删除。 */
-.galzy-max-h-80dvh {
-  max-height: 80vh;
-}
-
 .galzy-max-h-85dvh {
   max-height: 85vh;
 }
 
 @supports (height: 100dvh) {
-  .galzy-max-h-80dvh {
-    max-height: 80dvh;
-  }
-
   .galzy-max-h-85dvh {
     max-height: 85dvh;
   }
-}
-
-/* 移动端顶栏抽屉入场动画：面板从顶部向下滑入。
-   Base UI v1.6 的 data-starting-style 入场阶段在当前 React 19 下首帧即被清除（从不绘制），
-   过渡无从触发；故入场用挂载即播放的 keyframes，出场仍由 Sheet 的 data-ending-style 过渡负责。 */
-@keyframes galzy-sheet-top-drop {
-  from {
-    transform: translateY(-6rem);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-[data-slot="sheet-content"][data-side="top"] {
-  animation: galzy-sheet-top-drop 0.3s ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-slot="sheet-content"][data-side="top"] {
-    animation: none;
-  }
-
 }
 
 /* ── 富文本编辑器 (reactjs-tiptap-editor) ────────────────────────────── */
@@ -410,4 +377,46 @@
 
 html {
   scrollbar-gutter: stable;
+  /* 顶栏是 fixed：Tab 聚焦 / scrollIntoView 时给 56px 让位，元素不会滚到顶栏底下 */
+  scroll-padding-top: 4.5rem;
+}
+
+/* ── 移动端顶栏全屏菜单（components/header/mobile-menu.tsx） ──────────
+   折叠态 hamburger 与全屏覆盖层切换只用 opacity / transform（合成器友好），
+   条目按索引错峰入场（inline animationDelay），避免 8 个条目同时起跳的糊感。
+   动画只在打开时播放：关闭后容器保留在 DOM（首次打开后不再卸载），
+   由普通 transition 收回，因此这里只定义「进入」关键帧。 */
+@keyframes galzy-mobile-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes galzy-mobile-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.galzy-mobile-overlay[data-open='true'] {
+  animation: galzy-mobile-overlay-in 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.galzy-mobile-overlay[data-open='true'] .galzy-mobile-item {
+  animation: galzy-mobile-item-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .galzy-mobile-overlay[data-open='true'],
+  .galzy-mobile-overlay[data-open='true'] .galzy-mobile-item {
+    animation: none;
+  }
 }

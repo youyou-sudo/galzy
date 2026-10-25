@@ -1,40 +1,52 @@
 import { Check, Monitor, Moon, Sun } from "lucide-react";
+import { cn } from "@web/lib/utils";
+import { ThemeIcon } from "./theme-icon";
+import type { ThemeMode } from "./theme-icon";
+import { Button } from "./ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { Button } from "./ui/button";
 
-export type ThemeMode = "light" | "dark" | "auto";
+export type { ThemeMode } from "./theme-icon";
 
-// 懒加载的主题下拉菜单：dropdown-menu 代码只在首次点击时进入客户端
+export type ThemeMenuAppearance = {
+	/** 与 ThemeToggle 收起态保持一致，否则展开瞬间按钮会「变脸」 */
+	variant?: "outline" | "ghost";
+	size?: "icon" | "icon-sm" | "icon-lg";
+	className?: string;
+};
+
+// 懒加载的主题下拉菜单：dropdown-menu 代码只在首次打开时进入客户端
 export function ThemeMenu({
 	open,
 	mode,
 	onOpenChange,
 	onSelect,
+	variant = "outline",
+	size = "icon",
+	className,
 }: {
 	open: boolean;
 	mode: ThemeMode;
 	onOpenChange: (open: boolean) => void;
 	onSelect: (mode: ThemeMode) => void;
-}) {
+} & ThemeMenuAppearance) {
 	return (
 		<DropdownMenu open={open} onOpenChange={onOpenChange}>
 			<DropdownMenuTrigger
 				render={
-					<Button variant="outline" size="icon" className="rounded-full" />
+					<Button
+						variant={variant}
+						size={size}
+						className={cn("rounded-full", className)}
+						aria-label="切换主题"
+					/>
 				}
 			>
-				{mode === "light" ? (
-					<Sun className="size-[1.2rem] text-amber-500" />
-				) : mode === "dark" ? (
-					<Moon className="size-[1.2rem] text-blue-400" />
-				) : (
-					<Monitor className="size-[1.2rem] text-zinc-500" />
-				)}
+				<ThemeIcon mode={mode} />
 				<span className="sr-only">主题</span>
 			</DropdownMenuTrigger>
 

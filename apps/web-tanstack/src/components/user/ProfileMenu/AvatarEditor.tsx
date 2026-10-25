@@ -29,10 +29,27 @@ import Cropper, { type Area } from "react-easy-crop";
 import { toast } from "sonner";
 import { rgbaToThumbHash } from "thumbhash";
 
+/**
+ * 头像尺寸档位。
+ *
+ * 尺寸必须交给 Avatar 原语的 size，不能写在 className：原语为每档生成了
+ * `.data-[size=lg]:size-10` 这类规则（特异度 0,2,0），会压过 className 里的
+ * `size-8`（0,1,0），在 className 上写尺寸是无效的。
+ * - sm → 原语 default（32px）：顶栏与下拉菜单，和 h-8 的动作按钮齐平
+ * - lg → 原语 lg（40px）：个人页裁剪入口，保持改版前的观感
+ */
+const AVATAR_PRIMITIVE_SIZE = { sm: "default", lg: "lg" } as const;
+
+const AVATAR_FALLBACK_TEXT = { sm: "text-xs", lg: "text-2xl" } as const;
+
+export type AvatarSize = keyof typeof AVATAR_PRIMITIVE_SIZE;
+
 interface AvatarEditorProps {
 	name?: string | null;
 	image?: string | null;
 	editor: boolean;
+	/** 非编辑态尺寸；编辑态（裁剪入口）固定 lg */
+	size?: AvatarSize;
 }
 
 /** 将裁剪区域从原图导出为 JPEG Blob */
@@ -116,7 +133,12 @@ async function blobToThumbHashHex(blob: Blob): Promise<string> {
 		.join("");
 }
 
-export default function AvatarComp({ name, image, editor }: AvatarEditorProps) {
+export default function AvatarComp({
+	name,
+	image,
+	editor,
+	size = "lg",
+}: AvatarEditorProps) {
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const queryClient = useQueryClient();
 	const blobUrlRef = useRef<string | null>(null);
@@ -331,9 +353,9 @@ export default function AvatarComp({ name, image, editor }: AvatarEditorProps) {
 							onDragLeave={handleDragLeave}
 							onDrop={handleDrop}
 						>
-							<Avatar size="lg" className="size-20">
+							<Avatar size={AVATAR_PRIMITIVE_SIZE[size]}>
 								<AvatarImage src={displaySrc} alt={name ?? ""} />
-								<AvatarFallback className="text-2xl">
+								<AvatarFallback className={AVATAR_FALLBACK_TEXT[size]}>
 									{fallbackChar}
 								</AvatarFallback>
 							</Avatar>
@@ -378,9 +400,9 @@ export default function AvatarComp({ name, image, editor }: AvatarEditorProps) {
 						</button>
 					) : (
 						<div className="relative rounded-full">
-							<Avatar size="lg" className="size-20">
+							<Avatar size={AVATAR_PRIMITIVE_SIZE[size]}>
 								<AvatarImage src={displaySrc} alt={name ?? ""} />
-								<AvatarFallback className="text-2xl">
+								<AvatarFallback className={AVATAR_FALLBACK_TEXT[size]}>
 									{fallbackChar}
 								</AvatarFallback>
 							</Avatar>

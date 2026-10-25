@@ -1,153 +1,277 @@
-import { Link } from '@tanstack/react-router'
-import { Image } from '@unpic/react'
-import { Button } from '@web/components/ui/button'
-import { Separator } from '@web/components/ui/separator'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@web/components/ui/sheet'
-import { cn } from '@web/lib/utils'
-import {
-  Building2,
-  ExternalLink,
-  Home,
-  Library,
-  Mail,
-  Megaphone,
-  MessageSquare,
-  Tags,
-  Wrench,
-} from 'lucide-react'
+import { Link } from "@tanstack/react-router";
+import { cn } from "@web/lib/utils";
+import { ChevronRight } from "lucide-react";
+import { useEffect, useRef } from "react";
+import type { Ref } from "react";
+import { mobilePrimaryKeys, navItem, toolMenuKeys } from "./nav-config";
+import type { HeaderNavItem } from "./nav-config";
 
-const mainLinks = [
-  { to: '/tags', label: '标签', icon: Tags },
-  { to: '/producer', label: '会社', icon: Building2 },
-  { to: '/collections', label: '合集', icon: Library },
-  { to: '/topics', label: '论坛', icon: MessageSquare },
-  { to: '/contact', label: '联系', icon: Mail },
-] as const
+/**
+ * 覆盖层里的一行：左侧图标（圆角小方块）+ 主文案 + 次要描述 + 右侧箭头。
+ * 参考 new-api PublicHeader 的大号单列语言，比旧版两列按钮更易点、更好扫读。
+ */
+const rowClass = cn(
+	"galzy-mobile-item group/row flex items-center gap-3 rounded-2xl px-3 py-2.5",
+	"text-foreground no-underline outline-none transition-colors duration-200",
+	"hover:bg-muted/60 focus-visible:bg-muted/60",
+	"focus-visible:ring-2 focus-visible:ring-ring/60",
+	// TanStack Link 命中当前路由时自带 data-status="active"
+	"data-[status=active]:bg-muted/60",
+);
 
-// 主页包含主站、OpList 文件列表站与紫缘社公告页三个入口（OpList 与公告页为新标签页打开的外部站点）
-const fileListSiteUrl = 'https://list.galzy.moe'
+type NavRowProps = {
+	item: HeaderNavItem;
+	/** 全局序号（跨分组连续），用于错峰入场延迟 */
+	index: number;
+	open: boolean;
+	onSelect: () => void;
+	rowRef?: Ref<HTMLAnchorElement>;
+};
 
-const toolLinks = [
-  {
-    to: '/tools',
-    label: '所有工具',
-    icon: Wrench,
-    description: '查看全部实用工具',
-  },
-  {
-    to: '/tools/plate',
-    label: '车牌号跳转',
-    icon: ExternalLink,
-    description: '快速跳转到 nhentai、禁漫天堂等网站',
-  },
-] as const
+/**
+ * 站外条目走原生 <a>（新标签页打开），站内条目走 TanStack Link 保留预取；
+ * 两种行共享同一套排版，只差渲染目标。
+ */
+function NavRow({ item, index, open, onSelect, rowRef }: NavRowProps) {
+	const Icon = item.icon;
+	// 关闭后移除延迟，下次打开时关键帧从干净的起点重播
+	const style = open ? { animationDelay: `${80 + index * 45}ms` } : undefined;
 
-// 移动端导航菜单。整体懒加载：dialog/scroll-lock 代码只在首次打开时进入客户端 bundle。
-// 使用 side="top" 的 Sheet，入场动画见 styles.css 的 galzy-sheet-top-drop keyframes（从上往下滑入）。
+	const content = (
+		<>
+			<span
+				className={cn(
+					"flex size-10 shrink-0 items-center justify-center rounded-xl",
+					"bg-muted/70 text-muted-foreground transition-colors duration-200",
+					"group-hover/row:bg-background group-hover/row:text-foreground",
+				)}
+			>
+				<Icon className="size-5" />
+			</span>
+			<span className="flex min-w-0 flex-1 flex-col gap-0.5">
+				<span className="text-base font-medium leading-tight">
+					{item.label}
+				</span>
+				<span className="truncate text-xs font-normal text-muted-foreground">
+					{item.description}
+				</span>
+			</span>
+			<ChevronRight
+				className={cn(
+					"size-4 shrink-0 text-muted-foreground/60",
+					"transition-transform duration-200",
+					"group-hover/row:translate-x-0.5",
+				)}
+			/>
+		</>
+	);
+
+	if (item.type === "external") {
+		return (
+			<a
+				ref={rowRef}
+				href={item.href}
+				target="_blank"
+				rel="noreferrer"
+				className={rowClass}
+				style={style}
+				onClick={onSelect}
+			>
+				{content}
+			</a>
+		);
+	}
+
+	return (
+		<Link
+			ref={rowRef}
+			to={item.to}
+			preload="viewport"
+			className={rowClass}
+			style={style}
+			onClick={onSelect}
+		>
+			{content}
+		</Link>
+	);
+}
+
+/**
+ * 移动端顶栏全屏菜单。
+ *
+ * 这里刻意不用 Sheet / Dialog：Base UI 的焦点陷阱会把焦点锁在覆盖层内，
+ * 而顶栏（z-50）要浮在覆盖层（z-40）之上且汉堡按钮必须保持可点，
+ * 两者会互相抢焦点。手写覆盖层 + Esc + 焦点归还，行为可控且没有额外依赖。
+ *
+ * Header 首次打开后保持挂载、只切换 open，所以进出场动画全部由 open 驱动：
+ * 入场读 styles.css 的 .galzy-mobile-overlay / .galzy-mobile-item 关键帧
+ * （data-open="true" 时播放），退场交给这里的 opacity transition 完成。
+ */
 export function HeaderMobileMenu({
-  open,
-  onOpenChange,
+	open,
+	onOpenChange,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
 }) {
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="top"
-        className="gap-2 galzy-max-h-80dvh overflow-y-auto rounded-b-2xl px-2 pb-4"
-      >
-        <SheetHeader className="flex-row items-center gap-2 px-3 pt-4 pb-2">
-          <Image
-            src="/favicon.ico"
-            width={28}
-            height={28}
-            className="size-7 rounded-md"
-          />
-          <SheetTitle>菜单</SheetTitle>
-        </SheetHeader>
-        <nav className="flex flex-col gap-3 px-2 pb-2">
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant="outline"
-              nativeButton={false}
-              className="h-12 w-full justify-start gap-2.5 px-3 text-base font-medium"
-              render={<Link to="/" onClick={() => onOpenChange(false)} />}
-            >
-              <Home data-icon="inline-start" />
-              主站
-            </Button>
-            <Button
-              variant="outline"
-              nativeButton={false}
-              className="h-12 w-full justify-start gap-2.5 px-3 text-base font-medium"
-              render={
-                <a href={fileListSiteUrl} target="_blank" rel="noreferrer" />
-              }
-            >
-              <ExternalLink data-icon="inline-start" />
-              OpList 站
-            </Button>
-            <Button
-              variant="outline"
-              nativeButton={false}
-              className="h-12 w-full justify-start gap-2.5 px-3 text-base font-medium"
-              render={
-                <a href="https://galzy.top/" target="_blank" rel="noreferrer" />
-              }
-            >
-              <Megaphone data-icon="inline-start" />
-              防失联&发布页
-            </Button>
-            {mainLinks.map(({ to, label, icon: Icon }) => (
-              <Button
-                key={to}
-                variant="outline"
-                nativeButton={false}
-                className={cn(
-                  'h-12 w-full justify-start gap-2.5 px-3 text-base font-medium',
-                )}
-                render={
-                  <Link to={to} preload="viewport" onClick={() => onOpenChange(false)} />
-                }
-              >
-                <Icon data-icon="inline-start" />
-                {label}
-              </Button>
-            ))}
-          </div>
-          <Separator />
-          <div className="flex flex-col gap-1">
-            <p className="px-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-              工具
-            </p>
-            {toolLinks.map(({ to, label, icon: Icon, description }) => (
-              <Button
-                key={to}
-                variant="ghost"
-                nativeButton={false}
-                className="h-auto w-full justify-start gap-3 px-3 py-2.5"
-                render={
-                  <Link to={to} preload="viewport" onClick={() => onOpenChange(false)} />
-                }
-              >
-                <Icon data-icon="inline-start" />
-                <div className="flex flex-col items-start gap-0.5">
-                  <span className="text-sm font-medium">{label}</span>
-                  <span className="text-xs font-normal text-muted-foreground">
-                    {description}
-                  </span>
-                </div>
-              </Button>
-            ))}
-          </div>
-        </nav>
-      </SheetContent>
-    </Sheet>
-  )
+	const triggerRef = useRef<HTMLElement | null>(null);
+	const firstRowRef = useRef<HTMLAnchorElement | null>(null);
+	const overlayRef = useRef<HTMLDivElement | null>(null);
+	// 点导航行/外链后关闭：焦点应该跟着导航走，不能抢回汉堡按钮
+	const skipFocusReturn = useRef(false);
+
+	const dismissByNavigation = () => {
+		skipFocusReturn.current = true;
+		onOpenChange(false);
+	};
+
+	// 焦点管理：打开时记录焦点来源（通常就是顶栏汉堡按钮）并把焦点交给
+	// 第一个条目；Esc / 点遮罩 / 点汉堡关闭时归还，键盘用户不会「掉」到页面顶部。
+	useEffect(() => {
+		if (!open) {
+			if (!skipFocusReturn.current) triggerRef.current?.focus();
+			skipFocusReturn.current = false;
+			// 下次打开重新记录（触发器可能换了一个）
+			triggerRef.current = null;
+			return;
+		}
+		// 只在「关 → 开」的第一次记录：StrictMode 会把 effect 跑两遍，
+		// 第二遍时焦点已经在第一行上，无条件覆盖会把触发者记成菜单里的链接，
+		// 关闭时焦点就会「还」给一个立刻被 inert 抹掉的元素。
+		if (!triggerRef.current) {
+			const active = document.activeElement;
+			triggerRef.current =
+				active instanceof HTMLElement &&
+				active !== document.body &&
+				!overlayRef.current?.contains(active)
+					? active
+					: document.querySelector<HTMLElement>(
+							'[aria-controls="galzy-mobile-menu"]',
+						);
+		}
+		firstRowRef.current?.focus();
+	}, [open]);
+
+	// 滚动锁：保存原值再恢复，避免覆盖其他组件对 body.style.overflow 的写法。
+	// html 上有 scrollbar-gutter: stable，隐藏溢出不会引起横向抖动。
+	useEffect(() => {
+		if (!open) return;
+		const { body } = document;
+		const previous = body.style.overflow;
+		body.style.overflow = "hidden";
+		return () => {
+			body.style.overflow = previous;
+		};
+	}, [open]);
+
+	// 键盘：Esc 关闭 + Tab 首尾循环。
+	// 覆盖层自称 aria-modal，但顶栏（z-50）在其上方且必须可点，所以不能交给
+	// Dialog 的焦点陷阱；手写「首尾哨兵」把 Tab 圈在覆盖层内，避免焦点跑到
+	// 被覆盖层盖住的正文里。
+	useEffect(() => {
+		if (!open) return;
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				event.preventDefault();
+				onOpenChange(false);
+				return;
+			}
+			if (event.key !== "Tab") return;
+
+			const root = overlayRef.current;
+			if (!root) return;
+			const focusables = Array.from(
+				root.querySelectorAll<HTMLElement>(
+					'a[href], button:not([disabled]):not([tabindex="-1"])',
+				),
+			).filter(
+				(el) => el.offsetParent !== null || el === document.activeElement,
+			);
+			if (focusables.length === 0) return;
+
+			const first = focusables[0];
+			const last = focusables[focusables.length - 1];
+			const active = document.activeElement;
+			const outside = !root.contains(active);
+
+			if (event.shiftKey && (active === first || outside)) {
+				event.preventDefault();
+				last.focus();
+			} else if (!event.shiftKey && (active === last || outside)) {
+				event.preventDefault();
+				first.focus();
+			}
+		};
+		document.addEventListener("keydown", onKeyDown);
+		return () => document.removeEventListener("keydown", onKeyDown);
+	}, [open, onOpenChange]);
+
+	return (
+		<div
+			ref={overlayRef}
+			// 顶栏汉堡按钮（mobile-trigger.tsx）用 aria-controls 指向这里
+			id="galzy-mobile-menu"
+			// styles.css 的入场关键帧依赖 data-open
+			data-open={open}
+			className={cn(
+				"galzy-mobile-overlay fixed inset-0 z-40",
+				// 顶部留出 z-50 顶栏的安全区，汉堡按钮始终露在外面可点
+				"overflow-y-auto overscroll-contain pt-20 pb-10",
+				"bg-background/95 backdrop-blur-xl",
+				"transition-opacity duration-200 ease-out",
+				open ? "opacity-100" : "pointer-events-none opacity-0",
+			)}
+			role="dialog"
+			aria-modal="true"
+			aria-label="主导航"
+			// open=false 时整棵子树退出可访问树与 Tab 序列（覆盖层不卸载）。
+			// 只用 inert：它本身就会把子树移出可访问树，再加 aria-hidden 会在
+			// 关闭瞬间「有焦点后代」而触发 Chrome 的 aria-hidden 警告。
+			inert={!open}
+			onClick={(event) => {
+				// 点空白处收起，符合全屏菜单的直觉；行内点击的 target 不是容器本身，
+				// 因此不会重复触发关闭
+				if (event.target === event.currentTarget) onOpenChange(false);
+			}}
+		>
+			<nav className="mx-auto flex w-full max-w-md flex-col gap-0.5 px-4">
+				{/* 主菜单顺序：mobilePrimaryKeys（主站→OpList→防失联→标签→会社→
+            合集→论坛→联系），与桌面端导航同一份数据源 */}
+				{mobilePrimaryKeys.map((key, index) => (
+					<NavRow
+						key={key}
+						item={navItem(key)}
+						index={index}
+						open={open}
+						onSelect={dismissByNavigation}
+						rowRef={index === 0 ? firstRowRef : undefined}
+					/>
+				))}
+
+				<div className="mx-3 my-2 h-px bg-border" />
+				<p
+					className={cn(
+						"px-3 pt-1 pb-2 text-xs font-semibold tracking-wider",
+						"text-muted-foreground uppercase",
+					)}
+				>
+					工具
+				</p>
+				{/* 工具分组：toolMenuKeys（所有工具 / 车牌号跳转） */}
+				{toolMenuKeys.map((key, index) => (
+					<NavRow
+						key={key}
+						item={navItem(key)}
+						index={mobilePrimaryKeys.length + index}
+						open={open}
+						onSelect={dismissByNavigation}
+					/>
+				))}
+			</nav>
+
+			<p className="mt-6 text-center text-xs text-muted-foreground">
+				点击顶栏按钮或按 Esc 关闭
+			</p>
+		</div>
+	);
 }
