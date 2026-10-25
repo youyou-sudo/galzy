@@ -64,6 +64,33 @@ function TagChip({
 	);
 }
 
+/**
+ * 热门标签区块的标题行（图标 + 「热门标签」+「更多 →」）。
+ *
+ * 真实区块与 pending 骨架共用，保证 pending 期间标题行已是真实 HTML，
+ * 数据到达时只有下方药丸内容被替换。
+ */
+export function HotTagsSectionHeader() {
+	return (
+		<div className="mb-2 flex items-center justify-between lg:mb-4">
+			<div className="flex items-center gap-2">
+				<Hash className="size-5 text-rose-400" />
+				<h2 className="text-base font-semibold lg:text-xl">热门标签</h2>
+			</div>
+			<Link
+				// 首页这块展示的就是「本周热门」标签，所以「更多」落到热门分类页的
+				// 本周热门排序上，翻页时榜单顺序不断层（分类页可再切本月/收录数）
+				to="/tags/category/$categoryKey"
+				params={{ categoryKey: "hot" }}
+				search={{ sort: "hotWeek", order: "desc" }}
+				className="text-xs text-muted-foreground transition-colors hover:text-primary lg:text-sm"
+			>
+				更多 →
+			</Link>
+		</div>
+	);
+}
+
 // 全端展示的热门标签，与下方本周热门板块对齐（根布局边距，无自身 padding）：
 // - 标题行与本周热门头部同构：图标 size-5 + gap-2，标题文字左缘像素级对齐
 // - 单行 chips 两端一致：横向滑动 + 右缘渐隐提示可滑动
@@ -72,22 +99,7 @@ export function HotTagsSection({ tags }: HotTagsSectionProps) {
 
 	return (
 		<section className="mb-6 lg:mb-8">
-			<div className="mb-2 flex items-center justify-between lg:mb-4">
-				<div className="flex items-center gap-2">
-					<Hash className="size-5 text-rose-400" />
-					<h2 className="text-base font-semibold lg:text-xl">热门标签</h2>
-				</div>
-				<Link
-					// 首页这块展示的就是「本周热门」标签，所以「更多」落到热门分类页的
-					// 本周热门排序上，翻页时榜单顺序不断层（分类页可再切本月/收录数）
-					to="/tags/category/$categoryKey"
-					params={{ categoryKey: "hot" }}
-					search={{ sort: "hotWeek", order: "desc" }}
-					className="text-xs text-muted-foreground transition-colors hover:text-primary lg:text-sm"
-				>
-					更多 →
-				</Link>
-			</div>
+			<HotTagsSectionHeader />
 			<ul className="flex gap-1.5 overflow-x-auto [mask-image:linear-gradient(to_right,black_82%,transparent_100%)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 				{tags.slice(0, 12).map((tag, index) => (
 					<li key={tag.tag} className="shrink-0">
@@ -103,18 +115,17 @@ export function HotTagsSection({ tags }: HotTagsSectionProps) {
 	);
 }
 
+// pending 期间外壳固定：标题行与「更多 →」是真实 HTML，只有药丸内容出加载态
 export function HotTagsSectionSkeleton() {
 	return (
-		<div className="mb-6 lg:mb-8">
-			<div className="mb-2 lg:mb-4">
-				<Skeleton className="h-5 w-20 lg:h-6 lg:w-28" />
-			</div>
-			<div className="flex gap-1.5">
+		<section className="mb-6 lg:mb-8">
+			<HotTagsSectionHeader />
+			<div className="flex gap-1.5" aria-hidden>
 				<Skeleton className="h-6 w-16 rounded-full lg:h-8 lg:w-24" />
 				<Skeleton className="h-6 w-24 rounded-full lg:h-8 lg:w-32" />
 				<Skeleton className="h-6 w-14 rounded-full lg:h-8 lg:w-20" />
 				<Skeleton className="h-6 w-20 rounded-full lg:h-8 lg:w-28" />
 			</div>
-		</div>
+		</section>
 	);
 }
