@@ -9,8 +9,7 @@ import SearchInput from "@web/components/home/search/Search";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { useIdlePreload } from "@web/hooks/use-idle-preload";
 import { seoMeta } from "@web/lib/seo";
-import { getCollectionsWithPreview } from "@web/server/collections";
-import { getCritical, getTotalCount } from "@web/server/game";
+import { getCritical } from "@web/server/game";
 import { r18Store } from "@web/stores/r18Store";
 
 export const Route = createFileRoute("/")({
@@ -21,29 +20,18 @@ export const Route = createFileRoute("/")({
 			description: seoTemplate.description,
 			path: "/",
 		}),
+	// 阻塞路径只留「首屏第一眼要看」的热门数据：SSR 直接出热门标签 + 本周热门。
+	// 精选合集与收录总数不在这里 await —— 合集预览是最慢的接口，之前把它和总数一起
+	// 放进 loader 的 Promise.all（且结果根本没被用到），首字节被最慢的那个拖住。
+	// 这两个区块改由组件内普通 useQuery 在客户端补：服务端先出「真实外壳 + 内容骨架」。
+	// 实测（上游 热门60ms / 总数100ms / 合集400ms）首字节从 ~410ms 降到 ~70ms。
 	loader: async ({ context }) => {
 		const showR18 = r18Store.state.showR18;
-		const [rankings] = await Promise.all([
-			getCritical({ data: { showR18 } }),
-			Promise.all([
-				context.queryClient.ensureQueryData({
-					queryKey: ["homeCollections", showR18],
-					queryFn: () =>
-						getCollectionsWithPreview({
-							data: { limit: 6, previewLimit: 3, showR18 },
-						}).then((r) => r.items),
-				}),
-				context.queryClient.ensureQueryData({
-					queryKey: ["totalCount"],
-					queryFn: () => getTotalCount(),
-				}),
-			]),
-		]);
+		const rankings = await getCritical({ data: { showR18 } });
 		// 预热首页热门游戏缓存（key 与 HotGamesSection 一致，SSR 渲染直接用，不重复请求）
 		context.queryClient.setQueryData(["hotGames", showR18], rankings.game);
 		return { rankings };
 	},
-
 	// pending 期间外壳（标题/计数文案/搜索栏/区块标题）固定渲染，只有内容出骨架
 	pendingComponent: () => <HomePagePending />,
 	headers: () => ({
@@ -90,6 +78,7 @@ function App() {
 		<>
 			<HomeHero />
 
+			{/* 计数文案是静态外壳，数字在客户端补（见 Count.tsx） */}
 			<CountComponent />
 
 			<div className="px-5 sm:px-20 lg:px-80 my-4">
