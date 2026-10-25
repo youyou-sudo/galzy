@@ -19,6 +19,7 @@ import {
 	memo,
 	type RefAttributes,
 	useEffect,
+	useLayoutEffect,
 	useRef,
 	useState,
 	useSyncExternalStore,
@@ -141,6 +142,19 @@ function ThumbHashImage({
 	const failed = imageState.failed;
 	const imgRef = useRef<HTMLImageElement | null>(null);
 
+	// 回程首帧校正：这张图以前已经揭示过（revealedSrcs 命中），且浏览器此刻
+	// 已经能拿到它（complete + 有尺寸）时，在首帧 paint 前直接恢复终态。
+	// 否则组件重新挂载后 imageState 从 0 开始，占位图会先画出来、等 decode
+	// 完成 + 门控提交后才消失 —— 用户看到的就是「从别的页面回首页，图先变成
+	// 占位图、过一会儿才重新显示」。只处理这次挂载立刻就能拿到资源的情况，
+	// 真没缓存的图仍走下面的 decode 流程。
+	useLayoutEffect(() => {
+		if (!cachedRevealed) return;
+		const image = imgRef.current;
+		if (!image?.complete || image.naturalWidth === 0) return;
+		setImageState((s) => (s.loaded ? s : { ...s, loaded: true }));
+	}, [cachedRevealed, src]);
+
 	// img.decode() 预解码提交：真实图下载并解码完成后才置 loaded ——
 	// 上屏首帧就是已解码位图，transition 首帧不再撞解码；同时把每图一次的
 	// load 事件提交风暴换成 decode 微任务（React 可批处理）。decode() reject
@@ -156,12 +170,20 @@ function ThumbHashImage({
 		// （移动端滑动与 VT 过渡掉帧根因），空闲后由 gate 批量 flush。
 		const commit = () => {
 			if (cancelled) return;
-			cancelGate = gateCommit(() => {
+			const apply = () => {
 				if (cancelled) return;
 				setImageState((s) => ({ ...s, loaded: true }));
 				// 成功揭示才入全局缓存；失败回退路径（failed）不计入。
 				if (!failed) markRevealed(src);
-			});
+			};
+			// 已揭示过的图：回程只是恢复终态，不必排在滚动/VT 门控后面 ——
+			// 否则回程的 VT（~300ms）期间占位图一直显形，看起来像重新加载。
+			// 未揭示过的图仍走门控，避免把揭示提交洒进滚动/动画帧。
+			if (cachedRevealed) {
+				apply();
+				return;
+			}
+			cancelGate = gateCommit(apply);
 		};
 		const handleError = () => {
 			if (cancelled) return;
@@ -216,7 +238,7 @@ function ThumbHashImage({
 			image.removeEventListener("error", handleError);
 			cancelGate?.();
 		};
-	}, [src, failed, placeholderOnly]);
+	}, [src, failed, placeholderOnly, cachedRevealed]);
 
 	// thumbhash 未就绪时的敏感图兜底：此时真实图必须保持模糊，防内容泄漏
 	const blurFallback = placeholderOnly && !placeholder ? " blur-xl" : "";
@@ -266,6 +288,9 @@ function ThumbHashImage({
 				<div className="galzy-image-reveal absolute inset-0">
 					<ImageWithStyle
 						{...props}
+						// 已揭示过的图：回程直接 eager 取（命中 HTTP 缓存），不排队等
+						// IntersectionObserver 的懒加载，占位图停留时间因此只剩解码时间
+						loading={cachedRevealed ? "eager" : props.loading}
 						src={failed ? NO_IMAGE_SRC : src}
 						ref={imgRef}
 						className={`${className ?? ""}${blurFallback}`}
