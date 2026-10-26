@@ -42,6 +42,7 @@ import { Route as AdminAuthLIndexRouteImport } from './routes/admin/_authL/index
 import { Route as AdminAuthLArticlesRouteImport } from './routes/admin/_authL/articles'
 import { Route as AdminAuthLCollectionsRouteImport } from './routes/admin/_authL/collections'
 import { Route as AdminAuthLCommentsRouteImport } from './routes/admin/_authL/comments'
+import { Route as AdminAuthLFriendLinksRouteImport } from './routes/admin/_authL/friend-links'
 import { Route as AdminAuthLMeilisearchRouteImport } from './routes/admin/_authL/meilisearch'
 import { Route as AdminAuthLTasksRouteImport } from './routes/admin/_authL/tasks'
 import { Route as AdminAuthLTopicsRouteImport } from './routes/admin/_authL/topics'
@@ -224,6 +225,11 @@ const AdminAuthLCommentsRoute = AdminAuthLCommentsRouteImport.update({
   path: '/comments',
   getParentRoute: () => AdminAuthLRoute,
 } as any)
+const AdminAuthLFriendLinksRoute = AdminAuthLFriendLinksRouteImport.update({
+  id: '/friend-links',
+  path: '/friend-links',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
 const AdminAuthLMeilisearchRoute = AdminAuthLMeilisearchRouteImport.update({
   id: '/meilisearch',
   path: '/meilisearch',
@@ -341,6 +347,7 @@ export interface FileRoutesByFullPath {
   '/admin/articles': typeof AdminAuthLArticlesRouteWithChildren
   '/admin/collections': typeof AdminAuthLCollectionsRoute
   '/admin/comments': typeof AdminAuthLCommentsRoute
+  '/admin/friend-links': typeof AdminAuthLFriendLinksRoute
   '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
   '/admin/tasks': typeof AdminAuthLTasksRoute
   '/admin/topics': typeof AdminAuthLTopicsRoute
@@ -390,6 +397,7 @@ export interface FileRoutesByTo {
   '/admin/articles': typeof AdminAuthLArticlesRouteWithChildren
   '/admin/collections': typeof AdminAuthLCollectionsRoute
   '/admin/comments': typeof AdminAuthLCommentsRoute
+  '/admin/friend-links': typeof AdminAuthLFriendLinksRoute
   '/admin/meilisearch': typeof AdminAuthLMeilisearchRoute
   '/admin/tasks': typeof AdminAuthLTasksRoute
   '/admin/topics': typeof AdminAuthLTopicsRoute
@@ -442,6 +450,7 @@ export interface FileRoutesById {
   '/admin/_authL/articles': typeof AdminAuthLArticlesRouteWithChildren
   '/admin/_authL/collections': typeof AdminAuthLCollectionsRoute
   '/admin/_authL/comments': typeof AdminAuthLCommentsRoute
+  '/admin/_authL/friend-links': typeof AdminAuthLFriendLinksRoute
   '/admin/_authL/meilisearch': typeof AdminAuthLMeilisearchRoute
   '/admin/_authL/tasks': typeof AdminAuthLTasksRoute
   '/admin/_authL/topics': typeof AdminAuthLTopicsRoute
@@ -495,6 +504,7 @@ export interface FileRouteTypes {
     | '/admin/articles'
     | '/admin/collections'
     | '/admin/comments'
+    | '/admin/friend-links'
     | '/admin/meilisearch'
     | '/admin/tasks'
     | '/admin/topics'
@@ -544,6 +554,7 @@ export interface FileRouteTypes {
     | '/admin/articles'
     | '/admin/collections'
     | '/admin/comments'
+    | '/admin/friend-links'
     | '/admin/meilisearch'
     | '/admin/tasks'
     | '/admin/topics'
@@ -595,6 +606,7 @@ export interface FileRouteTypes {
     | '/admin/_authL/articles'
     | '/admin/_authL/collections'
     | '/admin/_authL/comments'
+    | '/admin/_authL/friend-links'
     | '/admin/_authL/meilisearch'
     | '/admin/_authL/tasks'
     | '/admin/_authL/topics'
@@ -883,6 +895,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthLCommentsRouteImport
       parentRoute: typeof AdminAuthLRoute
     }
+    '/admin/_authL/friend-links': {
+      id: '/admin/_authL/friend-links'
+      path: '/friend-links'
+      fullPath: '/admin/friend-links'
+      preLoaderRoute: typeof AdminAuthLFriendLinksRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
     '/admin/_authL/meilisearch': {
       id: '/admin/_authL/meilisearch'
       path: '/meilisearch'
@@ -1035,6 +1054,7 @@ interface AdminAuthLRouteChildren {
   AdminAuthLArticlesRoute: typeof AdminAuthLArticlesRouteWithChildren
   AdminAuthLCollectionsRoute: typeof AdminAuthLCollectionsRoute
   AdminAuthLCommentsRoute: typeof AdminAuthLCommentsRoute
+  AdminAuthLFriendLinksRoute: typeof AdminAuthLFriendLinksRoute
   AdminAuthLMeilisearchRoute: typeof AdminAuthLMeilisearchRoute
   AdminAuthLTasksRoute: typeof AdminAuthLTasksRoute
   AdminAuthLTopicsRoute: typeof AdminAuthLTopicsRoute
@@ -1047,6 +1067,7 @@ const AdminAuthLRouteChildren: AdminAuthLRouteChildren = {
   AdminAuthLArticlesRoute: AdminAuthLArticlesRouteWithChildren,
   AdminAuthLCollectionsRoute: AdminAuthLCollectionsRoute,
   AdminAuthLCommentsRoute: AdminAuthLCommentsRoute,
+  AdminAuthLFriendLinksRoute: AdminAuthLFriendLinksRoute,
   AdminAuthLMeilisearchRoute: AdminAuthLMeilisearchRoute,
   AdminAuthLTasksRoute: AdminAuthLTasksRoute,
   AdminAuthLTopicsRoute: AdminAuthLTopicsRoute,

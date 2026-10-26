@@ -1,6 +1,8 @@
+import type { LucideIcon } from "lucide-react";
 import {
 	DatabaseIcon,
 	FileTextIcon,
+	HeartHandshakeIcon,
 	LayoutDashboardIcon,
 	ListTodoIcon,
 	MessageSquareTextIcon,
@@ -8,7 +10,6 @@ import {
 	SearchIcon,
 	UsersIcon,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 export type AdminNavItem = {
 	to: string;
@@ -63,6 +64,12 @@ export const adminNav: AdminNavSection[] = [
 				label: "合集管理",
 				description: "手动选品与会社绑定",
 				icon: PackageIcon,
+			},
+			{
+				to: "/admin/friend-links",
+				label: "友情链接",
+				description: "添加、删除与拖动排序",
+				icon: HeartHandshakeIcon,
 			},
 		],
 	},
