@@ -173,3 +173,23 @@ export const collectionEntriesRelations = relations(
     }),
   }),
 )
+
+// galrc_friend_links — 友情链接（前台展示，后台可增删 / 拖动排序）
+export const friendLinks = pgTable(
+  'galrc_friend_links',
+  {
+    id: serial('id').notNull().primaryKey(),
+    title: varchar('title', { length: 255 }).notNull(),
+    avatar: text('avatar'),
+    href: text('href').notNull(),
+    description: text('description'),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    // 列表固定 ORDER BY sort_order, id：组合索引让排序走索引，避免额外 sort。
+    sortIdx: index('idx_galrc_friend_links_sort').on(table.sortOrder, table.id),
+  }),
+)

@@ -6,6 +6,7 @@ import {
   comments,
   cronServer,
   download,
+  friendLinks,
   game,
   health,
   kungalSync,
@@ -71,6 +72,7 @@ async function buildApp() {
     .use(views)
     .use(tags)
     .use(download)
+    .use(friendLinks)
     .use(search)
     .use(strategy)
     .use(media)

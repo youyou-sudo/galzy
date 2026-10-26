@@ -176,6 +176,13 @@
       "when": 1792168177294,
       "tag": "0024_melted_medusa",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1793022189180,
+      "tag": "0025_motionless_runaways",
+      "breakpoints": true
     }
   ]
 }
