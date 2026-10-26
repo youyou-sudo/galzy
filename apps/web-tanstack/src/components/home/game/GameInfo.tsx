@@ -20,7 +20,7 @@ import { useState } from "react";
 type GameData = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>;
 
 /** 元信息标签：与值分列，长列表换行时仍能对齐阅读 */
-const metaLabelClass = "w-8 shrink-0 pt-0.5 text-xs text-muted-foreground";
+const metaLabelClass = "shrink-0 pt-0.5 w-8 text-xs text-muted-foreground";
 const eyebrowClass =
 	"text-xs font-medium tracking-wide text-muted-foreground";
 
@@ -97,7 +97,7 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 	return (
 		<>
 			{hasMeta && (
-				<dl className="mt-3 grid max-w-4xl grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1 text-sm">
+				<dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 items-baseline mt-3 max-w-4xl text-sm">
 					{released && (
 						<>
 							<dt className={metaLabelClass}>发售</dt>
@@ -108,7 +108,7 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 										startDate: `${released.year}-01-01`,
 										endDate: `${released.year}-12-31`,
 									}}
-									className="group inline-flex items-center gap-1 text-foreground/85 transition-colors duration-200 hover:text-primary"
+									className="group inline-flex gap-1 items-center text-foreground/85 transition-colors duration-200 hover:text-primary"
 								>
 									{released.year}-{released.formatted}
 									<Search
@@ -151,7 +151,7 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 									<Button
 										variant="link"
 										size="sm"
-										className="mt-0.5 h-6 px-0 text-xs text-primary"
+										className="px-0 mt-0.5 h-6 text-xs text-primary"
 									/>
 								}
 							>
@@ -159,11 +159,11 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 							</DialogTrigger>
 						</div>
 					</div>
-					<DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-2xl">
+					<DialogContent className="overflow-hidden max-h-[85vh] sm:max-w-2xl">
 						<DialogHeader>
 							<DialogTitle>游戏简介</DialogTitle>
 						</DialogHeader>
-						<div className="max-h-[70vh] min-h-0 min-w-0 overflow-x-hidden overflow-y-auto text-sm leading-relaxed text-foreground/85">
+						<div className="overflow-x-hidden overflow-y-auto min-w-0 min-h-0 max-h-[70vh] text-sm leading-relaxed text-foreground/85">
 							<BBCodeRenderer
 								text={
 									game?.otherData?.description || game?.vn?.description || ""

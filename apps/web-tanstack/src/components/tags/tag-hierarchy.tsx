@@ -638,16 +638,16 @@ function NodeChip({
 	const base = cn(
 		// 圆角矩形：节点是链上的一个「站点」，框宽固定、圆角统一（132×30、8px 圆角），
 		// 长短不一的标签名一律居中截断，边缘因此总是齐的。
-		"flex items-center justify-center rounded-lg border px-2.5 text-xs leading-none transition-all duration-150",
+		"flex justify-center items-center px-2.5 text-xs leading-none rounded-lg border transition-all duration-150",
 		// 普通节点不加投影。g835 这类标签有 80 个节点，每个都带一层 box-shadow 时
 		// 阴影会沿子标签列叠成一条黑带（用户反馈的「阴影叠起来」）。边框已经足够
 		// 区分节点，只给当前焦点节点保留投影。
 		current
-			? "border-primary/40 bg-primary font-medium text-primary-foreground shadow-md ring-[3px] ring-primary/20"
+			? "font-medium text-primary-foreground bg-primary border-primary/40 ring-[3px] ring-primary/20 shadow-md"
 			: navigable
-				? "border-border/80 bg-card text-foreground hover:-translate-y-px hover:border-primary/50 hover:bg-muted hover:shadow-sm"
+				? "text-foreground bg-card border-border/80 hover:bg-muted hover:border-primary/50 hover:shadow-sm hover:-translate-y-px"
 				: // 未本地化的祖先不可点击：不给 hover 反馈，虚线边框示意「到此为止」
-					"border-border/70 border-dashed bg-muted/30 text-muted-foreground",
+					"text-muted-foreground bg-muted/30 border-dashed border-border/70",
 		className,
 	);
 	if (current) {
@@ -1094,7 +1094,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 		<section className="w-full">
 			<div
 				ref={wrapRef}
-				className="animate-in fade-in-0 zoom-in-95 duration-200"
+				className="duration-200 animate-in fade-in-0 zoom-in-95"
 			>
 				<div
 					ref={frameRef}
@@ -1118,13 +1118,13 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 						setFraming(baseZoom);
 					}}
 					className={cn(
-						"relative mx-auto overflow-hidden rounded-2xl border select-none outline-none",
+						"overflow-hidden relative mx-auto rounded-2xl border outline-none select-none",
 						// 量到尺寸之前先不显形，避免首帧按整行宽度闪一下再收窄
 						ready ? "border-border/60" : "border-transparent",
 						// 激活态：边框加粗 + 焦点环，明确告诉用户「现在这块归你了」
 						active
-							? "cursor-grab border-2 border-primary shadow-lg ring-[3px] ring-primary/20"
-							: "cursor-pointer border",
+							? "border-2 border-primary ring-[3px] ring-primary/20 shadow-lg cursor-grab"
+							: "border cursor-pointer",
 						panning && "cursor-grabbing",
 					)}
 					style={{
@@ -1148,7 +1148,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 					{/* 统计数字悬浮在画布左上角：它描述的是这张图本身，挂在折叠开关上
 					    既放错了位置，开关一去掉也没地方放了。pointer-events-none 是因为
 					    它不是可点的东西，不该挡住从左上角起手的拖拽平移。 */}
-					<div className="pointer-events-none absolute top-2 left-2 z-10 rounded-full border border-border/60 bg-popover/85 px-2.5 py-1 text-[11px] text-muted-foreground tabular-nums shadow-sm backdrop-blur">
+					<div className="absolute top-2 left-2 z-10 px-2.5 py-1 text-[11px] tabular-nums text-muted-foreground bg-popover/85 rounded-full border border-border/60 shadow-sm backdrop-blur pointer-events-none">
 						{paths.length} 条路径 · {ancestorCount} 个上级
 						{children.length > 0 && ` · ${children.length} 个子标签`}
 					</div>
@@ -1162,7 +1162,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 						}}
 					>
 						<svg
-							className="absolute inset-0 overflow-visible"
+							className="overflow-visible absolute inset-0"
 							width={graph.width}
 							height={graph.height}
 							aria-hidden="true"
@@ -1213,7 +1213,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 							    再留一条标题就重复了，连线光秃秃的也看不出它通向什么。 */}
 						{graph.childCard && (
 							<div
-								className="pointer-events-none absolute flex items-center justify-center text-[10px] text-muted-foreground leading-none"
+								className="flex absolute justify-center items-center text-[10px] leading-none text-muted-foreground pointer-events-none"
 								style={{
 									left: graph.childCard.label.x,
 									top: graph.childCard.label.y,
@@ -1230,7 +1230,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 						{graph.childCard && (
 							<div
 								data-node
-								className="absolute overflow-hidden rounded-xl border border-border/70 bg-card/95 shadow-sm"
+								className="overflow-hidden absolute bg-card/95 rounded-xl border border-border/70 shadow-sm"
 								style={{
 									left: graph.childCard.x,
 									top: graph.childCard.y,
@@ -1262,7 +1262,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 																name: child.name,
 															})
 														}
-														className="flex items-center justify-center rounded-md border border-border/70 bg-muted/40 px-1.5 text-[11px] text-foreground leading-none transition-colors hover:border-primary/50 hover:bg-muted"
+														className="flex justify-center items-center px-1.5 text-[11px] leading-none text-foreground bg-muted/40 rounded-md border border-border/70 transition-colors hover:bg-muted hover:border-primary/50"
 														style={{ height: CARD_CELL_H }}
 													>
 														<span className="truncate">{labelOf(child)}</span>
@@ -1282,10 +1282,10 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 						    pointer-events 是继承属性，实测这里 auto 没盖住继承来的 none，
 						    按钮直接点不动。改成「浮层本身就是可交互的」，靠 onPointerDown 里
 						    的 [data-overlay] 守卫避免在工具条上误触发平移。 */}
-					<div className="absolute inset-x-2 bottom-2 flex items-end justify-between gap-2">
+					<div className="flex absolute inset-x-2 bottom-2 gap-2 justify-between items-end">
 						<div
 							data-overlay
-							className="flex items-center gap-1 rounded-full border border-border/60 bg-popover/85 px-2.5 py-1 text-[11px] text-muted-foreground shadow-sm backdrop-blur select-none"
+							className="flex gap-1 items-center px-2.5 py-1 text-[11px] text-muted-foreground bg-popover/85 rounded-full border border-border/60 shadow-sm backdrop-blur select-none"
 						>
 							{active ? (
 								<Move className="size-3" />
@@ -1300,7 +1300,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 						</div>
 						<div
 							data-overlay
-							className="ml-auto flex items-center gap-0.5 rounded-full border border-border/60 bg-popover/85 p-0.5 shadow-sm backdrop-blur"
+							className="flex gap-0.5 items-center p-0.5 ml-auto bg-popover/85 rounded-full border border-border/60 shadow-sm backdrop-blur"
 						>
 							{/* 触屏上一屏几乎全是画布，「点空白处退出」没那么顺手：给一个
 							    明确的出口，免得手指被困在画布里、页面滚不动。 */}
@@ -1322,7 +1322,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 										/>
 										<TooltipContent>退出手势（恢复页面滚动）</TooltipContent>
 									</Tooltip>
-									<span className="mx-0.5 h-4 w-px bg-border" />
+									<span className="mx-0.5 w-px h-4 bg-border" />
 								</>
 							)}
 							<Tooltip>
@@ -1342,7 +1342,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 								/>
 								<TooltipContent>缩小</TooltipContent>
 							</Tooltip>
-							<span className="w-9 text-center text-[11px] text-muted-foreground tabular-nums">
+							<span className="w-9 text-[11px] tabular-nums text-center text-muted-foreground">
 								{Math.round(view.zoom * 100)}%
 							</span>
 							<Tooltip>
@@ -1362,7 +1362,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 								/>
 								<TooltipContent>放大</TooltipContent>
 							</Tooltip>
-							<span className="mx-0.5 h-4 w-px bg-border" />
+							<span className="mx-0.5 w-px h-4 bg-border" />
 							<Tooltip>
 								<TooltipTrigger
 									render={

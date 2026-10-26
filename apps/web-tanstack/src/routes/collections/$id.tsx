@@ -79,23 +79,23 @@ function CollectionDetailSkeleton() {
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<div className="overflow-hidden rounded-2xl bg-card ring-1 ring-border/60">
-				<div className="space-y-4 p-6 sm:p-8">
+			<div className="overflow-hidden bg-card rounded-2xl ring-1 ring-border/60">
+				<div className="p-6 space-y-4 sm:p-8">
 					<div className="flex gap-2">
-						<Skeleton className="h-5 w-16 rounded-full" />
-						<Skeleton className="h-5 w-20 rounded-full" />
+						<Skeleton className="w-16 h-5 rounded-full" />
+						<Skeleton className="w-20 h-5 rounded-full" />
 					</div>
-					<Skeleton className="h-9 w-1/2" />
-					<Skeleton className="h-5 w-3/4" />
-					<Skeleton className="h-5 w-1/2" />
+					<Skeleton className="w-1/2 h-9" />
+					<Skeleton className="w-3/4 h-5" />
+					<Skeleton className="w-1/2 h-5" />
 				</div>
 			</div>
 
-			<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+			<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
 				{COLLECTION_SKELETON_KEYS.map((key) => (
 					<div key={key} className="space-y-2">
-						<Skeleton className="aspect-[2/3] rounded-lg w-full" />
-						<Skeleton className="h-4 w-3/4 mx-auto" />
+						<Skeleton className="aspect-[2/3] w-full rounded-lg" />
+						<Skeleton className="mx-auto w-3/4 h-4" />
 					</div>
 				))}
 			</div>
@@ -172,16 +172,16 @@ function RouteComponent() {
 			</Breadcrumb>
 
 			{/* Hero Section：保留封面拼贴与 View Transition，外壳换成发丝边大圆角 */}
-			<div className="relative overflow-hidden rounded-2xl bg-card ring-1 ring-border/60">
+			<div className="overflow-hidden relative bg-card rounded-2xl ring-1 ring-border/60">
 				{/* Cover mosaic backdrop */}
 				{heroCovers.length > 0 && (
-					<div className="absolute inset-0 grid grid-cols-4 opacity-25 dark:opacity-20">
+					<div className="grid absolute inset-0 grid-cols-4 opacity-25 dark:opacity-20">
 						{heroCovers.map((game) => (
 							<div key={game.id} className="overflow-hidden">
 								<img
 									src={game.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
 									alt=""
-									className="w-full h-full object-cover blur-[2px] scale-110"
+									className="object-cover w-full h-full blur-[2px] scale-110"
 									loading="lazy"
 								/>
 							</div>
@@ -194,8 +194,8 @@ function RouteComponent() {
 
 				{/* Content */}
 				<div className="relative p-6 sm:p-8 md:p-10">
-					<div className="mb-4 flex flex-wrap items-center gap-2.5">
-						<span className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-2.5 py-1 text-xs text-muted-foreground tabular-nums ring-1 ring-border/60">
+					<div className="flex flex-wrap gap-2.5 items-center mb-4">
+						<span className="inline-flex gap-1.5 items-center px-2.5 py-1 text-xs tabular-nums text-muted-foreground bg-muted/60 rounded-full ring-1 ring-border/60">
 							<Layers aria-hidden="true" className="size-3.5" />
 							{gameCount} 部作品
 						</span>
@@ -223,7 +223,7 @@ function RouteComponent() {
 				/>
 
 				{games.length > 0 ? (
-					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+					<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
 						{games.map((game) => (
 							<GameCard.Item
 								key={game.id}
@@ -253,7 +253,7 @@ function RouteComponent() {
 				<Link
 					to="/collections"
 					search={{ page: 1 }}
-					className="inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground transition-colors duration-200 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+					className="inline-flex gap-1.5 items-center text-sm text-muted-foreground rounded-sm transition-colors duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 				>
 					<ChevronLeft aria-hidden="true" className="size-4" />
 					返回合集列表

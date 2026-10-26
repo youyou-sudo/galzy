@@ -19,7 +19,7 @@ import type { ReactNode } from "react";
 
 export function LoadingSpinner({ text = "加载中..." }: { text?: string }) {
 	return (
-		<div className="flex items-center gap-2 text-muted-foreground py-8 justify-center">
+		<div className="flex gap-2 justify-center items-center py-8 text-muted-foreground">
 			<Spinner className="size-5" />
 			<span>{text}</span>
 		</div>
@@ -28,11 +28,11 @@ export function LoadingSpinner({ text = "加载中..." }: { text?: string }) {
 
 export function CardSkeleton({ rows = 3 }: { rows?: number }) {
 	return (
-		<div className="space-y-3 p-6">
-			<Skeleton className="h-5 w-1/3" />
-			<Skeleton className="h-4 w-2/3" />
+		<div className="p-6 space-y-3">
+			<Skeleton className="w-1/3 h-5" />
+			<Skeleton className="w-2/3 h-4" />
 			{Array.from({ length: rows }).map((_, i) => (
-				<Skeleton key={i} className="h-10 w-full" />
+				<Skeleton key={i} className="w-full h-10" />
 			))}
 		</div>
 	);
@@ -40,11 +40,11 @@ export function CardSkeleton({ rows = 3 }: { rows?: number }) {
 
 export function StatSkeleton() {
 	return (
-		<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+		<div className="grid grid-cols-2 gap-4 md:grid-cols-4">
 			{Array.from({ length: 4 }).map((_, i) => (
 				<div key={i} className="space-y-2">
-					<Skeleton className="h-3 w-16" />
-					<Skeleton className="h-7 w-20" />
+					<Skeleton className="w-16 h-3" />
+					<Skeleton className="w-20 h-7" />
 				</div>
 			))}
 		</div>
@@ -61,11 +61,11 @@ export function ErrorDisplay({
 	onRetry?: () => void;
 }) {
 	return (
-		<div className="flex flex-col items-center gap-3 py-8 text-center">
+		<div className="flex flex-col gap-3 items-center py-8 text-center">
 			<IconTile icon={XCircleIcon} size="lg" tone="destructive" />
 			<div>
 				<p className="text-sm font-medium">加载失败</p>
-				<p className="text-sm text-muted-foreground mt-0.5 max-w-sm">
+				<p className="mt-0.5 max-w-sm text-sm text-muted-foreground">
 					{message}
 				</p>
 			</div>
@@ -137,7 +137,7 @@ export function StatCard({
 	} as const;
 
 	return (
-		<div className="flex items-start gap-3 rounded-xl bg-card p-4 ring-1 ring-border/60">
+		<div className="flex gap-3 items-start p-4 bg-card rounded-xl ring-1 ring-border/60">
 			<IconTile icon={Icon} size="md" tone={variantTones[variant]} />
 			<div className="space-y-0.5 min-w-0">
 				<p className="text-xs text-muted-foreground">{label}</p>
@@ -164,11 +164,11 @@ export function SectionHeader({
 	action?: ReactNode;
 }) {
 	return (
-		<div className="flex items-start justify-between gap-4">
+		<div className="flex gap-4 justify-between items-start">
 			<div>
 				<h3 className="text-sm font-semibold">{title}</h3>
 				{description && (
-					<p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+					<p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
 				)}
 			</div>
 			{action && <div className="shrink-0">{action}</div>}

@@ -20,7 +20,7 @@ const toolLinks = [
 /** 工具索引：页头用统一 PageHeader，卡片沿用顶栏的圆角 + 发丝边语言。 */
 export default function RouteComponent() {
 	return (
-		<section className="mx-auto w-full max-w-3xl py-6">
+		<section className="py-6 mx-auto w-full max-w-3xl">
 			<PageHeader
 				align="center"
 				icon={Wrench}
@@ -37,8 +37,8 @@ export default function RouteComponent() {
 					>
 						<Card className="h-full transition-colors duration-200 group-hover:bg-muted/40 group-hover:ring-border">
 							<CardHeader className="gap-2">
-								<CardTitle className="flex items-center gap-3 text-base font-medium">
-									<span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
+								<CardTitle className="flex gap-3 items-center text-base font-medium">
+									<span className="flex justify-center items-center size-9 text-primary bg-primary/10 rounded-xl transition-colors group-hover:bg-primary/15">
 										<Icon className="size-4" />
 									</span>
 									{title}

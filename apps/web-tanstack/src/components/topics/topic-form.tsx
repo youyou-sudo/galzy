@@ -179,7 +179,7 @@ export function TopicForm({
 							}}
 						</form.Field>
 
-						<div className="flex flex-col gap-3 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-end">
+						<div className="flex flex-col gap-3 pt-5 border-t border-border/60 sm:flex-row sm:justify-end sm:items-center">
 							<p className="text-xs text-muted-foreground sm:mr-auto">
 								Ctrl/⌘ + Enter 快速提交，草稿会自动保存
 							</p>

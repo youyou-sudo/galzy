@@ -6,7 +6,7 @@ export const MarkdownComponents = {
 	h1: ({ className, ...props }: ComponentProps<"h1">) => (
 		<h1
 			className={cn(
-				"scroll-m-20 text-2xl font-semibold tracking-tight",
+				"text-2xl font-semibold tracking-tight scroll-m-20",
 				className,
 			)}
 			{...props}
@@ -15,7 +15,7 @@ export const MarkdownComponents = {
 	h2: ({ className, ...props }: ComponentProps<"h2">) => (
 		<h2
 			className={cn(
-				"scroll-m-20 border-b border-border/70 pb-2 text-xl font-semibold tracking-tight first:mt-0",
+				"pb-2 text-xl font-semibold tracking-tight border-b border-border/70 scroll-m-20 first:mt-0",
 				className,
 			)}
 			{...props}
@@ -24,7 +24,7 @@ export const MarkdownComponents = {
 	h3: ({ className, ...props }: ComponentProps<"h3">) => (
 		<h3
 			className={cn(
-				"scroll-m-20 text-lg font-semibold tracking-tight",
+				"text-lg font-semibold tracking-tight scroll-m-20",
 				className,
 			)}
 			{...props}
@@ -33,7 +33,7 @@ export const MarkdownComponents = {
 	h4: ({ className, ...props }: ComponentProps<"h4">) => (
 		<h4
 			className={cn(
-				"scroll-m-20 text-base font-semibold tracking-tight",
+				"text-base font-semibold tracking-tight scroll-m-20",
 				className,
 			)}
 			{...props}
@@ -42,7 +42,7 @@ export const MarkdownComponents = {
 	h5: ({ className, ...props }: ComponentProps<"h5">) => (
 		<h5
 			className={cn(
-				"scroll-m-20 text-sm font-semibold tracking-tight",
+				"text-sm font-semibold tracking-tight scroll-m-20",
 				className,
 			)}
 			{...props}
@@ -51,7 +51,7 @@ export const MarkdownComponents = {
 	h6: ({ className, ...props }: ComponentProps<"h6">) => (
 		<h6
 			className={cn(
-				"scroll-m-20 text-sm font-semibold tracking-tight",
+				"text-sm font-semibold tracking-tight scroll-m-20",
 				className,
 			)}
 			{...props}
@@ -77,7 +77,7 @@ export const MarkdownComponents = {
 	),
 	blockquote: ({ className, ...props }: ComponentProps<"blockquote">) => (
 		<blockquote
-			className={cn("mt-6 border-l-2 border-border pl-6 text-muted-foreground italic", className)}
+			className={cn("pl-6 mt-6 italic text-muted-foreground border-l-2 border-border", className)}
 			{...props}
 		/>
 	),
@@ -92,20 +92,20 @@ export const MarkdownComponents = {
 	),
 	hr: ({ ...props }) => <hr className="my-4 md:my-8" {...props} />,
 	table: ({ className, ...props }: ComponentProps<"table">) => (
-		<div className="my-6 w-full overflow-x-auto">
+		<div className="overflow-x-auto my-6 w-full">
 			<table className={cn("w-full", className)} {...props} />
 		</div>
 	),
 	tr: ({ className, ...props }: ComponentProps<"tr">) => (
 		<tr
-			className={cn("m-0 border-t p-0 even:bg-muted", className)}
+			className={cn("p-0 m-0 border-t even:bg-muted", className)}
 			{...props}
 		/>
 	),
 	th: ({ className, ...props }: ComponentProps<"th">) => (
 		<th
 			className={cn(
-				"border border-border/70 px-4 py-2 text-left font-medium [[align=center]]:text-center [[align=right]]:text-right",
+				"px-4 py-2 font-medium text-left border border-border/70 [[align=center]]:text-center [[align=right]]:text-right",
 				className,
 			)}
 			{...props}
@@ -114,7 +114,7 @@ export const MarkdownComponents = {
 	td: ({ className, ...props }: ComponentProps<"td">) => (
 		<td
 			className={cn(
-				"border px-4 py-2 text-left [[align=center]]:text-center [[align=right]]:text-right",
+				"px-4 py-2 text-left border [[align=center]]:text-center [[align=right]]:text-right",
 				className,
 			)}
 			{...props}
@@ -123,7 +123,7 @@ export const MarkdownComponents = {
 	pre: ({ className, ...props }: ComponentProps<"pre">) => (
 		<pre
 			className={cn(
-				"mt-6 mb-4 overflow-x-auto rounded-xl border border-border/70 bg-muted px-4 py-4",
+				"overflow-x-auto p-4 mt-6 mb-4 bg-muted rounded-xl border border-border/70",
 				className,
 			)}
 			{...props}
@@ -132,7 +132,7 @@ export const MarkdownComponents = {
 	code: ({ className, ...props }: ComponentProps<"code">) => (
 		<code
 			className={cn(
-				"relative rounded-md bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-medium",
+				"relative px-[0.3rem] py-[0.2rem] font-mono text-sm font-medium bg-muted rounded-md",
 				className,
 			)}
 			{...props}
@@ -164,7 +164,7 @@ export const ArticleMarkdownComponents = {
 	h1: ({ className, ...props }: ComponentProps<"h1">) => (
 		<h1
 			className={cn(
-				"scroll-m-20 mt-6 mb-2 text-xl font-semibold tracking-tight first:mt-0",
+				"mt-6 mb-2 text-xl font-semibold tracking-tight scroll-m-20 first:mt-0",
 				className,
 			)}
 			{...props}
@@ -173,7 +173,7 @@ export const ArticleMarkdownComponents = {
 	h2: ({ className, ...props }: ComponentProps<"h2">) => (
 		<h2
 			className={cn(
-				"scroll-m-20 mt-6 mb-2 text-lg font-semibold tracking-tight first:mt-0",
+				"mt-6 mb-2 text-lg font-semibold tracking-tight scroll-m-20 first:mt-0",
 				className,
 			)}
 			{...props}
@@ -182,7 +182,7 @@ export const ArticleMarkdownComponents = {
 	h3: ({ className, ...props }: ComponentProps<"h3">) => (
 		<h3
 			className={cn(
-				"scroll-m-20 mt-5 mb-1.5 text-base font-semibold tracking-tight first:mt-0",
+				"mt-5 mb-1.5 text-base font-semibold tracking-tight scroll-m-20 first:mt-0",
 				className,
 			)}
 			{...props}
@@ -191,7 +191,7 @@ export const ArticleMarkdownComponents = {
 	h4: ({ className, ...props }: ComponentProps<"h4">) => (
 		<h4
 			className={cn(
-				"scroll-m-20 mt-4 mb-1 text-sm font-semibold tracking-tight first:mt-0",
+				"mt-4 mb-1 text-sm font-semibold tracking-tight scroll-m-20 first:mt-0",
 				className,
 			)}
 			{...props}
@@ -200,7 +200,7 @@ export const ArticleMarkdownComponents = {
 	h5: ({ className, ...props }: ComponentProps<"h5">) => (
 		<h5
 			className={cn(
-				"scroll-m-20 mt-4 mb-1 text-sm font-semibold first:mt-0",
+				"mt-4 mb-1 text-sm font-semibold scroll-m-20 first:mt-0",
 				className,
 			)}
 			{...props}
@@ -209,7 +209,7 @@ export const ArticleMarkdownComponents = {
 	h6: ({ className, ...props }: ComponentProps<"h6">) => (
 		<h6
 			className={cn(
-				"scroll-m-20 mt-4 mb-1 text-sm font-semibold first:mt-0",
+				"mt-4 mb-1 text-sm font-semibold scroll-m-20 first:mt-0",
 				className,
 			)}
 			{...props}

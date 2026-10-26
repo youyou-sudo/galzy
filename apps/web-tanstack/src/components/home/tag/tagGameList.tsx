@@ -103,7 +103,7 @@ export const TagGamelist = () => {
 				) : null}
 			</div>
 			{hasNextPage && (
-				<div className="mt-6 flex justify-center">
+				<div className="flex justify-center mt-6">
 					<Button variant="outline" size="lg" onClick={getNextPage}>
 						加载更多
 					</Button>

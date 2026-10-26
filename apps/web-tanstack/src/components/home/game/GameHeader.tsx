@@ -112,14 +112,14 @@ export function GameCover({
 	const coverContent = (
 		<>
 			{vtGated && !thumbhashUrl && (
-				<Skeleton className="absolute inset-0 h-full w-full rounded-xl" />
+				<Skeleton className="absolute inset-0 w-full h-full rounded-xl" />
 			)}
 			{vtGated ? (
 				thumbhashUrl ? (
 					<img
 						aria-hidden="true"
 						alt=""
-						className="h-full w-full rounded-xl object-cover"
+						className="object-cover w-full h-full rounded-xl"
 						src={thumbhashUrl}
 					/>
 				) : null
@@ -137,7 +137,7 @@ export function GameCover({
 					cSexualAvg={game?.vn?.image?.cSexualAvg}
 					revealed={coverRevealed}
 					onReveal={() => setCoverRevealed(true)}
-					className="h-full w-full rounded-xl object-cover"
+					className="object-cover w-full h-full rounded-xl"
 				/>
 			)}
 		</>
@@ -150,14 +150,14 @@ export function GameCover({
 				className,
 			)}
 		>
-			<div className="relative inline-block max-w-full">
+			<div className="inline-block relative max-w-full">
 				{lightboxSrc && !coverSensitiveHidden ? (
 					<GameCoverLightbox alt={displayTitle} src={lightboxSrc}>
 						<div className={coverClassName} style={coverStyle}>
 							{coverContent}
 							<button
 								aria-label={`查看《${displayTitle}》封面大图`}
-								className="absolute inset-0 z-10 cursor-zoom-in rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+								className="absolute inset-0 z-10 rounded-xl outline-none cursor-zoom-in focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-ring/60"
 								type="button"
 							/>
 						</div>
@@ -189,7 +189,7 @@ export function GameTitle({ game, id }: { game: GameData; id: string }) {
 				{displayTitle}
 			</h1>
 			{aliases && (
-				<p className="mt-1 line-clamp-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">
+				<p className="mt-1 max-w-3xl text-xs leading-relaxed line-clamp-1 text-muted-foreground">
 					别名：{aliases}
 				</p>
 			)}

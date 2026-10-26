@@ -20,17 +20,17 @@ const TAB_SEGMENTS = new Set([
 const tabListClass = cn(
 	// p-0.5 + h-8 trigger = 36px，正好等于 h-9；p-1 会让内容比容器高 4px，
 	// 而 overflow-x-auto 会把 overflow-y 也计算成 auto → 右侧冒出一条竖向滚动条。
-	"h-9 max-w-full justify-start gap-0.5 overflow-x-auto overflow-y-hidden rounded-xl bg-muted/40 p-0.5 ring-1 ring-border/60",
+	"overflow-x-auto overflow-y-hidden gap-0.5 justify-start p-0.5 max-w-full h-9 bg-muted/40 rounded-xl ring-1 ring-border/60",
 	"[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
 );
 
 /** 页签本身：圆角/高度/选中态直接对齐 header/desktop-nav 的导航药丸 */
 const tabTriggerClass = cn(
-	"h-8 flex-none gap-1.5 rounded-lg px-2.5 text-sm font-medium sm:px-3",
+	"flex-none gap-1.5 px-2.5 h-8 text-sm font-medium rounded-lg sm:px-3",
 	"text-muted-foreground transition-colors duration-200",
-	"hover:bg-muted/60 hover:text-foreground",
-	"data-active:bg-muted/60 data-active:text-foreground data-active:shadow-none",
-	"focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none",
+	"hover:text-foreground hover:bg-muted/60",
+	"data-active:text-foreground data-active:bg-muted/60 data-active:shadow-none",
+	"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
 );
 
 /**

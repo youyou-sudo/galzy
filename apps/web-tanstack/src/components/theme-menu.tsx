@@ -52,30 +52,30 @@ export function ThemeMenu({
 
 			<DropdownMenuContent align="end" className="min-w-32 rounded-xl">
 				<DropdownMenuItem
-					className="flex items-center gap-2 cursor-pointer"
+					className="flex gap-2 items-center cursor-pointer"
 					onClick={() => onSelect("light")}
 				>
 					<Sun className="size-4 text-warning" />
 					<span>浅色</span>
-					{mode === "light" && <Check className="size-4 ml-auto" />}
+					{mode === "light" && <Check className="ml-auto size-4" />}
 				</DropdownMenuItem>
 
 				<DropdownMenuItem
-					className="flex items-center gap-2 cursor-pointer"
+					className="flex gap-2 items-center cursor-pointer"
 					onClick={() => onSelect("dark")}
 				>
 					<Moon className="size-4 text-info" />
 					<span>深色</span>
-					{mode === "dark" && <Check className="size-4 ml-auto" />}
+					{mode === "dark" && <Check className="ml-auto size-4" />}
 				</DropdownMenuItem>
 
 				<DropdownMenuItem
-					className="flex items-center gap-2 cursor-pointer"
+					className="flex gap-2 items-center cursor-pointer"
 					onClick={() => onSelect("auto")}
 				>
 					<Monitor className="size-4 text-muted-foreground" />
 					<span>跟随系统</span>
-					{mode === "auto" && <Check className="size-4 ml-auto" />}
+					{mode === "auto" && <Check className="ml-auto size-4" />}
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

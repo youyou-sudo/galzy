@@ -66,7 +66,7 @@ export function RelationsPage() {
 	return (
 		<>
 			{truncated && (
-				<p className="mb-3 text-center text-xs text-muted-foreground">
+				<p className="mb-3 text-xs text-center text-muted-foreground">
 					关联作品较多，仅显示部分
 				</p>
 			)}
@@ -94,7 +94,7 @@ export function RelationsPage() {
 							/>
 							{/* 关系标签：封面颜色不可控，必须用近实底 + 发丝边保证任何封面上都可读；
 							    字号从 11px 提到 12px，并限制最大宽度避免长标签压住封面 */}
-							<span className="pointer-events-none absolute top-2 left-2 z-10 max-w-[calc(100%-1rem)] truncate rounded-lg bg-background/95 px-2 py-1 text-xs font-semibold text-foreground shadow-sm ring-1 ring-border/70 backdrop-blur-sm">
+							<span className="absolute top-2 left-2 z-10 px-2 py-1 max-w-[calc(100%-1rem)] text-xs font-semibold text-foreground truncate bg-background/95 rounded-lg ring-1 ring-border/70 shadow-sm backdrop-blur-sm pointer-events-none">
 								{label}
 							</span>
 						</div>

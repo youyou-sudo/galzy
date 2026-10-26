@@ -84,16 +84,16 @@ export default function RouteComponent() {
 							>
 								<Card className="h-full transition-colors duration-200 hover:bg-muted/40 hover:ring-border">
 									<div className="flex gap-4 px-4 py-1">
-										<Avatar className="size-10 shrink-0 rounded-xl">
+										<Avatar className="shrink-0 size-10 rounded-xl">
 											<AvatarImage src={item.avatar} />
-											<AvatarFallback className="rounded-xl bg-muted text-xs">
+											<AvatarFallback className="text-xs bg-muted rounded-xl">
 												{item.title.slice(0, 2)}
 											</AvatarFallback>
 										</Avatar>
-										<div className="flex min-w-0 flex-1 flex-col gap-1">
+										<div className="flex flex-col flex-1 gap-1 min-w-0">
 											<span className="text-sm font-medium">{item.title}</span>
 											{item.description && (
-												<span className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+												<span className="text-xs leading-relaxed line-clamp-2 text-muted-foreground">
 													{item.description}
 												</span>
 											)}

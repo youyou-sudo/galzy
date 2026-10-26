@@ -679,8 +679,8 @@ function RouteComponent() {
 			</div>
 
 			{/* 排序条：一条发丝底工具条，与页头/搜索同一垂直节奏 */}
-			<div className="mb-6 flex flex-wrap items-center gap-2 rounded-2xl bg-muted/40 px-3 py-2 ring-1 ring-border/60">
-				<span className="flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground">
+			<div className="flex flex-wrap gap-2 items-center px-3 py-2 mb-6 bg-muted/40 rounded-2xl ring-1 ring-border/60">
+				<span className="flex shrink-0 gap-1.5 items-center text-sm text-muted-foreground">
 					<ListFilter aria-hidden="true" className="size-4" />
 					排序
 				</span>
@@ -696,7 +696,7 @@ function RouteComponent() {
 				>
 					<SelectTrigger
 						size="sm"
-						className="h-8 w-28 rounded-lg border-0 bg-transparent px-2 font-medium text-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
+						className="px-2 w-28 h-8 font-medium text-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
 						aria-label="排序依据"
 					>
 						<SelectValue />
@@ -721,7 +721,7 @@ function RouteComponent() {
 				>
 					<SelectTrigger
 						size="sm"
-						className="h-8 w-20 rounded-lg border-0 bg-transparent px-2 font-medium text-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
+						className="px-2 w-20 h-8 font-medium text-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
 						aria-label="排序方向"
 					>
 						<SelectValue />
@@ -746,7 +746,7 @@ function RouteComponent() {
 						key={virtualRow.key}
 						data-index={virtualRow.index}
 						ref={virtualizer.measureElement}
-						className="grid grid-cols-3 md:grid-cols-6 gap-4 absolute top-0 left-0 w-full"
+						className="grid absolute top-0 left-0 grid-cols-3 gap-4 w-full md:grid-cols-6"
 						style={{ transform: `translateY(${virtualRow.start}px)` }}
 					>
 						{gameList.renderRow(virtualRow.index)}
@@ -764,13 +764,13 @@ function RouteComponent() {
 			{isLoading || (flatItems.length > 0 && virtualItems.length === 0) ? (
 				<GameCardGridSkeleton className="mt-4" />
 			) : isFetchingNextPage ? (
-				<div className="mt-4 grid grid-cols-3 gap-4 md:grid-cols-6">
+				<div className="grid grid-cols-3 gap-4 mt-4 md:grid-cols-6">
 					<GameCard.ListSkeleton />
 				</div>
 			) : null}
 
 			{hasNextPage && (
-				<div className="mt-8 flex justify-center">
+				<div className="flex justify-center mt-8">
 					<Button
 						onClick={() => fetchNextPage()}
 						disabled={isFetchingNextPage}
@@ -855,9 +855,9 @@ function GamesPagePending() {
 				description="浏览所有收录的 Galgame 作品"
 			/>
 			<div className="mb-4 w-full max-w-xl">
-				<Skeleton className="h-10 w-full rounded-xl" />
+				<Skeleton className="w-full h-10 rounded-xl" />
 			</div>
-			<Skeleton className="mb-6 h-12 w-full rounded-2xl" />
+			<Skeleton className="mb-6 w-full h-12 rounded-2xl" />
 			<GameCardGridSkeleton />
 		</div>
 	);

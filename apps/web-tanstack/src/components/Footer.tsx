@@ -5,7 +5,7 @@ import { ExternalLink } from "lucide-react";
 const START_YEAR = 2022;
 
 const linkClass =
-	"inline-flex items-center gap-1 text-sm text-muted-foreground no-underline transition-colors duration-200 hover:text-foreground";
+	"inline-flex gap-1 items-center text-sm text-muted-foreground no-underline transition-colors duration-200 hover:text-foreground";
 
 function Copyright() {
 	const currentYear = new Date().getFullYear();
@@ -25,10 +25,10 @@ function Copyright() {
 export default function Footer() {
 	return (
 		<footer className="mt-16 border-t border-border/60">
-			<div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-10 sm:px-6 md:flex-row md:items-center md:justify-between">
+			<div className="flex flex-col gap-6 px-4 py-10 mx-auto w-full max-w-7xl sm:px-6 md:flex-row md:justify-between md:items-center">
 				<div className="flex flex-col gap-2">
-					<div className="flex items-center gap-2.5">
-						<span className="flex size-8 items-center justify-center overflow-hidden rounded-xl ring-1 ring-border/60">
+					<div className="flex gap-2.5 items-center">
+						<span className="flex overflow-hidden justify-center items-center size-8 rounded-xl ring-1 ring-border/60">
 							<Image
 								src="/favicon.ico"
 								width={20}
@@ -38,11 +38,11 @@ export default function Footer() {
 							/>
 						</span>
 						<span className="text-sm font-semibold tracking-tight">GalZY</span>
-						<span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+						<span className="px-2 py-0.5 text-[10px] font-medium text-muted-foreground bg-muted/60 rounded-full">
 							Galgame 资源站
 						</span>
 					</div>
-					<p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+					<p className="flex flex-wrap gap-x-2 gap-y-1 items-center text-xs text-muted-foreground">
 						<Copyright />
 						<span aria-hidden="true" className="text-border">
 							·
@@ -53,7 +53,7 @@ export default function Footer() {
 
 				<nav
 					aria-label="页脚导航"
-					className="flex flex-wrap items-center gap-x-6 gap-y-2"
+					className="flex flex-wrap gap-x-6 gap-y-2 items-center"
 				>
 					<Link to="/openapi" className={linkClass}>
 						Open API

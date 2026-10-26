@@ -25,13 +25,13 @@ export default function Errors({ code, errormessage }: ErrorsProps) {
 			: "页面加载出错了，刷新或返回首页再试试喵～";
 
 	return (
-		<div className="mx-auto w-full max-w-3xl py-10">
+		<div className="py-10 mx-auto w-full max-w-3xl">
 			<h1 className="sr-only">错误 {code}</h1>
 			<EmptyState
 				icon={AlertTriangle}
 				title={
-					<span className="flex flex-col items-center gap-2">
-						<span className="text-6xl font-semibold tracking-tight text-foreground/80 tabular-nums">
+					<span className="flex flex-col gap-2 items-center">
+						<span className="text-6xl font-semibold tabular-nums tracking-tight text-foreground/80">
 							{code}
 						</span>
 						<span className="text-base font-medium text-foreground/80">
@@ -41,7 +41,7 @@ export default function Errors({ code, errormessage }: ErrorsProps) {
 				}
 				description={message}
 				action={
-					<div className="flex flex-wrap items-center justify-center gap-2">
+					<div className="flex flex-wrap gap-2 justify-center items-center">
 						<Button render={<Link to="/" />}>
 							<Home className="size-4" />
 							返回首页
@@ -68,11 +68,11 @@ export default function Errors({ code, errormessage }: ErrorsProps) {
 			/>
 
 			{hasDetail && (
-				<details className="mx-auto mt-8 w-full max-w-2xl rounded-2xl bg-card/60 ring-1 ring-border/60">
-					<summary className="cursor-pointer list-none px-4 py-3 text-xs text-muted-foreground transition-colors hover:text-foreground">
+				<details className="mx-auto mt-8 w-full max-w-2xl bg-card/60 rounded-2xl ring-1 ring-border/60">
+					<summary className="px-4 py-3 text-xs list-none text-muted-foreground transition-colors cursor-pointer hover:text-foreground">
 						查看错误详情
 					</summary>
-					<div className="border-t border-border/60 px-2 pb-2">
+					<div className="px-2 pb-2 border-t border-border/60">
 						<CodeBlock code={JSON.stringify(errormessage, null, 2)} />
 					</div>
 				</details>

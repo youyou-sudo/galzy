@@ -112,14 +112,14 @@ function StatCard({
 
 	return (
 		<Card className="transition-colors duration-200 hover:ring-border">
-			<CardContent className="flex items-center gap-4 p-5">
+			<CardContent className="flex gap-4 items-center p-5">
 				<IconTile icon={Icon} size="md" />
-				<div className="flex min-w-0 flex-col">
+				<div className="flex flex-col min-w-0">
 					<span className="text-xs font-medium text-muted-foreground">
 						{label}
 					</span>
 					{isLoading ? (
-						<Skeleton className="mt-1.5 h-7 w-16" />
+						<Skeleton className="mt-1.5 w-16 h-7" />
 					) : (
 						<span className="text-2xl font-semibold tabular-nums tracking-tight">
 							{data ?? "—"}
@@ -140,7 +140,7 @@ function QuickLinksCard() {
 	return (
 		<Card className="lg:col-span-3">
 			<CardHeader className="pb-3">
-				<CardTitle className="flex items-center gap-2.5 text-base">
+				<CardTitle className="flex gap-2.5 items-center text-base">
 					<IconTile icon={LayoutDashboardIcon} size="sm" tone="muted" />
 					快捷入口
 				</CardTitle>
@@ -151,21 +151,21 @@ function QuickLinksCard() {
 					<Link
 						key={to}
 						to={to}
-						className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors duration-200 hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+						className="group flex gap-3 items-center px-3 py-2.5 rounded-xl transition-colors duration-200 hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 					>
 						<IconTile
 							icon={Icon}
 							size="sm"
 							tone="muted"
-							className="transition-colors duration-200 group-hover:bg-primary/10 group-hover:text-primary"
+							className="transition-colors duration-200 group-hover:text-primary group-hover:bg-primary/10"
 						/>
-						<div className="flex min-w-0 flex-1 flex-col">
+						<div className="flex flex-col flex-1 min-w-0">
 							<span className="text-sm font-medium">{label}</span>
-							<span className="truncate text-xs text-muted-foreground">
+							<span className="text-xs text-muted-foreground truncate">
 								{description}
 							</span>
 						</div>
-						<ArrowRightIcon className="size-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+						<ArrowRightIcon className="shrink-0 size-4 text-muted-foreground/50 transition-transform group-hover:text-foreground group-hover:translate-x-0.5" />
 					</Link>
 				))}
 			</CardContent>
@@ -191,12 +191,12 @@ function StatusRow({
 	children: ReactNode;
 }) {
 	return (
-		<div className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-colors duration-200 hover:bg-muted/60">
-			<div className="flex min-w-0 items-center gap-3">
+		<div className="flex gap-3 justify-between items-center px-3 py-2.5 rounded-xl transition-colors duration-200 hover:bg-muted/60">
+			<div className="flex gap-3 items-center min-w-0">
 				<IconTile icon={Icon} size="sm" tone="muted" />
-				<div className="flex min-w-0 flex-col">
+				<div className="flex flex-col min-w-0">
 					<span className="text-sm font-medium">{title}</span>
-					<span className="truncate text-xs text-muted-foreground">
+					<span className="text-xs text-muted-foreground truncate">
 						{description}
 					</span>
 				</div>
@@ -210,7 +210,7 @@ function SystemStatusCard() {
 	return (
 		<Card className="lg:col-span-2">
 			<CardHeader className="pb-3">
-				<CardTitle className="flex items-center gap-2.5 text-base">
+				<CardTitle className="flex gap-2.5 items-center text-base">
 					<IconTile icon={ShieldCheckIcon} size="sm" tone="muted" />
 					系统状态
 				</CardTitle>
@@ -228,7 +228,7 @@ function SystemStatusCard() {
 						>
 							<Link
 								to={to}
-								className="rounded-md px-1.5 py-0.5 text-xs font-medium text-primary transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+								className="px-1.5 py-0.5 text-xs font-medium text-primary rounded-md transition-colors duration-200 hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 							>
 								管理
 							</Link>
@@ -241,7 +241,7 @@ function SystemStatusCard() {
 				>
 					<Link
 						to="/"
-						className="rounded-md px-1.5 py-0.5 text-xs font-medium text-primary transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+						className="px-1.5 py-0.5 text-xs font-medium text-primary rounded-md transition-colors duration-200 hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 					>
 						查看
 					</Link>

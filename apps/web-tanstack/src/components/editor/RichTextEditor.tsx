@@ -261,7 +261,7 @@ export function RichTextEditor({
 	return (
 		<div
 			className={cn(
-				"w-full rounded-md border border-input overflow-hidden bg-background",
+				"overflow-hidden w-full bg-background rounded-md border border-input",
 				ariaInvalid === true && "border-destructive",
 				className,
 			)}
@@ -287,7 +287,7 @@ export function RichTextEditor({
 						}
 						onKeyDown={onKeyDown}
 					>
-						<EditorContent editor={editor} className="min-h-full flex-1" />
+						<EditorContent editor={editor} className="flex-1 min-h-full" />
 					</div>
 				</RichTextProvider>
 			) : (
@@ -303,9 +303,9 @@ export function RichTextEditor({
 
 			{/* ── 粘贴/拖拽图片上传指示 ──────────────────────────────────────── */}
 			{isUploading && (
-				<div className="flex items-center gap-2 border-t border-input px-4 py-1.5">
-					<Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />
-					<Progress value={uploadProgress} className="h-1.5 flex-1" />
+				<div className="flex gap-2 items-center px-4 py-1.5 border-t border-input">
+					<Loader2 className="shrink-0 size-3.5 text-muted-foreground animate-spin" />
+					<Progress value={uploadProgress} className="flex-1 h-1.5" />
 					<span className="shrink-0 text-xs text-muted-foreground">
 						上传中 {uploadProgress}%
 					</span>
@@ -339,7 +339,7 @@ function EditorFallback({
 			}
 		>
 			<div
-				className="galzy-prose prose prose-sm sm:prose-base dark:prose-invert focus:outline-none max-w-none w-full"
+				className="galzy-prose w-full max-w-none prose prose-sm focus:outline-none dark:prose-invert sm:prose-base"
 				style={{ minHeight: `${minHeight}px` }}
 			>
 				{html ? (
@@ -350,8 +350,8 @@ function EditorFallback({
 					</p>
 				)}
 			</div>
-			<div className="mt-auto flex items-center gap-2 border-t border-input px-4 py-1.5 text-xs text-muted-foreground">
-				<Loader2 className="size-3.5 shrink-0 animate-spin" />
+			<div className="flex gap-2 items-center px-4 py-1.5 mt-auto text-xs text-muted-foreground border-t border-input">
+				<Loader2 className="shrink-0 size-3.5 animate-spin" />
 				编辑器加载中…
 			</div>
 		</div>
@@ -364,7 +364,7 @@ function EditorFallback({
 
 function Toolbar() {
 	return (
-		<div className="flex items-center gap-0.5 flex-wrap px-1 py-1 border-b border-input bg-muted/30">
+		<div className="flex flex-wrap gap-0.5 items-center p-1 bg-muted/30 border-b border-input">
 			<RichTextBold />
 			<RichTextItalic />
 			<RichTextUnderline />

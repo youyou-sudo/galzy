@@ -11,9 +11,9 @@ import { ExternalLink } from "lucide-react";
  */
 export function HomeHero() {
 	return (
-		<section className="mt-6 flex flex-col items-center gap-3 text-center sm:mt-10">
-			<div className="flex items-center gap-3">
-				<span className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-primary/5 ring-1 ring-border/60">
+		<section className="flex flex-col gap-3 items-center mt-6 text-center sm:mt-10">
+			<div className="flex gap-3 items-center">
+				<span className="flex overflow-hidden shrink-0 justify-center items-center size-11 bg-primary/5 rounded-2xl ring-1 ring-border/60">
 					<Image
 						src="/favicon.ico"
 						width={32}
@@ -32,7 +32,7 @@ export function HomeHero() {
 			</p>
 			<Badge
 				variant="outline"
-				className="h-6 bg-background/60 px-3"
+				className="px-3 h-6 bg-background/60"
 				render={
 					<a href="https://galzy.top/" target="_blank" rel="noreferrer" />
 				}

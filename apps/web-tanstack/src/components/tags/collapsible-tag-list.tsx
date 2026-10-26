@@ -18,7 +18,7 @@ export type FlowTag = {
 const tagLabel = (t: FlowTag) => t.zht_name || t.name || t.id;
 
 const pill =
-	"inline-flex h-5 items-center gap-0.5 rounded-4xl bg-muted px-2 text-xs text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground";
+	"inline-flex h-5 items-center gap-0.5 rounded-4xl bg-muted px-2 align-middle text-xs text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground";
 
 // 药丸之间的横向间距，与 mr-1.5 保持一致；测量第一行容量时要用到
 const GAP = 6;
@@ -138,7 +138,7 @@ export function CollapsibleTagList({
 		>
 			<MousePointerClick className="size-3" />
 			收起
-			<ChevronDown className="size-3 rotate-180 transition-transform" />
+			<ChevronDown className="size-3 transition-transform rotate-180" />
 		</button>
 	) : (
 		<button
@@ -151,7 +151,7 @@ export function CollapsibleTagList({
 			className={cn(
 				pill,
 				"mr-1.5 mb-1.5 cursor-pointer",
-				!overflows && "pointer-events-none invisible",
+				!overflows && "invisible pointer-events-none",
 			)}
 		>
 			<MousePointerClick className="size-3" />
@@ -163,7 +163,7 @@ export function CollapsibleTagList({
 	return (
 		<div className={className}>
 			{label !== undefined && (
-				<div className="mb-2 flex items-baseline gap-1.5">
+				<div className="flex gap-1.5 items-baseline mb-2">
 					<span className="text-xs text-muted-foreground">{label}</span>
 					<span className="text-xs tabular-nums text-muted-foreground">
 						{tags.length}
@@ -175,7 +175,7 @@ export function CollapsibleTagList({
 				className={cn(
 					"leading-5",
 					// 收起态靠 max-height 兜住首屏；展开态要完整显示，不裁剪
-					!expanded && "max-h-6 overflow-hidden",
+					!expanded && "overflow-hidden max-h-6",
 				)}
 			>
 				{shown.map((t) => (

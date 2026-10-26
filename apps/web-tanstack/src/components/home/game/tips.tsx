@@ -38,7 +38,7 @@ const glgc = [
 const AdBadge = () => (
 	<span
 		aria-hidden="true"
-		className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-muted text-base leading-none text-muted-foreground"
+		className="inline-flex shrink-0 justify-center items-center size-4 text-base leading-none text-muted-foreground bg-muted rounded-full"
 	>
 		🍚
 	</span>
@@ -50,11 +50,11 @@ const adLinkClass =
 // 页内广告
 export const Glgczujm = () => {
 	return (
-		<div className="mt-4 flex flex-col gap-2 px-0">
-			<Alert className="gap-2 border-0 bg-transparent px-0 py-1 text-xs text-muted-foreground opacity-80">
+		<div className="flex flex-col gap-2 px-0 mt-4">
+			<Alert className="gap-2 px-0 py-1 text-xs text-muted-foreground bg-transparent border-0 opacity-80">
 				<Info
 					aria-hidden="true"
-					className="size-3.5 shrink-0 translate-y-0.5"
+					className="shrink-0 size-3.5 translate-y-0.5"
 				/>
 				<AlertDescription className="text-xs leading-relaxed">
 					建议使用 IDM 或 Aria2 在一小时内下载完成；PC 端使用 WinRAR，移动端使用
@@ -72,8 +72,8 @@ export const Glgczujm = () => {
 					href="https://umami.galzy.moe/q/KrhnTk4vg"
 					className="group block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 				>
-					<Card className="gap-0 overflow-hidden py-0 transition-colors duration-200 group-hover:bg-muted/40 group-hover:ring-border">
-						<CardHeader className="flex items-center gap-2 border-b border-border/60 px-4 py-2">
+					<Card className="overflow-hidden gap-0 py-0 transition-colors duration-200 group-hover:bg-muted/40 group-hover:ring-border">
+						<CardHeader className="flex gap-2 items-center px-4 py-2 border-b border-border/60">
 							<AdBadge />
 							<CardTitle className="text-sm font-medium">
 								Ai 女友💋（在线畅玩）
@@ -87,7 +87,7 @@ export const Glgczujm = () => {
 							height={120}
 							src="/dzmm.webp"
 							alt="DZMM 广告图片"
-							className="w-full object-cover opacity-[0.65] transition-opacity duration-200 group-hover:opacity-100"
+							className="object-cover w-full opacity-[0.65] transition-opacity duration-200 group-hover:opacity-100"
 						/>
 					</Card>
 				</a>
@@ -97,13 +97,13 @@ export const Glgczujm = () => {
 			<aside>
 				<Card className="gap-3 py-3">
 					<CardHeader className="gap-1.5">
-						<CardTitle className="flex items-center gap-2 text-sm font-medium">
+						<CardTitle className="flex gap-2 items-center text-sm font-medium">
 							<AdBadge />
 							如无法下载 / 速度慢，这里推荐机场
 						</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<ul className="grid list-disc gap-1.5 pl-4 text-sm text-muted-foreground">
+						<ul className="grid gap-1.5 pl-4 text-sm list-disc text-muted-foreground">
 							{glgc.map((item) => (
 								<li key={item.name}>
 									<a
@@ -144,7 +144,7 @@ export const GlgczujmDl = () => {
 				</p>
 
 				<AlertDescription>
-					<ul className="flex list-inside list-disc flex-col gap-1.5 text-sm text-muted-foreground">
+					<ul className="flex flex-col gap-1.5 text-sm list-disc list-inside text-muted-foreground">
 						{glgc.map((item) => (
 							<li key={item.name}>
 								<a

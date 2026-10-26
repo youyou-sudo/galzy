@@ -5,7 +5,7 @@ import { IconTile } from "./icon-tile";
 
 /** 区块标题右侧「更多 →」等的统一样式，调用方只负责传 Link */
 export const sectionActionClass =
-	"inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors duration-200 hover:text-foreground sm:text-sm";
+	"inline-flex gap-1 items-center text-xs text-muted-foreground transition-colors duration-200 hover:text-foreground sm:text-sm";
 
 /**
  * 区块标题行：图标底片 + 标题 + 计数 + 右侧动作。
@@ -28,17 +28,17 @@ export function SectionHeader({
 	return (
 		<div
 			className={cn(
-				"mb-4 flex items-center justify-between gap-3",
+				"flex gap-3 justify-between items-center mb-4",
 				className,
 			)}
 		>
-			<div className="flex min-w-0 items-center gap-2.5">
+			<div className="flex gap-2.5 items-center min-w-0">
 				{icon && <IconTile icon={icon} size="sm" />}
-				<h2 className="min-w-0 truncate text-lg font-semibold tracking-tight">
+				<h2 className="min-w-0 text-lg font-semibold tracking-tight truncate">
 					{title}
 				</h2>
 				{count !== undefined && (
-					<span className="shrink-0 text-sm text-muted-foreground tabular-nums">
+					<span className="shrink-0 text-sm tabular-nums text-muted-foreground">
 						{count}
 					</span>
 				)}

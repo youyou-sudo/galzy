@@ -8,9 +8,9 @@ import { Image } from "@unpic/react";
  */
 export function BrandMark() {
 	return (
-		<span className="mb-1 flex items-center justify-center gap-2">
+		<span className="flex gap-2 justify-center items-center mb-1">
 			{/* 与顶栏一致：站标不放进 overflow-hidden 的圆角容器，避免裁掉四角 */}
-			<span className="flex size-7 items-center justify-center">
+			<span className="flex justify-center items-center size-7">
 				<Image src="/favicon.ico" width={28} height={28} alt="" />
 			</span>
 			<span className="text-sm font-semibold tracking-tight text-foreground/80">

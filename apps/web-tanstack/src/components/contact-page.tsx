@@ -13,7 +13,7 @@ const linkClass =
 /** 联系页：统一页头 + 一张克制的信息卡，不再用 4xl/extrabold 标题与蓝色链接。 */
 export default function RouteComponent() {
 	return (
-		<section className="mx-auto w-full max-w-xl py-6">
+		<section className="py-6 mx-auto w-full max-w-xl">
 			<PageHeader
 				align="center"
 				icon={Mail}

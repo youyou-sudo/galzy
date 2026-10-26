@@ -16,12 +16,12 @@ export { GameCardGridSkeleton };
 
 function BreadcrumbSkeleton() {
 	return (
-		<div className="flex items-center gap-2 mb-4" aria-hidden>
-			<Skeleton className="h-4 w-8" />
-			<Skeleton className="h-4 w-2" />
-			<Skeleton className="h-4 w-16" />
-			<Skeleton className="h-4 w-2" />
-			<Skeleton className="h-4 w-24" />
+		<div className="flex gap-2 items-center mb-4" aria-hidden>
+			<Skeleton className="w-8 h-4" />
+			<Skeleton className="w-2 h-4" />
+			<Skeleton className="w-16 h-4" />
+			<Skeleton className="w-2 h-4" />
+			<Skeleton className="w-24 h-4" />
 		</div>
 	);
 }
@@ -33,9 +33,9 @@ export function GameDetailPageSkeleton() {
 			<div className="space-y-3">
 				<GameCard.IdGameCardSkeleton />
 				<div className="flex gap-2">
-					<Skeleton className="h-8 w-24 rounded-full" />
-					<Skeleton className="h-8 w-24 rounded-full" />
-					<Skeleton className="h-8 w-24 rounded-full" />
+					<Skeleton className="w-24 h-8 rounded-full" />
+					<Skeleton className="w-24 h-8 rounded-full" />
+					<Skeleton className="w-24 h-8 rounded-full" />
 				</div>
 				<GameTabSkeleton />
 			</div>
@@ -47,14 +47,14 @@ export function GameListPageSkeleton() {
 	return (
 		<div aria-hidden>
 			<BreadcrumbSkeleton />
-			<Skeleton className="h-7 w-32 mb-1" />
-			<Skeleton className="h-4 w-56 mb-6" />
-			<Skeleton className="h-10 w-full max-w-lg rounded-lg mb-6" />
+			<Skeleton className="mb-1 w-32 h-7" />
+			<Skeleton className="mb-6 w-56 h-4" />
+			<Skeleton className="mb-6 w-full max-w-lg h-10 rounded-lg" />
 			<div className="flex gap-2 mb-6">
-				<Skeleton className="h-8 w-20 rounded-md" />
-				<Skeleton className="h-8 w-20 rounded-md" />
-				<Skeleton className="h-8 w-20 rounded-md" />
-				<Skeleton className="h-8 w-20 rounded-md ml-auto" />
+				<Skeleton className="w-20 h-8 rounded-md" />
+				<Skeleton className="w-20 h-8 rounded-md" />
+				<Skeleton className="w-20 h-8 rounded-md" />
+				<Skeleton className="ml-auto w-20 h-8 rounded-md" />
 			</div>
 			<GameCardGridSkeleton />
 		</div>
@@ -65,11 +65,11 @@ export function ProducerListPageSkeleton() {
 	return (
 		<div className="space-y-4" aria-hidden>
 			<BreadcrumbSkeleton />
-			<Skeleton className="h-7 w-24" />
-			<Skeleton className="h-10 w-full max-w-lg rounded-lg" />
+			<Skeleton className="w-24 h-7" />
+			<Skeleton className="w-full max-w-lg h-10 rounded-lg" />
 			<div className="space-y-3">
 				{[1, 2, 3, 4, 5].map((i) => (
-					<Skeleton key={i} className="h-16 w-full rounded-lg" />
+					<Skeleton key={i} className="w-full h-16 rounded-lg" />
 				))}
 			</div>
 		</div>
@@ -82,7 +82,7 @@ export function ProducerDetailPageSkeleton() {
 		<div aria-hidden>
 			<BreadcrumbSkeleton />
 			<Skeleton
-				className="h-7 w-48 mb-2"
+				className="mb-2 w-48 h-7"
 				style={
 					pid
 						? {
@@ -92,7 +92,7 @@ export function ProducerDetailPageSkeleton() {
 						: undefined
 				}
 			/>
-			<Skeleton className="h-4 w-72 mb-6" />
+			<Skeleton className="mb-6 w-72 h-4" />
 			<GameCardGridSkeleton />
 		</div>
 	);
@@ -102,12 +102,12 @@ export function TopicsListPageSkeleton() {
 	return (
 		<div className="space-y-4" aria-hidden>
 			<BreadcrumbSkeleton />
-			<div className="flex items-center justify-between">
-				<Skeleton className="h-7 w-20" />
-				<Skeleton className="h-9 w-24 rounded-md" />
+			<div className="flex justify-between items-center">
+				<Skeleton className="w-20 h-7" />
+				<Skeleton className="w-24 h-9 rounded-md" />
 			</div>
 			{[1, 2, 3, 4, 5].map((i) => (
-				<Skeleton key={i} className="h-24 w-full rounded-lg" />
+				<Skeleton key={i} className="w-full h-24 rounded-lg" />
 			))}
 		</div>
 	);
@@ -117,17 +117,17 @@ export function TopicDetailPageSkeleton() {
 	return (
 		<div className="space-y-4" aria-hidden>
 			<BreadcrumbSkeleton />
-			<div className="rounded-xl border p-6 space-y-4">
-				<Skeleton className="h-7 w-3/4" />
-				<div className="flex items-center gap-2">
+			<div className="p-6 space-y-4 rounded-xl border">
+				<Skeleton className="w-3/4 h-7" />
+				<div className="flex gap-2 items-center">
 					<Skeleton className="size-6 rounded-full" />
-					<Skeleton className="h-4 w-20" />
-					<Skeleton className="h-3 w-16" />
+					<Skeleton className="w-20 h-4" />
+					<Skeleton className="w-16 h-3" />
 				</div>
 				<div className="space-y-2">
-					<Skeleton className="h-4 w-full" />
-					<Skeleton className="h-4 w-full" />
-					<Skeleton className="h-4 w-2/3" />
+					<Skeleton className="w-full h-4" />
+					<Skeleton className="w-full h-4" />
+					<Skeleton className="w-2/3 h-4" />
 				</div>
 			</div>
 			<CommentThreadSkeleton />

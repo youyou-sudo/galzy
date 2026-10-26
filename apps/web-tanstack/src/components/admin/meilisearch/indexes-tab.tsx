@@ -130,7 +130,7 @@ function RebuildCard({
 
 	if (isLoading) {
 		return (
-			<div className="space-y-3 rounded-xl bg-muted/40 p-4 ring-1 ring-border/60">
+			<div className="p-4 space-y-3 bg-muted/40 rounded-xl ring-1 ring-border/60">
 				<CardSkeleton rows={2} />
 			</div>
 		);
@@ -147,7 +147,7 @@ function RebuildCard({
 	const logs = pg?.logs ?? [];
 
 	return (
-		<div className="p-4 bg-muted/50 rounded-lg space-y-3">
+		<div className="p-4 space-y-3 bg-muted/50 rounded-lg">
 			<SectionHeader
 				title={label}
 				description={description}
@@ -173,7 +173,7 @@ function RebuildCard({
 					{/* Progress Bar + Stats */}
 					<div className="space-y-2">
 						{totalPages > 0 && (
-							<div className="flex items-center justify-between text-xs text-muted-foreground">
+							<div className="flex justify-between items-center text-xs text-muted-foreground">
 								<span>
 									{processedPages} / {totalPages} 页
 								</span>
@@ -201,7 +201,7 @@ function RebuildCard({
 					{logs.length > 0 && (
 						<div
 							ref={logsRef}
-							className="max-h-36 space-y-0.5 overflow-y-auto rounded-xl bg-muted/60 p-2.5 font-mono text-xs ring-1 ring-border/60"
+							className="overflow-y-auto p-2.5 space-y-0.5 max-h-36 font-mono text-xs bg-muted/60 rounded-xl ring-1 ring-border/60"
 						>
 							{logs.map((log, i) => {
 								const cfg = logLevelConfig[log.level] ?? logLevelConfig.info;
@@ -209,12 +209,12 @@ function RebuildCard({
 								return (
 									<div
 										key={`${log.time}-${i}`}
-										className={cn("flex items-start gap-1.5", cfg.className)}
+										className={cn("flex gap-1.5 items-start", cfg.className)}
 									>
-										<span className="text-muted-foreground/60 shrink-0">
+										<span className="shrink-0 text-muted-foreground/60">
 											{new Date(log.time).toLocaleTimeString()}
 										</span>
-										{LIcon && <LIcon className="size-3 shrink-0 mt-0.5" />}
+										{LIcon && <LIcon className="shrink-0 mt-0.5 size-3" />}
 										<span className="break-all">{log.message}</span>
 									</div>
 								);
@@ -223,7 +223,7 @@ function RebuildCard({
 					)}
 				</div>
 			) : (
-				<p className="text-xs text-muted-foreground py-2">暂无重建记录</p>
+				<p className="py-2 text-xs text-muted-foreground">暂无重建记录</p>
 			)}
 
 			{/* Rebuild Trigger with Confirmation */}
@@ -258,7 +258,7 @@ function RebuildCard({
 						<AlertDialogCancel>取消</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={() => rebuildMutation.mutate()}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+							className="text-destructive-foreground bg-destructive hover:bg-destructive/90"
 						>
 							{rebuildMutation.isPending ? (
 								<Loader2Icon className="size-4 animate-spin" />
@@ -289,7 +289,7 @@ export function IndexesTab() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+					<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 						<RebuildCard
 							type="game"
 							label="游戏索引"
@@ -317,14 +317,14 @@ export function IndexesTab() {
 				</CardHeader>
 				<CardContent>
 					<div className="space-y-2">
-						<div className="flex items-center gap-2.5 text-sm">
+						<div className="flex gap-2.5 items-center text-sm">
 							<Badge variant="outline" className="font-mono text-xs">
 								每周日 03:00
 							</Badge>
 							<span>游戏索引全量重建</span>
 						</div>
 						<Separator />
-						<div className="flex items-center gap-2.5 text-sm">
+						<div className="flex gap-2.5 items-center text-sm">
 							<Badge variant="outline" className="font-mono text-xs">
 								每周日 03:00
 							</Badge>

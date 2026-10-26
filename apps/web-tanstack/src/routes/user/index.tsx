@@ -109,7 +109,7 @@ function TopicListSkeleton() {
   return (
     <div className="space-y-3" aria-busy="true">
       {[0, 1, 2].map((i) => (
-        <Skeleton key={i} className="h-28 w-full rounded-2xl" />
+        <Skeleton key={i} className="w-full h-28 rounded-2xl" />
       ))}
     </div>
   )
@@ -121,11 +121,11 @@ function FormSkeleton() {
     <div className="space-y-4" aria-busy="true">
       {[0, 1, 2].map((i) => (
         <div key={i} className="space-y-2">
-          <Skeleton className="h-3 w-16" />
-          <Skeleton className="h-9 w-full rounded-xl" />
+          <Skeleton className="w-16 h-3" />
+          <Skeleton className="w-full h-9 rounded-xl" />
         </div>
       ))}
-      <Skeleton className="h-9 w-24 rounded-lg" />
+      <Skeleton className="w-24 h-9 rounded-lg" />
     </div>
   )
 }
@@ -229,19 +229,19 @@ function UserPage() {
       <div className="space-y-6">
         {/* 用户头部信息 */}
         <UserCardShell>
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-              <div className="flex flex-col items-center gap-1.5">
+          <div className="flex flex-col gap-4 items-center sm:flex-row sm:items-start">
+              <div className="flex flex-col gap-1.5 items-center">
                 <AvatarComp name={user.name} image={user.image} editor />
-                <span className="cursor-default text-xs text-muted-foreground/70 select-none">
+                <span className="text-xs text-muted-foreground/70 cursor-default select-none">
                   点击更换头像
                 </span>
               </div>
-              <div className="min-w-0 flex-1 text-center sm:text-left">
-                <h2 className="truncate text-lg font-semibold tracking-tight">
+              <div className="flex-1 min-w-0 text-center sm:text-left">
+                <h2 className="text-lg font-semibold tracking-tight truncate">
                   {user.name}
                 </h2>
-                <p className="mt-1 flex items-center justify-center gap-1 text-xs text-muted-foreground sm:justify-start">
-                  <Mail className="size-3.5 shrink-0" aria-hidden="true" />
+                <p className="flex gap-1 justify-center items-center mt-1 text-xs text-muted-foreground sm:justify-start">
+                  <Mail className="shrink-0 size-3.5" aria-hidden="true" />
                   <span className="truncate">{user.email}</span>
                 </p>
             </div>
@@ -367,14 +367,14 @@ function UserPageSkeleton() {
       <div className="space-y-6">
         {/* 用户资料卡：卡片外壳固定，只有头像和文字出骨架 */}
         <UserCardShell>
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-            <div className="flex flex-col items-center gap-1.5">
+          <div className="flex flex-col gap-4 items-center sm:flex-row sm:items-start">
+            <div className="flex flex-col gap-1.5 items-center">
               <Skeleton className="size-10 rounded-full" />
-              <Skeleton className="h-3 w-20" />
+              <Skeleton className="w-20 h-3" />
             </div>
             <div className="flex-1 space-y-2">
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-3.5 w-48" />
+              <Skeleton className="w-32 h-5" />
+              <Skeleton className="w-48 h-3.5" />
             </div>
           </div>
         </UserCardShell>

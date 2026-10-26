@@ -29,8 +29,8 @@ function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
 			data-slot="skeleton"
 			className={cn(
 				coarse
-					? "rounded-md bg-muted/50"
-					: "animate-pulse rounded-md bg-muted",
+					? "bg-muted/50 rounded-md"
+					: "bg-muted rounded-md animate-pulse",
 				className,
 			)}
 			{...props}

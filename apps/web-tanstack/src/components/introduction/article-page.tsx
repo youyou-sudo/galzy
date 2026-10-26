@@ -94,8 +94,8 @@ export default function ArticlePage({
 					</span>
 				}
 				description={
-					<span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-						<span className="inline-flex items-center gap-1">
+					<span className="flex flex-wrap gap-x-2 gap-y-1 items-center text-xs text-muted-foreground">
+						<span className="inline-flex gap-1 items-center">
 							<User aria-hidden="true" className="size-3.5" />
 							{article?.user?.name ?? "喵喵喵？"}
 						</span>
@@ -160,7 +160,7 @@ export default function ArticlePage({
 					contentType={article?.contentType || "markdown"}
 				/>
 				{article?.copyright && (
-					<p className="mt-8 border-t border-border/60 pt-4 text-xs text-muted-foreground">
+					<p className="pt-4 mt-8 text-xs text-muted-foreground border-t border-border/60">
 						来源：
 						<a
 							href={article.copyright}

@@ -186,7 +186,7 @@ export default function RouteComponent() {
 			{/* Sync Controls */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center gap-2.5 text-base">
+					<CardTitle className="flex gap-2.5 items-center text-base">
 						<IconTile icon={DatabaseIcon} size="sm" tone="muted" />
 						同步控制
 					</CardTitle>
@@ -243,7 +243,7 @@ export default function RouteComponent() {
 							/>
 						</Button>
 						{isPolling && (
-							<span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+							<span className="inline-flex gap-1 items-center text-xs text-muted-foreground">
 								<RadioIcon className="size-3 text-success" />
 								自动刷新中...
 							</span>
@@ -255,14 +255,14 @@ export default function RouteComponent() {
 			{/* Cloudreve 文件同步 */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center gap-2.5 text-base">
+					<CardTitle className="flex gap-2.5 items-center text-base">
 						<IconTile icon={FolderSyncIcon} size="sm" tone="muted" />
 						Cloudreve 文件同步
 					</CardTitle>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-4">
 					{cloudreveStatus ? (
-						<div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4 text-sm">
+						<div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4 lg:grid-cols-7">
 							<div>
 								<span className="text-muted-foreground">上次同步</span>
 								<p className="font-medium">
@@ -339,7 +339,7 @@ export default function RouteComponent() {
 			{/* Progress Overview */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center gap-2.5 text-base">
+					<CardTitle className="flex gap-2.5 items-center text-base">
 						<IconTile icon={RadioIcon} size="sm" tone="muted" />
 						同步状态
 						{progress && (
@@ -355,13 +355,13 @@ export default function RouteComponent() {
 				</CardHeader>
 				<CardContent className="space-y-4">
 					{isLoading ? (
-						<div className="flex items-center gap-2 text-muted-foreground">
+						<div className="flex gap-2 items-center text-muted-foreground">
 							<Loader2Icon className="size-4 animate-spin" />
 							加载中...
 						</div>
 					) : progress && progress.status !== "idle" ? (
 						<>
-							<div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+							<div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
 								<div>
 									<span className="text-muted-foreground">类型</span>
 									<p className="font-medium">
@@ -427,7 +427,7 @@ export default function RouteComponent() {
 				<CardContent>
 					<div
 						ref={logsRef}
-						className="max-h-96 space-y-1 overflow-y-auto rounded-xl bg-muted/60 p-4 font-mono text-xs"
+						className="overflow-y-auto p-4 space-y-1 max-h-96 font-mono text-xs bg-muted/60 rounded-xl"
 					>
 						{progress?.logs && progress.logs.length > 0 ? (
 							progress.logs.map((log, i) => {
@@ -438,7 +438,7 @@ export default function RouteComponent() {
 										<span className="text-muted-foreground/60">
 											{new Date(log.time).toLocaleTimeString()}
 										</span>{" "}
-										{Icon && <Icon className="size-3 inline mr-1" />}
+										{Icon && <Icon className="inline mr-1 size-3" />}
 										{log.message}
 									</div>
 								);
@@ -469,7 +469,7 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 		report.vnWithoutAlistb.samples.length > 0;
 
 	return (
-		<div className="flex flex-col gap-3 border-t pt-4">
+		<div className="flex flex-col gap-3 pt-4 border-t">
 			<div className="flex flex-wrap gap-2">
 				<Badge variant="secondary">发现文件夹 {report.foldersFound}</Badge>
 				<Badge variant="secondary">待新增 {report.added}</Badge>
@@ -500,7 +500,7 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 					<p className="text-sm font-medium">
 						路径已变更（文件夹被移动/改名，同步后自动修复）
 					</p>
-					<div className="max-h-48 overflow-y-auto rounded-lg bg-muted p-3 font-mono text-xs flex flex-col gap-2">
+					<div className="flex overflow-y-auto flex-col gap-2 p-3 max-h-48 font-mono text-xs bg-muted rounded-lg">
 						{report.updatedRows.map((r) => (
 							<div key={r.displayId} className="flex flex-col">
 								<span className="text-primary">{r.displayId}</span>
@@ -520,7 +520,7 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 						条目身份已收口（kungal 锚点补到 vndb /
 						文件夹改名，同步后合并为一条）
 					</p>
-					<div className="max-h-48 overflow-y-auto rounded-lg bg-muted p-3 font-mono text-xs flex flex-col gap-2">
+					<div className="flex overflow-y-auto flex-col gap-2 p-3 max-h-48 font-mono text-xs bg-muted rounded-lg">
 						{report.renamedRows.map((r) => (
 							<div key={`${r.fromId}->${r.toId}`} className="flex flex-col">
 								<span className="text-primary">
@@ -538,7 +538,7 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 			{report.addedRows.length > 0 && (
 				<div className="flex flex-col gap-1">
 					<p className="text-sm font-medium">Cloudreve 新增文件夹</p>
-					<div className="max-h-40 overflow-y-auto rounded-lg bg-muted p-3 font-mono text-xs flex flex-col gap-1">
+					<div className="flex overflow-y-auto flex-col gap-1 p-3 max-h-40 font-mono text-xs bg-muted rounded-lg">
 						{report.addedRows.map((r) => (
 							<div key={r.displayId}>
 								<span className="text-primary">{r.displayId}</span>{" "}
@@ -554,7 +554,7 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 					<p className="text-sm font-medium">
 						文件夹已从 Cloudreve 删除（同步时移除文件条目）
 					</p>
-					<div className="max-h-40 overflow-y-auto rounded-lg bg-muted p-3 font-mono text-xs flex flex-col gap-1">
+					<div className="flex overflow-y-auto flex-col gap-1 p-3 max-h-40 font-mono text-xs bg-muted rounded-lg">
 						{report.staleDeadRows.map((r) => (
 							<div key={r.displayId}>
 								<span className="text-primary">{r.displayId}</span>{" "}
@@ -580,7 +580,7 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 						{report.vnWithoutAlistb.total}
 						{report.vnWithoutAlistb.truncated ? "+" : ""} 个）
 					</p>
-					<div className="max-h-32 overflow-y-auto rounded-lg bg-muted p-3 font-mono text-xs flex flex-wrap gap-x-2 gap-y-1">
+					<div className="flex overflow-y-auto flex-wrap gap-x-2 gap-y-1 p-3 max-h-32 font-mono text-xs bg-muted rounded-lg">
 						{report.vnWithoutAlistb.samples.map((vid) => (
 							<span key={vid} className="text-muted-foreground">
 								{vid}

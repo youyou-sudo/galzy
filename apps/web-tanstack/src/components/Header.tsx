@@ -104,17 +104,17 @@ export default function Header() {
 						// 只过渡真正变化的布局属性：transition-all 会把 backdrop-filter
 						// 也纳入过渡，停手那一下多一次整条顶栏重绘
 						"mx-auto w-full transition-[max-width,padding] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-						scrolled ? "max-w-4xl px-3 pt-2" : "max-w-7xl px-4 sm:px-6",
+						scrolled ? "px-3 pt-2 max-w-4xl" : "px-4 max-w-7xl sm:px-6",
 					)}
 				>
 					<nav
 						aria-label="主导航"
 						className={cn(
-							"flex items-center justify-between gap-3",
+							"flex gap-3 justify-between items-center",
 							"transition-[height,padding,background-color,box-shadow,border-radius] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
 							scrolled
 								? cn(
-										"h-11 rounded-2xl pl-2 pr-1.5 ring-1 ring-border/60 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.45)]",
+										"pr-1.5 pl-2 h-11 rounded-2xl ring-1 ring-border/60 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.45)]",
 										scrolling
 											? "bg-background/95"
 											: "bg-background/70 backdrop-blur-xl galzy-vt-no-blur",
@@ -123,7 +123,7 @@ export default function Header() {
 						)}
 					>
 						{/* 左：移动端菜单入口 → 站点标识 → 桌面端主导航 */}
-						<div className="flex min-w-0 items-center gap-0.5">
+						<div className="flex gap-0.5 items-center min-w-0">
 							<MobileMenuTrigger
 								open={isOpen}
 								menuMounted={menuReady}
@@ -133,14 +133,14 @@ export default function Header() {
 							<Link
 								to="/"
 								aria-label="GalZY 首页"
-								className="group/brand flex min-w-0 items-center gap-2 rounded-lg px-1 py-0.5 outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+								className="group/brand flex gap-2 items-center px-1 py-0.5 min-w-0 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 							>
 								{/* 小图标不参与首屏关键路径：fetchPriority="low" 同时会抑制
 								React 19 自动注入的 <link rel="preload" as="image">（它会被
 								排到 stylesheet / modulepreload 之前抢占关键带宽）。 */}
 								{/* 站标原图直接显示：favicon 四周有内容，圆角容器 + overflow-hidden
 								    会把四个角裁掉。这里只保留 hover 缩放，不做任何裁剪。 */}
-								<span className="flex size-8 shrink-0 items-center justify-center transition-transform duration-300 group-hover/brand:scale-105">
+								<span className="flex shrink-0 justify-center items-center size-8 transition-transform duration-300 group-hover/brand:scale-105">
 									<Image
 										src="/favicon.ico"
 										width={32}
@@ -150,11 +150,11 @@ export default function Header() {
 										className="size-8"
 									/>
 								</span>
-								<span className="hidden truncate text-[15px] leading-none font-semibold tracking-tight text-[color:var(--header-fg)] sm:block">
+								<span className="hidden text-[15px] leading-none font-semibold tracking-tight text-[color:var(--header-fg)] truncate sm:block">
 									GalZY
 								</span>
 							</Link>
-							<div className="ml-1 hidden items-center md:flex">
+							<div className="hidden items-center ml-1 md:flex">
 								<DesktopNav />
 							</div>
 						</div>

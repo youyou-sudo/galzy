@@ -87,10 +87,10 @@ function SortableFieldItem({
 		<div
 			ref={setNodeRef}
 			style={style}
-			className="flex items-center gap-2 rounded-xl bg-background px-3 py-2 ring-1 ring-border/60"
+			className="flex gap-2 items-center px-3 py-2 bg-background rounded-xl ring-1 ring-border/60"
 		>
 			<button
-				className="cursor-grab touch-none shrink-0 rounded text-muted-foreground hover:text-foreground active:cursor-grabbing focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+				className="shrink-0 text-muted-foreground rounded cursor-grab touch-none hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 active:cursor-grabbing"
 				{...attributes}
 				{...listeners}
 				type="button"
@@ -102,7 +102,7 @@ function SortableFieldItem({
 			<Button
 				variant="ghost"
 				size="icon"
-				className="size-7 text-muted-foreground hover:text-destructive shrink-0"
+				className="shrink-0 size-7 text-muted-foreground hover:text-destructive"
 				onClick={() => onRemove(field)}
 				type="button"
 				aria-label={`移除 ${field}`}
@@ -257,12 +257,12 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 	return (
 		<Card>
 			<CardHeader>
-				<div className="flex items-center justify-between gap-2">
+				<div className="flex gap-2 justify-between items-center">
 					<div>
 						<CardTitle>搜索属性</CardTitle>
 						<CardDescription>
 							拖拽排序，配置索引中可被全文搜索的字段。含{" "}
-							<code className="text-xs bg-muted px-1 rounded">*</code>{" "}
+							<code className="px-1 text-xs bg-muted rounded">*</code>{" "}
 							表示所有字段可搜索（自动展开为字段列表）。
 						</CardDescription>
 					</div>
@@ -271,7 +271,7 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 							variant="ghost"
 							size="sm"
 							onClick={handleReset}
-							className="text-muted-foreground shrink-0"
+							className="shrink-0 text-muted-foreground"
 						>
 							<RotateCcwIcon className="size-3" />
 							还原
@@ -281,10 +281,10 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 			</CardHeader>
 			<CardContent className="space-y-5">
 				{/* Status Bar */}
-				<div className="flex items-center gap-3 text-xs">
+				<div className="flex gap-3 items-center text-xs">
 					<span className="text-muted-foreground">
 						目标索引:
-						<span className="font-medium text-foreground ml-1">
+						<span className="ml-1 font-medium text-foreground">
 							{indexType === "game"
 								? "游戏"
 								: indexType === "tag"
@@ -296,7 +296,7 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 						<span className="font-medium text-warning">有未保存的更改</span>
 					)}
 					{isRefreshing && (
-						<span className="text-muted-foreground inline-flex items-center gap-1">
+						<span className="inline-flex gap-1 items-center text-muted-foreground">
 							<Spinner className="size-3" />
 							同步中...
 						</span>
@@ -307,10 +307,10 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 
 				{/* Field List */}
 				<div className="space-y-3">
-					<div className="flex items-center justify-between">
+					<div className="flex justify-between items-center">
 						<Label>
 							当前字段
-							<span className="text-xs text-muted-foreground ml-2 font-normal">
+							<span className="ml-2 text-xs font-normal text-muted-foreground">
 								{currentFields.length} 个
 							</span>
 						</Label>
@@ -328,7 +328,7 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 								items={currentFields}
 								strategy={verticalListSortingStrategy}
 							>
-								<div className="max-h-80 space-y-1.5 overflow-y-auto rounded-xl bg-muted/30 p-2 ring-1 ring-border/60">
+								<div className="overflow-y-auto p-2 space-y-1.5 max-h-80 bg-muted/30 rounded-xl ring-1 ring-border/60">
 									{currentFields.map((field) => (
 										<SortableFieldItem
 											key={field}
@@ -343,7 +343,7 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 					)}
 
 					{/* Add Field */}
-					<div className="flex items-end gap-2">
+					<div className="flex gap-2 items-end">
 						<div className="flex-1 space-y-1.5">
 							<Label className="text-xs text-muted-foreground">添加字段</Label>
 							<Select
@@ -386,7 +386,7 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 				<Separator />
 
 				{/* Actions */}
-				<div className="flex items-center gap-3">
+				<div className="flex gap-3 items-center">
 					<Button
 						onClick={handleSave}
 						disabled={saving || !isDirty || fields === null}

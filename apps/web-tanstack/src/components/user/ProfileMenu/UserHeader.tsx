@@ -21,7 +21,7 @@ export default function UserHeader({
 	// 小头像配小字号，否则 w-56 的下拉里名字会把邮箱挤成省略号
 	const compact = avatarSize === "sm";
 	return (
-		<div className="flex items-center gap-3">
+		<div className="flex gap-3 items-center">
 			<AvatarComp
 				name={name}
 				image={image}

@@ -66,7 +66,7 @@ function TagChip({
 		>
 			<span
 				className={cn(
-					"flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold tabular-nums",
+					"flex shrink-0 justify-center items-center size-4 text-[10px] font-semibold tabular-nums rounded-full",
 					rankNumberClass(index),
 				)}
 			>
@@ -135,10 +135,10 @@ export function HotTagsSectionSkeleton() {
 		<section className="mb-6 lg:mb-8">
 			<HotTagsSectionHeader />
 			<div className="flex gap-1.5" aria-hidden>
-				<Skeleton className="h-6 w-16 rounded-full lg:h-8 lg:w-24" />
-				<Skeleton className="h-6 w-24 rounded-full lg:h-8 lg:w-32" />
-				<Skeleton className="h-6 w-14 rounded-full lg:h-8 lg:w-20" />
-				<Skeleton className="h-6 w-20 rounded-full lg:h-8 lg:w-28" />
+				<Skeleton className="w-16 h-6 rounded-full lg:w-24 lg:h-8" />
+				<Skeleton className="w-24 h-6 rounded-full lg:w-32 lg:h-8" />
+				<Skeleton className="w-14 h-6 rounded-full lg:w-20 lg:h-8" />
+				<Skeleton className="w-20 h-6 rounded-full lg:w-28 lg:h-8" />
 			</div>
 		</section>
 	);

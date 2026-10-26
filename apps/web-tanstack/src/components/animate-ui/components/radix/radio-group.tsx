@@ -37,7 +37,7 @@ function RadioGroupIndicator({
 	return (
 		<RadioPrimitive.Indicator
 			data-slot="radio-group-indicator"
-			className={cn("flex items-center justify-center", className)}
+			className={cn("flex justify-center items-center", className)}
 			{...props}
 		>
 			<AnimatePresence>
@@ -49,7 +49,7 @@ function RadioGroupIndicator({
 					exit={{ opacity: 0, scale: 0 }}
 					transition={transition}
 				>
-					<Circle className="size-3 fill-current text-current" />
+					<Circle className="size-3 text-current fill-current" />
 				</motion.div>
 			</AnimatePresence>
 		</RadioPrimitive.Indicator>
@@ -72,7 +72,7 @@ function RadioGroupItem({
 				<motion.button
 					data-slot="radio-group-item"
 					className={cn(
-						"aspect-square size-5 rounded-full flex items-center justify-center border border-input text-primary ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+						"flex aspect-square justify-center items-center size-5 text-primary rounded-full border border-input ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed",
 						className,
 					)}
 					whileHover={{ scale: 1.05 }}

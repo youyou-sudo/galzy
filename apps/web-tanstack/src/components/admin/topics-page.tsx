@@ -191,10 +191,10 @@ function TopicsTable() {
 												to={"/topics/$topicId"}
 												params={{ topicId: String(topic.id) }}
 												target="_blank"
-												className="inline-flex items-center gap-1 rounded text-sm font-medium text-primary transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+												className="inline-flex gap-1 items-center text-sm font-medium text-primary rounded transition-colors duration-200 hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 											>
 												{topic.title}
-												<ExternalLinkIcon className="size-3 shrink-0" />
+												<ExternalLinkIcon className="shrink-0 size-3" />
 											</Link>
 										</Td>
 										<Td>
@@ -205,11 +205,11 @@ function TopicsTable() {
 										<Td>
 											<StatusPill tone={sl.tone}>{sl.label}</StatusPill>
 										</Td>
-										<Td className="text-xs whitespace-nowrap text-muted-foreground">
+										<Td className="text-xs text-muted-foreground whitespace-nowrap">
 											{new Date(topic.createdAt).toLocaleDateString("zh-CN")}
 										</Td>
 										<Td align="right">
-											<div className="flex items-center justify-end gap-1.5">
+											<div className="flex gap-1.5 justify-end items-center">
 												{topic.status !== "published" && (
 													<PublishTopicButton topic={topic} onDone={refresh} />
 												)}
@@ -409,7 +409,7 @@ function DeleteTopicDialog({
 				</DialogHeader>
 				<div className="space-y-4">
 					<p className="text-sm text-muted-foreground">确定要删除此话题吗？</p>
-					<blockquote className="text-sm border-l-2 pl-3 text-muted-foreground italic">
+					<blockquote className="pl-3 text-sm italic text-muted-foreground border-l-2">
 						{topic.title}
 					</blockquote>
 				</div>

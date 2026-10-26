@@ -198,7 +198,7 @@ function UsersTable() {
 							{users.map((user) => (
 								<Tr key={user.id}>
 									<Td>
-										<div className="flex items-center gap-2">
+										<div className="flex gap-2 items-center">
 											{user.image ? (
 												<img
 													src={user.image}
@@ -206,7 +206,7 @@ function UsersTable() {
 													className="size-7 rounded-full"
 												/>
 											) : (
-												<div className="size-7 rounded-full bg-muted flex items-center justify-center">
+												<div className="flex justify-center items-center size-7 bg-muted rounded-full">
 													<UserIcon className="size-3.5 text-muted-foreground" />
 												</div>
 											)}
@@ -219,7 +219,7 @@ function UsersTable() {
 										<Tooltip>
 											<TooltipTrigger
 												render={
-													<span className="text-sm text-muted-foreground break-all cursor-default" />
+													<span className="text-sm break-all text-muted-foreground cursor-default" />
 												}
 											>
 												{user.email}
@@ -248,7 +248,7 @@ function UsersTable() {
 										)}
 									</Td>
 									<Td align="right">
-										<div className="flex items-center justify-end gap-1.5">
+										<div className="flex gap-1.5 justify-end items-center">
 											<SetRoleDialog user={user} onDone={refresh} />
 											<SetPasswordDialog user={user} onDone={refresh} />
 											{user.banned ? (
@@ -383,9 +383,9 @@ function CreateUserDialog() {
 					</Button>
 					<Button onClick={handleCreate} disabled={submitting}>
 						{submitting ? (
-							<Loader2Icon className="size-4 animate-spin mr-1" />
+							<Loader2Icon className="mr-1 size-4 animate-spin" />
 						) : (
-							<PlusIcon className="size-4 mr-1" />
+							<PlusIcon className="mr-1 size-4" />
 						)}
 						创建
 					</Button>
@@ -468,7 +468,7 @@ function SetRoleDialog({ user, onDone }: { user: User; onDone: () => void }) {
 						取消
 					</Button>
 					<Button onClick={handleSetRole} disabled={submitting}>
-						{submitting && <Loader2Icon className="size-4 animate-spin mr-1" />}
+						{submitting && <Loader2Icon className="mr-1 size-4 animate-spin" />}
 						确认
 					</Button>
 				</DialogFooter>
@@ -560,7 +560,7 @@ function SetPasswordDialog({
 						取消
 					</Button>
 					<Button onClick={handleSetPassword} disabled={submitting}>
-						{submitting && <Loader2Icon className="size-4 animate-spin mr-1" />}
+						{submitting && <Loader2Icon className="mr-1 size-4 animate-spin" />}
 						确认
 					</Button>
 				</DialogFooter>
@@ -663,7 +663,7 @@ function BanUserDialog({ user, onDone }: { user: User; onDone: () => void }) {
 						onClick={handleBan}
 						disabled={submitting}
 					>
-						{submitting && <Loader2Icon className="size-4 animate-spin mr-1" />}
+						{submitting && <Loader2Icon className="mr-1 size-4 animate-spin" />}
 						确认封禁
 					</Button>
 				</DialogFooter>
@@ -770,13 +770,13 @@ function RemoveUserDialog({
 					<div className="space-y-2">
 						<Label htmlFor="rm-confirm">
 							请输入邮箱{" "}
-							<span className="inline-flex items-center gap-1">
-								<span className="font-mono text-destructive select-all break-all">
+							<span className="inline-flex gap-1 items-center">
+								<span className="font-mono break-all text-destructive select-all">
 									{user.email}
 								</span>
 								<button
 									type="button"
-									className="inline-flex items-center justify-center size-5 rounded hover:bg-muted transition-colors"
+									className="inline-flex justify-center items-center size-5 rounded transition-colors hover:bg-muted"
 									aria-label="复制邮箱"
 									onClick={() => {
 										navigator.clipboard.writeText(user.email);
@@ -809,7 +809,7 @@ function RemoveUserDialog({
 						onClick={handleRemove}
 						disabled={submitting || confirmText !== user.email}
 					>
-						{submitting && <Loader2Icon className="size-4 animate-spin mr-1" />}
+						{submitting && <Loader2Icon className="mr-1 size-4 animate-spin" />}
 						确认删除
 					</Button>
 				</DialogFooter>

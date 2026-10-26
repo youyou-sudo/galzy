@@ -33,11 +33,11 @@ export default function TagDetailPage({ tag }: { tag: any }) {
 			<section className="w-full">
 				<Card className="w-full">
 					<CardHeader>
-						<CardTitle className="text-2xl text-center items-center">
+						<CardTitle className="items-center text-2xl text-center">
 							{tag?.zht_name || tag?.name}
 						</CardTitle>
 						{description && (
-							<div className="text-sm text-muted-foreground leading-relaxed">
+							<div className="text-sm leading-relaxed text-muted-foreground">
 								<BBCodeRenderer text={description} />
 							</div>
 						)}
@@ -58,7 +58,7 @@ export default function TagDetailPage({ tag }: { tag: any }) {
 									<TabsTrigger value="children">
 										<Tags className="size-3.5" />
 										子标签
-										<span className="text-muted-foreground text-xs tabular-nums">
+										<span className="text-xs tabular-nums text-muted-foreground">
 											{children.length}
 										</span>
 									</TabsTrigger>
@@ -83,7 +83,7 @@ export default function TagDetailPage({ tag }: { tag: any }) {
 				</Card>
 			</section>
 
-			<div className="mt-6 mb-3 text-center text-xs text-muted-foreground">
+			<div className="mt-6 mb-3 text-xs text-center text-muted-foreground">
 				相关游戏，过滤自 VNDB
 			</div>
 			<section>

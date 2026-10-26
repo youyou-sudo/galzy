@@ -78,7 +78,7 @@ function CollectionsPageSkeleton() {
 				icon={Library}
 				title="精选合集"
 				description="编辑精选的主题合集，一次发现更多好游戏"
-				meta={<Skeleton className="h-4 w-16" />}
+				meta={<Skeleton className="w-16 h-4" />}
 			/>
 
 			<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">

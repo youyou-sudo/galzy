@@ -49,14 +49,14 @@ describe("TagDetailPending", () => {
 		expect(markup).toContain('aria-current="page"');
 		expect(markup).not.toContain('href="/tags/g235"');
 		// 标题骨架 / 面包屑骨架都不该出现
-		expect(markup).not.toContain("h-8 w-48");
-		expect(markup).not.toContain("h-4 w-20");
+		expect(markup).not.toContain("w-48 h-8");
+		expect(markup).not.toContain("w-20 h-4");
 	});
 
 	it("没有入口数据时：标题、面包屑各自只出一处骨架", () => {
 		const markup = renderToString(<TagDetailPending tagId="g235" />);
-		expect(markup).toContain("h-8 w-48");
-		expect(markup).toContain("h-4 w-20");
+		expect(markup).toContain("w-48 h-8");
+		expect(markup).toContain("w-20 h-4");
 		// 静态外壳仍然是真实内容
 		expect(markup).toContain("首页");
 		expect(markup).toContain("标签");
@@ -66,7 +66,7 @@ describe("TagDetailPending", () => {
 		tagHeroActions.fromTag({ id: "g999", zht_name: "别的标签" });
 		const markup = renderToString(<TagDetailPending tagId="g235" />);
 		expect(markup).not.toContain("别的标签");
-		expect(markup).toContain("h-8 w-48");
+		expect(markup).toContain("w-48 h-8");
 	});
 
 	it("card HTML 与页签是真实内容，不整页骨架", () => {

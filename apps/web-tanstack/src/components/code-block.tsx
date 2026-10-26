@@ -57,11 +57,11 @@ export function CodeBlock({ code, className, ...props }: CodeProps) {
 	const formatted = React.useMemo(() => formatError(code), [code]);
 
 	return (
-		<div className="space-y-2 flex justify-center">
+		<div className="flex justify-center space-y-2">
 			<div className="relative w-fit max-w-full">
 				<code
 					className={cn(
-						"mt-2 block max-h-60 overflow-auto rounded-lg align-bottom whitespace-pre p-3 text-sm bg-muted",
+						"block overflow-auto p-3 mt-2 max-h-60 text-sm whitespace-pre align-bottom bg-muted rounded-lg",
 						className,
 					)}
 					{...props}

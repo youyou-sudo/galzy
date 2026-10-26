@@ -144,7 +144,7 @@ describe("GameDetailPending", () => {
 
 	it("默认下载页签出文件列表骨架，且整块容器不再 aria-hidden", () => {
 		const markup = renderToString(<GameDetailPending id="v17" />);
-		expect(markup).toContain("h-9 w-full rounded-lg");
+		expect(markup).toContain("w-full h-9 rounded-lg");
 		expect(markup).toContain("发售");
 		expect(markup).toContain("游戏简介");
 		// @unpic 的预加载 <link> 可能在最前；根 div 自身不带 aria-hidden，
@@ -155,9 +155,9 @@ describe("GameDetailPending", () => {
 	it("讨论页签出评论骨架（输入框 + 紧凑评论行）", () => {
 		routerMock.pathname = "/v17/comment";
 		const markup = renderToString(<GameDetailPending id="v17" />);
-		expect(markup).toContain("h-20 w-full rounded-xl");
-		expect(markup).toContain("size-7 shrink-0 rounded-full");
-		expect(markup).not.toContain("h-9 w-full rounded-lg");
+		expect(markup).toContain("w-full h-20 rounded-xl");
+		expect(markup).toContain("shrink-0 size-7 rounded-full");
+		expect(markup).not.toContain("w-full h-9 rounded-lg");
 	});
 
 	it("攻略文章嵌套路径仍按攻略页签出文章行骨架", () => {
@@ -165,14 +165,14 @@ describe("GameDetailPending", () => {
 		const markup = renderToString(<GameDetailPending id="v17" />);
 		expect(markup).toContain("攻略文章");
 		expect(markup).toContain("h-4 w-3/5");
-		expect(markup).not.toContain("h-9 w-full rounded-lg");
+		expect(markup).not.toContain("w-full h-9 rounded-lg");
 	});
 
 	it("统计页签出图表骨架", () => {
 		routerMock.pathname = "/v17/translate";
 		const markup = renderToString(<GameDetailPending id="v17" />);
 		expect(markup).toContain("总下载量");
-		expect(markup).toContain("h-52 w-full rounded-xl");
+		expect(markup).toContain("w-full h-52 rounded-xl");
 	});
 
 	it("系列页签出与真实关系栅格同断点的卡片骨架", () => {
@@ -181,7 +181,7 @@ describe("GameDetailPending", () => {
 		expect(markup).toContain("grid-cols-2");
 		expect(markup).toContain("xl:grid-cols-6");
 		expect(markup).toContain("aspect-[9/13]");
-		expect(markup).toContain("h-5 w-12 rounded-lg");
+		expect(markup).toContain("w-12 h-5 rounded-lg");
 	});
 
 	it("store 里的 hero 与路由 id 不一致时不复用旧条目数据", () => {

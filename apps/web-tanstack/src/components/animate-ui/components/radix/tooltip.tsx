@@ -117,7 +117,7 @@ function TooltipContent({
 								exit={{ opacity: 0, scale: 0, ...initialPosition }}
 								transition={transition}
 								className={cn(
-									"relative bg-primary text-primary-foreground shadow-md w-fit origin-(--radix-tooltip-content-transform-origin) rounded-md px-3 py-1.5 text-sm text-balance",
+									"relative px-3 py-1.5 w-fit text-sm text-balance text-primary-foreground bg-primary rounded-md shadow-md origin-(--radix-tooltip-content-transform-origin)",
 									className,
 								)}
 							>
@@ -126,7 +126,7 @@ function TooltipContent({
 								{arrow && (
 									<TooltipPrimitive.Arrow
 										data-slot="tooltip-content-arrow"
-										className="bg-primary fill-primary z-50 size-2.5 translate-y-[calc(-50%-2px)] rotate-45 rounded-[2px]"
+										className="z-50 size-2.5 bg-primary rounded-[2px] translate-y-[calc(-50%-2px)] rotate-45 fill-primary"
 									/>
 								)}
 							</motion.div>

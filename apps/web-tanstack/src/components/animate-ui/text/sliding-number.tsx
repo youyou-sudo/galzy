@@ -40,7 +40,7 @@ function SlidingNumberRoller({
 		<span
 			ref={measureRef}
 			data-slot="sliding-number-roller"
-			className="relative inline-block w-[1ch] overflow-x-visible overflow-y-clip leading-none tabular-nums"
+			className="inline-block overflow-x-visible overflow-y-clip relative w-[1ch] tabular-nums leading-none"
 		>
 			<span className="invisible">0</span>
 			{Array.from({ length: 10 }, (_, i) => (
@@ -79,14 +79,14 @@ function SlidingNumberDisplay({
 	});
 
 	if (!height) {
-		return <span className="invisible absolute">{number}</span>;
+		return <span className="absolute invisible">{number}</span>;
 	}
 
 	return (
 		<motion.span
 			data-slot="sliding-number-display"
 			style={{ y }}
-			className="absolute inset-0 flex items-center justify-center"
+			className="flex absolute inset-0 justify-center items-center"
 			transition={{ ...transition, type: "spring" }}
 		>
 			{number}

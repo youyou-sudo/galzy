@@ -28,17 +28,17 @@ const typeLabelMap: Record<
 > = {
   comment: {
     label: '讨论',
-    className: 'bg-info/10 text-info',
+    className: 'text-info bg-info/10',
     icon: MessageSquareHeart,
   },
   feedback: {
     label: '反馈',
-    className: 'bg-primary/10 text-primary',
+    className: 'text-primary bg-primary/10',
     icon: MessageCircleQuestionMark,
   },
   question: {
     label: '提问',
-    className: 'bg-warning/10 text-warning',
+    className: 'text-warning bg-warning/10',
     icon: ShieldQuestionMark,
   },
 }
@@ -91,18 +91,18 @@ const ReplyItem = memo(function ReplyItem({
   return (
     // 一级回复只缩进 10px；更深层不再继续加缩进（扁平化），靠「回复@xx」保留上下文，
     // 避免 3 层嵌套后正文被挤到半屏宽。
-    <div className={depth === 0 ? "mt-1 border-l border-border/60 pl-2.5" : "mt-1"}>
+    <div className={depth === 0 ? "pl-2.5 mt-1 border-l border-border/60" : "mt-1"}>
       {replies.map((reply) => (
         <div className="py-1.5 first:pt-0 last:pb-0" key={reply.id}>
           <div className="flex gap-2">
             <Avatar className="size-6">
               <AvatarImage src={reply.user?.image || ''} alt={reply.user?.name} />
-              <AvatarFallback className="bg-muted text-[10px] text-muted-foreground">
+              <AvatarFallback className="text-[10px] text-muted-foreground bg-muted">
                 {reply.user?.name.slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap gap-x-2 gap-y-0.5 items-center">
                 <span className="text-[13px] font-medium text-foreground">
                   {reply.user?.name}
                 </span>
@@ -111,12 +111,12 @@ const ReplyItem = memo(function ReplyItem({
                     回复 @{reply.reUser.name}
                   </span>
                 )}
-                <span className="text-xs text-muted-foreground tabular-nums">
+                <span className="text-xs tabular-nums text-muted-foreground">
                   {formatTime(reply.createdAt.toString())}
                 </span>
                 <button
                   type="button"
-                  className="text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+                  className="text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                   onClick={() => {
                     replycardActions.openReId(reply.id, {
                       id: reply.id,
@@ -206,12 +206,12 @@ export function CommentItem({ targetType }: { targetType: string }) {
                   src={items.user?.image || ''}
                   alt={items.user?.name}
                 />
-                <AvatarFallback className="bg-muted text-[10px] text-muted-foreground">
+                <AvatarFallback className="text-[10px] text-muted-foreground bg-muted">
                   {items.user?.name.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap gap-x-2 gap-y-0.5 items-center">
                   <span className="text-sm font-medium text-foreground">
                     {items.user?.name}
                   </span>
@@ -226,14 +226,14 @@ export function CommentItem({ targetType }: { targetType: string }) {
                       {typeMeta.label}
                     </Badge>
                   )}
-                  <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                  <span className="flex shrink-0 gap-2 items-center ml-auto text-xs text-muted-foreground">
                     <span className="tabular-nums">
                       {formatTime(items.createdAt)}
                     </span>
                     {session && (
                       <button
                         type="button"
-                        className="transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+                        className="transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
                         onClick={() => {
                           replycardActions.openReId(items.id, {
                             id: items.id,

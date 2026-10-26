@@ -29,7 +29,7 @@ export default function UserMenu() {
   })
 
   if (isPending) {
-    return <div className="size-8 rounded-full bg-muted animate-pulse" />
+    return <div className="size-8 bg-muted rounded-full animate-pulse" />
   }
 
   if (!session) {
@@ -38,7 +38,7 @@ export default function UserMenu() {
         variant="default"
         size="sm"
         nativeButton={false}
-        className="h-8 rounded-lg px-3"
+        className="px-3 h-8 rounded-lg"
         render={<Link to="/auth/login" />}
       >
         <User className="size-3.5" />
@@ -53,7 +53,7 @@ export default function UserMenu() {
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label="账户菜单"
-        className="rounded-full ring-offset-2 ring-offset-background outline-none transition-shadow hover:ring-2 hover:ring-border focus-visible:ring-2 focus-visible:ring-ring"
+        className="rounded-full outline-none ring-offset-2 ring-offset-background transition-shadow hover:ring-2 hover:ring-border focus-visible:ring-2 focus-visible:ring-ring"
       >
         <AvatarComp
           name={user.name}

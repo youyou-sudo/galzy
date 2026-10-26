@@ -25,7 +25,7 @@ export function MobileMenuTrigger({
 		<Button
 			variant="ghost"
 			size="icon-sm"
-			className="rounded-lg text-[color:var(--header-muted)] hover:bg-[var(--header-hover)] hover:text-[color:var(--header-fg)] md:hidden"
+			className="text-[color:var(--header-muted)] rounded-lg hover:text-[color:var(--header-fg)] hover:bg-[var(--header-hover)] md:hidden"
 			aria-label={open ? "关闭菜单" : "打开菜单"}
 			aria-expanded={open}
 			aria-controls={menuMounted ? "galzy-mobile-menu" : undefined}
@@ -35,23 +35,23 @@ export function MobileMenuTrigger({
 		>
 			<span
 				aria-hidden="true"
-				className="relative flex size-4 items-center justify-center"
+				className="flex relative justify-center items-center size-4"
 			>
 				<span
 					className={cn(
-						"absolute h-[1.5px] w-4 rounded-full bg-current transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+						"absolute w-4 h-[1.5px] bg-current rounded-full transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
 						open ? "rotate-45" : "-translate-y-1.5",
 					)}
 				/>
 				<span
 					className={cn(
-						"absolute h-[1.5px] w-4 rounded-full bg-current transition-opacity duration-200",
-						open ? "scale-x-0 opacity-0" : "opacity-100",
+						"absolute w-4 h-[1.5px] bg-current rounded-full transition-opacity duration-200",
+						open ? "opacity-0 scale-x-0" : "opacity-100",
 					)}
 				/>
 				<span
 					className={cn(
-						"absolute h-[1.5px] w-4 rounded-full bg-current transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
+						"absolute w-4 h-[1.5px] bg-current rounded-full transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
 						open ? "-rotate-45" : "translate-y-1.5",
 					)}
 				/>

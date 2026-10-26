@@ -18,7 +18,7 @@ function DrawerBackdrop({
 		<DrawerPrimitive.Backdrop
 			data-slot="drawer-backdrop"
 			className={cn(
-				"[--backdrop-opacity:0.4] fixed inset-0 z-50 bg-black opacity-[calc(var(--backdrop-opacity)*(1-var(--drawer-swipe-progress)))] transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-xs",
+				"fixed inset-0 z-50 bg-black opacity-[calc(var(--backdrop-opacity)*(1-var(--drawer-swipe-progress)))] transition-opacity duration-150 [--backdrop-opacity:0.4] data-ending-style:opacity-0 data-starting-style:opacity-0 supports-backdrop-filter:backdrop-blur-xs",
 				className,
 			)}
 			{...props}
@@ -34,7 +34,7 @@ function DrawerViewport({
 		<DrawerPrimitive.Viewport
 			data-slot="drawer-viewport"
 			className={cn(
-				"fixed inset-0 z-50 flex items-end justify-center",
+				"flex fixed inset-0 z-50 justify-center items-end",
 				className,
 			)}
 			{...props}
@@ -59,7 +59,7 @@ function DrawerContent({
 				<DrawerPrimitive.Popup
 					data-slot="drawer-content"
 					className={cn(
-						"relative flex galzy-max-h-85dvh w-full flex-col overflow-y-auto overscroll-contain rounded-t-2xl border-t bg-popover text-sm text-popover-foreground shadow-lg outline-none touch-auto [transform:translateY(var(--drawer-swipe-movement-y))] transition-transform duration-200 ease-in-out data-ending-style:[transform:translateY(100%)] data-starting-style:[transform:translateY(100%)] sm:max-w-lg sm:rounded-2xl sm:border",
+						"galzy-max-h-85dvh flex overflow-y-auto overscroll-contain relative flex-col w-full text-sm text-popover-foreground bg-popover rounded-t-2xl border-t outline-none shadow-lg transition-transform duration-200 ease-in-out touch-auto [transform:translateY(var(--drawer-swipe-movement-y))] data-ending-style:[transform:translateY(100%)] data-starting-style:[transform:translateY(100%)] sm:max-w-lg sm:rounded-2xl sm:border",
 						className,
 					)}
 					{...props}
@@ -68,14 +68,14 @@ function DrawerContent({
 						<div
 							data-slot="drawer-grab-bar"
 							aria-hidden
-							className="mx-auto mt-3 h-1.5 w-10 shrink-0 rounded-full bg-muted"
+							className="shrink-0 mx-auto mt-3 w-10 h-1.5 bg-muted rounded-full"
 						/>
 					)}
 					{children}
 					{showCloseButton && (
 						<DrawerPrimitive.Close
 							data-slot="drawer-close"
-							className="absolute top-3 right-3 rounded-xs p-1.5 text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+							className="absolute top-3 right-3 p-1.5 text-muted-foreground rounded-xs outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
 						>
 							<XIcon className="size-4" />
 							<span className="sr-only">关闭</span>
@@ -101,7 +101,7 @@ function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
 	return (
 		<div
 			data-slot="drawer-footer"
-			className={cn("mt-auto flex flex-col gap-2 p-4", className)}
+			className={cn("flex flex-col gap-2 p-4 mt-auto", className)}
 			{...props}
 		/>
 	);
@@ -112,7 +112,7 @@ function DrawerTitle({ className, ...props }: DrawerPrimitive.Title.Props) {
 		<DrawerPrimitive.Title
 			data-slot="drawer-title"
 			className={cn(
-				"font-heading text-base font-medium text-foreground",
+				"text-base font-medium text-foreground font-heading",
 				className,
 			)}
 			{...props}

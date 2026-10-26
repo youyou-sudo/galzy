@@ -100,7 +100,7 @@ function AccordionTrigger({
 				ref={triggerRef}
 				data-slot="accordion-trigger"
 				className={cn(
-					"flex flex-1 text-start items-center justify-between py-4 font-medium hover:underline",
+					"flex flex-1 justify-between items-center py-4 font-medium text-start hover:underline",
 					className,
 				)}
 				{...props}
@@ -113,7 +113,7 @@ function AccordionTrigger({
 						animate={{ rotate: isOpen ? 180 : 0 }}
 						transition={transition}
 					>
-						<ChevronDown className="size-5 shrink-0" />
+						<ChevronDown className="shrink-0 size-5" />
 					</motion.div>
 				)}
 			</AccordionPrimitive.Trigger>
@@ -155,7 +155,7 @@ function AccordionContent({
 							}}
 							className="overflow-hidden"
 						>
-							<div className={cn("pb-4 pt-0 text-sm", className)}>
+							<div className={cn("pt-0 pb-4 text-sm", className)}>
 								{children}
 							</div>
 						</motion.div>

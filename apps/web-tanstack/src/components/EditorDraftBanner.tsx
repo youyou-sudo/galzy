@@ -23,13 +23,13 @@ export function EditorDraftBanner({
 
 	return (
 		<Alert className="has-[>svg]:grid-cols-[auto_1fr]">
-			<History className="size-4 shrink-0 text-primary" data-icon />
+			<History className="shrink-0 size-4 text-primary" data-icon />
 			<AlertTitle>检测到上次未提交的草稿</AlertTitle>
 			<AlertDescription>
 				你上次编辑的内容{timeText ? `（${timeText}）` : ""}
 				已自动保存在本机，是否恢复？
 			</AlertDescription>
-			<AlertAction className="flex items-center gap-1.5">
+			<AlertAction className="flex gap-1.5 items-center">
 				<Button size="sm" variant="outline" onClick={onDiscard}>
 					放弃
 				</Button>

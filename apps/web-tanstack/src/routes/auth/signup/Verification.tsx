@@ -102,9 +102,9 @@ function RouteComponent() {
   }, [seedS?.error])
 
   return (
-    <div className="mx-auto w-full max-w-md py-6">
+    <div className="py-6 mx-auto w-full max-w-md">
       <Card className="w-full">
-        <CardHeader className="items-center gap-2 text-center">
+        <CardHeader className="gap-2 items-center text-center">
           <BrandMark />
           <CardTitle className="text-2xl font-semibold tracking-tight">
             验证邮箱
@@ -120,7 +120,7 @@ function RouteComponent() {
 
         <CardContent className="flex flex-col gap-3">
           <Field>
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex gap-2 justify-between items-center">
               <FieldLabel htmlFor="otp-verification">验证码</FieldLabel>
               <Button
                 variant="outline"
@@ -146,7 +146,7 @@ function RouteComponent() {
               onChange={setValue}
               className="flex justify-center"
             >
-              <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-10 *:data-[slot=input-otp-slot]:text-xl sm:*:data-[slot=input-otp-slot]:w-11">
+              <InputOTPGroup className="*:data-[slot=input-otp-slot]:w-10 *:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:text-xl sm:*:data-[slot=input-otp-slot]:w-11">
                 <InputOTPSlot index={0} />
                 <InputOTPSlot index={1} />
                 <InputOTPSlot index={2} />
@@ -154,7 +154,7 @@ function RouteComponent() {
 
               <InputOTPSeparator className="mx-2" />
 
-              <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-10 *:data-[slot=input-otp-slot]:text-xl sm:*:data-[slot=input-otp-slot]:w-11">
+              <InputOTPGroup className="*:data-[slot=input-otp-slot]:w-10 *:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:text-xl sm:*:data-[slot=input-otp-slot]:w-11">
                 <InputOTPSlot index={3} />
                 <InputOTPSlot index={4} />
                 <InputOTPSlot index={5} />
@@ -163,7 +163,7 @@ function RouteComponent() {
           </Field>
         </CardContent>
 
-        <CardFooter className="flex-col items-stretch gap-3">
+        <CardFooter className="flex-col gap-3 items-stretch">
           <Button
             type="submit"
             size="lg"
@@ -176,7 +176,7 @@ function RouteComponent() {
             )}
             验证
           </Button>
-          <p className="text-center text-xs text-muted-foreground">
+          <p className="text-xs text-center text-muted-foreground">
             填错邮箱了？{' '}
             <Link
               to="/auth/signup"

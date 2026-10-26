@@ -9,13 +9,13 @@ import { Send } from "lucide-react";
  */
 export default function CountComponent() {
 	return (
-		<div className="my-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground sm:text-sm">
-			<span className="inline-flex items-center gap-1.5 tabular-nums">
+		<div className="flex flex-wrap gap-x-3 gap-y-1 justify-center items-center my-4 text-xs text-muted-foreground sm:text-sm">
+			<span className="inline-flex gap-1.5 items-center tabular-nums">
 				共收录了：<Count /> 条目
 			</span>
-			<span aria-hidden="true" className="hidden h-3 w-px bg-border sm:block" />
+			<span aria-hidden="true" className="hidden w-px h-3 bg-border sm:block" />
 			<a
-				className="inline-flex items-center gap-1 font-medium text-primary no-underline transition-colors hover:text-primary/80"
+				className="inline-flex gap-1 items-center font-medium text-primary no-underline transition-colors hover:text-primary/80"
 				target="_blank"
 				href="https://t.me/ziyuanlinyin"
 				rel="noopener"
@@ -41,7 +41,7 @@ const Count = () => {
 	});
 
 	if (data === undefined) {
-		return <Skeleton className="mx-0.5 inline-block h-4 w-10 align-middle" />;
+		return <Skeleton className="inline-block mx-0.5 w-10 h-4 align-middle" />;
 	}
 
 	return <>{data}</>;

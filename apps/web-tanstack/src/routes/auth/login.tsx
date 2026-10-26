@@ -123,9 +123,9 @@ function RouteComponent() {
   })
 
   return (
-    <div className="mx-auto w-full max-w-md py-6">
+    <div className="py-6 mx-auto w-full max-w-md">
       <Card className="w-full">
-        <CardHeader className="items-center gap-2 text-center">
+        <CardHeader className="gap-2 items-center text-center">
           <BrandMark />
           <CardTitle className="text-2xl font-semibold tracking-tight">
             登录
@@ -145,7 +145,7 @@ function RouteComponent() {
               {(field) => (
                 <Field orientation="vertical">
                   <FieldLabel>
-                    <FieldTitle className="flex items-center gap-1.5">
+                    <FieldTitle className="flex gap-1.5 items-center">
                       <Mail className="size-3.5" />
                       邮箱
                     </FieldTitle>
@@ -179,7 +179,7 @@ function RouteComponent() {
               {(field) => (
                 <Field orientation="vertical">
                   <FieldLabel>
-                    <FieldTitle className="flex items-center gap-1.5">
+                    <FieldTitle className="flex gap-1.5 items-center">
                       <LogIn className="size-3.5" />
                       密码
                     </FieldTitle>
@@ -245,7 +245,7 @@ function RouteComponent() {
             </form.Subscribe>
           </form>
 
-          <p className="mt-5 text-center text-xs text-muted-foreground">
+          <p className="mt-5 text-xs text-center text-muted-foreground">
             还没有账户？{' '}
             <Link
               to="/auth/signup"

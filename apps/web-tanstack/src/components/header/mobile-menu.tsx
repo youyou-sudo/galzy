@@ -13,7 +13,7 @@ import type { HeaderNavItem } from "./nav-config";
  * 8 个主入口 + 工具分组可以在不滚动的一屏内看完；需要看说明时由底部按钮展开。
  */
 const rowClass = cn(
-	"galzy-mobile-item group/row flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 py-2",
+	"group/row galzy-mobile-item flex gap-2.5 items-center px-2.5 py-2 min-h-11 rounded-xl",
 	"text-foreground no-underline outline-none transition-colors duration-200",
 	"hover:bg-muted/60 focus-visible:bg-muted/60",
 	"focus-visible:ring-2 focus-visible:ring-ring/60",
@@ -52,26 +52,26 @@ function NavRow({
 		<>
 			<span
 				className={cn(
-					"flex size-8 shrink-0 items-center justify-center rounded-lg",
-					"bg-muted/70 text-muted-foreground transition-colors duration-200",
-					"group-hover/row:bg-background group-hover/row:text-foreground",
+					"flex shrink-0 justify-center items-center size-8 rounded-lg",
+					"text-muted-foreground bg-muted/70 transition-colors duration-200",
+					"group-hover/row:text-foreground group-hover/row:bg-background",
 				)}
 			>
 				<Icon className="size-4" />
 			</span>
-			<span className="flex min-w-0 flex-1 flex-col">
-				<span className="truncate text-sm leading-tight font-medium">
+			<span className="flex flex-col flex-1 min-w-0">
+				<span className="text-sm leading-tight font-medium truncate">
 					{item.label}
 				</span>
 				{showDescription && (
-					<span className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
+					<span className="mt-0.5 text-xs font-normal text-muted-foreground truncate">
 						{item.description}
 					</span>
 				)}
 			</span>
 			<ChevronRight
 				className={cn(
-					"size-4 shrink-0 text-muted-foreground/60",
+					"shrink-0 size-4 text-muted-foreground/60",
 					"transition-transform duration-200",
 					"group-hover/row:translate-x-0.5",
 				)}
@@ -239,7 +239,7 @@ export function HeaderMobileMenu({
 				"overflow-y-auto overscroll-contain pt-16 pb-6",
 				"bg-background/95 backdrop-blur-xl",
 				"transition-opacity duration-200 ease-out",
-				open ? "opacity-100" : "pointer-events-none opacity-0",
+				open ? "opacity-100" : "opacity-0 pointer-events-none",
 			)}
 			role="dialog"
 			aria-modal="true"
@@ -254,7 +254,7 @@ export function HeaderMobileMenu({
 				if (event.target === event.currentTarget) onOpenChange(false);
 			}}
 		>
-			<nav className="mx-auto flex w-full max-w-md flex-col gap-0.5 px-4">
+			<nav className="flex flex-col gap-0.5 px-4 mx-auto w-full max-w-md">
 				{/* 主菜单顺序：mobilePrimaryKeys（主站→OpList→防失联→标签→会社→
             合集→论坛→联系），与桌面端导航同一份数据源 */}
 				{mobilePrimaryKeys.map((key, index) => (
@@ -293,12 +293,12 @@ export function HeaderMobileMenu({
 			</nav>
 
 			{/* 折叠说明 + 关闭提示合并为一行，少占一屏高度 */}
-			<div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
+			<div className="flex gap-2 justify-center items-center mt-2 text-[11px] text-muted-foreground">
 				<button
 					type="button"
 					aria-pressed={showDescriptions}
 					onClick={() => setShowDescriptions((value) => !value)}
-					className="inline-flex min-h-8 items-center gap-1 rounded-lg px-2 transition-colors duration-200 hover:bg-muted/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+					className="inline-flex gap-1 items-center px-2 min-h-8 rounded-lg transition-colors duration-200 hover:text-foreground hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 				>
 					<Info className="size-3.5" aria-hidden="true" />
 					{showDescriptions ? "收起说明" : "显示说明"}

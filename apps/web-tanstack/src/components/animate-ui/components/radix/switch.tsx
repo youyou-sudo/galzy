@@ -46,7 +46,7 @@ function Switch({
 					{...renderProps}
 					data-slot="switch"
 					className={cn(
-						"relative flex p-[3px] h-6 w-10 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input data-[state=checked]:justify-end data-[state=unchecked]:justify-start",
+						"flex relative shrink-0 items-center p-[3px] w-10 h-6 rounded-full transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed data-[state=checked]:justify-end data-[state=checked]:bg-primary data-[state=unchecked]:justify-start data-[state=unchecked]:bg-input",
 						className,
 					)}
 					whileTap="tap"
@@ -62,7 +62,7 @@ function Switch({
 								isChecked ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }
 							}
 							transition={{ type: "spring", bounce: 0 }}
-							className="absolute [&_svg]:size-3 left-1 top-1/2 -translate-y-1/2 dark:text-neutral-500 text-neutral-400"
+							className="absolute top-1/2 left-1 text-neutral-400 -translate-y-1/2 dark:text-neutral-500 [&_svg]:size-3"
 						>
 							{typeof leftIcon !== "string" ? leftIcon : null}
 						</motion.div>
@@ -75,7 +75,7 @@ function Switch({
 								isChecked ? { scale: 0, opacity: 0 } : { scale: 1, opacity: 1 }
 							}
 							transition={{ type: "spring", bounce: 0 }}
-							className="absolute [&_svg]:size-3 right-1 top-1/2 -translate-y-1/2 dark:text-neutral-400 text-neutral-500"
+							className="absolute top-1/2 right-1 text-neutral-500 -translate-y-1/2 dark:text-neutral-400 [&_svg]:size-3"
 						>
 							{typeof rightIcon !== "string" ? rightIcon : null}
 						</motion.div>
@@ -88,7 +88,7 @@ function Switch({
 								data-slot="switch-thumb"
 								whileTap="tab"
 								className={cn(
-									"relative z-[1] [&_svg]:size-3 flex items-center justify-center rounded-full bg-background shadow-lg ring-0 dark:text-neutral-400 text-neutral-500",
+									"flex relative z-[1] justify-center items-center text-neutral-500 bg-background rounded-full ring-0 shadow-lg dark:text-neutral-400 [&_svg]:size-3",
 								)}
 								layout
 								transition={{ type: "spring", stiffness: 300, damping: 25 }}

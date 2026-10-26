@@ -29,9 +29,9 @@ export function EmptyState({
 	return (
 		<div
 			className={cn(
-				"flex flex-col items-center justify-center px-6 text-center",
+				"flex flex-col justify-center items-center px-6 text-center",
 				size === "sm" ? "py-10" : "py-16",
-				surface && "rounded-2xl bg-card/60 ring-1 ring-border/60",
+				surface && "bg-card/60 rounded-2xl ring-1 ring-border/60",
 				className,
 			)}
 		>

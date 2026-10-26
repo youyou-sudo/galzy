@@ -184,7 +184,7 @@ export function MarkdownEditor({
 				<SmartMarkdown>{value}</SmartMarkdown>
 			</div>
 		) : (
-			<p className="py-8 text-center text-sm text-muted-foreground">暂无内容</p>
+			<p className="py-8 text-sm text-center text-muted-foreground">暂无内容</p>
 		);
 
 	// ---- render -----------------------------------------------------------
@@ -194,12 +194,12 @@ export function MarkdownEditor({
 			value={mode}
 			onValueChange={setMode}
 			className={cn(
-				"w-full rounded-md border border-input overflow-hidden",
+				"overflow-hidden w-full rounded-md border border-input",
 				className,
 			)}
 		>
 			{/* ── 工具栏 ─────────────────────────────────────────────────────── */}
-			<div className="flex items-center gap-0.5 px-1 py-1 border-b border-input bg-muted/30 overflow-x-auto flex-nowrap">
+			<div className="flex overflow-x-auto flex-nowrap gap-0.5 items-center p-1 bg-muted/30 border-b border-input">
 				<ToolbarButton icon={Bold} label="粗体 (Ctrl+B)" onClick={bold} />
 				<ToolbarButton icon={Italic} label="斜体 (Ctrl+I)" onClick={italic} />
 
@@ -249,7 +249,7 @@ export function MarkdownEditor({
 					onKeyDown={handleKeyDown}
 					placeholder={placeholder}
 					aria-invalid={ariaInvalid}
-					className="min-h-62.5 resize-y rounded-none border-0 focus-visible:ring-0"
+					className="min-h-62.5 rounded-none border-0 resize-y focus-visible:ring-0"
 					style={{ minHeight }}
 				/>
 			</TabsContent>
@@ -264,7 +264,7 @@ export function MarkdownEditor({
 			{/* ── 分屏（左编辑 / 右预览） ────────────────────────────────────── */}
 			<TabsContent value="split" className="mt-0">
 				<div
-					className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border"
+					className="grid grid-cols-1 divide-y divide-border md:grid-cols-2 md:divide-x md:divide-y-0"
 					style={{ minHeight }}
 				>
 					<Textarea
@@ -274,7 +274,7 @@ export function MarkdownEditor({
 						onKeyDown={handleKeyDown}
 						placeholder={placeholder}
 						aria-invalid={ariaInvalid}
-						className="h-full min-h-62.5 resize-none rounded-none border-0 focus-visible:ring-0"
+						className="h-full min-h-62.5 rounded-none border-0 resize-none focus-visible:ring-0"
 					/>
 					<ScrollArea className="p-4">{renderPreview()}</ScrollArea>
 				</div>

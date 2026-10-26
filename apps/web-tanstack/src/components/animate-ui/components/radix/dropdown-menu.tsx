@@ -58,12 +58,12 @@ function DropdownMenuContent({
 		<DropdownMenuContentPrimitive
 			sideOffset={sideOffset}
 			className={cn(
-				"bg-popover text-popover-foreground z-50 max-h-(--radix-dropdown-menu-content-available-height) min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
+				"overflow-x-hidden overflow-y-auto z-50 p-1 min-w-[8rem] max-h-(--radix-dropdown-menu-content-available-height) text-popover-foreground bg-popover rounded-md border shadow-md origin-(--radix-dropdown-menu-content-transform-origin)",
 				className,
 			)}
 			{...props}
 		>
-			<DropdownMenuHighlightPrimitive className="absolute inset-0 bg-accent z-0 rounded-sm">
+			<DropdownMenuHighlightPrimitive className="absolute inset-0 z-0 bg-accent rounded-sm">
 				{children}
 			</DropdownMenuHighlightPrimitive>
 		</DropdownMenuContentPrimitive>
@@ -95,7 +95,7 @@ function DropdownMenuItem({
 				data-inset={inset}
 				data-variant={variant}
 				className={cn(
-					"focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+					"flex relative gap-2 items-center px-2 py-1.5 text-sm rounded-sm outline-hidden cursor-default select-none focus:text-accent-foreground data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none data-[inset]:pl-8 data-[variant=destructive]:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground [&_svg]:shrink-0 [&_svg]:pointer-events-none",
 					className,
 				)}
 				{...props}
@@ -118,13 +118,13 @@ function DropdownMenuCheckboxItem({
 			<DropdownMenuCheckboxItemPrimitive
 				disabled={disabled}
 				className={cn(
-					"focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+					"flex relative gap-2 items-center py-1.5 pr-2 pl-8 text-sm rounded-sm outline-hidden cursor-default select-none focus:text-accent-foreground data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 [&_svg]:pointer-events-none",
 					className,
 				)}
 				checked={checked}
 				{...props}
 			>
-				<span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+				<span className="flex absolute left-2 justify-center items-center size-3.5 pointer-events-none">
 					<DropdownMenuItemIndicatorPrimitive
 						initial={{ opacity: 0, scale: 0.5 }}
 						animate={{ opacity: 1, scale: 1 }}
@@ -157,12 +157,12 @@ function DropdownMenuRadioItem({
 			<DropdownMenuRadioItemPrimitive
 				disabled={disabled}
 				className={cn(
-					"focus:text-accent-foreground relative flex cursor-default items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+					"flex relative gap-2 items-center py-1.5 pr-2 pl-8 text-sm rounded-sm outline-hidden cursor-default select-none focus:text-accent-foreground data-[disabled=true]:opacity-50 data-[disabled=true]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 [&_svg]:shrink-0 [&_svg]:pointer-events-none",
 					className,
 				)}
 				{...props}
 			>
-				<span className="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
+				<span className="flex absolute left-2 justify-center items-center size-3.5 pointer-events-none">
 					<DropdownMenuItemIndicatorPrimitive layoutId="dropdown-menu-item-indicator-radio">
 						<CircleIcon className="size-2 fill-current" />
 					</DropdownMenuItemIndicatorPrimitive>
@@ -202,7 +202,7 @@ function DropdownMenuSeparator({
 }: DropdownMenuSeparatorProps) {
 	return (
 		<DropdownMenuSeparatorPrimitive
-			className={cn("bg-border -mx-1 my-1 h-px", className)}
+			className={cn("-mx-1 my-1 h-px bg-border", className)}
 			{...props}
 		/>
 	);
@@ -217,7 +217,7 @@ function DropdownMenuShortcut({
 	return (
 		<DropdownMenuShortcutPrimitive
 			className={cn(
-				"text-muted-foreground ml-auto text-xs tracking-widest",
+				"ml-auto text-xs tracking-widest text-muted-foreground",
 				className,
 			)}
 			{...props}
@@ -246,7 +246,7 @@ function DropdownMenuSubTrigger({
 			<DropdownMenuSubTriggerPrimitive
 				data-inset={inset}
 				className={cn(
-					"focus:text-accent-foreground data-[state=open]:text-accent-foreground flex cursor-default items-center rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[inset]:pl-8",
+					"flex items-center px-2 py-1.5 text-sm rounded-sm outline-hidden cursor-default select-none focus:text-accent-foreground data-[inset]:pl-8 data-[state=open]:text-accent-foreground",
 					"data-[state=open]:[&_[data-slot=chevron]]:rotate-90 [&_[data-slot=chevron]]:transition-transform [&_[data-slot=chevron]]:duration-300 [&_[data-slot=chevron]]:ease-in-out",
 					className,
 				)}
@@ -268,7 +268,7 @@ function DropdownMenuSubContent({
 	return (
 		<DropdownMenuSubContentPrimitive
 			className={cn(
-				"bg-popover text-popover-foreground z-50 min-w-[8rem] origin-(--radix-dropdown-menu-content-transform-origin) overflow-hidden rounded-md border p-1 shadow-lg",
+				"overflow-hidden z-50 p-1 min-w-[8rem] text-popover-foreground bg-popover rounded-md border shadow-lg origin-(--radix-dropdown-menu-content-transform-origin)",
 				className,
 			)}
 			{...props}

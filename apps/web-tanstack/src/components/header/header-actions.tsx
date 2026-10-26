@@ -28,7 +28,7 @@ export default function HeaderActions() {
 	useEffect(() => setMounted(true), []);
 
 	return (
-		<div className="flex shrink-0 items-center gap-0.5">
+		<div className="flex shrink-0 gap-0.5 items-center">
 			<Tooltip>
 				<TooltipTrigger
 					render={
@@ -38,7 +38,7 @@ export default function HeaderActions() {
 							aria-pressed={showR18}
 							aria-label="涩！R18 过滤"
 							className={cn(
-								"h-8 gap-1 rounded-lg px-2",
+								"gap-1 px-2 h-8 rounded-lg",
 								showR18
 									? "text-[color:var(--header-pink)] hover:bg-pink-500/10"
 									: "text-[color:var(--header-success)] hover:bg-success/10",
@@ -46,9 +46,9 @@ export default function HeaderActions() {
 							onClick={r18Actions.toggle}
 						>
 							{showR18 ? (
-								<Eye className="size-4 shrink-0" />
+								<Eye className="shrink-0 size-4" />
 							) : (
-								<EyeOff className="size-4 shrink-0" />
+								<EyeOff className="shrink-0 size-4" />
 							)}
 							<span className="text-[10px] leading-none font-semibold">涩！</span>
 						</Button>
@@ -62,25 +62,25 @@ export default function HeaderActions() {
 			<ThemeToggle
 				variant="ghost"
 				size="icon-sm"
-				className="text-[color:var(--header-muted)] hover:bg-[var(--header-hover)] hover:text-[color:var(--header-fg)]"
+				className="text-[color:var(--header-muted)] hover:text-[color:var(--header-fg)] hover:bg-[var(--header-hover)]"
 			/>
 
 			{/* 操作组与账户之间的发丝分隔：窄屏下省掉，避免和头像挤在一起 */}
 			<span
 				aria-hidden="true"
-				className="mx-1 hidden h-4 w-px bg-[color:var(--header-muted)]/30 sm:block"
+				className="hidden mx-1 w-px h-4 bg-[color:var(--header-muted)]/30 sm:block"
 			/>
 
 			{mounted ? (
 				<Suspense
 					fallback={
-						<div className="size-8 rounded-full bg-[color:var(--header-muted)]/25" />
+						<div className="size-8 bg-[color:var(--header-muted)]/25 rounded-full" />
 					}
 				>
 					<UserMenu />
 				</Suspense>
 			) : (
-				<div className="size-8 rounded-full bg-[color:var(--header-muted)]/25" />
+				<div className="size-8 bg-[color:var(--header-muted)]/25 rounded-full" />
 			)}
 		</div>
 	);

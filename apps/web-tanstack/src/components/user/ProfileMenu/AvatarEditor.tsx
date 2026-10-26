@@ -339,12 +339,12 @@ export default function AvatarComp({
 	return (
 		<>
 			{/* ====== 头像显示 + 点击触发 / 拖拽区域 ====== */}
-			<div className="flex flex-col items-center gap-3">
+			<div className="flex flex-col gap-3 items-center">
 				<div className="group/avatar flex flex-col justify-center">
 					{editor ? (
 						<button
 							type="button"
-							className="relative rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
+							className="relative rounded-full outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ring disabled:opacity-50"
 							onClick={() => fileInputRef.current?.click()}
 							disabled={isProcessing}
 							aria-label={hasExistingAvatar ? "更换头像" : "添加头像"}
@@ -361,19 +361,19 @@ export default function AvatarComp({
 							</Avatar>
 
 							{/* 默认悬停遮罩 — 提示点击更换 */}
-							<div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition-opacity group-hover/avatar:opacity-100">
+							<div className="flex absolute inset-0 justify-center items-center bg-black/40 rounded-full opacity-0 transition-opacity group-hover/avatar:opacity-100">
 								<Camera className="size-6 text-white" />
 							</div>
 
 							{/* 始终显示的摄像头角标 */}
-							<div className="absolute -bottom-0.5 -right-0.5 flex size-5 items-center justify-center rounded-full bg-primary/70 shadow-xs ring-2 ring-background">
+							<div className="flex absolute -right-0.5 -bottom-0.5 justify-center items-center size-5 bg-primary/70 rounded-full ring-2 ring-background shadow-xs">
 								<Camera className="size-2.5 text-primary-foreground" />
 							</div>
 
 							{/* 拖拽悬停提示 */}
 							{isDragging && (
-								<div className="absolute inset-0 flex items-center justify-center rounded-full bg-primary/60 ring-4 ring-primary/40 transition-opacity">
-									<div className="flex flex-col items-center gap-1">
+								<div className="flex absolute inset-0 justify-center items-center bg-primary/60 rounded-full ring-4 ring-primary/40 transition-opacity">
+									<div className="flex flex-col gap-1 items-center">
 										<ImagePlus className="size-7 text-white" />
 										<span className="text-xs font-medium text-white drop-shadow-xs">
 											松开上传
@@ -384,16 +384,16 @@ export default function AvatarComp({
 
 							{/* 加载遮罩 */}
 							{isProcessing && (
-								<div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40">
+								<div className="flex absolute inset-0 justify-center items-center bg-black/40 rounded-full">
 									{phase === "uploading" ? (
-										<div className="flex flex-col items-center gap-0.5">
-											<Loader2 className="size-5 animate-spin text-white" />
+										<div className="flex flex-col gap-0.5 items-center">
+											<Loader2 className="size-5 text-white animate-spin" />
 											<span className="text-[10px] text-white">
 												{uploadProgress}%
 											</span>
 										</div>
 									) : (
-										<Loader2 className="size-6 animate-spin text-white" />
+										<Loader2 className="size-6 text-white animate-spin" />
 									)}
 								</div>
 							)}
@@ -436,10 +436,10 @@ export default function AvatarComp({
 					</DialogHeader>
 
 					{/* 裁剪区域 - 正方形 */}
-					<div className="relative aspect-square max-h-96 w-full overflow-hidden rounded-md bg-black/5">
+					<div className="overflow-hidden relative aspect-square w-full max-h-96 bg-black/5 rounded-md">
 						{previewUrl &&
 							(imageLoadError ? (
-								<div className="flex h-full items-center justify-center">
+								<div className="flex justify-center items-center h-full">
 									<p className="text-sm text-destructive">
 										图片加载失败，请重新选择
 									</p>
@@ -460,7 +460,7 @@ export default function AvatarComp({
 					</div>
 
 					{/* 缩放控制 (滑条 + 按钮组) */}
-					<div className="flex items-center gap-2">
+					<div className="flex gap-2 items-center">
 						<Button
 							type="button"
 							variant="outline"
@@ -516,7 +516,7 @@ export default function AvatarComp({
 					{/* 进度条 */}
 					{(phase === "uploading" || phase === "saving") && (
 						<div className="space-y-1">
-							<div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+							<div className="overflow-hidden w-full h-2 bg-muted rounded-full">
 								<div
 									className={`h-full w-full origin-left bg-primary transition-transform duration-300 ${
 										phase === "saving" ? "animate-pulse" : ""
@@ -526,7 +526,7 @@ export default function AvatarComp({
 									}}
 								/>
 							</div>
-							<p className="text-center text-xs text-muted-foreground">
+							<p className="text-xs text-center text-muted-foreground">
 								{phase === "uploading"
 									? `上传中 ${uploadProgress}%`
 									: "正在保存头像..."}
@@ -535,7 +535,7 @@ export default function AvatarComp({
 					)}
 
 					{/* 操作按钮 */}
-					<div className="flex items-center justify-between gap-2">
+					<div className="flex gap-2 justify-between items-center">
 						<Button
 							size="sm"
 							variant="outline"
@@ -547,7 +547,7 @@ export default function AvatarComp({
 							重新选择
 						</Button>
 
-						<div className="flex items-center gap-2">
+						<div className="flex gap-2 items-center">
 							<Button
 								size="sm"
 								variant="outline"

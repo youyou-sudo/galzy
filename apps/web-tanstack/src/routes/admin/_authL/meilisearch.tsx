@@ -70,7 +70,7 @@ function RouteComponent() {
 			/>
 
 			<Tabs defaultValue="overview" className="w-full">
-				<div className="-mb-[5px] max-w-full overflow-x-auto pb-[5px]">
+				<div className="overflow-x-auto pb-[5px] -mb-[5px] max-w-full">
 					<TabsList variant="line">
 						<TabsTrigger value="overview">
 							<ServerIcon className="size-4" />

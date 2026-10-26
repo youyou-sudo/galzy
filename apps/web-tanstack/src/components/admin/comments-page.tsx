@@ -275,9 +275,9 @@ function CommentsTable() {
 								return (
 									<Tr key={comment.id} muted={isReply}>
 										<Td>
-											<div className="flex items-center gap-2">
+											<div className="flex gap-2 items-center">
 												{isReply && (
-													<CornerDownRightIcon className="size-3.5 text-muted-foreground shrink-0" />
+													<CornerDownRightIcon className="shrink-0 size-3.5 text-muted-foreground" />
 												)}
 												<AdminUserTooltip
 													user={comment.user}
@@ -285,15 +285,15 @@ function CommentsTable() {
 												/>
 											</div>
 											{isReply && (
-												<span className="text-[11px] text-muted-foreground block mt-0.5">
+												<span className="block mt-0.5 text-[11px] text-muted-foreground">
 													回复 #{comment.parentId?.slice(0, 8)}
 												</span>
 											)}
 										</Td>
 										<Td className="max-w-xs">
-											<div className="flex items-start gap-1">
+											<div className="flex gap-1 items-start">
 												{isReply && (
-													<ReplyIcon className="size-3 text-muted-foreground mt-1 shrink-0" />
+													<ReplyIcon className="shrink-0 mt-1 size-3 text-muted-foreground" />
 												)}
 												<p
 													className={`text-sm truncate ${
@@ -312,10 +312,10 @@ function CommentsTable() {
 													href={targetUrl}
 													target="_blank"
 													rel="noreferrer"
-													className="inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors duration-200 hover:text-primary/80"
+													className="inline-flex gap-1 items-center text-xs font-medium text-primary transition-colors duration-200 hover:text-primary/80"
 												>
 													{comment.targetType}/{comment.targetId?.slice(0, 8)}
-													<ExternalLinkIcon className="size-3 shrink-0" />
+													<ExternalLinkIcon className="shrink-0 size-3" />
 												</a>
 											) : (
 												<span className="text-xs text-muted-foreground">
@@ -331,11 +331,11 @@ function CommentsTable() {
 										<Td>
 											<StatusPill tone={sl.tone}>{sl.label}</StatusPill>
 										</Td>
-										<Td className="text-xs whitespace-nowrap text-muted-foreground">
+										<Td className="text-xs text-muted-foreground whitespace-nowrap">
 											{new Date(comment.createdAt).toLocaleDateString("zh-CN")}
 										</Td>
 										<Td align="right">
-											<div className="flex items-center justify-end gap-1.5">
+											<div className="flex gap-1.5 justify-end items-center">
 												<EditCommentDialog comment={comment} onDone={refresh} />
 												<TogglePinButton comment={comment} onDone={refresh} />
 												{comment.status !== "hidden" && (
@@ -614,7 +614,7 @@ function DeleteCommentDialog({
 				</DialogHeader>
 				<div className="space-y-4">
 					<p className="text-sm text-muted-foreground">确定要删除此评论吗？</p>
-					<blockquote className="text-sm border-l-2 pl-3 text-muted-foreground italic">
+					<blockquote className="pl-3 text-sm italic text-muted-foreground border-l-2">
 						{comment.content.slice(0, 100)}
 					</blockquote>
 				</div>

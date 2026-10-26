@@ -220,10 +220,10 @@ function CollectionsTable() {
 												to={"/collections/$id"}
 												params={{ id: String(collection.id) }}
 												target="_blank"
-												className="inline-flex items-center gap-1 rounded text-sm font-medium text-primary transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+												className="inline-flex gap-1 items-center text-sm font-medium text-primary rounded transition-colors duration-200 hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 											>
 												{collection.title}
-												<ExternalLinkIcon className="size-3 shrink-0" />
+												<ExternalLinkIcon className="shrink-0 size-3" />
 											</Link>
 										</Td>
 										<Td>
@@ -232,13 +232,13 @@ function CollectionsTable() {
 										<Td>
 											<StatusPill tone={sl.tone}>{sl.label}</StatusPill>
 										</Td>
-										<Td className="text-xs whitespace-nowrap text-muted-foreground">
+										<Td className="text-xs text-muted-foreground whitespace-nowrap">
 											{new Date(collection.createdAt).toLocaleDateString(
 												"zh-CN",
 											)}
 										</Td>
 										<Td align="right">
-											<div className="flex items-center justify-end gap-1.5">
+											<div className="flex gap-1.5 justify-end items-center">
 												<EditCollectionDialog
 													collection={collection}
 													onDone={refresh}
@@ -314,7 +314,7 @@ function ProducerSearch({ selectedIds, onToggle }: ProducerSearchProps) {
 								type="button"
 								aria-label={`移除会社 ${pid}`}
 								onClick={() => onToggle(pid)}
-								className="ml-1 rounded transition-colors hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+								className="ml-1 rounded transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 							>
 								<X className="size-3" />
 							</button>
@@ -329,16 +329,16 @@ function ProducerSearch({ selectedIds, onToggle }: ProducerSearchProps) {
 				ariaLabel="搜索会社"
 			/>
 			{(results.length > 0 || searching) && (
-				<div className="max-h-40 divide-y overflow-y-auto rounded-xl ring-1 ring-border/60">
+				<div className="overflow-y-auto max-h-40 rounded-xl divide-y ring-1 ring-border/60">
 					{searching && results.length === 0 && (
-						<div className="flex items-center justify-center py-4">
-							<Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+						<div className="flex justify-center items-center py-4">
+							<Loader2Icon className="size-4 text-muted-foreground animate-spin" />
 						</div>
 					)}
 					{results.map((p) => (
 						<label
 							key={p.id}
-							className="flex cursor-pointer items-center gap-2 px-3 py-2 transition-colors hover:bg-muted/40"
+							className="flex gap-2 items-center px-3 py-2 transition-colors cursor-pointer hover:bg-muted/40"
 						>
 							<input
 								type="checkbox"
@@ -347,14 +347,14 @@ function ProducerSearch({ selectedIds, onToggle }: ProducerSearchProps) {
 								className="size-4"
 							/>
 							<div className="flex-1 min-w-0">
-								<span className="text-sm block truncate">{p.name}</span>
+								<span className="block text-sm truncate">{p.name}</span>
 								{p.latin && (
-									<span className="text-xs text-muted-foreground block truncate">
+									<span className="block text-xs text-muted-foreground truncate">
 										{p.latin}
 									</span>
 								)}
 							</div>
-							<span className="text-xs font-mono text-muted-foreground shrink-0">
+							<span className="shrink-0 font-mono text-xs text-muted-foreground">
 								{p.id}
 							</span>
 						</label>
@@ -431,7 +431,7 @@ function GameSearch({
 								type="button"
 								aria-label={`移除游戏 ${vid}`}
 								onClick={() => onRemove(vid)}
-								className="ml-1 rounded transition-colors hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+								className="ml-1 rounded transition-colors hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 							>
 								<X className="size-3" />
 							</button>
@@ -446,17 +446,17 @@ function GameSearch({
 				ariaLabel="搜索游戏"
 			/>
 			{(results.length > 0 || searching) && (
-				<div className="max-h-40 divide-y overflow-y-auto rounded-xl ring-1 ring-border/60">
+				<div className="overflow-y-auto max-h-40 rounded-xl divide-y ring-1 ring-border/60">
 					{searching && results.length === 0 && (
-						<div className="flex items-center justify-center py-4">
-							<Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+						<div className="flex justify-center items-center py-4">
+							<Loader2Icon className="size-4 text-muted-foreground animate-spin" />
 						</div>
 					)}
 					{results.map((g) => (
 						<button
 							key={g.id}
 							type="button"
-							className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-muted/40 disabled:opacity-50"
+							className="flex gap-2 items-center px-3 py-2 w-full text-left transition-colors hover:bg-muted/40 disabled:opacity-50"
 							disabled={selectedVids.includes(g.id)}
 							onClick={() => {
 								if (!selectedVids.includes(g.id)) {
@@ -467,11 +467,11 @@ function GameSearch({
 							}}
 						>
 							<div className="flex-1 min-w-0">
-								<span className="text-sm block truncate">
+								<span className="block text-sm truncate">
 									{g.title || g.alias || g.id}
 								</span>
 							</div>
-							<span className="text-xs font-mono text-muted-foreground shrink-0">
+							<span className="shrink-0 font-mono text-xs text-muted-foreground">
 								{g.id}
 							</span>
 						</button>
@@ -562,7 +562,7 @@ function CreateCollectionDialog({ onDone }: { onDone: () => void }) {
 	return (
 		<>
 			<Button onClick={() => setOpen(true)}>
-				<Plus className="size-4 mr-1" />
+				<Plus className="mr-1 size-4" />
 				新建合集
 			</Button>
 			<Dialog open={open} onOpenChange={setOpen}>
@@ -934,7 +934,7 @@ function DeleteCollectionDialog({
 						<p className="text-sm text-muted-foreground">
 							确定要删除此合集吗？
 						</p>
-						<blockquote className="text-sm border-l-2 pl-3 text-muted-foreground italic">
+						<blockquote className="pl-3 text-sm italic text-muted-foreground border-l-2">
 							{collection.title}
 						</blockquote>
 					</div>

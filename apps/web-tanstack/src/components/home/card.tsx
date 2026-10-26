@@ -325,23 +325,23 @@ function IdGameCardSkeleton({ ref, ...props }: ComponentProps<"div">) {
 	return (
 		<div ref={ref} {...props}>
 			<div className="flex gap-4 mt-10">
-				<Skeleton className="h-50 w-67.5 w-min-[270px]" />
+				<Skeleton className="w-67.5 w-min-[270px] h-50" />
 				<div className="space-y-4 w-full">
-					<Skeleton className="h-10 max-w-50" />
-					<Skeleton className="h-4 max-w-50" />
+					<Skeleton className="max-w-50 h-10" />
+					<Skeleton className="max-w-50 h-4" />
 					{SKELETON_KEYS.map((key) => (
-						<Skeleton className="h-4 w-full" key={key} />
+						<Skeleton className="w-full h-4" key={key} />
 					))}
 				</div>
 			</div>
 			<div className="space-y-4">
 				<div className="flex gap-2">
 					{SKELETON_KEYS.map((key) => (
-						<Skeleton className="h-7 w-12.5" key={key} />
+						<Skeleton className="w-12.5 h-7" key={key} />
 					))}
 				</div>
 				{SKELETON_KEYS.map((key) => (
-					<Skeleton className="h-4 w-3/5" key={key} />
+					<Skeleton className="w-3/5 h-4" key={key} />
 				))}
 			</div>
 		</div>
@@ -350,8 +350,8 @@ function IdGameCardSkeleton({ ref, ...props }: ComponentProps<"div">) {
 
 function GameSkeleton({ ref, ...props }: ComponentProps<"div">) {
 	return (
-		<div className="space-y-2 aspect-[9/13] p-0" ref={ref} {...props}>
-			<Skeleton className="h-full w-full inset-0 rounded-lg border bg-muted shadow" />
+		<div className="aspect-[9/13] p-0 space-y-2" ref={ref} {...props}>
+			<Skeleton className="inset-0 w-full h-full bg-muted rounded-lg border shadow" />
 			<Skeleton className="flex p-2 w-full shadow" />
 		</div>
 	);
@@ -378,7 +378,7 @@ export function Images({
 	return (
 		<AspectRatio
 			ratio={ratio}
-			className="w-full overflow-hidden rounded-lg border bg-muted shadow"
+			className="overflow-hidden w-full bg-muted rounded-lg border shadow"
 		>
 			<div className="relative w-full h-full">
 				<ThumbHashImage
@@ -392,12 +392,12 @@ export function Images({
 						className={`absolute inset-0 flex flex-col items-center justify-center z-10 rounded-lg text-center px-2 pb-12 ${coarse ? "bg-black/40" : "bg-black/40 backdrop-blur-sm"}`}
 					>
 						<span className="text-2xl font-semibold text-white">涩！</span>
-						<span className="text-white/70 text-xs mt-1">
+						<span className="mt-1 text-xs text-white/70">
 							图片包含不宜在公共场合查看的内容喵～
 						</span>
 						<Button
 							size="sm"
-							className="absolute bottom-2 right-2"
+							className="absolute right-2 bottom-2"
 							onClick={() => setRevealed(true)}
 						>
 							显示
@@ -441,7 +441,7 @@ function SensitiveImage({
 	const ratio = getImageRatio(w, h, DETAIL_IMAGE_RATIO);
 
 	return (
-		<AspectRatio ratio={ratio} className="w-full overflow-hidden rounded-lg">
+		<AspectRatio ratio={ratio} className="overflow-hidden w-full rounded-lg">
 			<div className="relative w-full h-full">
 				<ThumbHashImage
 					{...imageProps}
@@ -454,12 +454,12 @@ function SensitiveImage({
 						className={`absolute inset-0 flex flex-col items-center justify-center z-10 rounded-lg text-center px-2 pb-12 ${coarse ? "bg-black/40" : "bg-black/40 backdrop-blur-sm"}`}
 					>
 						<span className="text-2xl font-semibold text-white">涩！</span>
-						<span className="text-white/70 text-xs mt-1">
+						<span className="mt-1 text-xs text-white/70">
 							图片包含不宜在公共场合查看的内容喵～
 						</span>
 						<Button
 							size="sm"
-							className="absolute bottom-2 right-2"
+							className="absolute right-2 bottom-2"
 							onClick={reveal}
 						>
 							显示
@@ -517,7 +517,7 @@ function ItemInner({
 	// 且 inline transform 覆盖不了它）；桌面保持现状。
 	const hoverClasses = coarse
 		? ""
-		: " hover:scale-105 transition duration-500 ease-out";
+		: " transition duration-500 ease-out hover:scale-105";
 	// 仅用视口预取（内部有 MAX_CONCURRENT 并发队列）：进入视口才预热详情，
 	// 未请求过的条目点击也秒开，且不触发 view 计数（onEnter 仅在真实进入页面时计）。
 	// 注意：不要再叠加挂载即 idle 预取 —— 「加载更多」一次性挂载几十张卡时
@@ -585,7 +585,7 @@ function ItemInner({
 				// 不再用卡级 [content-visibility:auto]：行级虚拟化 + measureElement
 				// 已裁剪渲染范围，卡级 CVA 的 contain-intrinsic-size 估算与实测行高
 				// 不一致会叠加出测量噪声（RO 全量修正 + 滚动补偿），直接移除。
-				className="block relative overflow-hidden rounded-xl"
+				className="block overflow-hidden relative rounded-xl"
 				style={
 					hasVT ? { viewTransitionName: `game-cover-${gameid}` } : undefined
 				}
@@ -610,12 +610,12 @@ function ItemInner({
 							className={`absolute inset-0 flex flex-col items-center justify-center z-10 rounded-xl text-center px-2 pb-12 ${coarse ? "bg-black/40" : "bg-black/40 backdrop-blur-sm"}`}
 						>
 							<span className="text-2xl font-semibold text-white">涩！</span>
-							<span className="text-white/70 text-xs mt-1">
+							<span className="mt-1 text-xs text-white/70">
 								图片包含不宜在公共场合查看的内容喵～
 							</span>
 							<Button
 								size="sm"
-								className="absolute bottom-2 right-2"
+								className="absolute right-2 bottom-2"
 								onClick={(e) => {
 									e.preventDefault();
 									e.stopPropagation();
@@ -630,7 +630,7 @@ function ItemInner({
 			</AspectRatio>
 			<p
 				ref={titleRef}
-				className="mx-auto w-fit max-w-full truncate px-2 pt-2 text-center text-xs text-foreground/85 transition-colors duration-200 group-hover/game-card:text-primary sm:text-sm"
+				className="px-2 pt-2 mx-auto w-fit max-w-full text-xs text-center text-foreground/85 truncate transition-colors duration-200 group-hover/game-card:text-primary sm:text-sm"
 				style={
 					hasVT
 						? {

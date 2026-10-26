@@ -142,14 +142,14 @@ export default function ProducersPage({
 							key={producer.id}
 							to="/producer/$pid"
 							params={{ pid: producer.id }}
-							className="group rounded-2xl no-underline outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+							className="group no-underline rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 						>
 							<Card className="h-full transition-colors duration-200 group-hover:bg-muted/40 group-hover:ring-border">
 								<CardHeader>
 									<CardTitle className="text-base">{producer.name}</CardTitle>
 								</CardHeader>
 								{(producer.latin || producer.original || producer.alias) && (
-									<CardContent className="line-clamp-2 pt-0 text-sm text-muted-foreground">
+									<CardContent className="pt-0 text-sm line-clamp-2 text-muted-foreground">
 										{producer.latin || producer.original || producer.alias}
 									</CardContent>
 								)}

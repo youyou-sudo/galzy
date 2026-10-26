@@ -46,11 +46,11 @@ function ArticleLink({ item, gameId }: { item: any; gameId: string }) {
 			to="/$id/introduction/$articleId"
 			params={{ id: gameId, articleId: String(item.id) }}
 			resetScroll={false}
-			className="flex min-w-0 flex-1 items-center gap-2 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-inset"
+			className="flex flex-1 gap-2 items-center py-2.5 min-w-0 text-sm outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
 		>
 			<NotepadText
 				aria-hidden="true"
-				className="size-4 shrink-0 text-muted-foreground"
+				className="shrink-0 size-4 text-muted-foreground"
 			/>
 			<span
 				className="truncate"
@@ -62,12 +62,12 @@ function ArticleLink({ item, gameId }: { item: any; gameId: string }) {
 				{item.title}
 			</span>
 			{item.status === "pending" && (
-				<Badge variant="outline" className="ml-2 shrink-0 text-warning">
+				<Badge variant="outline" className="shrink-0 ml-2 text-warning">
 					待审核
 				</Badge>
 			)}
 			{item.status === "rejected" && (
-				<Badge variant="secondary" className="ml-2 shrink-0">
+				<Badge variant="secondary" className="shrink-0 ml-2">
 					已驳回
 				</Badge>
 			)}
@@ -188,7 +188,7 @@ export default function IntroductionPage({
 							<li
 								key={item.id}
 								className={cn(
-									"group/row -mx-2 flex items-center justify-between gap-2 rounded-xl px-2",
+									"group/row flex gap-2 justify-between items-center px-2 -mx-2 rounded-xl",
 									"transition-colors duration-200 hover:bg-muted/40",
 								)}
 							>
@@ -196,7 +196,7 @@ export default function IntroductionPage({
 
 								{/* Admin / author action buttons：触屏常显，桌面 hover 才浮出 */}
 								{canEdit && (
-									<div className="flex shrink-0 items-center gap-1 opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-focus-within/row:opacity-100 sm:group-hover/row:opacity-100">
+									<div className="flex shrink-0 gap-1 items-center opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-focus-within/row:opacity-100 sm:group-hover/row:opacity-100">
 										<Tooltip>
 											<TooltipTrigger
 												render={

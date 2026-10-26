@@ -67,7 +67,7 @@ export function Pagination({
 					key={key}
 					variant="outline"
 					size="sm"
-					className="h-8 gap-1"
+					className="gap-1 h-8"
 					render={renderLink(target)}
 				>
 					{content}
@@ -79,7 +79,7 @@ export function Pagination({
 				key={key}
 				variant="outline"
 				size="sm"
-				className="h-8 gap-1"
+				className="gap-1 h-8"
 				disabled={disabled}
 				onClick={() => go(target)}
 			>
@@ -92,26 +92,26 @@ export function Pagination({
 		<nav
 			aria-label="分页"
 			className={cn(
-				"flex items-center justify-center gap-2 pt-8",
+				"flex gap-2 justify-center items-center pt-8",
 				totalItems !== undefined && "sm:justify-between",
 				className,
 			)}
 		>
 			{totalItems !== undefined && (
-				<p className="hidden text-sm text-muted-foreground tabular-nums sm:block">
+				<p className="hidden text-sm tabular-nums text-muted-foreground sm:block">
 					共 {totalItems} 条
 				</p>
 			)}
-			<div className="flex items-center gap-2">
+			<div className="flex gap-2 items-center">
 				{navButton("prev", "上一页", page - 1, page <= 1, ChevronLeft)}
 
 				{variant === "compact" || totalPages <= 1 ? (
-					<span className="px-1 text-sm text-muted-foreground tabular-nums">
+					<span className="px-1 text-sm tabular-nums text-muted-foreground">
 						{page} / {totalPages}
 					</span>
 				) : (
 					<>
-						<div className="hidden items-center gap-1 sm:flex">
+						<div className="hidden gap-1 items-center sm:flex">
 							{paginationRange(page, totalPages).map((item, index) =>
 								item === "…" ? (
 									<span
@@ -131,7 +131,7 @@ export function Pagination({
 								),
 							)}
 						</div>
-						<span className="px-1 text-sm text-muted-foreground tabular-nums sm:hidden">
+						<span className="px-1 text-sm tabular-nums text-muted-foreground sm:hidden">
 							{page} / {totalPages}
 						</span>
 					</>
@@ -160,7 +160,7 @@ function PageNumber({
 	renderLink?: (page: number) => ReactElement;
 	onPageChange?: (page: number) => void;
 }) {
-	const className = "h-8 min-w-9 px-2 tabular-nums";
+	const className = "px-2 min-w-9 h-8 tabular-nums";
 	if (renderLink) {
 		return (
 			<Button

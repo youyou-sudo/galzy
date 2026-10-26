@@ -213,7 +213,7 @@ function StatCards({ stats }: { stats: TaskStats | undefined }) {
 		<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
 			{cards.map((c) => (
 				<Card key={c.key}>
-					<CardContent className="flex items-center gap-3 p-4">
+					<CardContent className="flex gap-3 items-center p-4">
 						<IconTile icon={c.icon} size="sm" tone={c.tone} />
 						<div>
 							<p className="text-xs text-muted-foreground">{c.label}</p>
@@ -233,7 +233,7 @@ function QueueStatusStrip({ queues }: { queues: QueueStatsRow[] | undefined }) {
 	return (
 		<Card>
 			<CardHeader className="pb-3">
-				<CardTitle className="flex items-center gap-2.5 text-base">
+				<CardTitle className="flex gap-2.5 items-center text-base">
 					<IconTile icon={ActivityIcon} size="sm" />
 					队列实时状态
 				</CardTitle>
@@ -245,14 +245,14 @@ function QueueStatusStrip({ queues }: { queues: QueueStatsRow[] | undefined }) {
 					return (
 						<div
 							key={q.queue}
-							className="flex flex-col gap-1.5 rounded-xl p-3 ring-1 ring-border/60"
+							className="flex flex-col gap-1.5 p-3 rounded-xl ring-1 ring-border/60"
 						>
-							<div className="flex items-center gap-1.5">
+							<div className="flex gap-1.5 items-center">
 								<span
 									className={cn(
 										"size-2 rounded-full",
 										hasActive
-											? "animate-pulse bg-success"
+											? "bg-success animate-pulse"
 											: hasPending
 												? "bg-warning"
 												: "bg-neutral/50",
@@ -262,7 +262,7 @@ function QueueStatusStrip({ queues }: { queues: QueueStatsRow[] | undefined }) {
 									{queueLabels[q.queue] ?? q.queue}
 								</span>
 							</div>
-							<div className="flex items-center gap-3 text-xs text-muted-foreground">
+							<div className="flex gap-3 items-center text-xs text-muted-foreground">
 								<span>
 									运行{" "}
 									<span className="font-medium tabular-nums">{q.active}</span>
@@ -337,7 +337,7 @@ function TaskDetailDrawer({
 		<Drawer open={!!job} onOpenChange={(open) => !open && onClose()}>
 			<DrawerContent className="overflow-hidden">
 				<DrawerHeader>
-					<DrawerTitle className="flex items-center gap-2">
+					<DrawerTitle className="flex gap-2 items-center">
 						任务详情
 						<JobStatusPill status={job.status} />
 					</DrawerTitle>
@@ -346,36 +346,36 @@ function TaskDetailDrawer({
 					</DrawerDescription>
 				</DrawerHeader>
 
-				<div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4">
+				<div className="overflow-y-auto flex-1 px-4 pb-4 space-y-4">
 					{/* 基本信息 */}
 					<div className="grid grid-cols-2 gap-3 text-sm">
 						<div>
-							<span className="text-muted-foreground text-xs">队列</span>
+							<span className="text-xs text-muted-foreground">队列</span>
 							<p className="font-medium">
 								{queueLabels[job.queue] ?? job.queue}
 							</p>
 						</div>
 						<div>
-							<span className="text-muted-foreground text-xs">类型</span>
+							<span className="text-xs text-muted-foreground">类型</span>
 							<p className="font-medium">{payloadType}</p>
 						</div>
 						<div>
-							<span className="text-muted-foreground text-xs">任务 ID</span>
+							<span className="text-xs text-muted-foreground">任务 ID</span>
 							<p className="font-mono text-xs break-all">{job.id}</p>
 						</div>
 						<div>
-							<span className="text-muted-foreground text-xs">创建时间</span>
+							<span className="text-xs text-muted-foreground">创建时间</span>
 							<p className="font-medium">{formatTime(job.createdAt)}</p>
 						</div>
 						{job.startedAt && (
 							<div>
-								<span className="text-muted-foreground text-xs">开始</span>
+								<span className="text-xs text-muted-foreground">开始</span>
 								<p className="font-medium">{formatTime(job.startedAt)}</p>
 							</div>
 						)}
 						{job.finishedAt && (
 							<div>
-								<span className="text-muted-foreground text-xs">结束</span>
+								<span className="text-xs text-muted-foreground">结束</span>
 								<p className="font-medium">{formatTime(job.finishedAt)}</p>
 							</div>
 						)}
@@ -383,7 +383,7 @@ function TaskDetailDrawer({
 
 					{/* 进度 */}
 					<div className="space-y-2">
-						<div className="flex items-center justify-between text-xs text-muted-foreground">
+						<div className="flex justify-between items-center text-xs text-muted-foreground">
 							<span>进度</span>
 							<span>{job.progress}%</span>
 						</div>
@@ -392,8 +392,8 @@ function TaskDetailDrawer({
 
 					{/* 错误 */}
 					{job.error && (
-						<div className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive ring-1 ring-destructive/20">
-							<p className="font-medium flex items-center gap-1">
+						<div className="p-3 text-sm text-destructive bg-destructive/10 rounded-xl ring-1 ring-destructive/20">
+							<p className="flex gap-1 items-center font-medium">
 								<XCircleIcon className="size-4" />
 								失败原因
 							</p>
@@ -439,9 +439,9 @@ function TaskDetailDrawer({
 
 					{/* 结果 */}
 					{job.result && (
-						<div className="rounded-xl bg-muted/60 p-3 text-xs">
-							<p className="font-medium text-muted-foreground mb-1">结果</p>
-							<pre className="break-all whitespace-pre-wrap font-mono">
+						<div className="p-3 text-xs bg-muted/60 rounded-xl">
+							<p className="mb-1 font-medium text-muted-foreground">结果</p>
+							<pre className="font-mono break-all whitespace-pre-wrap">
 								{JSON.stringify(job.result, null, 2)}
 							</pre>
 						</div>
@@ -449,26 +449,26 @@ function TaskDetailDrawer({
 
 					{/* 日志 */}
 					<div>
-						<p className="text-sm font-medium mb-2">执行日志</p>
+						<p className="mb-2 text-sm font-medium">执行日志</p>
 						{logsQuery.isLoading ? (
-							<div className="flex items-center gap-2 text-muted-foreground text-sm py-4">
+							<div className="flex gap-2 items-center py-4 text-sm text-muted-foreground">
 								<Loader2Icon className="size-4 animate-spin" />
 								加载中...
 							</div>
 						) : logs.length > 0 ? (
-							<div className="max-h-80 space-y-1 overflow-y-auto rounded-xl bg-muted/60 p-3 font-mono text-xs">
+							<div className="overflow-y-auto p-3 space-y-1 max-h-80 font-mono text-xs bg-muted/60 rounded-xl">
 								{logs.map((log) => {
 									const lc = logLevelConfig[log.level] ?? logLevelConfig.info;
 									const LIcon = lc.icon;
 									return (
 										<div
 											key={log.id}
-											className={cn("flex items-start gap-1.5", lc.className)}
+											className={cn("flex gap-1.5 items-start", lc.className)}
 										>
-											<span className="text-muted-foreground/60 shrink-0">
+											<span className="shrink-0 text-muted-foreground/60">
 												{new Date(log.createdAt).toLocaleTimeString()}
 											</span>
-											{LIcon && <LIcon className="size-3 shrink-0 mt-0.5" />}
+											{LIcon && <LIcon className="shrink-0 mt-0.5 size-3" />}
 											<span className="break-all">{log.message}</span>
 										</div>
 									);
@@ -628,7 +628,7 @@ export default function TasksPage() {
 			{/* 手动触发 */}
 			<Card>
 				<CardHeader className="pb-3">
-					<CardTitle className="flex items-center gap-2.5 text-base">
+					<CardTitle className="flex gap-2.5 items-center text-base">
 						<IconTile icon={PlayIcon} size="sm" />
 						手动触发任务
 					</CardTitle>
@@ -661,9 +661,9 @@ export default function TasksPage() {
 			{/* 任务列表 */}
 			<Card>
 				<CardHeader className="pb-0">
-					<div className="flex flex-wrap items-center justify-between gap-3">
-						<div className="flex items-center gap-2">
-							<CardTitle className="text-base flex items-center gap-2">
+					<div className="flex flex-wrap gap-3 justify-between items-center">
+						<div className="flex gap-2 items-center">
+							<CardTitle className="flex gap-2 items-center text-base">
 								任务列表
 								{hasRunning && (
 									<StatusPill tone="info" icon={Loader2Icon} spin>
@@ -672,7 +672,7 @@ export default function TasksPage() {
 								)}
 							</CardTitle>
 						</div>
-						<div className="flex items-center gap-2">
+						<div className="flex gap-2 items-center">
 							<Select
 								value={queue}
 								onValueChange={(v) => {
@@ -717,7 +717,7 @@ export default function TasksPage() {
 										<Icon className="size-3.5" />
 										{tab.label}
 										{typeof count === "number" && count > 0 && (
-											<span className="text-xs text-muted-foreground tabular-nums">
+											<span className="text-xs tabular-nums text-muted-foreground">
 												{count}
 											</span>
 										)}
@@ -767,13 +767,13 @@ export default function TasksPage() {
 												<Td className="max-w-[260px]">
 													<button
 														type="button"
-														className="rounded text-left focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+														className="text-left rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 														onClick={() => setSelectedJob(job)}
 													>
 														<p className="text-sm font-medium truncate">
 															{typeLabels[job.type] ?? job.type}
 														</p>
-														<p className="text-xs text-muted-foreground font-mono truncate">
+														<p className="font-mono text-xs text-muted-foreground truncate">
 															{job.id}
 														</p>
 													</button>
@@ -784,21 +784,21 @@ export default function TasksPage() {
 													</Badge>
 												</Td>
 												<Td>
-													<div className="flex items-center gap-2">
+													<div className="flex gap-2 items-center">
 														<Progress
 															value={job.progress}
-															className="h-2 flex-1"
+															className="flex-1 h-2"
 														/>
-														<span className="text-xs text-muted-foreground tabular-nums w-8 text-right">
+														<span className="w-8 text-xs tabular-nums text-right text-muted-foreground">
 															{job.progress}%
 														</span>
 													</div>
 												</Td>
-												<Td className="text-xs whitespace-nowrap text-muted-foreground">
+												<Td className="text-xs text-muted-foreground whitespace-nowrap">
 													{formatTime(job.createdAt)}
 												</Td>
 												<Td align="right">
-													<div className="flex items-center justify-end gap-1">
+													<div className="flex gap-1 justify-end items-center">
 														{retryable && (
 															<Tooltip>
 																<TooltipTrigger

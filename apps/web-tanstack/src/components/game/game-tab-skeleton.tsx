@@ -43,12 +43,12 @@ function IntroductionTabSkeleton() {
 			<SectionHeader
 				icon={BookOpen}
 				title="攻略文章"
-				action={<Skeleton className="h-8 w-24 rounded-lg" />}
+				action={<Skeleton className="w-24 h-8 rounded-lg" />}
 			/>
 			<ul className="flex flex-col divide-y divide-border/60">
 				{(["w-3/5", "w-2/3", "w-1/2"] as const).map((width) => (
-					<li key={width} className="flex items-center gap-2 py-2.5">
-						<Skeleton className="size-4 shrink-0 rounded-sm" />
+					<li key={width} className="flex gap-2 items-center py-2.5">
+						<Skeleton className="shrink-0 size-4 rounded-sm" />
 						<Skeleton className={`h-4 ${width}`} />
 					</li>
 				))}
@@ -62,7 +62,7 @@ function TranslateTabSkeleton() {
 	return (
 		<div aria-hidden>
 			<SectionHeader icon={TrendingUp} title="总下载量" />
-			<Skeleton className="h-52 w-full rounded-xl" />
+			<Skeleton className="w-full h-52 rounded-xl" />
 		</div>
 	);
 }
@@ -78,7 +78,7 @@ function RelationsTabSkeleton() {
 				<div key={i} className="relative">
 					<GameCard.ListSkeleton />
 					{/* 关系标签底片 */}
-					<Skeleton className="absolute top-2 left-2 h-5 w-12 rounded-lg" />
+					<Skeleton className="absolute top-2 left-2 w-12 h-5 rounded-lg" />
 				</div>
 			))}
 		</div>
@@ -102,7 +102,7 @@ export function FileListSkeleton() {
 	return (
 		<div className="space-y-2" aria-hidden>
 			{/* 解压密码提示条 */}
-			<Skeleton className="h-9 w-full rounded-lg" />
+			<Skeleton className="w-full h-9 rounded-lg" />
 			{FILE_ROW_WIDTHS.map((width) => (
 				<Skeleton key={width} className={`h-7 rounded-md ${width}`} />
 			))}

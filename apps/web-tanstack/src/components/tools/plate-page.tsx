@@ -98,7 +98,7 @@ export default function RouteComponent() {
 
 	return (
 		<MotionConfig reducedMotion="user">
-			<section className="mx-auto w-full max-w-2xl py-6">
+			<section className="py-6 mx-auto w-full max-w-2xl">
 				<PageHeader
 					align="center"
 					icon={ExternalLink}
@@ -109,14 +109,14 @@ export default function RouteComponent() {
 				<div className="relative mb-8">
 					<Hash
 						aria-hidden="true"
-						className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground"
+						className="absolute top-1/2 left-4 size-5 text-muted-foreground -translate-y-1/2 pointer-events-none"
 					/>
 					<Input
 						value={plate}
 						onChange={(event) => setPlate(event.target.value)}
 						placeholder="输入车牌号..."
 						aria-label="车牌号"
-						className="h-12 rounded-2xl pl-12 text-lg"
+						className="pl-12 h-12 text-lg rounded-2xl"
 					/>
 				</div>
 
@@ -136,9 +136,9 @@ export default function RouteComponent() {
 								className="transition-colors duration-200 hover:ring-border"
 							>
 								<CardHeader className="pb-2">
-									<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-										<CardTitle className="flex items-center gap-2.5 text-base font-medium">
-											<span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">
+									<div className="flex flex-wrap gap-x-3 gap-y-2 items-center">
+										<CardTitle className="flex gap-2.5 items-center text-base font-medium">
+											<span className="flex shrink-0 justify-center items-center size-8 text-xs font-semibold text-primary bg-primary/10 rounded-lg">
 												{site.icon}
 											</span>
 											{site.name}
@@ -152,13 +152,13 @@ export default function RouteComponent() {
 														[site.id]: value,
 													}))
 												}
-												className="flex flex-row items-center gap-4"
+												className="flex flex-row gap-4 items-center"
 											>
 												{site.channels.map((item) => (
 													<label
 														key={item.id}
 														htmlFor={`plate-channel-${site.id}-${item.id}`}
-														className="flex cursor-pointer items-center gap-2 text-sm"
+														className="flex gap-2 items-center text-sm cursor-pointer"
 													>
 														<RadioGroupItem
 															id={`plate-channel-${site.id}-${item.id}`}
@@ -174,7 +174,7 @@ export default function RouteComponent() {
 								<CardContent className="pt-0">
 									{plate.trim() ? (
 										<>
-											<p className="mb-2 truncate text-xs text-muted-foreground">
+											<p className="mb-2 text-xs text-muted-foreground truncate">
 												{resolvedUrl(url)}
 											</p>
 											<Button

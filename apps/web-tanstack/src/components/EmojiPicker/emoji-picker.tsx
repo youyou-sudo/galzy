@@ -938,27 +938,27 @@ export default function KaomojiPicker({
 						<Button
 							variant="outline"
 							size="sm"
-							className="h-8 w-8 bg-transparent p-0"
+							className="p-0 w-8 h-8 bg-transparent"
 						/>
 					)
 				}
 			>
 				{trigger ? null : (
 					<>
-						<Smile className="h-4 w-4" />
+						<Smile className="w-4 h-4" />
 						<span className="sr-only">打开颜文字选择器</span>
 					</>
 				)}
 			</PopoverTrigger>
 			<PopoverContent
-				className="w-96 p-0"
+				className="p-0 w-96"
 				align="end"
 				onKeyDown={handleKeyDown}
 			>
 				{/* 搜索头部 */}
-				<div className="space-y-2 border-b p-3">
+				<div className="p-3 space-y-2 border-b">
 					<div className="relative">
-						<Search className="absolute top-2.5 left-2 h-4 w-4 text-muted-foreground" />
+						<Search className="absolute top-2.5 left-2 w-4 h-4 text-muted-foreground" />
 						<Input
 							ref={searchInputRef}
 							placeholder="搜索颜文字..."
@@ -971,7 +971,7 @@ export default function KaomojiPicker({
 
 					{/* 搜索结果计数 */}
 					{searchTerm && (
-						<div className="flex items-center justify-between text-xs text-muted-foreground">
+						<div className="flex justify-between items-center text-xs text-muted-foreground">
 							<span>找到 {filteredKaomojis.length} 个结果</span>
 							{filteredKaomojis.length > 0 && (
 								<Badge variant="secondary" className="text-xs">
@@ -995,8 +995,8 @@ export default function KaomojiPicker({
 								kaomojiGridRef={kaomojiGridRef}
 							/>
 						) : (
-							<div className="flex h-32 flex-col items-center justify-center text-muted-foreground">
-								<Search className="mb-2 h-8 w-8" />
+							<div className="flex flex-col justify-center items-center h-32 text-muted-foreground">
+								<Search className="mb-2 w-8 h-8" />
 								<p className="text-sm">未找到颜文字</p>
 								<p className="text-xs">请尝试其他搜索词</p>
 							</div>
@@ -1009,7 +1009,7 @@ export default function KaomojiPicker({
 						className="w-full"
 					>
 						<TabsList
-							className="grid h-auto w-full p-1"
+							className="grid p-1 w-full h-auto"
 							style={{
 								gridTemplateColumns: `repeat(${recentKaomojis.length > 0 ? Math.min(categories.length + 1, 4) : Math.min(categories.length, 4)}, 1fr)`,
 							}}
@@ -1021,9 +1021,9 @@ export default function KaomojiPicker({
 											<TabsTrigger
 												value="recent"
 												aria-label="最近使用"
-												className="flex items-center gap-1 px-2 py-1 text-xs"
+												className="flex gap-1 items-center px-2 py-1 text-xs"
 											>
-												<Clock className="h-3 w-3" />
+												<Clock className="w-3 h-3" />
 												<span className="hidden sm:inline">最近</span>
 											</TabsTrigger>
 										}
@@ -1042,9 +1042,9 @@ export default function KaomojiPicker({
 													<TabsTrigger
 														value={category}
 														aria-label={category}
-														className="flex items-center gap-1 px-2 py-1 text-xs"
+														className="flex gap-1 items-center px-2 py-1 text-xs"
 													>
-														<IconComponent className="h-3 w-3" />
+														<IconComponent className="w-3 h-3" />
 														<span className="hidden sm:inline">
 															{category.slice(0, 2)}
 														</span>
@@ -1062,8 +1062,8 @@ export default function KaomojiPicker({
 							<TabsContent value="recent" className="mt-0">
 								<ScrollArea className="h-72">
 									<div className="p-2">
-										<div className="mb-2 flex items-center gap-2 px-1">
-											<Clock className="h-4 w-4 text-muted-foreground" />
+										<div className="flex gap-2 items-center px-1 mb-2">
+											<Clock className="w-4 h-4 text-muted-foreground" />
 											<span className="text-sm font-medium">最近使用</span>
 										</div>
 										<div className="grid grid-cols-4 gap-1.5">
@@ -1074,7 +1074,7 @@ export default function KaomojiPicker({
 															<Button
 																variant="ghost"
 																size="sm"
-																className="h-auto min-h-9 px-2 py-1.5 text-xs whitespace-nowrap transition-colors hover:bg-accent"
+																className="px-2 py-1.5 h-auto min-h-9 text-xs whitespace-nowrap transition-colors hover:bg-accent"
 																onClick={() => handleKaomojiClick(kaomoji)}
 															>
 																<span
@@ -1101,12 +1101,12 @@ export default function KaomojiPicker({
 								<ScrollArea className="h-72">
 									{kaomojisByCategory[category]?.length > 0 ? (
 										<div className="p-2">
-											<div className="mb-2 flex items-center gap-2 px-1">
+											<div className="flex gap-2 items-center px-1 mb-2">
 												{(() => {
 													const IconComponent =
 														categoryIcons[category] || Smile;
 													return (
-														<IconComponent className="h-4 w-4 text-muted-foreground" />
+														<IconComponent className="w-4 h-4 text-muted-foreground" />
 													);
 												})()}
 												<span className="text-sm font-medium">{category}</span>
@@ -1123,7 +1123,7 @@ export default function KaomojiPicker({
 											/>
 										</div>
 									) : (
-										<div className="flex h-32 items-center justify-center text-muted-foreground">
+										<div className="flex justify-center items-center h-32 text-muted-foreground">
 											<p className="text-sm">此分类中没有颜文字</p>
 										</div>
 									)}

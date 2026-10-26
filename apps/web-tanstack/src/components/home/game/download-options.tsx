@@ -60,8 +60,8 @@ const UNZIP_PASSWORD = "玖辞";
 
 /** 弹窗内的解压密码：只读密码 + 复制按钮（顶部提示条与弹窗行共用一份） */
 const UnzipPassword = () => (
-	<span className="relative inline-flex items-center">
-		<span className="rounded-lg bg-muted/50 px-2 py-0.5 pr-8 font-medium ring-1 ring-border/60">
+	<span className="inline-flex relative items-center">
+		<span className="px-2 pr-8 py-0.5 font-medium bg-muted/50 rounded-lg ring-1 ring-border/60">
 			{UNZIP_PASSWORD}
 		</span>
 		<CopyButton
@@ -77,12 +77,12 @@ const UnzipPassword = () => (
 const UnzipPasswordAlert = () => {
 	return (
 		// flex + items-center：图标与文本在同一水平线上居中对齐；文本本身保持左对齐
-		<Alert className="mb-3 flex items-center gap-2 bg-muted/30 px-3 py-2 text-left text-sm">
+		<Alert className="flex gap-2 items-center px-3 py-2 mb-3 text-sm text-left bg-muted/30">
 			<Info
 				aria-hidden="true"
-				className="size-4 shrink-0 text-muted-foreground"
+				className="shrink-0 size-4 text-muted-foreground"
 			/>
-			<AlertDescription className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-left text-sm text-muted-foreground">
+			<AlertDescription className="flex flex-wrap gap-x-1.5 gap-y-1 items-center text-sm text-left text-muted-foreground">
 				<span>解压密码均为</span>
 				<UnzipPassword />
 			</AlertDescription>
@@ -276,7 +276,7 @@ export const DownCardDialog = () => {
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent
 				className={cn(
-					"max-h-[85%] overflow-y-auto",
+					"overflow-y-auto max-h-[85%]",
 					// 分卷列表里文件名很长（CJK + 宽字符 + 序号），窄弹窗会把它们挤成
 					// 竖条；分卷场景下放宽一档，配合更小的字号保证可读性。
 					data?.volumes && "sm:max-w-md",
@@ -287,22 +287,22 @@ export const DownCardDialog = () => {
 				</DialogHeader>
 
 				{data?.volumes ? (
-					<div className="flex w-full flex-col gap-1.5">
+					<div className="flex flex-col gap-1.5 w-full">
 						{data.children?.map((item: any) => (
 							<Item
 								key={item.id}
 								variant="outline"
-								className="gap-2 rounded-xl py-2 transition-colors duration-200 hover:bg-muted/40"
+								className="gap-2 py-2 rounded-xl transition-colors duration-200 hover:bg-muted/40"
 							>
 								{/* 与文件树保持一致的「文件图标 + 名称」行结构 */}
 								<ItemMedia
 									variant="icon"
-									className="size-8 rounded-lg bg-muted/60 text-muted-foreground ring-1 ring-border/60"
+									className="size-8 text-muted-foreground bg-muted/60 rounded-lg ring-1 ring-border/60"
 								>
 									<FileArchive className="size-4" strokeWidth={1.75} />
 								</ItemMedia>
 								<ItemContent className="min-w-0">
-									<ItemTitle className="line-clamp-2 w-full text-xs leading-snug break-all">
+									<ItemTitle className="w-full text-xs leading-snug line-clamp-2 break-all">
 										{item.name}
 									</ItemTitle>
 									<ItemDescription className="text-xs leading-none tabular-nums">
@@ -350,7 +350,7 @@ export const DownCardDialog = () => {
 											size="sm"
 										>
 											{downloadingMap[item?.id] ? (
-												<span className="flex items-center gap-1">
+												<span className="flex gap-1 items-center">
 													<svg
 														className="size-3.5 animate-spin"
 														viewBox="0 0 24 24"
@@ -372,7 +372,7 @@ export const DownCardDialog = () => {
 													请求中
 												</span>
 											) : (
-												<div className="flex items-center gap-1">
+												<div className="flex gap-1 items-center">
 													<Download />
 													下载
 												</div>
@@ -383,11 +383,11 @@ export const DownCardDialog = () => {
 							</Item>
 						))}
 
-						<DialogDescription className="mt-2 text-center text-xs">
+						<DialogDescription className="mt-2 text-xs text-center">
 							<span>全部下载到同一目录后，解压第一个分卷（part1 / .001）</span>
 						</DialogDescription>
 
-						<div className="mt-2 flex items-center justify-center gap-1.5">
+						<div className="flex gap-1.5 justify-center items-center mt-2">
 							<span className="text-xs text-muted-foreground">解压密码：</span>
 							<UnzipPassword />
 						</div>
@@ -398,7 +398,7 @@ export const DownCardDialog = () => {
 							<IconTile icon={FileArchive} size="lg" tone="muted" />
 						</span>
 
-						<span className="text-center text-sm font-medium wrap-break-word">
+						<span className="text-sm font-medium text-center wrap-break-word">
 							{data?.name}
 						</span>
 
@@ -406,12 +406,12 @@ export const DownCardDialog = () => {
 							<span className="tabular-nums">{data?.size || `未知大小`}</span>
 						</DialogDescription>
 
-						<div className="mt-2 flex items-center justify-center gap-1.5">
+						<div className="flex gap-1.5 justify-center items-center mt-2">
 							<span className="text-sm text-muted-foreground">解压密码：</span>
 							<UnzipPassword />
 						</div>
 
-						<DialogFooter className="flex-row justify-center gap-2 sm:justify-center">
+						<DialogFooter className="flex-row gap-2 justify-center sm:justify-center">
 							<AnimateIcon animateOnHover>
 								<Button
 									variant="outline"
@@ -451,8 +451,8 @@ export const DownCardDialog = () => {
 									variant="outline"
 								>
 									{downloadingMap[data?.id || ""] ? (
-										<span className="flex items-center gap-2">
-											<svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+										<span className="flex gap-2 items-center">
+											<svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24">
 												<circle
 													className="opacity-25"
 													cx="12"
@@ -470,7 +470,7 @@ export const DownCardDialog = () => {
 											请求中
 										</span>
 									) : (
-										<div className="flex items-center gap-1">
+										<div className="flex gap-1 items-center">
 											<Download />
 											下载
 										</div>
@@ -484,7 +484,7 @@ export const DownCardDialog = () => {
 					</>
 				)}
 				{data?.redame && (
-					<div className="max-h-96 overflow-y-auto rounded-xl bg-muted/20 p-3 wrap-break-word ring-1 ring-border/60">
+					<div className="overflow-y-auto p-3 max-h-96 wrap-break-word bg-muted/20 rounded-xl ring-1 ring-border/60">
 						{!mdReady && (
 							<div className="space-y-2">
 								{Array.from({ length: 3 }).map((_, i) => (

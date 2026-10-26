@@ -193,7 +193,7 @@ export default function ProfileTab({
 				<Tooltip>
 					<TooltipTrigger
 						render={
-							<div className="flex h-9 w-full min-w-0 items-center rounded-xl border border-input bg-input/30 px-3 text-sm text-muted-foreground break-all dark:bg-input/80" />
+							<div className="flex items-center px-3 w-full min-w-0 h-9 text-sm break-all text-muted-foreground bg-input/30 rounded-xl border border-input dark:bg-input/80" />
 						}
 					>
 						{user.email ?? "未设置邮箱"}
@@ -210,7 +210,7 @@ export default function ProfileTab({
 			<div className="space-y-3">
 				<div>
 					<h4 className="text-sm font-medium">关联账户</h4>
-					<p className="text-xs text-muted-foreground mt-1">
+					<p className="mt-1 text-xs text-muted-foreground">
 						绑定第三方账户以便快速登录喵。
 					</p>
 				</div>
@@ -227,9 +227,9 @@ export default function ProfileTab({
 						return (
 							<div
 								key={provider.id}
-								className="flex items-center justify-between rounded-xl bg-card/60 p-3 ring-1 ring-border/60"
+								className="flex justify-between items-center p-3 bg-card/60 rounded-xl ring-1 ring-border/60"
 							>
-								<div className="flex items-center gap-3">
+								<div className="flex gap-3 items-center">
 									{provider.iconType === "fa" ? (
 										<provider.Icon className="size-5" />
 									) : (
@@ -244,9 +244,9 @@ export default function ProfileTab({
 									<div>
 										<p className="text-sm font-medium">{provider.name}</p>
 										{isAccountsPending ? (
-											<Skeleton className="mt-1 h-3 w-10" />
+											<Skeleton className="mt-1 w-10 h-3" />
 										) : (
-											<div className="text-xs text-muted-foreground flex items-center gap-1">
+											<div className="flex gap-1 items-center text-xs text-muted-foreground">
 												{isLinked ? (
 													<>
 														已绑定
@@ -256,7 +256,7 @@ export default function ProfileTab({
 																linkedAccount!.accountId,
 															);
 															if (q?.isPending) {
-																return <Skeleton className="h-3 w-12" />;
+																return <Skeleton className="w-12 h-3" />;
 															}
 															if (q?.data) {
 																return (
@@ -306,7 +306,7 @@ export default function ProfileTab({
 						);
 					})}
 
-					<p className="text-xs text-muted-foreground mt-1">
+					<p className="mt-1 text-xs text-muted-foreground">
 						如果已经通过第三方登陆创建过账户，且邮件不一样，请联系管理员喵～
 					</p>
 				</div>

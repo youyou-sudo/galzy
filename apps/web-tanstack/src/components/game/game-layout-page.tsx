@@ -51,8 +51,8 @@ export default function GameLayoutPage({
 		<div className="space-y-2">
 			{/* 概览卡：桌面左右两栏（信息 / 封面），移动端封面在前。
 			    pb-0 交给 TagsCard 自己的下边距，避免卡片底部多出一截空白 */}
-			<Card className="wrap-break-word py-0 ring-border/60">
-				<CardContent className="grid gap-4 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-5 sm:px-5">
+			<Card className="py-0 wrap-break-word ring-border/60">
+				<CardContent className="grid gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-5 sm:px-5">
 					<div className="order-2 min-w-0 sm:order-1">
 						<GameTitle game={game} id={id} />
 						<GameInfo game={game} gameId={id} />

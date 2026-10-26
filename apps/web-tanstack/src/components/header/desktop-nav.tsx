@@ -18,23 +18,23 @@ import type { HeaderNavItem, HeaderNavKey } from "./nav-config";
 
 /** 扁平链接与下拉触发器共用一套排版：同高同圆角，只差展开箭头 */
 const navItemClass = cn(
-	"h-8 gap-1.5 rounded-lg px-3 text-sm font-medium",
+	"gap-1.5 px-3 h-8 text-sm font-medium rounded-lg",
 	// 透明态颜色由 useHeaderTone 写进 .galzy-site-header 的变量；
 	// 滚动成玻璃药丸后 data-header-tone 移除，变量回退到主题色。
 	"text-[color:var(--header-muted)] transition-colors duration-200",
-	"hover:bg-[var(--header-hover)] hover:text-[color:var(--header-hover-fg)]",
-	"focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none",
+	"hover:text-[color:var(--header-hover-fg)] hover:bg-[var(--header-hover)]",
+	"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
 );
 
 /** 当前页高亮：TanStack Link 命中时自带 data-status="active" */
 const flatLinkClass = cn(
 	navItemClass,
-	"data-[status=active]:bg-[var(--header-hover)] data-[status=active]:text-[color:var(--header-fg)]",
+	"data-[status=active]:text-[color:var(--header-fg)] data-[status=active]:bg-[var(--header-hover)]",
 );
 
 const triggerClass = cn(
 	navItemClass,
-	"data-popup-open:bg-[var(--header-hover)] data-popup-open:text-[color:var(--header-fg)]",
+	"data-popup-open:text-[color:var(--header-fg)] data-popup-open:bg-[var(--header-hover)]",
 );
 
 /** 面板行的 render 目标：站外用 <a>，站内用 Link（保留预取） */
@@ -54,13 +54,13 @@ function PanelRow({ item }: { item: HeaderNavItem }) {
 	return (
 		<li>
 			<NavigationMenuLink
-				className="group/row h-auto w-full items-start gap-3 rounded-xl p-2.5 hover:bg-muted/70"
+				className="group/row gap-3 items-start p-2.5 w-full h-auto rounded-xl hover:bg-muted/70"
 				render={panelRenderTarget(item)}
 			>
-				<span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted/70 text-muted-foreground transition-colors group-hover/row:bg-background group-hover/row:text-foreground">
+				<span className="flex shrink-0 justify-center items-center size-8 text-muted-foreground bg-muted/70 rounded-lg transition-colors group-hover/row:text-foreground group-hover/row:bg-background">
 					<Icon className="size-4" />
 				</span>
-				<span className="flex min-w-0 flex-col items-start gap-0.5">
+				<span className="flex flex-col gap-0.5 items-start min-w-0">
 					<span className="text-sm font-medium">{item.label}</span>
 					<span className="text-xs font-normal text-muted-foreground">
 						{item.description}
@@ -123,7 +123,7 @@ export function DesktopNav() {
 								className={cn(
 									triggerClass,
 									activeMenu === entry.id &&
-										"bg-[var(--header-hover)] text-[color:var(--header-fg)]",
+										"text-[color:var(--header-fg)] bg-[var(--header-hover)]",
 								)}
 							>
 								{entry.label}

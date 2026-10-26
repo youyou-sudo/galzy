@@ -192,7 +192,7 @@ function CategoryTagList({
 			/>
 
 			{/* 排序条：与游戏列表同一条发丝底工具条，垂直节奏一致 */}
-			<div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl bg-muted/40 px-3 py-2 ring-1 ring-border/60">
+			<div className="flex flex-wrap gap-2 items-center px-3 py-2 mb-4 bg-muted/40 rounded-2xl ring-1 ring-border/60">
 				<TagSortBar
 					scope="category"
 					categoryKey={category.key}
@@ -213,16 +213,16 @@ function CategoryTagList({
 					<ul
 						aria-busy={isSorting}
 						className={cn(
-							"mt-2 grid grid-cols-2 gap-x-7 transition-opacity duration-200 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]",
+							"grid grid-cols-2 gap-x-7 mt-2 transition-opacity duration-200 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]",
 							// 换筛选时旧顺序留在原位但变暗、不可点
-							isSorting && "pointer-events-none opacity-40",
+							isSorting && "opacity-40 pointer-events-none",
 						)}
 					>
 						{items}
 					</ul>
 					{isSorting && (
-						<div className="pointer-events-none absolute inset-x-0 top-16 flex justify-center">
-							<Loader2Icon className="size-6 animate-spin text-muted-foreground" />
+						<div className="flex absolute inset-x-0 top-16 justify-center pointer-events-none">
+							<Loader2Icon className="size-6 text-muted-foreground animate-spin" />
 						</div>
 					)}
 				</div>
@@ -250,9 +250,9 @@ const TagRow = memo(function TagRow({ tag }: { tag: TagHubTag }) {
 							params={{ tagId: tag.id }}
 							// 点击时回写展示名，标签详情 pending 态复用
 							onClick={() => tagHeroActions.fromTag(tag)}
-							className="-mx-1.5 flex items-baseline gap-3 rounded-sm border-b border-border/70 px-1.5 py-[5px] text-xs leading-[18px] no-underline transition-colors duration-200 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+							className="flex gap-3 items-baseline px-1.5 py-[5px] -mx-1.5 text-xs leading-[18px] no-underline rounded-sm border-b border-border/70 transition-colors duration-200 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 						>
-							<span className="min-w-0 flex-1 truncate">{tag.name}</span>
+							<span className="flex-1 min-w-0 truncate">{tag.name}</span>
 							{tag.vnCount > 0 && (
 								<span className="shrink-0 font-mono tabular-nums text-muted-foreground/80">
 									{tag.vnCount}
@@ -294,12 +294,12 @@ export function TagCategoryPageSkeleton({
 				meta={
 					<span
 						aria-hidden
-						className="inline-block h-4 w-12 rounded bg-muted"
+						className="inline-block w-12 h-4 bg-muted rounded"
 					/>
 				}
 			/>
 
-			<div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl bg-muted/40 px-3 py-2 ring-1 ring-border/60">
+			<div className="flex flex-wrap gap-2 items-center px-3 py-2 mb-4 bg-muted/40 rounded-2xl ring-1 ring-border/60">
 				<TagSortBar
 					scope="category"
 					categoryKey={categoryKey}
@@ -310,10 +310,10 @@ export function TagCategoryPageSkeleton({
 
 			<div
 				aria-hidden
-				className="mt-2 grid grid-cols-2 gap-x-7 gap-y-[9px] sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]"
+				className="grid grid-cols-2 gap-x-7 gap-y-[9px] mt-2 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]"
 			>
 				{Array.from({ length: 24 }, (_, i) => (
-					<Skeleton key={i} className="h-4 w-full" />
+					<Skeleton key={i} className="w-full h-4" />
 				))}
 			</div>
 		</section>

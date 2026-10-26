@@ -61,7 +61,7 @@ export function CollectionsSection() {
 	return (
 		<section className="mb-8">
 			<CollectionsSectionHeader />
-			<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+			<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
 				{collections.map((col) => (
 					<CollectionItem key={col.id} collection={col} />
 				))}
@@ -75,7 +75,7 @@ export function CollectionsSectionSkeleton() {
 	return (
 		<section className="mb-8">
 			<CollectionsSectionHeader />
-			<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+			<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
 				{COLLECTION_SKELETON_KEYS.map((key) => (
 					<CollectionItemSkeleton key={key} />
 				))}

@@ -79,7 +79,7 @@ export function GameDetailPending({ id }: { id: string }) {
 						) : (
 							// 唯一允许的面包屑占位：条目名必须等 loader 返回，
 							// 列表没给到标题时只在这里放一个词宽的骨架，不伪造文案。
-							<Skeleton aria-hidden className="h-4 w-24" />
+							<Skeleton aria-hidden className="w-24 h-4" />
 						)}
 					</BreadcrumbItem>
 				</BreadcrumbList>
@@ -88,8 +88,8 @@ export function GameDetailPending({ id }: { id: string }) {
 			<div className="space-y-3">
 				{/* 与 game-layout-page 完全一致的卡片外壳：首屏结构稳定，
 				    数据返回时只替换卡片内部字段，不再整页重排 */}
-				<Card className="wrap-break-word py-0 ring-border/60">
-					<CardContent className="grid gap-5 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-7 sm:px-6 sm:py-5">
+				<Card className="py-0 wrap-break-word ring-border/60">
+					<CardContent className="grid gap-5 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-7 sm:px-6 sm:py-5">
 						<div className="order-2 min-w-0 sm:order-1">
 							<PendingGameTitle hero={hero} id={id} />
 							<PendingGameInfo />
@@ -134,16 +134,16 @@ export function PendingGameCover({
 	if (!hero) {
 		return (
 			<div className="relative mx-auto w-fit text-center sm:mx-0 sm:text-right">
-				<div className="relative inline-block">
-					<div className="relative w-48 overflow-hidden rounded-xl text-left ring-1 ring-border/60">
+				<div className="inline-block relative">
+					<div className="overflow-hidden relative w-48 text-left rounded-xl ring-1 ring-border/60">
 						<AspectRatio
 							aria-hidden
 							ratio={COVER_FALLBACK_RATIO}
-							className="w-full overflow-hidden rounded-lg"
+							className="overflow-hidden w-full rounded-lg"
 						>
 							<Skeleton
 								aria-hidden
-								className="absolute inset-0 h-full w-full rounded-lg"
+								className="absolute inset-0 w-full h-full rounded-lg"
 							/>
 						</AspectRatio>
 					</div>
@@ -161,7 +161,7 @@ export function PendingGameCover({
 
 	return (
 		<div className="relative mx-auto w-fit text-center sm:mx-0 sm:text-right">
-			<div className="relative inline-block max-w-full">
+			<div className="inline-block relative max-w-full">
 				<div
 					className={coverClassName}
 					style={{ viewTransitionName: `game-cover-${id}` }}
@@ -177,7 +177,7 @@ export function PendingGameCover({
 						decoding="async"
 						alwaysAnimate={false}
 						cSexualAvg={hero.cSexualAvg}
-						className="rounded-lg w-full h-full object-cover"
+						className="object-cover w-full h-full rounded-lg"
 					/>
 				</div>
 			</div>
@@ -196,7 +196,7 @@ export function PendingGameTitle({
 	if (!hero) {
 		return (
 			<div className="min-w-0">
-				<Skeleton aria-hidden className="h-8 w-2/3 max-w-80" />
+				<Skeleton aria-hidden className="w-2/3 max-w-80 h-8" />
 			</div>
 		);
 	}
@@ -240,14 +240,14 @@ export function PendingGameHero({
 export function PendingGameInfo() {
 	return (
 		<>
-			<dl className="mt-4 grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1.5 text-sm">
+			<dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 items-baseline mt-4 text-sm">
 				{INFO_ROWS.map((label) => (
 					<div key={label} className="contents">
-						<dt className="w-8 shrink-0 pt-0.5 text-xs text-muted-foreground">
+						<dt className="shrink-0 pt-0.5 w-8 text-xs text-muted-foreground">
 							{label}
 						</dt>
 						<dd>
-							<Skeleton aria-hidden className="h-3.5 w-24" />
+							<Skeleton aria-hidden className="w-24 h-3.5" />
 						</dd>
 					</div>
 				))}
@@ -265,7 +265,7 @@ export function PendingGameInfo() {
 			</div>
 
 			{/* TAG 区：真实 TagsCard 自己按 tags 查询加载，这里只占位形状 */}
-			<div className="mt-4 mb-5 flex flex-wrap gap-1.5" aria-hidden>
+			<div className="flex flex-wrap gap-1.5 mt-4 mb-5" aria-hidden>
 				{TAG_WIDTHS.map((width) => (
 					<Skeleton key={width} className={`h-6 rounded-full ${width}`} />
 				))}

@@ -7,37 +7,37 @@ import remarkGfm from "remark-gfm";
 const commentComponents = {
 	h1: ({ className, ...props }: ComponentProps<"h1">) => (
 		<h1
-			className={cn("text-base font-semibold mt-2 mb-1", className)}
+			className={cn("mt-2 mb-1 text-base font-semibold", className)}
 			{...props}
 		/>
 	),
 	h2: ({ className, ...props }: ComponentProps<"h2">) => (
 		<h2
-			className={cn("text-sm font-semibold mt-2 mb-1", className)}
+			className={cn("mt-2 mb-1 text-sm font-semibold", className)}
 			{...props}
 		/>
 	),
 	h3: ({ className, ...props }: ComponentProps<"h3">) => (
 		<h3
-			className={cn("text-sm font-semibold mt-2 mb-1", className)}
+			className={cn("mt-2 mb-1 text-sm font-semibold", className)}
 			{...props}
 		/>
 	),
 	h4: ({ className, ...props }: ComponentProps<"h4">) => (
 		<h4
-			className={cn("text-sm font-medium mt-1.5 mb-0.5", className)}
+			className={cn("mt-1.5 mb-0.5 text-sm font-medium", className)}
 			{...props}
 		/>
 	),
 	h5: ({ className, ...props }: ComponentProps<"h5">) => (
 		<h5
-			className={cn("text-sm font-medium mt-1.5 mb-0.5", className)}
+			className={cn("mt-1.5 mb-0.5 text-sm font-medium", className)}
 			{...props}
 		/>
 	),
 	h6: ({ className, ...props }: ComponentProps<"h6">) => (
 		<h6
-			className={cn("text-sm font-medium mt-1.5 mb-0.5", className)}
+			className={cn("mt-1.5 mb-0.5 text-sm font-medium", className)}
 			{...props}
 		/>
 	),
@@ -45,10 +45,10 @@ const commentComponents = {
 		<p className={cn("my-0.5 first:mt-0 last:mb-0", className)} {...props} />
 	),
 	ul: ({ className, ...props }: ComponentProps<"ul">) => (
-		<ul className={cn("my-0.5 list-disc pl-4", className)} {...props} />
+		<ul className={cn("pl-4 my-0.5 list-disc", className)} {...props} />
 	),
 	ol: ({ className, ...props }: ComponentProps<"ol">) => (
-		<ol className={cn("my-0.5 list-decimal pl-4", className)} {...props} />
+		<ol className={cn("pl-4 my-0.5 list-decimal", className)} {...props} />
 	),
 	li: ({ className, ...props }: ComponentProps<"li">) => (
 		<li className={cn("my-0.5", className)} {...props} />
@@ -56,7 +56,7 @@ const commentComponents = {
 	blockquote: ({ className, ...props }: ComponentProps<"blockquote">) => (
 		<blockquote
 			className={cn(
-				"my-1 border-l-2 border-border/60 pl-3 text-muted-foreground",
+				"pl-3 my-1 text-muted-foreground border-l-2 border-border/60",
 				className,
 			)}
 			{...props}
@@ -65,7 +65,7 @@ const commentComponents = {
 	code: ({ className, ...props }: ComponentProps<"code">) => (
 		<code
 			className={cn(
-				"bg-muted px-1 py-0.5 rounded text-xs font-mono",
+				"px-1 py-0.5 font-mono text-xs bg-muted rounded",
 				className,
 			)}
 			{...props}
@@ -74,7 +74,7 @@ const commentComponents = {
 	pre: ({ className, ...props }: ComponentProps<"pre">) => (
 		<pre
 			className={cn(
-				"bg-muted p-2 rounded text-xs font-mono overflow-x-auto my-1",
+				"overflow-x-auto p-2 my-1 font-mono text-xs bg-muted rounded",
 				className,
 			)}
 			{...props}
@@ -99,7 +99,7 @@ const commentComponents = {
 	),
 	img: ({ className, alt, ...props }: ComponentProps<"img">) => (
 		<img
-			className={cn("rounded max-w-full my-1", className)}
+			className={cn("my-1 max-w-full rounded", className)}
 			alt={alt}
 			loading="lazy"
 			decoding="async"
@@ -115,7 +115,7 @@ const commentComponents = {
 	th: ({ className, ...props }: ComponentProps<"th">) => (
 		<th
 			className={cn(
-				"border border-border px-2 py-1 bg-muted font-medium text-left",
+				"px-2 py-1 font-medium text-left bg-muted border border-border",
 				className,
 			)}
 			{...props}
@@ -123,7 +123,7 @@ const commentComponents = {
 	),
 	td: ({ className, ...props }: ComponentProps<"td">) => (
 		<td
-			className={cn("border border-border px-2 py-1", className)}
+			className={cn("px-2 py-1 border border-border", className)}
 			{...props}
 		/>
 	),
@@ -135,7 +135,7 @@ export const CommentMarkdown = memo(function CommentMarkdown({
 	content: string;
 }) {
 	return (
-		<div className="text-sm text-foreground/80 break-words">
+		<div className="text-sm break-words text-foreground/80">
 			<Markdown
 				remarkPlugins={[remarkGfm]}
 				rehypePlugins={[rehypeRaw]}

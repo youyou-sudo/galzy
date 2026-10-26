@@ -135,7 +135,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <ScriptOnce>{`(function(){var b=window.__BUILD_ID__;if(!b)return;var c=!1;document.addEventListener('visibilitychange',function(){if(document.visibilityState!=='visible'||c)return;c=!0;fetch('/_build').then(function(r){return r.ok?r.json():Promise.reject(r)}).then(function(d){if(d.buildId&&d.buildId!==b)window.location.reload()}).catch(function(){}).finally(function(){c=!1})});window.addEventListener('unhandledrejection',function(e){var r=e.reason;if(!r)return;var m=r.message||String(r);if(m.indexOf('Server function info not found')!==-1||m.indexOf('STALE_CLIENT')!==-1)window.location.reload()})})()`}</ScriptOnce>
         <HeadContent />
       </head>
-      <body className="font-sans antialiased flex flex-col min-h-screen">
+      <body className="flex flex-col min-h-screen font-sans antialiased">
         <TanStackQueryProvider>
           {/* 后台路由使用独立的管理端布局（AdminShell），与用户端 Header/Footer/广告完全隔离 */}
           <TooltipProvider>
@@ -173,7 +173,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
       {/* 键盘用户跳过导航：与顶栏药丸同样用「默认隐藏、聚焦时浮出」的玻璃面板 */}
       <a
         href="#main-content"
-        className="fixed top-3 left-3 z-[100] -translate-y-20 rounded-xl bg-background px-4 py-2 text-sm font-medium shadow-lg ring-1 ring-border transition-transform duration-200 focus:translate-y-0 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+        className="fixed top-3 left-3 z-[100] px-4 py-2 text-sm font-medium bg-background rounded-xl ring-1 ring-border shadow-lg transition-transform duration-200 -translate-y-20 focus:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
       >
         跳到主内容
       </a>
@@ -185,12 +185,12 @@ function AppChrome({ children }: { children: React.ReactNode }) {
       <main
         id="main-content"
         tabIndex={-1}
-        className="mx-auto w-full max-w-7xl flex-1 px-4 pt-[var(--app-header-height)] outline-none sm:px-6"
+        className="flex-1 px-4 pt-[var(--app-header-height)] mx-auto w-full max-w-7xl outline-none sm:px-6"
       >
         {/* 广告：与正文同容器居中，不再用 lg:px-24 让图片比正文更窄 */}
         <aside
           id="sidebar-ad"
-          className="relative mx-auto mb-3 flex w-full max-w-5xl justify-center opacity-[0.65] transition-opacity duration-200 hover:opacity-90"
+          className="flex relative justify-center mx-auto mb-3 w-full max-w-5xl opacity-[0.65] transition-opacity duration-200 hover:opacity-90"
         >
           <a
             data-umami-event="广告点击"
@@ -199,7 +199,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
             target="_blank"
             rel="noopener noreferrer"
             href="https://umami.galzy.moe/q/KrhnTk4vg"
-            className="block w-full overflow-hidden rounded-xl ring-1 ring-border/50"
+            className="block overflow-hidden w-full rounded-xl ring-1 ring-border/50"
           >
             <div className="overflow-hidden sm:hidden">
               <Image
@@ -207,7 +207,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
                 height={120}
                 src="/dzmm.webp"
                 alt="dzmm 广告图片"
-                className="w-full object-cover scale-[1.03]"
+                className="object-cover w-full scale-[1.03]"
                 loading="lazy"
                 fetchPriority="low"
                 decoding="async"
@@ -219,7 +219,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
                 height={113}
                 src="/dzmm.webp"
                 alt="dzmm 广告图片"
-                className="w-full object-cover"
+                className="object-cover w-full"
                 loading="lazy"
                 fetchPriority="low"
                 decoding="async"
@@ -285,7 +285,7 @@ function DeferredBackground() {
   return (
     <div
       data-app-background=""
-      className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-30 dark:opacity-10"
+      className="fixed inset-0 -z-10 bg-center bg-cover bg-no-repeat opacity-30 dark:opacity-10"
       style={src ? { backgroundImage: `url("${src}")` } : undefined}
     />
   )

@@ -77,7 +77,7 @@ export function TagDetailPending({ tagId }: { tagId: string }) {
 							<BreadcrumbPage>{name}</BreadcrumbPage>
 						) : (
 							// 唯一允许的面包屑占位：入口没带名字时只在这里放一个词宽的骨架
-							<Skeleton aria-hidden className="h-4 w-20" />
+							<Skeleton aria-hidden className="w-20 h-4" />
 						)}
 					</BreadcrumbItem>
 				</BreadcrumbList>
@@ -88,8 +88,8 @@ export function TagDetailPending({ tagId }: { tagId: string }) {
 				    不会整块卡片重排 */}
 				<Card className="w-full">
 					<CardHeader>
-						<CardTitle className="text-2xl text-center items-center">
-							{name || <Skeleton aria-hidden className="mx-auto h-8 w-48" />}
+						<CardTitle className="items-center text-2xl text-center">
+							{name || <Skeleton aria-hidden className="mx-auto w-48 h-8" />}
 						</CardTitle>
 						{/* 简介：真实简介是一段 BBCode 富文本，这里只占三行 */}
 						<div className="space-y-1.5" aria-hidden>
@@ -124,7 +124,7 @@ export function TagDetailPending({ tagId }: { tagId: string }) {
 			</section>
 
 			{/* 小标题是静态文案，直接渲染真实内容（不参与加载态） */}
-			<div className="mt-6 mb-3 text-center text-xs text-muted-foreground">
+			<div className="mt-6 mb-3 text-xs text-center text-muted-foreground">
 				相关游戏，过滤自 VNDB
 			</div>
 			<section>
@@ -138,7 +138,7 @@ export function TagDetailPending({ tagId }: { tagId: string }) {
  *  骨架同样裁到一行，窄屏上数据到达时不会整块回缩几十像素 */
 export function ChildTagsSkeleton() {
 	return (
-		<div className="flex flex-wrap gap-1.5 max-h-6 overflow-hidden" aria-hidden>
+		<div className="flex overflow-hidden flex-wrap gap-1.5 max-h-6" aria-hidden>
 			{CHILD_TAG_WIDTHS.map((width) => (
 				<Skeleton key={width} className={`h-5 rounded-4xl ${width}`} />
 			))}
@@ -153,14 +153,14 @@ export function ChildTagsSkeleton() {
 export function TagHierarchySkeleton() {
 	return (
 		<div
-			className="relative mt-2 h-64 w-full overflow-hidden rounded-2xl border border-border/60 bg-muted/20"
+			className="overflow-hidden relative mt-2 w-full h-64 bg-muted/20 rounded-2xl border border-border/60"
 			aria-hidden
 		>
-			<Skeleton className="absolute top-2 left-2 h-5 w-40 rounded-full" />
-			<div className="absolute inset-0 flex items-center justify-center gap-3">
-				<Skeleton className="h-7 w-24 rounded-lg" />
-				<Skeleton className="h-7 w-24 rounded-lg" />
-				<Skeleton className="h-7 w-24 rounded-lg" />
+			<Skeleton className="absolute top-2 left-2 w-40 h-5 rounded-full" />
+			<div className="flex absolute inset-0 gap-3 justify-center items-center">
+				<Skeleton className="w-24 h-7 rounded-lg" />
+				<Skeleton className="w-24 h-7 rounded-lg" />
+				<Skeleton className="w-24 h-7 rounded-lg" />
 			</div>
 		</div>
 	);

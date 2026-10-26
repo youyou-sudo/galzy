@@ -171,7 +171,7 @@ function RouteComponent() {
 
 			<Card>
 				<CardHeader className="gap-3">
-					<div className="flex items-start justify-between gap-3">
+					<div className="flex gap-3 justify-between items-start">
 						<h1
 							className="min-w-0 text-2xl font-semibold tracking-tight text-balance"
 							style={{ viewTransitionName: `topic-title-${topicId}` }}
@@ -181,14 +181,14 @@ function RouteComponent() {
 						{status && status !== "published" && (
 							<Badge
 								variant="outline"
-								className="shrink-0 border-warning/30 bg-warning/10 text-warning"
+								className="shrink-0 text-warning bg-warning/10 border-warning/30"
 							>
 								{status === "draft" ? "草稿" : "未发布"}
 							</Badge>
 						)}
 					</div>
 
-					<div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+					<div className="flex flex-wrap gap-x-2 gap-y-1 items-center">
 						<Avatar
 							className="size-8"
 							style={{ viewTransitionName: `topic-avatar-${topicId}` }}
@@ -197,7 +197,7 @@ function RouteComponent() {
 								src={(topic as any).user?.image || ""}
 								alt={(topic as any).user?.name}
 							/>
-							<AvatarFallback className="bg-muted text-xs text-muted-foreground">
+							<AvatarFallback className="text-xs text-muted-foreground bg-muted">
 								{(topic as any).user?.name?.slice(0, 2).toUpperCase()}
 							</AvatarFallback>
 						</Avatar>
@@ -207,11 +207,11 @@ function RouteComponent() {
 						>
 							{(topic as any).user?.name}
 						</span>
-						<span className="text-xs text-muted-foreground tabular-nums">
+						<span className="text-xs tabular-nums text-muted-foreground">
 							{formatTime((topic as any).createdAt)}
 						</span>
 						{(isOwner || isAdmin) && (
-							<div className="ml-auto flex items-center gap-1">
+							<div className="flex gap-1 items-center ml-auto">
 								<Link to="/topics/$topicId/edit" params={{ topicId }}>
 									<Button variant="ghost" size="sm">
 										<Pencil className="size-3.5" aria-hidden="true" />
@@ -224,7 +224,7 @@ function RouteComponent() {
 											<Button
 												variant="ghost"
 												size="sm"
-												className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+												className="text-destructive hover:text-destructive hover:bg-destructive/10"
 											>
 												<Trash2 className="size-3.5" aria-hidden="true" />
 												删除
@@ -261,7 +261,7 @@ function RouteComponent() {
 						contentType={(topic as any).contentType || "markdown"}
 					/>
 					{session && (
-						<div className="mt-5 flex items-center gap-2 border-t border-border/60 pt-3">
+						<div className="flex gap-2 items-center pt-3 mt-5 border-t border-border/60">
 							<LikeButton topic={topic as any} />
 							<FavoriteButton topic={topic as any} />
 						</div>
@@ -424,23 +424,23 @@ function CommentCard({
 						src={comment.user?.image || ""}
 						alt={comment.user?.name}
 					/>
-					<AvatarFallback className="bg-muted text-[10px] text-muted-foreground">
+					<AvatarFallback className="text-[10px] text-muted-foreground bg-muted">
 						{comment.user?.name?.slice(0, 2).toUpperCase()}
 					</AvatarFallback>
 				</Avatar>
-				<div className="min-w-0 flex-1">
-					<div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+				<div className="flex-1 min-w-0">
+					<div className="flex flex-wrap gap-x-2 gap-y-0.5 items-center">
 						<span className="text-sm font-medium text-foreground">
 							{comment.user?.name}
 						</span>
-						<span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+						<span className="flex shrink-0 gap-2 items-center ml-auto text-xs text-muted-foreground">
 							<span className="tabular-nums">
 								{formatTime(comment.createdAt)}
 							</span>
 							{session && (
 								<button
 									type="button"
-									className="transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+									className="transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 									onClick={() => {
 										replycardActions.openReId(comment.id, {
 											id: comment.id,
@@ -500,7 +500,7 @@ function ReplyList({
 	const sorted = useMemo(() => [...replies].sort(byCreatedAtAsc), [replies]);
 
 	return (
-		<div className={depth === 0 ? "border-l border-border/60 pl-2.5" : ""}>
+		<div className={depth === 0 ? "pl-2.5 border-l border-border/60" : ""}>
 			{sorted.map((reply) => (
 				<div className="py-1.5 first:pt-0 last:pb-0" key={reply.id}>
 					<div className="flex gap-2">
@@ -509,12 +509,12 @@ function ReplyList({
 								src={reply.user?.image || ""}
 								alt={reply.user?.name}
 							/>
-							<AvatarFallback className="bg-muted text-[10px] text-muted-foreground">
+							<AvatarFallback className="text-[10px] text-muted-foreground bg-muted">
 								{reply.user?.name?.slice(0, 2).toUpperCase()}
 							</AvatarFallback>
 						</Avatar>
-						<div className="min-w-0 flex-1">
-							<div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+						<div className="flex-1 min-w-0">
+							<div className="flex flex-wrap gap-x-2 gap-y-0.5 items-center">
 								<span className="text-[13px] font-medium text-foreground">
 									{reply.user?.name}
 								</span>
@@ -523,13 +523,13 @@ function ReplyList({
 										回复 @{reply.reUser.name}
 									</span>
 								)}
-								<span className="text-xs text-muted-foreground tabular-nums">
+								<span className="text-xs tabular-nums text-muted-foreground">
 									{formatTime(reply.createdAt)}
 								</span>
 								{session && (
 									<button
 										type="button"
-										className="text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+										className="text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 										onClick={() => {
 											replycardActions.openReId(reply.id, {
 												id: reply.id,

@@ -17,7 +17,7 @@ import { ArticleMarkdownComponents } from "./markdown-components";
 export function SmartMarkdown({ children }: { children?: string | null }) {
 	const content = children ?? "";
 	if (!isMarkdownContent(content)) {
-		return <div className="whitespace-pre-wrap break-words">{content}</div>;
+		return <div className="break-words whitespace-pre-wrap">{content}</div>;
 	}
 	return (
 		<Markdown

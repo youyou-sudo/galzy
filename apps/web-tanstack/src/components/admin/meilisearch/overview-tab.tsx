@@ -86,7 +86,7 @@ export function OverviewTab() {
 	return (
 		<div className="space-y-6">
 			{/* Hero Stats */}
-			<div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+			<div className="grid grid-cols-2 gap-3 md:grid-cols-4">
 				<StatCard
 					icon={HardDriveIcon}
 					label="数据库大小"
@@ -143,8 +143,8 @@ export function OverviewTab() {
 								return (
 									<div key={name}>
 										{i > 0 && <Separator className="my-2" />}
-										<div className="flex items-center justify-between gap-4 py-1">
-											<div className="flex items-center gap-3 min-w-0">
+										<div className="flex gap-4 justify-between items-center py-1">
+											<div className="flex gap-3 items-center min-w-0">
 												<IconTile icon={Icon} size="md" tone="muted" />
 												<div className="min-w-0">
 													<p className="text-sm font-medium truncate">{name}</p>

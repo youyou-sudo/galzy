@@ -35,14 +35,14 @@ export function PageHeader({
 	return (
 		<header
 			className={cn(
-				"mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
+				"flex flex-col gap-4 mb-6 sm:flex-row sm:justify-between sm:items-start",
 				centered && "items-center text-center sm:flex-col sm:items-center",
 				className,
 			)}
 		>
 			<div
 				className={cn(
-					"flex min-w-0 flex-col gap-1.5",
+					"flex flex-col gap-1.5 min-w-0",
 					centered && "items-center",
 				)}
 			>
@@ -53,7 +53,7 @@ export function PageHeader({
 				)}
 				<div
 					className={cn(
-						"flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1",
+						"flex flex-wrap gap-x-3 gap-y-1 items-center min-w-0",
 						centered && "justify-center",
 					)}
 				>
@@ -62,7 +62,7 @@ export function PageHeader({
 						{title}
 					</h1>
 					{meta && (
-						<span className="text-sm text-muted-foreground tabular-nums">
+						<span className="text-sm tabular-nums text-muted-foreground">
 							{meta}
 						</span>
 					)}
@@ -74,7 +74,7 @@ export function PageHeader({
 				)}
 			</div>
 			{actions && (
-				<div className="flex shrink-0 flex-wrap items-center gap-2">
+				<div className="flex flex-wrap shrink-0 gap-2 items-center">
 					{actions}
 				</div>
 			)}

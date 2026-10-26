@@ -133,8 +133,8 @@ export function TagSortBar(props: TagSortBarProps) {
 	};
 
 	return (
-		<div className="flex flex-wrap items-center gap-2">
-			<span className="flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground">
+		<div className="flex flex-wrap gap-2 items-center">
+			<span className="flex shrink-0 gap-1.5 items-center text-sm text-muted-foreground">
 				<ListFilter aria-hidden="true" className="size-4" />
 				排序
 			</span>
@@ -150,7 +150,7 @@ export function TagSortBar(props: TagSortBarProps) {
 				    不再盖住触发器本身造成悬浮割裂。 */}
 				<SelectTrigger
 					size="sm"
-					className="h-8 w-28 rounded-lg border-0 bg-transparent px-2 font-medium text-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
+					className="px-2 w-28 h-8 font-medium text-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
 					aria-label="排序依据"
 				>
 					<SelectValue />
@@ -175,7 +175,7 @@ export function TagSortBar(props: TagSortBarProps) {
 			>
 				<SelectTrigger
 					size="sm"
-					className="h-8 w-20 rounded-lg border-0 bg-transparent px-2 font-medium text-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
+					className="px-2 w-20 h-8 font-medium text-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
 					aria-label="排序方向"
 				>
 					<SelectValue />

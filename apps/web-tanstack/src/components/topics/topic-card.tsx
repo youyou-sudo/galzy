@@ -65,7 +65,7 @@ export function TopicCard({ topic }: TopicCardProps) {
 		>
 			<Card className="gap-2 transition-colors duration-200 group-hover:bg-muted/40 group-hover:ring-border">
 				<CardHeader className="gap-2">
-					<div className="flex items-center gap-2">
+					<div className="flex gap-2 items-center">
 						<Avatar
 							className="size-6"
 							style={{ viewTransitionName: `topic-avatar-${topic.id}` }}
@@ -74,17 +74,17 @@ export function TopicCard({ topic }: TopicCardProps) {
 								src={topic.user?.image || ""}
 								alt={topic.user?.name}
 							/>
-							<AvatarFallback className="bg-muted text-xs text-muted-foreground">
+							<AvatarFallback className="text-xs text-muted-foreground bg-muted">
 								{topic.user?.name?.slice(0, 2).toUpperCase()}
 							</AvatarFallback>
 						</Avatar>
 						<span
-							className="inline-block truncate text-xs font-medium text-foreground/80"
+							className="inline-block text-xs font-medium text-foreground/80 truncate"
 							style={{ viewTransitionName: `topic-nick-${topic.id}` }}
 						>
 							{topic.user?.name}
 						</span>
-						<span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">
+						<span className="shrink-0 ml-auto text-xs tabular-nums text-muted-foreground">
 							{formatTime(topic.createdAt)}
 						</span>
 					</div>
@@ -96,15 +96,15 @@ export function TopicCard({ topic }: TopicCardProps) {
 					</h3>
 				</CardHeader>
 				<CardContent>
-					<p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground wrap-break-word">
+					<p className="text-sm leading-relaxed line-clamp-2 wrap-break-word text-muted-foreground">
 						{topic.summary}
 					</p>
-					<div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
-						<span className="flex items-center gap-1">
+					<div className="flex gap-3 items-center mt-2 text-xs tabular-nums text-muted-foreground">
+						<span className="flex gap-1 items-center">
 							<Heart className="size-3.5" aria-hidden="true" />
 							<span>{topic.likeCount ?? 0}</span>
 						</span>
-						<span className="flex items-center gap-1">
+						<span className="flex gap-1 items-center">
 							<MessageSquare className="size-3.5" aria-hidden="true" />
 							<span>{topic.replyCount ?? 0}</span>
 						</span>

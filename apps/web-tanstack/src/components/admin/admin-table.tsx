@@ -25,7 +25,7 @@ export function TableCard({
 	return (
 		<div
 			className={cn(
-				"flex flex-col overflow-hidden rounded-2xl bg-card ring-1 ring-border/60",
+				"flex overflow-hidden flex-col bg-card rounded-2xl ring-1 ring-border/60",
 				className,
 			)}
 		>
@@ -45,7 +45,7 @@ export function TableToolbar({
 	return (
 		<div
 			className={cn(
-				"flex flex-col gap-2 border-b border-border/60 p-4 sm:flex-row sm:flex-wrap sm:items-center",
+				"flex flex-col gap-2 p-4 border-b border-border/60 sm:flex-row sm:flex-wrap sm:items-center",
 				className,
 			)}
 		>
@@ -63,7 +63,7 @@ export function TableScroll({
 	className?: string;
 }) {
 	return (
-		<div className={cn("w-full overflow-x-auto", className)}>{children}</div>
+		<div className={cn("overflow-x-auto w-full", className)}>{children}</div>
 	);
 }
 
@@ -79,7 +79,7 @@ export function Table({
 }) {
 	return (
 		<table
-			className={cn("w-full border-collapse text-sm", minWidth, className)}
+			className={cn("w-full text-sm border-collapse", minWidth, className)}
 		>
 			{children}
 		</table>
@@ -108,7 +108,7 @@ export function Th({
 		<th
 			scope="col"
 			className={cn(
-				"px-4 py-2.5 text-xs font-medium whitespace-nowrap text-muted-foreground",
+				"px-4 py-2.5 text-xs font-medium text-muted-foreground whitespace-nowrap",
 				align === "right" && "text-right",
 				align === "center" && "text-center",
 				align === "left" && "text-left",
@@ -243,7 +243,7 @@ export function TablePagination({
 }) {
 	if (totalPages <= 1) return null;
 	return (
-		<div className="border-t border-border/60 px-4 py-3">
+		<div className="px-4 py-3 border-t border-border/60">
 			<Pagination
 				page={page}
 				totalPages={totalPages}
@@ -286,13 +286,13 @@ export function StatusPill({
 	return (
 		<span
 			className={cn(
-				"inline-flex h-5 items-center gap-1 rounded-full px-2 text-xs font-medium whitespace-nowrap",
+				"inline-flex gap-1 items-center px-2 h-5 text-xs font-medium whitespace-nowrap rounded-full",
 				statusTones[tone],
 				className,
 			)}
 		>
 			{Icon && (
-				<Icon className={cn("size-3 shrink-0", spin && "animate-spin")} />
+				<Icon className={cn("shrink-0 size-3", spin && "animate-spin")} />
 			)}
 			{children}
 		</span>

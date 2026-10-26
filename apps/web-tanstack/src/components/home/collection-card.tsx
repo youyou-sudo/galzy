@@ -36,7 +36,7 @@ function PokerStack({
 
 	if (stackItems.length === 0) {
 		return (
-			<div className="aspect-[4/5] flex items-center justify-center rounded-xl bg-muted/50">
+			<div className="flex aspect-[4/5] justify-center items-center bg-muted/50 rounded-xl">
 				<Library className="size-8 text-muted-foreground/30" />
 			</div>
 		);
@@ -55,7 +55,7 @@ function PokerStack({
 	];
 
 	return (
-		<div className="relative aspect-[4/5] w-full rounded-xl bg-muted/30">
+		<div className="relative aspect-[4/5] w-full bg-muted/30 rounded-xl">
 			{stackItems.map((item, i) => {
 				const layer = layerStyles[i];
 				return (
@@ -71,7 +71,7 @@ function PokerStack({
 						alwaysAnimate
 						wrapperClassName={cn(
 							"absolute top-1/2 left-1/2",
-							"w-[68%] aspect-[2/3] overflow-hidden rounded-lg border-[3px] border-background",
+							"overflow-hidden aspect-[2/3] w-[68%] rounded-lg border-[3px] border-background",
 							"shadow-md shadow-black/15 dark:shadow-black/30",
 							// 扑克层 hover 旋转/位移的过渡类（内联动画只作用于组件内部动画层，
 							// 本层的 transform 恒由此类接管）
@@ -82,7 +82,7 @@ function PokerStack({
 							transform: `translate(-50%, -50%) rotate(${layer.rotate}deg) translate(${layer.x}px, ${layer.y}px) scale(${layer.scale})`,
 							zIndex: layer.z,
 						}}
-						className="w-full h-full object-cover"
+						className="object-cover w-full h-full"
 					/>
 				);
 			})}
@@ -90,7 +90,7 @@ function PokerStack({
 			{/* Count badge — bottom-right：与 GameCard 标题/徽标同一套排版 */}
 			<div
 				style={{ zIndex: 30 }}
-				className="absolute right-2 bottom-2 flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-xs font-medium text-foreground/80 tabular-nums shadow-sm ring-1 ring-border/60 backdrop-blur-sm transition-colors duration-200 group-hover:text-primary"
+				className="flex absolute right-2 bottom-2 gap-1 items-center px-2 py-0.5 text-xs font-medium tabular-nums text-foreground/80 bg-background/85 rounded-full ring-1 ring-border/60 shadow-sm backdrop-blur-sm transition-colors duration-200 group-hover:text-primary"
 			>
 				<Layers aria-hidden="true" className="size-3" />
 				{count} 部
@@ -120,7 +120,7 @@ export function CollectionItem({ collection }: { collection: CollectionData }) {
 			className="group block rounded-2xl outline-none transition-transform duration-300 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring/60"
 		>
 			<PokerStack previews={collection.previews} count={gameCount} />
-			<h3 className="mx-auto mt-2 w-fit max-w-full truncate px-2 text-center text-xs text-foreground/85 transition-colors duration-200 group-hover:text-primary sm:text-sm">
+			<h3 className="px-2 mx-auto mt-2 w-fit max-w-full text-xs text-center text-foreground/85 truncate transition-colors duration-200 group-hover:text-primary sm:text-sm">
 				{collection.title}
 			</h3>
 		</Link>
@@ -130,8 +130,8 @@ export function CollectionItem({ collection }: { collection: CollectionData }) {
 export function CollectionItemSkeleton() {
 	return (
 		<div>
-			<div className="rounded-xl bg-muted animate-pulse aspect-[4/5]" />
-			<div className="mt-2 h-4 w-2/3 mx-auto rounded bg-muted animate-pulse" />
+			<div className="aspect-[4/5] bg-muted rounded-xl animate-pulse" />
+			<div className="mx-auto mt-2 w-2/3 h-4 bg-muted rounded animate-pulse" />
 		</div>
 	);
 }

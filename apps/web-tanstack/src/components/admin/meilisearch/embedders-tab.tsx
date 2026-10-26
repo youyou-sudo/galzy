@@ -141,7 +141,7 @@ export function EmbeddersTab() {
 	return (
 		<Card>
 			<CardHeader>
-				<div className="flex items-center justify-between gap-2">
+				<div className="flex gap-2 justify-between items-center">
 					<div>
 						<CardTitle>Embedders 配置</CardTitle>
 						<CardDescription>
@@ -153,7 +153,7 @@ export function EmbeddersTab() {
 							variant="ghost"
 							size="sm"
 							onClick={handleReset}
-							className="text-muted-foreground shrink-0"
+							className="shrink-0 text-muted-foreground"
 						>
 							<RotateCcwIcon className="size-3" />
 							还原
@@ -250,7 +250,7 @@ export function EmbeddersTab() {
 
 				<Separator />
 
-				<div className="flex items-center gap-3">
+				<div className="flex gap-3 items-center">
 					<Button
 						onClick={() => saveMutation.mutate()}
 						disabled={saveMutation.isPending || !isDirty}

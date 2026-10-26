@@ -26,7 +26,7 @@ const KaomojiPickerExample = () => {
 		<form onSubmit={handleSubmit} className="space-y-4">
 			<div className="space-y-2">
 				<Label htmlFor="message">Message</Label>
-				<div className="flex items-start gap-2">
+				<div className="flex gap-2 items-start">
 					<Textarea
 						id="message"
 						value={message}
@@ -41,9 +41,9 @@ const KaomojiPickerExample = () => {
 								type="button"
 								variant="outline"
 								size="icon"
-								className="h-10 w-10 shrink-0"
+								className="shrink-0 w-10 h-10"
 							>
-								<Smile className="h-4 w-4" />
+								<Smile className="w-4 h-4" />
 							</Button>
 						}
 					/>
@@ -52,7 +52,7 @@ const KaomojiPickerExample = () => {
 
 			<div className="space-y-2">
 				<Label htmlFor="title">Title</Label>
-				<div className="flex items-center gap-2">
+				<div className="flex gap-2 items-center">
 					<Input id="title" placeholder="Enter title..." className="flex-1" />
 					<KaomojiPicker
 						onKaomojiSelect={(emoji) => {
@@ -68,9 +68,9 @@ const KaomojiPickerExample = () => {
 								type="button"
 								variant="ghost"
 								size="icon"
-								className="h-10 w-10"
+								className="w-10 h-10"
 							>
-								<Smile className="h-4 w-4" />
+								<Smile className="w-4 h-4" />
 							</Button>
 						}
 					/>

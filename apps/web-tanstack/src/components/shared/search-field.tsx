@@ -50,7 +50,7 @@ export function SearchField({
 		<div className={cn("relative w-full", className)}>
 			<Search
 				aria-hidden="true"
-				className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+				className="absolute top-1/2 left-3 size-4 text-muted-foreground -translate-y-1/2 pointer-events-none"
 			/>
 			<Input
 				type="text"
@@ -62,7 +62,7 @@ export function SearchField({
 				onKeyDown={handleKeyDown}
 				placeholder={placeholder}
 				className={cn(
-					"h-9 rounded-xl bg-background/60 pr-9 pl-9",
+					"px-9 h-9 bg-background/60 rounded-xl",
 					inputClassName,
 				)}
 			/>
@@ -71,7 +71,7 @@ export function SearchField({
 					type="button"
 					onClick={clear}
 					aria-label="清除搜索"
-					className="absolute top-1/2 right-2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+					className="flex absolute top-1/2 right-2 justify-center items-center size-6 text-muted-foreground rounded-md transition-colors -translate-y-1/2 hover:text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 				>
 					<X className="size-3.5" />
 				</button>

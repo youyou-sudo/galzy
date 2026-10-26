@@ -62,10 +62,10 @@ function FolderTrigger({
 		<FolderHeaderPrimitive>
 			<FolderTriggerPrimitive className="w-full text-start">
 				<FolderHighlightPrimitive>
-					<FolderPrimitive className="flex items-center justify-between gap-2 p-2 pointer-events-none">
+					<FolderPrimitive className="flex gap-2 justify-between items-center p-2 pointer-events-none">
 						<div
 							className={cn(
-								"flex items-center gap-2",
+								"flex gap-2 items-center",
 								gitStatus === "untracked" && "text-green-400",
 								gitStatus === "modified" && "text-amber-400",
 								gitStatus === "deleted" && "text-red-400",
@@ -86,7 +86,7 @@ function FolderTrigger({
 						{gitStatus && (
 							<span
 								className={cn(
-									"rounded-full size-2",
+									"size-2 rounded-full",
 									gitStatus === "untracked" && "bg-green-400",
 									gitStatus === "modified" && "bg-amber-400",
 									gitStatus === "deleted" && "bg-red-400",
@@ -104,7 +104,7 @@ type FolderContentProps = FolderContentPrimitiveProps;
 
 function FolderContent(props: FolderContentProps) {
 	return (
-		<div className="relative ml-6 before:absolute before:-left-2 before:inset-y-0 before:w-px before:h-full before:bg-border">
+		<div className="relative ml-6 before:absolute before:inset-y-0 before:-left-2 before:w-px before:h-full before:bg-border">
 			<FolderContentPrimitive {...props} />
 		</div>
 	);
@@ -128,7 +128,7 @@ function FileItem({
 		<FileHighlightPrimitive>
 			<FilePrimitive
 				className={cn(
-					"flex items-center justify-between gap-2 p-2",
+					"flex gap-2 justify-between items-center p-2",
 					onClick ? "cursor-pointer" : "pointer-events-none",
 					gitStatus === "untracked" && "text-green-400",
 					gitStatus === "modified" && "text-amber-400",
@@ -136,7 +136,7 @@ function FileItem({
 				)}
 				onClick={onClick}
 			>
-				<div className="flex items-center gap-2 pointer-events-none">
+				<div className="flex gap-2 items-center pointer-events-none">
 					<FileIconPrimitive>
 						<Icon className="size-4.5" />
 					</FileIconPrimitive>

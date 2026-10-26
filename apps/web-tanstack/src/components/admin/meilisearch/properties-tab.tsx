@@ -82,7 +82,7 @@ export function PropertiesTab({ indexType }: { indexType: IndexType }) {
 	return (
 		<Card>
 			<CardHeader>
-				<div className="flex items-center justify-between gap-2">
+				<div className="flex gap-2 justify-between items-center">
 					<div>
 						<CardTitle>属性列表</CardTitle>
 						<CardDescription>
@@ -93,10 +93,10 @@ export function PropertiesTab({ indexType }: { indexType: IndexType }) {
 			</CardHeader>
 			<CardContent className="space-y-4">
 				{/* Controls */}
-				<div className="flex flex-wrap items-end gap-3">
+				<div className="flex flex-wrap gap-3 items-end">
 					<span className="pb-1.5 text-xs text-muted-foreground">
 						目标索引:
-						<span className="font-medium text-foreground ml-1">
+						<span className="ml-1 font-medium text-foreground">
 							{indexType === "game"
 								? "游戏"
 								: indexType === "tag"
@@ -104,7 +104,7 @@ export function PropertiesTab({ indexType }: { indexType: IndexType }) {
 									: "厂商"}
 						</span>
 					</span>
-					<div className="min-w-[200px] flex-1 space-y-1.5">
+					<div className="flex-1 space-y-1.5 min-w-[200px]">
 						<Label>搜索过滤</Label>
 						<SearchField
 							value={search}
@@ -126,7 +126,7 @@ export function PropertiesTab({ indexType }: { indexType: IndexType }) {
 				</div>
 
 				{/* Stats */}
-				<div className="flex items-center gap-3 text-xs text-muted-foreground">
+				<div className="flex gap-3 items-center text-xs text-muted-foreground">
 					<span>
 						共{" "}
 						<span className="font-medium text-foreground">
@@ -148,14 +148,14 @@ export function PropertiesTab({ indexType }: { indexType: IndexType }) {
 
 				{/* Property Tags */}
 				{filtered.length > 0 ? (
-					<div className="flex max-h-[400px] flex-wrap gap-1.5 overflow-y-auto rounded-xl bg-muted/30 p-3 ring-1 ring-border/60">
+					<div className="flex overflow-y-auto flex-wrap gap-1.5 p-3 max-h-[400px] bg-muted/30 rounded-xl ring-1 ring-border/60">
 						{filtered.map((prop) => (
 							<Tooltip key={prop}>
 								<TooltipTrigger
 									render={
 										<button
 											type="button"
-											className="cursor-pointer rounded focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+											className="rounded cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 											onClick={async () => {
 												try {
 													await navigator.clipboard.writeText(prop);
@@ -167,7 +167,7 @@ export function PropertiesTab({ indexType }: { indexType: IndexType }) {
 										>
 											<Badge
 												variant="secondary"
-												className="font-mono text-xs hover:bg-secondary/80 transition-colors"
+												className="font-mono text-xs transition-colors hover:bg-secondary/80"
 											>
 												{prop}
 											</Badge>

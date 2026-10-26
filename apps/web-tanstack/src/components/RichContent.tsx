@@ -19,7 +19,7 @@ import { Suspense, use } from "react";
 export type RichContentType = "markdown" | "html";
 
 const htmlProseClass =
-	"prose prose-sm sm:prose-base dark:prose-invert max-w-none break-words";
+	"max-w-none break-words prose prose-sm dark:prose-invert sm:prose-base";
 
 function StaticHtmlContent({
 	content,

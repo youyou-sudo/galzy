@@ -100,7 +100,7 @@ export const BBCodeRenderer = ({
 	const Root = inline ? "span" : "div";
 
 	return (
-		<Root className="wrap-break-word [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground/30 [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:my-2 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5">
+		<Root className="wrap-break-word [&_blockquote]:pl-3 [&_blockquote]:my-2 [&_blockquote]:text-muted-foreground [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground/30 [&_ol]:pl-5 [&_ol]:my-2 [&_ol]:list-decimal [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_p]:my-2 [&_ul]:pl-5 [&_ul]:my-2 [&_ul]:list-disc">
 			<Markdown
 				remarkPlugins={[remarkGfm, remarkBreaks]}
 				components={{

@@ -80,7 +80,7 @@ export function HotGamesSection({ games: initialGames }: HotGamesSectionProps) {
 	return (
 		<section className="mb-8">
 			<HotGamesSectionHeader />
-			<div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+			<div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
 				{displayGames.map((game, index) => (
 					// 每档断点固定四排：移动端 3×4=12、sm 4×4=16、md+ 6×4=24，超出项按断点隐藏
 					<div
@@ -100,7 +100,7 @@ export function HotGamesSection({ games: initialGames }: HotGamesSectionProps) {
 							src={game.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
 							cSexualAvg={game.cSexualAvg ?? null}
 						/>
-						<span className="absolute top-1.5 left-1.5 z-20 flex size-5 items-center justify-center rounded-full bg-background/85 text-xs font-semibold text-foreground ring-1 ring-border/60 backdrop-blur-sm pointer-events-none">
+						<span className="flex absolute top-1.5 left-1.5 z-20 justify-center items-center size-5 text-xs font-semibold text-foreground bg-background/85 rounded-full ring-1 ring-border/60 backdrop-blur-sm pointer-events-none">
 							{index + 1}
 						</span>
 					</div>
@@ -115,7 +115,7 @@ export function HotGamesSectionSkeleton() {
 	return (
 		<section className="mb-8">
 			<HotGamesSectionHeader />
-			<div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+			<div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
 				{HOT_GAME_SKELETON_KEYS.map((key, index) => (
 					// 与真实栅格的断点隐藏规则保持一致（见 HotGamesSection 里的同款 cn）
 					<div

@@ -52,7 +52,7 @@ export default function ProducerDetailPage({
 						<Link
 							to="/producer/$pid"
 							params={{ pid: item.pid }}
-							className="rounded-sm text-primary transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+							className="text-primary rounded-sm transition-colors duration-200 hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 						>
 							{item.name}
 						</Link>
@@ -65,9 +65,9 @@ export default function ProducerDetailPage({
 		<>
 			<section className="space-y-3 w-full">
 				<Card className="w-full">
-					<CardHeader className="text-center ">
+					<CardHeader className="text-center">
 						<CardTitle
-							className="text-2xl items-center"
+							className="items-center text-2xl"
 							style={{
 								viewTransitionName: pid ? `producer-name-${pid}` : undefined,
 								viewTransitionClass: "producer-name vt-text",

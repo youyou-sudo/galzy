@@ -120,11 +120,11 @@ function ProducerListPending() {
 				description="按厂商 / 开发会社浏览收录的作品"
 			/>
 			<div className="mb-4 w-full sm:max-w-md">
-				<Skeleton className="h-9 w-full rounded-xl" />
+				<Skeleton className="w-full h-9 rounded-xl" />
 			</div>
 			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
 				{[0, 1, 2, 3, 4, 5].map((i) => (
-					<Skeleton key={i} className="h-24 w-full rounded-2xl" />
+					<Skeleton key={i} className="w-full h-24 rounded-2xl" />
 				))}
 			</div>
 		</div>

@@ -250,7 +250,7 @@ function ArticlesTable() {
 								return (
 									<Tr key={article.id}>
 										<Td className="max-w-xs">
-											<span className="text-sm font-medium truncate block">
+											<span className="block text-sm font-medium truncate">
 												{article.title || "无标题"}
 											</span>
 										</Td>
@@ -273,11 +273,11 @@ function ArticlesTable() {
 										<Td>
 											<StatusPill tone={sl.tone}>{sl.label}</StatusPill>
 										</Td>
-										<Td className="text-xs whitespace-nowrap text-muted-foreground">
+										<Td className="text-xs text-muted-foreground whitespace-nowrap">
 											{new Date(article.createdAt).toLocaleDateString("zh-CN")}
 										</Td>
 										<Td align="right">
-											<div className="flex items-center justify-end gap-1.5">
+											<div className="flex gap-1.5 justify-end items-center">
 												<EditArticleCell article={article} />
 												{article.status !== "published" && (
 													<PublishArticleButton
@@ -556,7 +556,7 @@ function DeleteArticleDialog({
 				</DialogHeader>
 				<div className="space-y-4">
 					<p className="text-sm text-muted-foreground">确定要删除此文章吗？</p>
-					<blockquote className="text-sm border-l-2 pl-3 text-muted-foreground italic">
+					<blockquote className="pl-3 text-sm italic text-muted-foreground border-l-2">
 						{article.title || "无标题"}
 					</blockquote>
 				</div>

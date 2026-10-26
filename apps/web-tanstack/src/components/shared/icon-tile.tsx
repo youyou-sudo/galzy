@@ -47,7 +47,7 @@ export function IconTile({
 		<span
 			aria-hidden="true"
 			className={cn(
-				"flex shrink-0 items-center justify-center",
+				"flex shrink-0 justify-center items-center",
 				tileSizes[size],
 				tones[tone],
 				className,

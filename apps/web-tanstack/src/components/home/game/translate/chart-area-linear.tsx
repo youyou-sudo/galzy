@@ -37,7 +37,7 @@ export function ChartAreaLinear() {
 				count={translateData?.total ?? 0}
 			/>
 			{hasData ? (
-				<ChartContainer className="max-h-52 w-full" config={chartConfig}>
+				<ChartContainer className="w-full max-h-52" config={chartConfig}>
 					<AreaChart
 						accessibilityLayer
 						data={translateData?.res}

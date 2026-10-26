@@ -62,15 +62,15 @@ function SignOutButton({
 
 function AdminBrand() {
 	return (
-		<div className="flex items-center gap-3 px-2">
-			<div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_1px_2px_oklch(0_0_0/0.08)]">
+		<div className="flex gap-3 items-center px-2">
+			<div className="flex justify-center items-center size-9 text-primary-foreground bg-primary rounded-xl shadow-[0_1px_2px_oklch(0_0_0/0.08)]">
 				<ShieldCheckIcon className="size-5" />
 			</div>
 			<div className="flex flex-col">
-				<span className="text-sm font-semibold tracking-tight leading-none">
+				<span className="text-sm leading-none font-semibold tracking-tight">
 					GalZY 管理台
 				</span>
-				<span className="mt-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground leading-none">
+				<span className="mt-1 text-[10px] leading-none tracking-[0.2em] text-muted-foreground uppercase">
 					Admin Console
 				</span>
 			</div>
@@ -86,10 +86,10 @@ function AdminNavList({
 	onNavigate?: () => void;
 }) {
 	return (
-		<nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-3 py-4">
+		<nav className="flex overflow-y-auto flex-col flex-1 gap-6 px-3 py-4">
 			{adminNav.map(({ section, items }) => (
 				<div key={section} className="flex flex-col gap-1">
-					<p className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+					<p className="px-3 pb-1 text-[11px] font-medium tracking-wider text-muted-foreground/70 uppercase">
 						{section}
 					</p>
 					{items.map((item) => {
@@ -102,15 +102,15 @@ function AdminNavList({
 								onClick={onNavigate}
 								aria-current={active ? "page" : undefined}
 								className={cn(
-									"flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-200",
+									"flex gap-3 items-center px-3 py-2 text-sm font-medium rounded-xl transition-colors duration-200",
 									active
-										? "bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border/60"
-										: "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+										? "text-sidebar-accent-foreground bg-sidebar-accent ring-1 ring-sidebar-border/60"
+										: "text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/60",
 								)}
 							>
 								<Icon
 									className={cn(
-										"size-4 shrink-0",
+										"shrink-0 size-4",
 										active ? "text-sidebar-primary" : "text-muted-foreground",
 									)}
 								/>
@@ -127,12 +127,12 @@ function AdminNavList({
 // 侧栏尾部：返回站点 + 退出登录
 function AdminSidebarFooter() {
 	return (
-		<div className="flex flex-col gap-1 border-t border-sidebar-border px-3 py-4">
+		<div className="flex flex-col gap-1 px-3 py-4 border-t border-sidebar-border">
 			<Link
 				to="/"
-				className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+				className="flex gap-3 items-center px-3 py-2 text-sm font-medium text-muted-foreground rounded-xl transition-colors duration-200 hover:text-sidebar-foreground hover:bg-sidebar-accent/60"
 			>
-				<ExternalLinkIcon className="size-4 shrink-0" />
+				<ExternalLinkIcon className="shrink-0 size-4" />
 				返回站点
 			</Link>
 			<SignOutButton />
@@ -157,10 +157,10 @@ function AdminMobileNav({ pathname }: { pathname: string }) {
 				<SheetContent
 					side="left"
 					showCloseButton={false}
-					className="flex w-72 flex-col gap-0 bg-sidebar p-0 text-sidebar-foreground"
+					className="flex flex-col gap-0 p-0 w-72 text-sidebar-foreground bg-sidebar"
 				>
 					<SheetTitle className="sr-only">后台导航</SheetTitle>
-					<div className="flex items-center justify-between border-b border-sidebar-border px-4 py-4">
+					<div className="flex justify-between items-center p-4 border-b border-sidebar-border">
 						<AdminBrand />
 						<Button
 							variant="ghost"
@@ -201,26 +201,26 @@ function AdminTopBar({ pathname }: { pathname: string }) {
 	return (
 		<header
 			className={cn(
-				"sticky top-0 z-30 flex h-[var(--app-header-height)] items-center gap-3 border-b border-border/60 bg-background/80 px-4 sm:px-6 lg:px-8",
+				"flex sticky top-0 z-30 gap-3 items-center px-4 h-[var(--app-header-height)] bg-background/80 border-b border-border/60 sm:px-6 lg:px-8",
 				!scrolling && "backdrop-blur-xl",
 			)}
 		>
 			<div className="lg:hidden">
 				<AdminMobileNav pathname={pathname} />
 			</div>
-			<div className="flex min-w-0 items-center gap-2">
+			<div className="flex gap-2 items-center min-w-0">
 				<span className="hidden text-[11px] font-medium tracking-wider text-muted-foreground/60 uppercase sm:inline">
 					管理后台
 				</span>
 				<ChevronRightIcon className="hidden size-3.5 text-muted-foreground/40 sm:block" />
-				<span className="truncate text-sm font-semibold tracking-tight">
+				<span className="text-sm font-semibold tracking-tight truncate">
 					{pageTitleOf(pathname)}
 				</span>
 			</div>
-			<div className="ml-auto flex items-center gap-2">
+			<div className="flex gap-2 items-center ml-auto">
 				<Link
 					to="/"
-					className="hidden h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground transition-colors duration-200 hover:bg-muted/60 hover:text-foreground sm:flex"
+					className="hidden gap-1.5 items-center px-2.5 h-8 text-xs font-medium text-muted-foreground rounded-lg transition-colors duration-200 hover:text-foreground hover:bg-muted/60 sm:flex"
 				>
 					<ExternalLinkIcon className="size-3.5" />
 					查看站点
@@ -239,16 +239,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 	const { pathname } = useLocation();
 
 	return (
-		<div className="flex min-h-screen w-full bg-muted/40 dark:bg-background">
+		<div className="flex w-full min-h-screen bg-muted/40 dark:bg-background">
 			<a
 				href="#admin-main"
-				className="fixed top-3 left-3 z-[100] -translate-y-20 rounded-xl bg-background px-4 py-2 text-sm font-medium shadow-lg ring-1 ring-border transition-transform duration-200 focus:translate-y-0 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+				className="fixed top-3 left-3 z-[100] px-4 py-2 text-sm font-medium bg-background rounded-xl ring-1 ring-border shadow-lg transition-transform duration-200 -translate-y-20 focus:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 			>
 				跳到主内容
 			</a>
 			{/* 桌面侧栏 */}
-			<aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-sidebar-border/70 bg-sidebar text-sidebar-foreground lg:flex">
-				<div className="border-b border-sidebar-border px-4 py-4">
+			<aside className="hidden fixed inset-y-0 left-0 z-40 flex-col w-64 text-sidebar-foreground bg-sidebar border-r border-sidebar-border/70 lg:flex">
+				<div className="p-4 border-b border-sidebar-border">
 					<AdminBrand />
 				</div>
 				<AdminNavList pathname={pathname} />
@@ -256,12 +256,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 			</aside>
 
 			{/* 主区域 */}
-			<div className="flex min-w-0 flex-1 flex-col lg:pl-64">
+			<div className="flex flex-col flex-1 min-w-0 lg:pl-64">
 				<AdminTopBar pathname={pathname} />
 				<main
 					id="admin-main"
 					tabIndex={-1}
-					className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8 lg:py-8"
+					className="flex-1 px-4 py-6 mx-auto w-full max-w-7xl outline-none sm:px-6 lg:p-8"
 				>
 					{children}
 				</main>

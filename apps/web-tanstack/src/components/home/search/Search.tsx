@@ -239,7 +239,7 @@ export default function SearchInput({
 										data-active={hasDateFilter || undefined}
 										className={
 											hasDateFilter
-												? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+												? "text-primary bg-primary/10 hover:text-primary hover:bg-primary/15"
 												: "text-muted-foreground hover:text-foreground"
 										}
 									/>
@@ -265,14 +265,14 @@ export default function SearchInput({
 
 				{/* 日期筛选结果标签 */}
 				{hasDateFilter && (
-					<div className="flex items-center gap-2 mt-2">
-						<Badge className="m-0 gap-1" variant="outline">
+					<div className="flex gap-2 items-center mt-2">
+						<Badge className="gap-1 m-0" variant="outline">
 							<CalendarIcon className="size-3" />
 							{`${startDate || "不限"} — ${endDate || "不限"}`}
 							<button
 								type="button"
 								onClick={handleDateClear}
-								className="ml-0.5 hover:text-foreground cursor-pointer"
+								className="ml-0.5 cursor-pointer hover:text-foreground"
 								aria-label="清除日期筛选"
 							>
 								<XIcon className="size-3" />
@@ -282,7 +282,7 @@ export default function SearchInput({
 				)}
 
 				{/* 日期筛选 Popover */}
-				<PopoverContent align="end" className="w-auto rounded-xl p-3">
+				<PopoverContent align="end" className="p-3 w-auto rounded-xl">
 					<div className="grid grid-cols-2 gap-3">
 						<div className="flex flex-col gap-1.5">
 							<span className="text-xs font-medium text-muted-foreground">
@@ -306,7 +306,7 @@ export default function SearchInput({
 						</div>
 					</div>
 					{hasDateFilter && (
-						<div className="flex justify-end mt-2 pt-2 border-t border-border">
+						<div className="flex justify-end pt-2 mt-2 border-t border-border">
 							<Button
 								variant="ghost"
 								size="sm"

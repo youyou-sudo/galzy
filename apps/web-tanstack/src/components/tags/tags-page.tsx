@@ -33,7 +33,7 @@ type DebounceTimer = ReturnType<typeof setTimeout>;
 
 /** 行式标签的公共类：保持高密度（不卡片化），hover 只提亮底色 */
 const tagRowClass =
-	"-mx-1.5 flex items-baseline gap-3 rounded-sm border-b border-border/70 px-1.5 py-[5px] text-xs leading-[18px] no-underline transition-colors duration-200 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none";
+	"flex gap-3 items-baseline px-1.5 py-[5px] -mx-1.5 text-xs leading-[18px] no-underline rounded-sm border-b border-border/70 transition-colors duration-200 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60";
 
 /**
  * 标签库入口页：PageHeader + SearchField +（搜索结果 | 分类 hub）。
@@ -167,8 +167,8 @@ function TagSearchResults({
 				<p className="mb-3 text-xs text-muted-foreground">搜索中…</p>
 				<ul className="grid grid-cols-2 gap-x-7 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
 					{Array.from({ length: 12 }, (_, i) => (
-						<li key={i} className="min-w-0 py-[5px]">
-							<Skeleton className="h-4 w-full" />
+						<li key={i} className="py-[5px] min-w-0">
+							<Skeleton className="w-full h-4" />
 						</li>
 					))}
 				</ul>
@@ -197,10 +197,10 @@ function TagSearchResults({
 			className={cn(
 				"w-full transition-opacity duration-200",
 				// 换关键词时旧结果保持可见但变暗、不可点，等新结果到达
-				isFetching && "pointer-events-none opacity-60",
+				isFetching && "opacity-60 pointer-events-none",
 			)}
 		>
-			<p className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+			<p className="flex gap-1.5 items-center mb-3 text-xs tabular-nums text-muted-foreground">
 				共找到 {searchTags?.totalHits ?? tagItems.length} 个标签
 				{isFetching && (
 					<>
@@ -240,11 +240,11 @@ function TagSearchResults({
 											className={tagRowClass}
 										>
 											{/* 中文名压住英文名：最多占 7 成宽度，超出才截断 */}
-											<span className="min-w-0 max-w-[70%] shrink-0 truncate font-medium">
+											<span className="shrink-0 min-w-0 max-w-[70%] font-medium truncate">
 												{primary}
 											</span>
 											{zhName && enName && (
-												<span className="min-w-0 flex-1 truncate text-right text-muted-foreground/80">
+												<span className="flex-1 min-w-0 text-right text-muted-foreground/80 truncate">
 													{enName}
 												</span>
 											)}
@@ -305,8 +305,8 @@ function TagHubBrowser({
 
 	return (
 		<div className="flex flex-col gap-8">
-			<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-2xl bg-muted/40 px-3 py-2 ring-1 ring-border/60">
-				<p className="text-sm text-muted-foreground tabular-nums">
+			<div className="flex flex-wrap gap-x-4 gap-y-2 justify-between items-center px-3 py-2 bg-muted/40 rounded-2xl ring-1 ring-border/60">
+				<p className="text-sm tabular-nums text-muted-foreground">
 					共 {totalTagCount} 个标签
 				</p>
 				{/* 一处切换，下面所有分类块按同一口径排序 */}
@@ -327,7 +327,7 @@ function TagHubBrowser({
 						aria-busy={isFetching}
 						className={cn(
 							"flex flex-col gap-8 transition-opacity duration-200",
-							isFetching && "pointer-events-none opacity-40",
+							isFetching && "opacity-40 pointer-events-none",
 						)}
 					>
 						{categories.map((c) => (
@@ -340,8 +340,8 @@ function TagHubBrowser({
 						))}
 					</div>
 					{isFetching && (
-						<div className="pointer-events-none absolute inset-x-0 top-16 flex justify-center">
-							<Loader2Icon className="size-6 animate-spin text-muted-foreground" />
+						<div className="flex absolute inset-x-0 top-16 justify-center pointer-events-none">
+							<Loader2Icon className="size-6 text-muted-foreground animate-spin" />
 						</div>
 					)}
 				</div>
@@ -390,7 +390,7 @@ function TagHubSection({
 				title={
 					<Link
 						{...categoryTo}
-						className="rounded-sm transition-colors duration-200 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+						className="rounded-sm transition-colors duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 					>
 						{category.name}
 					</Link>
@@ -421,7 +421,7 @@ function TagHubSection({
 					className="py-8"
 				/>
 			) : (
-				<ul className="mt-4 grid grid-cols-2 gap-x-7 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
+				<ul className="grid grid-cols-2 gap-x-7 mt-4 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
 					{tags.map((t) => {
 						// 尾部固定显示收录游戏数（站内口径，与游戏列表一致）。
 						// 换排序不改这一列，避免同一位置上的数字含义跟着漂移；
@@ -438,7 +438,7 @@ function TagHubSection({
 												onClick={() => tagHeroActions.fromTag(t)}
 												className={tagRowClass}
 											>
-												<span className="min-w-0 flex-1 truncate">
+												<span className="flex-1 min-w-0 truncate">
 													{t.name}
 												</span>
 												{t.vnCount > 0 && (
@@ -465,12 +465,12 @@ function TagHubCategoriesSkeleton() {
 		<>
 			{[0, 1, 2].map((i) => (
 				<div key={i} className="flex flex-col gap-3">
-					<Skeleton className="h-6 w-40" />
-					<Skeleton className="h-3 w-56" />
+					<Skeleton className="w-40 h-6" />
+					<Skeleton className="w-56 h-3" />
 					<div className="mt-1 border-t border-border/80" />
 					<div className="grid grid-cols-2 gap-x-7 sm:grid-cols-3">
 						{Array.from({ length: 12 }, (_, k) => (
-							<Skeleton key={k} className="h-4 w-full" />
+							<Skeleton key={k} className="w-full h-4" />
 						))}
 					</div>
 				</div>
@@ -483,9 +483,9 @@ function TagHubCategoriesSkeleton() {
 function TagHubBrowserSkeleton() {
 	return (
 		<div className="flex flex-col gap-8">
-			<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-muted/40 px-3 py-2 ring-1 ring-border/60">
-				<Skeleton className="h-4 w-24" />
-				<Skeleton className="h-8 w-48" />
+			<div className="flex flex-wrap gap-3 justify-between items-center px-3 py-2 bg-muted/40 rounded-2xl ring-1 ring-border/60">
+				<Skeleton className="w-24 h-4" />
+				<Skeleton className="w-48 h-8" />
 			</div>
 			<TagHubCategoriesSkeleton />
 		</div>
@@ -502,7 +502,7 @@ export function TagsHubSkeleton() {
 				description="浏览、搜索与发现游戏标签"
 			/>
 			<div className="mb-6 w-full sm:max-w-md">
-				<Skeleton className="h-9 w-full rounded-xl" />
+				<Skeleton className="w-full h-9 rounded-xl" />
 			</div>
 			<TagHubBrowserSkeleton />
 		</section>

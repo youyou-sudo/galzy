@@ -146,11 +146,11 @@ export const ReplyEidtInput = ({
 	});
 
 	if (isPending && !reId)
-		return <Skeleton className="h-24 w-full rounded-xl" />;
+		return <Skeleton className="w-full h-24 rounded-xl" />;
 
 	if (!session && !reId)
 		return (
-			<div className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-card/60 px-6 py-8 text-center ring-1 ring-border/60">
+			<div className="flex flex-col gap-3 justify-center items-center px-6 py-8 text-center bg-card/60 rounded-2xl ring-1 ring-border/60">
 				<Image
 					className="rounded-xl"
 					src="/neko.webp"
@@ -159,7 +159,7 @@ export const ReplyEidtInput = ({
 					alt="喵喵喵～这个图片用于提示用户未登陆"
 				/>
 				<p className="text-sm text-muted-foreground">登录后即可评论</p>
-				<div className="flex items-center gap-2">
+				<div className="flex gap-2 items-center">
 					<Button
 						variant="outline"
 						onClick={() => {
@@ -210,7 +210,7 @@ export const ReplyEidtInput = ({
 									// 评论内容
 									<Field data-invalid={isInvalid}>
 										<Textarea
-											className={reId ? "max-h-80 min-h-10" : "max-h-100 min-h-12"}
+											className={reId ? "min-h-10 max-h-80" : "min-h-12 max-h-100"}
 											id={field.name}
 											name={field.name}
 											value={field.state.value}
@@ -298,7 +298,7 @@ export const ReplyEidtInput = ({
 																value={item.value}
 																name={field.name}
 																aria-label={`${item.label}`}
-																className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground text-xs"
+																className="text-xs data-[state=on]:text-primary-foreground data-[state=on]:bg-primary"
 															>
 																{item.label}
 															</ToggleGroupItem>
