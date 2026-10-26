@@ -38,7 +38,7 @@ export function TagsCard() {
 		.filter(Boolean);
 
 	return (
-		<div className="mt-4 mb-5">
+		<div className="mt-3 mb-3">
 			{!flowTags.length ? null : (
 				<CollapsibleTagList tags={flowTags} preload="viewport" />
 			)}

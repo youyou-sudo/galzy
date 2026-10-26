@@ -50,18 +50,16 @@ const adLinkClass =
 // 页内广告
 export const Glgczujm = () => {
 	return (
-		<div className="mt-4 flex flex-col gap-1 px-0">
-			<Alert className="gap-1 px-0 py-1.5 text-sm text-muted-foreground opacity-70">
-				<Info aria-hidden="true" className="size-4 shrink-0 translate-y-0.5" />
-				<ul className="col-start-2 grid gap-0.5">
-					<li>建议使用 IDM 或 Aria2 在一个小时内下载完成以防止中断喵～</li>
-					<li>PC 端使用 WinRAR 喵～</li>
-					<li>移动端使用 RAR / ZArchiver 喵～</li>
-					<li>请将文件放在全英文路径下喵～</li>
-					<li>
-						如果您喜欢这个并且能够负担得起，请考虑购买原版，或直接支持作者喵～
-					</li>
-				</ul>
+		<div className="mt-4 flex flex-col gap-2 px-0">
+			<Alert className="gap-2 border-0 bg-transparent px-0 py-1 text-xs text-muted-foreground opacity-80">
+				<Info
+					aria-hidden="true"
+					className="size-3.5 shrink-0 translate-y-0.5"
+				/>
+				<AlertDescription className="text-xs leading-relaxed">
+					建议使用 IDM 或 Aria2 在一小时内下载完成；PC 端使用 WinRAR，移动端使用
+					RAR / ZArchiver；文件请放在全英文路径下。喜欢的话请购买原版或支持作者喵～
+				</AlertDescription>
 			</Alert>
 
 			{/* DZMM 页内广告：标题 + 图片合在同一张 Card 里，整块可点 */}
@@ -75,7 +73,7 @@ export const Glgczujm = () => {
 					className="group block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 				>
 					<Card className="gap-0 overflow-hidden py-0 transition-colors duration-200 group-hover:bg-muted/40 group-hover:ring-border">
-						<CardHeader className="flex items-center gap-2 border-b border-border/60 px-4 py-2.5">
+						<CardHeader className="flex items-center gap-2 border-b border-border/60 px-4 py-2">
 							<AdBadge />
 							<CardTitle className="text-sm font-medium">
 								Ai 女友💋（在线畅玩）
@@ -89,7 +87,7 @@ export const Glgczujm = () => {
 							height={120}
 							src="/dzmm.webp"
 							alt="DZMM 广告图片"
-							className="w-full object-cover"
+							className="w-full object-cover opacity-[0.65] transition-opacity duration-200 group-hover:opacity-100"
 						/>
 					</Card>
 				</a>
@@ -97,7 +95,7 @@ export const Glgczujm = () => {
 
 			{/* 机场推荐：标题与列表同样收进一张 Card，不再是一个裸标题 + 外部列表 */}
 			<aside>
-				<Card>
+				<Card className="gap-3 py-3">
 					<CardHeader className="gap-1.5">
 						<CardTitle className="flex items-center gap-2 text-sm font-medium">
 							<AdBadge />

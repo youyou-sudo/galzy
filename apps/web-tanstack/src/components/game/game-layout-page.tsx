@@ -1,5 +1,8 @@
 import { Outlet } from "@tanstack/react-router";
-import { GameHeader } from "@web/components/home/game/GameHeader";
+import {
+	GameCover,
+	GameTitle,
+} from "@web/components/home/game/GameHeader";
 import { GameInfo } from "@web/components/home/game/GameInfo";
 import { GameTabs } from "@web/components/home/game/GameTabs";
 import { Glgczujm } from "@web/components/home/game/tips";
@@ -45,13 +48,18 @@ export default function GameLayoutPage({
 	);
 
 	return (
-		<div className="space-y-3">
-			{/* 概览卡：封面 + 标题（VT 目标） + 发行/开发/发行商/简介/TAG。
+		<div className="space-y-2">
+			{/* 概览卡：桌面左右两栏（信息 / 封面），移动端封面在前。
 			    pb-0 交给 TagsCard 自己的下边距，避免卡片底部多出一截空白 */}
-			<Card className="wrap-break-word pb-0 ring-border/60">
-				<CardContent>
-					<GameHeader game={game} id={id} />
-					<GameInfo game={game} gameId={id} />
+			<Card className="wrap-break-word py-0 ring-border/60">
+				<CardContent className="grid gap-4 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-5 sm:px-5">
+					<div className="order-2 min-w-0 sm:order-1">
+						<GameTitle game={game} id={id} />
+						<GameInfo game={game} gameId={id} />
+					</div>
+					<div className="order-1 self-start sm:order-2">
+						<GameCover game={game} id={id} />
+					</div>
 				</CardContent>
 			</Card>
 

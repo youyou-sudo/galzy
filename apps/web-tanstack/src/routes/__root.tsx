@@ -1,5 +1,4 @@
 import { BUILD_ID } from 'virtual:build-id'
-import geistWoff2Url from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url'
 import type { QueryClient } from '@tanstack/react-query'
 import {
   createRootRouteWithContext,
@@ -78,15 +77,6 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       },
     ],
     links: [
-      {
-        // latin 子集可变字体 preload：省去 CSS @import 的额外 RTT，缓解 FOUT。
-        // href 经 Vite 处理带 hash，不可硬编码 node_modules 相对路径。
-        rel: 'preload',
-        as: 'font',
-        type: 'font/woff2',
-        crossOrigin: 'anonymous',
-        href: geistWoff2Url,
-      },
       {
         rel: 'stylesheet',
         href: appCss,
@@ -200,7 +190,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
         {/* 广告：与正文同容器居中，不再用 lg:px-24 让图片比正文更窄 */}
         <aside
           id="sidebar-ad"
-          className="relative mx-auto mb-3 flex w-full max-w-5xl justify-center opacity-75 transition-opacity duration-200 hover:opacity-100"
+          className="relative mx-auto mb-3 flex w-full max-w-5xl justify-center opacity-[0.65] transition-opacity duration-200 hover:opacity-90"
         >
           <a
             data-umami-event="广告点击"

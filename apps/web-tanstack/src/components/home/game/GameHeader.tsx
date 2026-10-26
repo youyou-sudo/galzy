@@ -2,7 +2,9 @@ import { useSelector } from "@tanstack/react-store";
 import { GameCoverLightbox } from "@web/components/game/game-cover-lightbox";
 import { GameCard, useRevealedOnce } from "@web/components/home/card";
 import { Skeleton } from "@web/components/ui/skeleton";
+import { preferredGameTitle } from "@web/lib/game-title";
 import { fullSizeCoverUrl, useThumbHashDataUrl } from "@web/lib/image";
+import { cn } from "@web/lib/utils";
 import {
 	isViewTransitionActive,
 	waitForViewTransitionEnd,
@@ -13,22 +15,50 @@ import { useEffect, useState } from "react";
 
 type GameData = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>;
 
-export function GameHeader({ game, id }: { game: GameData; id: string }) {
-	const olangTitle = game?.vn?.titles?.find(
-		(t) => t.lang === game.vn?.olang && (t.title ?? "").trim() !== "",
-	)?.title;
-	// 展示标题兜底链：kungal-only 条目（vn 缺失或未水合）没有 olang 标题，
-	// 直接用 olangTitle 会渲染成字面 "null" 或空 h1。
-	// 顺序：olang 标题 → 任意非空标题 → alias 首个非空行 → "未知作品"。
-	const anyTitle = game?.vn?.titles?.find(
-		(t) => (t.title ?? "").trim() !== "",
-	)?.title;
+/**
+ * 展示标题兜底链：中文标题 → olang 标题 → 任意标题 → alias 首个非空行 → "未知作品"。
+ * 详情页优先给中文用户看中文名；列表卡片仍使用 olang 标题，不改动。
+ */
+function gameDisplayTitle(game: GameData) {
 	const aliasFirstLine = game?.vn?.alias
 		?.split("\n")
 		.map((line) => line.trim())
 		.find((line) => line !== "");
-	const displayTitle =
-		olangTitle?.trim() || anyTitle?.trim() || aliasFirstLine || "未知作品";
+	return preferredGameTitle(game) || aliasFirstLine || "未知作品";
+}
+
+/** 别名行：去掉所有中文标题本身（zh-Hans / zh / zh-Hant），多行以「、」连成一行 */
+function gameAliases(game: GameData) {
+	const titleSet = new Set(
+		(game?.vn?.titles ?? [])
+			.filter((t) => t.lang?.startsWith("zh") && t.title?.trim())
+			.map((t) => t.title?.trim()),
+	);
+	return (
+		game?.vn?.alias
+			?.split("\n")
+			.map((line) => line.trim())
+			.filter((line) => line && !titleSet.has(line))
+			.join("、") ?? ""
+	);
+}
+
+/**
+ * 详情页右侧封面。
+ *
+ * 拆成独立组件后，页面外壳可以用 grid 把封面固定在右栏，正文不会再被
+ * float 挤压成不可控的窄条；移动端仍先显示封面、再显示标题与信息。
+ */
+export function GameCover({
+	game,
+	id,
+	className,
+}: {
+	game: GameData;
+	id: string;
+	className?: string;
+}) {
+	const displayTitle = gameDisplayTitle(game);
 	const image = game?.vn?.image as unknown as {
 		imageUrl?: string | null;
 		url?: string | null;
@@ -41,10 +71,6 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 	// 占位（~32px dataURL），等 VT 结束再提交正式大图 —— 大图的解码/换帧不会
 	// 落在动画中途。SSR 与无 VT 场景（含桌面首载）初值即为 false，直接渲染
 	// 正式 src，首屏不受影响，桌面体验不变。
-	// 例外：列表已成功加载过同图（revealedSrcs 缓存命中，useRevealedOnce
-	// 客户端挂载时同步读真值）时跳过 gate —— VT 快照直接拍到真图终态，
-	// GameCard.Image 内部 ThumbHashImage 缓存命中首帧直出、无浮现动画，
-	// 实现无缝飞入。gate 仅对未揭示过的新图生效，保留原有防掉帧动机。
 	const [vtPending, setVtPending] = useState(() => isViewTransitionActive());
 	useEffect(() => {
 		if (!vtPending) return;
@@ -59,7 +85,6 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 	const thumbhashUrl = useThumbHashDataUrl(image?.thumbhash);
 	const src = image?.imageUrl ?? "/No-Image-Placeholder.svg.webp";
 	const cachedRevealed = useRevealedOnce(src);
-	// 仅对「未揭示过的新图」生效：缓存命中时 VT 期间直接渲染 GameCard.Image
 	const vtGated = vtPending && !cachedRevealed;
 
 	// 灯箱用原图：VNDB 封面在列表/详情统一走 `.t` 缩略图，`url` 才是原尺寸；
@@ -67,15 +92,11 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 	const lightboxSrc =
 		image?.url?.trim() ||
 		(image?.imageUrl ? fullSizeCoverUrl(image.imageUrl.trim()) : null);
-	// R18 遮挡与 Reveal 状态提升到本组件：未揭示时灯箱触发器不可聚焦、不可点击，
-	// 避免键盘 Enter 绕过遮挡直接打开敏感大图。
 	const showR18 = useSelector(r18Store, (state) => state.showR18);
 	const [coverRevealed, setCoverRevealed] = useState(false);
 	const coverSensitiveHidden =
 		!showR18 && (game?.vn?.image?.cSexualAvg ?? 0) >= 1 && !coverRevealed;
 
-	// 数据就绪后向 head 注入 preload，让封面下载在 VT 动画期间就开始，
-	// 动画结束时大图已可解码渲染；卸载时清理避免残留失效预载。
 	useEffect(() => {
 		const href = image?.imageUrl;
 		if (!href) return;
@@ -92,8 +113,8 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 	const coverClassName = `${
 		(game?.vn?.image?.height ?? 0) > 0 &&
 		(game?.vn?.image?.height ?? 0) < (game?.vn?.image?.width ?? 0)
-			? "min-w-72.5"
-			: "w-55"
+			? "min-w-60"
+			: "w-48"
 	} relative overflow-hidden rounded-xl text-left ring-1 ring-border/60`;
 	const coverStyle = { viewTransitionName: `game-cover-${id}` };
 	const coverContent = (
@@ -102,8 +123,6 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 				<Skeleton className="absolute inset-0 h-full w-full rounded-xl" />
 			)}
 			{vtGated ? (
-				// VT 进行中：只渲染 thumbhash 占位，等动画结束再挂正式大图
-				//（与 ThumbHashImage 内的占位同源，VT 结束后无缝续接）
 				thumbhashUrl ? (
 					<img
 						aria-hidden="true"
@@ -117,17 +136,13 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 					width={game?.vn?.image?.width ?? 200}
 					height={game?.vn?.image?.height ?? 300}
 					thumbhash={image?.thumbhash}
-					// 详情页主封面是导航关键视觉：立即加载 + 高优先级抓取，
-					// 异步解码不阻塞 VT 动画帧；与 thumbhash 占位图配合平滑呈现
 					loading="eager"
 					fetchPriority="high"
 					decoding="async"
-					// 详情页主封面：缓存命中时跳过浮现动画，避免重复访问的喧宾夺主
 					alwaysAnimate={false}
 					src={src}
 					alt={displayTitle}
 					cSexualAvg={game?.vn?.image?.cSexualAvg}
-					// 揭示态受控：未揭示的敏感图不挂载灯箱，避免绕过遮挡。
 					revealed={coverRevealed}
 					onReveal={() => setCoverRevealed(true)}
 					className="h-full w-full rounded-xl object-cover"
@@ -137,62 +152,65 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 	);
 
 	return (
-		<>
-			{/* Cover and basic info section */}
-			<div className="sm:float-right text-center sm:text-right sm:ml-4 pb-4 relative">
-				<div className="relative inline-block">
-					{lightboxSrc && !coverSensitiveHidden ? (
-						<GameCoverLightbox alt={displayTitle} src={lightboxSrc}>
-							<div className={coverClassName} style={coverStyle}>
-								{coverContent}
-								{/* 原生 button 覆盖层：给灯箱触发器完整键盘/读屏语义。
-								    敏感图未揭示时整个灯箱不挂载，点击封面只会走「显示」。 */}
-								<button
-									aria-label={`查看《${displayTitle}》封面大图`}
-									className="absolute inset-0 z-10 cursor-zoom-in rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-									type="button"
-								/>
-							</div>
-						</GameCoverLightbox>
-					) : (
+		<div
+			className={cn(
+				"relative mx-auto w-fit text-center sm:mx-0 sm:text-right",
+				className,
+			)}
+		>
+			<div className="relative inline-block max-w-full">
+				{lightboxSrc && !coverSensitiveHidden ? (
+					<GameCoverLightbox alt={displayTitle} src={lightboxSrc}>
 						<div className={coverClassName} style={coverStyle}>
 							{coverContent}
+							<button
+								aria-label={`查看《${displayTitle}》封面大图`}
+								className="absolute inset-0 z-10 cursor-zoom-in rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+								type="button"
+							/>
 						</div>
-					)}
-				</div>
-			</div>
-
-			{/* Main content section */}
-			<div className="overflow-hidden wrap-break-word">
-				<h1
-					className="mt-2 w-fit text-2xl leading-tight font-semibold tracking-tight"
-					style={{
-						viewTransitionName: `game-title-${id}`,
-						viewTransitionClass: "vt-text",
-					}}
-				>
-					{displayTitle}
-				</h1>
-
-				{/* Aliases */}
-				{game?.vn?.alias && (
-					<div className="mt-2 text-sm leading-relaxed text-muted-foreground">
-						别名:{" "}
-						{game?.vn?.alias
-							.split("\n")
-							.flatMap((s) => {
-								const trimmed = s.trim();
-								return trimmed ? [trimmed] : [];
-							})
-							.filter(
-								(s) =>
-									s !==
-									game?.vn?.titles?.find((t) => t.lang === "zh-Hans")?.title,
-							)
-							.join(", ")}
+					</GameCoverLightbox>
+				) : (
+					<div className={coverClassName} style={coverStyle}>
+						{coverContent}
 					</div>
 				)}
 			</div>
+		</div>
+	);
+}
+
+/** 标题 + 别名：单独占正文首行，不再和封面共用 float 流。 */
+export function GameTitle({ game, id }: { game: GameData; id: string }) {
+	const displayTitle = gameDisplayTitle(game);
+	const aliases = gameAliases(game);
+
+	return (
+		<div className="min-w-0">
+			<h1
+				className="w-fit text-2xl leading-tight font-semibold tracking-tight text-balance"
+				style={{
+					viewTransitionName: `game-title-${id}`,
+					viewTransitionClass: "vt-text",
+				}}
+			>
+				{displayTitle}
+			</h1>
+			{aliases && (
+				<p className="mt-1 line-clamp-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">
+					别名：{aliases}
+				</p>
+			)}
+		</div>
+	);
+}
+
+/** 兼容旧调用：测试与外部仍可拿一个同时含封面/标题的整体。 */
+export function GameHeader({ game, id }: { game: GameData; id: string }) {
+	return (
+		<>
+			<GameCover game={game} id={id} />
+			<GameTitle game={game} id={id} />
 		</>
 	);
 }

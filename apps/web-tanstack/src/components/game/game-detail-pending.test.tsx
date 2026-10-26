@@ -71,18 +71,18 @@ describe("PendingGameHero", () => {
 		expect(markup).not.toContain("cover.webp");
 		expect(markup).not.toContain("未知作品");
 		expect(markup).toContain('data-slot="skeleton"');
-		// 旧实现封面塌陷的根因是父容器没有高度：这里由 w-55 提供宽度、
+		// 旧实现封面塌陷的根因是父容器没有高度：这里由 w-48 提供宽度、
 		// AspectRatio（data-slot + --ratio）按 9/12 反推高度，Skeleton 才铺得开
-		expect(markup).toContain("w-55");
+		expect(markup).toContain("w-48");
 		expect(markup).toContain('data-slot="aspect-ratio"');
 		expect(markup).toContain("--ratio:0.75");
 	});
 
-	it("横向封面用 min-w-72.5，与 GameHeader 的尺寸判定一致", () => {
+	it("横向封面用 min-w-60，与 GameHeader 的尺寸判定一致", () => {
 		const markup = renderToString(
 			<PendingGameHero hero={{ ...hero, width: 300, height: 200 }} id="v17" />,
 		);
-		expect(markup).toContain("min-w-72.5");
+		expect(markup).toContain("min-w-60");
 	});
 
 	it("敏感封面在 pending 态也保持遮挡，不泄漏", () => {
@@ -105,7 +105,7 @@ describe("PendingGameHero", () => {
 describe("PendingGameInfo", () => {
 	it("只给发布/开发/发行/简介/TAG 出骨架", () => {
 		const markup = renderToString(<PendingGameInfo />);
-		for (const label of ["发布：", "开发：", "发行：", "游戏简介"]) {
+		for (const label of ["发售", "开发", "发行", "游戏简介"]) {
 			expect(markup).toContain(label);
 		}
 		// 3 个行内值 + 3 行简介 + 8 个 TAG 胶囊
@@ -145,7 +145,7 @@ describe("GameDetailPending", () => {
 	it("默认下载页签出文件列表骨架，且整块容器不再 aria-hidden", () => {
 		const markup = renderToString(<GameDetailPending id="v17" />);
 		expect(markup).toContain("h-9 w-full rounded-lg");
-		expect(markup).toContain("发布：");
+		expect(markup).toContain("发售");
 		expect(markup).toContain("游戏简介");
 		// @unpic 的预加载 <link> 可能在最前；根 div 自身不带 aria-hidden，
 		// 面包屑/页签才是真实可交互内容（骨架各自 aria-hidden）

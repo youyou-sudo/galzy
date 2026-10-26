@@ -3,6 +3,39 @@ import { useEffect, useRef } from "react";
 
 const MODAL_HISTORY_KEY = "__galzy_modal__";
 
+/**
+ * 弹窗打开时临时禁用页面上的 view-transition-name。
+ *
+ * 带 view-transition-name 的元素会被浏览器提到独立合成层：Chrome 在弹窗
+ * 打开动画期间做 backdrop-filter 时，这些层可能不参与模糊，出现「封面/标题
+ * 短暂清晰、背景已模糊」的漏出。同时如果路由 VT 还没结束，快照伪元素会浮在
+ * 遮罩之上。这里用 html 属性 + CSS 把名字临时置 none，关掉弹窗退场动画后再恢复。
+ */
+let modalVtGuardCount = 0;
+let modalVtGuardTimer: ReturnType<typeof setTimeout> | undefined;
+
+function acquireModalVtGuard() {
+	modalVtGuardCount++;
+	if (modalVtGuardTimer) {
+		clearTimeout(modalVtGuardTimer);
+		modalVtGuardTimer = undefined;
+	}
+	if (typeof document !== "undefined") {
+		document.documentElement.setAttribute("data-modal-vt-guard", "");
+	}
+}
+
+function releaseModalVtGuard() {
+	modalVtGuardCount = Math.max(0, modalVtGuardCount - 1);
+	if (modalVtGuardCount > 0 || typeof document === "undefined") return;
+	// 等弹窗退场动画（约 100–200ms）结束再恢复，避免关闭瞬间 VT 名字重新生效
+	modalVtGuardTimer = setTimeout(() => {
+		if (modalVtGuardCount === 0) {
+			document.documentElement.removeAttribute("data-modal-vt-guard");
+		}
+	}, 240);
+}
+
 type HistoryState = Record<string, unknown>;
 
 type UseBrowserBackModalOptions = {
@@ -65,6 +98,22 @@ export function useBrowserBackModal({
 	const onCloseRef = useRef(onClose);
 	const firstEffectRef = useRef(true);
 	const previousOpenRef = useRef(open);
+	const vtGuardActiveRef = useRef(false);
+
+	// 打开弹窗的同一个同步调用栈里先移除 VT 名字/跳过快照，再让 Dialog 渲染，
+	// 避免遮罩出现的第一帧里封面/标题还没被模糊。
+	const acquireGuard = () => {
+		if (vtGuardActiveRef.current) return;
+		vtGuardActiveRef.current = true;
+		acquireModalVtGuard();
+		skipViewTransitionsForModal();
+	};
+
+	const releaseGuard = () => {
+		if (!vtGuardActiveRef.current) return;
+		vtGuardActiveRef.current = false;
+		releaseModalVtGuard();
+	};
 
 	openRef.current = open;
 	onCloseRef.current = onClose;
@@ -97,12 +146,10 @@ export function useBrowserBackModal({
 
 	useEffect(() => {
 		if (open && !previousOpenRef.current && !activeEntryRef.current) {
+			// 先移除 VT 名字/跳过快照，再 pushState：遮罩第一帧就是干净的
+			acquireGuard();
 			addModalHistoryState(modalId);
 			activeEntryRef.current = true;
-			// 弹窗打开会引发 pushState -> 新的同 URL View Transition，
-			// 且可能打断仍在进行的路由过渡；这两种 VT 都会让标题/封面
-			// 以快照伪元素形式悬浮在弹窗遮罩之上，立即跳过（见 lib/view-transition）
-			skipViewTransitionsForModal();
 		}
 
 		if (!open && previousOpenRef.current && activeEntryRef.current) {
@@ -112,6 +159,7 @@ export function useBrowserBackModal({
 				window.history.back();
 			}
 			skipViewTransitionsForModal();
+			releaseGuard();
 		}
 
 		previousOpenRef.current = open;
@@ -132,11 +180,14 @@ export function useBrowserBackModal({
 			if (openRef.current) {
 				onCloseRef.current();
 			}
+			releaseGuard();
 			removeModalHistoryState(modalIdRef.current);
 		};
 	}, []);
 
 	const openModal = () => {
+		// 同步执行：必须早于 Dialog 把遮罩渲染出来
+		acquireGuard();
 		if (typeof window !== "undefined" && !activeEntryRef.current) {
 			addModalHistoryState(modalId);
 			activeEntryRef.current = true;
@@ -157,6 +208,8 @@ export function useBrowserBackModal({
 		if (shouldGoBack) {
 			window.history.back();
 		}
+		skipViewTransitionsForModal();
+		releaseGuard();
 	};
 
 	return {

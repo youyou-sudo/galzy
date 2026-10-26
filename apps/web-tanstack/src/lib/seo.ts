@@ -1,4 +1,5 @@
 import { seoTemplate } from "@web/config/seoTemplate";
+import { preferredGameTitle } from "./game-title";
 
 type SeoOptions = {
 	title: string;
@@ -39,8 +40,8 @@ function firstAliasLine(alias?: string | null): string | undefined {
 	);
 }
 
-/** 从 game detail 取官方语言标题（与 vn.olang 一致）
- *  兜底顺序：olang 标题 → alias 首个非空行 → "Galgame" */
+/** 从 game detail 取展示标题（中文优先，其次 olang）
+ *  兜底顺序：中文标题 → olang 标题 → 任意标题 → alias 首个非空行 → "Galgame" */
 export function gameTitleOf(
 	game:
 		| {
@@ -57,10 +58,7 @@ export function gameTitleOf(
 		| undefined,
 ): string {
 	const vn = game?.vn;
-	const title = vn?.titles?.find(
-		(t) => t.lang === vn?.olang && t.title?.trim() !== "",
-	)?.title;
-	return title || firstAliasLine(vn?.alias) || "Galgame";
+	return preferredGameTitle(game) || firstAliasLine(vn?.alias) || "Galgame";
 }
 
 type LayoutGameMatch = { routeId: string; loaderData?: unknown };

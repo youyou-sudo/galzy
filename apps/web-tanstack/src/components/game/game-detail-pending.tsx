@@ -21,9 +21,8 @@ import { type GameHeroData, gameHeroStore } from "@web/stores/gameHeroStore";
 
 // 详情页封面默认比例，对齐 GameCard.Image（SensitiveImage）的 DETAIL_IMAGE_RATIO
 const COVER_FALLBACK_RATIO = 9 / 12;
-// 发布/开发/发行三行的标签与行间距，与 GameInfo 的排布一一对应
-// （发布行带 mt-1，开发/发行紧随其后）
-const INFO_ROWS = ["发布：", "开发：", "发行："] as const;
+// 发售/开发/发行三行的标签与行间距，与 GameInfo 的 dl 排布一一对应
+const INFO_ROWS = ["发售", "开发", "发行"] as const;
 // 简介占位 3 行的宽度（写死，不用随机数）：贴合真实 line-clamp-3 的参差感
 const DESCRIPTION_LINE_WIDTHS = ["w-full", "w-[95%]", "w-3/5"] as const;
 // TAG 区 8 个胶囊的写死宽度，模拟 flex-wrap 后长短不一的标签
@@ -89,10 +88,15 @@ export function GameDetailPending({ id }: { id: string }) {
 			<div className="space-y-3">
 				{/* 与 game-layout-page 完全一致的卡片外壳：首屏结构稳定，
 				    数据返回时只替换卡片内部字段，不再整页重排 */}
-				<Card className="wrap-break-word pb-0 ring-border/60">
-					<CardContent>
-						<PendingGameHero hero={hero} id={id} />
-						<PendingGameInfo />
+				<Card className="wrap-break-word py-0 ring-border/60">
+					<CardContent className="grid gap-5 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-7 sm:px-6 sm:py-5">
+						<div className="order-2 min-w-0 sm:order-1">
+							<PendingGameTitle hero={hero} id={id} />
+							<PendingGameInfo />
+						</div>
+						<div className="order-1 self-start sm:order-2">
+							<PendingGameCover hero={hero} id={id} />
+						</div>
 					</CardContent>
 				</Card>
 
@@ -117,7 +121,8 @@ export function GameDetailPending({ id }: { id: string }) {
  * 走占位图/骨架，因此「只有没加载过才看得到加载态」。
  * 只有直达/刷新（无 hero）时才用比例占位骨架占住封面位置。
  */
-export function PendingGameHero({
+/** pending 封面：与真实 GameCover 同尺寸判定 / VT 名 / 圆角。 */
+export function PendingGameCover({
 	hero,
 	id,
 }: {
@@ -128,78 +133,101 @@ export function PendingGameHero({
 
 	if (!hero) {
 		return (
-			<>
-				<div className="sm:float-right text-center sm:text-right sm:ml-4 pb-4 relative">
-					{/* inline-block 包裹与 GameHeader 一致：移动端靠父级 text-center 居中；
-					    封面本身 w-55 + 9/12 比例（AspectRatio 反推高度，不会再塌陷） */}
-					<div className="relative inline-block">
-						<div className="w-55 relative overflow-hidden rounded-xl text-left ring-1 ring-border/60">
-							{/* 内层容器对齐 GameCard.Image（SensitiveImage）的 AspectRatio：
-							    不加 border/bg/shadow，否则真实封面到达时会「消失」造成 1px 抖动；
-							    圆角与发丝边挂在外层包裹上，与 GameHeader 真实封面同一份类名 */}
-							<AspectRatio
+			<div className="relative mx-auto w-fit text-center sm:mx-0 sm:text-right">
+				<div className="relative inline-block">
+					<div className="relative w-48 overflow-hidden rounded-xl text-left ring-1 ring-border/60">
+						<AspectRatio
+							aria-hidden
+							ratio={COVER_FALLBACK_RATIO}
+							className="w-full overflow-hidden rounded-lg"
+						>
+							<Skeleton
 								aria-hidden
-								ratio={COVER_FALLBACK_RATIO}
-								className="w-full overflow-hidden rounded-lg"
-							>
-								<Skeleton
-									aria-hidden
-									className="absolute inset-0 h-full w-full rounded-lg"
-								/>
-							</AspectRatio>
-						</div>
+								className="absolute inset-0 h-full w-full rounded-lg"
+							/>
+						</AspectRatio>
 					</div>
 				</div>
-				<div className="overflow-hidden wrap-break-word">
-					<Skeleton aria-hidden className="mt-2 h-7 w-2/3 max-w-80" />
-				</div>
-			</>
+			</div>
 		);
 	}
 
-	// 横向封面（高 < 宽）在 GameHeader 里用更宽的最小宽度，保持左右一致
+	// 横向封面（高 < 宽）与 GameCover 使用相同的更宽最小宽度
 	const coverClassName = `${
 		(hero.height ?? 0) > 0 && (hero.height ?? 0) < (hero.width ?? 0)
-			? "min-w-72.5"
-			: "w-55"
+			? "min-w-60"
+			: "w-48"
 	} relative overflow-hidden rounded-xl text-left ring-1 ring-border/60`;
 
 	return (
-		<>
-			<div className="sm:float-right text-center sm:text-right sm:ml-4 pb-4 relative">
-				{/* 与 GameHeader 一致：inline-block 包裹让移动端 text-center 生效 */}
-				<div className="relative inline-block">
-					<div
-						className={coverClassName}
-						style={{ viewTransitionName: `game-cover-${id}` }}
-					>
-						<GameCard.Image
-							width={hero.width ?? 200}
-							height={hero.height ?? 300}
-							thumbhash={hero.thumbhash}
-							src={hero.imageUrl}
-							alt={title}
-							loading="eager"
-							fetchPriority="high"
-							decoding="async"
-							alwaysAnimate={false}
-							cSexualAvg={hero.cSexualAvg}
-							className="rounded-lg w-full h-full object-cover"
-						/>
-					</div>
+		<div className="relative mx-auto w-fit text-center sm:mx-0 sm:text-right">
+			<div className="relative inline-block max-w-full">
+				<div
+					className={coverClassName}
+					style={{ viewTransitionName: `game-cover-${id}` }}
+				>
+					<GameCard.Image
+						width={hero.width ?? 200}
+						height={hero.height ?? 300}
+						thumbhash={hero.thumbhash}
+						src={hero.imageUrl}
+						alt={title}
+						loading="eager"
+						fetchPriority="high"
+						decoding="async"
+						alwaysAnimate={false}
+						cSexualAvg={hero.cSexualAvg}
+						className="rounded-lg w-full h-full object-cover"
+					/>
 				</div>
 			</div>
-			<div className="overflow-hidden wrap-break-word">
-				<h1
-					className="mt-2 w-fit text-2xl leading-tight font-semibold tracking-tight"
-					style={{
-						viewTransitionName: `game-title-${id}`,
-						viewTransitionClass: "vt-text",
-					}}
-				>
-					{title}
-				</h1>
+		</div>
+	);
+}
+
+/** pending 标题：列表没带标题时只占一行，不伪造文案。 */
+export function PendingGameTitle({
+	hero,
+	id,
+}: {
+	hero: GameHeroData | null;
+	id: string;
+}) {
+	if (!hero) {
+		return (
+			<div className="min-w-0">
+				<Skeleton aria-hidden className="h-8 w-2/3 max-w-80" />
 			</div>
+		);
+	}
+
+	return (
+		<div className="min-w-0">
+			<h1
+				className="w-fit text-2xl leading-tight font-semibold tracking-tight text-balance sm:text-3xl"
+				style={{
+					viewTransitionName: `game-title-${id}`,
+					viewTransitionClass: "vt-text",
+				}}
+			>
+				{heroTitle(hero)}
+			</h1>
+		</div>
+	);
+}
+
+/** 兼容旧调用（测试）：封面 + 标题整体 */
+export function PendingGameHero({
+	hero,
+	id,
+}: {
+	hero: GameHeroData | null;
+	id: string;
+}) {
+	return (
+		<>
+			<PendingGameCover hero={hero} id={id} />
+			<PendingGameTitle hero={hero} id={id} />
 		</>
 	);
 }
@@ -212,27 +240,24 @@ export function PendingGameHero({
 export function PendingGameInfo() {
 	return (
 		<>
-			{INFO_ROWS.map((label, index) => (
-				<div
-					key={label}
-					className={`text-sm text-muted-foreground${index === 0 ? " mt-1" : ""}`}
-				>
-					{label}
-					<Skeleton
-						aria-hidden
-						className="mx-0.5 inline-block h-3.5 w-24 align-middle"
-					/>
-				</div>
-			))}
+			<dl className="mt-4 grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1.5 text-sm">
+				{INFO_ROWS.map((label) => (
+					<div key={label} className="contents">
+						<dt className="w-8 shrink-0 pt-0.5 text-xs text-muted-foreground">
+							{label}
+						</dt>
+						<dd>
+							<Skeleton aria-hidden className="h-3.5 w-24" />
+						</dd>
+					</div>
+				))}
+			</dl>
 
-			{/* flow-root 建立 BFC：真实简介的正文是 inline 内容，会自动避开右侧
-			    浮动封面；骨架是整行块级元素，不加 BFC 会横穿/压在封面上（截图里的
-			    「突出来」）。建 BFC 后骨架与真实正文一样收在封面左侧。 */}
-			<div className="mt-2 flow-root">
-				<div className="mb-1 text-[11px] font-medium tracking-wider text-muted-foreground/70 uppercase">
+			<div className="mt-4">
+				<div className="text-xs font-medium tracking-wide text-muted-foreground">
 					游戏简介
 				</div>
-				<div className="space-y-1.5">
+				<div className="mt-1.5 space-y-1.5">
 					{DESCRIPTION_LINE_WIDTHS.map((width) => (
 						<Skeleton key={width} aria-hidden className={`h-4 ${width}`} />
 					))}

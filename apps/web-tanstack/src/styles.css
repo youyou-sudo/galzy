@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
 /* 灯箱样式必须走全局 CSS：路由级 CSS 在客户端导航时不会随 chunk 注入，
    只靠 SSR <link>，SPA 进入详情页后灯箱会完全失去定位/层级。 */
 @import "react-photo-view/dist/react-photo-view.css";
@@ -188,13 +187,14 @@
 }
 
 @theme inline {
-    /* Geist 只覆盖拉丁字形；中文必须显式给回退链，否则会落到泛型
-       sans-serif，在 Windows / macOS / Android 上分别解析成雅黑 / 苹方 /
-       Roboto+思源，行高与字重观感三个平台各不相同。
-       'Noto Sans SC' 刻意排在雅黑之后：多数系统并没有装它。 */
-    --font-sans: 'Geist Variable', 'PingFang SC', 'Hiragino Sans GB',
-        'Microsoft YaHei', 'Source Han Sans SC', 'Noto Sans SC',
-        'WenQuanYi Micro Hei', sans-serif;
+    /* 全系统字体栈：不再下载 Web Font，首屏没有 FOUT/字体切换。
+       system-ui 在 Windows/macOS/Android/Linux 上分别解析为 Segoe UI /
+       SF Pro / Roboto / 发行版 UI 字体；中文再显式回退到各系统自带的
+       苹方、冬青黑、微软雅黑、思源/Noto CJK、文泉驿。 */
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+        'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+        'Noto Sans CJK SC', 'Source Han Sans SC', 'WenQuanYi Micro Hei',
+        'Helvetica Neue', Arial, sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -461,26 +461,27 @@
   mix-blend-mode: normal;
 }
 
-/* 厂商详情页标题（producer-name-<pid>）共享元素：与 article-title 同模式，
-   隐藏旧快照、新快照全程不透明，厂商名文字沿 group 位移/缩放飞入。 */
-::view-transition-old(.producer-name) {
-  animation: none;
-  opacity: 0;
-}
-
+/* 厂商详情页标题（producer-name-<pid>）共享元素：保留双向动画。
+   旧实现隐藏旧快照，导致「厂商大标题 → 条目页小链接」时只剩新快照在旧
+   大盒子里，看不到标题收缩的过程。现在两端都保留，配合 .vt-text 的
+   scale-down（只缩不放）：
+   - 进入厂商页：旧小链接保持原尺寸，新大标题随 group 放大；
+   - 返回条目页：旧大标题随 group 缩小到小链接位置，新链接淡入。 */
+::view-transition-old(.producer-name),
 ::view-transition-new(.producer-name) {
-  animation: none;
   mix-blend-mode: normal;
+  object-fit: scale-down;
 }
 
-/* 文字类共享元素（vt-text）：两端盒子宽高比不同（如详情页大标题 ↔ 列表
-   单行截断标题），group 的宽/高非等比插值会把文字快照拉伸变形。
-   object-fit: contain 让快照在变形盒内保持等比、居中留白；文字背景透明，
-   留白不可见。对应地，JS 侧（view-transition.ts）对这类 group 跳过
-   compositor 改写——否则非等比 scale 会在合成分抵消 contain 的等比效果。 */
+/* 文字类共享元素（vt-text）：两端盒子尺寸差异很大（详情页大标题 ↔ 列表
+   单行截断标题 / 厂商大标题 ↔ 条目页小链接）。
+   contain 会把"小"一侧的快照放大填满 group：反向过渡（大标题 → 小链接）时
+   小文字被拉到旧大盒子里，出现一瞬巨大的文字残影。
+   改用 scale-down：只缩不放，文字始终按自身尺寸居中，group 负责位移/缩放。
+   对应地，JS 侧（view-transition.ts）对这类 group 跳过 compositor 改写。 */
 ::view-transition-old(.vt-text),
 ::view-transition-new(.vt-text) {
-  object-fit: contain;
+  object-fit: scale-down;
 }
 
 /* 非 root group 的纯 opacity 淡入：低端 GPU 的系统 WebView（Android Via 等，
@@ -619,6 +620,13 @@ html {
   --header-pink: oklch(0.8 0.17 350);
   /* 图片背景上再给文字一层极轻的暗色投影，低亮度区域更稳 */
   text-shadow: 0 1px 2px oklch(0 0 0 / 0.35);
+}
+
+/* 弹窗打开动画期间，带 view-transition-name 的元素会被浏览器提升为独立合成层，
+   backdrop-filter 可能不把它们纳入模糊（表现为封面/标题短暂清晰、背景已模糊）。
+   useBrowserBackModal 在打开瞬间给 html 加这个属性，退场动画结束后移除。 */
+html[data-modal-vt-guard] *[style*='view-transition-name'] {
+  view-transition-name: none !important;
 }
 
 /* ── 移动端顶栏全屏菜单（components/header/mobile-menu.tsx） ──────────

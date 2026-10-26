@@ -19,20 +19,16 @@ import { useState } from "react";
 
 type GameData = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>;
 
-/** 元信息行：与 pending 骨架的「发布：/开发：/发行：」三行同字号同色 */
-const infoRowClass = "text-sm text-muted-foreground";
-/** 行内主链接：默认就是 secondary 灰，hover 才提亮（顶栏语言） */
-const metaLinkClass =
-	"text-primary transition-colors duration-200 hover:text-primary/80";
-/** 小眉标：与 PageHeader 的 eyebrow 同一套字距与透明度 */
+/** 元信息标签：与值分列，长列表换行时仍能对齐阅读 */
+const metaLabelClass = "w-8 shrink-0 pt-0.5 text-xs text-muted-foreground";
 const eyebrowClass =
-	"mb-1 text-[11px] font-medium tracking-wider text-muted-foreground/70 uppercase";
+	"text-xs font-medium tracking-wide text-muted-foreground";
 
 export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 	const description = game?.otherData?.description || game?.vn?.description;
 	const descriptionPreview = description
-		? getDescriptionPreview(description).text
-		: "";
+		? getDescriptionPreview(description)
+		: null;
 	const [descriptionOpen, setDescriptionOpen] = useState(false);
 	const { onOpenChange: onDescriptionOpenChange } = useBrowserBackModal({
 		modalId: `game-description:${gameId}`,
@@ -40,8 +36,9 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 		onOpen: () => setDescriptionOpen(true),
 		onClose: () => setDescriptionOpen(false),
 	});
+
 	// 先算出过滤结果再决定是否渲染整行：producers 为空数组（kungal-only 条目
-	// 常无厂商数据）时，只判断 game?.producers 仍会渲染出「开发：」「发行：」
+	// 常无厂商数据）时，只判断 game?.producers 仍会渲染出「开发」「发行」
 	// 两个只有标签没有内容的空行。
 	const developers =
 		game?.producers
@@ -62,105 +59,104 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 		};
 	};
 
+	const released = game?.released_first
+		? formatLooseDate(game.released_first)
+		: null;
+
+	const renderProducers = (
+		list: typeof developers,
+		options?: { muteNg?: boolean },
+	) =>
+		list.map((producer, index) => (
+			<span key={producer.id} className="wrap-break-word">
+				<Link
+					to={"/producer/$pid"}
+					params={{ pid: producer.id }}
+					preload="viewport"
+					onClick={() => producerHeroActions.set(producer.id)}
+				>
+					<span
+						className={cn(
+							"wrap-break-word transition-colors duration-200 hover:underline",
+							options?.muteNg && producer.type === "ng"
+								? "text-muted-foreground/70"
+								: "text-foreground/85 hover:text-primary",
+						)}
+						style={vtNameFor(producer.id)}
+					>
+						{producer.name}
+					</span>
+				</Link>
+				{index < list.length - 1 ? "、" : ""}
+			</span>
+		));
+
+	const hasMeta =
+		!!released || developers.length > 0 || publishers.length > 0;
+
 	return (
 		<>
-			{/* 发行日期 */}
-			{game?.released_first && (
-				<div className={`${infoRowClass} mt-1`}>
-					发布：
-					<Link
-						to="/search"
-						search={{
-							startDate: `${formatLooseDate(game.released_first ?? undefined).year}-01-01`,
-							endDate: `${formatLooseDate(game.released_first ?? undefined).year}-12-31`,
-						}}
-						className="group inline-flex items-center gap-1 text-primary transition-colors duration-200 hover:text-primary/80"
-					>
-						{formatLooseDate(game.released_first ?? undefined).year}-
-						{formatLooseDate(game.released_first ?? undefined).formatted}
-						<Search
-							aria-hidden="true"
-							className="size-3 text-muted-foreground transition-colors group-hover:text-primary"
-						/>
-					</Link>
-				</div>
-			)}
-
-			{/* 开发组织 */}
-			{developers.length > 0 && (
-				<div className={infoRowClass}>
-					开发：
-					{developers.map((producer, index, arr) => (
-						<span key={producer.id}>
-							<Link
-								to={"/producer/$pid"}
-								params={{ pid: producer.id }}
-								preload="viewport"
-								onClick={() => producerHeroActions.set(producer.id)}
-							>
-								<span
-									className={`${metaLinkClass} wrap-break-word hover:underline`}
-									style={vtNameFor(producer.id)}
+			{hasMeta && (
+				<dl className="mt-3 grid max-w-4xl grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1 text-sm">
+					{released && (
+						<>
+							<dt className={metaLabelClass}>发售</dt>
+							<dd className="min-w-0">
+								<Link
+									to="/search"
+									search={{
+										startDate: `${released.year}-01-01`,
+										endDate: `${released.year}-12-31`,
+									}}
+									className="group inline-flex items-center gap-1 text-foreground/85 transition-colors duration-200 hover:text-primary"
 								>
-									{producer.name}
-								</span>
-							</Link>
-							{index < arr.length - 1 ? " & " : ""}
-						</span>
-					))}
-				</div>
+									{released.year}-{released.formatted}
+									<Search
+										aria-hidden="true"
+										className="size-3 text-muted-foreground transition-colors group-hover:text-primary"
+									/>
+								</Link>
+							</dd>
+						</>
+					)}
+
+					{developers.length > 0 && (
+						<>
+							<dt className={metaLabelClass}>开发</dt>
+							<dd className="min-w-0">{renderProducers(developers)}</dd>
+						</>
+					)}
+
+					{publishers.length > 0 && (
+						<>
+							<dt className={metaLabelClass}>发行</dt>
+							<dd className="min-w-0">
+								{renderProducers(publishers, { muteNg: true })}
+							</dd>
+						</>
+					)}
+				</dl>
 			)}
 
-			{/* 发行组织 */}
-			{publishers.length > 0 && (
-				<div className={infoRowClass}>
-					发行：
-					{publishers.map((producer, index, arr) => (
-						<span key={producer.id}>
-							<Link
-								to={"/producer/$pid"}
-								params={{ pid: producer.id }}
-								preload="viewport"
-								onClick={() => producerHeroActions.set(producer.id)}
-							>
-								<span
-									className={cn(
-										"wrap-break-word transition-colors duration-200 hover:underline",
-										producer.type === "ng"
-											? "text-muted-foreground/70"
-											: "text-primary hover:text-primary/80",
-									)}
-									style={vtNameFor(producer.id)}
-								>
-									{producer.name}
-								</span>
-							</Link>
-							{index < arr.length - 1 ? " & " : ""}
-						</span>
-					))}
-				</div>
-			)}
-
-			{/* Description */}
-			{description && (
+			{description && descriptionPreview && (
 				<Dialog open={descriptionOpen} onOpenChange={onDescriptionOpenChange}>
-					<div className="mt-4">
+					<div className="mt-3 max-w-3xl">
 						<div className={eyebrowClass}>游戏简介</div>
-						<div className="text-sm leading-relaxed text-foreground/85">
-							<div className="relative line-clamp-3 pr-14 sm:line-clamp-4">
-								<BBCodeRenderer inline text={descriptionPreview} />
-								<DialogTrigger
-									render={
-										<Button
-											variant="ghost"
-											size="sm"
-											className="absolute right-0 bottom-0 z-10 bg-card px-2 text-primary hover:bg-muted hover:text-primary"
-										/>
-									}
-								>
-									查看更多
-								</DialogTrigger>
+						<div className="mt-1.5 text-sm leading-relaxed text-foreground/85">
+							<div className="line-clamp-2 sm:line-clamp-3">
+								<BBCodeRenderer inline text={descriptionPreview.text} />
 							</div>
+							<DialogTrigger
+								render={
+									<Button
+										variant="link"
+										size="sm"
+										className="mt-0.5 h-6 px-0 text-xs text-primary"
+									/>
+								}
+							>
+								查看更多
+							</DialogTrigger>
 						</div>
 					</div>
 					<DialogContent className="max-h-[85vh] overflow-hidden sm:max-w-2xl">
@@ -177,6 +173,7 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 					</DialogContent>
 				</Dialog>
 			)}
+
 			{/* Tags section */}
 			<TagsCard />
 		</>
