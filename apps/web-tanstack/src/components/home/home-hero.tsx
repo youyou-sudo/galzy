@@ -7,22 +7,23 @@ import { ExternalLink } from "lucide-react";
  *
  * 抽成独立组件是为了让真实首页与 pending 态共用同一份外壳 HTML：
  * 这些文案不依赖任何请求，pending 期间也应直接渲染真实内容，不能出骨架。
- * 视觉与顶栏同源：圆角图标底片 + 发丝边 + 克制的灰。
+ * 视觉与顶栏同源：站标原图直接显示（不加底片、不描边，保留 favicon 自带的透明边），
+ * 标题与说明文字沿用克制的灰。
  */
 export function HomeHero() {
 	return (
 		<section className="flex flex-col gap-3 items-center mt-6 text-center sm:mt-10">
 			<div className="flex gap-3 items-center">
-				<span className="flex overflow-hidden shrink-0 justify-center items-center size-11 bg-primary/5 rounded-2xl ring-1 ring-border/60">
-					<Image
-						src="/favicon.ico"
-						width={32}
-						height={32}
-						fetchPriority="low"
-						decoding="async"
-						className="size-8"
-					/>
-				</span>
+				{/* 站标原图直接显示：与顶栏一致，不加底片/描边/圆角容器，
+				    避免出现多余的白色方块与发丝边。 */}
+				<Image
+					src="/favicon.ico"
+					width={32}
+					height={32}
+					fetchPriority="low"
+					decoding="async"
+					className="size-8 shrink-0"
+				/>
 				<h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
 					紫缘社
 				</h1>
