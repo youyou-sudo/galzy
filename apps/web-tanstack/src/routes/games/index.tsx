@@ -855,7 +855,13 @@ function GamesPagePending() {
 				description="浏览所有收录的 Galgame 作品"
 			/>
 			<div className="mb-4 w-full max-w-xl">
-				<Skeleton className="w-full h-10 rounded-xl" />
+				<Skeleton
+					className="w-full h-10 rounded-xl"
+					style={{
+						viewTransitionName: "site-search-bar",
+						viewTransitionClass: "site-search-bar",
+					}}
+				/>
 			</div>
 			<Skeleton className="mb-6 w-full h-12 rounded-2xl" />
 			<GameCardGridSkeleton />

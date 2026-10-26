@@ -196,7 +196,13 @@ export default function SearchInput({
 		<div className="w-full">
 			<Popover open={dateOpen} onOpenChange={setDateOpen}>
 				<div className="relative">
-					<InputGroup className="h-10 bg-background/60 shadow-[0_1px_2px_oklch(0_0_0/0.03)]">
+					<InputGroup
+						className="site-search-bar h-10 bg-background/60 shadow-[0_1px_2px_oklch(0_0_0/0.03)]"
+						style={{
+							viewTransitionName: "site-search-bar",
+							viewTransitionClass: "site-search-bar",
+						}}
+					>
 						{/* 搜索图标 */}
 						<InputGroupAddon align="inline-start">
 							<SearchIcon className="size-4 text-muted-foreground" />

@@ -461,6 +461,14 @@
   mix-blend-mode: normal;
 }
 
+/* 首页 ↔ /games 搜索栏共享元素（site-search-bar）：
+   两端宽度/位置不同，交给 group 做位移与尺寸 morph；快照用普通混合，
+   避免半透明 input 背景在交叉淡化时被 plus-lighter 叠亮。 */
+::view-transition-old(.site-search-bar),
+::view-transition-new(.site-search-bar) {
+  mix-blend-mode: normal;
+}
+
 /* 厂商详情页标题（producer-name-<pid>）共享元素：保留双向动画。
    旧实现隐藏旧快照，导致「厂商大标题 → 条目页小链接」时只剩新快照在旧
    大盒子里，看不到标题收缩的过程。现在两端都保留，配合 .vt-text 的
