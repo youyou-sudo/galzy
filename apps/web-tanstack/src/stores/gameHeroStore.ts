@@ -9,6 +9,7 @@ import { createStore } from "@tanstack/react-store";
 export type GameHeroData = {
 	id: string;
 	title: string;
+	/** 列表卡片的展示标题（中文优先，与详情页标题一致） */
 	olangTitle: string;
 	imageUrl: string;
 	thumbhash?: string | null;

@@ -15,7 +15,7 @@ type GameData = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>;
 
 /**
  * 展示标题兜底链：中文标题 → olang 标题 → 任意标题 → alias 首个非空行 → "未知作品"。
- * 详情页优先给中文用户看中文名；列表卡片仍使用 olang 标题，不改动。
+ * 详情页与列表卡片共用同一条中文优先链，避免「列表日文、详情中文」。
  */
 function gameDisplayTitle(game: GameData) {
 	const aliasFirstLine = game?.vn?.alias

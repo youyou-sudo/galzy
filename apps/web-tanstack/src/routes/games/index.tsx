@@ -26,6 +26,7 @@ import {
 import { Skeleton } from "@web/components/ui/skeleton";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { setViewportPreloadPaused } from "@web/hooks/use-viewport-preload";
+import { preferredTitleFrom } from "@web/lib/game-title";
 import { setThumbHashDecodePaused } from "@web/lib/image";
 import { seoMeta } from "@web/lib/seo";
 import { waitForViewTransitionEnd } from "@web/lib/view-transition";
@@ -397,11 +398,7 @@ function RouteComponent() {
 					thumbhash: item.images?.thumbhash,
 					src: item.images?.imageUrl ?? "/No-Image-Placeholder.svg.webp",
 					cSexualAvg: item.images?.c_sexual_avg,
-					title:
-						item?.titles_obj?.find(
-							(t: { lang: string | null; title: string | null }) =>
-								t.lang === item.olang && (t.title ?? "").trim() !== "",
-						)?.title || "null",
+					title: preferredTitleFrom(item.titles_obj, item.olang) ?? "null",
 					index: index++,
 				});
 			}

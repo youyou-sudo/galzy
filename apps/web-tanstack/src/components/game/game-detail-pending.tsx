@@ -37,7 +37,7 @@ const TAG_WIDTHS = [
 	"w-24",
 ] as const;
 
-/** 展示标题兜底链与 GameHeader 一致：olang 标题 → 通用标题 → "未知作品" */
+/** 展示标题兜底链：列表卡片标题（中文优先）→ 通用标题 → "未知作品"，与 GameHeader 同一条链 */
 function heroTitle(hero: GameHeroData | null): string {
 	return hero?.olangTitle?.trim() || hero?.title?.trim() || "未知作品";
 }

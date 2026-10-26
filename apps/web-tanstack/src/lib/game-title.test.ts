@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { preferredGameTitle } from "./game-title";
+import { preferredGameTitle, preferredTitleFrom } from "./game-title";
 
-const game = (titles: Array<{ lang: string; title: string }>, olang = "ja") => ({
+const game = (
+	titles: Array<{ lang: string; title: string }>,
+	olang = "ja",
+) => ({
 	vn: { olang, titles },
 });
 
@@ -45,9 +48,9 @@ describe("preferredGameTitle", () => {
 				]),
 			),
 		).toBe("日本語");
-		expect(
-			preferredGameTitle(game([{ lang: "en", title: "English" }])),
-		).toBe("English");
+		expect(preferredGameTitle(game([{ lang: "en", title: "English" }]))).toBe(
+			"English",
+		);
 	});
 
 	it("全部为空时返回 undefined", () => {
@@ -55,5 +58,51 @@ describe("preferredGameTitle", () => {
 		expect(
 			preferredGameTitle(game([{ lang: "ja", title: "  " }])),
 		).toBeUndefined();
+	});
+});
+
+describe("preferredTitleFrom", () => {
+	it("列表行同样中文优先，无中文回退 olang", () => {
+		expect(
+			preferredTitleFrom(
+				[
+					{ lang: "ja", title: "千恋＊万花" },
+					{ lang: "zh-Hans", title: "千恋＊万花 中文版" },
+				],
+				"ja",
+			),
+		).toBe("千恋＊万花 中文版");
+		expect(
+			preferredTitleFrom([{ lang: "ja", title: "千恋＊万花" }], "ja"),
+		).toBe("千恋＊万花");
+	});
+
+	it("语言码大小写不敏感，其它中文变体也会命中", () => {
+		expect(
+			preferredTitleFrom([{ lang: "ZH-HANS", title: "简体名" }], "ja"),
+		).toBe("简体名");
+		expect(
+			preferredTitleFrom(
+				[
+					{ lang: "ja", title: "テスト" },
+					{ lang: "zh-CN", title: "简中名" },
+				],
+				"ja",
+			),
+		).toBe("简中名");
+	});
+
+	it("跳过空白标题行，空数据返回 undefined", () => {
+		expect(
+			preferredTitleFrom(
+				[
+					{ lang: "zh-Hans", title: "   " },
+					{ lang: "ja", title: "日本語" },
+				],
+				"ja",
+			),
+		).toBe("日本語");
+		expect(preferredTitleFrom(null, null)).toBeUndefined();
+		expect(preferredTitleFrom([], "ja")).toBeUndefined();
 	});
 });

@@ -2,6 +2,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
 import { EmptyState } from "@web/components/shared/empty-state";
 import { Button } from "@web/components/ui/button";
+import { preferredTitleFrom } from "@web/lib/game-title";
 import { getVnListByTag } from "@web/server/tags";
 import { Gamepad2 } from "lucide-react";
 import { GameCard } from "../card";
@@ -70,11 +71,7 @@ export const TagGamelist = () => {
 						thumbhash={item.images?.thumbhash}
 						src={item.images?.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
 						cSexualAvg={item.images?.c_sexual_avg}
-						title={
-							item.titles?.find(
-								(t) => t.lang === item.olang && (t.title ?? "").trim() !== "",
-							)?.title || "null"
-						}
+						title={preferredTitleFrom(item.titles, item.olang) ?? "null"}
 					/>
 				) : null,
 			)

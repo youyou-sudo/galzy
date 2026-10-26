@@ -1,6 +1,7 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { GameCard } from "@web/components/home/card";
 import { EmptyState } from "@web/components/shared/empty-state";
+import { preferredTitleFrom } from "@web/lib/game-title";
 import { GitFork } from "lucide-react";
 
 const apiroute = getRouteApi("/$id/_layout/relations");
@@ -87,9 +88,8 @@ export function RelationsPage() {
 								}
 								cSexualAvg={rel.game!.images?.c_sexual_avg}
 								title={
-									rel.game!.titles_obj?.find(
-										(t) => t.lang === rel.game!.olang && t.title.trim() !== "",
-									)?.title || "null"
+									preferredTitleFrom(rel.game!.titles_obj, rel.game!.olang) ??
+									"null"
 								}
 							/>
 							{/* 关系标签：封面颜色不可控，必须用近实底 + 发丝边保证任何封面上都可读；

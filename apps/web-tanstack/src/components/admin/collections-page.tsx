@@ -1,7 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { AdminPageHeader } from "@web/components/admin/admin-page-header";
 import {
 	StatusPill,
+	type StatusTone,
 	Table,
 	TableCard,
 	TableEmpty,
@@ -11,12 +13,10 @@ import {
 	TableToolbar,
 	TBody,
 	Td,
-	Th,
 	THead,
+	Th,
 	Tr,
-	type StatusTone,
 } from "@web/components/admin/admin-table";
-import { AdminPageHeader } from "@web/components/admin/admin-page-header";
 import { SearchField } from "@web/components/shared/search-field";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
@@ -38,6 +38,7 @@ import {
 	SelectValue,
 } from "@web/components/ui/select";
 import { Textarea } from "@web/components/ui/textarea";
+import { preferredTitleFrom } from "@web/lib/game-title";
 import {
 	adminCreateCollection,
 	adminDeleteCollection,
@@ -395,16 +396,12 @@ function GameSearch({
 		try {
 			const res = await adminSearchGames({ data: { q: q.trim(), limit: 20 } });
 			const games = (res ?? []) as unknown as GameInfo[];
-			// Compute display title: zh-Hans > zh > olang > alias > id
+			// 展示标题：中文优先（zh-Hans → zh → zh-Hant → 其它中文变体），无中文回退 olang
 			setResults(
-				games.map((g) => {
-					const titles = g.titles_obj ?? [];
-					const titleObj =
-						titles.find((t) => t.lang === "zh-Hans") ||
-						titles.find((t) => t.lang === "zh") ||
-						titles.find((t) => t.lang === g.olang);
-					return { ...g, title: titleObj?.title ?? null };
-				}),
+				games.map((g) => ({
+					...g,
+					title: preferredTitleFrom(g.titles_obj, g.olang) ?? null,
+				})),
 			);
 		} catch {
 			setResults([]);

@@ -1,5 +1,6 @@
 import { Await, getRouteApi } from "@tanstack/react-router";
 import { EmptyState } from "@web/components/shared/empty-state";
+import { preferredTitleFrom } from "@web/lib/game-title";
 import { Gamepad2 } from "lucide-react";
 import { useState } from "react";
 import { GameCard } from "../card";
@@ -65,10 +66,7 @@ export const ProducerGamelist = () => {
 								if (!item) return null;
 
 								const title =
-									item.titles?.find(
-										(t) =>
-											t.lang === item.olang && (t.title ?? "").trim() !== "",
-									)?.title ?? "null";
+									preferredTitleFrom(item.titles, item.olang) ?? "null";
 
 								return (
 									<GameCard.Item
