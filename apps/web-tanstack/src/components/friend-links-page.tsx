@@ -31,6 +31,12 @@ const linksList: {
 		description: "一个简洁美观人性化的 ACG 资源站",
 	},
 	{
+		title: "梓澪の妙妙屋",
+		avatar: "https://gal.games/favicon.ico?favicon.3wygzhz2hpu11.ico",
+		href: "https://gal.games",
+		description: "梓澪の妙妙屋 - Galgame 资源库",
+	},
+	{
 		title: "鲲 Galgame 论坛",
 		avatar: "https://www.kungal.com/favicon.ico",
 		href: "https://www.kungal.com",
@@ -53,8 +59,8 @@ const linksList: {
 	{
 		title: "缘汐馆",
 		avatar:
-			"https://mrqyj.us.kg/wp-content/uploads/2026/08/%E7%BC%98%E6%B1%90%E9%A6%86%E7%BD%91%E7%AB%99%E5%9B%BE%E6%A0%87%E8%AE%BE%E8%AE%A1.png",
-		href: "https://mrqyj.us.kg",
+			"https://cloudflareimgbed.mrqyj.qzz.io/file/%E7%BD%91%E7%AB%99%E7%9B%B8%E5%85%B3%E5%9B%BE%E6%A0%87/1788319940785_%E5%9B%BE%E6%A0%87.png",
+		href: "https://yxggal.top",
 		description: "",
 	},
 ];
