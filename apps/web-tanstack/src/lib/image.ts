@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { thumbHashToDataURL } from "thumbhash";
+import { gateCommit } from "./reveal-gate";
 
 export const DEFAULT_GAME_IMAGE_RATIO = 9 / 13;
 
@@ -283,7 +284,24 @@ export function useThumbHashDataUrl(thumbhash?: string | null): string | null {
 			return;
 		}
 		setDataUrl(null);
-		return subscribeThumbHash(value, setDataUrl);
+		// 解码结果落地的提交交给 reveal-gate 门控：滚动 / View Transition
+		// 进行中挂起到空闲窗口分片 flush，未门控时同步提交（与旧行为一致）。
+		// 占位图与真实图揭示走同一套门控，否则每张卡占位图换帧都会把
+		// setState 提交洒进滚动帧/动画帧（移动端滑动与 VT 过渡掉帧根因）。
+		let cancelGate: (() => void) | undefined;
+		const unsubscribe = subscribeThumbHash(value, (dataUrl) => {
+			// 先取消上一次仍未执行的挂起提交（同一次挂载内的重复通知/抖动），
+			// 避免过期的空值提交覆盖新结果。
+			cancelGate?.();
+			cancelGate = gateCommit(() => setDataUrl(dataUrl));
+		});
+		return () => {
+			// 卸载 / thumbhash 变化：退订并取消挂起提交，避免过期闭包在
+			// 门控 flush 时 setState 到已卸载组件（React 虽会忽略，但主动取消）。
+			unsubscribe();
+			cancelGate?.();
+			cancelGate = undefined;
+		};
 	}, [thumbhash]);
 
 	return dataUrl;

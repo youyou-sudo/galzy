@@ -508,6 +508,13 @@
     animation: none;
   }
 
+  /* 触屏整体收紧 group 时长（UA 默认 250ms → 200ms）：少 3–4 帧，掉帧概率
+     下降，观感上仍是「共享元素飞行」。下方的 .article-title/.producer-name
+     按 class 指定 220ms，选择器特异度更高，不受本规则影响。 */
+  ::view-transition-group(*) {
+    animation-duration: 200ms;
+  }
+
   @supports not (view-transition-class: x) {
     ::view-transition-group(*) {
       animation: galzy-vt-group-fade 160ms ease both;
@@ -628,6 +635,25 @@ html {
 html[data-modal-vt-guard] *[style*='view-transition-name'] {
   view-transition-name: none !important;
 }
+
+/* ── VT 期间关闭背景模糊 ─────────────────────────────────────────────
+   backdrop-filter 每帧都要重算背面采样，是全屏快照交叉淡化之外的合成器带宽
+   大头。VT 播放期间（:active-view-transition）只对显式声明 .galzy-vt-no-blur
+   的元素关掉模糊 —— 不用 `*` 选择器，避免伪类翻转时触发全站样式失效。
+   新旧两帧快照都在伪类生效期间采集，因此过渡两端一致，动画结束后模糊自动恢复。 */
+html:active-view-transition .galzy-vt-no-blur {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* ── 首屏外延迟渲染：评估后不采用 content-visibility ─────────────────
+   曾尝试给首页「本周热门 / 精选合集」加 content-visibility: auto 以减少
+   导航提交期的排版，但这两个区块处在 SPA 返回滚动的恢复路径上：区块未渲染时
+   高度只会取 contain-intrinsic-size 的兜底值（真实高度随断点 700–1300px 变化），
+   返回首页时文档总高偏小 → 滚动恢复落点偏移，随后区块渲染再跳一次。
+   这条与「不能影响主要交互」冲突，故撤回。
+   若将来要用：只放在「不会被返回滚动恢复命中的区块」上，并用足够接近真实高度的
+   contain-intrinsic-size；虚拟化卡片网格永远不要加（与 measureElement 互相干扰）。 */
 
 /* ── 移动端顶栏全屏菜单（components/header/mobile-menu.tsx） ──────────
    折叠态 hamburger 与全屏覆盖层切换只用 opacity / transform（合成器友好），

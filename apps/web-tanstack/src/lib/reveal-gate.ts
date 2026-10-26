@@ -85,6 +85,22 @@ function scheduleChunkFlush() {
 }
 
 /**
+ * 队列分片执行器：取最早加入的至多 FLUSH_CHUNK_SIZE 个提交同步执行，
+ * 返回是否仍有剩余（调用方据此排下一帧）。滚动门控队列与 VT 收尾队列
+ * 共用同一条分片节奏，避免两套阈值漂移。
+ */
+function drainChunk(queue: Set<() => void>): boolean {
+	const batch: Array<() => void> = [];
+	for (const commit of queue) {
+		if (batch.length >= FLUSH_CHUNK_SIZE) break;
+		batch.push(commit);
+		queue.delete(commit);
+	}
+	for (const commit of batch) commit();
+	return queue.size > 0;
+}
+
+/**
  * 执行一个分片：取 pending 中最早加入的至多 FLUSH_CHUNK_SIZE 个执行；
  * 仍有剩余则排下一帧继续排空，清空后停止排程并清掉门控定时器。
  */
@@ -93,18 +109,29 @@ function flushChunk() {
 		clearFlushTimers();
 		return;
 	}
-	const batch: Array<() => void> = [];
-	for (const commit of pending) {
-		if (batch.length >= FLUSH_CHUNK_SIZE) break;
-		batch.push(commit);
-		pending.delete(commit);
-	}
-	for (const commit of batch) commit();
-	if (pending.size > 0) {
+	if (drainChunk(pending)) {
 		scheduleChunkFlush();
 	} else {
 		clearFlushTimers();
 	}
+}
+
+/**
+ * 请求下一帧执行 callback，返回取消函数。优先 requestAnimationFrame；
+ * 无 rAF 环境退化为 setTimeout(16ms)，与分片 flush 的兜底帧间隔一致。
+ */
+function scheduleFrame(callback: () => void): () => void {
+	const raf =
+		typeof window !== "undefined" &&
+		typeof window.requestAnimationFrame === "function"
+			? window.requestAnimationFrame.bind(window)
+			: undefined;
+	if (raf !== undefined) {
+		const handle = raf(callback);
+		return () => window.cancelAnimationFrame(handle);
+	}
+	const handle = setTimeout(callback, FLUSH_CHUNK_INTERVAL_MS);
+	return () => clearTimeout(handle);
 }
 
 /** 强制分片 flush：不走门控判断，供门控解除与兜底定时器使用 */
@@ -196,5 +223,137 @@ export function gateCommit(commit: () => void): () => void {
 			clearFlushTimers();
 			cancelChunkFlush();
 		}
+	};
+}
+
+/**
+ * VT 收尾提交队列（与滚动门控的 pending 分开维护）。
+ *
+ * 动机：详情页的封面 / 标签 / 文件列表等多个组件都要「等 VT 结束再提交」，
+ * 各自 then 一次 setState 会在动画结束的同一帧集中提交，形成一次较长提交
+ * （每个提交都要卸载骨架并挂载整棵真实子树）。这里让它们共用一条队列，
+ * 结束时刻统一按「每帧至多 FLUSH_CHUNK_SIZE 个」的节奏放行，把集中提交摊到
+ * 相邻几帧；首片仍在 VT 结束后的微任务里立即执行，不额外增加首条提交延迟。
+ */
+const vtPending = new Set<() => void>();
+let cancelVtPollFrame: (() => void) | undefined;
+let cancelVtChunkFrame: (() => void) | undefined;
+let vtFallbackTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** 清理 VT 队列的全部排程（轮询帧 / 分片帧 / 兜底定时器），幂等 */
+function clearVtTimers() {
+	if (cancelVtPollFrame !== undefined) {
+		cancelVtPollFrame();
+		cancelVtPollFrame = undefined;
+	}
+	if (cancelVtChunkFrame !== undefined) {
+		cancelVtChunkFrame();
+		cancelVtChunkFrame = undefined;
+	}
+	if (vtFallbackTimer !== undefined) {
+		clearTimeout(vtFallbackTimer);
+		vtFallbackTimer = undefined;
+	}
+}
+
+/** 放行一个 VT 分片；仍有剩余则排下一帧，清空后停掉全部排程 */
+function flushVtChunk() {
+	if (vtPending.size === 0) {
+		clearVtTimers();
+		return;
+	}
+	if (drainChunk(vtPending)) {
+		scheduleVtChunk();
+	} else {
+		clearVtTimers();
+	}
+}
+
+/** 排程下一 VT 分片帧（rAF，无 rAF 环境 16ms 兜底） */
+function scheduleVtChunk() {
+	if (cancelVtChunkFrame !== undefined || vtPending.size === 0) return;
+	cancelVtChunkFrame = scheduleFrame(() => {
+		cancelVtChunkFrame = undefined;
+		flushVtChunk();
+	});
+}
+
+/**
+ * rAF 轮询等待 VT 结束：期间若被新 VT 接管（:active-view-transition 再次
+ * 命中）就继续等；确认结束后在微任务里立即放行第一片，不额外多等一帧。
+ * 必须用 isViewTransitionActive() 判断 —— 组件在 startViewTransition 的
+ * update 回调内挂载时，tracker 的 activeTransition 可能尚未赋值。
+ */
+function scheduleVtPoll() {
+	if (cancelVtPollFrame !== undefined || vtPending.size === 0) return;
+	cancelVtPollFrame = scheduleFrame(() => {
+		cancelVtPollFrame = undefined;
+		if (vtPending.size === 0) {
+			clearVtTimers();
+			return;
+		}
+		if (isViewTransitionActive()) {
+			scheduleVtPoll();
+			return;
+		}
+		queueMicrotask(flushVtChunk);
+	});
+}
+
+/** 兜底强排：伪类状态异常 / rAF 停摆时到点直接开始放行，避免永挂骨架 */
+function forceFlushVtPending() {
+	if (cancelVtPollFrame !== undefined) {
+		cancelVtPollFrame();
+		cancelVtPollFrame = undefined;
+	}
+	if (cancelVtChunkFrame !== undefined) {
+		cancelVtChunkFrame();
+		cancelVtChunkFrame = undefined;
+	}
+	flushVtChunk();
+}
+
+/** 首次入队时启动：rAF 轮询 + 1500ms 兜底强排（最大值复用 MAX_WAIT_MS） */
+function startVtWait() {
+	if (cancelVtPollFrame !== undefined) return;
+	if (vtFallbackTimer === undefined) {
+		vtFallbackTimer = setTimeout(() => {
+			vtFallbackTimer = undefined;
+			forceFlushVtPending();
+		}, MAX_WAIT_MS);
+	}
+	scheduleVtPoll();
+}
+
+/**
+ * 等当前 View Transition 结束后提交（多个组件的收尾提交错峰）。
+ *
+ * - SSR / 无 window → 同步提交，返回空取消函数；
+ * - 当前没有 VT（isViewTransitionActive() 为 false）→ 同步提交，与旧行为一致；
+ * - VT 进行中 → 入队，rAF 轮询 :active-view-transition 直到动画结束（期间起了
+ *   新 VT 就继续等），再按每帧至多 FLUSH_CHUNK_SIZE 个的节奏放行：第一片在
+ *   结束后的微任务里立即执行（不增加首条延迟），剩余逐帧排空；1500ms 兜底
+ *   强制排空，避免伪类状态异常时内容永远挂在骨架上。
+ *
+ * 返回取消函数：组件卸载 / 依赖变化时调用，把提交移出队列。
+ */
+export function commitAfterViewTransition(commit: () => void): () => void {
+	if (typeof window === "undefined") {
+		commit();
+		return () => {};
+	}
+	if (!isViewTransitionActive()) {
+		commit();
+		return () => {};
+	}
+
+	vtPending.add(commit);
+	// 队列由空转非空才需要重新拉起轮询；已在排空中的队列把新提交交给
+	// 已排程的分片帧顺带取走即可。
+	if (vtPending.size === 1) startVtWait();
+
+	return () => {
+		vtPending.delete(commit);
+		if (vtPending.size === 0) clearVtTimers();
 	};
 }

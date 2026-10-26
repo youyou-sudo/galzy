@@ -117,7 +117,7 @@ export default function Header() {
 										"h-11 rounded-2xl pl-2 pr-1.5 ring-1 ring-border/60 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.45)]",
 										scrolling
 											? "bg-background/95"
-											: "bg-background/70 backdrop-blur-xl",
+											: "bg-background/70 backdrop-blur-xl galzy-vt-no-blur",
 									)
 								: "h-14 bg-transparent",
 						)}

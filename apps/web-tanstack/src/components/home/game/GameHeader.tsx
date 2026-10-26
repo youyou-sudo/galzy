@@ -4,11 +4,9 @@ import { GameCard, useRevealedOnce } from "@web/components/home/card";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { preferredGameTitle } from "@web/lib/game-title";
 import { fullSizeCoverUrl, useThumbHashDataUrl } from "@web/lib/image";
+import { commitAfterViewTransition } from "@web/lib/reveal-gate";
 import { cn } from "@web/lib/utils";
-import {
-	isViewTransitionActive,
-	waitForViewTransitionEnd,
-} from "@web/lib/view-transition";
+import { isViewTransitionActive } from "@web/lib/view-transition";
 import type { getGameDetail } from "@web/server/game";
 import { r18Store } from "@web/stores/r18Store";
 import { useEffect, useState } from "react";
@@ -74,13 +72,7 @@ export function GameCover({
 	const [vtPending, setVtPending] = useState(() => isViewTransitionActive());
 	useEffect(() => {
 		if (!vtPending) return;
-		let cancelled = false;
-		void waitForViewTransitionEnd().then(() => {
-			if (!cancelled) setVtPending(false);
-		});
-		return () => {
-			cancelled = true;
-		};
+		return commitAfterViewTransition(() => setVtPending(false));
 	}, [vtPending]);
 	const thumbhashUrl = useThumbHashDataUrl(image?.thumbhash);
 	const src = image?.imageUrl ?? "/No-Image-Placeholder.svg.webp";

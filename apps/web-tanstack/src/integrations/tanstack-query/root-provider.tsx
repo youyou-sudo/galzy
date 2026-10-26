@@ -5,6 +5,7 @@ import {
   type Persister,
 } from '@tanstack/react-query-persist-client'
 import { useRouter } from '@tanstack/react-router'
+import { isViewTransitionActive } from '@web/lib/view-transition'
 import type { ReactNode } from 'react'
 
 const defaultOptions = {
@@ -201,13 +202,51 @@ function slimClientForPersist(client: PersistedClient): PersistedClient {
 const VT_RETRY_DELAY_MS = 300
 const VT_MAX_RETRIES = 3
 
+/** :active-view-transition 伪类支持检测结果（模块级缓存，避免每次 flush 都问一遍） */
+let activeTransitionSelectorSupported: boolean | undefined
+
 /**
- * 探测 View Transition 是否正在播放。
- * Router 在所有 loader resolve 后调用 document.startViewTransition（src/lib/view-transition.ts
- * 已 monkey-patch），root 伪元素树上会出现 ::view-transition 运行动画；
- * document.getAnimations() 能枚举到它们（effect.pseudoElement 以 ::view-transition 开头）。
+ * :active-view-transition 伪类是否可用。
+ * 特性检测不通过、没有 CSS.supports、或 CSS.supports 抛错时均返回 false，
+ * 调用方据此回退到全量动画枚举（行为与改造前完全一致）。
  */
-function isViewTransitionActive(): boolean {
+function supportsActiveViewTransition(): boolean {
+  if (activeTransitionSelectorSupported !== undefined) {
+    return activeTransitionSelectorSupported
+  }
+  try {
+    activeTransitionSelectorSupported =
+      typeof CSS !== 'undefined' &&
+      typeof CSS.supports === 'function' &&
+      CSS.supports('selector(:active-view-transition)')
+  } catch {
+    activeTransitionSelectorSupported = false
+  }
+  return activeTransitionSelectorSupported
+}
+
+/**
+ * 探测 View Transition 是否正在播放（每次 flush 前调用一次）。
+ *
+ * 现代 UA 直接复用 @web/lib/view-transition 的 isViewTransitionActive()：
+ * html 是否匹配 :active-view-transition 只是一次选择器匹配，O(1)。
+ * 旧实现每次都 document.getAnimations() 全量枚举所有运行动画，再逐个判断
+ * KeyframeEffect.pseudoElement 前缀 —— 动画数量随页面复杂度线性增长，而这段
+ * 开销恰好落在我们想把主线程让给 VT 动画的时刻。两条路径回答同一个问题
+ * （「此刻是否有 ::view-transition 伪元素动画在跑」），所以答案等价。
+ * 伪类不可用的旧 UA（Chrome < 125 / 不支持 selector()）走下面的全量枚举兜底，
+ * 保证行为与改造前完全一致。
+ */
+export function isViewTransitionPlaying(): boolean {
+  if (supportsActiveViewTransition()) return isViewTransitionActive()
+  return hasViewTransitionAnimations()
+}
+
+/**
+ * 旧 UA 兜底：枚举 document 上的动画，挑出 UA 生成的 ::view-transition
+ * 过渡伪元素动画（effect.pseudoElement 以前缀开头）。
+ */
+function hasViewTransitionAnimations(): boolean {
   try {
     return document
       .getAnimations()
@@ -260,13 +299,14 @@ function createLocalStoragePersister({
    * flush 排程（带 VT 避让）。
    * 因果：首次进入详情页时 gameDetail 查询刚成功 → persistQueryClient 订阅触发 persistClient
    * → rIC 恰好在 250ms VT 动画期间主线程空闲时 fire，flush 的 JSON.stringify + 同步
-   * localStorage.setItem 长任务落在动画窗口内，造成掉帧。故 flush 执行前探测
-   * ::view-transition 运行动画，仍在播放则让位 300ms 后重新排队；最多重试 3 次，
-   * 之后强制执行以免写入被持续动画饿死。
+   * localStorage.setItem 长任务落在动画窗口内，造成掉帧。故 flush 执行前用
+   * isViewTransitionPlaying()（:active-view-transition 匹配，O(1)）探测，
+   * 仍在播放则让位 300ms 后重新排队；最多重试 3 次，之后强制执行以免写入被
+   * 持续动画饿死。
    */
   const scheduleFlush = (attempt: number) => {
     const run = () => {
-      if (isViewTransitionActive() && attempt < VT_MAX_RETRIES) {
+      if (isViewTransitionPlaying() && attempt < VT_MAX_RETRIES) {
         setTimeout(() => scheduleFlush(attempt + 1), VT_RETRY_DELAY_MS)
         return
       }

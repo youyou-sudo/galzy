@@ -38,9 +38,9 @@ import { Skeleton } from "@web/components/ui/skeleton";
 import { EmptyState } from "@web/components/shared/empty-state";
 import { IconTile } from "@web/components/shared/icon-tile";
 import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
+import { commitAfterViewTransition } from "@web/lib/reveal-gate";
 import { groupSplitArchives } from "@web/lib/split-archives";
 import { cn } from "@web/lib/utils";
-import { waitForViewTransitionEnd } from "@web/lib/view-transition";
 import { dwAcConst } from "@web/server/game";
 import { downCardStore, downmodalActions } from "@web/stores/downCardData";
 import { AlertTriangle, FileArchive, Info } from "lucide-react";
@@ -101,19 +101,15 @@ export const DownloadOptions = () => {
 		refetch,
 	} = useQuery(filelistQueryOptions(id));
 	// VT 结束 gate：数据到达时若正处 View Transition 动画中，先保持骨架，
-	// 等 waitForViewTransitionEnd() resolve 再提交渲染 —— VT 进行中的重渲染
+	// 等 commitAfterViewTransition 在动画结束后提交渲染 —— VT 进行中的重渲染
 	// 会打断动画帧；useDeferredValue 只降优先级，不保证等动画结束。
+	// 该 helper 让同页多个组件的收尾提交按每帧至多 6 个错峰，避免动画结束后
+	// 同帧集中提交形成长任务（首片仍在结束后的微任务里立即提交，不加延迟）。
 	// 初值取当前 filelist：SSR/无 VT 时直接渲染，且与 SSR 输出一致（无 hydration 抖动）。
 	const [settledFilelist, setSettledFilelist] = useState(filelist);
 	useEffect(() => {
 		if (filelist === undefined) return;
-		let cancelled = false;
-		void waitForViewTransitionEnd().then(() => {
-			if (!cancelled) setSettledFilelist(filelist);
-		});
-		return () => {
-			cancelled = true;
-		};
+		return commitAfterViewTransition(() => setSettledFilelist(filelist));
 	}, [filelist]);
 
 	// 文件服务/上游故障：明确报错并可重试，不再伪装成空文件列表

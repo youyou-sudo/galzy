@@ -11,15 +11,26 @@ type RevealGateModule = typeof import("./reveal-gate");
  * scroll 监听 —— 同一事件触发多次 handler 无副作用（幂等置位）。
  */
 let mod: RevealGateModule;
+/** 模拟 html 是否命中 :active-view-transition（jsdom 的 nwsapi 不支持该伪类） */
+let vtActive = false;
 
 beforeEach(async () => {
 	vi.resetModules();
 	vi.useFakeTimers();
+	vtActive = false;
+	// jsdom 直接 matches(':active-view-transition') 会抛错（nwsapi 不支持），
+	// 用 spy 接管 html 元素的 matches，模拟真机上的伪类状态；其余选择器
+	// 保持「不匹配」，避免影响测试里的普通查询。
+	vi.spyOn(document.documentElement, "matches").mockImplementation(
+		(selector: string) => selector === ":active-view-transition" && vtActive,
+	);
 	mod = await import("./reveal-gate");
 });
 
 afterEach(() => {
 	vi.useRealTimers();
+	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
 });
 
 describe("reveal-gate", () => {
@@ -171,5 +182,132 @@ describe("reveal-gate", () => {
 
 		vi.advanceTimersByTime(100);
 		expect(commit).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("commitAfterViewTransition", () => {
+	it("无 VT 时同步提交，取消函数为空操作", () => {
+		const commit = vi.fn();
+		const cancel = mod.commitAfterViewTransition(commit);
+
+		expect(commit).toHaveBeenCalledTimes(1);
+		cancel();
+		expect(commit).toHaveBeenCalledTimes(1);
+	});
+
+	it("VT 活跃时不执行；VT 结束后在微任务里立即放行（不多等一帧）", async () => {
+		vtActive = true;
+		const commit = vi.fn();
+		mod.commitAfterViewTransition(commit);
+
+		// 动画进行中，轮询若干帧都不提交
+		vi.advanceTimersByTime(16);
+		vi.advanceTimersByTime(16);
+		expect(commit).not.toHaveBeenCalled();
+
+		// 伪类解除：下一轮询帧发现结束，微任务立即执行，不需要再等一帧
+		vtActive = false;
+		vi.advanceTimersByTime(16);
+		expect(commit).not.toHaveBeenCalled();
+		await Promise.resolve();
+		expect(commit).toHaveBeenCalledTimes(1);
+	});
+
+	it("VT 结束后被新 VT 接管：继续等待，不提前提交", async () => {
+		vtActive = true;
+		const commit = vi.fn();
+		mod.commitAfterViewTransition(commit);
+
+		// 第一个轮询帧仍命中（结束瞬间又被新 VT 接管）→ 继续等，不提交
+		vi.advanceTimersByTime(16);
+		await Promise.resolve();
+		expect(commit).not.toHaveBeenCalled();
+
+		// 新 VT 也结束才放行
+		vtActive = false;
+		vi.advanceTimersByTime(16);
+		await Promise.resolve();
+		expect(commit).toHaveBeenCalledTimes(1);
+	});
+
+	it("一次入队 8 个：第一片 6 个立即执行，剩余逐帧排空", async () => {
+		vtActive = true;
+		const commits = Array.from({ length: 8 }, () => vi.fn());
+		for (const c of commits) mod.commitAfterViewTransition(c);
+		expect(commits[0]).not.toHaveBeenCalled();
+
+		vtActive = false;
+		vi.advanceTimersByTime(16);
+		// 微任务：第一片（≤ FLUSH_CHUNK_SIZE=6）同步执行，剩余留到下一帧
+		await Promise.resolve();
+		for (const c of commits.slice(0, 6)) expect(c).toHaveBeenCalledTimes(1);
+		expect(commits[6]).not.toHaveBeenCalled();
+		expect(commits[7]).not.toHaveBeenCalled();
+
+		// 下一分片帧排空剩余两个
+		vi.advanceTimersByTime(16);
+		expect(commits[6]).toHaveBeenCalledTimes(1);
+		expect(commits[7]).toHaveBeenCalledTimes(1);
+		for (const c of commits) expect(c).toHaveBeenCalledTimes(1);
+	});
+
+	it("取消函数把提交移出 VT 队列，VT 结束后不再执行", async () => {
+		vtActive = true;
+		const commit = vi.fn();
+		const cancel = mod.commitAfterViewTransition(commit);
+		cancel();
+
+		vtActive = false;
+		vi.advanceTimersByTime(100);
+		await Promise.resolve();
+		expect(commit).not.toHaveBeenCalled();
+	});
+
+	it("列表被重新入队后取消旧的：只执行最新提交", async () => {
+		vtActive = true;
+		const first = vi.fn();
+		const second = vi.fn();
+		const cancelFirst = mod.commitAfterViewTransition(first);
+		mod.commitAfterViewTransition(second);
+
+		// 依赖变化：旧提交取消，新提交保留
+		cancelFirst();
+		vtActive = false;
+		vi.advanceTimersByTime(16);
+		await Promise.resolve();
+		expect(first).not.toHaveBeenCalled();
+		expect(second).toHaveBeenCalledTimes(1);
+	});
+
+	it("伪类始终命中时 1500ms 兜底强制排空，不会永挂骨架", async () => {
+		vtActive = true;
+		const commits = Array.from({ length: 8 }, () => vi.fn());
+		for (const c of commits) mod.commitAfterViewTransition(c);
+
+		// 伪类一直为 true：轮询永远看不到结束
+		vi.advanceTimersByTime(1400);
+		expect(commits[0]).not.toHaveBeenCalled();
+
+		// 到达 MAX_WAIT_MS=1500：强制放行第一片，剩余逐帧排空
+		vi.advanceTimersByTime(100);
+		for (const c of commits.slice(0, 6)) expect(c).toHaveBeenCalledTimes(1);
+		expect(commits[6]).not.toHaveBeenCalled();
+
+		vi.advanceTimersByTime(16);
+		expect(commits[6]).toHaveBeenCalledTimes(1);
+		vi.advanceTimersByTime(16);
+		expect(commits[7]).toHaveBeenCalledTimes(1);
+		for (const c of commits) expect(c).toHaveBeenCalledTimes(1);
+	});
+
+	it("SSR（无 window）时同步提交，即使伪类看似活跃", () => {
+		const commit = vi.fn();
+		vi.stubGlobal("window", undefined);
+		vtActive = true;
+		const cancel = mod.commitAfterViewTransition(commit);
+
+		expect(commit).toHaveBeenCalledTimes(1);
+		cancel();
+		vi.unstubAllGlobals();
 	});
 });

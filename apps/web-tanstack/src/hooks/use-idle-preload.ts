@@ -1,5 +1,21 @@
 import { useRouter, type RegisteredRouter } from "@tanstack/react-router";
+import { isViewTransitionActive } from "@web/lib/view-transition";
 import { useEffect, useRef } from "react";
+
+/** VT 播放期间延后实际预取的兜底上限：超过仍判定活跃就强制放行，
+ * 避免 rAF 被后台标签页节流时预取永久悬空。 */
+const VT_DRAIN_TIMEOUT_MS = 1500;
+
+/** 单调时钟（performance 不可用时退回 Date.now） */
+function now(): number {
+	if (
+		typeof performance !== "undefined" &&
+		typeof performance.now === "function"
+	) {
+		return performance.now();
+	}
+	return Date.now();
+}
 
 /**
  * 首屏渲染完成后，浏览器空闲时预取路由（JS chunk + loader 数据）。
@@ -36,6 +52,8 @@ export function useIdlePreload(
 		let cancelled = false;
 		const timers: Array<ReturnType<typeof setTimeout>> = [];
 		let idleHandle: number | undefined;
+		/** VT 结束轮询的 rAF 句柄 */
+		let frameHandle: number | undefined;
 
 		const runOne = (index: number) => {
 			if (cancelled) return;
@@ -46,7 +64,8 @@ export function useIdlePreload(
 			}
 		};
 
-		const run = () => {
+		/** 真正执行 targets（staggerMs > 0 时按索引错峰） */
+		const runTargets = () => {
 			if (cancelled) return;
 			if (staggerMs > 0) {
 				targetsRef.current.forEach((_, index) => {
@@ -55,6 +74,36 @@ export function useIdlePreload(
 			} else {
 				targetsRef.current.forEach((_, index) => runOne(index));
 			}
+		};
+
+		/**
+		 * VT 播放期间先不发预取：动态 import + loader 请求会与过渡动画抢主线程，
+		 * 等动画结束再执行（用户无感）。逐帧轮询 isViewTransitionActive 到 false；
+		 * 无 rAF（SSR/node）或超过兜底时限时直接执行，避免预取永久悬空。
+		 */
+		const run = () => {
+			if (cancelled) return;
+			if (
+				typeof requestAnimationFrame !== "function" ||
+				!isViewTransitionActive()
+			) {
+				runTargets();
+				return;
+			}
+			const startedAt = now();
+			const tick = () => {
+				frameHandle = undefined;
+				if (cancelled) return;
+				if (
+					isViewTransitionActive() &&
+					now() - startedAt < VT_DRAIN_TIMEOUT_MS
+				) {
+					frameHandle = requestAnimationFrame(tick);
+					return;
+				}
+				runTargets();
+			};
+			frameHandle = requestAnimationFrame(tick);
 		};
 
 		if (typeof requestIdleCallback === "function") {
@@ -66,6 +115,12 @@ export function useIdlePreload(
 			cancelled = true;
 			for (const t of timers) clearTimeout(t);
 			if (idleHandle !== undefined) cancelIdleCallback(idleHandle);
+			if (frameHandle !== undefined) {
+				if (typeof cancelAnimationFrame === "function") {
+					cancelAnimationFrame(frameHandle);
+				}
+				frameHandle = undefined;
+			}
 		};
 	}, [router, staggerMs]);
 }
