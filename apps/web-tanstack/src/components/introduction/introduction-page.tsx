@@ -14,6 +14,7 @@ import { elysiaErrorF } from "@web/lib";
 import { cn } from "@web/lib/utils";
 import { authClient } from "@web/server/auth/auth-client";
 import { deleteIntroduction } from "@web/server/introduction";
+import { articleHeroActions } from "@web/stores/articleHeroStore";
 import {
 	BookOpen,
 	Loader2,
@@ -46,6 +47,10 @@ function ArticleLink({ item, gameId }: { item: any; gameId: string }) {
 			to="/$id/introduction/$articleId"
 			params={{ id: gameId, articleId: String(item.id) }}
 			resetScroll={false}
+			// 点击时回写标题：详情 pending 态直接复用，与列表条目同一组 VT 衔接
+			onClick={() =>
+				articleHeroActions.fromArticle({ id: item.id, title: item.title })
+			}
 			className="flex flex-1 gap-2 items-center py-2.5 min-w-0 text-sm outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
 		>
 			<NotepadText

@@ -5,8 +5,11 @@ import {
 	useParams,
 	useRouterState,
 } from "@tanstack/react-router";
-import GameLayoutPage from "@web/components/game/game-layout-page";
+import { useSelector } from "@tanstack/react-store";
 import { GameDetailPending } from "@web/components/game/game-detail-pending";
+import GameLayoutPage from "@web/components/game/game-layout-page";
+import { filelistQueryOptions } from "@web/components/home/game/download-options-queries";
+import { gameTagsQueryOptions } from "@web/components/home/game/game-tags-queries";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -16,8 +19,6 @@ import {
 	BreadcrumbSeparator,
 } from "@web/components/shared/breadcrumb";
 import { seoTemplate } from "@web/config/seoTemplate";
-import { filelistQueryOptions } from "@web/components/home/game/download-options-queries";
-import { gameTagsQueryOptions } from "@web/components/home/game/game-tags-queries";
 import {
 	canonicalGameId,
 	isGameRouteId,
@@ -27,6 +28,7 @@ import {
 import { gameTitleOf } from "@web/lib/seo";
 import { getGameDetail } from "@web/server/game";
 import { recordGameView } from "@web/server/views";
+import { articleHeroStore } from "@web/stores/articleHeroStore";
 
 export const Route = createFileRoute("/$id/_layout")({
 	params: {
@@ -114,12 +116,21 @@ export const Route = createFileRoute("/$id/_layout")({
 		const gameTitle = gameTitleOf(loaderData?.game);
 
 		// Check if we're on an introduction article page
-		const match = routerState.matches.find(
+		const articleMatch = routerState.matches.find(
 			(m) => m.routeId === "/$id/_layout/introduction/$articleId",
 		);
-		const articleTitle = match
-			? (match.loaderData as any)?.article?.title
-			: null;
+		// pending 期间子路由的 loaderData 还没到：用列表入口回写的标题补上面包屑
+		// 末项（与真实标题必然相同），末项不会等数据到达才「跳出来」
+		const articleId = (
+			articleMatch?.params as { articleId?: string } | undefined
+		)?.articleId;
+		const heroArticleTitle = useSelector(articleHeroStore, (state) =>
+			state.id === articleId ? (state.data?.title ?? "") : "",
+		);
+		const articleTitle =
+			(articleMatch?.loaderData as any)?.article?.title ||
+			heroArticleTitle ||
+			null;
 
 		return (
 			<div>

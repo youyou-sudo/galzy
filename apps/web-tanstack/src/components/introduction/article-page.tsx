@@ -114,6 +114,9 @@ export default function ArticlePage({
 						<Button
 							variant="outline"
 							size="sm"
+							// render 成 <a> 时关掉 nativeButton，否则 Base UI 会告警
+							// 「expected a native <button>」（语义仍是链接，见 GameTabs）
+							nativeButton={false}
 							render={<Link to="/$id/introduction" params={{ id: gameId }} />}
 						>
 							<ArrowLeft className="size-4" />
