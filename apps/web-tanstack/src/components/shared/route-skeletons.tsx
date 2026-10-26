@@ -1,10 +1,8 @@
-import { useSelector } from "@tanstack/react-store";
 import { CommentThreadSkeleton } from "@web/components/cmments/comment-skeleton";
 import { GameCardGridSkeleton } from "@web/components/game/game-card-grid-skeleton";
 import { GameTabSkeleton } from "@web/components/game/game-tab-skeleton";
 import { GameCard } from "@web/components/home/card";
 import { Skeleton } from "@web/components/ui/skeleton";
-import { producerHeroStore } from "@web/stores/producerHeroStore";
 
 export { GameCardGridSkeleton };
 
@@ -72,28 +70,6 @@ export function ProducerListPageSkeleton() {
 					<Skeleton key={i} className="w-full h-16 rounded-lg" />
 				))}
 			</div>
-		</div>
-	);
-}
-
-export function ProducerDetailPageSkeleton() {
-	const pid = useSelector(producerHeroStore, (s) => s.pid);
-	return (
-		<div aria-hidden>
-			<BreadcrumbSkeleton />
-			<Skeleton
-				className="mb-2 w-48 h-7"
-				style={
-					pid
-						? {
-								viewTransitionName: `producer-name-${pid}`,
-								viewTransitionClass: "producer-name vt-text",
-							}
-						: undefined
-				}
-			/>
-			<Skeleton className="mb-6 w-72 h-4" />
-			<GameCardGridSkeleton />
 		</div>
 	);
 }

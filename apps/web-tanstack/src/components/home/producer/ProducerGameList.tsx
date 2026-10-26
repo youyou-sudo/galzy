@@ -1,4 +1,8 @@
 import { Await, getRouteApi } from "@tanstack/react-router";
+import {
+	ProducerGameGrid,
+	ProducerGameGridSkeleton,
+} from "@web/components/producer/producer-game-grid";
 import { EmptyState } from "@web/components/shared/empty-state";
 import { preferredTitleFrom } from "@web/lib/game-title";
 import { Gamepad2 } from "lucide-react";
@@ -38,55 +42,41 @@ export const ProducerGamelist = () => {
 	};
 
 	return (
-		<div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-6">
-			<Await
-				promise={gameList}
-				fallback={
-					<>
-						<GameCard.ListSkeleton />
-						<GameCard.ListSkeleton />
-						<GameCard.ListSkeleton />
-						<GameCard.ListSkeleton />
-						<GameCard.ListSkeleton />
-						<GameCard.ListSkeleton />
-					</>
-				}
-			>
-				{(gameList) => (
-					<>
-						{!gameList || gameList.length === 0 ? (
-							<EmptyState
-								icon={Gamepad2}
-								title="没找到相关的游戏喵～"
-								description="换一个厂商或稍后再来看看"
-								className="col-span-full"
-							/>
-						) : (
-							gameList.map((item) => {
-								if (!item) return null;
+		<Await promise={gameList} fallback={<ProducerGameGridSkeleton />}>
+			{(gameList) => (
+				<ProducerGameGrid>
+					{!gameList || gameList.length === 0 ? (
+						<EmptyState
+							icon={Gamepad2}
+							title="没找到相关的游戏喵～"
+							description="换一个厂商或稍后再来看看"
+							className="col-span-full"
+						/>
+					) : (
+						gameList.map((item) => {
+							if (!item) return null;
 
-								const title =
-									preferredTitleFrom(item.titles, item.olang) ?? "null";
+							const title =
+								preferredTitleFrom(item.titles, item.olang) ?? "null";
 
-								return (
-									<GameCard.Item
-										key={item.id}
-										gameid={String(item.id)}
-										width={item.image_width ?? 200}
-										height={item.image_height ?? 300}
-										thumbhash={item.image_thumbhash}
-										src={item.image_url ?? "/No-Image-Placeholder.svg.webp"}
-										cSexualAvg={item.c_sexual_avg}
-										title={title}
-										hasVT={clickedId === String(item.id)}
-										onActivate={handleActivate}
-									/>
-								);
-							})
-						)}
-					</>
-				)}
-			</Await>
-		</div>
+							return (
+								<GameCard.Item
+									key={item.id}
+									gameid={String(item.id)}
+									width={item.image_width ?? 200}
+									height={item.image_height ?? 300}
+									thumbhash={item.image_thumbhash}
+									src={item.image_url ?? "/No-Image-Placeholder.svg.webp"}
+									cSexualAvg={item.c_sexual_avg}
+									title={title}
+									hasVT={clickedId === String(item.id)}
+									onActivate={handleActivate}
+								/>
+							);
+						})
+					)}
+				</ProducerGameGrid>
+			)}
+		</Await>
 	);
 };

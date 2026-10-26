@@ -8,6 +8,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@web/components/ui/card";
+import { producerHeroActions } from "@web/stores/producerHeroStore";
 
 export default function ProducerDetailPage({
 	producer,
@@ -52,6 +53,13 @@ export default function ProducerDetailPage({
 						<Link
 							to="/producer/$pid"
 							params={{ pid: item.pid }}
+							// 关系链点出去的厂商名也先落 store，目标页 pending 直接复用
+							onClick={() =>
+								producerHeroActions.fromProducer({
+									id: item.pid,
+									name: item.name,
+								})
+							}
 							className="text-primary rounded-sm transition-colors duration-200 hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 						>
 							{item.name}

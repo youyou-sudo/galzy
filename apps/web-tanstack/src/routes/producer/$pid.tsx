@@ -1,5 +1,6 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useParams } from '@tanstack/react-router'
 import ProducerDetailPage from '@web/components/producer/producer-detail-page'
+import { ProducerDetailPending } from '@web/components/producer/producer-detail-pending'
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,11 +11,11 @@ import {
 } from '@web/components/shared/breadcrumb'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { seoMeta } from '@web/lib/seo'
-import { ProducerDetailPageSkeleton } from '@web/components/shared/route-skeletons'
 import { producerGameList, producerInfo } from '@web/server/producer'
 
 export const Route = createFileRoute('/producer/$pid')({
-  pendingComponent: () => <ProducerDetailPageSkeleton />,
+  // pending 态只给「数据」出加载态：面包屑 / 卡片外壳 / 游戏栅格都是真实 HTML
+  pendingComponent: PendingProducerDetail,
   // 返回详情页（如从游戏详情回退）时直接用缓存渲染，不重新请求：
   // loader 数据经 ensureQueryData 落入 query 缓存，60s 内秒开不闪骨架屏
   staleTime: 60_000,
@@ -80,3 +81,9 @@ export const Route = createFileRoute('/producer/$pid')({
     )
   },
 })
+
+/** pending 态需要 pid 才能复用入口带过来的厂商名（producerHeroStore 按 pid 匹配） */
+function PendingProducerDetail() {
+  const { pid } = useParams({ from: '/producer/$pid' })
+  return <ProducerDetailPending pid={pid} />
+}

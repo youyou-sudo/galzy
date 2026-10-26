@@ -73,7 +73,12 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 					to={"/producer/$pid"}
 					params={{ pid: producer.id }}
 					preload="viewport"
-					onClick={() => producerHeroActions.set(producer.id)}
+					onClick={() =>
+						producerHeroActions.fromProducer({
+							id: producer.id,
+							name: producer.name,
+						})
+					}
 				>
 					<span
 						className={cn(

@@ -4,6 +4,7 @@ import { PageHeader } from "@web/components/shared/page-header";
 import { Pagination } from "@web/components/shared/pagination";
 import { SearchField } from "@web/components/shared/search-field";
 import { Button } from "@web/components/ui/button";
+import { producerHeroActions } from "@web/stores/producerHeroStore";
 import {
 	Card,
 	CardContent,
@@ -142,6 +143,13 @@ export default function ProducersPage({
 							key={producer.id}
 							to="/producer/$pid"
 							params={{ pid: producer.id }}
+							// 厂商名先落到 store：详情 pending 态直接用它渲染面包屑/卡片标题
+							onClick={() =>
+								producerHeroActions.fromProducer({
+									id: producer.id,
+									name: producer.name,
+								})
+							}
 							className="group no-underline rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 						>
 							<Card className="h-full transition-colors duration-200 group-hover:bg-muted/40 group-hover:ring-border">
