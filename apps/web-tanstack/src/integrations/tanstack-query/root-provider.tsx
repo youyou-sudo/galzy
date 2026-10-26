@@ -388,7 +388,7 @@ export default function TanStackQueryProvider({
 
   // 注意：这里不要再包裹 motion 的 MotionConfig。全站 Provider 一旦静态引用
   // `motion/react`，framer-motion 就会进入全站首屏 JS（首页也要下载 137KB raw）。
-  // 减弱动态效果改由真正使用 motion 的页面组件局部包裹（见 friend-links-page /
-  // download-options / plate-page），既保留无障碍行为，又让首屏零 motion 体积。
+  // 减弱动态效果改由真正使用 motion 的页面组件局部包裹（见 download-options /
+  // plate-page），既保留无障碍行为，又让首屏零 motion 体积。
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 }

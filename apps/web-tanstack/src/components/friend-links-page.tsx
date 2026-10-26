@@ -2,7 +2,7 @@ import { EmptyState } from "@web/components/shared/empty-state";
 import { PageHeader } from "@web/components/shared/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@web/components/ui/avatar";
 import { Card } from "@web/components/ui/card";
-import type { FriendLink } from "@web/lib/friend-links";
+import { FRIEND_LINKS_PAGE, type FriendLink } from "@web/lib/friend-links";
 import { HeartHandshake } from "lucide-react";
 
 /**
@@ -16,6 +16,8 @@ import { HeartHandshake } from "lucide-react";
  *
  * 现在回到全站卡片网格（厂商 / 工具 / 话题）的统一做法：
  * `<a className="group">` + `<Card className="group-hover:…">`，hover 只提亮当前卡片。
+ * 底色用不透明的 bg-muted 而非 bg-muted/40：卡片本身是不透明 bg-card，半透明的
+ * hover 底会让卡片"漏出"页面背景，在暗色主题下反而变暗、几乎看不出 hover。
  */
 export default function FriendLinksPage({ links }: { links: FriendLink[] }) {
 	return (
@@ -23,8 +25,8 @@ export default function FriendLinksPage({ links }: { links: FriendLink[] }) {
 			<PageHeader
 				align="center"
 				icon={HeartHandshake}
-				title="🐾 喵の朋友们"
-				description="喵世界再大，有缘的小伙伴也能像在身边一样呢"
+				title={FRIEND_LINKS_PAGE.title}
+				description={FRIEND_LINKS_PAGE.description}
 			/>
 
 			{links.length === 0 ? (
@@ -43,7 +45,7 @@ export default function FriendLinksPage({ links }: { links: FriendLink[] }) {
 							rel="noopener noreferrer"
 							className="group rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 						>
-							<Card className="h-full transition-colors duration-200 group-hover:bg-muted/40 group-hover:ring-border">
+							<Card className="h-full transition-colors duration-200 group-hover:bg-muted group-hover:ring-border">
 								<div className="flex gap-4 px-4 py-1">
 									<Avatar className="shrink-0 size-10 rounded-xl">
 										{item.avatar ? (

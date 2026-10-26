@@ -50,7 +50,7 @@ import {
 import { Input } from "@web/components/ui/input";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { Textarea } from "@web/components/ui/textarea";
-import type { FriendLink } from "@web/lib/friend-links";
+import { FRIEND_LINKS_QUERY_KEY, type FriendLink } from "@web/lib/friend-links";
 import { cn } from "@web/lib/utils";
 import {
 	adminCreateFriendLink,
@@ -74,7 +74,6 @@ import { toast } from "sonner";
 
 /** 后台列表与前台共用一套数据源，改完两边一起失效。 */
 const ADMIN_QUERY_KEY = ["admin-friend-links"] as const;
-const PUBLIC_QUERY_KEY = ["friend-links"] as const;
 
 const URL_PATTERN = /^https?:\/\/\S+$/i;
 
@@ -98,7 +97,7 @@ function useInvalidateFriendLinks() {
 	return async () => {
 		await Promise.all([
 			queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEY }),
-			queryClient.invalidateQueries({ queryKey: PUBLIC_QUERY_KEY }),
+			queryClient.invalidateQueries({ queryKey: FRIEND_LINKS_QUERY_KEY }),
 		]);
 	};
 }
@@ -145,7 +144,8 @@ export default function FriendLinksAdminPage() {
 
 function FriendLinksList({ onEdit }: { onEdit: (link: FriendLink) => void }) {
 	const invalidate = useInvalidateFriendLinks();
-	const [items, setItems] = useState<FriendLink[] | null>(null);
+	// 拖动期间用本地顺序覆盖服务端顺序；invalidate 后 data 更新，覆盖自动清空
+	const [orderOverride, setOrderOverride] = useState<number[] | null>(null);
 	const [savingOrder, setSavingOrder] = useState(false);
 
 	const { data, isLoading, isError, refetch } = useQuery({
@@ -153,12 +153,16 @@ function FriendLinksList({ onEdit }: { onEdit: (link: FriendLink) => void }) {
 		queryFn: async () => await adminGetFriendLinks({ data: {} }),
 	});
 
-	// 服务端数据变化（新增/删除/拖动后 invalidate）即同步本地乐观列表
 	useEffect(() => {
-		if (data) setItems(data);
+		setOrderOverride(null);
 	}, [data]);
 
-	const list = items ?? data ?? [];
+	const byId = new Map((data ?? []).map((link) => [link.id, link]));
+	const list = orderOverride
+		? orderOverride
+				.map((id) => byId.get(id))
+				.filter((link): link is FriendLink => link !== undefined)
+		: (data ?? []);
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -175,9 +179,8 @@ function FriendLinksList({ onEdit }: { onEdit: (link: FriendLink) => void }) {
 		const newIndex = list.findIndex((item) => item.id === over.id);
 		if (oldIndex === -1 || newIndex === -1) return;
 
-		const previous = list;
 		const next = arrayMove(list, oldIndex, newIndex);
-		setItems(next);
+		setOrderOverride(next.map((item) => item.id));
 		setSavingOrder(true);
 		try {
 			await adminReorderFriendLinks({
@@ -185,7 +188,7 @@ function FriendLinksList({ onEdit }: { onEdit: (link: FriendLink) => void }) {
 			});
 			await invalidate();
 		} catch (err) {
-			setItems(previous);
+			setOrderOverride(null);
 			toast.error(err instanceof Error ? err.message : "保存排序失败");
 		} finally {
 			setSavingOrder(false);
@@ -453,57 +456,73 @@ function FriendLinkFormDialog({
 
 				<div className="flex flex-col gap-4">
 					<Field>
-						<FieldLabel>
+						<FieldLabel htmlFor="friend-link-title">
 							<FieldTitle>标题</FieldTitle>
 						</FieldLabel>
 						<FieldContent>
 							<Input
+								id="friend-link-title"
 								value={form.title}
 								onChange={(e) => setField("title", e.target.value)}
 								placeholder="如：鲲 Galgame 论坛"
+								maxLength={255}
 								aria-invalid={errors.title ? true : undefined}
+								aria-describedby={
+									errors.title ? "friend-link-title-error" : undefined
+								}
 							/>
-							<FieldError>{errors.title}</FieldError>
+							<FieldError id="friend-link-title-error">
+								{errors.title}
+							</FieldError>
 						</FieldContent>
 					</Field>
 
 					<Field>
-						<FieldLabel>
+						<FieldLabel htmlFor="friend-link-href">
 							<FieldTitle>链接</FieldTitle>
 						</FieldLabel>
 						<FieldContent>
 							<Input
+								id="friend-link-href"
 								value={form.href}
 								onChange={(e) => setField("href", e.target.value)}
 								placeholder="https://example.com"
+								maxLength={2048}
 								aria-invalid={errors.href ? true : undefined}
+								aria-describedby={
+									errors.href ? "friend-link-href-error" : undefined
+								}
 							/>
-							<FieldError>{errors.href}</FieldError>
+							<FieldError id="friend-link-href-error">{errors.href}</FieldError>
 						</FieldContent>
 					</Field>
 
 					<Field>
-						<FieldLabel>
+						<FieldLabel htmlFor="friend-link-avatar">
 							<FieldTitle>图标地址</FieldTitle>
 						</FieldLabel>
 						<FieldContent>
 							<Input
+								id="friend-link-avatar"
 								value={form.avatar}
 								onChange={(e) => setField("avatar", e.target.value)}
 								placeholder="https://example.com/favicon.ico（可选）"
+								maxLength={2048}
 							/>
 						</FieldContent>
 					</Field>
 
 					<Field>
-						<FieldLabel>
+						<FieldLabel htmlFor="friend-link-description">
 							<FieldTitle>简介</FieldTitle>
 						</FieldLabel>
 						<FieldContent>
 							<Textarea
+								id="friend-link-description"
 								value={form.description}
 								onChange={(e) => setField("description", e.target.value)}
 								placeholder="一句话介绍这位朋友（可选）"
+								maxLength={2048}
 								rows={3}
 							/>
 						</FieldContent>

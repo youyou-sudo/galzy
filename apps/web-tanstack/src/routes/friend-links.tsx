@@ -5,25 +5,26 @@ import { PageHeader } from "@web/components/shared/page-header";
 import { Card } from "@web/components/ui/card";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { seoTemplate } from "@web/config/seoTemplate";
+import {
+	FRIEND_LINKS_PAGE,
+	FRIEND_LINKS_QUERY_KEY,
+} from "@web/lib/friend-links";
 import { getFriendLinks } from "@web/server/friend-links";
 import { HeartHandshake } from "lucide-react";
 
 export const Route = createFileRoute("/friend-links")({
-	loader: async () => await getFriendLinks(),
+	loader: async () => await getFriendLinks({ data: {} }),
 	component: RouteComponent,
 	pendingComponent: () => <FriendLinksPageSkeleton />,
 	head: () => ({
 		meta: [
 			{ title: `友情链接 | ${seoTemplate.title}` },
-			{
-				name: "description",
-				content: "喵世界再大，有缘的小伙伴也能像在身边一样呢",
-			},
+			{ name: "description", content: FRIEND_LINKS_PAGE.description },
 		],
 	}),
 	headers: () => ({
 		// 友情链接已改为数据库驱动：后台改动需要尽快在前台生效，
-		// 因此不再沿用旧的 1 小时强缓存（改完最多 1 分钟可见）。
+		// 因此不再沿用旧的 1 小时强缓存（CDN 与浏览器都只缓存 60s）。
 		"Cache-Control":
 			"public, max-age=60, s-maxage=60, stale-while-revalidate=300",
 		"Cache-Tag": "page-friend-links",
@@ -34,10 +35,12 @@ function RouteComponent() {
 	const initialData = Route.useLoaderData();
 
 	const { data } = useSuspenseQuery({
-		queryKey: ["friend-links"],
-		queryFn: () => getFriendLinks(),
+		queryKey: FRIEND_LINKS_QUERY_KEY,
+		queryFn: () => getFriendLinks({ data: {} }),
 		initialData,
-		staleTime: 5 * 60_000,
+		// 与 CDN 的 60s 对齐：客户端二次进入最多旧 30s，不会出现
+		// 「loader 已拿到新顺序、页面仍显示 5 分钟前顺序」的情况。
+		staleTime: 30_000,
 	});
 
 	return <FriendLinksPage links={data} />;
@@ -50,8 +53,8 @@ function FriendLinksPageSkeleton() {
 			<PageHeader
 				align="center"
 				icon={HeartHandshake}
-				title="🐾 喵の朋友们"
-				description="喵世界再大，有缘的小伙伴也能像在身边一样呢"
+				title={FRIEND_LINKS_PAGE.title}
+				description={FRIEND_LINKS_PAGE.description}
 			/>
 
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
