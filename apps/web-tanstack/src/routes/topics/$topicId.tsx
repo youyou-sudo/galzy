@@ -6,6 +6,7 @@ import {
 	useMatches,
 } from "@tanstack/react-router";
 import { CommentMarkdown } from "@web/components/cmments/comment-markdown";
+import { CommentThreadSkeleton } from "@web/components/cmments/comment-skeleton";
 import { ReplyEidtInput } from "@web/components/cmments/reply-edit-input";
 import { RichContent } from "@web/components/RichContent";
 import {
@@ -31,10 +32,11 @@ import {
 } from "@web/components/shared/breadcrumb";
 import { Button } from "@web/components/ui/button";
 import { Card, CardContent, CardHeader } from "@web/components/ui/card";
-import { Separator } from "@web/components/ui/separator";
-import { Skeleton } from "@web/components/ui/skeleton";
+import { EmptyState } from "@web/components/shared/empty-state";
+import { SectionHeader } from "@web/components/shared/section-header";
 import { TopicDetailPageSkeleton } from "@web/components/shared/route-skeletons";
 import { seoTemplate } from "@web/config/seoTemplate";
+import { cn } from "@web/lib/utils";
 import { seoMeta, truncateText } from "@web/lib/seo";
 import { authClient } from "@web/server/auth/auth-client";
 import { getCmments } from "@web/server/comments";
@@ -45,7 +47,7 @@ import {
 	toggleTopicLike,
 } from "@web/server/topics";
 import { replycardActions } from "@web/stores/reply-edit-input";
-import { Bookmark, Heart, Pencil, Trash2 } from "lucide-react";
+import { Bookmark, Heart, MessageSquare, Pencil, Trash2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 
@@ -117,12 +119,28 @@ function RouteComponent() {
 
 	if (!topic) {
 		return (
-			<div className="text-center py-12 text-muted-foreground">帖子不存在</div>
+			<div className="mx-auto w-full max-w-4xl">
+				<EmptyState
+					surface
+					icon={MessageSquare}
+					title="帖子不存在"
+					description="它可能已被删除，或者链接不对"
+					action={
+						<Button
+							variant="outline"
+							render={<Link to="/topics" search={{ page: 1 }} />}
+						>
+							返回论坛
+						</Button>
+					}
+				/>
+			</div>
 		);
 	}
 
 	const isOwner = session?.user?.id === (topic as any).userId;
 	const isAdmin = session?.user?.role === "admin";
+	const status = (topic as any).status;
 
 	const handleDelete = async () => {
 		await deleteTopic({ data: { id: Number(topicId) } });
@@ -132,7 +150,7 @@ function RouteComponent() {
 	};
 
 	return (
-		<div className="space-y-4">
+		<div className="mx-auto w-full max-w-4xl">
 			<Breadcrumb className="mb-4">
 				<BreadcrumbList>
 					<BreadcrumbItem>
@@ -152,45 +170,51 @@ function RouteComponent() {
 			</Breadcrumb>
 
 			<Card>
-				<CardHeader>
-					<div className="flex items-center justify-between">
-						<div className="flex items-center gap-2">
-							<h1
-								className="text-2xl font-bold"
-								style={{ viewTransitionName: `topic-title-${topicId}` }}
+				<CardHeader className="gap-3">
+					<div className="flex items-start justify-between gap-3">
+						<h1
+							className="min-w-0 text-2xl font-semibold tracking-tight text-balance"
+							style={{ viewTransitionName: `topic-title-${topicId}` }}
+						>
+							{(topic as any).title}
+						</h1>
+						{status && status !== "published" && (
+							<Badge
+								variant="outline"
+								className="shrink-0 border-warning/30 bg-warning/10 text-warning"
 							>
-								{(topic as any).title}
-							</h1>
-						</div>
-						<Badge variant="secondary">{(topic as any).status}</Badge>
+								{status === "draft" ? "草稿" : "未发布"}
+							</Badge>
+						)}
 					</div>
-					<div className="flex items-center gap-2 mt-2">
+
+					<div className="flex flex-wrap items-center gap-x-2 gap-y-1">
 						<Avatar
-							className="size-6"
+							className="size-8"
 							style={{ viewTransitionName: `topic-avatar-${topicId}` }}
 						>
 							<AvatarImage
 								src={(topic as any).user?.image || ""}
 								alt={(topic as any).user?.name}
 							/>
-							<AvatarFallback className="bg-muted text-muted-foreground text-xs">
+							<AvatarFallback className="bg-muted text-xs text-muted-foreground">
 								{(topic as any).user?.name?.slice(0, 2).toUpperCase()}
 							</AvatarFallback>
 						</Avatar>
 						<span
-							className="text-sm text-muted-foreground inline-block"
+							className="inline-block text-sm font-medium text-foreground/90"
 							style={{ viewTransitionName: `topic-nick-${topicId}` }}
 						>
 							{(topic as any).user?.name}
 						</span>
-						<span className="text-xs text-muted-foreground">
+						<span className="text-xs text-muted-foreground tabular-nums">
 							{formatTime((topic as any).createdAt)}
 						</span>
 						{(isOwner || isAdmin) && (
 							<div className="ml-auto flex items-center gap-1">
 								<Link to="/topics/$topicId/edit" params={{ topicId }}>
 									<Button variant="ghost" size="sm">
-										<Pencil className="size-3.5 mr-1" />
+										<Pencil className="size-3.5" aria-hidden="true" />
 										编辑
 									</Button>
 								</Link>
@@ -200,9 +224,9 @@ function RouteComponent() {
 											<Button
 												variant="ghost"
 												size="sm"
-												className="text-destructive"
+												className="text-destructive hover:bg-destructive/10 hover:text-destructive"
 											>
-												<Trash2 className="size-3.5 mr-1" />
+												<Trash2 className="size-3.5" aria-hidden="true" />
 												删除
 											</Button>
 										}
@@ -237,7 +261,7 @@ function RouteComponent() {
 						contentType={(topic as any).contentType || "markdown"}
 					/>
 					{session && (
-						<div className="flex items-center gap-4 mt-4 pt-3 border-t">
+						<div className="mt-5 flex items-center gap-2 border-t border-border/60 pt-3">
 							<LikeButton topic={topic as any} />
 							<FavoriteButton topic={topic as any} />
 						</div>
@@ -245,16 +269,14 @@ function RouteComponent() {
 				</CardContent>
 			</Card>
 
-			<Separator />
-
-			<div>
-				<h2 className="text-lg font-semibold mb-4">评论</h2>
+			<section className="mt-8">
+				<SectionHeader icon={MessageSquare} title="评论" />
 				<TopicComments
 					targetType="topic"
 					targetId={topicId}
 					session={session}
 				/>
-			</div>
+			</section>
 		</div>
 	);
 }
@@ -272,10 +294,17 @@ function LikeButton({ topic }: { topic: any }) {
 		<Button
 			variant="ghost"
 			size="sm"
-			className={`gap-1 ${topic.isLiked ? "text-red-500" : "text-muted-foreground"}`}
+			aria-pressed={!!topic.isLiked}
+			className={cn(
+				"gap-1 tabular-nums",
+				topic.isLiked ? "text-primary" : "text-muted-foreground",
+			)}
 			onClick={handleToggle}
 		>
-			<Heart className={`size-4 ${topic.isLiked ? "fill-red-500" : ""}`} />
+			<Heart
+				className={cn("size-4", topic.isLiked && "fill-current")}
+				aria-hidden="true"
+			/>
 			<span>{topic.likeCount ?? 0}</span>
 		</Button>
 	);
@@ -294,11 +323,16 @@ function FavoriteButton({ topic }: { topic: any }) {
 		<Button
 			variant="ghost"
 			size="sm"
-			className={`gap-1 ${topic.isFavorited ? "text-yellow-500" : "text-muted-foreground"}`}
+			aria-pressed={!!topic.isFavorited}
+			className={cn(
+				"gap-1 tabular-nums",
+				topic.isFavorited ? "text-warning" : "text-muted-foreground",
+			)}
 			onClick={handleToggle}
 		>
 			<Bookmark
-				className={`size-4 ${topic.isFavorited ? "fill-yellow-500" : ""}`}
+				className={cn("size-4", topic.isFavorited && "fill-current")}
+				aria-hidden="true"
 			/>
 			<span>{topic.favoriteCount ?? 0}</span>
 		</Button>
@@ -306,24 +340,7 @@ function FavoriteButton({ topic }: { topic: any }) {
 }
 
 function TopicCommentsSkeleton() {
-	return (
-		<div className="space-y-4">
-			<Skeleton className="h-10 w-full rounded-md" />
-			<div className="space-y-3">
-				{[1, 2, 3].map((i) => (
-					<div key={i} className="flex gap-3">
-						<Skeleton className="size-8 rounded-full shrink-0" />
-						<div className="flex-1 space-y-2">
-							<Skeleton className="h-4 w-20" />
-							<Skeleton className="h-4 w-full" />
-							<Skeleton className="h-4 w-3/4" />
-							<Skeleton className="h-3 w-16" />
-						</div>
-					</div>
-				))}
-			</div>
-		</div>
-	);
+	return <CommentThreadSkeleton />;
 }
 
 function TopicComments({
@@ -353,6 +370,8 @@ function TopicComments({
 		return <TopicCommentsSkeleton />;
 	}
 
+	const comments = commentsData?.comments ?? [];
+
 	return (
 		<div className="space-y-4">
 			<ReplyEidtInput
@@ -362,22 +381,26 @@ function TopicComments({
 				showTypeSelector={false}
 			/>
 
-			<div className="space-y-3">
-				{commentsData?.comments?.map((comment: any) => (
-					<CommentCard
-						key={comment.id}
-						comment={comment}
-						targetType={targetType}
-						targetId={targetId}
-						session={session}
-					/>
-				))}
-				{(!commentsData?.comments || commentsData.comments.length === 0) && (
-					<div className="text-center text-muted-foreground py-8">
-						暂无评论，来写第一条评论吧～
-					</div>
-				)}
-			</div>
+			{comments.length > 0 ? (
+				<div className="divide-y divide-border/60">
+					{comments.map((comment: any) => (
+						<CommentCard
+							key={comment.id}
+							comment={comment}
+							targetType={targetType}
+							targetId={targetId}
+							session={session}
+						/>
+					))}
+				</div>
+			) : (
+				<EmptyState
+					size="sm"
+					icon={MessageSquare}
+					title="暂无评论"
+					description="来写第一条评论吧"
+				/>
+			)}
 		</div>
 	);
 }
@@ -394,43 +417,46 @@ function CommentCard({
 	session: any;
 }) {
 	return (
-		<div>
-			<div className="flex gap-3">
-				<Avatar className="size-8">
+		<div className="py-3 first:pt-0 last:pb-0">
+			<div className="flex gap-2.5">
+				<Avatar className="size-7">
 					<AvatarImage
 						src={comment.user?.image || ""}
 						alt={comment.user?.name}
 					/>
-					<AvatarFallback className="bg-muted text-muted-foreground text-xs">
+					<AvatarFallback className="bg-muted text-[10px] text-muted-foreground">
 						{comment.user?.name?.slice(0, 2).toUpperCase()}
 					</AvatarFallback>
 				</Avatar>
-				<div className="flex-1 min-w-0">
-					<div className="flex items-center gap-2">
+				<div className="min-w-0 flex-1">
+					<div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
 						<span className="text-sm font-medium text-foreground">
 							{comment.user?.name}
 						</span>
-					</div>
-					<CommentMarkdown content={comment.content} />
-					<div className="flex items-center text-xs">
-						<span className="text-muted-foreground my-2">
-							{formatTime(comment.createdAt)}
+						<span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+							<span className="tabular-nums">
+								{formatTime(comment.createdAt)}
+							</span>
+							{session && (
+								<button
+									type="button"
+									className="transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+									onClick={() => {
+										replycardActions.openReId(comment.id, {
+											id: comment.id,
+											userId: comment.user?.id,
+											userName: comment.user?.name,
+										});
+									}}
+								>
+									回复
+								</button>
+							)}
 						</span>
-						{session && (
-							<Button
-								variant="ghost"
-								className="text-muted-foreground text-xs"
-								onClick={() => {
-									replycardActions.openReId(comment.id, {
-										id: comment.id,
-										userId: comment.user?.id,
-										userName: comment.user?.name,
-									});
-								}}
-							>
-								回复
-							</Button>
-						)}
+					</div>
+
+					<div className="mt-0.5">
+						<CommentMarkdown content={comment.content} />
 					</div>
 
 					<ReplyEidtInput
@@ -442,20 +468,18 @@ function CommentCard({
 					/>
 
 					{comment.re?.length > 0 && (
-						<div className="mt-2">
+						<div className="mt-1">
 							<ReplyList
 								replies={comment.re}
 								targetType={targetType}
 								targetId={targetId}
 								session={session}
+								depth={0}
 							/>
 						</div>
 					)}
 				</div>
 			</div>
-			{(!comment.re || comment.re.length === 0) && (
-				<Separator className="mt-2" />
-			)}
 		</div>
 	);
 }
@@ -465,75 +489,85 @@ function ReplyList({
 	targetType,
 	targetId,
 	session,
+	depth = 0,
 }: {
 	replies: any[];
 	targetType: string;
 	targetId: string;
 	session: any;
+	depth?: number;
 }) {
 	const sorted = useMemo(() => [...replies].sort(byCreatedAtAsc), [replies]);
 
-	return sorted.map((reply) => (
-		<div className="flex ml-6" key={reply.id}>
-			<Separator orientation="vertical" />
-			<div className="flex gap-3 pl-3 py-2 w-full">
-				<Avatar className="size-8">
-					<AvatarImage src={reply.user?.image || ""} alt={reply.user?.name} />
-					<AvatarFallback className="bg-muted text-muted-foreground text-xs">
-						{reply.user?.name?.slice(0, 2).toUpperCase()}
-					</AvatarFallback>
-				</Avatar>
-				<div className="flex-1 min-w-0">
-					<div className="flex items-center gap-2">
-						<span className="text-sm font-medium text-foreground">
-							{reply.user?.name}
-						</span>
-					</div>
-					<div className="text-sm text-foreground/80 mt-0.5">
-						{reply.reUser && (
-							<span className="text-primary">回复@{reply.reUser.name}：</span>
-						)}
-						<CommentMarkdown content={reply.content} />
-					</div>
-					<div className="flex items-center">
-						<span className="text-xs text-muted-foreground">
-							{formatTime(reply.createdAt)}
-						</span>
-						{session && (
-							<Button
-								variant="ghost"
-								className="text-muted-foreground"
-								onClick={() => {
-									replycardActions.openReId(reply.id, {
-										id: reply.id,
-										userId: reply.user?.id,
-										userName: reply.user?.name,
-									});
-								}}
-							>
-								回复
-							</Button>
-						)}
-					</div>
+	return (
+		<div className={depth === 0 ? "border-l border-border/60 pl-2.5" : ""}>
+			{sorted.map((reply) => (
+				<div className="py-1.5 first:pt-0 last:pb-0" key={reply.id}>
+					<div className="flex gap-2">
+						<Avatar className="size-6">
+							<AvatarImage
+								src={reply.user?.image || ""}
+								alt={reply.user?.name}
+							/>
+							<AvatarFallback className="bg-muted text-[10px] text-muted-foreground">
+								{reply.user?.name?.slice(0, 2).toUpperCase()}
+							</AvatarFallback>
+						</Avatar>
+						<div className="min-w-0 flex-1">
+							<div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+								<span className="text-[13px] font-medium text-foreground">
+									{reply.user?.name}
+								</span>
+								{reply.reUser && (
+									<span className="text-xs text-primary">
+										回复 @{reply.reUser.name}
+									</span>
+								)}
+								<span className="text-xs text-muted-foreground tabular-nums">
+									{formatTime(reply.createdAt)}
+								</span>
+								{session && (
+									<button
+										type="button"
+										className="text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+										onClick={() => {
+											replycardActions.openReId(reply.id, {
+												id: reply.id,
+												userId: reply.user?.id,
+												userName: reply.user?.name,
+											});
+										}}
+									>
+										回复
+									</button>
+								)}
+							</div>
 
-					<ReplyEidtInput
-						reId={reply.id}
-						targetType={targetType}
-						targetId={targetId}
-						commentscomp={false}
-						showTypeSelector={false}
-					/>
+							<div className="mt-0.5 text-sm text-foreground/80">
+								<CommentMarkdown content={reply.content} />
+							</div>
 
-					{reply.re?.length > 0 && (
-						<ReplyList
-							replies={reply.re}
-							targetType={targetType}
-							targetId={targetId}
-							session={session}
-						/>
-					)}
+							<ReplyEidtInput
+								reId={reply.id}
+								targetType={targetType}
+								targetId={targetId}
+								commentscomp={false}
+								showTypeSelector={false}
+							/>
+
+							{reply.re?.length > 0 && (
+								<ReplyList
+									replies={reply.re}
+									targetType={targetType}
+									targetId={targetId}
+									session={session}
+									depth={depth + 1}
+								/>
+							)}
+						</div>
+					</div>
 				</div>
-			</div>
+			))}
 		</div>
-	));
+	);
 }

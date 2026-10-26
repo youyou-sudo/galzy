@@ -36,8 +36,19 @@ export const TagCategorySearchSchema = z.object({
 const isTagGroupKey = (value: string): value is TagGroupKey =>
 	(TAG_GROUP_KEYS as readonly string[]).includes(value);
 
+/** 分类键 → 静态展示名：pending 期间页头/面包屑可以先出真实名称而不是灰条 */
+const CATEGORY_LABELS: Record<TagGroupKey, string> = {
+	character: "角色与关系",
+	theme: "题材与世界观",
+	plot: "剧情与情节",
+	setting: "世界观与舞台",
+	gameplay: "玩法与风格",
+	hot: "热门标签",
+	cont: "其他剧情标签",
+};
+
 export const Route = createFileRoute("/tags/category/$categoryKey")({
-	pendingComponent: () => <TagCategoryPageSkeleton />,
+	pendingComponent: () => <TagCategoryPending />,
 	validateSearch: TagCategorySearchSchema,
 	loader: async ({ params }) => {
 		const categoryKey = params.categoryKey;
@@ -74,23 +85,52 @@ export const Route = createFileRoute("/tags/category/$categoryKey")({
 		const name = category?.name ?? "标签分类";
 		return (
 			<div>
-				<Breadcrumb className="mb-4">
-					<BreadcrumbList>
-						<BreadcrumbItem>
-							<BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator />
-						<BreadcrumbItem>
-							<BreadcrumbLink render={<Link to="/tags" />}>标签</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator />
-						<BreadcrumbItem>
-							<BreadcrumbPage>{name}</BreadcrumbPage>
-						</BreadcrumbItem>
-					</BreadcrumbList>
-				</Breadcrumb>
+				<CategoryBreadcrumb name={name} />
 				<TagCategoryPage category={category} sort={sort} order={order} />
 			</div>
 		);
 	},
 });
+
+/**
+ * 分类页 pending：面包屑、页头、排序条都是静态结构，直接渲染真实组件；
+ * 只有分类名/描述/计数和标签行是数据，数据到达时只替换这些内容。
+ */
+function TagCategoryPending() {
+	const { categoryKey } = Route.useParams();
+	const { sort, order } = Route.useSearch();
+	const label =
+		(isTagGroupKey(categoryKey) && CATEGORY_LABELS[categoryKey]) || "标签分类";
+
+	return (
+		<div>
+			<CategoryBreadcrumb name={label} />
+			<TagCategoryPageSkeleton
+				name={label}
+				categoryKey={categoryKey}
+				sort={sort}
+				order={order}
+			/>
+		</div>
+	);
+}
+
+function CategoryBreadcrumb({ name }: { name: string }) {
+	return (
+		<Breadcrumb className="mb-4">
+			<BreadcrumbList>
+				<BreadcrumbItem>
+					<BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
+				</BreadcrumbItem>
+				<BreadcrumbSeparator />
+				<BreadcrumbItem>
+					<BreadcrumbLink render={<Link to="/tags" />}>标签</BreadcrumbLink>
+				</BreadcrumbItem>
+				<BreadcrumbSeparator />
+				<BreadcrumbItem>
+					<BreadcrumbPage>{name}</BreadcrumbPage>
+				</BreadcrumbItem>
+			</BreadcrumbList>
+		</Breadcrumb>
+	);
+}

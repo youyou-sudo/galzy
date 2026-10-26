@@ -122,53 +122,51 @@ export const Route = createFileRoute("/$id/_layout")({
 			: null;
 
 		return (
-			<>
-				<div>
-					<Breadcrumb className="mb-4">
-						<BreadcrumbList>
-							<BreadcrumbItem>
-								<BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
-							</BreadcrumbItem>
-							<BreadcrumbSeparator />
-							<BreadcrumbItem>
-								<BreadcrumbLink render={<Link to="/games" />}>
-									全部游戏
-								</BreadcrumbLink>
-							</BreadcrumbItem>
-							<BreadcrumbSeparator />
-							<BreadcrumbItem>
-								<BreadcrumbLink
-									render={<Link to="/$id" params={{ id: loaderData.id }} />}
-								>
-									{gameTitle}
-								</BreadcrumbLink>
-							</BreadcrumbItem>
-							{articleTitle && (
-								<>
-									<BreadcrumbSeparator />
-									<BreadcrumbItem>
-										<BreadcrumbLink
-											render={
-												<Link
-													to="/$id/introduction"
-													params={{ id: loaderData.id }}
-												/>
-											}
-										>
-											攻略
-										</BreadcrumbLink>
-									</BreadcrumbItem>
-									<BreadcrumbSeparator />
-									<BreadcrumbItem>
-										<BreadcrumbPage>{articleTitle}</BreadcrumbPage>
-									</BreadcrumbItem>
-								</>
-							)}
-						</BreadcrumbList>
-					</Breadcrumb>
-				</div>
+			<div>
+				<Breadcrumb className="mb-4">
+					<BreadcrumbList>
+						<BreadcrumbItem>
+							<BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
+						</BreadcrumbItem>
+						<BreadcrumbSeparator />
+						<BreadcrumbItem>
+							<BreadcrumbLink render={<Link to="/games" />}>
+								全部游戏
+							</BreadcrumbLink>
+						</BreadcrumbItem>
+						<BreadcrumbSeparator />
+						<BreadcrumbItem>
+							<BreadcrumbLink
+								render={<Link to="/$id" params={{ id: loaderData.id }} />}
+							>
+								{gameTitle}
+							</BreadcrumbLink>
+						</BreadcrumbItem>
+						{articleTitle && (
+							<>
+								<BreadcrumbSeparator />
+								<BreadcrumbItem>
+									<BreadcrumbLink
+										render={
+											<Link
+												to="/$id/introduction"
+												params={{ id: loaderData.id }}
+											/>
+										}
+									>
+										攻略
+									</BreadcrumbLink>
+								</BreadcrumbItem>
+								<BreadcrumbSeparator />
+								<BreadcrumbItem>
+									<BreadcrumbPage>{articleTitle}</BreadcrumbPage>
+								</BreadcrumbItem>
+							</>
+						)}
+					</BreadcrumbList>
+				</Breadcrumb>
 				<GameLayoutPage {...loaderData} />
-			</>
+			</div>
 		);
 	},
 });

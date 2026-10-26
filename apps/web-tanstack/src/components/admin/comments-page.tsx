@@ -1,9 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
+import {
+	StatusPill,
+	Table,
+	TableCard,
+	TableEmpty,
+	TablePagination,
+	TableScroll,
+	TableSkeleton,
+	TableToolbar,
+	TBody,
+	Td,
+	Th,
+	THead,
+	Tr,
+	type StatusTone,
+} from "@web/components/admin/admin-table";
 import { AdminPageHeader } from "@web/components/admin/admin-page-header";
+import { SearchField } from "@web/components/shared/search-field";
 import { AdminUserTooltip } from "@web/components/admin/admin-user-tooltip";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
-import { Card, CardContent, CardHeader } from "@web/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -12,7 +28,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@web/components/ui/dialog";
-import { Input } from "@web/components/ui/input";
 import { Label } from "@web/components/ui/label";
 import {
 	Select,
@@ -30,8 +45,6 @@ import {
 	adminUpdateComment,
 } from "@web/server/admin/comments";
 import {
-	ChevronLeftIcon,
-	ChevronRightIcon,
 	CornerDownRightIcon,
 	ExternalLinkIcon,
 	Loader2Icon,
@@ -77,6 +90,7 @@ export default function RouteComponent() {
 	return (
 		<div className="flex flex-col gap-6">
 			<AdminPageHeader
+				icon={MessageSquareIcon}
 				eyebrow="内容管理"
 				title="评论管理"
 				description="管理全站评论与回复，支持编辑、删除、状态变更与置顶操作"
@@ -147,37 +161,15 @@ function CommentsTable() {
 		setSearch(searchInput);
 	};
 
-	const handleKeyDown = (e: React.KeyboardEvent) => {
-		if (e.key === "Enter") handleSearch();
-	};
-
 	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 	const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
 
-	const goNext = () => {
-		if (currentPage < totalPages) {
-			setOffset(offset + PAGE_SIZE);
-		}
-	};
-
-	const goPrev = () => {
-		if (currentPage > 1) {
-			setOffset(Math.max(0, offset - PAGE_SIZE));
-		}
-	};
-
 	const refresh = () => refetch();
 
-	const statusLabel: Record<
-		string,
-		{
-			label: string;
-			variant: "default" | "secondary" | "destructive" | "outline";
-		}
-	> = {
-		normal: { label: "正常", variant: "outline" as const },
-		hidden: { label: "隐藏", variant: "secondary" as const },
-		deleted: { label: "已删除", variant: "destructive" as const },
+	const statusLabel: Record<string, { label: string; tone: StatusTone }> = {
+		normal: { label: "正常", tone: "success" },
+		hidden: { label: "隐藏", tone: "warning" },
+		deleted: { label: "已删除", tone: "destructive" },
 	};
 
 	const typeLabel: Record<string, string> = {
@@ -187,247 +179,198 @@ function CommentsTable() {
 	};
 
 	return (
-		<Card>
-			<CardHeader className="pb-3">
-				<div className="flex items-center gap-3">
-					<div className="relative flex-1">
-						<SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-						<Input
-							placeholder="搜索目标 ID..."
-							value={searchInput}
-							onChange={(e) => setSearchInput(e.target.value)}
-							onKeyDown={handleKeyDown}
-							className="pl-9"
-						/>
-					</div>
-					<Select
-						value={statusFilter}
-						onValueChange={(v) => {
-							setStatusFilter((v ?? "") === "__all__" ? "" : (v ?? ""));
-							setOffset(0);
-						}}
-					>
-						<SelectTrigger className="w-28">
-							<SelectValue placeholder="状态" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="__all__">全部状态</SelectItem>
-							<SelectItem value="normal">正常</SelectItem>
-							<SelectItem value="hidden">隐藏</SelectItem>
-							<SelectItem value="deleted">已删除</SelectItem>
-						</SelectContent>
-					</Select>
-					<Select
-						value={typeFilter}
-						onValueChange={(v) => {
-							setTypeFilter((v ?? "") === "__all__" ? "" : (v ?? ""));
-							setOffset(0);
-						}}
-					>
-						<SelectTrigger className="w-28">
-							<SelectValue placeholder="类型" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="__all__">全部类型</SelectItem>
-							<SelectItem value="comment">讨论</SelectItem>
-							<SelectItem value="feedback">反馈</SelectItem>
-							<SelectItem value="question">提问</SelectItem>
-						</SelectContent>
-					</Select>
-					<Button
-						variant={excludeReplies ? "secondary" : "outline"}
-						size="sm"
-						onClick={() => {
-							setExcludeReplies(!excludeReplies);
-							setOffset(0);
-						}}
-						className="whitespace-nowrap"
-					>
-						一级评论
-					</Button>
-					<Button variant="outline" onClick={handleSearch} disabled={isLoading}>
-						搜索
-					</Button>
-				</div>
-			</CardHeader>
+		<TableCard>
+			<TableToolbar>
+				<SearchField
+					value={searchInput}
+					onChange={setSearchInput}
+					onSubmit={handleSearch}
+					placeholder="搜索目标 ID…"
+					ariaLabel="搜索评论目标 ID"
+					className="sm:max-w-xs"
+				/>
+				<Select
+					value={statusFilter}
+					onValueChange={(v) => {
+						setStatusFilter((v ?? "") === "__all__" ? "" : (v ?? ""));
+						setOffset(0);
+					}}
+				>
+					<SelectTrigger className="w-28">
+						<SelectValue placeholder="状态" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="__all__">全部状态</SelectItem>
+						<SelectItem value="normal">正常</SelectItem>
+						<SelectItem value="hidden">隐藏</SelectItem>
+						<SelectItem value="deleted">已删除</SelectItem>
+					</SelectContent>
+				</Select>
+				<Select
+					value={typeFilter}
+					onValueChange={(v) => {
+						setTypeFilter((v ?? "") === "__all__" ? "" : (v ?? ""));
+						setOffset(0);
+					}}
+				>
+					<SelectTrigger className="w-28">
+						<SelectValue placeholder="类型" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="__all__">全部类型</SelectItem>
+						<SelectItem value="comment">讨论</SelectItem>
+						<SelectItem value="feedback">反馈</SelectItem>
+						<SelectItem value="question">提问</SelectItem>
+					</SelectContent>
+				</Select>
+				<Button
+					variant={excludeReplies ? "secondary" : "outline"}
+					onClick={() => {
+						setExcludeReplies(!excludeReplies);
+						setOffset(0);
+					}}
+					className="whitespace-nowrap"
+				>
+					一级评论
+				</Button>
+				<Button variant="outline" onClick={handleSearch} disabled={isLoading}>
+					<SearchIcon className="size-4" />
+					搜索
+				</Button>
+			</TableToolbar>
 
-			<CardContent className="p-0">
-				{isLoading ? (
-					<div className="flex items-center justify-center py-16">
-						<Loader2Icon className="size-6 animate-spin text-muted-foreground" />
-					</div>
-				) : comments.length === 0 ? (
-					<div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-						<MessageSquareIcon className="size-10 mb-2" />
-						<p className="text-sm">暂无评论数据</p>
-					</div>
-				) : (
-					<div className="overflow-x-auto">
-						<table className="w-full">
-							<thead>
-								<tr className="border-b bg-muted/50">
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										用户
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										内容
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										目标
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										类型
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										状态
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										时间
-									</th>
-									<th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">
-										操作
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{comments.map((comment) => {
-									const sl = statusLabel[comment.status] ?? {
-										label: comment.status,
-										variant: "secondary" as const,
-									};
-									const isReply = comment.depth > 0;
-									const targetUrl = getTargetUrl(comment);
-									return (
-										<tr
-											key={comment.id}
-											className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${
-												isReply ? "bg-muted/10" : ""
-											}`}
-										>
-											<td className="px-4 py-3">
-												<div className="flex items-center gap-2">
-													{isReply && (
-														<CornerDownRightIcon className="size-3.5 text-muted-foreground shrink-0" />
-													)}
-													<AdminUserTooltip
-														user={comment.user}
-														className="text-sm font-medium"
-													/>
-												</div>
+			<TableScroll>
+				<Table minWidth="min-w-[980px]">
+					<THead>
+						<Tr>
+							<Th>用户</Th>
+							<Th>内容</Th>
+							<Th>目标</Th>
+							<Th>类型</Th>
+							<Th>状态</Th>
+							<Th>时间</Th>
+							<Th align="right">操作</Th>
+						</Tr>
+					</THead>
+					{isLoading ? (
+						<TableSkeleton columns={7} />
+					) : comments.length === 0 ? (
+						<tbody>
+							<TableEmpty
+								colSpan={7}
+								icon={MessageSquareIcon}
+								title="暂无评论数据"
+								description="调整筛选条件后再试"
+							/>
+						</tbody>
+					) : (
+						<TBody>
+							{comments.map((comment) => {
+								const sl = statusLabel[comment.status] ?? {
+									label: comment.status,
+									tone: "neutral" as const,
+								};
+								const isReply = comment.depth > 0;
+								const targetUrl = getTargetUrl(comment);
+								return (
+									<Tr key={comment.id} muted={isReply}>
+										<Td>
+											<div className="flex items-center gap-2">
 												{isReply && (
-													<span className="text-[11px] text-muted-foreground block mt-0.5">
-														回复 #{comment.parentId?.slice(0, 8)}
-													</span>
+													<CornerDownRightIcon className="size-3.5 text-muted-foreground shrink-0" />
 												)}
-											</td>
-											<td className="px-4 py-3 max-w-xs">
-												<div className="flex items-start gap-1">
-													{isReply && (
-														<ReplyIcon className="size-3 text-muted-foreground mt-1 shrink-0" />
-													)}
-													<p
-														className={`text-sm truncate ${
-															isReply
-																? "text-muted-foreground"
-																: "text-foreground"
-														}`}
-													>
-														{comment.content}
-													</p>
-												</div>
-											</td>
-											<td className="px-4 py-3">
-												{targetUrl ? (
-													<a
-														href={targetUrl}
-														target="_blank"
-														rel="noreferrer"
-														className="inline-flex items-center gap-1 text-xs text-blue-500 underline hover:text-blue-700 hover:no-underline"
-													>
-														{comment.targetType}/{comment.targetId?.slice(0, 8)}
-														<ExternalLinkIcon className="size-3 shrink-0" />
-													</a>
-												) : (
-													<span className="text-xs text-muted-foreground">
-														{comment.targetType}/{comment.targetId?.slice(0, 8)}
-													</span>
+												<AdminUserTooltip
+													user={comment.user}
+													className="text-sm font-medium"
+												/>
+											</div>
+											{isReply && (
+												<span className="text-[11px] text-muted-foreground block mt-0.5">
+													回复 #{comment.parentId?.slice(0, 8)}
+												</span>
+											)}
+										</Td>
+										<Td className="max-w-xs">
+											<div className="flex items-start gap-1">
+												{isReply && (
+													<ReplyIcon className="size-3 text-muted-foreground mt-1 shrink-0" />
 												)}
-											</td>
-											<td className="px-4 py-3">
-												<Badge variant="secondary" className="text-xs">
-													{typeLabel[comment.type] || comment.type}
-												</Badge>
-											</td>
-											<td className="px-4 py-3">
-												<Badge variant={sl.variant}>{sl.label}</Badge>
-											</td>
-											<td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-												{new Date(comment.createdAt).toLocaleDateString(
-													"zh-CN",
-												)}
-											</td>
-											<td className="px-4 py-3 text-right">
-												<div className="flex items-center justify-end gap-1.5">
-													<EditCommentDialog
+												<p
+													className={`text-sm truncate ${
+														isReply
+															? "text-muted-foreground"
+															: "text-foreground"
+													}`}
+												>
+													{comment.content}
+												</p>
+											</div>
+										</Td>
+										<Td>
+											{targetUrl ? (
+												<a
+													href={targetUrl}
+													target="_blank"
+													rel="noreferrer"
+													className="inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors duration-200 hover:text-primary/80"
+												>
+													{comment.targetType}/{comment.targetId?.slice(0, 8)}
+													<ExternalLinkIcon className="size-3 shrink-0" />
+												</a>
+											) : (
+												<span className="text-xs text-muted-foreground">
+													{comment.targetType}/{comment.targetId?.slice(0, 8)}
+												</span>
+											)}
+										</Td>
+										<Td>
+											<Badge variant="secondary" className="text-xs">
+												{typeLabel[comment.type] || comment.type}
+											</Badge>
+										</Td>
+										<Td>
+											<StatusPill tone={sl.tone}>{sl.label}</StatusPill>
+										</Td>
+										<Td className="text-xs whitespace-nowrap text-muted-foreground">
+											{new Date(comment.createdAt).toLocaleDateString("zh-CN")}
+										</Td>
+										<Td align="right">
+											<div className="flex items-center justify-end gap-1.5">
+												<EditCommentDialog comment={comment} onDone={refresh} />
+												<TogglePinButton comment={comment} onDone={refresh} />
+												{comment.status !== "hidden" && (
+													<HideCommentButton
 														comment={comment}
 														onDone={refresh}
 													/>
-													<TogglePinButton comment={comment} onDone={refresh} />
-													{comment.status !== "hidden" && (
-														<HideCommentButton
-															comment={comment}
-															onDone={refresh}
-														/>
-													)}
-													{comment.status === "hidden" && (
-														<UnhideCommentButton
-															comment={comment}
-															onDone={refresh}
-														/>
-													)}
-													<DeleteCommentDialog
+												)}
+												{comment.status === "hidden" && (
+													<UnhideCommentButton
 														comment={comment}
 														onDone={refresh}
 													/>
-												</div>
-											</td>
-										</tr>
-									);
-								})}
-							</tbody>
-						</table>
-					</div>
-				)}
-			</CardContent>
+												)}
+												<DeleteCommentDialog
+													comment={comment}
+													onDone={refresh}
+												/>
+											</div>
+										</Td>
+									</Tr>
+								);
+							})}
+						</TBody>
+					)}
+				</Table>
+			</TableScroll>
 
-			{total > PAGE_SIZE && (
-				<div className="flex items-center justify-between px-4 py-3 border-t">
-					<span className="text-xs text-muted-foreground">
-						共 {total} 条评论/回复 · 第 {currentPage}/{totalPages} 页
-					</span>
-					<div className="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={goPrev}
-							disabled={currentPage <= 1}
-						>
-							<ChevronLeftIcon className="size-4" />
-							上一页
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={goNext}
-							disabled={currentPage >= totalPages}
-						>
-							下一页
-							<ChevronRightIcon className="size-4" />
-						</Button>
-					</div>
-				</div>
-			)}
-		</Card>
+			<TablePagination
+				page={currentPage}
+				totalPages={totalPages}
+				totalItems={total}
+				onPageChange={(next) => setOffset((next - 1) * PAGE_SIZE)}
+			/>
+		</TableCard>
 	);
 }
 
@@ -503,7 +446,7 @@ function EditCommentDialog({
 						取消
 					</Button>
 					<Button onClick={handleEdit} disabled={submitting}>
-						{submitting && <Loader2Icon className="size-4 animate-spin mr-1" />}
+						{submitting && <Loader2Icon className="size-4 animate-spin" />}
 						保存
 					</Button>
 				</DialogFooter>
@@ -543,7 +486,7 @@ function TogglePinButton({
 			{loading ? (
 				<Loader2Icon className="size-4 animate-spin" />
 			) : comment.isPinned ? (
-				<PinOffIcon className="size-4 text-orange-500" />
+				<PinOffIcon className="size-4 text-warning" />
 			) : (
 				<PinIcon className="size-4 text-muted-foreground" />
 			)}
@@ -623,7 +566,7 @@ function UnhideCommentButton({
 			{loading ? (
 				<Loader2Icon className="size-4 animate-spin" />
 			) : (
-				<span className="text-xs text-green-600">恢复</span>
+				<span className="text-xs text-success">恢复</span>
 			)}
 		</Button>
 	);
@@ -688,7 +631,7 @@ function DeleteCommentDialog({
 						onClick={handleDelete}
 						disabled={submitting}
 					>
-						{submitting && <Loader2Icon className="size-4 animate-spin mr-1" />}
+						{submitting && <Loader2Icon className="size-4 animate-spin" />}
 						确认删除
 					</Button>
 				</DialogFooter>

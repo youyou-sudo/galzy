@@ -1,7 +1,9 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
+import { EmptyState } from "@web/components/shared/empty-state";
 import { Button } from "@web/components/ui/button";
 import { getVnListByTag } from "@web/server/tags";
+import { Gamepad2 } from "lucide-react";
 import { GameCard } from "../card";
 
 const apiroute = getRouteApi("/tags/$tagId");
@@ -77,15 +79,23 @@ export const TagGamelist = () => {
 				) : null,
 			)
 		) : (
-			<div className="text-center items-center">没找相关的游戏喵～</div>
+			<EmptyState
+				icon={Gamepad2}
+				title="没找到相关的游戏喵～"
+				description="换一个标签或稍后再来看看"
+				className="col-span-full"
+			/>
 		);
 
 	return (
 		<>
-			<div className="grid grid-cols-3 gap-4 md:grid-cols-6">
+			<div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-6">
 				{gameList}
 				{isLoading || isFetchingNextPage ? (
 					<>
+						<GameCard.ListSkeleton />
+						<GameCard.ListSkeleton />
+						<GameCard.ListSkeleton />
 						<GameCard.ListSkeleton />
 						<GameCard.ListSkeleton />
 						<GameCard.ListSkeleton />
@@ -93,8 +103,8 @@ export const TagGamelist = () => {
 				) : null}
 			</div>
 			{hasNextPage && (
-				<div className="flex justify-center mt-4">
-					<Button size="lg" onClick={getNextPage}>
+				<div className="mt-6 flex justify-center">
+					<Button variant="outline" size="lg" onClick={getNextPage}>
 						加载更多
 					</Button>
 				</div>

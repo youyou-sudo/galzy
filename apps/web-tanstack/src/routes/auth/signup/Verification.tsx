@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { BrandMark } from '@web/components/auth/brand-mark'
 import { Button } from '@web/components/ui/button'
 import {
   Card,
@@ -101,33 +102,39 @@ function RouteComponent() {
   }, [seedS?.error])
 
   return (
-    <div className="flex justify-center">
-      <Card className="felx w-85">
-        <CardHeader>
-          <CardTitle>验证您的邮箱喵～</CardTitle>
-          <CardDescription>
-            输入发送到邮箱的验证码（可能在垃圾邮箱里喵～）：
-            <span className="font-medium">{email}</span>
+    <div className="mx-auto w-full max-w-md py-6">
+      <Card className="w-full">
+        <CardHeader className="items-center gap-2 text-center">
+          <BrandMark />
+          <CardTitle className="text-2xl font-semibold tracking-tight">
+            验证邮箱
+          </CardTitle>
+          <CardDescription className="text-sm">
+            验证码已发送到{' '}
+            <span className="font-medium break-all text-foreground">
+              {email}
+            </span>
+            ，没收到的话翻一下垃圾邮箱喵～
           </CardDescription>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="flex flex-col gap-3">
           <Field>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <FieldLabel htmlFor="otp-verification">验证码</FieldLabel>
-
               <Button
                 variant="outline"
-                size="xs"
+                size="sm"
                 disabled={seedVerificationEmail.isPending}
                 onClick={() => seedVerificationEmail.mutate()}
               >
-                {seedVerificationEmail.isPending ? (
-                  <RefreshCwIcon className="animate-spin" />
-                ) : (
-                  <RefreshCwIcon />
-                )}
-                重新发送验证码
+                <RefreshCwIcon
+                  className={
+                    seedVerificationEmail.isPending ? 'animate-spin' : undefined
+                  }
+                  aria-hidden="true"
+                />
+                重新发送
               </Button>
             </div>
 
@@ -139,7 +146,7 @@ function RouteComponent() {
               onChange={setValue}
               className="flex justify-center"
             >
-              <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:text-xl">
+              <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-10 *:data-[slot=input-otp-slot]:text-xl sm:*:data-[slot=input-otp-slot]:w-11">
                 <InputOTPSlot index={0} />
                 <InputOTPSlot index={1} />
                 <InputOTPSlot index={2} />
@@ -147,7 +154,7 @@ function RouteComponent() {
 
               <InputOTPSeparator className="mx-2" />
 
-              <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-11 *:data-[slot=input-otp-slot]:text-xl">
+              <InputOTPGroup className="*:data-[slot=input-otp-slot]:h-12 *:data-[slot=input-otp-slot]:w-10 *:data-[slot=input-otp-slot]:text-xl sm:*:data-[slot=input-otp-slot]:w-11">
                 <InputOTPSlot index={3} />
                 <InputOTPSlot index={4} />
                 <InputOTPSlot index={5} />
@@ -156,18 +163,28 @@ function RouteComponent() {
           </Field>
         </CardContent>
 
-        <CardFooter>
-          <Field>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={verify.isPending}
-              onClick={() => verify.mutate()}
+        <CardFooter className="flex-col items-stretch gap-3">
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            disabled={verify.isPending}
+            onClick={() => verify.mutate()}
+          >
+            {verify.isPending && (
+              <RefreshCwIcon className="animate-spin" aria-hidden="true" />
+            )}
+            验证
+          </Button>
+          <p className="text-center text-xs text-muted-foreground">
+            填错邮箱了？{' '}
+            <Link
+              to="/auth/signup"
+              className="font-medium text-primary transition-colors hover:text-primary/80"
             >
-              {verify.isPending && <RefreshCwIcon className="animate-spin" />}
-              验证
-            </Button>
-          </Field>
+              重新注册
+            </Link>
+          </p>
         </CardFooter>
       </Card>
     </div>

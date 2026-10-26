@@ -3,11 +3,11 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { adminNav } from "@web/components/admin/admin-nav";
 import ThemeToggle from "@web/components/ThemeToggle";
 import { Button } from "@web/components/ui/button";
-import { Separator } from "@web/components/ui/separator";
 import { Sheet, SheetContent, SheetTitle } from "@web/components/ui/sheet";
 import { cn } from "@web/lib/utils";
 import { authClient } from "@web/server/auth/auth-client";
 import {
+	ChevronRightIcon,
 	ExternalLinkIcon,
 	LogOutIcon,
 	MenuIcon,
@@ -63,7 +63,7 @@ function SignOutButton({
 function AdminBrand() {
 	return (
 		<div className="flex items-center gap-3 px-2">
-			<div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+			<div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-[0_1px_2px_oklch(0_0_0/0.08)]">
 				<ShieldCheckIcon className="size-5" />
 			</div>
 			<div className="flex flex-col">
@@ -100,10 +100,11 @@ function AdminNavList({
 								key={item.to}
 								to={item.to}
 								onClick={onNavigate}
+								aria-current={active ? "page" : undefined}
 								className={cn(
-									"flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+									"flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-200",
 									active
-										? "bg-sidebar-accent text-sidebar-accent-foreground"
+										? "bg-sidebar-accent text-sidebar-accent-foreground ring-1 ring-sidebar-border/60"
 										: "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
 								)}
 							>
@@ -129,7 +130,7 @@ function AdminSidebarFooter() {
 		<div className="flex flex-col gap-1 border-t border-sidebar-border px-3 py-4">
 			<Link
 				to="/"
-				className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
+				className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
 			>
 				<ExternalLinkIcon className="size-4 shrink-0" />
 				返回站点
@@ -200,18 +201,18 @@ function AdminTopBar({ pathname }: { pathname: string }) {
 	return (
 		<header
 			className={cn(
-				"sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/85 px-4 sm:px-6 lg:px-8",
-				!scrolling && "backdrop-blur",
+				"sticky top-0 z-30 flex h-[var(--app-header-height)] items-center gap-3 border-b border-border/60 bg-background/80 px-4 sm:px-6 lg:px-8",
+				!scrolling && "backdrop-blur-xl",
 			)}
 		>
 			<div className="lg:hidden">
 				<AdminMobileNav pathname={pathname} />
 			</div>
 			<div className="flex min-w-0 items-center gap-2">
-				<span className="hidden text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60 sm:inline">
+				<span className="hidden text-[11px] font-medium tracking-wider text-muted-foreground/60 uppercase sm:inline">
 					管理后台
 				</span>
-				<Separator orientation="vertical" className="hidden h-4 sm:block" />
+				<ChevronRightIcon className="hidden size-3.5 text-muted-foreground/40 sm:block" />
 				<span className="truncate text-sm font-semibold tracking-tight">
 					{pageTitleOf(pathname)}
 				</span>
@@ -219,7 +220,7 @@ function AdminTopBar({ pathname }: { pathname: string }) {
 			<div className="ml-auto flex items-center gap-2">
 				<Link
 					to="/"
-					className="hidden items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground sm:flex"
+					className="hidden h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground transition-colors duration-200 hover:bg-muted/60 hover:text-foreground sm:flex"
 				>
 					<ExternalLinkIcon className="size-3.5" />
 					查看站点
@@ -239,8 +240,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
 	return (
 		<div className="flex min-h-screen w-full bg-muted/40 dark:bg-background">
+			<a
+				href="#admin-main"
+				className="fixed top-3 left-3 z-[100] -translate-y-20 rounded-xl bg-background px-4 py-2 text-sm font-medium shadow-lg ring-1 ring-border transition-transform duration-200 focus:translate-y-0 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+			>
+				跳到主内容
+			</a>
 			{/* 桌面侧栏 */}
-			<aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex">
+			<aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-sidebar-border/70 bg-sidebar text-sidebar-foreground lg:flex">
 				<div className="border-b border-sidebar-border px-4 py-4">
 					<AdminBrand />
 				</div>
@@ -251,7 +258,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 			{/* 主区域 */}
 			<div className="flex min-w-0 flex-1 flex-col lg:pl-64">
 				<AdminTopBar pathname={pathname} />
-				<main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+				<main
+					id="admin-main"
+					tabIndex={-1}
+					className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 outline-none sm:px-6 lg:px-8 lg:py-8"
+				>
 					{children}
 				</main>
 			</div>

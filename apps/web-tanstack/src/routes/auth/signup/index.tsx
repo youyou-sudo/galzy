@@ -6,6 +6,7 @@ import {
   redirect,
   useNavigate,
 } from '@tanstack/react-router'
+import { BrandMark } from '@web/components/auth/brand-mark'
 import { Button } from '@web/components/ui/button'
 import {
   Card,
@@ -114,10 +115,13 @@ function RouteComponent() {
   })
 
   return (
-    <div className="flex items-center justify-center min-h-[70vh]">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">注册</CardTitle>
+    <div className="mx-auto w-full max-w-md py-6">
+      <Card className="w-full">
+        <CardHeader className="items-center gap-2 text-center">
+          <BrandMark />
+          <CardTitle className="text-2xl font-semibold tracking-tight">
+            注册
+          </CardTitle>
           <CardDescription>创建一个新账户</CardDescription>
         </CardHeader>
         <CardContent>
@@ -151,8 +155,13 @@ function RouteComponent() {
                         field.state.meta.errors.length > 0
                       }
                     />
-                    <FieldDescription>设置您的显示名称喵～</FieldDescription>
-                    <FieldError errors={field.state.meta.errors} />
+                    <FieldDescription className="text-xs">
+                      设置您的显示名称喵～
+                    </FieldDescription>
+                    <FieldError
+                      className="text-xs"
+                      errors={field.state.meta.errors}
+                    />
                   </FieldContent>
                 </Field>
               )}
@@ -180,8 +189,13 @@ function RouteComponent() {
                         field.state.meta.errors.length > 0
                       }
                     />
-                    <FieldDescription>用于登录和接收通知喵～</FieldDescription>
-                    <FieldError errors={field.state.meta.errors} />
+                    <FieldDescription className="text-xs">
+                      用于登录和接收通知喵～
+                    </FieldDescription>
+                    <FieldError
+                      className="text-xs"
+                      errors={field.state.meta.errors}
+                    />
                   </FieldContent>
                 </Field>
               )}
@@ -213,7 +227,7 @@ function RouteComponent() {
                       <Button
                         type="button"
                         variant="ghost"
-                        size="icon-xs"
+                        size="icon-sm"
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label={showPassword ? '隐藏密码' : '显示密码'}
                       >
@@ -224,8 +238,13 @@ function RouteComponent() {
                         )}
                       </Button>
                     </InputGroup>
-                    <FieldDescription>至少6个字符</FieldDescription>
-                    <FieldError errors={field.state.meta.errors} />
+                    <FieldDescription className="text-xs">
+                      至少6个字符
+                    </FieldDescription>
+                    <FieldError
+                      className="text-xs"
+                      errors={field.state.meta.errors}
+                    />
                   </FieldContent>
                 </Field>
               )}
@@ -257,7 +276,7 @@ function RouteComponent() {
                       <Button
                         type="button"
                         variant="ghost"
-                        size="icon-xs"
+                        size="icon-sm"
                         onClick={() =>
                           setShowConfirmPassword(!showConfirmPassword)
                         }
@@ -272,8 +291,13 @@ function RouteComponent() {
                         )}
                       </Button>
                     </InputGroup>
-                    <FieldDescription>请再次输入密码以确认</FieldDescription>
-                    <FieldError errors={field.state.meta.errors} />
+                    <FieldDescription className="text-xs">
+                      请再次输入密码以确认
+                    </FieldDescription>
+                    <FieldError
+                      className="text-xs"
+                      errors={field.state.meta.errors}
+                    />
                   </FieldContent>
                 </Field>
               )}
@@ -283,6 +307,7 @@ function RouteComponent() {
               {(isSubmitting) => (
                 <Button
                   type="submit"
+                  size="lg"
                   className="w-full"
                   disabled={isSubmitting}
                 >
@@ -299,11 +324,11 @@ function RouteComponent() {
             </form.Subscribe>
           </form>
 
-          <p className="mt-4 text-center text-sm text-muted-foreground">
+          <p className="mt-5 text-center text-xs text-muted-foreground">
             已有账户？{' '}
             <Link
               to="/auth/login"
-              className="font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+              className="font-medium text-primary transition-colors hover:text-primary/80"
             >
               去登录
             </Link>

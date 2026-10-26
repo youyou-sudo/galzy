@@ -93,7 +93,7 @@ describe("HomePagePending", () => {
 		expect(markup).toContain("搜索");
 		const searchRegion = sectionOf(
 			markup,
-			"px-5 sm:px-20 lg:px-80",
+			"mx-auto mt-6 mb-8 w-full max-w-2xl",
 			"热门标签",
 		);
 		expect(searchRegion).not.toContain('data-slot="skeleton"');

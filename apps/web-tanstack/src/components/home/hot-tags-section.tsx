@@ -1,4 +1,8 @@
 import { Link } from "@tanstack/react-router";
+import {
+	SectionHeader,
+	sectionActionClass,
+} from "@web/components/shared/section-header";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { useViewportPreload } from "@web/hooks/use-viewport-preload";
 import { cn } from "@web/lib/utils";
@@ -16,14 +20,20 @@ interface HotTagsSectionProps {
 	tags: HotTag[] | null;
 }
 
-const RANK_STYLES = [
-	"border-red-500/50 text-red-500",
-	"border-yellow-500/50 text-yellow-500",
-	"border-blue-500/50 text-blue-500",
-];
-
+/**
+ * 排名只看前三：圆角数字底片从灰变成主色淡底，不再用红/黄/蓝三色拼盘。
+ * 颜色只做「层级提示」，不承担语义（热度本身由排序表达）。
+ */
 const BASE_CHIP =
-	"inline-flex items-center gap-1 rounded-full border bg-card font-medium no-underline transition-colors hover:bg-accent hover:text-accent-foreground";
+	"inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-card/70 px-2.5 py-1 text-xs font-medium no-underline transition-colors duration-200 hover:border-border hover:bg-muted/60 hover:text-foreground";
+
+const rankClass = (index: number) =>
+	index < 3 ? "border-primary/25 bg-primary/5" : "";
+
+const rankNumberClass = (index: number) =>
+	index < 3
+		? "bg-primary/10 text-primary"
+		: "bg-muted text-muted-foreground";
 
 function TagChip({
 	tag,
@@ -52,13 +62,16 @@ function TagChip({
 			onClick={() =>
 				tagHeroActions.fromTag({ id: tag.tag, name: tag.title || tag.tag })
 			}
-			className={cn(
-				BASE_CHIP,
-				RANK_STYLES[index] ?? "border-border text-foreground",
-				className,
-			)}
+			className={cn(BASE_CHIP, rankClass(index), className)}
 		>
-			<span className="font-bold">{index + 1}</span>
+			<span
+				className={cn(
+					"flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold tabular-nums",
+					rankNumberClass(index),
+				)}
+			>
+				{index + 1}
+			</span>
 			<span className="max-w-36 truncate">#{tag.title || tag.tag}</span>
 		</Link>
 	);
@@ -72,22 +85,23 @@ function TagChip({
  */
 export function HotTagsSectionHeader() {
 	return (
-		<div className="mb-2 flex items-center justify-between lg:mb-4">
-			<div className="flex items-center gap-2">
-				<Hash className="size-5 text-rose-400" />
-				<h2 className="text-base font-semibold lg:text-xl">热门标签</h2>
-			</div>
-			<Link
-				// 首页这块展示的就是「本周热门」标签，所以「更多」落到热门分类页的
-				// 本周热门排序上，翻页时榜单顺序不断层（分类页可再切本月/收录数）
-				to="/tags/category/$categoryKey"
-				params={{ categoryKey: "hot" }}
-				search={{ sort: "hotWeek", order: "desc" }}
-				className="text-xs text-muted-foreground transition-colors hover:text-primary lg:text-sm"
-			>
-				更多 →
-			</Link>
-		</div>
+		<SectionHeader
+			icon={Hash}
+			title="热门标签"
+			className="mb-3 lg:mb-4"
+			action={
+				<Link
+					// 首页这块展示的就是「本周热门」标签，所以「更多」落到热门分类页的
+					// 本周热门排序上，翻页时榜单顺序不断层（分类页可再切本月/收录数）
+					to="/tags/category/$categoryKey"
+					params={{ categoryKey: "hot" }}
+					search={{ sort: "hotWeek", order: "desc" }}
+					className={sectionActionClass}
+				>
+					更多 →
+				</Link>
+			}
+		/>
 	);
 }
 
@@ -100,13 +114,13 @@ export function HotTagsSection({ tags }: HotTagsSectionProps) {
 	return (
 		<section className="mb-6 lg:mb-8">
 			<HotTagsSectionHeader />
-			<ul className="flex gap-1.5 overflow-x-auto [mask-image:linear-gradient(to_right,black_82%,transparent_100%)] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+			<ul className="galzy-scroll-x galzy-fade-x flex gap-2">
 				{tags.slice(0, 12).map((tag, index) => (
 					<li key={tag.tag} className="shrink-0">
 						<TagChip
 							tag={tag}
 							index={index}
-							className="px-2.5 py-1 text-xs lg:px-3 lg:py-1.5 lg:text-sm"
+							className="lg:px-3 lg:py-1.5 lg:text-sm"
 						/>
 					</li>
 				))}

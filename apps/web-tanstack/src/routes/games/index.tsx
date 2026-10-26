@@ -12,7 +12,9 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@web/components/shared/breadcrumb";
-import { GameListPageSkeleton } from "@web/components/shared/route-skeletons";
+import { GameCardGridSkeleton } from "@web/components/shared/route-skeletons";
+import { EmptyState } from "@web/components/shared/empty-state";
+import { PageHeader } from "@web/components/shared/page-header";
 import { Button } from "@web/components/ui/button";
 import {
 	Select,
@@ -21,6 +23,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@web/components/ui/select";
+import { Skeleton } from "@web/components/ui/skeleton";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { setViewportPreloadPaused } from "@web/hooks/use-viewport-preload";
 import { setThumbHashDecodePaused } from "@web/lib/image";
@@ -34,7 +37,7 @@ import {
 	getGameList,
 } from "@web/server/game";
 import { r18Store } from "@web/stores/r18Store";
-import { Flame, ListFilter } from "lucide-react";
+import { Gamepad2, ListFilter } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as z from "zod/mini";
 
@@ -125,8 +128,8 @@ function readSnapshot(): SnapshotRow[] | null {
 }
 
 /**
- * 排序筛选的两个下拉，与标签页（TagSortBar）同一套样式：
- * 「依据」（发布时间 / 下载量 / 浏览量）+「方向」（降序 / 升序）。
+ * 排序筛选与标签页（TagSortBar）共用同一套控件：
+ * 「依据」下拉（发布时间 / 下载量 / 浏览量）+「方向」分段按钮（降序 / 升序）。
  */
 const GAME_SORT_ITEMS: ReadonlyArray<{ key: GameSortKey; label: string }> = [
 	{ key: "released", label: "发布时间" },
@@ -173,7 +176,7 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/games/")({
 	component: RouteComponent,
-	pendingComponent: () => <GameListPageSkeleton />,
+	pendingComponent: () => <GamesPagePending />,
 	head: () =>
 		seoMeta({
 			title: `全部游戏 | ${seoTemplate.title}`,
@@ -663,32 +666,24 @@ function RouteComponent() {
 
 	return (
 		<div>
-			<Breadcrumb className="mb-4">
-				<BreadcrumbList>
-					<BreadcrumbItem>
-						<BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
-					</BreadcrumbItem>
-					<BreadcrumbSeparator />
-					<BreadcrumbItem>
-						<BreadcrumbPage>全部游戏</BreadcrumbPage>
-					</BreadcrumbItem>
-				</BreadcrumbList>
-			</Breadcrumb>
+			<GamesBreadcrumb />
 
-			<div className="mb-6">
-				<h1 className="text-2xl font-semibold">全部游戏</h1>
-				<p className="text-sm text-muted-foreground mt-1">
-					浏览所有收录的 Galgame 作品
-				</p>
-			</div>
+			<PageHeader
+				icon={Gamepad2}
+				title="全部游戏"
+				description="浏览所有收录的 Galgame 作品"
+			/>
 
-			<div className="mx-auto w-full max-w-lg mb-6">
+			<div className="mb-4 w-full max-w-xl">
 				<SearchInput />
 			</div>
 
-			<div className="flex flex-wrap items-center gap-2 mb-6 pb-4 border-b">
-				<ListFilter className="size-4 shrink-0 text-muted-foreground" />
-				<span className="shrink-0 text-sm text-muted-foreground">排序：</span>
+			{/* 排序条：一条发丝底工具条，与页头/搜索同一垂直节奏 */}
+			<div className="mb-6 flex flex-wrap items-center gap-2 rounded-2xl bg-muted/40 px-3 py-2 ring-1 ring-border/60">
+				<span className="flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground">
+					<ListFilter aria-hidden="true" className="size-4" />
+					排序
+				</span>
 				<Select
 					value={sortBy}
 					onValueChange={(next) => {
@@ -699,10 +694,14 @@ function RouteComponent() {
 					}}
 					items={SORT_SELECT_ITEMS}
 				>
-					<SelectTrigger size="sm" className="w-28" aria-label="排序依据">
+					<SelectTrigger
+						size="sm"
+						className="h-8 w-28 rounded-lg border-0 bg-transparent px-2 font-medium text-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
+						aria-label="排序依据"
+					>
 						<SelectValue />
 					</SelectTrigger>
-					<SelectContent>
+					<SelectContent alignItemWithTrigger={false} sideOffset={6}>
 						{GAME_SORT_ITEMS.map((item) => (
 							<SelectItem key={item.key} value={item.key}>
 								{item.label}
@@ -720,10 +719,18 @@ function RouteComponent() {
 					}}
 					items={ORDER_SELECT_ITEMS}
 				>
-					<SelectTrigger size="sm" className="w-20" aria-label="排序方向">
+					<SelectTrigger
+						size="sm"
+						className="h-8 w-20 rounded-lg border-0 bg-transparent px-2 font-medium text-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
+						aria-label="排序方向"
+					>
 						<SelectValue />
 					</SelectTrigger>
-					<SelectContent>
+					<SelectContent
+						alignItemWithTrigger={false}
+						sideOffset={6}
+						className="min-w-32"
+					>
 						{GAME_ORDER_ITEMS.map((item) => (
 							<SelectItem key={item.key} value={item.key}>
 								{item.label}
@@ -747,29 +754,24 @@ function RouteComponent() {
 				))}
 			</div>
 
-			{isLoading || isFetchingNextPage ? (
-				<div className="grid grid-cols-3 md:grid-cols-6 gap-4 mt-4">
-					{/* 首屏加载给满行骨架；加载更多只给 1 个：
-						animate-pulse 常驻合成层是滚动掉帧来源之一 */}
-					{isLoading ? (
-						<>
-							<GameCard.ListSkeleton />
-							<GameCard.ListSkeleton />
-							<GameCard.ListSkeleton />
-							<GameCard.ListSkeleton />
-							<GameCard.ListSkeleton />
-							<GameCard.ListSkeleton />
-						</>
-					) : (
-						<GameCard.ListSkeleton />
-					)}
+			{/*
+				三种加载态：
+				1. isLoading：首屏/换筛选，数据还没到，给满行骨架；
+				2. flatItems 有数据但 virtualItems 为空：SSR 首帧、客户端导航命中缓存后
+				   虚拟列表还没完成首次测量。这一帧如果不给骨架，就是一片空白（本次修复）；
+				3. isFetchingNextPage：只在底部补 1 个骨架，不整屏闪。
+			*/}
+			{isLoading || (flatItems.length > 0 && virtualItems.length === 0) ? (
+				<GameCardGridSkeleton className="mt-4" />
+			) : isFetchingNextPage ? (
+				<div className="mt-4 grid grid-cols-3 gap-4 md:grid-cols-6">
+					<GameCard.ListSkeleton />
 				</div>
 			) : null}
 
 			{hasNextPage && (
-				<div className="flex justify-center mt-8">
+				<div className="mt-8 flex justify-center">
 					<Button
-						size="lg"
 						onClick={() => fetchNextPage()}
 						disabled={isFetchingNextPage}
 					>
@@ -779,11 +781,84 @@ function RouteComponent() {
 			)}
 
 			{!isLoading && flatItems.length === 0 && (
-				<div className="text-center py-20 text-muted-foreground">
-					<Flame className="size-12 mx-auto mb-3 opacity-30" />
-					<p>暂无游戏数据</p>
-				</div>
+				<EmptyState
+					icon={Gamepad2}
+					title="暂无游戏数据"
+					description={
+						q
+							? "换个关键词，或清空搜索看看全部作品"
+							: "当前排序下还没有收录作品，稍后再来看看吧"
+					}
+					action={
+						q ? (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() =>
+									navigate({
+										search: {
+											q: "",
+											startDate: undefined,
+											endDate: undefined,
+											sortBy,
+											order,
+										},
+										replace: true,
+									})
+								}
+							>
+								清空搜索
+							</Button>
+						) : (
+							<Button
+								variant="outline"
+								size="sm"
+								render={<Link to="/" />}
+							>
+								返回首页
+							</Button>
+						)
+					}
+				/>
 			)}
+		</div>
+	);
+}
+
+function GamesBreadcrumb() {
+	return (
+		<Breadcrumb className="mb-4">
+			<BreadcrumbList>
+				<BreadcrumbItem>
+					<BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
+				</BreadcrumbItem>
+				<BreadcrumbSeparator />
+				<BreadcrumbItem>
+					<BreadcrumbPage>全部游戏</BreadcrumbPage>
+				</BreadcrumbItem>
+			</BreadcrumbList>
+		</Breadcrumb>
+	);
+}
+
+/**
+ * 路由 pending：面包屑与页头是真实内容（标题/描述/图标直接复用），
+ * 只有搜索框、排序条与卡片网格出骨架，数据到达时不出现整页跳动。
+ */
+function GamesPagePending() {
+	return (
+		<div>
+			<GamesBreadcrumb />
+			<PageHeader
+				icon={Gamepad2}
+				title="全部游戏"
+				description="浏览所有收录的 Galgame 作品"
+			/>
+			<div className="mb-4 w-full max-w-xl">
+				<Skeleton className="h-10 w-full rounded-xl" />
+			</div>
+			<Skeleton className="mb-6 h-12 w-full rounded-2xl" />
+			<GameCardGridSkeleton />
 		</div>
 	);
 }

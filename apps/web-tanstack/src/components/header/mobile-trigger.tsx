@@ -24,8 +24,8 @@ export function MobileMenuTrigger({
 	return (
 		<Button
 			variant="ghost"
-			size="icon"
-			className="rounded-lg md:hidden"
+			size="icon-sm"
+			className="rounded-lg text-[color:var(--header-muted)] hover:bg-[var(--header-hover)] hover:text-[color:var(--header-fg)] md:hidden"
 			aria-label={open ? "关闭菜单" : "打开菜单"}
 			aria-expanded={open}
 			aria-controls={menuMounted ? "galzy-mobile-menu" : undefined}

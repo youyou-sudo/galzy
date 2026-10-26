@@ -58,10 +58,12 @@ export const OauthButton = () => {
 	};
 
 	return (
-		<div>
-			<Separator />
-			<div className="mt-2 grid grid-cols-2 gap-2">
+		<div className="mt-5">
+			<Separator className="bg-border/60" />
+			<div className="mt-4 grid grid-cols-2 gap-2">
 				<Button
+					variant="outline"
+					className="w-full gap-1.5 px-2 text-xs"
 					disabled={loading === "kungal"}
 					onClick={() => handleSocialSignIn("kungal")}
 				>
@@ -80,6 +82,8 @@ export const OauthButton = () => {
 					<TooltipTrigger
 						render={
 							<Button
+								variant="outline"
+								className="w-full gap-1.5 px-2 text-xs"
 								disabled={loading === "hikarinagi"}
 								onClick={() => handleSocialSignIn("hikarinagi")}
 								aria-label="使用 Hikarinagi ID 登录"
@@ -103,6 +107,8 @@ export const OauthButton = () => {
 				</Tooltip>
 
 				<Button
+					variant="outline"
+					className="w-full gap-1.5 px-2 text-xs"
 					disabled={loading === "linuxdo"}
 					onClick={() => handleSocialSignIn("linuxdo")}
 				>
@@ -119,6 +125,8 @@ export const OauthButton = () => {
 				</Button>
 
 				<Button
+					variant="outline"
+					className="w-full gap-1.5 px-2 text-xs"
 					disabled={loading === "github"}
 					onClick={() => handleSocialSignIn("github")}
 				>
@@ -128,6 +136,8 @@ export const OauthButton = () => {
 				</Button>
 
 				<Button
+					variant="outline"
+					className="w-full gap-1.5 px-2 text-xs"
 					disabled={loading === "twitter"}
 					onClick={() => handleSocialSignIn("twitter")}
 				>
@@ -136,6 +146,8 @@ export const OauthButton = () => {
 					twitter
 				</Button>
 				<Button
+					variant="outline"
+					className="w-full gap-1.5 px-2 text-xs"
 					disabled={loading === "discord"}
 					onClick={() => handleSocialSignIn("discord")}
 				>

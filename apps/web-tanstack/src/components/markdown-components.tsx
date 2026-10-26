@@ -6,7 +6,7 @@ export const MarkdownComponents = {
 	h1: ({ className, ...props }: ComponentProps<"h1">) => (
 		<h1
 			className={cn(
-				"scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl",
+				"scroll-m-20 text-2xl font-semibold tracking-tight",
 				className,
 			)}
 			{...props}
@@ -15,7 +15,7 @@ export const MarkdownComponents = {
 	h2: ({ className, ...props }: ComponentProps<"h2">) => (
 		<h2
 			className={cn(
-				"scroll-m-20 border-b pb-2 text-3xl font-semibold tracking-tight first:mt-0",
+				"scroll-m-20 border-b border-border/70 pb-2 text-xl font-semibold tracking-tight first:mt-0",
 				className,
 			)}
 			{...props}
@@ -24,7 +24,7 @@ export const MarkdownComponents = {
 	h3: ({ className, ...props }: ComponentProps<"h3">) => (
 		<h3
 			className={cn(
-				"scroll-m-20 text-2xl font-semibold tracking-tight",
+				"scroll-m-20 text-lg font-semibold tracking-tight",
 				className,
 			)}
 			{...props}
@@ -33,7 +33,7 @@ export const MarkdownComponents = {
 	h4: ({ className, ...props }: ComponentProps<"h4">) => (
 		<h4
 			className={cn(
-				"scroll-m-20 text-xl font-semibold tracking-tight",
+				"scroll-m-20 text-base font-semibold tracking-tight",
 				className,
 			)}
 			{...props}
@@ -42,7 +42,7 @@ export const MarkdownComponents = {
 	h5: ({ className, ...props }: ComponentProps<"h5">) => (
 		<h5
 			className={cn(
-				"scroll-m-20 text-lg font-semibold tracking-tight",
+				"scroll-m-20 text-sm font-semibold tracking-tight",
 				className,
 			)}
 			{...props}
@@ -51,14 +51,14 @@ export const MarkdownComponents = {
 	h6: ({ className, ...props }: ComponentProps<"h6">) => (
 		<h6
 			className={cn(
-				"scroll-m-20 text-base font-semibold tracking-tight",
+				"scroll-m-20 text-sm font-semibold tracking-tight",
 				className,
 			)}
 			{...props}
 		/>
 	),
 	p: ({ className, ...props }: ComponentProps<"p">) => (
-		<p className={cn("leading-7 not-first:mt-6", className)} {...props} />
+		<p className={cn("leading-7 not-first:mt-5", className)} {...props} />
 	),
 	ul: ({ className, ...props }: ComponentProps<"ul">) => (
 		<ul
@@ -77,13 +77,13 @@ export const MarkdownComponents = {
 	),
 	blockquote: ({ className, ...props }: ComponentProps<"blockquote">) => (
 		<blockquote
-			className={cn("mt-6 border-l-2 pl-6 italic", className)}
+			className={cn("mt-6 border-l-2 border-border pl-6 text-muted-foreground italic", className)}
 			{...props}
 		/>
 	),
 	img: ({ className, alt, ...props }: ComponentProps<"img">) => (
 		<img
-			className={cn("rounded-md", className)}
+			className={cn("rounded-xl", className)}
 			alt={alt}
 			loading="lazy"
 			decoding="async"
@@ -105,7 +105,7 @@ export const MarkdownComponents = {
 	th: ({ className, ...props }: ComponentProps<"th">) => (
 		<th
 			className={cn(
-				"border px-4 py-2 text-left font-bold [[align=center]]:text-center [[align=right]]:text-right",
+				"border border-border/70 px-4 py-2 text-left font-medium [[align=center]]:text-center [[align=right]]:text-right",
 				className,
 			)}
 			{...props}
@@ -123,7 +123,7 @@ export const MarkdownComponents = {
 	pre: ({ className, ...props }: ComponentProps<"pre">) => (
 		<pre
 			className={cn(
-				"mb-4 mt-6 overflow-x-auto rounded-lg border bg-muted px-4 py-4",
+				"mt-6 mb-4 overflow-x-auto rounded-xl border border-border/70 bg-muted px-4 py-4",
 				className,
 			)}
 			{...props}
@@ -132,7 +132,7 @@ export const MarkdownComponents = {
 	code: ({ className, ...props }: ComponentProps<"code">) => (
 		<code
 			className={cn(
-				"relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold",
+				"relative rounded-md bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-medium",
 				className,
 			)}
 			{...props}
@@ -141,7 +141,7 @@ export const MarkdownComponents = {
 	a: ({ className, ...props }: ComponentProps<"a">) => (
 		<a
 			className={cn(
-				"font-medium text-primary underline underline-offset-4",
+				"font-medium text-primary underline underline-offset-4 transition-colors hover:text-primary/80",
 				className,
 			)}
 			{...props}
@@ -164,7 +164,7 @@ export const ArticleMarkdownComponents = {
 	h1: ({ className, ...props }: ComponentProps<"h1">) => (
 		<h1
 			className={cn(
-				"scroll-m-20 mt-6 mb-2 text-xl font-bold tracking-tight first:mt-0",
+				"scroll-m-20 mt-6 mb-2 text-xl font-semibold tracking-tight first:mt-0",
 				className,
 			)}
 			{...props}

@@ -1,8 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
+import {
+	StatusPill,
+	Table,
+	TableCard,
+	TableEmpty,
+	TablePagination,
+	TableScroll,
+	TableSkeleton,
+	TableToolbar,
+	TBody,
+	Td,
+	Th,
+	THead,
+	Tr,
+} from "@web/components/admin/admin-table";
 import { AdminPageHeader } from "@web/components/admin/admin-page-header";
+import { SearchField } from "@web/components/shared/search-field";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
-import { Card, CardContent, CardHeader } from "@web/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -28,8 +43,6 @@ import {
 import { authClient } from "@web/server/auth/auth-client";
 import {
 	BanIcon,
-	ChevronLeftIcon,
-	ChevronRightIcon,
 	CircleCheckIcon,
 	CopyIcon,
 	Loader2Icon,
@@ -39,6 +52,7 @@ import {
 	ShieldIcon,
 	Trash2Icon,
 	UserIcon,
+	UsersIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -76,6 +90,7 @@ export default function RouteComponent() {
 	return (
 		<div className="flex flex-col gap-6">
 			<AdminPageHeader
+				icon={UsersIcon}
 				eyebrow="系统"
 				title="用户管理"
 				description="管理用户账号、角色、封禁与权限"
@@ -134,186 +149,130 @@ function UsersTable() {
 		setSearch(searchInput);
 	};
 
-	const handleKeyDown = (e: React.KeyboardEvent) => {
-		if (e.key === "Enter") handleSearch();
-	};
-
 	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 	const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
-
-	const goNext = () => {
-		if (currentPage < totalPages) {
-			setOffset(offset + PAGE_SIZE);
-		}
-	};
-
-	const goPrev = () => {
-		if (currentPage > 1) {
-			setOffset(Math.max(0, offset - PAGE_SIZE));
-		}
-	};
 
 	const refresh = () => refetch();
 
 	return (
-		<Card>
-			<CardHeader className="pb-3">
-				<div className="flex items-center gap-3">
-					<div className="relative flex-1">
-						<SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-						<Input
-							placeholder="搜索用户邮箱..."
-							value={searchInput}
-							onChange={(e) => setSearchInput(e.target.value)}
-							onKeyDown={handleKeyDown}
-							className="pl-9"
-						/>
-					</div>
-					<Button variant="outline" onClick={handleSearch} disabled={isLoading}>
-						搜索
-					</Button>
-				</div>
-			</CardHeader>
+		<TableCard>
+			<TableToolbar>
+				<SearchField
+					value={searchInput}
+					onChange={setSearchInput}
+					onSubmit={handleSearch}
+					placeholder="搜索用户邮箱…"
+					ariaLabel="搜索用户邮箱"
+					className="sm:max-w-xs"
+				/>
+				<Button variant="outline" onClick={handleSearch} disabled={isLoading}>
+					<SearchIcon className="size-4" />
+					搜索
+				</Button>
+			</TableToolbar>
 
-			<CardContent className="p-0">
-				{isLoading ? (
-					<div className="flex items-center justify-center py-16">
-						<Loader2Icon className="size-6 animate-spin text-muted-foreground" />
-					</div>
-				) : users.length === 0 ? (
-					<div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-						<UserIcon className="size-10 mb-2" />
-						<p className="text-sm">暂无用户数据</p>
-					</div>
-				) : (
-					<div className="overflow-x-auto">
-						<table className="w-full">
-							<thead>
-								<tr className="border-b bg-muted/50">
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										用户
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										邮箱
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										角色
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										状态
-									</th>
-									<th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">
-										操作
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{users.map((user) => (
-									<tr
-										key={user.id}
-										className="border-b last:border-0 hover:bg-muted/30 transition-colors"
-									>
-										<td className="px-4 py-3">
-											<div className="flex items-center gap-2">
-												{user.image ? (
-													<img
-														src={user.image}
-														alt=""
-														className="size-7 rounded-full"
-													/>
-												) : (
-													<div className="size-7 rounded-full bg-muted flex items-center justify-center">
-														<UserIcon className="size-3.5 text-muted-foreground" />
-													</div>
-												)}
-												<span className="text-sm font-medium">
-													{user.name || "未命名"}
-												</span>
-											</div>
-										</td>
-										<td className="px-4 py-3">
-											<Tooltip>
-												<TooltipTrigger
-													render={
-														<span className="text-sm text-muted-foreground break-all cursor-default" />
-													}
-												>
-													{user.email}
-												</TooltipTrigger>
-												<TooltipContent>
-													<p>{user.email}</p>
-												</TooltipContent>
-											</Tooltip>
-										</td>
-										<td className="px-4 py-3">
-											<Badge
-												variant={
-													user.role === "admin" ? "default" : "secondary"
+			<TableScroll>
+				<Table minWidth="min-w-[760px]">
+					<THead>
+						<Tr>
+							<Th>用户</Th>
+							<Th>邮箱</Th>
+							<Th>角色</Th>
+							<Th>状态</Th>
+							<Th align="right">操作</Th>
+						</Tr>
+					</THead>
+					{isLoading ? (
+						<TableSkeleton columns={5} />
+					) : users.length === 0 ? (
+						<tbody>
+							<TableEmpty
+								colSpan={5}
+								icon={UserIcon}
+								title="暂无用户数据"
+								description="调整搜索条件，或创建新的用户账号"
+							/>
+						</tbody>
+					) : (
+						<TBody>
+							{users.map((user) => (
+								<Tr key={user.id}>
+									<Td>
+										<div className="flex items-center gap-2">
+											{user.image ? (
+												<img
+													src={user.image}
+													alt=""
+													className="size-7 rounded-full"
+												/>
+											) : (
+												<div className="size-7 rounded-full bg-muted flex items-center justify-center">
+													<UserIcon className="size-3.5 text-muted-foreground" />
+												</div>
+											)}
+											<span className="text-sm font-medium">
+												{user.name || "未命名"}
+											</span>
+										</div>
+									</Td>
+									<Td>
+										<Tooltip>
+											<TooltipTrigger
+												render={
+													<span className="text-sm text-muted-foreground break-all cursor-default" />
 												}
 											>
-												{user.role || "user"}
-											</Badge>
-										</td>
-										<td className="px-4 py-3">
+												{user.email}
+											</TooltipTrigger>
+											<TooltipContent>
+												<p>{user.email}</p>
+											</TooltipContent>
+										</Tooltip>
+									</Td>
+									<Td>
+										<Badge
+											variant={user.role === "admin" ? "default" : "secondary"}
+										>
+											{user.role || "user"}
+										</Badge>
+									</Td>
+									<Td>
+										{user.banned ? (
+											<StatusPill tone="destructive" icon={BanIcon}>
+												已封禁
+											</StatusPill>
+										) : (
+											<StatusPill tone="success" icon={CircleCheckIcon}>
+												正常
+											</StatusPill>
+										)}
+									</Td>
+									<Td align="right">
+										<div className="flex items-center justify-end gap-1.5">
+											<SetRoleDialog user={user} onDone={refresh} />
+											<SetPasswordDialog user={user} onDone={refresh} />
 											{user.banned ? (
-												<Badge variant="destructive">已封禁</Badge>
+												<UnbanButton user={user} onDone={refresh} />
 											) : (
-												<Badge
-													variant="outline"
-													className="text-green-600 border-green-600/30"
-												>
-													正常
-												</Badge>
+												<BanUserDialog user={user} onDone={refresh} />
 											)}
-										</td>
-										<td className="px-4 py-3 text-right">
-											<div className="flex items-center justify-end gap-1.5">
-												<SetRoleDialog user={user} onDone={refresh} />
-												<SetPasswordDialog user={user} onDone={refresh} />
-												{user.banned ? (
-													<UnbanButton user={user} onDone={refresh} />
-												) : (
-													<BanUserDialog user={user} onDone={refresh} />
-												)}
-												<RemoveUserDialog user={user} onDone={refresh} />
-											</div>
-										</td>
-									</tr>
-								))}
-							</tbody>
-						</table>
-					</div>
-				)}
-			</CardContent>
+											<RemoveUserDialog user={user} onDone={refresh} />
+										</div>
+									</Td>
+								</Tr>
+							))}
+						</TBody>
+					)}
+				</Table>
+			</TableScroll>
 
-			{total > PAGE_SIZE && (
-				<div className="flex items-center justify-between px-4 py-3 border-t">
-					<span className="text-xs text-muted-foreground">
-						共 {total} 个用户 · 第 {currentPage}/{totalPages} 页
-					</span>
-					<div className="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={goPrev}
-							disabled={currentPage <= 1}
-						>
-							<ChevronLeftIcon className="size-4" />
-							上一页
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={goNext}
-							disabled={currentPage >= totalPages}
-						>
-							下一页
-							<ChevronRightIcon className="size-4" />
-						</Button>
-					</div>
-				</div>
-			)}
-		</Card>
+			<TablePagination
+				page={currentPage}
+				totalPages={totalPages}
+				totalItems={total}
+				onPageChange={(next) => setOffset((next - 1) * PAGE_SIZE)}
+			/>
+		</TableCard>
 	);
 }
 
@@ -362,7 +321,7 @@ function CreateUserDialog() {
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
-			<Button onClick={() => setOpen(true)} size="sm">
+			<Button onClick={() => setOpen(true)}>
 				<PlusIcon className="size-4" />
 				创建用户
 			</Button>
@@ -742,7 +701,7 @@ function UnbanButton({ user, onDone }: { user: User; onDone: () => void }) {
 			{loading ? (
 				<Loader2Icon className="size-4 animate-spin" />
 			) : (
-				<CircleCheckIcon className="size-4 text-green-600" />
+				<CircleCheckIcon className="size-4 text-success" />
 			)}
 		</Button>
 	);

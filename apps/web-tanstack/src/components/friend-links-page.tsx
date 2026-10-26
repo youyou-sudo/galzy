@@ -1,109 +1,110 @@
-import { MotionHighlight } from '@web/components/animate-ui/effects/motion-highlight'
-import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
-import { MotionConfig } from 'motion/react'
+import { MotionHighlight } from "@web/components/animate-ui/effects/motion-highlight";
+import { PageHeader } from "@web/components/shared/page-header";
+import { Avatar, AvatarFallback, AvatarImage } from "@web/components/ui/avatar";
+import { Card } from "@web/components/ui/card";
+import { HeartHandshake } from "lucide-react";
+import { MotionConfig } from "motion/react";
 
 const linksList: {
-  title: string
-  avatar: string
-  href: string
-  description: string
+	title: string;
+	avatar: string;
+	href: string;
+	description: string;
 }[] = [
-  {
-    title: '莱茵',
-    avatar: '/telegram.png',
-    href: 'https://t.me/RhineLibrary',
-    description: '一个 Telegram Galgame 资源频道',
-  },
-  {
-    title: 'Steam 上的中文 Galgame',
-    avatar:
-      'https://steamgalgame.com/usr/themes/SteamGalgame/static/img/favicon.png',
-    href: 'https://steamgalgame.com',
-    description: '',
-  },
-  {
-    title: '莉斯坦 ACG',
-    avatar: 'https://www.limulu.moe/favicon.ico',
-    href: 'https://www.limulu.moe',
-    description: '一个简洁美观人性化的 ACG 资源站',
-  },
-  {
-    title: '鲲 Galgame 论坛',
-    avatar: 'https://www.kungal.com/favicon.ico',
-    href: 'https://www.kungal.com',
-    description: '世界上最萌的 Galgame 论坛! ',
-  },
-  {
-    title: 'Hikarinagi',
-    avatar: 'https://www.hikarinagi.org/favicon.ico',
-    href: 'https://www.hikarinagi.org',
-    description: 'Hikarinagi 致力于为所有ACG爱好者提供一个交流和分享的平台! ',
-  },
-  // {
-  // 	title: "KisuGal",
-  // 	avatar: "https://www.kisuacg.moe/_next/image?url=%2Ffavicon.webp&w=64&q=75",
-  // 	href: "https://www.kisuacg.moe",
-  // 	description: "免费的 GalGame 资源分享平台！",
-  // },
-  {
-    title: 'TouchGal',
-    avatar:
-      'https://cloud.touchgaloss.com/2024/06/8b9411844520240614204452.webp',
-    href: 'https://www.touchgal.ink',
-    description:
-      'TouchGal 是一个一站式 Galgame 文化社区。提供Galgame 论坛、Galgame 下载等服务。承诺永久免费, 高质量。为Galgame 爱好者提供一片净土！',
-  },
-  {
-    title: '缘汐馆',
-    avatar:
-      'https://mrqyj.us.kg/wp-content/uploads/2026/08/%E7%BC%98%E6%B1%90%E9%A6%86%E7%BD%91%E7%AB%99%E5%9B%BE%E6%A0%87%E8%AE%BE%E8%AE%A1.png',
-    href: 'https://mrqyj.us.kg',
-    description: '',
-  },
-]
+	{
+		title: "莱茵",
+		avatar: "/telegram.png",
+		href: "https://t.me/RhineLibrary",
+		description: "一个 Telegram Galgame 资源频道",
+	},
+	{
+		title: "Steam 上的中文 Galgame",
+		avatar:
+			"https://steamgalgame.com/usr/themes/SteamGalgame/static/img/favicon.png",
+		href: "https://steamgalgame.com",
+		description: "",
+	},
+	{
+		title: "莉斯坦 ACG",
+		avatar: "https://www.limulu.moe/favicon.ico",
+		href: "https://www.limulu.moe",
+		description: "一个简洁美观人性化的 ACG 资源站",
+	},
+	{
+		title: "鲲 Galgame 论坛",
+		avatar: "https://www.kungal.com/favicon.ico",
+		href: "https://www.kungal.com",
+		description: "世界上最萌的 Galgame 论坛! ",
+	},
+	{
+		title: "Hikarinagi",
+		avatar: "https://www.hikarinagi.org/favicon.ico",
+		href: "https://www.hikarinagi.org",
+		description: "Hikarinagi 致力于为所有ACG爱好者提供一个交流和分享的平台! ",
+	},
+	{
+		title: "TouchGal",
+		avatar:
+			"https://cloud.touchgaloss.com/2024/06/8b9411844520240614204452.webp",
+		href: "https://www.touchgal.ink",
+		description:
+			"TouchGal 是一个一站式 Galgame 文化社区。提供Galgame 论坛、Galgame 下载等服务。承诺永久免费, 高质量。为Galgame 爱好者提供一片净土！",
+	},
+	{
+		title: "缘汐馆",
+		avatar:
+			"https://mrqyj.us.kg/wp-content/uploads/2026/08/%E7%BC%98%E6%B1%90%E9%A6%86%E7%BD%91%E7%AB%99%E5%9B%BE%E6%A0%87%E8%AE%BE%E8%AE%A1.png",
+		href: "https://mrqyj.us.kg",
+		description: "",
+	},
+];
 
 export default function RouteComponent() {
-  // 局部包裹（不再由全站 Provider 包裹）：reducedMotion="user" 让 motion 组件跟随
-  // 系统「减弱动态效果」设置，同时避免 motion/react 进入全站首屏 chunk。
-  return (
-    <MotionConfig reducedMotion="user">
-      <section>
-        <div>
-          <div className="mb-6 ml-1 space-y-4">
-            <h1 className="flex justify-center items-center text-4xl font-semibold ">
-              🐾喵の朋友们
-            </h1>
-            <p className="ml-1 text-center">
-              喵世界再大，有缘的小伙伴也能像在身边一样呢
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ">
-            <MotionHighlight hover className="rounded-xl">
-              {linksList.map((item) => (
-                <a
-                  href={item.href}
-                  key={item.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <div className="h-32 flex flex-col border rounded-md p-4">
-                    <div className="flex gap-5">
-                      <Avatar className="flex">
-                        <AvatarImage src={item.avatar} />
-                        <AvatarFallback>{item.title}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 items-center justify-center space-y-2">
-                        <div className="font-semibold">{item.title}</div>
-                        <div className="text-sm">{item.description}</div>
-                      </div>
-                    </div>
-                  </div>
-                </a>
-              ))}
-            </MotionHighlight>
-          </div>
-        </div>
-      </section>
-    </MotionConfig>
-  )
+	// 局部包裹（不再由全站 Provider 包裹）：reducedMotion="user" 让 motion 组件跟随
+	// 系统「减弱动态效果」设置，同时避免 motion/react 进入全站首屏 chunk。
+	return (
+		<MotionConfig reducedMotion="user">
+			<section className="py-6">
+				<PageHeader
+					align="center"
+					icon={HeartHandshake}
+					title="🐾 喵の朋友们"
+					description="喵世界再大，有缘的小伙伴也能像在身边一样呢"
+				/>
+
+				<MotionHighlight hover className="rounded-2xl">
+					<div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+						{linksList.map((item) => (
+							<a
+								href={item.href}
+								key={item.href}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+							>
+								<Card className="h-full transition-colors duration-200 hover:bg-muted/40 hover:ring-border">
+									<div className="flex gap-4 px-4 py-1">
+										<Avatar className="size-10 shrink-0 rounded-xl">
+											<AvatarImage src={item.avatar} />
+											<AvatarFallback className="rounded-xl bg-muted text-xs">
+												{item.title.slice(0, 2)}
+											</AvatarFallback>
+										</Avatar>
+										<div className="flex min-w-0 flex-1 flex-col gap-1">
+											<span className="text-sm font-medium">{item.title}</span>
+											{item.description && (
+												<span className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+													{item.description}
+												</span>
+											)}
+										</div>
+									</div>
+								</Card>
+							</a>
+						))}
+					</div>
+				</MotionHighlight>
+			</section>
+		</MotionConfig>
+	);
 }

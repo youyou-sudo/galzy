@@ -1,5 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+	StatusPill,
+	Table,
+	TableEmpty,
+	TablePagination,
+	TableScroll,
+	TableSkeleton,
+	TBody,
+	Td,
+	Th,
+	THead,
+	Tr,
+	type StatusTone,
+} from "@web/components/admin/admin-table";
 import { AdminPageHeader } from "@web/components/admin/admin-page-header";
+import { IconTile } from "@web/components/shared/icon-tile";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
 import {
@@ -48,11 +63,11 @@ import {
 	type TaskStats,
 } from "@web/server/admin/tasks";
 import {
+	ActivityIcon,
 	AlertTriangleIcon,
 	CheckCircleIcon,
-	ChevronLeftIcon,
-	ChevronRightIcon,
 	ClockIcon,
+	ListTodoIcon,
 	Loader2Icon,
 	PlayIcon,
 	RefreshCwIcon,
@@ -88,38 +103,14 @@ const typeLabels: Record<string, string> = {
 
 const statusConfig: Record<
 	QueueJobRow["status"],
-	{ label: string; className: string; icon: typeof ClockIcon }
+	{ label: string; tone: StatusTone; icon: typeof ClockIcon }
 > = {
-	queued: {
-		label: "排队中",
-		className: "bg-muted text-muted-foreground",
-		icon: ClockIcon,
-	},
-	running: {
-		label: "运行中",
-		className: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-		icon: Loader2Icon,
-	},
-	completed: {
-		label: "已完成",
-		className: "bg-green-500/10 text-green-600 dark:text-green-400",
-		icon: CheckCircleIcon,
-	},
-	failed: {
-		label: "失败",
-		className: "bg-red-500/10 text-red-600 dark:text-red-400",
-		icon: XCircleIcon,
-	},
-	"dead-letter": {
-		label: "死信",
-		className: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-		icon: AlertTriangleIcon,
-	},
-	interrupted: {
-		label: "已中断",
-		className: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
-		icon: AlertTriangleIcon,
-	},
+	queued: { label: "排队中", tone: "neutral", icon: ClockIcon },
+	running: { label: "运行中", tone: "info", icon: Loader2Icon },
+	completed: { label: "已完成", tone: "success", icon: CheckCircleIcon },
+	failed: { label: "失败", tone: "destructive", icon: XCircleIcon },
+	"dead-letter": { label: "死信", tone: "warning", icon: AlertTriangleIcon },
+	interrupted: { label: "已中断", tone: "warning", icon: AlertTriangleIcon },
 };
 
 const logLevelConfig: Record<
@@ -130,15 +121,9 @@ const logLevelConfig: Record<
 	}
 > = {
 	info: { icon: null, className: "text-muted-foreground" },
-	warn: {
-		icon: AlertTriangleIcon,
-		className: "text-amber-600 dark:text-amber-400",
-	},
-	success: {
-		icon: CheckCircleIcon,
-		className: "text-green-600 dark:text-green-400",
-	},
-	error: { icon: XCircleIcon, className: "text-red-600 dark:text-red-400" },
+	warn: { icon: AlertTriangleIcon, className: "text-warning" },
+	success: { icon: CheckCircleIcon, className: "text-success" },
+	error: { icon: XCircleIcon, className: "text-destructive" },
 };
 
 /** 状态筛选 Tab 顺序与徽标颜色。 */
@@ -165,19 +150,16 @@ function formatTime(iso: string | null | undefined): string {
 	}
 }
 
-function StatusPill({ status }: { status: QueueJobRow["status"] }) {
+function JobStatusPill({ status }: { status: QueueJobRow["status"] }) {
 	const c = statusConfig[status] ?? statusConfig.queued;
-	const Icon = c.icon;
 	return (
-		<span
-			className={cn(
-				"inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium",
-				c.className,
-			)}
+		<StatusPill
+			tone={c.tone}
+			icon={c.icon}
+			spin={status === "running" && c.icon === Loader2Icon}
 		>
-			<Icon className={cn("size-3", status === "running" && "animate-spin")} />
 			{c.label}
-		</span>
+		</StatusPill>
 	);
 }
 
@@ -188,61 +170,58 @@ function StatCards({ stats }: { stats: TaskStats | undefined }) {
 		key: string;
 		label: string;
 		count: number;
-		className: string;
+		tone: StatusTone;
 		icon: typeof ClockIcon;
 	}> = [
 		{
 			key: "total",
 			label: "全部任务",
 			count: stats?.total ?? 0,
-			className: "",
+			tone: "neutral",
 			icon: ClockIcon,
 		},
 		{
 			key: "running",
 			label: "运行中",
 			count: stats?.counts.running ?? 0,
-			className: "text-blue-600 dark:text-blue-400",
+			tone: "info",
 			icon: Loader2Icon,
 		},
 		{
 			key: "queued",
 			label: "排队中",
 			count: stats?.counts.queued ?? 0,
-			className: "text-muted-foreground",
+			tone: "neutral",
 			icon: ClockIcon,
 		},
 		{
 			key: "completed",
 			label: "已完成",
 			count: stats?.counts.completed ?? 0,
-			className: "text-green-600 dark:text-green-400",
+			tone: "success",
 			icon: CheckCircleIcon,
 		},
 		{
 			key: "failed",
 			label: "失败 / 死信",
 			count: (stats?.counts.failed ?? 0) + (stats?.counts["dead-letter"] ?? 0),
-			className: "text-red-600 dark:text-red-400",
+			tone: "destructive",
 			icon: XCircleIcon,
 		},
 	];
 	return (
-		<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-			{cards.map((c) => {
-				const Icon = c.icon;
-				return (
-					<Card key={c.key}>
-						<CardContent className="flex items-center gap-3 p-4">
-							<Icon className={cn("size-5 shrink-0", c.className)} />
-							<div>
-								<p className="text-xs text-muted-foreground">{c.label}</p>
-								<p className="text-2xl font-semibold tabular-nums">{c.count}</p>
-							</div>
-						</CardContent>
-					</Card>
-				);
-			})}
+		<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+			{cards.map((c) => (
+				<Card key={c.key}>
+					<CardContent className="flex items-center gap-3 p-4">
+						<IconTile icon={c.icon} size="sm" tone={c.tone} />
+						<div>
+							<p className="text-xs text-muted-foreground">{c.label}</p>
+							<p className="text-2xl font-semibold tabular-nums">{c.count}</p>
+						</div>
+					</CardContent>
+				</Card>
+			))}
 		</div>
 	);
 }
@@ -254,28 +233,29 @@ function QueueStatusStrip({ queues }: { queues: QueueStatsRow[] | undefined }) {
 	return (
 		<Card>
 			<CardHeader className="pb-3">
-				<CardTitle className="text-sm font-medium flex items-center gap-2">
+				<CardTitle className="flex items-center gap-2.5 text-base">
+					<IconTile icon={ActivityIcon} size="sm" />
 					队列实时状态
 				</CardTitle>
 			</CardHeader>
-			<CardContent className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+			<CardContent className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
 				{queues.map((q) => {
 					const hasActive = q.active > 0;
 					const hasPending = q.waiting > 0 || q.delayed > 0;
 					return (
 						<div
 							key={q.queue}
-							className="rounded-lg border p-3 flex flex-col gap-1.5"
+							className="flex flex-col gap-1.5 rounded-xl p-3 ring-1 ring-border/60"
 						>
 							<div className="flex items-center gap-1.5">
 								<span
 									className={cn(
 										"size-2 rounded-full",
 										hasActive
-											? "bg-green-500 animate-pulse"
+											? "animate-pulse bg-success"
 											: hasPending
-												? "bg-amber-400"
-												: "bg-muted-foreground/30",
+												? "bg-warning"
+												: "bg-neutral/50",
 									)}
 								/>
 								<span className="text-sm font-medium truncate">
@@ -359,7 +339,7 @@ function TaskDetailDrawer({
 				<DrawerHeader>
 					<DrawerTitle className="flex items-center gap-2">
 						任务详情
-						<StatusPill status={job.status} />
+						<JobStatusPill status={job.status} />
 					</DrawerTitle>
 					<DrawerDescription>
 						{queueLabels[job.queue] ?? job.queue} · {payloadType}
@@ -412,7 +392,7 @@ function TaskDetailDrawer({
 
 					{/* 错误 */}
 					{job.error && (
-						<div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-600 dark:text-red-400">
+						<div className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive ring-1 ring-destructive/20">
 							<p className="font-medium flex items-center gap-1">
 								<XCircleIcon className="size-4" />
 								失败原因
@@ -459,7 +439,7 @@ function TaskDetailDrawer({
 
 					{/* 结果 */}
 					{job.result && (
-						<div className="rounded-lg bg-muted p-3 text-xs">
+						<div className="rounded-xl bg-muted/60 p-3 text-xs">
 							<p className="font-medium text-muted-foreground mb-1">结果</p>
 							<pre className="break-all whitespace-pre-wrap font-mono">
 								{JSON.stringify(job.result, null, 2)}
@@ -476,7 +456,7 @@ function TaskDetailDrawer({
 								加载中...
 							</div>
 						) : logs.length > 0 ? (
-							<div className="rounded-lg bg-muted p-3 max-h-80 overflow-y-auto font-mono text-xs space-y-1">
+							<div className="max-h-80 space-y-1 overflow-y-auto rounded-xl bg-muted/60 p-3 font-mono text-xs">
 								{logs.map((log) => {
 									const lc = logLevelConfig[log.level] ?? logLevelConfig.info;
 									const LIcon = lc.icon;
@@ -629,11 +609,12 @@ export default function TasksPage() {
 	return (
 		<div className="flex flex-col gap-6">
 			<AdminPageHeader
+				icon={ListTodoIcon}
 				eyebrow="系统"
 				title="任务队列"
 				description="监控后台同步任务（VNDB / Kungal / Meilisearch / Cloudreve）的执行状态、进度与日志"
 				actions={
-					<Button variant="outline" size="sm" onClick={refreshAll}>
+					<Button variant="outline" onClick={refreshAll}>
 						<RefreshCwIcon className="size-4" />
 						刷新
 					</Button>
@@ -647,8 +628,8 @@ export default function TasksPage() {
 			{/* 手动触发 */}
 			<Card>
 				<CardHeader className="pb-3">
-					<CardTitle className="flex items-center gap-2">
-						<PlayIcon className="size-5" />
+					<CardTitle className="flex items-center gap-2.5 text-base">
+						<IconTile icon={PlayIcon} size="sm" />
 						手动触发任务
 					</CardTitle>
 					<CardDescription>
@@ -685,10 +666,9 @@ export default function TasksPage() {
 							<CardTitle className="text-base flex items-center gap-2">
 								任务列表
 								{hasRunning && (
-									<span className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400">
-										<Loader2Icon className="size-3 animate-spin" />
+									<StatusPill tone="info" icon={Loader2Icon} spin>
 										有任务进行中
-									</span>
+									</StatusPill>
 								)}
 							</CardTitle>
 						</div>
@@ -700,7 +680,7 @@ export default function TasksPage() {
 									setPage(0);
 								}}
 							>
-								<SelectTrigger className="w-40 h-8">
+								<SelectTrigger className="w-40">
 									<SelectValue placeholder="全部队列" />
 								</SelectTrigger>
 								<SelectContent>
@@ -714,7 +694,6 @@ export default function TasksPage() {
 							</Select>
 							<Button
 								variant="outline"
-								size="sm"
 								disabled={deletableIds.length === 0}
 								onClick={() => batchDeleteMutation.mutate(deletableIds)}
 							>
@@ -749,41 +728,31 @@ export default function TasksPage() {
 					</Tabs>
 				</CardHeader>
 				<CardContent className="p-0">
-					{isLoading ? (
-						<div className="flex items-center gap-2 text-muted-foreground py-8 justify-center">
-							<Loader2Icon className="size-5 animate-spin" />
-							加载中...
-						</div>
-					) : items.length === 0 ? (
-						<p className="text-sm text-muted-foreground py-8 text-center">
-							暂无任务记录。手动触发一个任务，或等待定时任务执行。
-						</p>
-					) : (
-						<div className="overflow-x-auto">
-							<table className="w-full">
-								<thead>
-									<tr className="border-b bg-muted/50">
-										<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-											状态
-										</th>
-										<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-											任务
-										</th>
-										<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-											队列
-										</th>
-										<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3 w-48">
-											进度
-										</th>
-										<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-											创建时间
-										</th>
-										<th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">
-											操作
-										</th>
-									</tr>
-								</thead>
+					<TableScroll>
+						<Table minWidth="min-w-[860px]">
+							<THead>
+								<Tr>
+									<Th>状态</Th>
+									<Th>任务</Th>
+									<Th>队列</Th>
+									<Th className="w-48">进度</Th>
+									<Th>创建时间</Th>
+									<Th align="right">操作</Th>
+								</Tr>
+							</THead>
+							{isLoading ? (
+								<TableSkeleton columns={6} />
+							) : items.length === 0 ? (
 								<tbody>
+									<TableEmpty
+										colSpan={6}
+										icon={ClockIcon}
+										title="暂无任务记录"
+										description="手动触发一个任务，或等待定时任务执行"
+									/>
+								</tbody>
+							) : (
+								<TBody>
 									{items.map((job) => {
 										const retryable = [
 											"failed",
@@ -791,17 +760,14 @@ export default function TasksPage() {
 											"interrupted",
 										].includes(job.status);
 										return (
-											<tr
-												key={job.id}
-												className="border-b last:border-0 hover:bg-muted/30 transition-colors"
-											>
-												<td className="px-4 py-3">
-													<StatusPill status={job.status} />
-												</td>
-												<td className="px-4 py-3 max-w-[260px]">
+											<Tr key={job.id}>
+												<Td>
+													<JobStatusPill status={job.status} />
+												</Td>
+												<Td className="max-w-[260px]">
 													<button
 														type="button"
-														className="text-left"
+														className="rounded text-left focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
 														onClick={() => setSelectedJob(job)}
 													>
 														<p className="text-sm font-medium truncate">
@@ -811,13 +777,13 @@ export default function TasksPage() {
 															{job.id}
 														</p>
 													</button>
-												</td>
-												<td className="px-4 py-3">
+												</Td>
+												<Td>
 													<Badge variant="secondary">
 														{queueLabels[job.queue] ?? job.queue}
 													</Badge>
-												</td>
-												<td className="px-4 py-3">
+												</Td>
+												<Td>
 													<div className="flex items-center gap-2">
 														<Progress
 															value={job.progress}
@@ -827,11 +793,11 @@ export default function TasksPage() {
 															{job.progress}%
 														</span>
 													</div>
-												</td>
-												<td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+												</Td>
+												<Td className="text-xs whitespace-nowrap text-muted-foreground">
 													{formatTime(job.createdAt)}
-												</td>
-												<td className="px-4 py-3">
+												</Td>
+												<Td align="right">
 													<div className="flex items-center justify-end gap-1">
 														{retryable && (
 															<Tooltip>
@@ -872,43 +838,22 @@ export default function TasksPage() {
 															<TooltipContent>删除记录</TooltipContent>
 														</Tooltip>
 													</div>
-												</td>
-											</tr>
+												</Td>
+											</Tr>
 										);
 									})}
-								</tbody>
-							</table>
-						</div>
-					)}
+								</TBody>
+							)}
+						</Table>
+					</TableScroll>
 				</CardContent>
 
-				{total > PAGE_SIZE && (
-					<div className="flex items-center justify-between px-4 py-3 border-t">
-						<span className="text-xs text-muted-foreground">
-							共 {total} 条 · 第 {page + 1}/{totalPages} 页
-						</span>
-						<div className="flex items-center gap-2">
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => setPage(Math.max(0, page - 1))}
-								disabled={page <= 0}
-							>
-								<ChevronLeftIcon className="size-4" />
-								上一页
-							</Button>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
-								disabled={page >= totalPages - 1}
-							>
-								下一页
-								<ChevronRightIcon className="size-4" />
-							</Button>
-						</div>
-					</div>
-				)}
+				<TablePagination
+					page={page + 1}
+					totalPages={totalPages}
+					totalItems={total}
+					onPageChange={(next) => setPage(next - 1)}
+				/>
 			</Card>
 
 			<TaskDetailDrawer

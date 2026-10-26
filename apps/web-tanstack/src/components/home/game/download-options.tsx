@@ -35,13 +35,15 @@ import {
 	ItemTitle,
 } from "@web/components/ui/item";
 import { Skeleton } from "@web/components/ui/skeleton";
+import { EmptyState } from "@web/components/shared/empty-state";
+import { IconTile } from "@web/components/shared/icon-tile";
 import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
 import { groupSplitArchives } from "@web/lib/split-archives";
 import { cn } from "@web/lib/utils";
 import { waitForViewTransitionEnd } from "@web/lib/view-transition";
 import { dwAcConst } from "@web/server/game";
 import { downCardStore, downmodalActions } from "@web/stores/downCardData";
-import { FileArchive, Info } from "lucide-react";
+import { AlertTriangle, FileArchive, Info } from "lucide-react";
 import { MotionConfig } from "motion/react";
 import { tryit } from "radash";
 import { useEffect, useMemo, useState } from "react";
@@ -56,25 +58,33 @@ const apiroute = getRouteApi("/$id/_layout/");
 // 解压密码统一为 玖辞；密码的复制按钮复用下载弹窗（文件信息）中的 CopyButton 组件
 const UNZIP_PASSWORD = "玖辞";
 
+/** 弹窗内的解压密码：只读密码 + 复制按钮（顶部提示条与弹窗行共用一份） */
+const UnzipPassword = () => (
+	<span className="relative inline-flex items-center">
+		<span className="rounded-lg bg-muted/50 px-2 py-0.5 pr-8 font-medium ring-1 ring-border/60">
+			{UNZIP_PASSWORD}
+		</span>
+		<CopyButton
+			size="default"
+			variant="ghost"
+			content={UNZIP_PASSWORD}
+			aria-label={`复制解压密码 ${UNZIP_PASSWORD}`}
+			className="absolute top-1/2 right-0 -translate-y-1/2"
+		/>
+	</span>
+);
+
 const UnzipPasswordAlert = () => {
 	return (
 		// flex + items-center：图标与文本在同一水平线上居中对齐；文本本身保持左对齐
-		<Alert className="mb-2 flex items-center gap-1.5 border-cyan-600/30 px-2.5 py-1.5 text-left text-sm">
-			<Info className="size-4 shrink-0" />
-			<AlertDescription className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-left text-sm">
+		<Alert className="mb-3 flex items-center gap-2 bg-muted/30 px-3 py-2 text-left text-sm">
+			<Info
+				aria-hidden="true"
+				className="size-4 shrink-0 text-muted-foreground"
+			/>
+			<AlertDescription className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-left text-sm text-muted-foreground">
 				<span>解压密码均为</span>
-				<span className="relative inline-flex items-center">
-					<span className="rounded-md border px-2 py-0.5 pr-7 leading-6">
-						{UNZIP_PASSWORD}
-					</span>
-					<CopyButton
-						size="default"
-						variant="secondary"
-						content={UNZIP_PASSWORD}
-						aria-label={`复制解压密码 ${UNZIP_PASSWORD}`}
-						className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 p-0"
-					/>
-				</span>
+				<UnzipPassword />
 			</AlertDescription>
 		</Alert>
 	);
@@ -109,16 +119,21 @@ export const DownloadOptions = () => {
 	// 文件服务/上游故障：明确报错并可重试，不再伪装成空文件列表
 	if (isError && !settledFilelist) {
 		return (
-			<div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-				<p className="text-sm text-muted-foreground">
-					{error instanceof Error && error.message
+			<EmptyState
+				icon={AlertTriangle}
+				size="sm"
+				title="文件列表加载失败"
+				description={
+					error instanceof Error && error.message
 						? error.message
-						: "文件列表加载失败喵～请稍后重试"}
-				</p>
-				<Button size="sm" variant="outline" onClick={() => void refetch()}>
-					重试
-				</Button>
-			</div>
+						: "服务暂时不可用，请稍后重试"
+				}
+				action={
+					<Button size="sm" variant="outline" onClick={() => void refetch()}>
+						重试
+					</Button>
+				}
+			/>
 		);
 	}
 
@@ -188,7 +203,7 @@ const FileExplorer = ({
 		});
 	};
 
-	return <Files>{renderTree(simplifiedItems || [])}</Files>;
+	return <Files className="p-1">{renderTree(simplifiedItems || [])}</Files>;
 };
 
 // ---------- 下载弹窗 ----------
@@ -214,7 +229,9 @@ export const DownCardDialog = () => {
 			const url = await dwAcConst({ data: { path: data?.redame, game_id } });
 			return fetch(url!.raw_url).then((res) => res.text());
 		},
-		enabled: !!data?.redame,
+		// 弹窗已关闭时不再保活 README 请求：data 会为退场动画保留，
+		// 但没必要在关闭后继续拉/缓存 README。
+		enabled: open && !!data?.redame,
 		gcTime: 1000 * 60 * 5,
 		staleTime: 1000 * 60 * 10,
 	});
@@ -276,11 +293,15 @@ export const DownCardDialog = () => {
 				{data?.volumes ? (
 					<div className="flex w-full flex-col gap-1.5">
 						{data.children?.map((item: any) => (
-							<Item key={item.id} variant="outline" className="gap-2 py-2">
+							<Item
+								key={item.id}
+								variant="outline"
+								className="gap-2 rounded-xl py-2 transition-colors duration-200 hover:bg-muted/40"
+							>
 								{/* 与文件树保持一致的「文件图标 + 名称」行结构 */}
 								<ItemMedia
 									variant="icon"
-									className="size-8 rounded-lg border bg-muted/40 text-muted-foreground"
+									className="size-8 rounded-lg bg-muted/60 text-muted-foreground ring-1 ring-border/60"
 								>
 									<FileArchive className="size-4" strokeWidth={1.75} />
 								</ItemMedia>
@@ -297,7 +318,7 @@ export const DownCardDialog = () => {
 										<Button
 											variant="outline"
 											onClick={() => handleCopy(item?.id || "", game_id)}
-											size="icon-xs"
+											size="icon-sm"
 											disabled={isCopying[item?.id] || false}
 										>
 											{isCopying[item?.id] ? (
@@ -330,7 +351,7 @@ export const DownCardDialog = () => {
 											onClick={() => handleDownload(item?.id, game_id)}
 											disabled={downloadingMap[item?.id] || false}
 											variant="outline"
-											size="xs"
+											size="sm"
 										>
 											{downloadingMap[item?.id] ? (
 												<span className="flex items-center gap-1">
@@ -370,51 +391,31 @@ export const DownCardDialog = () => {
 							<span>全部下载到同一目录后，解压第一个分卷（part1 / .001）</span>
 						</DialogDescription>
 
-						<div className="flex text-center justify-center mt-2">
-							<div className="flex text-center items-center">解压密码：</div>
-							<div className="relative w-19">
-								<pre className="pr-6 text-center items-center rounded-md border">
-									玖辞
-								</pre>
-								<CopyButton
-									size="default"
-									variant="secondary"
-									content="玖辞"
-									onCopy={() => console.assert(true, "已复制!")}
-									className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-								/>
-							</div>
+						<div className="mt-2 flex items-center justify-center gap-1.5">
+							<span className="text-xs text-muted-foreground">解压密码：</span>
+							<UnzipPassword />
 						</div>
 					</div>
 				) : (
 					<>
-						<span className="flex justify-center wrap-break-word">
-							<FileArchive className="w-20 h-20" strokeWidth={1} />
+						<span className="flex justify-center">
+							<IconTile icon={FileArchive} size="lg" tone="muted" />
 						</span>
 
-						<span className="text-center wrap-break-word">{data?.name}</span>
+						<span className="text-center text-sm font-medium wrap-break-word">
+							{data?.name}
+						</span>
 
-						<DialogDescription className="ml-2 text-center">
-							<span>{data?.size || `未知大小`}</span>
+						<DialogDescription className="text-center">
+							<span className="tabular-nums">{data?.size || `未知大小`}</span>
 						</DialogDescription>
 
-						<div className="flex text-center justify-center mt-2">
-							<div className="flex text-center items-center">解压密码：</div>
-							<div className="relative w-19">
-								<pre className="pr-6 text-center items-center rounded-md border">
-									玖辞
-								</pre>
-								<CopyButton
-									size="default"
-									variant="secondary"
-									content="玖辞"
-									onCopy={() => console.assert(true, "已复制!")}
-									className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-								/>
-							</div>
+						<div className="mt-2 flex items-center justify-center gap-1.5">
+							<span className="text-sm text-muted-foreground">解压密码：</span>
+							<UnzipPassword />
 						</div>
 
-						<DialogFooter className="flex-row justify-center sm:justify-center gap-2">
+						<DialogFooter className="flex-row justify-center gap-2 sm:justify-center">
 							<AnimateIcon animateOnHover>
 								<Button
 									variant="outline"
@@ -480,18 +481,14 @@ export const DownCardDialog = () => {
 									)}
 								</Button>
 							</AnimateIcon>
-							<Button
-								onClick={closeModal}
-								variant="outline"
-								className="text-red-500"
-							>
+							<Button onClick={closeModal} variant="ghost">
 								关闭
 							</Button>
 						</DialogFooter>
 					</>
 				)}
 				{data?.redame && (
-					<div className="max-h-96 overflow-y-auto p-2 border-2 rounded-2xl wrap-break-word">
+					<div className="max-h-96 overflow-y-auto rounded-xl bg-muted/20 p-3 wrap-break-word ring-1 ring-border/60">
 						{!mdReady && (
 							<div className="space-y-2">
 								{Array.from({ length: 3 }).map((_, i) => (

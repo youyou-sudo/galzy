@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import * as z from "zod/mini";
 import KaomojiPicker from "../EmojiPicker/emoji-picker";
 import { Button } from "../ui/button";
+import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
 import { Textarea } from "../ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
@@ -145,22 +146,20 @@ export const ReplyEidtInput = ({
 	});
 
 	if (isPending && !reId)
-		return (
-			<div className="flex flex-col justify-center items-center">加载中……</div>
-		);
+		return <Skeleton className="h-24 w-full rounded-xl" />;
 
 	if (!session && !reId)
 		return (
-			<div className="flex flex-col justify-center items-center space-y-2">
+			<div className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-card/60 px-6 py-8 text-center ring-1 ring-border/60">
 				<Image
-					className="rounded-sm"
+					className="rounded-xl"
 					src="/neko.webp"
-					width={100}
-					height={100}
+					width={80}
+					height={80}
 					alt="喵喵喵～这个图片用于提示用户未登陆"
 				/>
-				<span className="opacity-50">登陆以评论喵～</span>
-				<div className="space-x-2">
+				<p className="text-sm text-muted-foreground">登录后即可评论</p>
+				<div className="flex items-center gap-2">
 					<Button
 						variant="outline"
 						onClick={() => {
@@ -172,7 +171,7 @@ export const ReplyEidtInput = ({
 							});
 						}}
 					>
-						登陆
+						登录
 					</Button>
 
 					<Button
@@ -202,7 +201,7 @@ export const ReplyEidtInput = ({
 						form.handleSubmit();
 					}}
 				>
-					<FieldGroup className="gap-1">
+					<FieldGroup className="gap-2">
 						<form.Field name="comments">
 							{(field) => {
 								const isInvalid =
@@ -211,7 +210,7 @@ export const ReplyEidtInput = ({
 									// 评论内容
 									<Field data-invalid={isInvalid}>
 										<Textarea
-											className="max-h-100 text-xs"
+											className={reId ? "max-h-80 min-h-10" : "max-h-100 min-h-12"}
 											id={field.name}
 											name={field.name}
 											value={field.state.value}
@@ -276,7 +275,7 @@ export const ReplyEidtInput = ({
 															type="button"
 															variant="ghost"
 															size="icon-sm"
-															className="h-10 w-10 shrink-0"
+															className="shrink-0 text-muted-foreground"
 														>
 															<PawPrint />
 														</Button>
@@ -310,8 +309,6 @@ export const ReplyEidtInput = ({
 											<Button
 												type="submit"
 												form={formId}
-												variant="outline"
-												className="text-xs"
 												disabled={mutation.isPending}
 											>
 												{mutation.isPending ? (

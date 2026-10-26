@@ -1,5 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@web/components/shared/breadcrumb'
 import { TopicForm } from '@web/components/topics/topic-form'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { seoMeta } from '@web/lib/seo'
@@ -44,10 +52,29 @@ function RouteComponent() {
   }
 
   return (
-    <div>
+    <div className="mx-auto w-full max-w-4xl">
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink render={<Link to="/topics" search={{ page: 1 }} />}>
+              论坛
+            </BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>发帖</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+
       <TopicForm
         onSubmit={handleSubmit}
         title="发帖"
+        description="分享资源、攻略或想法，支持 Markdown 与图片"
         submitLabel="发布"
         draftKey="galzy:draft:topic:create"
       />

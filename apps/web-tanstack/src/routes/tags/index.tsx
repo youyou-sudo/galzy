@@ -39,17 +39,7 @@ export const Route = createFileRoute("/tags/")({
 		const { q, sort, order } = Route.useSearch();
 		return (
 			<div>
-				<Breadcrumb className="mb-4">
-					<BreadcrumbList>
-						<BreadcrumbItem>
-							<BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator />
-						<BreadcrumbItem>
-							<BreadcrumbPage>标签</BreadcrumbPage>
-						</BreadcrumbItem>
-					</BreadcrumbList>
-				</Breadcrumb>
+				<TagsBreadcrumb />
 				<TagsPage q={q} sort={sort} order={order} />
 			</div>
 		);
@@ -114,6 +104,27 @@ export const Route = createFileRoute("/tags/")({
 		"Cache-Tag": "page-tags",
 		Vary: "Accept, Accept-Encoding",
 	}),
-	pendingComponent: () => <TagsHubSkeleton />,
+	pendingComponent: () => (
+		<div>
+			<TagsBreadcrumb />
+			<TagsHubSkeleton />
+		</div>
+	),
 	staleTime: 1000 * 30,
 });
+
+function TagsBreadcrumb() {
+	return (
+		<Breadcrumb className="mb-4">
+			<BreadcrumbList>
+				<BreadcrumbItem>
+					<BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
+				</BreadcrumbItem>
+				<BreadcrumbSeparator />
+				<BreadcrumbItem>
+					<BreadcrumbPage>标签</BreadcrumbPage>
+				</BreadcrumbItem>
+			</BreadcrumbList>
+		</Breadcrumb>
+	);
+}

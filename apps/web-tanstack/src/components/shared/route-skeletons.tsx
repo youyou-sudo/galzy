@@ -1,8 +1,12 @@
 import { useSelector } from "@tanstack/react-store";
+import { CommentThreadSkeleton } from "@web/components/cmments/comment-skeleton";
+import { GameCardGridSkeleton } from "@web/components/game/game-card-grid-skeleton";
 import { GameTabSkeleton } from "@web/components/game/game-tab-skeleton";
 import { GameCard } from "@web/components/home/card";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { producerHeroStore } from "@web/stores/producerHeroStore";
+
+export { GameCardGridSkeleton };
 
 /**
  * 路由 pendingComponent 骨架屏集合。
@@ -18,19 +22,6 @@ function BreadcrumbSkeleton() {
 			<Skeleton className="h-4 w-16" />
 			<Skeleton className="h-4 w-2" />
 			<Skeleton className="h-4 w-24" />
-		</div>
-	);
-}
-
-function GameCardGridSkeleton() {
-	return (
-		<div className="grid grid-cols-3 md:grid-cols-6 gap-4" aria-hidden>
-			<GameCard.ListSkeleton />
-			<GameCard.ListSkeleton />
-			<GameCard.ListSkeleton />
-			<GameCard.ListSkeleton />
-			<GameCard.ListSkeleton />
-			<GameCard.ListSkeleton />
 		</div>
 	);
 }
@@ -139,7 +130,7 @@ export function TopicDetailPageSkeleton() {
 					<Skeleton className="h-4 w-2/3" />
 				</div>
 			</div>
-			<GameTabSkeleton />
+			<CommentThreadSkeleton />
 		</div>
 	);
 }

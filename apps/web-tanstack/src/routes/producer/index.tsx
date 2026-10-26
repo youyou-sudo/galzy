@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import ProducersPage from "@web/components/producer/producers-page";
-import { ProducerListPageSkeleton } from "@web/components/shared/route-skeletons";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -9,9 +8,12 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@web/components/shared/breadcrumb";
+import { PageHeader } from "@web/components/shared/page-header";
+import { Skeleton } from "@web/components/ui/skeleton";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { seoMeta } from "@web/lib/seo";
 import { getSearchProducers } from "@web/server/producer";
+import { Building2Icon } from "lucide-react";
 import * as z from "zod/mini";
 
 const producerSearchSchema = z.object({
@@ -22,22 +24,12 @@ const producerSearchSchema = z.object({
 const PAGE_SIZE = 24;
 
 export const Route = createFileRoute("/producer/")({
-	pendingComponent: () => <ProducerListPageSkeleton />,
+	pendingComponent: () => <ProducerListPending />,
 	component: () => {
 		const { producers, q, page } = Route.useLoaderData();
 		return (
 			<div>
-				<Breadcrumb className="mb-4">
-					<BreadcrumbList>
-						<BreadcrumbItem>
-							<BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
-						</BreadcrumbItem>
-						<BreadcrumbSeparator />
-						<BreadcrumbItem>
-							<BreadcrumbPage>厂商</BreadcrumbPage>
-						</BreadcrumbItem>
-					</BreadcrumbList>
-				</Breadcrumb>
+				<ProducerBreadcrumb />
 				<ProducersPage
 					producers={
 						producers as
@@ -100,3 +92,41 @@ export const Route = createFileRoute("/producer/")({
 	}),
 	staleTime: 1000 * 30,
 });
+
+function ProducerBreadcrumb() {
+	return (
+		<Breadcrumb className="mb-4">
+			<BreadcrumbList>
+				<BreadcrumbItem>
+					<BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
+				</BreadcrumbItem>
+				<BreadcrumbSeparator />
+				<BreadcrumbItem>
+					<BreadcrumbPage>厂商</BreadcrumbPage>
+				</BreadcrumbItem>
+			</BreadcrumbList>
+		</Breadcrumb>
+	);
+}
+
+/** 路由 pending：面包屑/页头是真实外壳，搜索框与卡片网格出骨架 */
+function ProducerListPending() {
+	return (
+		<div>
+			<ProducerBreadcrumb />
+			<PageHeader
+				icon={Building2Icon}
+				title="厂商检索"
+				description="按厂商 / 开发会社浏览收录的作品"
+			/>
+			<div className="mb-4 w-full sm:max-w-md">
+				<Skeleton className="h-9 w-full rounded-xl" />
+			</div>
+			<div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-hidden>
+				{[0, 1, 2, 3, 4, 5].map((i) => (
+					<Skeleton key={i} className="h-24 w-full rounded-2xl" />
+				))}
+			</div>
+		</div>
+	);
+}

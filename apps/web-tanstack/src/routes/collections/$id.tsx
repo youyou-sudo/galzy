@@ -9,6 +9,9 @@ import {
 	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@web/components/shared/breadcrumb";
+import { EmptyState } from "@web/components/shared/empty-state";
+import { SectionHeader } from "@web/components/shared/section-header";
+import { Button } from "@web/components/ui/button";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { seoTemplate } from "@web/config/seoTemplate";
 import type {
@@ -56,7 +59,7 @@ export const Route = createFileRoute("/collections/$id")({
 function CollectionDetailSkeleton() {
 	return (
 		<div className="space-y-8">
-			<Breadcrumb className="mb-6">
+			<Breadcrumb className="mb-4">
 				<BreadcrumbList>
 					<BreadcrumbItem>
 						<BreadcrumbLink render={<Link to="/" />}>首页</BreadcrumbLink>
@@ -76,8 +79,8 @@ function CollectionDetailSkeleton() {
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			<div className="rounded-2xl border bg-card overflow-hidden">
-				<div className="p-6 sm:p-8 space-y-4">
+			<div className="overflow-hidden rounded-2xl bg-card ring-1 ring-border/60">
+				<div className="space-y-4 p-6 sm:p-8">
 					<div className="flex gap-2">
 						<Skeleton className="h-5 w-16 rounded-full" />
 						<Skeleton className="h-5 w-20 rounded-full" />
@@ -128,12 +131,20 @@ function RouteComponent() {
 
 	if (!coll) {
 		return (
-			<div className="max-w-4xl mx-auto py-24 text-center">
-				<div className="flex items-center justify-center size-16 rounded-2xl bg-muted/50 mx-auto mb-4">
-					<Library className="size-8 text-muted-foreground/40" />
-				</div>
-				<p className="text-lg font-medium text-foreground/60">合集不存在</p>
-			</div>
+			<EmptyState
+				icon={Library}
+				title="合集不存在"
+				description="该合集可能已被删除，回合集列表看看其他精选吧"
+				action={
+					<Button
+						variant="outline"
+						size="sm"
+						render={<Link to="/collections" search={{ page: 1 }} />}
+					>
+						返回合集列表
+					</Button>
+				}
+			/>
 		);
 	}
 
@@ -160,8 +171,8 @@ function RouteComponent() {
 				</BreadcrumbList>
 			</Breadcrumb>
 
-			{/* Hero Section */}
-			<div className="relative rounded-2xl overflow-hidden border bg-card">
+			{/* Hero Section：保留封面拼贴与 View Transition，外壳换成发丝边大圆角 */}
+			<div className="relative overflow-hidden rounded-2xl bg-card ring-1 ring-border/60">
 				{/* Cover mosaic backdrop */}
 				{heroCovers.length > 0 && (
 					<div className="absolute inset-0 grid grid-cols-4 opacity-25 dark:opacity-20">
@@ -183,19 +194,19 @@ function RouteComponent() {
 
 				{/* Content */}
 				<div className="relative p-6 sm:p-8 md:p-10">
-					<div className="flex flex-wrap items-center gap-2.5 mb-4">
-						<span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
-							<Layers className="size-3.5" />
+					<div className="mb-4 flex flex-wrap items-center gap-2.5">
+						<span className="inline-flex items-center gap-1.5 rounded-full bg-muted/60 px-2.5 py-1 text-xs text-muted-foreground tabular-nums ring-1 ring-border/60">
+							<Layers aria-hidden="true" className="size-3.5" />
 							{gameCount} 部作品
 						</span>
 					</div>
 
-					<h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-4">
+					<h1 className="mb-3 text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
 						{coll.title}
 					</h1>
 
 					{coll.description && (
-						<p className="text-muted-foreground leading-relaxed max-w-2xl text-base">
+						<p className="max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
 							{coll.description}
 						</p>
 					)}
@@ -204,12 +215,12 @@ function RouteComponent() {
 
 			{/* Game Grid Section */}
 			<section>
-				<div className="flex items-baseline gap-3 mb-6">
-					<h2 className="text-xl font-semibold">收录作品</h2>
-					<span className="text-sm text-muted-foreground">
-						共 {gameCount} 部
-					</span>
-				</div>
+				<SectionHeader
+					icon={Layers}
+					title="收录作品"
+					count={`共 ${gameCount} 部`}
+					className="mb-6"
+				/>
 
 				{games.length > 0 ? (
 					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -227,12 +238,13 @@ function RouteComponent() {
 						))}
 					</div>
 				) : (
-					<div className="flex flex-col items-center justify-center py-20 text-center rounded-2xl border bg-card/50">
-						<div className="flex items-center justify-center size-14 rounded-xl bg-muted/50 mb-3">
-							<Library className="size-7 text-muted-foreground/40" />
-						</div>
-						<p className="text-muted-foreground text-sm">暂无收录作品</p>
-					</div>
+					<EmptyState
+						icon={Library}
+						title="暂无收录作品"
+						description="该合集还没有收录作品"
+						surface
+						size="sm"
+					/>
 				)}
 			</section>
 
@@ -241,9 +253,9 @@ function RouteComponent() {
 				<Link
 					to="/collections"
 					search={{ page: 1 }}
-					className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+					className="inline-flex items-center gap-1.5 rounded-sm text-sm text-muted-foreground transition-colors duration-200 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
 				>
-					<ChevronLeft className="size-4" />
+					<ChevronLeft aria-hidden="true" className="size-4" />
 					返回合集列表
 				</Link>
 			</div>

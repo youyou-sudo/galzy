@@ -57,7 +57,7 @@ export default function SecurityTab() {
 
 	return (
 		<div className="space-y-4">
-			<div className="rounded-lg border p-4 space-y-3">
+			<div className="space-y-3 rounded-xl bg-card/60 p-4 ring-1 ring-border/60">
 				<div>
 					<h4 className="text-sm font-medium">修改密码</h4>
 					<p className="text-xs text-muted-foreground mt-1">

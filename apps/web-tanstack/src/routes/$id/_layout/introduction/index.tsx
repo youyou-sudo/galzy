@@ -27,7 +27,7 @@ export const Route = createFileRoute("/$id/_layout/introduction/")({
 
 	staleTime: 60_000,
 	gcTime: 5 * 60_000,
-	pendingComponent: () => <GameTabSkeleton />,
+	pendingComponent: () => <GameTabSkeleton tab="introduction" />,
 
 	component: () => {
 		const loaderData = Route.useLoaderData();

@@ -8,13 +8,13 @@ import {
 	SearchIcon,
 	UsersIcon,
 } from "lucide-react";
-import type { ComponentType } from "react";
+import type { LucideIcon } from "lucide-react";
 
 export type AdminNavItem = {
 	to: string;
 	label: string;
 	description: string;
-	icon: ComponentType<{ className?: string }>;
+	icon: LucideIcon;
 	exact?: boolean;
 };
 

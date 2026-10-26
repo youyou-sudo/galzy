@@ -1,16 +1,86 @@
+import { CommentThreadSkeleton } from "@web/components/cmments/comment-skeleton";
+import { GameCard } from "@web/components/home/card";
+import { SectionHeader } from "@web/components/shared/section-header";
 import { Skeleton } from "@web/components/ui/skeleton";
+import { BookOpen, TrendingUp } from "lucide-react";
+
+/** 详情页五个页签：各自内容形状不同，加载态不能再共用一个通用骨架 */
+export type GameTabKey =
+	| "download"
+	| "introduction"
+	| "comment"
+	| "translate"
+	| "relations";
 
 /**
- * tab 内容区加载骨架（下载/攻略/讨论/统计通用）。
- * loader 未返回即展示（defaultPendingMs=0），配合预加载切换时几乎不会出现。
+ * 页签内容加载骨架：按页签返回对应形状。
+ *
+ * 复用原则：
+ * - 下载 → FileListSkeleton（下载组件自身未就绪时也用同一个）
+ * - 讨论 → CommentThreadSkeleton（论坛帖子详情同一份）
+ * - 系列 → GameCard.ListSkeleton + 与真实关系栅格相同的断点/关系标签
+ * - 攻略/统计 → 真实 SectionHeader + 对应行/图表占位，而不是通用三块灰条
  */
-export function GameTabSkeleton() {
+export function GameTabSkeleton({ tab = "download" }: { tab?: GameTabKey }) {
+	switch (tab) {
+		case "introduction":
+			return <IntroductionTabSkeleton />;
+		case "comment":
+			return <CommentThreadSkeleton />;
+		case "translate":
+			return <TranslateTabSkeleton />;
+		case "relations":
+			return <RelationsTabSkeleton />;
+		default:
+			return <FileListSkeleton />;
+	}
+}
+
+/** 攻略页签：真实区块标题 +「创建文章」按钮占位 + 文章行 */
+function IntroductionTabSkeleton() {
 	return (
-		<div className="space-y-3 p-2" aria-hidden>
-			<div className="h-10 w-full max-w-md rounded-lg bg-muted animate-pulse" />
-			<div className="h-24 w-full rounded-xl bg-muted animate-pulse" />
-			<div className="h-24 w-full rounded-xl bg-muted animate-pulse" />
-			<div className="h-24 w-full rounded-xl bg-muted animate-pulse" />
+		<div aria-hidden>
+			<SectionHeader
+				icon={BookOpen}
+				title="攻略文章"
+				action={<Skeleton className="h-8 w-24 rounded-lg" />}
+			/>
+			<ul className="flex flex-col divide-y divide-border/60">
+				{(["w-3/5", "w-2/3", "w-1/2"] as const).map((width) => (
+					<li key={width} className="flex items-center gap-2 py-2.5">
+						<Skeleton className="size-4 shrink-0 rounded-sm" />
+						<Skeleton className={`h-4 ${width}`} />
+					</li>
+				))}
+			</ul>
+		</div>
+	);
+}
+
+/** 统计页签：真实区块标题 + 图表区域 */
+function TranslateTabSkeleton() {
+	return (
+		<div aria-hidden>
+			<SectionHeader icon={TrendingUp} title="总下载量" />
+			<Skeleton className="h-52 w-full rounded-xl" />
+		</div>
+	);
+}
+
+/** 系列页签：与真实关系栅格相同断点，卡片沿用 GameCard.ListSkeleton */
+function RelationsTabSkeleton() {
+	return (
+		<div
+			aria-hidden
+			className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+		>
+			{Array.from({ length: 12 }, (_, i) => (
+				<div key={i} className="relative">
+					<GameCard.ListSkeleton />
+					{/* 关系标签底片 */}
+					<Skeleton className="absolute top-2 left-2 h-5 w-12 rounded-lg" />
+				</div>
+			))}
 		</div>
 	);
 }

@@ -2,10 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useSelector } from "@tanstack/react-store";
 import { GameCard } from "@web/components/home/card";
+import {
+	SectionHeader,
+	sectionActionClass,
+} from "@web/components/shared/section-header";
 import { cn } from "@web/lib/utils";
 import { getCritical } from "@web/server/game";
 import { r18Store } from "@web/stores/r18Store";
-import { Flame, TrendingUp } from "lucide-react";
+import { Flame } from "lucide-react";
 
 interface HotGame {
 	id: string;
@@ -36,20 +40,19 @@ const HOT_GAME_SKELETON_KEYS = Array.from(
  */
 export function HotGamesSectionHeader() {
 	return (
-		<div className="flex items-center justify-between mb-4">
-			<div className="flex items-center gap-2">
-				<Flame className="size-5 text-orange-500" />
-				<h2 className="text-xl font-semibold">本周热门</h2>
-				<TrendingUp className="size-4 text-muted-foreground" />
-			</div>
-			<Link
-				to="/games"
-				search={{ sortBy: "downloads", order: "desc" }}
-				className="text-sm text-muted-foreground hover:text-primary transition-colors"
-			>
-				更多游戏 →
-			</Link>
-		</div>
+		<SectionHeader
+			icon={Flame}
+			title="本周热门"
+			action={
+				<Link
+					to="/games"
+					search={{ sortBy: "downloads", order: "desc" }}
+					className={sectionActionClass}
+				>
+					更多游戏 →
+				</Link>
+			}
+		/>
 	);
 }
 
@@ -97,7 +100,7 @@ export function HotGamesSection({ games: initialGames }: HotGamesSectionProps) {
 							src={game.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
 							cSexualAvg={game.cSexualAvg ?? null}
 						/>
-						<span className="absolute top-1.5 left-1.5 z-20 flex size-5 items-center justify-center rounded-full bg-background/80 text-xs font-bold text-foreground backdrop-blur-sm pointer-events-none">
+						<span className="absolute top-1.5 left-1.5 z-20 flex size-5 items-center justify-center rounded-full bg-background/85 text-xs font-semibold text-foreground ring-1 ring-border/60 backdrop-blur-sm pointer-events-none">
 							{index + 1}
 						</span>
 					</div>

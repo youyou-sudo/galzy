@@ -94,12 +94,12 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 		(game?.vn?.image?.height ?? 0) < (game?.vn?.image?.width ?? 0)
 			? "min-w-72.5"
 			: "w-55"
-	} relative overflow-hidden text-left`;
+	} relative overflow-hidden rounded-xl text-left ring-1 ring-border/60`;
 	const coverStyle = { viewTransitionName: `game-cover-${id}` };
 	const coverContent = (
 		<>
 			{vtGated && !thumbhashUrl && (
-				<Skeleton className="absolute inset-0 w-full h-full rounded-lg" />
+				<Skeleton className="absolute inset-0 h-full w-full rounded-xl" />
 			)}
 			{vtGated ? (
 				// VT 进行中：只渲染 thumbhash 占位，等动画结束再挂正式大图
@@ -108,7 +108,7 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 					<img
 						aria-hidden="true"
 						alt=""
-						className="rounded-lg w-full h-full object-cover"
+						className="h-full w-full rounded-xl object-cover"
 						src={thumbhashUrl}
 					/>
 				) : null
@@ -130,7 +130,7 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 					// 揭示态受控：未揭示的敏感图不挂载灯箱，避免绕过遮挡。
 					revealed={coverRevealed}
 					onReveal={() => setCoverRevealed(true)}
-					className="rounded-lg w-full h-full object-cover"
+					className="h-full w-full rounded-xl object-cover"
 				/>
 			)}
 		</>
@@ -149,7 +149,7 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 								    敏感图未揭示时整个灯箱不挂载，点击封面只会走「显示」。 */}
 								<button
 									aria-label={`查看《${displayTitle}》封面大图`}
-									className="absolute inset-0 z-10 cursor-zoom-in rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+									className="absolute inset-0 z-10 cursor-zoom-in rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 									type="button"
 								/>
 							</div>
@@ -165,7 +165,7 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 			{/* Main content section */}
 			<div className="overflow-hidden wrap-break-word">
 				<h1
-					className="font-semibold text-2xl leading-[1.2] mt-2 w-fit"
+					className="mt-2 w-fit text-2xl leading-tight font-semibold tracking-tight"
 					style={{
 						viewTransitionName: `game-title-${id}`,
 						viewTransitionClass: "vt-text",
@@ -176,7 +176,7 @@ export function GameHeader({ game, id }: { game: GameData; id: string }) {
 
 				{/* Aliases */}
 				{game?.vn?.alias && (
-					<div className="text-sm text-zinc-500 dark:text-zinc-400 mt-2 leading-[1.2]">
+					<div className="mt-2 text-sm leading-relaxed text-muted-foreground">
 						别名:{" "}
 						{game?.vn?.alias
 							.split("\n")

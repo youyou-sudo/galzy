@@ -1,4 +1,6 @@
 import { Await, getRouteApi } from "@tanstack/react-router";
+import { EmptyState } from "@web/components/shared/empty-state";
+import { Gamepad2 } from "lucide-react";
 import { useState } from "react";
 import { GameCard } from "../card";
 
@@ -35,11 +37,14 @@ export const ProducerGamelist = () => {
 	};
 
 	return (
-		<div className="grid grid-cols-3 gap-4 md:grid-cols-6">
+		<div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 md:grid-cols-6">
 			<Await
 				promise={gameList}
 				fallback={
 					<>
+						<GameCard.ListSkeleton />
+						<GameCard.ListSkeleton />
+						<GameCard.ListSkeleton />
 						<GameCard.ListSkeleton />
 						<GameCard.ListSkeleton />
 						<GameCard.ListSkeleton />
@@ -49,7 +54,12 @@ export const ProducerGamelist = () => {
 				{(gameList) => (
 					<>
 						{!gameList || gameList.length === 0 ? (
-							<div className="text-center items-center">没找相关的游戏喵～</div>
+							<EmptyState
+								icon={Gamepad2}
+								title="没找到相关的游戏喵～"
+								description="换一个厂商或稍后再来看看"
+								className="col-span-full"
+							/>
 						) : (
 							gameList.map((item) => {
 								if (!item) return null;

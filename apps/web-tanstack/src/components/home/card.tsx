@@ -391,7 +391,7 @@ export function Images({
 					<div
 						className={`absolute inset-0 flex flex-col items-center justify-center z-10 rounded-lg text-center px-2 pb-12 ${coarse ? "bg-black/40" : "bg-black/40 backdrop-blur-sm"}`}
 					>
-						<span className="text-white text-2xl font-bold">涩！</span>
+						<span className="text-2xl font-semibold text-white">涩！</span>
 						<span className="text-white/70 text-xs mt-1">
 							图片包含不宜在公共场合查看的内容喵～
 						</span>
@@ -453,7 +453,7 @@ function SensitiveImage({
 					<div
 						className={`absolute inset-0 flex flex-col items-center justify-center z-10 rounded-lg text-center px-2 pb-12 ${coarse ? "bg-black/40" : "bg-black/40 backdrop-blur-sm"}`}
 					>
-						<span className="text-white text-2xl font-bold">涩！</span>
+						<span className="text-2xl font-semibold text-white">涩！</span>
 						<span className="text-white/70 text-xs mt-1">
 							图片包含不宜在公共场合查看的内容喵～
 						</span>
@@ -544,6 +544,9 @@ function ItemInner({
 			ref={linkRef}
 			to="/$id"
 			params={{ id: gameid }}
+			// 不能叫 group/card：ui/card 的根节点已经用了 group/card，
+			// 卡片被包进任何 Card（详情页、合集页）时，悬停外层 Card 会让所有标题一起变色。
+			className="group/game-card block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 			onClick={() => {
 				// 同步写 DOM：VT 旧快照在 startViewTransition 调用瞬间采集，
 				// React state 重渲染赶不上，必须在导航前直接给被点卡挂上名字；
@@ -582,7 +585,7 @@ function ItemInner({
 				// 不再用卡级 [content-visibility:auto]：行级虚拟化 + measureElement
 				// 已裁剪渲染范围，卡级 CVA 的 contain-intrinsic-size 估算与实测行高
 				// 不一致会叠加出测量噪声（RO 全量修正 + 滚动补偿），直接移除。
-				className="block relative overflow-hidden rounded-lg"
+				className="block relative overflow-hidden rounded-xl"
 				style={
 					hasVT ? { viewTransitionName: `game-cover-${gameid}` } : undefined
 				}
@@ -604,9 +607,9 @@ function ItemInner({
 					/>
 					{sensitiveHidden && (
 						<div
-							className={`absolute inset-0 flex flex-col items-center justify-center z-10 rounded-lg text-center px-2 pb-12 ${coarse ? "bg-black/40" : "bg-black/40 backdrop-blur-sm"}`}
+							className={`absolute inset-0 flex flex-col items-center justify-center z-10 rounded-xl text-center px-2 pb-12 ${coarse ? "bg-black/40" : "bg-black/40 backdrop-blur-sm"}`}
 						>
-							<span className="text-white text-2xl font-bold">涩！</span>
+							<span className="text-2xl font-semibold text-white">涩！</span>
 							<span className="text-white/70 text-xs mt-1">
 								图片包含不宜在公共场合查看的内容喵～
 							</span>
@@ -627,7 +630,7 @@ function ItemInner({
 			</AspectRatio>
 			<p
 				ref={titleRef}
-				className="text-sm truncate w-fit max-w-full mx-auto text-center px-2 pt-2"
+				className="mx-auto w-fit max-w-full truncate px-2 pt-2 text-center text-xs text-foreground/85 transition-colors duration-200 group-hover/game-card:text-primary sm:text-sm"
 				style={
 					hasVT
 						? {

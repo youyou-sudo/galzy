@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Tabs, TabsList, TabsTrigger } from "@web/components/ui/tabs";
+import { cn } from "@web/lib/utils";
 import {
 	ArrowDownToLine,
 	GitFork,
@@ -14,6 +15,23 @@ const TAB_SEGMENTS = new Set([
 	"translate",
 	"relations",
 ]);
+
+/** 页签容器：与顶栏同样的药丸底 + 发丝边；窄屏横向滚动但隐藏滚动条 */
+const tabListClass = cn(
+	// p-0.5 + h-8 trigger = 36px，正好等于 h-9；p-1 会让内容比容器高 4px，
+	// 而 overflow-x-auto 会把 overflow-y 也计算成 auto → 右侧冒出一条竖向滚动条。
+	"h-9 max-w-full justify-start gap-0.5 overflow-x-auto overflow-y-hidden rounded-xl bg-muted/40 p-0.5 ring-1 ring-border/60",
+	"[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+);
+
+/** 页签本身：圆角/高度/选中态直接对齐 header/desktop-nav 的导航药丸 */
+const tabTriggerClass = cn(
+	"h-8 flex-none gap-1.5 rounded-lg px-2.5 text-sm font-medium sm:px-3",
+	"text-muted-foreground transition-colors duration-200",
+	"hover:bg-muted/60 hover:text-foreground",
+	"data-active:bg-muted/60 data-active:text-foreground data-active:shadow-none",
+	"focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none",
+);
 
 /**
  * 由 pathname 推断当前页签：/<id>/<segment> 的第二段属于页签段就用它，
@@ -32,10 +50,11 @@ export function GameTabs({ id }: { id: string }) {
 
 	return (
 		<Tabs value={currentTab}>
-			<TabsList>
+			<TabsList className={tabListClass}>
 				<TabsTrigger
 					value="download"
 					nativeButton={false}
+					className={tabTriggerClass}
 					render={
 						<Link
 							to="/$id"
@@ -45,12 +64,13 @@ export function GameTabs({ id }: { id: string }) {
 						/>
 					}
 				>
-					<ArrowDownToLine className="size-4" />
+					<ArrowDownToLine aria-hidden="true" />
 					下载
 				</TabsTrigger>
 				<TabsTrigger
 					value="introduction"
 					nativeButton={false}
+					className={tabTriggerClass}
 					render={
 						<Link
 							to="/$id/introduction"
@@ -60,12 +80,13 @@ export function GameTabs({ id }: { id: string }) {
 						/>
 					}
 				>
-					<Swords />
+					<Swords aria-hidden="true" />
 					攻略
 				</TabsTrigger>
 				<TabsTrigger
 					value="comment"
 					nativeButton={false}
+					className={tabTriggerClass}
 					render={
 						<Link
 							to="/$id/comment"
@@ -75,12 +96,13 @@ export function GameTabs({ id }: { id: string }) {
 						/>
 					}
 				>
-					<MessageCircle />
+					<MessageCircle aria-hidden="true" />
 					讨论
 				</TabsTrigger>
 				<TabsTrigger
 					value="translate"
 					nativeButton={false}
+					className={tabTriggerClass}
 					render={
 						<Link
 							to="/$id/translate"
@@ -90,12 +112,13 @@ export function GameTabs({ id }: { id: string }) {
 						/>
 					}
 				>
-					<TrendingUp />
+					<TrendingUp aria-hidden="true" />
 					统计
 				</TabsTrigger>
 				<TabsTrigger
 					value="relations"
 					nativeButton={false}
+					className={tabTriggerClass}
 					render={
 						<Link
 							to="/$id/relations"
@@ -105,7 +128,7 @@ export function GameTabs({ id }: { id: string }) {
 						/>
 					}
 				>
-					<GitFork />
+					<GitFork aria-hidden="true" />
 					系列
 				</TabsTrigger>
 			</TabsList>

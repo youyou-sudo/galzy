@@ -180,16 +180,27 @@ function AppChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      {/* 键盘用户跳过导航：与顶栏药丸同样用「默认隐藏、聚焦时浮出」的玻璃面板 */}
+      <a
+        href="#main-content"
+        className="fixed top-3 left-3 z-[100] -translate-y-20 rounded-xl bg-background px-4 py-2 text-sm font-medium shadow-lg ring-1 ring-border transition-transform duration-200 focus:translate-y-0 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+      >
+        跳到主内容
+      </a>
       {/* 背景层 */}
       <DeferredBackground />
       <Header />
-      {/* 顶栏是 fixed（滚动后收缩成悬浮药丸），首屏在文档流里让出 56px 高度，
-          否则广告位与页面标题会钻到透明顶栏底下。 */}
-      <main className="mx-auto w-full max-w-7xl px-4 pt-14 sm:px-6">
-        {/* 广告 */}
+      {/* 顶栏是 fixed（滚动后收缩成悬浮药丸），首屏在文档流里让出顶栏高度，
+          否则广告位与页面标题会钻到透明顶栏底下。高度由令牌派生，与 scroll-padding 同源。 */}
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-7xl flex-1 px-4 pt-[var(--app-header-height)] outline-none sm:px-6"
+      >
+        {/* 广告：与正文同容器居中，不再用 lg:px-24 让图片比正文更窄 */}
         <aside
           id="sidebar-ad"
-          className="flex flex-col mx-auto lg:px-24 max-w-7xl px-4 py-0 opacity-70 relative mb-2"
+          className="relative mx-auto mb-3 flex w-full max-w-5xl justify-center opacity-75 transition-opacity duration-200 hover:opacity-100"
         >
           <a
             data-umami-event="广告点击"
@@ -198,14 +209,15 @@ function AppChrome({ children }: { children: React.ReactNode }) {
             target="_blank"
             rel="noopener noreferrer"
             href="https://umami.galzy.moe/q/KrhnTk4vg"
+            className="block w-full overflow-hidden rounded-xl ring-1 ring-border/50"
           >
-            <div className="sm:hidden overflow-hidden rounded-lg">
+            <div className="overflow-hidden sm:hidden">
               <Image
                 width={1425}
                 height={120}
                 src="/dzmm.webp"
                 alt="dzmm 广告图片"
-                className="object-cover scale-[1.03]"
+                className="w-full object-cover scale-[1.03]"
                 loading="lazy"
                 fetchPriority="low"
                 decoding="async"
@@ -217,7 +229,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
                 height={113}
                 src="/dzmm.webp"
                 alt="dzmm 广告图片"
-                className="object-cover rounded-lg"
+                className="w-full object-cover"
                 loading="lazy"
                 fetchPriority="low"
                 decoding="async"
@@ -282,6 +294,7 @@ function DeferredBackground() {
 
   return (
     <div
+      data-app-background=""
       className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-30 dark:opacity-10"
       style={src ? { backgroundImage: `url("${src}")` } : undefined}
     />

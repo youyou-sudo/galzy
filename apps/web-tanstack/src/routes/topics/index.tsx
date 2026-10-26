@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { TopicCard } from '@web/components/topics/topic-card'
 import {
   Breadcrumb,
@@ -9,6 +9,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@web/components/shared/breadcrumb'
+import { EmptyState } from '@web/components/shared/empty-state'
+import { PageHeader } from '@web/components/shared/page-header'
+import { Pagination } from '@web/components/shared/pagination'
 import { Button } from '@web/components/ui/button'
 import { seoTemplate } from '@web/config/seoTemplate'
 import { elysiaErrorF } from '@web/lib'
@@ -45,7 +48,6 @@ export const Route = createFileRoute('/topics/')({
 
 function RouteComponent() {
   const { page } = Route.useSearch()
-  const navigate = useNavigate()
   const { data: session } = useQuery({
     queryKey: ['auth'],
     queryFn: async () => {
@@ -60,8 +62,10 @@ function RouteComponent() {
     initialData: Route.useLoaderData(),
   })
 
+  const topics = topicData?.topics ?? []
+
   return (
-    <div className="space-y-4">
+    <div className="mx-auto w-full max-w-4xl">
       <Breadcrumb className="mb-4">
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -74,59 +78,59 @@ function RouteComponent() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <FileText className="size-6" />
-          <h1 className="text-2xl font-bold">论坛</h1>
-        </div>
-        {session && (
-          <Link to="/topics/create">
-            <Button>
-              <Plus className="size-4 mr-1" />
+      <PageHeader
+        icon={FileText}
+        title="论坛"
+        description="聊聊汉化资源、攻略心得与游戏推荐，和同好一起交流"
+        meta={
+          topicData?.total !== undefined ? `共 ${topicData.total} 帖` : undefined
+        }
+        actions={
+          session ? (
+            <Button render={<Link to="/topics/create" />}>
+              <Plus className="size-4" aria-hidden="true" />
               发帖
             </Button>
-          </Link>
-        )}
-      </div>
+          ) : undefined
+        }
+      />
 
-      <div className="flex flex-col space-y-3">
-        {topicData?.topics?.map((topic) => (
-          <TopicCard key={topic.id} topic={topic} />
-        ))}
-        {(!topicData?.topics || topicData.topics.length === 0) && (
-          <div className="text-center text-muted-foreground py-12">
-            暂无帖子
-          </div>
-        )}
-      </div>
-
-      {topicData && topicData.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-6">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page <= 1}
-            onClick={() =>
-              navigate({ to: '/topics', search: { page: page - 1 } })
-            }
-          >
-            上一页
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            {page} / {topicData.totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= topicData.totalPages}
-            onClick={() =>
-              navigate({ to: '/topics', search: { page: page + 1 } })
-            }
-          >
-            下一页
-          </Button>
+      {topics.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          {topics.map((topic) => (
+            <TopicCard key={topic.id} topic={topic} />
+          ))}
         </div>
+      ) : (
+        <EmptyState
+          surface
+          icon={FileText}
+          title="还没有帖子"
+          description="这里还很安静，发第一帖和大家打个招呼吧"
+          action={
+            session ? (
+              <Button render={<Link to="/topics/create" />}>
+                <Plus className="size-4" aria-hidden="true" />
+                发第一帖
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                render={<Link to="/auth/login" search={{ return_to: '/topics' }} />}
+              >
+                登录后发帖
+              </Button>
+            )
+          }
+        />
       )}
+
+      <Pagination
+        page={page}
+        totalPages={topicData?.totalPages ?? 1}
+        totalItems={topicData?.total}
+        renderLink={(p) => <Link to="/topics" search={{ page: p }} />}
+      />
     </div>
   )
 }

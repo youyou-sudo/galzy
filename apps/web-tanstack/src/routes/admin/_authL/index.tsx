@@ -9,6 +9,7 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@web/components/ui/card";
+import { IconTile } from "@web/components/shared/icon-tile";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { adminGetAllArticles } from "@web/server/admin/articles";
 import { adminGetAllComments } from "@web/server/admin/comments";
@@ -23,7 +24,8 @@ import {
 	ShieldCheckIcon,
 	UsersIcon,
 } from "lucide-react";
-import type { ComponentType, ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 export const Route = createFileRoute("/admin/_authL/")({
 	component: RouteComponent,
@@ -46,7 +48,7 @@ async function readTotal(request: Promise<unknown>): Promise<number | null> {
 const statDefs: {
 	key: StatKey;
 	label: string;
-	icon: ComponentType<{ className?: string }>;
+	icon: LucideIcon;
 	query: () => Promise<number | null | undefined>;
 }[] = [
 	{
@@ -93,7 +95,7 @@ function StatCard({
 	query,
 }: {
 	label: string;
-	icon: ComponentType<{ className?: string }>;
+	icon: LucideIcon;
 	query: () => Promise<number | null | undefined>;
 }) {
 	const { data, isLoading } = useQuery({
@@ -109,11 +111,9 @@ function StatCard({
 	});
 
 	return (
-		<Card>
+		<Card className="transition-colors duration-200 hover:ring-border">
 			<CardContent className="flex items-center gap-4 p-5">
-				<div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/5 text-primary ring-1 ring-primary/10">
-					<Icon className="size-5" />
-				</div>
+				<IconTile icon={Icon} size="md" />
 				<div className="flex min-w-0 flex-col">
 					<span className="text-xs font-medium text-muted-foreground">
 						{label}
@@ -140,8 +140,8 @@ function QuickLinksCard() {
 	return (
 		<Card className="lg:col-span-3">
 			<CardHeader className="pb-3">
-				<CardTitle className="flex items-center gap-2 text-base">
-					<LayoutDashboardIcon className="size-4 text-muted-foreground" />
+				<CardTitle className="flex items-center gap-2.5 text-base">
+					<IconTile icon={LayoutDashboardIcon} size="sm" tone="muted" />
 					快捷入口
 				</CardTitle>
 				<CardDescription>常用管理功能的直达入口</CardDescription>
@@ -151,11 +151,14 @@ function QuickLinksCard() {
 					<Link
 						key={to}
 						to={to}
-						className="group flex items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 transition-colors hover:border-border hover:bg-accent/50"
+						className="group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors duration-200 hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
 					>
-						<div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-							<Icon className="size-4" />
-						</div>
+						<IconTile
+							icon={Icon}
+							size="sm"
+							tone="muted"
+							className="transition-colors duration-200 group-hover:bg-primary/10 group-hover:text-primary"
+						/>
 						<div className="flex min-w-0 flex-1 flex-col">
 							<span className="text-sm font-medium">{label}</span>
 							<span className="truncate text-xs text-muted-foreground">
@@ -182,17 +185,15 @@ function StatusRow({
 	description,
 	children,
 }: {
-	icon: ComponentType<{ className?: string }>;
+	icon: LucideIcon;
 	title: string;
 	description: string;
 	children: ReactNode;
 }) {
 	return (
-		<div className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-accent/50">
+		<div className="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-colors duration-200 hover:bg-muted/60">
 			<div className="flex min-w-0 items-center gap-3">
-				<div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
-					<Icon className="size-4" />
-				</div>
+				<IconTile icon={Icon} size="sm" tone="muted" />
 				<div className="flex min-w-0 flex-col">
 					<span className="text-sm font-medium">{title}</span>
 					<span className="truncate text-xs text-muted-foreground">
@@ -209,8 +210,8 @@ function SystemStatusCard() {
 	return (
 		<Card className="lg:col-span-2">
 			<CardHeader className="pb-3">
-				<CardTitle className="flex items-center gap-2 text-base">
-					<ShieldCheckIcon className="size-4 text-muted-foreground" />
+				<CardTitle className="flex items-center gap-2.5 text-base">
+					<IconTile icon={ShieldCheckIcon} size="sm" tone="muted" />
 					系统状态
 				</CardTitle>
 				<CardDescription>数据同步与站外服务入口</CardDescription>
@@ -227,7 +228,7 @@ function SystemStatusCard() {
 						>
 							<Link
 								to={to}
-								className="text-xs font-medium text-primary hover:underline"
+								className="rounded-md px-1.5 py-0.5 text-xs font-medium text-primary transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
 							>
 								管理
 							</Link>
@@ -240,7 +241,7 @@ function SystemStatusCard() {
 				>
 					<Link
 						to="/"
-						className="text-xs font-medium text-primary hover:underline"
+						className="rounded-md px-1.5 py-0.5 text-xs font-medium text-primary transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
 					>
 						查看
 					</Link>
@@ -256,6 +257,7 @@ function RouteComponent() {
 	return (
 		<div className="flex flex-col gap-6">
 			<AdminPageHeader
+				icon={LayoutDashboardIcon}
 				eyebrow="概览"
 				title="仪表盘"
 				description="欢迎回来，这里是站点的总览与管理入口"

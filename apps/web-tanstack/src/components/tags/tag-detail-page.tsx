@@ -83,7 +83,7 @@ export default function TagDetailPage({ tag }: { tag: any }) {
 				</Card>
 			</section>
 
-			<div className="mt-4 text-sm text-center items-center opacity-30 italic">
+			<div className="mt-6 mb-3 text-center text-xs text-muted-foreground">
 				相关游戏，过滤自 VNDB
 			</div>
 			<section>

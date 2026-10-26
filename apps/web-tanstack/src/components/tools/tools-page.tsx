@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { PageHeader } from "@web/components/shared/page-header";
 import {
 	Card,
 	CardDescription,
@@ -16,41 +17,39 @@ const toolLinks = [
 	},
 ];
 
+/** 工具索引：页头用统一 PageHeader，卡片沿用顶栏的圆角 + 发丝边语言。 */
 export default function RouteComponent() {
 	return (
-		<section className="flex justify-center items-start min-h-[60vh]">
-			<div className="w-full max-w-3xl">
-				{/* Header */}
-				<div className="text-center mb-8">
-					<div className="inline-flex items-center justify-center size-12 rounded-full bg-primary/10 mb-4">
-						<Wrench className="size-6 text-primary" />
-					</div>
-					<h1 className="text-3xl font-bold mb-2">工具箱</h1>
-					<p className="text-muted-foreground max-w-md mx-auto">
-						Galgame 常用工具集合，让资源查找和社区访问更便捷
-					</p>
-				</div>
+		<section className="mx-auto w-full max-w-3xl py-6">
+			<PageHeader
+				align="center"
+				icon={Wrench}
+				title="工具箱"
+				description="Galgame 常用工具集合，让资源查找和社区访问更便捷"
+			/>
 
-				{/* Tool Cards Grid */}
-				<div className="grid gap-4 sm:grid-cols-2">
-					{toolLinks.map(({ to, icon: Icon, title, description }) => (
-						<Link key={to} to={to} className="group">
-							<Card className="h-full transition-colors hover:bg-accent/50 hover:border-primary/20">
-								<CardHeader>
-									<CardTitle className="flex items-center gap-3 text-lg">
-										<span className="inline-flex items-center justify-center size-9 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/15 transition-colors">
-											<Icon className="size-4" />
-										</span>
-										{title}
-									</CardTitle>
-									<CardDescription className="text-sm leading-relaxed pl-12">
-										{description}
-									</CardDescription>
-								</CardHeader>
-							</Card>
-						</Link>
-					))}
-				</div>
+			<div className="grid gap-4 sm:grid-cols-2">
+				{toolLinks.map(({ to, icon: Icon, title, description }) => (
+					<Link
+						key={to}
+						to={to}
+						className="group rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+					>
+						<Card className="h-full transition-colors duration-200 group-hover:bg-muted/40 group-hover:ring-border">
+							<CardHeader className="gap-2">
+								<CardTitle className="flex items-center gap-3 text-base font-medium">
+									<span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary/15">
+										<Icon className="size-4" />
+									</span>
+									{title}
+								</CardTitle>
+								<CardDescription className="pl-12 text-sm leading-relaxed">
+									{description}
+								</CardDescription>
+							</CardHeader>
+						</Card>
+					</Link>
+				))}
 			</div>
 		</section>
 	);

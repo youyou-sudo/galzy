@@ -1,10 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import {
+	StatusPill,
+	Table,
+	TableCard,
+	TableEmpty,
+	TablePagination,
+	TableScroll,
+	TableSkeleton,
+	TableToolbar,
+	TBody,
+	Td,
+	Th,
+	THead,
+	Tr,
+	type StatusTone,
+} from "@web/components/admin/admin-table";
 import { AdminPageHeader } from "@web/components/admin/admin-page-header";
+import { SearchField } from "@web/components/shared/search-field";
 import { AdminUserTooltip } from "@web/components/admin/admin-user-tooltip";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
-import { Card, CardContent, CardHeader } from "@web/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -13,7 +29,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@web/components/ui/dialog";
-import { Input } from "@web/components/ui/input";
 import {
 	Select,
 	SelectContent,
@@ -26,8 +41,6 @@ import {
 	adminGetAllArticles,
 } from "@web/server/admin/articles";
 import {
-	ChevronLeftIcon,
-	ChevronRightIcon,
 	CircleCheckIcon,
 	EyeOffIcon,
 	FileTextIcon,
@@ -69,6 +82,7 @@ export default function RouteComponent() {
 	return (
 		<div className="flex flex-col gap-6">
 			<AdminPageHeader
+				icon={FileTextIcon}
 				eyebrow="内容管理"
 				title="文章管理"
 				description="管理全站攻略文章，支持审核、编辑、隐藏与删除操作"
@@ -129,39 +143,17 @@ function ArticlesTable() {
 		setSearch(searchInput);
 	};
 
-	const handleKeyDown = (e: React.KeyboardEvent) => {
-		if (e.key === "Enter") handleSearch();
-	};
-
 	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 	const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
 
-	const goNext = () => {
-		if (currentPage < totalPages) {
-			setOffset(offset + PAGE_SIZE);
-		}
-	};
-
-	const goPrev = () => {
-		if (currentPage > 1) {
-			setOffset(Math.max(0, offset - PAGE_SIZE));
-		}
-	};
-
 	const refresh = () => refetch();
 
-	const statusLabel: Record<
-		string,
-		{
-			label: string;
-			variant: "default" | "secondary" | "destructive" | "outline";
-		}
-	> = {
-		published: { label: "已审核", variant: "default" as const },
-		pending: { label: "待审核", variant: "outline" as const },
-		rejected: { label: "已驳回", variant: "secondary" as const },
-		hidden: { label: "隐藏", variant: "secondary" as const },
-		deleted: { label: "已删除", variant: "destructive" as const },
+	const statusLabel: Record<string, { label: string; tone: StatusTone }> = {
+		published: { label: "已审核", tone: "success" },
+		pending: { label: "待审核", tone: "warning" },
+		rejected: { label: "已驳回", tone: "destructive" },
+		hidden: { label: "隐藏", tone: "neutral" },
+		deleted: { label: "已删除", tone: "destructive" },
 	};
 
 	const typeLabel: Record<string, string> = {
@@ -171,210 +163,167 @@ function ArticlesTable() {
 	};
 
 	return (
-		<Card>
-			<CardHeader className="pb-3">
-				<div className="flex items-center gap-3">
-					<div className="relative flex-1">
-						<SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-						<Input
-							placeholder="搜索文章标题..."
-							value={searchInput}
-							onChange={(e) => setSearchInput(e.target.value)}
-							onKeyDown={handleKeyDown}
-							className="pl-9"
-						/>
-					</div>
-					<Select
-						value={statusFilter}
-						onValueChange={(v) => {
-							setStatusFilter((v ?? "") === "__all__" ? "" : (v ?? ""));
-							setOffset(0);
-						}}
-					>
-						<SelectTrigger className="w-28">
-							<SelectValue placeholder="状态" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="__all__">全部状态</SelectItem>
-							<SelectItem value="pending">待审核</SelectItem>
-							<SelectItem value="published">已审核</SelectItem>
-							<SelectItem value="rejected">已驳回</SelectItem>
-							<SelectItem value="hidden">已隐藏</SelectItem>
-							<SelectItem value="deleted">已删除</SelectItem>
-						</SelectContent>
-					</Select>
-					<Select
-						value={typeFilter}
-						onValueChange={(v) => {
-							setTypeFilter((v ?? "") === "__all__" ? "" : (v ?? ""));
-							setOffset(0);
-						}}
-					>
-						<SelectTrigger className="w-28">
-							<SelectValue placeholder="类型" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="__all__">全部类型</SelectItem>
-							<SelectItem value="strategy">攻略</SelectItem>
-							<SelectItem value="blog">博客</SelectItem>
-							<SelectItem value="tutorial">教程</SelectItem>
-						</SelectContent>
-					</Select>
-					<Button variant="outline" onClick={handleSearch} disabled={isLoading}>
-						搜索
-					</Button>
-				</div>
-			</CardHeader>
+		<TableCard>
+			<TableToolbar>
+				<SearchField
+					value={searchInput}
+					onChange={setSearchInput}
+					onSubmit={handleSearch}
+					placeholder="搜索文章标题…"
+					ariaLabel="搜索文章标题"
+					className="sm:max-w-xs"
+				/>
+				<Select
+					value={statusFilter}
+					onValueChange={(v) => {
+						setStatusFilter((v ?? "") === "__all__" ? "" : (v ?? ""));
+						setOffset(0);
+					}}
+				>
+					<SelectTrigger className="w-28">
+						<SelectValue placeholder="状态" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="__all__">全部状态</SelectItem>
+						<SelectItem value="pending">待审核</SelectItem>
+						<SelectItem value="published">已审核</SelectItem>
+						<SelectItem value="rejected">已驳回</SelectItem>
+						<SelectItem value="hidden">已隐藏</SelectItem>
+						<SelectItem value="deleted">已删除</SelectItem>
+					</SelectContent>
+				</Select>
+				<Select
+					value={typeFilter}
+					onValueChange={(v) => {
+						setTypeFilter((v ?? "") === "__all__" ? "" : (v ?? ""));
+						setOffset(0);
+					}}
+				>
+					<SelectTrigger className="w-28">
+						<SelectValue placeholder="类型" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="__all__">全部类型</SelectItem>
+						<SelectItem value="strategy">攻略</SelectItem>
+						<SelectItem value="blog">博客</SelectItem>
+						<SelectItem value="tutorial">教程</SelectItem>
+					</SelectContent>
+				</Select>
+				<Button variant="outline" onClick={handleSearch} disabled={isLoading}>
+					<SearchIcon className="size-4" />
+					搜索
+				</Button>
+			</TableToolbar>
 
-			<CardContent className="p-0">
-				{isLoading ? (
-					<div className="flex items-center justify-center py-16">
-						<Loader2Icon className="size-6 animate-spin text-muted-foreground" />
-					</div>
-				) : articles.length === 0 ? (
-					<div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-						<FileTextIcon className="size-10 mb-2" />
-						<p className="text-sm">暂无文章数据</p>
-					</div>
-				) : (
-					<div className="overflow-x-auto">
-						<table className="w-full">
-							<thead>
-								<tr className="border-b bg-muted/50">
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										标题
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										作者
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										所属游戏
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										类型
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										状态
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										时间
-									</th>
-									<th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">
-										操作
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{articles.map((article) => {
-									const sl = statusLabel[article.status] ?? {
-										label: article.status,
-										variant: "secondary" as const,
-									};
-									const gameId = article.vid ?? String(article.otherid ?? "");
-									return (
-										<tr
-											key={article.id}
-											className="border-b last:border-0 hover:bg-muted/30 transition-colors"
-										>
-											<td className="px-4 py-3 max-w-xs">
-												<span className="text-sm font-medium truncate block">
-													{article.title || "无标题"}
-												</span>
-											</td>
-											<td className="px-4 py-3">
-												<AdminUserTooltip
-													user={article.user}
-													className="text-sm text-muted-foreground"
-												/>
-											</td>
-											<td className="px-4 py-3">
-												<span className="text-xs text-muted-foreground">
-													{gameId || "-"}
-												</span>
-											</td>
-											<td className="px-4 py-3">
-												<Badge variant="secondary" className="text-xs">
-													{typeLabel[article.type] || article.type}
-												</Badge>
-											</td>
-											<td className="px-4 py-3">
-												<Badge variant={sl.variant}>{sl.label}</Badge>
-											</td>
-											<td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-												{new Date(article.createdAt).toLocaleDateString(
-													"zh-CN",
-												)}
-											</td>
-											<td className="px-4 py-3 text-right">
-												<div className="flex items-center justify-end gap-1.5">
-													<EditArticleCell article={article} />
-													{article.status !== "published" && (
-														<PublishArticleButton
-															article={article}
-															onDone={refresh}
-														/>
-													)}
-													{article.status === "pending" && (
-														<RejectArticleButton
-															article={article}
-															onDone={refresh}
-														/>
-													)}
-													{article.status === "published" && (
-														<HideArticleButton
-															article={article}
-															onDone={refresh}
-														/>
-													)}
-													{article.status === "hidden" && (
-														<RestoreArticleButton
-															article={article}
-															onDone={refresh}
-														/>
-													)}
-													<DeleteArticleDialog
+			<TableScroll>
+				<Table minWidth="min-w-[960px]">
+					<THead>
+						<Tr>
+							<Th>标题</Th>
+							<Th>作者</Th>
+							<Th>所属游戏</Th>
+							<Th>类型</Th>
+							<Th>状态</Th>
+							<Th>时间</Th>
+							<Th align="right">操作</Th>
+						</Tr>
+					</THead>
+					{isLoading ? (
+						<TableSkeleton columns={7} />
+					) : articles.length === 0 ? (
+						<tbody>
+							<TableEmpty
+								colSpan={7}
+								icon={FileTextIcon}
+								title="暂无文章数据"
+								description="调整筛选条件，或等待作者投稿"
+							/>
+						</tbody>
+					) : (
+						<TBody>
+							{articles.map((article) => {
+								const sl = statusLabel[article.status] ?? {
+									label: article.status,
+									tone: "neutral" as const,
+								};
+								const gameId = article.vid ?? String(article.otherid ?? "");
+								return (
+									<Tr key={article.id}>
+										<Td className="max-w-xs">
+											<span className="text-sm font-medium truncate block">
+												{article.title || "无标题"}
+											</span>
+										</Td>
+										<Td>
+											<AdminUserTooltip
+												user={article.user}
+												className="text-sm text-muted-foreground"
+											/>
+										</Td>
+										<Td>
+											<span className="text-xs text-muted-foreground">
+												{gameId || "-"}
+											</span>
+										</Td>
+										<Td>
+											<Badge variant="secondary" className="text-xs">
+												{typeLabel[article.type] || article.type}
+											</Badge>
+										</Td>
+										<Td>
+											<StatusPill tone={sl.tone}>{sl.label}</StatusPill>
+										</Td>
+										<Td className="text-xs whitespace-nowrap text-muted-foreground">
+											{new Date(article.createdAt).toLocaleDateString("zh-CN")}
+										</Td>
+										<Td align="right">
+											<div className="flex items-center justify-end gap-1.5">
+												<EditArticleCell article={article} />
+												{article.status !== "published" && (
+													<PublishArticleButton
 														article={article}
 														onDone={refresh}
 													/>
-												</div>
-											</td>
-										</tr>
-									);
-								})}
-							</tbody>
-						</table>
-					</div>
-				)}
-			</CardContent>
+												)}
+												{article.status === "pending" && (
+													<RejectArticleButton
+														article={article}
+														onDone={refresh}
+													/>
+												)}
+												{article.status === "published" && (
+													<HideArticleButton
+														article={article}
+														onDone={refresh}
+													/>
+												)}
+												{article.status === "hidden" && (
+													<RestoreArticleButton
+														article={article}
+														onDone={refresh}
+													/>
+												)}
+												<DeleteArticleDialog
+													article={article}
+													onDone={refresh}
+												/>
+											</div>
+										</Td>
+									</Tr>
+								);
+							})}
+						</TBody>
+					)}
+				</Table>
+			</TableScroll>
 
-			{total > PAGE_SIZE && (
-				<div className="flex items-center justify-between px-4 py-3 border-t">
-					<span className="text-xs text-muted-foreground">
-						共 {total} 篇文章 · 第 {currentPage}/{totalPages} 页
-					</span>
-					<div className="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={goPrev}
-							disabled={currentPage <= 1}
-						>
-							<ChevronLeftIcon className="size-4" />
-							上一页
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={goNext}
-							disabled={currentPage >= totalPages}
-						>
-							下一页
-							<ChevronRightIcon className="size-4" />
-						</Button>
-					</div>
-				</div>
-			)}
-		</Card>
+			<TablePagination
+				page={currentPage}
+				totalPages={totalPages}
+				totalItems={total}
+				onPageChange={(next) => setOffset((next - 1) * PAGE_SIZE)}
+			/>
+		</TableCard>
 	);
 }
 
@@ -435,7 +384,7 @@ function PublishArticleButton({
 			{loading ? (
 				<Loader2Icon className="size-4 animate-spin" />
 			) : (
-				<CircleCheckIcon className="size-4 text-green-600" />
+				<CircleCheckIcon className="size-4 text-success" />
 			)}
 		</Button>
 	);
@@ -557,7 +506,7 @@ function RestoreArticleButton({
 			{loading ? (
 				<Loader2Icon className="size-4 animate-spin" />
 			) : (
-				<Undo2Icon className="size-4 text-green-600" />
+				<Undo2Icon className="size-4 text-success" />
 			)}
 		</Button>
 	);
@@ -624,7 +573,7 @@ function DeleteArticleDialog({
 						onClick={handleDelete}
 						disabled={submitting}
 					>
-						{submitting && <Loader2Icon className="size-4 animate-spin mr-1" />}
+						{submitting && <Loader2Icon className="size-4 animate-spin" />}
 						确认删除
 					</Button>
 				</DialogFooter>

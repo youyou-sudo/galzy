@@ -29,7 +29,7 @@ export const Route = createFileRoute("/$id/_layout/translate")({
 	// Client-side caching (via TanStack Router)
 	staleTime: 60_000, // Consider data fresh for 60 seconds on client
 	gcTime: 5 * 60_000, // Keep in memory for 5 minutes
-	pendingComponent: () => <GameTabSkeleton />,
+	pendingComponent: () => <GameTabSkeleton tab="translate" />,
 });
 
 function RouteComponent() {

@@ -181,7 +181,6 @@ export default function ProfileTab({
 						placeholder="请输入您的名称"
 					/>
 					<Button
-						size="sm"
 						disabled={isSaving || !name.trim() || name === user.name}
 						onClick={handleSaveProfile}
 					>
@@ -194,7 +193,7 @@ export default function ProfileTab({
 				<Tooltip>
 					<TooltipTrigger
 						render={
-							<div className="flex min-h-8 w-full min-w-0 items-center rounded-lg border border-input bg-input/30 px-2.5 py-1 text-sm text-muted-foreground break-all dark:bg-input/80" />
+							<div className="flex h-9 w-full min-w-0 items-center rounded-xl border border-input bg-input/30 px-3 text-sm text-muted-foreground break-all dark:bg-input/80" />
 						}
 					>
 						{user.email ?? "未设置邮箱"}
@@ -228,7 +227,7 @@ export default function ProfileTab({
 						return (
 							<div
 								key={provider.id}
-								className="flex items-center justify-between rounded-lg border p-3"
+								className="flex items-center justify-between rounded-xl bg-card/60 p-3 ring-1 ring-border/60"
 							>
 								<div className="flex items-center gap-3">
 									{provider.iconType === "fa" ? (
@@ -251,7 +250,7 @@ export default function ProfileTab({
 												{isLinked ? (
 													<>
 														已绑定
-														<Check size={15} className="text-green-600" />
+														<Check size={15} className="text-success" />
 														{(() => {
 															const q = accountNameMap.get(
 																linkedAccount!.accountId,

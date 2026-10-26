@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Image } from "@unpic/react";
+import { useHeaderTone } from "@web/hooks/use-header-tone";
 import { cn } from "@web/lib/utils";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { DesktopNav } from "./header/desktop-nav";
@@ -37,6 +38,8 @@ export default function Header() {
 	const [menuReady, setMenuReady] = useState(false);
 	const [scrolled, setScrolled] = useState(false);
 	const [scrolling, setScrolling] = useState(false);
+	// 只在透明态需要：采样顶栏背后的背景图亮度，自动切换深字/浅字
+	const headerTone = useHeaderTone(!scrolled);
 
 	useEffect(() => {
 		let timer: ReturnType<typeof setTimeout> | undefined;
@@ -92,7 +95,10 @@ export default function Header() {
 
 	return (
 		<>
-			<header className="fixed inset-x-0 top-0 z-50">
+			<header
+				className="galzy-site-header fixed inset-x-0 top-0 z-50"
+				data-header-tone={!scrolled ? (headerTone ?? undefined) : undefined}
+			>
 				<div
 					className={cn(
 						// 只过渡真正变化的布局属性：transition-all 会把 backdrop-filter
@@ -132,7 +138,9 @@ export default function Header() {
 								{/* 小图标不参与首屏关键路径：fetchPriority="low" 同时会抑制
 								React 19 自动注入的 <link rel="preload" as="image">（它会被
 								排到 stylesheet / modulepreload 之前抢占关键带宽）。 */}
-								<span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[10px] transition-transform duration-300 group-hover/brand:scale-105">
+								{/* 站标原图直接显示：favicon 四周有内容，圆角容器 + overflow-hidden
+								    会把四个角裁掉。这里只保留 hover 缩放，不做任何裁剪。 */}
+								<span className="flex size-8 shrink-0 items-center justify-center transition-transform duration-300 group-hover/brand:scale-105">
 									<Image
 										src="/favicon.ico"
 										width={32}
@@ -142,7 +150,7 @@ export default function Header() {
 										className="size-8"
 									/>
 								</span>
-								<span className="hidden truncate text-[15px] leading-none font-semibold tracking-tight sm:block">
+								<span className="hidden truncate text-[15px] leading-none font-semibold tracking-tight text-[color:var(--header-fg)] sm:block">
 									GalZY
 								</span>
 							</Link>

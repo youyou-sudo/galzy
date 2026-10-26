@@ -26,76 +26,175 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+    /* ── 基础面 ──────────────────────────────────────────────────────
+       中性面刻意保持 chroma = 0：它们是「可被主色乘色的基底」，
+       色板切换时由 [data-theme-preset] 用 color-mix 派生，见文件末尾。 */
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
+
+    /* ── 品牌色：深海蓝 ──────────────────────────────────────────────
+       L 压在 0.55 是为了让白字达到 WCAG AA 4.5:1（实测 4.7:1）。
+       彩度封顶 0.14：hue 245 在 L 0.55 处的 sRGB 边界就是 0.14，
+       再高会溢出到 P3 色域、浏览器裁切后色相会偏。 */
+    --primary: oklch(0.55 0.14 245);
+    --primary-foreground: oklch(0.99 0 0);
+
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
     --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
+
+    /* hover / 选中底色从主色派生：10% 混入画布 → 极淡蓝，
+       这样按钮、菜单项、日历选中态自动跟主色同族，不必逐组件调。
+
+       ⚠ 必须用 oklab 而不是 oklch。oklch 是极坐标空间，混色会插值色相：
+       品牌蓝 245° 与白色（色相 0°）取短弧（+115°），10% 混入后色相被拉到
+       348.5°，"10% 蓝" 实际渲染成粉色（#f8edf2 而非 #e9f1f9）。
+       实测 Chrome 即此行为。oklab 是直角空间、不含色相分量，
+       混色只改变明度与彩度，色相恒定 —— 这才是"染色"想要的语义。 */
+    --accent: color-mix(in oklab, var(--primary) 10%, var(--background));
     --accent-foreground: oklch(0.205 0 0);
+
+    /* ── 语义色：五件套，各带 -foreground 成对使用 ───────────────────
+       用来收敛散落全站的 104 处硬编码调色板（text-green-600 之类）。 */
+    /* 亮色明度普遍压到 0.53–0.58：这批色既要当「淡底 + 彩字」徽标的文字色，
+       又要当实心填充色，所以必须同时满足两个方向 ≥4.5:1。
+       常用的 Tailwind 500 档（L≈0.60–0.68）在白底上只有 2.9–3.7:1，
+       直接拿来做 text-success 是不达标的。 */
     --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.985 0 0);
+    --success: oklch(0.535 0.115 163.225);
+    --success-foreground: oklch(0.985 0 0);
+    /* warning 用色相 62（琥珀橙）而非默认的 75.8：后者压到 AA 明度后会偏橄榄绿，
+       62° 压暗后仍是「暗金橙」，语义更明确。 */
+    --warning: oklch(0.545 0.125 62);
+    --warning-foreground: oklch(0.985 0 0);
+    /* info 用靛蓝 275° 而不是蓝 242°：品牌主色已经是天蓝(245°)，两者相邻会撞色，
+       徽标上的「同步中/提示」会和主按钮分不出来。四语义色因此落在
+       绿 163° / 橙 62° / 靛 275° / 红 27°，彼此间距均 ≥50°。 */
+    --info: oklch(0.54 0.16 275);
+    --info-foreground: oklch(0.985 0 0);
+    --neutral: oklch(0.708 0 0);
+    --neutral-foreground: oklch(0.145 0 0);
+
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    --ring: var(--primary);
+
     --chart-1: oklch(0.809 0.105 251.813);
     --chart-2: oklch(0.623 0.214 259.815);
     --chart-3: oklch(0.546 0.245 262.881);
     --chart-4: oklch(0.488 0.243 264.376);
     --chart-5: oklch(0.424 0.199 265.638);
-    --radius: 0.625rem;
+
+    /* 圆角基准：0.75rem。1rem 作为可选档位见 [data-theme-radius='lg']。 */
+    --radius: 0.75rem;
+
+    /* ── 表格 ────────────────────────────────────────────────────────
+       表头/禁用态只做同色系微提亮（叠 1.5%~16% 前景色），不引入第二色相。
+       取代各后台页手写的 bg-muted/50、hover:bg-muted/30。 */
+    --table-header: color-mix(in oklab, var(--foreground) 1.5%, var(--background));
+    --table-header-hover: color-mix(in oklab, var(--foreground) 3%, var(--background));
+    --table-disabled: color-mix(in oklab, var(--foreground) 3%, var(--background));
+    --table-disabled-hover: color-mix(in oklab, var(--foreground) 4.5%, var(--background));
+    --table-disabled-border: color-mix(in oklab, var(--foreground) 16%, var(--background));
+
+    /* 骨架屏：双色驱动 shimmer 扫光，见 .skeleton-shimmer。 */
+    --skeleton-base: oklch(0.97 0 0);
+    --skeleton-highlight: oklch(0.985 0 0);
+
+    /* 顶栏高度统一出口：消除 pt-14 / scroll-padding-top 两处不同步魔法数。 */
+    --app-header-height: 3.5rem;
+
     --sidebar: oklch(0.985 0 0);
     --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: oklch(0.99 0 0);
+    --sidebar-accent: color-mix(in oklab, var(--primary) 10%, var(--background));
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar-ring: var(--primary);
 }
 
 .dark {
+    /* 原生控件与滚动条跟随主题；Dark Reader 也靠这一行判断站内已有暗色。 */
+    color-scheme: dark;
+
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
     --card-foreground: oklch(0.985 0 0);
     --popover: oklch(0.205 0 0);
     --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
+
+    /* 暗色沿用「浅底 + 深前景」的反转约定（与改造前的近白 primary 同构）：
+       L 0.72 让 text-primary 在 0.145 深底上有 8.1:1，
+       同时 primary-foreground 取深灰保证按钮内文字 7.3:1。 */
+    --primary: oklch(0.72 0.12 245);
     --primary-foreground: oklch(0.205 0 0);
+
     --secondary: oklch(0.269 0 0);
     --secondary-foreground: oklch(0.985 0 0);
     --muted: oklch(0.269 0 0);
     --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
+
+    /* 深底上需要更高混入比例才可见（10% → 18%）。 */
+    --accent: color-mix(in oklab, var(--primary) 18%, var(--background));
     --accent-foreground: oklch(0.985 0 0);
+
     --destructive: oklch(0.704 0.191 22.216);
+    --destructive-foreground: oklch(0.145 0 0);
+    --success: oklch(0.696 0.17 162.48);
+    --success-foreground: oklch(0.145 0 0);
+    --warning: oklch(0.78 0.16 62);
+    --warning-foreground: oklch(0.145 0 0);
+    --info: oklch(0.7 0.14 275);
+    --info-foreground: oklch(0.145 0 0);
+    --neutral: oklch(0.76 0 0);
+    --neutral-foreground: oklch(0.155 0 0);
+
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
+    --ring: var(--primary);
+
     --chart-1: oklch(0.809 0.105 251.813);
     --chart-2: oklch(0.623 0.214 259.815);
     --chart-3: oklch(0.546 0.245 262.881);
     --chart-4: oklch(0.488 0.243 264.376);
     --chart-5: oklch(0.424 0.199 265.638);
+
+    /* 深底上同色系提亮需要更大混入量（亮色 1.5% → 6%）。 */
+    --table-header: color-mix(in oklab, var(--foreground) 6%, var(--background));
+    --table-header-hover: color-mix(in oklab, var(--foreground) 9%, var(--background));
+    --table-disabled: color-mix(in oklab, var(--foreground) 7%, var(--background));
+    --table-disabled-hover: color-mix(in oklab, var(--foreground) 9.5%, var(--background));
+    --table-disabled-border: color-mix(in oklab, var(--foreground) 24%, var(--background));
+
+    --skeleton-base: oklch(0.335 0 0);
+    --skeleton-highlight: oklch(0.44 0 0);
+
     --sidebar: oklch(0.205 0 0);
     --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: oklch(0.205 0 0);
+    --sidebar-accent: color-mix(in oklab, var(--primary) 18%, var(--background));
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --sidebar-ring: var(--primary);
 }
 
 @theme inline {
-    --font-sans: 'Geist Variable', sans-serif;
+    /* Geist 只覆盖拉丁字形；中文必须显式给回退链，否则会落到泛型
+       sans-serif，在 Windows / macOS / Android 上分别解析成雅黑 / 苹方 /
+       Roboto+思源，行高与字重观感三个平台各不相同。
+       'Noto Sans SC' 刻意排在雅黑之后：多数系统并没有装它。 */
+    --font-sans: 'Geist Variable', 'PingFang SC', 'Hiragino Sans GB',
+        'Microsoft YaHei', 'Source Han Sans SC', 'Noto Sans SC',
+        'WenQuanYi Micro Hei', sans-serif;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -127,6 +226,19 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
+
+    /* 语义色桥：没有这一段，bg-success / text-warning 这类类名不会被生成，
+       改令牌等于白改。 */
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+    --color-neutral: var(--neutral);
+    --color-neutral-foreground: var(--neutral-foreground);
+    --color-destructive-foreground: var(--destructive-foreground);
+
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -138,6 +250,80 @@
     --ease-out-quart: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* ── 圆角轴 ───────────────────────────────────────────────────────────
+   --radius 是整站圆角的唯一出口：@theme inline 里的 sm…4xl 全由它换算
+   （0.6 / 0.8 / 1 / 1.4 / 1.8 / 2.2 / 2.6 倍）。默认 0.75rem；
+   用户偏好通过 <body data-theme-radius> 落地，不用 JS 算值。 */
+[data-theme-radius='sm'] {
+    --radius: 0.5rem;
+}
+
+[data-theme-radius='md'] {
+    --radius: 0.75rem;
+}
+
+[data-theme-radius='lg'] {
+    --radius: 1rem;
+}
+
+/* ── 色板表面桥 ───────────────────────────────────────────────────────
+   仅在选择非默认色板时生效。中性面保持 chroma = 0 作为基底，色板只需
+   换 --primary 一个值，卡片 / 边框 / muted / popover 就整层跟着极淡染色
+   （3%–20% 混入，观感仍是「灰面稍稍染色」而非「彩色主题」）。
+   深底需要更大混入量才可见。色板本体见 P5，此处先固化层叠契约，
+   避免届时回头改组件。
+
+   ⚠ 同样必须用 oklab：若写成 oklch，色相会被白色端点拉走
+   （245° → 348.5°），"3% 蓝卡片" 会变成 "3% 粉卡片"。 */
+[data-theme-preset]:not([data-theme-preset='default']) {
+    --card: color-mix(in oklab, var(--primary) 3%, var(--background));
+    --popover: color-mix(in oklab, var(--primary) 5%, var(--background));
+    --muted: color-mix(in oklab, var(--primary) 7%, var(--background));
+    --accent: color-mix(in oklab, var(--primary) 14%, var(--background));
+    --border: color-mix(in oklab, var(--primary) 20%, var(--background));
+}
+
+.dark [data-theme-preset]:not([data-theme-preset='default']) {
+    --card: color-mix(in oklab, var(--primary) 8%, var(--background));
+    --popover: color-mix(in oklab, var(--primary) 12%, var(--background));
+    --muted: color-mix(in oklab, var(--primary) 12%, var(--background));
+    --accent: color-mix(in oklab, var(--primary) 20%, var(--background));
+    --border: color-mix(in oklab, var(--primary) 26%, var(--background));
+}
+
+/* ── 骨架屏 shimmer ───────────────────────────────────────────────────
+   替换 animate-pulse 的「整块明暗闪」：一条亮带以 1.8s 扫过，
+   明暗对比固定在 --skeleton-base → --skeleton-highlight 之间。 */
+.skeleton-shimmer {
+    background: linear-gradient(
+        90deg,
+        var(--skeleton-base) 0%,
+        var(--skeleton-base) 33%,
+        var(--skeleton-highlight) 50%,
+        var(--skeleton-base) 67%,
+        var(--skeleton-base) 100%
+    );
+    background-size: 300% 100%;
+    animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: -100% 50%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-shimmer {
+        animation: none;
+        background: var(--skeleton-base);
+    }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -147,6 +333,15 @@
     }
   html {
     @apply font-sans;
+    }
+  /* 移动端点按不再闪灰块；键盘焦点统一走组件的 ring，不用 UA 默认轮廓。 */
+  a,
+  button,
+  [role='button'] {
+    -webkit-tap-highlight-color: transparent;
+    }
+  ::selection {
+    background: color-mix(in oklab, var(--primary) 24%, transparent);
     }
 }
 
@@ -339,6 +534,26 @@
   }
 }
 
+/* ── 横向药丸列表 ────────────────────────────────────────────────────
+   热门标签这类单行横向列表：隐藏滚动条但保留滚动，右缘渐隐提示可继续滑动。
+   与顶栏药丸同一套「圆角 + 发丝边」语言，替代各页手写的 arbitrary 类。 */
+.galzy-scroll-x {
+  overflow-x: auto;
+  /* 只声明 overflow-x 时，overflow-y 会被计算成 auto：
+     内容比容器高 1px 就会在右侧冒出一条竖向滚动条。 */
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.galzy-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+.galzy-fade-x {
+  mask-image: linear-gradient(to right, black 82%, transparent 100%);
+}
+
 /* ── 滚动条 ──────────────────────────────────────────────────────────
    html 的 scrollbar-gutter: stable 让视口滚动条空间常驻占位：
    长页/短页之间路由切换（含 View Transition 过渡）不再因滚动条
@@ -377,8 +592,33 @@
 
 html {
   scrollbar-gutter: stable;
-  /* 顶栏是 fixed：Tab 聚焦 / scrollIntoView 时给 56px 让位，元素不会滚到顶栏底下 */
-  scroll-padding-top: 4.5rem;
+  /* 顶栏是 fixed：Tab 聚焦 / scrollIntoView 时让位，元素不会滚到顶栏底下。
+     16px 余量 + 顶栏高度，由令牌派生而非另写一个 4.5rem 魔法数。 */
+  scroll-padding-top: calc(var(--app-header-height) + 1rem);
+}
+
+/* ── 顶栏透明态对比度 ────────────────────────────────────────────────
+   顶栏在页面顶部透明时压着 /background.webp，背景可能是深色。
+   useHeaderTone 采样背景后给 header[data-header-tone] 切 light/dark，
+   子元素只消费这里的一组变量；滚动后变为玻璃药丸、属性移除，自动回退主题色。 */
+.galzy-site-header {
+  --header-fg: var(--foreground);
+  --header-muted: var(--muted-foreground);
+  --header-hover: color-mix(in oklab, var(--foreground) 8%, transparent);
+  --header-hover-fg: var(--foreground);
+  --header-success: var(--success);
+  --header-pink: oklch(0.656 0.241 354.308);
+}
+
+.galzy-site-header[data-header-tone='dark'] {
+  --header-fg: oklch(0.99 0 0);
+  --header-muted: oklch(1 0 0 / 0.86);
+  --header-hover: oklch(1 0 0 / 0.14);
+  --header-hover-fg: oklch(1 0 0);
+  --header-success: oklch(0.85 0.14 163);
+  --header-pink: oklch(0.8 0.17 350);
+  /* 图片背景上再给文字一层极轻的暗色投影，低亮度区域更稳 */
+  text-shadow: 0 1px 2px oklch(0 0 0 / 0.35);
 }
 
 /* ── 移动端顶栏全屏菜单（components/header/mobile-menu.tsx） ──────────

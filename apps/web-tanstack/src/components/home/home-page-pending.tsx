@@ -21,7 +21,7 @@ export function HomePagePending() {
 			{/* 计数文案固定，只有数字走 Count 内部的 Suspense 兜底 */}
 			<CountComponent />
 
-			<div className="px-5 sm:px-20 lg:px-80 my-4">
+			<div className="mx-auto mt-6 mb-8 w-full max-w-2xl px-1">
 				<SearchInput />
 			</div>
 

@@ -81,7 +81,7 @@ function App() {
 			{/* 计数文案是静态外壳，数字在客户端补（见 Count.tsx） */}
 			<CountComponent />
 
-			<div className="px-5 sm:px-20 lg:px-80 my-4">
+			<div className="mx-auto mt-6 mb-8 w-full max-w-2xl px-1">
 				<SearchInput />
 			</div>
 

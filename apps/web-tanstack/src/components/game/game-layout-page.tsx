@@ -6,6 +6,13 @@ import { Glgczujm } from "@web/components/home/game/tips";
 import { Card, CardContent } from "@web/components/ui/card";
 import { useIdlePreload } from "@web/hooks/use-idle-preload";
 
+/**
+ * 游戏详情页外壳（三明治：概览卡 → 页签 → 内容卡）。
+ *
+ * 三块共用顶栏的语言：rounded-2xl + 发丝描边（ring-border/60）+ 同一套
+ * Card 内边距。内容卡不再套一层 p-1 的内嵌卡——页签切换时内容区就是页面本身，
+ * 各 tab（下载/攻略/统计/系列）自己只负责区块内部的排版。
+ */
 export default function GameLayoutPage({
 	game,
 	id,
@@ -39,7 +46,9 @@ export default function GameLayoutPage({
 
 	return (
 		<div className="space-y-3">
-			<Card className="overflow-hidden wrap-break-word border-0 pb-0 ">
+			{/* 概览卡：封面 + 标题（VT 目标） + 发行/开发/发行商/简介/TAG。
+			    pb-0 交给 TagsCard 自己的下边距，避免卡片底部多出一截空白 */}
+			<Card className="wrap-break-word pb-0 ring-border/60">
 				<CardContent>
 					<GameHeader game={game} id={id} />
 					<GameInfo game={game} gameId={id} />
@@ -47,8 +56,9 @@ export default function GameLayoutPage({
 			</Card>
 
 			<GameTabs id={id} />
-			<Card className="p-1">
-				<CardContent className="p-1">
+
+			<Card className="ring-border/60">
+				<CardContent>
 					<Outlet />
 					<Glgczujm />
 				</CardContent>

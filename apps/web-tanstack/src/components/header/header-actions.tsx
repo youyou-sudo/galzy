@@ -40,8 +40,8 @@ export default function HeaderActions() {
 							className={cn(
 								"h-8 gap-1 rounded-lg px-2",
 								showR18
-									? "text-pink-500 hover:bg-pink-500/10 hover:text-pink-400"
-									: "text-emerald-600/90 hover:bg-emerald-500/10 hover:text-emerald-600 dark:text-emerald-500",
+									? "text-[color:var(--header-pink)] hover:bg-pink-500/10"
+									: "text-[color:var(--header-success)] hover:bg-success/10",
 							)}
 							onClick={r18Actions.toggle}
 						>
@@ -50,7 +50,7 @@ export default function HeaderActions() {
 							) : (
 								<EyeOff className="size-4 shrink-0" />
 							)}
-							<span className="text-[10px] leading-none font-bold">涩！</span>
+							<span className="text-[10px] leading-none font-semibold">涩！</span>
 						</Button>
 					}
 				/>
@@ -61,26 +61,26 @@ export default function HeaderActions() {
 
 			<ThemeToggle
 				variant="ghost"
-				size="icon"
-				className="text-muted-foreground hover:text-foreground"
+				size="icon-sm"
+				className="text-[color:var(--header-muted)] hover:bg-[var(--header-hover)] hover:text-[color:var(--header-fg)]"
 			/>
 
 			{/* 操作组与账户之间的发丝分隔：窄屏下省掉，避免和头像挤在一起 */}
 			<span
 				aria-hidden="true"
-				className="mx-1 hidden h-4 w-px bg-border/80 sm:block"
+				className="mx-1 hidden h-4 w-px bg-[color:var(--header-muted)]/30 sm:block"
 			/>
 
 			{mounted ? (
 				<Suspense
 					fallback={
-						<div className="size-8 animate-pulse rounded-full bg-muted" />
+						<div className="size-8 rounded-full bg-[color:var(--header-muted)]/25" />
 					}
 				>
 					<UserMenu />
 				</Suspense>
 			) : (
-				<div className="size-8 animate-pulse rounded-full bg-muted" />
+				<div className="size-8 rounded-full bg-[color:var(--header-muted)]/25" />
 			)}
 		</div>
 	);

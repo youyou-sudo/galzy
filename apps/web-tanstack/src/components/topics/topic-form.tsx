@@ -1,13 +1,9 @@
 import { useForm } from "@tanstack/react-form";
 import { EditorDraftBanner } from "@web/components/EditorDraftBanner";
 import { RichTextEditor } from "@web/components/editor/RichTextEditor";
+import { PageHeader } from "@web/components/shared/page-header";
 import { Button } from "@web/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@web/components/ui/card";
+import { Card, CardContent } from "@web/components/ui/card";
 import {
 	Field,
 	FieldContent,
@@ -17,7 +13,7 @@ import {
 import { Input } from "@web/components/ui/input";
 import { useEditorDraft } from "@web/hooks/use-editor-draft";
 import { htmlToPlainText, markdownToHtml } from "@web/lib/rich-text";
-import { Loader2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { useMemo } from "react";
 
 interface TopicFormProps {
@@ -35,14 +31,25 @@ interface TopicFormProps {
 	draftKey?: string;
 	submitLabel?: string;
 	title?: string;
+	description?: string;
+	/** 页头图标：发帖用默认，编辑传 PenLine */
+	icon?: typeof FileText;
 }
 
+/**
+ * 发帖 / 编辑帖子共用的表单。
+ *
+ * 页头走统一 PageHeader（与论坛列表、详情同源），表单卡片沿用 ui/card 的
+ * rounded-2xl + 发丝边；字段与主按钮的间距、高度在全站统一（h-9 / gap-5）。
+ */
 export function TopicForm({
 	defaultValues = { title: "", content: "", contentType: "html" },
 	onSubmit,
 	draftKey = "galzy:draft:topic:create",
 	submitLabel = "发布",
 	title = "发帖",
+	description,
+	icon = FileText,
 }: TopicFormProps) {
 	// 存量 Markdown 内容先转成 HTML 再进编辑器；编辑器始终产出 HTML。
 	const editorInitial = useMemo(
@@ -101,19 +108,18 @@ export function TopicForm({
 	};
 
 	return (
-		<div className="w-full max-w-7xl mx-auto">
-			<Card>
-				<CardHeader>
-					<CardTitle className="text-xl">{title}</CardTitle>
-				</CardHeader>
-				<CardContent className="p-6">
+		<div className="mx-auto w-full max-w-4xl">
+			<PageHeader icon={icon} title={title} description={description} />
+
+			<Card className="py-0">
+				<CardContent className="px-4 py-5 sm:px-6">
 					<form
 						onSubmit={(e) => {
 							e.preventDefault();
 							e.stopPropagation();
 							void form.handleSubmit();
 						}}
-						className="flex flex-col gap-6"
+						className="flex flex-col gap-5"
 					>
 						{draft.offered && (
 							<EditorDraftBanner
@@ -142,7 +148,6 @@ export function TopicForm({
 											value={field.state.value}
 											onChange={(e) => field.handleChange(e.target.value)}
 											onBlur={field.handleBlur}
-											className="text-base h-10"
 										/>
 									</FieldContent>
 								</Field>
@@ -174,24 +179,30 @@ export function TopicForm({
 							}}
 						</form.Field>
 
-						<form.Subscribe selector={(state) => state.isSubmitting}>
-							{(isSubmitting) => (
-								<Button
-									type="submit"
-									className="w-full"
-									disabled={isSubmitting}
-								>
-									{isSubmitting ? (
-										<>
-											<Loader2 className="size-4 animate-spin" />
-											提交中...
-										</>
-									) : (
-										submitLabel
-									)}
-								</Button>
-							)}
-						</form.Subscribe>
+						<div className="flex flex-col gap-3 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-end">
+							<p className="text-xs text-muted-foreground sm:mr-auto">
+								Ctrl/⌘ + Enter 快速提交，草稿会自动保存
+							</p>
+							<form.Subscribe selector={(state) => state.isSubmitting}>
+								{(isSubmitting) => (
+									<Button
+										type="submit"
+										size="lg"
+										className="w-full sm:w-auto"
+										disabled={isSubmitting}
+									>
+										{isSubmitting ? (
+											<>
+												<Loader2 className="size-4 animate-spin" aria-hidden="true" />
+												提交中...
+											</>
+										) : (
+											submitLabel
+										)}
+									</Button>
+								)}
+							</form.Subscribe>
+						</div>
 					</form>
 				</CardContent>
 			</Card>

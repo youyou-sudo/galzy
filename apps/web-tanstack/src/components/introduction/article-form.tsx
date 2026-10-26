@@ -2,13 +2,9 @@ import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { EditorDraftBanner } from "@web/components/EditorDraftBanner";
 import { RichTextEditor } from "@web/components/editor/RichTextEditor";
+import { PageHeader } from "@web/components/shared/page-header";
 import { Button } from "@web/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardHeader,
-	CardTitle,
-} from "@web/components/ui/card";
+import { Card, CardContent } from "@web/components/ui/card";
 import {
 	Field,
 	FieldContent,
@@ -25,7 +21,7 @@ import {
 	createIntroduction,
 	updateIntroduction,
 } from "@web/server/introduction";
-import { Loader2 } from "lucide-react";
+import { FileText, Loader2 } from "lucide-react";
 import { useMemo } from "react";
 import { toast } from "sonner";
 
@@ -212,12 +208,18 @@ export function ArticleForm({
 	});
 
 	return (
-		<div className="w-full max-w-7xl mx-auto">
+		<div className="mx-auto w-full max-w-5xl">
+			<PageHeader
+				icon={FileText}
+				title={title}
+				description={
+					isEdit
+						? "保存后重新提交审核；管理员编辑直接生效"
+						: "填写标题与正文后提交，通过审核后展示在攻略页"
+				}
+			/>
 			<Card>
-				<CardHeader>
-					<CardTitle className="text-xl">{title}</CardTitle>
-				</CardHeader>
-				<CardContent className="p-6">
+				<CardContent>
 					<form
 						onSubmit={(e) => {
 							e.preventDefault();
@@ -258,7 +260,7 @@ export function ArticleForm({
 												value={field.state.value}
 												onChange={(e) => field.handleChange(e.target.value)}
 												onBlur={field.handleBlur}
-												className="text-base h-10"
+												className="h-9"
 											/>
 											{isInvalid && (
 												<FieldError
@@ -316,7 +318,7 @@ export function ArticleForm({
 											onChange={(e) => field.handleChange(e.target.value)}
 											onBlur={field.handleBlur}
 											autoComplete="off"
-											className="text-base h-10"
+											className="h-9"
 										/>
 									</FieldContent>
 								</Field>
@@ -325,20 +327,22 @@ export function ArticleForm({
 
 						<form.Subscribe selector={(state) => state.isSubmitting}>
 							{(isSubmitting) => (
-								<Button
-									type="submit"
-									className="w-full"
-									disabled={isSubmitting}
-								>
-									{isSubmitting ? (
-										<>
-											<Loader2 className="size-4 animate-spin" />
-											提交中...
-										</>
-									) : (
-										submitLabel
-									)}
-								</Button>
+								<div className="flex justify-end">
+									<Button
+										type="submit"
+										className="w-full sm:w-auto sm:min-w-32"
+										disabled={isSubmitting}
+									>
+										{isSubmitting ? (
+											<>
+												<Loader2 className="size-4 animate-spin" />
+												提交中...
+											</>
+										) : (
+											submitLabel
+										)}
+									</Button>
+								</div>
 							)}
 						</form.Subscribe>
 					</form>

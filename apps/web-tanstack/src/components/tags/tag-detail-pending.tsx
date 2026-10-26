@@ -124,7 +124,7 @@ export function TagDetailPending({ tagId }: { tagId: string }) {
 			</section>
 
 			{/* 小标题是静态文案，直接渲染真实内容（不参与加载态） */}
-			<div className="mt-4 text-sm text-center items-center opacity-30 italic">
+			<div className="mt-6 mb-3 text-center text-xs text-muted-foreground">
 				相关游戏，过滤自 VNDB
 			</div>
 			<section>

@@ -82,9 +82,9 @@ type TagSortBarProps = { value: TagSortKey; order: TagOrderKey } & (
 );
 
 /**
- * 标签排序筛选条：两个下拉 —— 「依据」（收录数 / 总浏览量 / 本周热门 /
- * 本月热门 / 名称）与「方向」（正序 / 倒序）。标签库（一次切换对所有分类块
- * 生效）与分类页共用同一套 UI。
+ * 标签排序筛选条：「依据」下拉（收录数 / 总浏览量 / 本周热门 / 本月热门 /
+ * 名称）+「方向」分段按钮（正序 / 倒序）。标签库（一次切换对所有分类块生效）
+ * 与分类页共用同一套 UI；两个维度都是同一款 Select 组件。
  *
  * 排序状态进 URL（sort + order）：可分享、可回退，SSR 直出目标顺序，路由
  * loader 也能按这个值预取。两个维度相互独立 —— 换依据时「正序 / 倒序」的
@@ -134,8 +134,10 @@ export function TagSortBar(props: TagSortBarProps) {
 
 	return (
 		<div className="flex flex-wrap items-center gap-2">
-			<ListFilter className="size-4 shrink-0 text-muted-foreground" />
-			<span className="shrink-0 text-sm text-muted-foreground">排序：</span>
+			<span className="flex shrink-0 items-center gap-1.5 text-sm text-muted-foreground">
+				<ListFilter aria-hidden="true" className="size-4" />
+				排序
+			</span>
 			<Select
 				value={props.value}
 				onValueChange={(next) => {
@@ -143,10 +145,17 @@ export function TagSortBar(props: TagSortBarProps) {
 				}}
 				items={SORT_SELECT_ITEMS}
 			>
-				<SelectTrigger size="sm" className="w-28" aria-label="排序依据">
+				{/* 工具条里的下拉：去掉独立边框，靠 hover 底和箭头表达可点，
+				    避免「圆角条里再套一个圆角框」的割裂感；弹层从触发器下方展开，
+				    不再盖住触发器本身造成悬浮割裂。 */}
+				<SelectTrigger
+					size="sm"
+					className="h-8 w-28 rounded-lg border-0 bg-transparent px-2 font-medium text-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
+					aria-label="排序依据"
+				>
 					<SelectValue />
 				</SelectTrigger>
-				<SelectContent>
+				<SelectContent alignItemWithTrigger={false} sideOffset={6}>
 					{TAG_SORT_ITEMS.map((item) => (
 						<SelectItem key={item.key} value={item.key}>
 							{item.label}
@@ -154,6 +163,9 @@ export function TagSortBar(props: TagSortBarProps) {
 					))}
 				</SelectContent>
 			</Select>
+
+			{/* 方向与「排序依据」用同一个 Select 组件与同一套 ghost 触发器，
+			    两个控件在工具条里是同一种东西，不再一个是下拉、一个是分段按钮 */}
 			<Select
 				value={props.order}
 				onValueChange={(next) => {
@@ -161,10 +173,18 @@ export function TagSortBar(props: TagSortBarProps) {
 				}}
 				items={orderSelectItems}
 			>
-				<SelectTrigger size="sm" className="w-20" aria-label="排序方向">
+				<SelectTrigger
+					size="sm"
+					className="h-8 w-20 rounded-lg border-0 bg-transparent px-2 font-medium text-foreground hover:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/50"
+					aria-label="排序方向"
+				>
 					<SelectValue />
 				</SelectTrigger>
-				<SelectContent>
+				<SelectContent
+					alignItemWithTrigger={false}
+					sideOffset={6}
+					className="min-w-32"
+				>
 					{orderItems.map((item) => (
 						<SelectItem key={item.value} value={item.value}>
 							{item.label}

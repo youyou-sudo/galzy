@@ -37,6 +37,13 @@ interface TopicCardProps {
 	};
 }
 
+/**
+ * 论坛帖子卡片。
+ *
+ * 视觉沿用顶栏语言：rounded-2xl + 发丝边（Card 自带）、hover 只提亮底/边不位移。
+ * 三个 view-transition-name（头像 / 昵称 / 标题）供列表→详情做共享元素过渡，
+ * 进视口即预取详情数据；这两处行为与改版前完全一致。
+ */
 export function TopicCard({ topic }: TopicCardProps) {
 	const linkRef = useRef<HTMLAnchorElement>(null);
 	// 进入视口即预取帖子详情数据，点击秒开
@@ -54,9 +61,10 @@ export function TopicCard({ topic }: TopicCardProps) {
 			ref={linkRef}
 			to="/topics/$topicId"
 			params={{ topicId: String(topic.id) }}
+			className="group block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 		>
-			<Card className="hover:bg-accent/50 transition-colors cursor-pointer gap-1">
-				<CardHeader>
+			<Card className="gap-2 transition-colors duration-200 group-hover:bg-muted/40 group-hover:ring-border">
+				<CardHeader className="gap-2">
 					<div className="flex items-center gap-2">
 						<Avatar
 							className="size-6"
@@ -66,38 +74,38 @@ export function TopicCard({ topic }: TopicCardProps) {
 								src={topic.user?.image || ""}
 								alt={topic.user?.name}
 							/>
-							<AvatarFallback className="bg-muted text-muted-foreground text-xs">
+							<AvatarFallback className="bg-muted text-xs text-muted-foreground">
 								{topic.user?.name?.slice(0, 2).toUpperCase()}
 							</AvatarFallback>
 						</Avatar>
 						<span
-							className="text-sm text-muted-foreground inline-block"
+							className="inline-block truncate text-xs font-medium text-foreground/80"
 							style={{ viewTransitionName: `topic-nick-${topic.id}` }}
 						>
 							{topic.user?.name}
 						</span>
-						<span className="text-xs text-muted-foreground ml-auto">
+						<span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">
 							{formatTime(topic.createdAt)}
 						</span>
 					</div>
 					<h3
-						className="text-lg font-semibold mt-1 w-fit"
+						className="w-fit text-base font-medium text-balance text-foreground transition-colors duration-200 group-hover:text-primary"
 						style={{ viewTransitionName: `topic-title-${topic.id}` }}
 					>
 						{topic.title}
 					</h3>
 				</CardHeader>
 				<CardContent>
-					<p className="text-sm text-muted-foreground line-clamp-2 wrap-break-word">
+					<p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground wrap-break-word">
 						{topic.summary}
 					</p>
-					<div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+					<div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground tabular-nums">
 						<span className="flex items-center gap-1">
-							<Heart className="size-3.5" />
+							<Heart className="size-3.5" aria-hidden="true" />
 							<span>{topic.likeCount ?? 0}</span>
 						</span>
 						<span className="flex items-center gap-1">
-							<MessageSquare className="size-3.5" />
+							<MessageSquare className="size-3.5" aria-hidden="true" />
 							<span>{topic.replyCount ?? 0}</span>
 						</span>
 					</div>

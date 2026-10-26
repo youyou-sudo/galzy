@@ -22,11 +22,14 @@ export const downmodalActions = {
     }))
   },
 
+  // ⚠ 关闭时保留 data：Base UI Dialog 的退场动画（fade/zoom-out）期间
+  // popup 仍挂载，如果这里立刻把 data 置空，关闭的 100ms 内内容会突然
+  // 变成「未知大小 / 空文件名」并导致弹窗高度塌陷——表现就是关闭瞬间抖动、
+  // 数据消失。data 只在下次 open 时被新条目覆盖，无额外状态成本。
   setOpen(open: boolean) {
     downCardStore.setState((s) => ({
       ...s,
-      open: open,
-      data: open ? s.data : null,
+      open,
     }))
   },
 
@@ -34,7 +37,6 @@ export const downmodalActions = {
     downCardStore.setState((s) => ({
       ...s,
       open: false,
-      data: null,
     }))
   },
 

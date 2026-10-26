@@ -42,13 +42,13 @@ const commentComponents = {
 		/>
 	),
 	p: ({ className, ...props }: ComponentProps<"p">) => (
-		<p className={cn("my-1", className)} {...props} />
+		<p className={cn("my-0.5 first:mt-0 last:mb-0", className)} {...props} />
 	),
 	ul: ({ className, ...props }: ComponentProps<"ul">) => (
-		<ul className={cn("list-disc pl-4 my-1", className)} {...props} />
+		<ul className={cn("my-0.5 list-disc pl-4", className)} {...props} />
 	),
 	ol: ({ className, ...props }: ComponentProps<"ol">) => (
-		<ol className={cn("list-decimal pl-4 my-1", className)} {...props} />
+		<ol className={cn("my-0.5 list-decimal pl-4", className)} {...props} />
 	),
 	li: ({ className, ...props }: ComponentProps<"li">) => (
 		<li className={cn("my-0.5", className)} {...props} />
@@ -56,7 +56,7 @@ const commentComponents = {
 	blockquote: ({ className, ...props }: ComponentProps<"blockquote">) => (
 		<blockquote
 			className={cn(
-				"border-l-2 border-muted-foreground/30 pl-3 my-2 text-muted-foreground",
+				"my-1 border-l-2 border-border/60 pl-3 text-muted-foreground",
 				className,
 			)}
 			{...props}

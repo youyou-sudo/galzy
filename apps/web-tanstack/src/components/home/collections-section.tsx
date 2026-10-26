@@ -1,6 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useSelector } from "@tanstack/react-store";
+import {
+	SectionHeader,
+	sectionActionClass,
+} from "@web/components/shared/section-header";
 import { getCollectionsWithPreview } from "@web/server/collections";
 import { r18Store } from "@web/stores/r18Store";
 import { BookOpen } from "lucide-react";
@@ -19,19 +23,19 @@ const COLLECTION_SKELETON_KEYS = Array.from(
  */
 export function CollectionsSectionHeader() {
 	return (
-		<div className="flex items-center justify-between mb-4">
-			<div className="flex items-center gap-2">
-				<BookOpen className="size-5 text-primary" />
-				<h2 className="text-xl font-semibold">精选合集</h2>
-			</div>
-			<Link
-				to="/collections"
-				search={{ page: 1 }}
-				className="text-sm text-muted-foreground hover:text-primary transition-colors"
-			>
-				更多合集 →
-			</Link>
-		</div>
+		<SectionHeader
+			icon={BookOpen}
+			title="精选合集"
+			action={
+				<Link
+					to="/collections"
+					search={{ page: 1 }}
+					className={sectionActionClass}
+				>
+					更多合集 →
+				</Link>
+			}
+		/>
 	);
 }
 

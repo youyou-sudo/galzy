@@ -196,7 +196,7 @@ export default function SearchInput({
 		<div className="w-full">
 			<Popover open={dateOpen} onOpenChange={setDateOpen}>
 				<div className="relative">
-					<InputGroup className="border-2 rounded-lg">
+					<InputGroup className="h-10 bg-background/60 shadow-[0_1px_2px_oklch(0_0_0/0.03)]">
 						{/* 搜索图标 */}
 						<InputGroupAddon align="inline-start">
 							<SearchIcon className="size-4 text-muted-foreground" />
@@ -206,6 +206,8 @@ export default function SearchInput({
 						<InputGroupInput
 							ref={inputRef}
 							type="text"
+							aria-keyshortcuts="/"
+							title="按 / 快速聚焦搜索"
 							value={inputValue}
 							onChange={handleInputChange}
 							onKeyDown={handleKeyDown}
@@ -232,11 +234,13 @@ export default function SearchInput({
 							<PopoverTrigger
 								render={
 									<InputGroupButton
-										variant="secondary"
-										size="icon-xs"
+										variant="ghost"
+										size="icon-sm"
 										data-active={hasDateFilter || undefined}
 										className={
-											hasDateFilter ? "text-primary bg-primary/10" : ""
+											hasDateFilter
+												? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+												: "text-muted-foreground hover:text-foreground"
 										}
 									/>
 								}
@@ -248,10 +252,11 @@ export default function SearchInput({
 						{/* 搜索按钮 */}
 						<InputGroupAddon align="inline-end">
 							<InputGroupButton
-								variant="secondary"
+								variant="default"
+								className="mr-0.5"
 								onClick={() => handleSearch(inputValue)}
 							>
-								<SearchIcon className="size-4 mr-1" />
+								<SearchIcon className="size-4" />
 								搜索
 							</InputGroupButton>
 						</InputGroupAddon>
@@ -277,7 +282,7 @@ export default function SearchInput({
 				)}
 
 				{/* 日期筛选 Popover */}
-				<PopoverContent align="end" className="w-auto p-3">
+				<PopoverContent align="end" className="w-auto rounded-xl p-3">
 					<div className="grid grid-cols-2 gap-3">
 						<div className="flex flex-col gap-1.5">
 							<span className="text-xs font-medium text-muted-foreground">

@@ -10,10 +10,10 @@ export type ThemeMode = "light" | "dark" | "auto";
  */
 export function ThemeIcon({ mode }: { mode: ThemeMode }) {
 	if (mode === "light") {
-		return <Sun className="size-[1.2rem] text-amber-500" />;
+		return <Sun className="size-[1.2rem] text-warning" />;
 	}
 	if (mode === "dark") {
-		return <Moon className="size-[1.2rem] text-blue-400" />;
+		return <Moon className="size-[1.2rem] text-info" />;
 	}
-	return <Monitor className="size-[1.2rem] text-zinc-500" />;
+	return <Monitor className="size-[1.2rem] text-muted-foreground" />;
 }

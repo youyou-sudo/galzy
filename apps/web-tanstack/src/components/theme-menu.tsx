@@ -41,7 +41,7 @@ export function ThemeMenu({
 					<Button
 						variant={variant}
 						size={size}
-						className={cn("rounded-full", className)}
+						className={cn("rounded-lg", className)}
 						aria-label="切换主题"
 					/>
 				}
@@ -55,7 +55,7 @@ export function ThemeMenu({
 					className="flex items-center gap-2 cursor-pointer"
 					onClick={() => onSelect("light")}
 				>
-					<Sun className="size-4 text-amber-500" />
+					<Sun className="size-4 text-warning" />
 					<span>浅色</span>
 					{mode === "light" && <Check className="size-4 ml-auto" />}
 				</DropdownMenuItem>
@@ -64,7 +64,7 @@ export function ThemeMenu({
 					className="flex items-center gap-2 cursor-pointer"
 					onClick={() => onSelect("dark")}
 				>
-					<Moon className="size-4 text-blue-400" />
+					<Moon className="size-4 text-info" />
 					<span>深色</span>
 					{mode === "dark" && <Check className="size-4 ml-auto" />}
 				</DropdownMenuItem>
@@ -73,7 +73,7 @@ export function ThemeMenu({
 					className="flex items-center gap-2 cursor-pointer"
 					onClick={() => onSelect("auto")}
 				>
-					<Monitor className="size-4 text-zinc-500" />
+					<Monitor className="size-4 text-muted-foreground" />
 					<span>跟随系统</span>
 					{mode === "auto" && <Check className="size-4 ml-auto" />}
 				</DropdownMenuItem>

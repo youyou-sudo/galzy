@@ -76,7 +76,7 @@ function ThemeTrigger({
 		<Button
 			variant={variant}
 			size={size}
-			className={cn("rounded-full", className)}
+			className={cn("rounded-lg", className)}
 			aria-label="切换主题"
 			aria-haspopup={expanded === undefined ? undefined : "menu"}
 			aria-expanded={expanded}

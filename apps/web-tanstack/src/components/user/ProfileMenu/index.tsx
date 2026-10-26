@@ -53,8 +53,6 @@ export default function ProfileMenu({ open, onOpenChange }: ProfileMenuProps) {
 						{user.email}
 					</DialogDescription>
 				</DialogHeader>
-				<div>点击头像上传头像喵～</div>
-				<div>用户系统正在完善喵～</div>
 				<Tabs defaultValue="profile">
 					<TabsList variant="line" className="w-full">
 						<TabsTrigger value="profile" className="flex-1">

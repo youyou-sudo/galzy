@@ -1,9 +1,12 @@
 import { Link } from "@tanstack/react-router";
+import { EmptyState } from "@web/components/shared/empty-state";
+import { PageHeader } from "@web/components/shared/page-header";
 import { TagSortBar, tagMetricsTitle } from "@web/components/tags/tag-sort-bar";
 import {
 	TagTooltip,
 	TagTooltipContent,
 } from "@web/components/tags/tag-tooltip";
+import { Button } from "@web/components/ui/button";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { TooltipTrigger } from "@web/components/ui/tooltip";
 import { cn } from "@web/lib/utils";
@@ -84,16 +87,20 @@ export default function TagCategoryPage({
 
 function CategoryNotFound() {
 	return (
-		<div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-			<TagsIcon className="mb-4 size-12 opacity-30" />
-			<p className="text-lg">分类不存在</p>
-			<Link
-				to="/tags"
-				className="mt-3 text-sm text-primary no-underline hover:underline"
-			>
-				返回标签库
-			</Link>
-		</div>
+		<EmptyState
+			icon={TagsIcon}
+			title="分类不存在"
+			description="该标签分类可能已下线，回标签库换个分类看看"
+			action={
+				<Button
+					variant="outline"
+					size="sm"
+					render={<Link to="/tags" />}
+				>
+					返回标签库
+				</Button>
+			}
+		/>
 	);
 }
 
@@ -176,35 +183,31 @@ function CategoryTagList({
 	);
 
 	return (
-		<section className="flex flex-col gap-2">
-			<div className="flex flex-col gap-1.5">
-				<div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-					<div className="flex items-center gap-2">
-						<TagsIcon className="size-5 text-primary" />
-						<h1 className="text-2xl font-semibold">{category.name}</h1>
-					</div>
-					<span className="text-sm text-muted-foreground tabular-nums">
-						{category.tagCount} 个标签
-					</span>
-				</div>
-				{category.description && (
-					<p className="text-sm text-muted-foreground">
-						{category.description}
-					</p>
-				)}
-			</div>
-
-			<TagSortBar
-				scope="category"
-				categoryKey={category.key}
-				value={sort}
-				order={order}
+		<section>
+			<PageHeader
+				icon={TagsIcon}
+				title={category.name}
+				description={category.description}
+				meta={`${category.tagCount} 个标签`}
 			/>
 
+			{/* 排序条：与游戏列表同一条发丝底工具条，垂直节奏一致 */}
+			<div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl bg-muted/40 px-3 py-2 ring-1 ring-border/60">
+				<TagSortBar
+					scope="category"
+					categoryKey={category.key}
+					value={sort}
+					order={order}
+				/>
+			</div>
+
 			{tags.length === 0 ? (
-				<p className="py-8 text-center text-sm text-muted-foreground">
-					该分类暂无标签
-				</p>
+				<EmptyState
+					icon={TagsIcon}
+					title="该分类暂无标签"
+					description="标签数据正在同步，稍后再来看看吧"
+					size="sm"
+				/>
 			) : (
 				<div className="relative">
 					<ul
@@ -247,7 +250,7 @@ const TagRow = memo(function TagRow({ tag }: { tag: TagHubTag }) {
 							params={{ tagId: tag.id }}
 							// 点击时回写展示名，标签详情 pending 态复用
 							onClick={() => tagHeroActions.fromTag(tag)}
-							className="-mx-1.5 flex items-baseline gap-3 border-b border-border/70 px-1.5 py-[5px] text-xs leading-[18px] no-underline transition-colors hover:bg-muted/40"
+							className="-mx-1.5 flex items-baseline gap-3 rounded-sm border-b border-border/70 px-1.5 py-[5px] text-xs leading-[18px] no-underline transition-colors duration-200 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
 						>
 							<span className="min-w-0 flex-1 truncate">{tag.name}</span>
 							{tag.vnCount > 0 && (
@@ -264,16 +267,55 @@ const TagRow = memo(function TagRow({ tag }: { tag: TagHubTag }) {
 	);
 });
 
-export function TagCategoryPageSkeleton() {
+/**
+ * 分类页 pending：页头、排序工具条都是不依赖请求的静态结构，直接渲染真实 HTML；
+ * 只有分类名/描述/计数这类数据字段和标签行出骨架。
+ * 加载中也可以直接切换排序，不会因为整块骨架而点不到。
+ */
+export function TagCategoryPageSkeleton({
+	name,
+	description,
+	categoryKey,
+	sort,
+	order,
+}: {
+	name: string;
+	description?: string;
+	categoryKey: string;
+	sort: TagSortKey;
+	order: TagOrderKey;
+}) {
 	return (
-		<div className="flex flex-col gap-4" aria-hidden>
-			<Skeleton className="h-8 w-40" />
-			<Skeleton className="h-4 w-2/3 max-w-xl" />
-			<div className="grid grid-cols-2 gap-x-7 gap-y-[9px] sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
+		<section>
+			<PageHeader
+				icon={TagsIcon}
+				title={name}
+				description={description ?? "浏览该分类下的全部标签"}
+				meta={
+					<span
+						aria-hidden
+						className="inline-block h-4 w-12 rounded bg-muted"
+					/>
+				}
+			/>
+
+			<div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl bg-muted/40 px-3 py-2 ring-1 ring-border/60">
+				<TagSortBar
+					scope="category"
+					categoryKey={categoryKey}
+					value={sort}
+					order={order}
+				/>
+			</div>
+
+			<div
+				aria-hidden
+				className="mt-2 grid grid-cols-2 gap-x-7 gap-y-[9px] sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]"
+			>
 				{Array.from({ length: 24 }, (_, i) => (
 					<Skeleton key={i} className="h-4 w-full" />
 				))}
 			</div>
-		</div>
+		</section>
 	);
 }

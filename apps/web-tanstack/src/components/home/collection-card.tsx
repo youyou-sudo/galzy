@@ -87,12 +87,12 @@ function PokerStack({
 				);
 			})}
 
-			{/* Count badge — bottom-right */}
+			{/* Count badge — bottom-right：与 GameCard 标题/徽标同一套排版 */}
 			<div
 				style={{ zIndex: 30 }}
-				className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-white/85 dark:bg-black/60 px-2 py-0.5 text-xs font-medium shadow-sm"
+				className="absolute right-2 bottom-2 flex items-center gap-1 rounded-full bg-background/85 px-2 py-0.5 text-xs font-medium text-foreground/80 tabular-nums shadow-sm ring-1 ring-border/60 backdrop-blur-sm transition-colors duration-200 group-hover:text-primary"
 			>
-				<Layers className="size-3" />
+				<Layers aria-hidden="true" className="size-3" />
 				{count} 部
 			</div>
 		</div>
@@ -117,10 +117,10 @@ export function CollectionItem({ collection }: { collection: CollectionData }) {
 			ref={linkRef}
 			to="/collections/$id"
 			params={{ id: String(collection.id) }}
-			className="group block rounded-2xl transition-transform duration-300 hover:-translate-y-1"
+			className="group block rounded-2xl outline-none transition-transform duration-300 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring/60"
 		>
 			<PokerStack previews={collection.previews} count={gameCount} />
-			<h3 className="mt-2.5 text-sm font-medium text-center line-clamp-1 group-hover:text-primary transition-colors">
+			<h3 className="mx-auto mt-2 w-fit max-w-full truncate px-2 text-center text-xs text-foreground/85 transition-colors duration-200 group-hover:text-primary sm:text-sm">
 				{collection.title}
 			</h3>
 		</Link>

@@ -19,20 +19,22 @@ import type { HeaderNavItem, HeaderNavKey } from "./nav-config";
 /** 扁平链接与下拉触发器共用一套排版：同高同圆角，只差展开箭头 */
 const navItemClass = cn(
 	"h-8 gap-1.5 rounded-lg px-3 text-sm font-medium",
-	"text-muted-foreground transition-colors duration-200",
-	"hover:bg-muted/60 hover:text-foreground",
+	// 透明态颜色由 useHeaderTone 写进 .galzy-site-header 的变量；
+	// 滚动成玻璃药丸后 data-header-tone 移除，变量回退到主题色。
+	"text-[color:var(--header-muted)] transition-colors duration-200",
+	"hover:bg-[var(--header-hover)] hover:text-[color:var(--header-hover-fg)]",
 	"focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none",
 );
 
 /** 当前页高亮：TanStack Link 命中时自带 data-status="active" */
 const flatLinkClass = cn(
 	navItemClass,
-	"data-[status=active]:bg-muted/60 data-[status=active]:text-foreground",
+	"data-[status=active]:bg-[var(--header-hover)] data-[status=active]:text-[color:var(--header-fg)]",
 );
 
 const triggerClass = cn(
 	navItemClass,
-	"data-popup-open:bg-muted/60 data-popup-open:text-foreground",
+	"data-popup-open:bg-[var(--header-hover)] data-popup-open:text-[color:var(--header-fg)]",
 );
 
 /** 面板行的 render 目标：站外用 <a>，站内用 Link（保留预取） */
@@ -120,7 +122,8 @@ export function DesktopNav() {
 							<NavigationMenuTrigger
 								className={cn(
 									triggerClass,
-									activeMenu === entry.id && "bg-muted/60 text-foreground",
+									activeMenu === entry.id &&
+										"bg-[var(--header-hover)] text-[color:var(--header-fg)]",
 								)}
 							>
 								{entry.label}

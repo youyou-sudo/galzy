@@ -1,5 +1,7 @@
 import { getRouteApi } from "@tanstack/react-router";
 import { GameCard } from "@web/components/home/card";
+import { EmptyState } from "@web/components/shared/empty-state";
+import { GitFork } from "lucide-react";
 
 const apiroute = getRouteApi("/$id/_layout/relations");
 
@@ -52,18 +54,23 @@ export function RelationsPage() {
 
 	if (list.length === 0) {
 		return (
-			<div className="p-8 text-center text-sm text-zinc-500">暂无相关游戏</div>
+			<EmptyState
+				icon={GitFork}
+				size="sm"
+				title="暂无相关游戏"
+				description="这部作品还没有收录系列或关联作品"
+			/>
 		);
 	}
 
 	return (
 		<>
 			{truncated && (
-				<div className="p-4 pb-0 text-center text-xs text-zinc-400">
+				<p className="mb-3 text-center text-xs text-muted-foreground">
 					关联作品较多，仅显示部分
-				</div>
+				</p>
 			)}
-			<div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+			<div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
 				{list.map((rel) => {
 					const label =
 						RELATION_LABELS[rel.relation] ??
@@ -85,7 +92,9 @@ export function RelationsPage() {
 									)?.title || "null"
 								}
 							/>
-							<span className="absolute left-1 top-1 z-10 rounded bg-zinc-900/70 px-1.5 py-0.5 text-xs text-white">
+							{/* 关系标签：封面颜色不可控，必须用近实底 + 发丝边保证任何封面上都可读；
+							    字号从 11px 提到 12px，并限制最大宽度避免长标签压住封面 */}
+							<span className="pointer-events-none absolute top-2 left-2 z-10 max-w-[calc(100%-1rem)] truncate rounded-lg bg-background/95 px-2 py-1 text-xs font-semibold text-foreground shadow-sm ring-1 ring-border/70 backdrop-blur-sm">
 								{label}
 							</span>
 						</div>

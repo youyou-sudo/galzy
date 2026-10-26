@@ -1,8 +1,17 @@
-import { createFileRoute, redirect, useNavigate, useRouter } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Link,
+	redirect,
+	useNavigate,
+	useRouter,
+} from "@tanstack/react-router";
 import { ArticleForm } from "@web/components/introduction/article-form";
+import { EmptyState } from "@web/components/shared/empty-state";
+import { Button } from "@web/components/ui/button";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { seoMeta } from "@web/lib/seo";
 import { getSession } from "@web/server/auth/auth.functions";
+import { Gamepad2 } from "lucide-react";
 import * as z from "zod/mini";
 
 export const Route = createFileRoute("/introduction/create")({
@@ -33,9 +42,16 @@ function RouteComponent() {
 
 	if (!gameId) {
 		return (
-			<div className="text-center py-12 text-muted-foreground">
-				缺少游戏 ID，无法提交攻略喵～
-			</div>
+			<EmptyState
+				icon={Gamepad2}
+				title="缺少游戏 ID"
+				description="请从游戏详情页的「攻略」页签进入提交入口"
+				action={
+					<Button variant="outline" render={<Link to="/games" />}>
+						去逛游戏
+					</Button>
+				}
+			/>
 		);
 	}
 

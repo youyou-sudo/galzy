@@ -46,6 +46,7 @@ function RouteComponent() {
 	return (
 		<div className="flex flex-col gap-6">
 			<AdminPageHeader
+				icon={DatabaseIcon}
 				eyebrow="系统"
 				title="Meilisearch 管理"
 				description="管理 Meilisearch 搜索引擎的配置与索引"
@@ -56,7 +57,7 @@ function RouteComponent() {
 							navigate({ search: { indexType: v as IndexType } })
 						}
 					>
-						<SelectTrigger className="w-36">
+						<SelectTrigger size="sm" className="w-36">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -69,7 +70,7 @@ function RouteComponent() {
 			/>
 
 			<Tabs defaultValue="overview" className="w-full">
-				<div className="overflow-x-auto max-w-full -mb-[5px] pb-[5px]">
+				<div className="-mb-[5px] max-w-full overflow-x-auto pb-[5px]">
 					<TabsList variant="line">
 						<TabsTrigger value="overview">
 							<ServerIcon className="size-4" />

@@ -1,8 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useSelector } from "@tanstack/react-store";
 import {
-	FileListSkeleton,
 	GameTabSkeleton,
+	type GameTabKey,
 } from "@web/components/game/game-tab-skeleton";
 import { GameCard } from "@web/components/home/card";
 import { GameTabs, gameTabOf } from "@web/components/home/game/GameTabs";
@@ -89,7 +89,7 @@ export function GameDetailPending({ id }: { id: string }) {
 			<div className="space-y-3">
 				{/* 与 game-layout-page 完全一致的卡片外壳：首屏结构稳定，
 				    数据返回时只替换卡片内部字段，不再整页重排 */}
-				<Card className="overflow-hidden wrap-break-word border-0 pb-0">
+				<Card className="wrap-break-word pb-0 ring-border/60">
 					<CardContent>
 						<PendingGameHero hero={hero} id={id} />
 						<PendingGameInfo />
@@ -98,13 +98,9 @@ export function GameDetailPending({ id }: { id: string }) {
 
 				{/* 页签是真实内容：切 tab 走正常路由导航，pending 期间也可点击 */}
 				<GameTabs id={id} />
-				<Card className="p-1">
-					<CardContent className="p-1">
-						{currentTab === "download" ? (
-							<FileListSkeleton />
-						) : (
-							<GameTabSkeleton />
-						)}
+				<Card className="ring-border/60">
+					<CardContent>
+						<GameTabSkeleton tab={currentTab as GameTabKey} />
 						<Glgczujm />
 					</CardContent>
 				</Card>
@@ -137,10 +133,10 @@ export function PendingGameHero({
 					{/* inline-block 包裹与 GameHeader 一致：移动端靠父级 text-center 居中；
 					    封面本身 w-55 + 9/12 比例（AspectRatio 反推高度，不会再塌陷） */}
 					<div className="relative inline-block">
-						<div className="w-55 relative overflow-hidden text-left">
-							{/* 容器类名对齐 GameCard.Image（SensitiveImage）的 AspectRatio：
-							    只留 rounded-lg/overflow-hidden，不加 border/bg/shadow，
-							    否则真实封面到达时边框和阴影会「消失」造成 1px 抖动 */}
+						<div className="w-55 relative overflow-hidden rounded-xl text-left ring-1 ring-border/60">
+							{/* 内层容器对齐 GameCard.Image（SensitiveImage）的 AspectRatio：
+							    不加 border/bg/shadow，否则真实封面到达时会「消失」造成 1px 抖动；
+							    圆角与发丝边挂在外层包裹上，与 GameHeader 真实封面同一份类名 */}
 							<AspectRatio
 								aria-hidden
 								ratio={COVER_FALLBACK_RATIO}
@@ -166,7 +162,7 @@ export function PendingGameHero({
 		(hero.height ?? 0) > 0 && (hero.height ?? 0) < (hero.width ?? 0)
 			? "min-w-72.5"
 			: "w-55"
-	} relative overflow-hidden text-left`;
+	} relative overflow-hidden rounded-xl text-left ring-1 ring-border/60`;
 
 	return (
 		<>
@@ -195,7 +191,7 @@ export function PendingGameHero({
 			</div>
 			<div className="overflow-hidden wrap-break-word">
 				<h1
-					className="font-semibold text-2xl leading-[1.2] mt-2 w-fit"
+					className="mt-2 w-fit text-2xl leading-tight font-semibold tracking-tight"
 					style={{
 						viewTransitionName: `game-title-${id}`,
 						viewTransitionClass: "vt-text",
@@ -219,7 +215,7 @@ export function PendingGameInfo() {
 			{INFO_ROWS.map((label, index) => (
 				<div
 					key={label}
-					className={`text-sm text-zinc-500 dark:text-zinc-400${index === 0 ? " mt-1" : ""}`}
+					className={`text-sm text-muted-foreground${index === 0 ? " mt-1" : ""}`}
 				>
 					{label}
 					<Skeleton
@@ -233,7 +229,9 @@ export function PendingGameInfo() {
 			    浮动封面；骨架是整行块级元素，不加 BFC 会横穿/压在封面上（截图里的
 			    「突出来」）。建 BFC 后骨架与真实正文一样收在封面左侧。 */}
 			<div className="mt-2 flow-root">
-				<div className="text-xs text-zinc-500 uppercase mb-1">游戏简介</div>
+				<div className="mb-1 text-[11px] font-medium tracking-wider text-muted-foreground/70 uppercase">
+					游戏简介
+				</div>
 				<div className="space-y-1.5">
 					{DESCRIPTION_LINE_WIDTHS.map((width) => (
 						<Skeleton key={width} aria-hidden className={`h-4 ${width}`} />

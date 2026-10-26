@@ -3,25 +3,26 @@ import { Skeleton } from "@web/components/ui/skeleton";
 import { getTotalCount } from "@web/server/game";
 import { Send } from "lucide-react";
 
+/**
+ * 收录总数条：数字与频道入口并排，作为首屏的「数据背书」。
+ * 保留「共收录了：…条目」的文案切分，便于 pending 测试按区间断言。
+ */
 export default function CountComponent() {
 	return (
-		<div className="flex items-center justify-center text-center my-2">
-			<span className="pl-1 flex opacity-50">
-				共收录了：
-				<Count />
-				条目
+		<div className="my-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground sm:text-sm">
+			<span className="inline-flex items-center gap-1.5 tabular-nums">
+				共收录了：<Count /> 条目
 			</span>
-			<span className="inline-flex items-center gap-1 ml-2">
-				<a
-					className="underline text-blue-500 hover:text-blue-300"
-					target="_blank"
-					href="https://t.me/ziyuanlinyin"
-					rel="noopener"
-				>
-					频道
-				</a>
-				<Send size={15} className="text-blue-400" />
-			</span>
+			<span aria-hidden="true" className="hidden h-3 w-px bg-border sm:block" />
+			<a
+				className="inline-flex items-center gap-1 font-medium text-primary no-underline transition-colors hover:text-primary/80"
+				target="_blank"
+				href="https://t.me/ziyuanlinyin"
+				rel="noopener"
+			>
+				频道
+				<Send className="size-3.5" />
+			</a>
 		</div>
 	);
 }
@@ -40,7 +41,7 @@ const Count = () => {
 	});
 
 	if (data === undefined) {
-		return <Skeleton className="w-10 h-6 justify-center" />;
+		return <Skeleton className="mx-0.5 inline-block h-4 w-10 align-middle" />;
 	}
 
 	return <>{data}</>;

@@ -152,18 +152,36 @@ describe("GameDetailPending", () => {
 		expect(markup).toContain('<div><nav aria-label="breadcrumb"');
 	});
 
-	it("其它页签改用通用 tab 骨架", () => {
+	it("讨论页签出评论骨架（输入框 + 紧凑评论行）", () => {
 		routerMock.pathname = "/v17/comment";
 		const markup = renderToString(<GameDetailPending id="v17" />);
-		expect(markup).toContain("h-24 w-full rounded-xl");
+		expect(markup).toContain("h-20 w-full rounded-xl");
+		expect(markup).toContain("size-7 shrink-0 rounded-full");
 		expect(markup).not.toContain("h-9 w-full rounded-lg");
 	});
 
-	it("攻略文章嵌套路径仍按攻略页签出通用骨架", () => {
+	it("攻略文章嵌套路径仍按攻略页签出文章行骨架", () => {
 		routerMock.pathname = "/v17/introduction/42";
 		const markup = renderToString(<GameDetailPending id="v17" />);
-		expect(markup).toContain("h-24 w-full rounded-xl");
+		expect(markup).toContain("攻略文章");
+		expect(markup).toContain("h-4 w-3/5");
 		expect(markup).not.toContain("h-9 w-full rounded-lg");
+	});
+
+	it("统计页签出图表骨架", () => {
+		routerMock.pathname = "/v17/translate";
+		const markup = renderToString(<GameDetailPending id="v17" />);
+		expect(markup).toContain("总下载量");
+		expect(markup).toContain("h-52 w-full rounded-xl");
+	});
+
+	it("系列页签出与真实关系栅格同断点的卡片骨架", () => {
+		routerMock.pathname = "/v17/relations";
+		const markup = renderToString(<GameDetailPending id="v17" />);
+		expect(markup).toContain("grid-cols-2");
+		expect(markup).toContain("xl:grid-cols-6");
+		expect(markup).toContain("aspect-[9/13]");
+		expect(markup).toContain("h-5 w-12 rounded-lg");
 	});
 
 	it("store 里的 hero 与路由 id 不一致时不复用旧条目数据", () => {

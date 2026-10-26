@@ -1,9 +1,25 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import {
+	StatusPill,
+	Table,
+	TableCard,
+	TableEmpty,
+	TablePagination,
+	TableScroll,
+	TableSkeleton,
+	TableToolbar,
+	TBody,
+	Td,
+	Th,
+	THead,
+	Tr,
+	type StatusTone,
+} from "@web/components/admin/admin-table";
 import { AdminPageHeader } from "@web/components/admin/admin-page-header";
+import { SearchField } from "@web/components/shared/search-field";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
-import { Card, CardContent, CardHeader } from "@web/components/ui/card";
 import {
 	Dialog,
 	DialogContent,
@@ -13,6 +29,7 @@ import {
 	DialogTitle,
 } from "@web/components/ui/dialog";
 import { Input } from "@web/components/ui/input";
+import { Label } from "@web/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -31,8 +48,6 @@ import {
 	adminUpdateCollectionEntries,
 } from "@web/server/admin/collections";
 import {
-	ChevronLeftIcon,
-	ChevronRightIcon,
 	ExternalLinkIcon,
 	Loader2Icon,
 	Package,
@@ -78,6 +93,7 @@ export default function CollectionsPage() {
 	return (
 		<div className="flex flex-col gap-6">
 			<AdminPageHeader
+				icon={Package}
 				eyebrow="内容管理"
 				title="合集管理"
 				description="管理全站合集，支持创建、编辑与删除操作"
@@ -126,31 +142,13 @@ function CollectionsTable() {
 	const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 	const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
 
-	const goNext = () => {
-		if (currentPage < totalPages) {
-			setOffset(offset + PAGE_SIZE);
-		}
-	};
-
-	const goPrev = () => {
-		if (currentPage > 1) {
-			setOffset(Math.max(0, offset - PAGE_SIZE));
-		}
-	};
-
 	const refresh = () => {
 		queryClient.invalidateQueries({ queryKey: ["admin-all-collections"] });
 	};
 
-	const statusLabel: Record<
-		string,
-		{
-			label: string;
-			variant: "default" | "secondary" | "destructive" | "outline";
-		}
-	> = {
-		published: { label: "已发布", variant: "outline" as const },
-		hidden: { label: "已隐藏", variant: "secondary" as const },
+	const statusLabel: Record<string, { label: string; tone: StatusTone }> = {
+		published: { label: "已发布", tone: "success" },
+		hidden: { label: "已隐藏", tone: "warning" },
 	};
 
 	const typeLabel: Record<string, { label: string }> = {
@@ -159,151 +157,113 @@ function CollectionsTable() {
 	};
 
 	return (
-		<Card>
-			<CardHeader className="pb-3">
-				<div className="flex items-center gap-3">
-					<Select
-						value={statusFilter}
-						onValueChange={(v) => {
-							setStatusFilter(v != null && v === "__all__" ? "" : (v ?? ""));
-							setOffset(0);
-						}}
-					>
-						<SelectTrigger className="w-28">
-							<SelectValue placeholder="状态" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="__all__">全部状态</SelectItem>
-							<SelectItem value="published">已发布</SelectItem>
-							<SelectItem value="hidden">已隐藏</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
-			</CardHeader>
+		<TableCard>
+			<TableToolbar>
+				<Select
+					value={statusFilter}
+					onValueChange={(v) => {
+						setStatusFilter(v != null && v === "__all__" ? "" : (v ?? ""));
+						setOffset(0);
+					}}
+				>
+					<SelectTrigger className="w-28">
+						<SelectValue placeholder="状态" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="__all__">全部状态</SelectItem>
+						<SelectItem value="published">已发布</SelectItem>
+						<SelectItem value="hidden">已隐藏</SelectItem>
+					</SelectContent>
+				</Select>
+			</TableToolbar>
 
-			<CardContent className="p-0">
-				{isLoading ? (
-					<div className="flex items-center justify-center py-16">
-						<Loader2Icon className="size-6 animate-spin text-muted-foreground" />
-					</div>
-				) : collections.length === 0 ? (
-					<div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-						<Package className="size-10 mb-2" />
-						<p className="text-sm">暂无合集数据</p>
-					</div>
-				) : (
-					<div className="overflow-x-auto">
-						<table className="w-full">
-							<thead>
-								<tr className="border-b bg-muted/50">
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										ID
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										标题
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										类型
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										状态
-									</th>
-									<th className="text-left text-xs font-medium text-muted-foreground px-4 py-3">
-										创建时间
-									</th>
-									<th className="text-right text-xs font-medium text-muted-foreground px-4 py-3">
-										操作
-									</th>
-								</tr>
-							</thead>
-							<tbody>
-								{collections.map((collection) => {
-									const sl = statusLabel[collection.status] ?? {
-										label: collection.status,
-										variant: "secondary" as const,
-									};
-									const tl = typeLabel[collection.type] ?? {
-										label: collection.type,
-									};
-									return (
-										<tr
-											key={collection.id}
-											className="border-b last:border-0 hover:bg-muted/30 transition-colors"
-										>
-											<td className="px-4 py-3 text-xs text-muted-foreground">
-												#{collection.id}
-											</td>
-											<td className="px-4 py-3 max-w-xs">
-												<Link
-													to={"/collections/$id"}
-													params={{ id: String(collection.id) }}
-													target="_blank"
-													className="inline-flex items-center gap-1 text-sm font-medium text-blue-500 underline hover:text-blue-700 hover:no-underline"
-												>
-													{collection.title}
-													<ExternalLinkIcon className="size-3 shrink-0" />
-												</Link>
-											</td>
-											<td className="px-4 py-3">
-												<Badge variant="secondary">{tl.label}</Badge>
-											</td>
-											<td className="px-4 py-3">
-												<Badge variant={sl.variant}>{sl.label}</Badge>
-											</td>
-											<td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-												{new Date(collection.createdAt).toLocaleDateString(
-													"zh-CN",
-												)}
-											</td>
-											<td className="px-4 py-3 text-right">
-												<div className="flex items-center justify-end gap-1.5">
-													<EditCollectionDialog
-														collection={collection}
-														onDone={refresh}
-													/>
-													<DeleteCollectionDialog
-														collection={collection}
-														onDone={refresh}
-													/>
-												</div>
-											</td>
-										</tr>
-									);
-								})}
-							</tbody>
-						</table>
-					</div>
-				)}
-			</CardContent>
+			<TableScroll>
+				<Table minWidth="min-w-[820px]">
+					<THead>
+						<Tr>
+							<Th>ID</Th>
+							<Th>标题</Th>
+							<Th>类型</Th>
+							<Th>状态</Th>
+							<Th>创建时间</Th>
+							<Th align="right">操作</Th>
+						</Tr>
+					</THead>
+					{isLoading ? (
+						<TableSkeleton columns={6} />
+					) : collections.length === 0 ? (
+						<tbody>
+							<TableEmpty
+								colSpan={6}
+								icon={Package}
+								title="暂无合集数据"
+								description="调整筛选条件，或新建一个合集"
+							/>
+						</tbody>
+					) : (
+						<TBody>
+							{collections.map((collection) => {
+								const sl = statusLabel[collection.status] ?? {
+									label: collection.status,
+									tone: "neutral" as const,
+								};
+								const tl = typeLabel[collection.type] ?? {
+									label: collection.type,
+								};
+								return (
+									<Tr key={collection.id}>
+										<Td className="text-xs text-muted-foreground">
+											#{collection.id}
+										</Td>
+										<Td className="max-w-xs">
+											<Link
+												to={"/collections/$id"}
+												params={{ id: String(collection.id) }}
+												target="_blank"
+												className="inline-flex items-center gap-1 rounded text-sm font-medium text-primary transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+											>
+												{collection.title}
+												<ExternalLinkIcon className="size-3 shrink-0" />
+											</Link>
+										</Td>
+										<Td>
+											<Badge variant="secondary">{tl.label}</Badge>
+										</Td>
+										<Td>
+											<StatusPill tone={sl.tone}>{sl.label}</StatusPill>
+										</Td>
+										<Td className="text-xs whitespace-nowrap text-muted-foreground">
+											{new Date(collection.createdAt).toLocaleDateString(
+												"zh-CN",
+											)}
+										</Td>
+										<Td align="right">
+											<div className="flex items-center justify-end gap-1.5">
+												<EditCollectionDialog
+													collection={collection}
+													onDone={refresh}
+												/>
+												<DeleteCollectionDialog
+													collection={collection}
+													onDone={refresh}
+												/>
+											</div>
+										</Td>
+									</Tr>
+								);
+							})}
+						</TBody>
+					)}
+				</Table>
+			</TableScroll>
 
-			{total > PAGE_SIZE && (
-				<div className="flex items-center justify-between px-4 py-3 border-t">
-					<span className="text-xs text-muted-foreground">
-						共 {total} 个合集 · 第 {currentPage}/{totalPages} 页
-					</span>
-					<div className="flex items-center gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={goPrev}
-							disabled={currentPage <= 1}
-						>
-							<ChevronLeftIcon className="size-4" />
-							上一页
-						</Button>
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={goNext}
-							disabled={currentPage >= totalPages}
-						>
-							下一页
-							<ChevronRightIcon className="size-4" />
-						</Button>
-					</div>
-				</div>
-			)}
-		</Card>
+			<TablePagination
+				page={currentPage}
+				totalPages={totalPages}
+				totalItems={total}
+				onPageChange={(next) => setOffset((next - 1) * PAGE_SIZE)}
+			/>
+		</TableCard>
 	);
 }
 
@@ -344,7 +304,7 @@ function ProducerSearch({ selectedIds, onToggle }: ProducerSearchProps) {
 
 	return (
 		<div className="space-y-2">
-			<label className="text-sm font-medium">绑定会社</label>
+			<Label>绑定会社</Label>
 			{selectedIds.length > 0 && (
 				<div className="flex flex-wrap gap-1 mb-2">
 					{selectedIds.map((pid) => (
@@ -352,8 +312,9 @@ function ProducerSearch({ selectedIds, onToggle }: ProducerSearchProps) {
 							{pid}
 							<button
 								type="button"
+								aria-label={`移除会社 ${pid}`}
 								onClick={() => onToggle(pid)}
-								className="ml-1 hover:text-destructive"
+								className="ml-1 rounded transition-colors hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
 							>
 								<X className="size-3" />
 							</button>
@@ -361,13 +322,14 @@ function ProducerSearch({ selectedIds, onToggle }: ProducerSearchProps) {
 					))}
 				</div>
 			)}
-			<Input
+			<SearchField
 				value={query}
-				onChange={(e) => handleInput(e.target.value)}
+				onChange={handleInput}
 				placeholder="搜索会社名称或输入 ID（如 p123）"
+				ariaLabel="搜索会社"
 			/>
 			{(results.length > 0 || searching) && (
-				<div className="max-h-40 overflow-y-auto border rounded-lg divide-y">
+				<div className="max-h-40 divide-y overflow-y-auto rounded-xl ring-1 ring-border/60">
 					{searching && results.length === 0 && (
 						<div className="flex items-center justify-center py-4">
 							<Loader2Icon className="size-4 animate-spin text-muted-foreground" />
@@ -376,7 +338,7 @@ function ProducerSearch({ selectedIds, onToggle }: ProducerSearchProps) {
 					{results.map((p) => (
 						<label
 							key={p.id}
-							className="flex items-center gap-2 cursor-pointer py-2 px-3 hover:bg-muted/50"
+							className="flex cursor-pointer items-center gap-2 px-3 py-2 transition-colors hover:bg-muted/40"
 						>
 							<input
 								type="checkbox"
@@ -459,7 +421,7 @@ function GameSearch({
 
 	return (
 		<div className="space-y-2">
-			<label className="text-sm font-medium">游戏条目（VID）</label>
+			<Label>游戏条目（VID）</Label>
 			{selectedVids.length > 0 && (
 				<div className="flex flex-wrap gap-1 mb-2">
 					{selectedVids.map((vid) => (
@@ -467,8 +429,9 @@ function GameSearch({
 							{vid}
 							<button
 								type="button"
+								aria-label={`移除游戏 ${vid}`}
 								onClick={() => onRemove(vid)}
-								className="ml-1 hover:text-destructive"
+								className="ml-1 rounded transition-colors hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
 							>
 								<X className="size-3" />
 							</button>
@@ -476,13 +439,14 @@ function GameSearch({
 					))}
 				</div>
 			)}
-			<Input
+			<SearchField
 				value={query}
-				onChange={(e) => handleInput(e.target.value)}
+				onChange={handleInput}
 				placeholder="搜索游戏名称或输入 VID（如 v12345）"
+				ariaLabel="搜索游戏"
 			/>
 			{(results.length > 0 || searching) && (
-				<div className="max-h-40 overflow-y-auto border rounded-lg divide-y">
+				<div className="max-h-40 divide-y overflow-y-auto rounded-xl ring-1 ring-border/60">
 					{searching && results.length === 0 && (
 						<div className="flex items-center justify-center py-4">
 							<Loader2Icon className="size-4 animate-spin text-muted-foreground" />
@@ -492,7 +456,7 @@ function GameSearch({
 						<button
 							key={g.id}
 							type="button"
-							className="w-full text-left flex items-center gap-2 px-3 py-2 hover:bg-muted/50 disabled:opacity-50"
+							className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-muted/40 disabled:opacity-50"
 							disabled={selectedVids.includes(g.id)}
 							onClick={() => {
 								if (!selectedVids.includes(g.id)) {
@@ -611,7 +575,7 @@ function CreateCollectionDialog({ onDone }: { onDone: () => void }) {
 					</DialogHeader>
 					<div className="space-y-4">
 						<div className="space-y-2">
-							<label className="text-sm font-medium">合集名称</label>
+							<Label>合集名称</Label>
 							<Input
 								value={form.title}
 								onChange={(e) =>
@@ -622,7 +586,7 @@ function CreateCollectionDialog({ onDone }: { onDone: () => void }) {
 						</div>
 
 						<div className="space-y-2">
-							<label className="text-sm font-medium">简介</label>
+							<Label>简介</Label>
 							<Textarea
 								value={form.description}
 								onChange={(e) =>
@@ -636,7 +600,7 @@ function CreateCollectionDialog({ onDone }: { onDone: () => void }) {
 						</div>
 
 						<div className="space-y-2">
-							<label className="text-sm font-medium">类型</label>
+							<Label>类型</Label>
 							<Select
 								value={form.type}
 								onValueChange={(v) =>
@@ -682,7 +646,7 @@ function CreateCollectionDialog({ onDone }: { onDone: () => void }) {
 						)}
 
 						<div className="space-y-2">
-							<label className="text-sm font-medium">状态</label>
+							<Label>状态</Label>
 							<Select
 								value={form.status}
 								onValueChange={(v) =>
@@ -708,9 +672,7 @@ function CreateCollectionDialog({ onDone }: { onDone: () => void }) {
 							取消
 						</Button>
 						<Button onClick={handleSubmit} disabled={submitting}>
-							{submitting && (
-								<Loader2Icon className="size-4 animate-spin mr-1" />
-							)}
+							{submitting && <Loader2Icon className="size-4 animate-spin" />}
 							创建
 						</Button>
 					</DialogFooter>
@@ -818,7 +780,7 @@ function EditCollectionDialog({
 					</DialogHeader>
 					<div className="space-y-4">
 						<div className="space-y-2">
-							<label className="text-sm font-medium">合集名称</label>
+							<Label>合集名称</Label>
 							<Input
 								value={form.title}
 								onChange={(e) =>
@@ -829,7 +791,7 @@ function EditCollectionDialog({
 						</div>
 
 						<div className="space-y-2">
-							<label className="text-sm font-medium">简介</label>
+							<Label>简介</Label>
 							<Textarea
 								value={form.description}
 								onChange={(e) =>
@@ -843,7 +805,7 @@ function EditCollectionDialog({
 						</div>
 
 						<div className="space-y-2">
-							<label className="text-sm font-medium">类型</label>
+							<Label>类型</Label>
 							<Select
 								value={form.type}
 								onValueChange={(v) =>
@@ -889,7 +851,7 @@ function EditCollectionDialog({
 						)}
 
 						<div className="space-y-2">
-							<label className="text-sm font-medium">状态</label>
+							<Label>状态</Label>
 							<Select
 								value={form.status}
 								onValueChange={(v) =>
@@ -915,9 +877,7 @@ function EditCollectionDialog({
 							取消
 						</Button>
 						<Button onClick={handleSubmit} disabled={submitting}>
-							{submitting && (
-								<Loader2Icon className="size-4 animate-spin mr-1" />
-							)}
+							{submitting && <Loader2Icon className="size-4 animate-spin" />}
 							保存
 						</Button>
 					</DialogFooter>
@@ -991,9 +951,7 @@ function DeleteCollectionDialog({
 							onClick={handleDelete}
 							disabled={submitting}
 						>
-							{submitting && (
-								<Loader2Icon className="size-4 animate-spin mr-1" />
-							)}
+							{submitting && <Loader2Icon className="size-4 animate-spin" />}
 							确认删除
 						</Button>
 					</DialogFooter>

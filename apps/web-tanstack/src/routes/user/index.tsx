@@ -1,6 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect } from '@tanstack/react-router'
+import { EmptyState } from '@web/components/shared/empty-state'
+import { PageHeader } from '@web/components/shared/page-header'
+import { Pagination } from '@web/components/shared/pagination'
 import { TopicCard } from '@web/components/topics/topic-card'
+import { Button } from '@web/components/ui/button'
 import {
   Card,
   CardContent,
@@ -24,6 +28,7 @@ import { authClient } from '@web/server/auth/auth-client'
 import { getUserFavorites, getUserLikes } from '@web/server/topics'
 import { Bookmark, Heart, Mail, Shield, User } from 'lucide-react'
 import { useEffect } from 'react'
+import type { ReactNode } from 'react'
 import { toast } from 'sonner'
 import * as z from 'zod/mini'
 
@@ -44,6 +49,86 @@ const UserSearchSchema = z.object({
   ),
   page: z._default(z.optional(z.number()), 1),
 })
+
+/** 账户页的静态标签页配置：真实页与 pending 骨架共用，标签文案/图标只写一份 */
+const USER_TABS = [
+  { value: 'profile', label: '个人资料', icon: User, cardTitle: '个人资料' },
+  { value: 'security', label: '安全', icon: Shield, cardTitle: '安全设置' },
+  { value: 'likes', label: '喜欢', icon: Heart, cardTitle: '喜欢的帖子' },
+  { value: 'favorites', label: '收藏', icon: Bookmark, cardTitle: '收藏的帖子' },
+] as const
+
+/** 页签栏：真实页和 pending 态共用，加载时标签也是可读的真实 HTML */
+function UserTabsList() {
+  return (
+    <TabsList variant="line" className="w-full">
+      {USER_TABS.map(({ value, label, icon: Icon }) => (
+        <TabsTrigger key={value} value={value} className="flex-1">
+          <Icon className="size-4" />
+          {label}
+        </TabsTrigger>
+      ))}
+    </TabsList>
+  )
+}
+
+/** 当前标签页对应的卡片外壳：标题来自静态配置，真实页与 pending 共用 */
+function UserTabCard({
+  value,
+  children,
+}: {
+  value: (typeof USER_TABS)[number]['value']
+  children: ReactNode
+}) {
+  const tab = USER_TABS.find((item) => item.value === value)
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold tracking-tight">
+          {tab?.cardTitle}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  )
+}
+
+/** 用户信息卡的静态外壳：卡片本身不依赖请求，pending 时也直接渲染 */
+function UserCardShell({ children }: { children: ReactNode }) {
+  return (
+    // Card 自带 py-4，CardContent 再写 pt-6 会叠出 40px 顶部留白、底部却只有 16px。
+    // 这里把 Card 的纵向内边距归零，由 CardContent 统一给 16/20px 的对称留白。
+    <Card className="py-0">
+      <CardContent className="p-4 sm:p-5">{children}</CardContent>
+    </Card>
+  )
+}
+
+/** 收藏/喜欢列表的加载态：真实页和 pending 态共用同一份 */
+function TopicListSkeleton() {
+  return (
+    <div className="space-y-3" aria-busy="true">
+      {[0, 1, 2].map((i) => (
+        <Skeleton key={i} className="h-28 w-full rounded-2xl" />
+      ))}
+    </div>
+  )
+}
+
+/** 个人资料/安全设置的表单加载态 */
+function FormSkeleton() {
+  return (
+    <div className="space-y-4" aria-busy="true">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="space-y-2">
+          <Skeleton className="h-3 w-16" />
+          <Skeleton className="h-9 w-full rounded-xl" />
+        </div>
+      ))}
+      <Skeleton className="h-9 w-24 rounded-lg" />
+    </div>
+  )
+}
 
 export const Route = createFileRoute('/user/')({
   head: () =>
@@ -125,237 +210,199 @@ function UserPage() {
     queryFn: async () => await getUserLikes({ data: { page, limit: 10 } }),
   })
 
+  const goPage = (next: number) =>
+    navigate({
+      search: (s) => ({ ...s, page: next }),
+      resetScroll: false,
+    })
+
   if (!user) return null
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      {/* 用户头部信息 */}
-      <Card>
-        <CardContent className="pt-6">
+    <div className="mx-auto w-full max-w-3xl">
+      <PageHeader
+        icon={User}
+        title="个人中心"
+        description="管理头像、账户安全，以及收藏和喜欢的帖子"
+      />
+
+      <div className="space-y-6">
+        {/* 用户头部信息 */}
+        <UserCardShell>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-            <div className="flex flex-col items-center gap-1.5">
-              <AvatarComp name={user.name} image={user.image} editor />
-              <span className="text-xs text-muted-foreground/70 cursor-default select-none">
-                点击更换头像
-              </span>
-            </div>
-            <div className="flex-1 min-w-0 text-center sm:text-left">
-              <h2 className="text-xl font-semibold truncate">{user.name}</h2>
-              <p className="text-sm text-muted-foreground flex items-center justify-center sm:justify-start gap-1 mt-1">
-                <Mail className="size-4 shrink-0" />
-                <span className="truncate">{user.email}</span>
-              </p>
+              <div className="flex flex-col items-center gap-1.5">
+                <AvatarComp name={user.name} image={user.image} editor />
+                <span className="cursor-default text-xs text-muted-foreground/70 select-none">
+                  点击更换头像
+                </span>
+              </div>
+              <div className="min-w-0 flex-1 text-center sm:text-left">
+                <h2 className="truncate text-lg font-semibold tracking-tight">
+                  {user.name}
+                </h2>
+                <p className="mt-1 flex items-center justify-center gap-1 text-xs text-muted-foreground sm:justify-start">
+                  <Mail className="size-3.5 shrink-0" aria-hidden="true" />
+                  <span className="truncate">{user.email}</span>
+                </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </UserCardShell>
 
-      {/* 标签页：个人资料 & 安全 & 收藏 & 喜欢 */}
-      <Tabs
-        value={tab}
-        onValueChange={(v) =>
-          navigate({
-            search: (s) => ({ ...s, tab: v as typeof tab }),
-            resetScroll: false,
-          })
-        }
-      >
-        <TabsList variant="line" className="w-full">
-          <TabsTrigger value="profile" className="flex-1">
-            <User className="size-4" />
-            个人资料
-          </TabsTrigger>
-          <TabsTrigger value="security" className="flex-1">
-            <Shield className="size-4" />
-            安全
-          </TabsTrigger>
-          <TabsTrigger value="likes" className="flex-1">
-            <Heart className="size-4" />
-            喜欢
-          </TabsTrigger>
-          <TabsTrigger value="favorites" className="flex-1">
-            <Bookmark className="size-4" />
-            收藏
-          </TabsTrigger>
-        </TabsList>
+        {/* 标签页：个人资料 & 安全 & 收藏 & 喜欢 */}
+        <Tabs
+          value={tab}
+          onValueChange={(v) =>
+            navigate({
+              search: (s) => ({ ...s, tab: v as typeof tab }),
+              resetScroll: false,
+            })
+          }
+        >
+          <UserTabsList />
 
-        <TabsContent value="profile" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">个人资料</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <TabsContent value="profile" className="mt-4">
+            <UserTabCard value="profile">
               <ProfileTab user={user} onProfileUpdated={refetchSession} />
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </UserTabCard>
+          </TabsContent>
 
-        <TabsContent value="security" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">安全设置</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <TabsContent value="security" className="mt-4">
+            <UserTabCard value="security">
               <SecurityTab />
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </UserTabCard>
+          </TabsContent>
 
-        <TabsContent value="favorites" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">收藏的帖子</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {favLoading ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  加载中...
-                </p>
-              ) : !favData?.topics?.length ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  还没有收藏任何帖子
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {favData.topics.map((topic) => (
-                    <TopicCard key={topic.id} topic={topic} />
-                  ))}
-                  {favData.totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 pt-4">
-                      <button
-                        type="button"
-                        disabled={page <= 1}
-                        onClick={() =>
-                          navigate({
-                            search: (s) => ({
-                              ...s,
-                              page: page - 1,
-                            }),
-                            resetScroll: false,
-                          })
-                        }
-                        className="px-3 py-1 text-sm rounded border disabled:opacity-40"
+          <TabsContent value="favorites" className="mt-4">
+            <UserTabCard value="favorites">
+                {favLoading ? (
+                  <TopicListSkeleton />
+                ) : !favData?.topics?.length ? (
+                  <EmptyState
+                    size="sm"
+                    icon={Bookmark}
+                    title="还没有收藏任何帖子"
+                    description="在帖子详情页点收藏，这里就能找回来"
+                    action={
+                      <Button
+                        variant="outline"
+                        render={<Link to="/topics" search={{ page: 1 }} />}
                       >
-                        上一页
-                      </button>
-                      <span className="text-sm text-muted-foreground">
-                        {page} / {favData.totalPages}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={page >= favData.totalPages}
-                        onClick={() =>
-                          navigate({
-                            search: (s) => ({
-                              ...s,
-                              page: page + 1,
-                            }),
-                            resetScroll: false,
-                          })
-                        }
-                        className="px-3 py-1 text-sm rounded border disabled:opacity-40"
-                      >
-                        下一页
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                        去论坛逛逛
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {favData.topics.map((topic) => (
+                      <TopicCard key={topic.id} topic={topic} />
+                    ))}
+                    <Pagination
+                      page={page}
+                      totalPages={favData.totalPages}
+                      totalItems={favData.total}
+                      onPageChange={goPage}
+                    />
+                  </div>
+                )}
+            </UserTabCard>
+          </TabsContent>
 
-        <TabsContent value="likes" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">喜欢的帖子</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {likeLoading ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  加载中...
-                </p>
-              ) : !likeData?.topics?.length ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  还没有喜欢任何帖子
-                </p>
-              ) : (
-                <div className="flex flex-col space-y-3">
-                  {likeData.topics.map((topic) => (
-                    <TopicCard key={topic.id} topic={topic} />
-                  ))}
-                  {likeData.totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 pt-4">
-                      <button
-                        type="button"
-                        disabled={page <= 1}
-                        onClick={() =>
-                          navigate({
-                            search: (s) => ({
-                              ...s,
-                              page: page - 1,
-                            }),
-                            resetScroll: false,
-                          })
-                        }
-                        className="px-3 py-1 text-sm rounded border disabled:opacity-40"
+          <TabsContent value="likes" className="mt-4">
+            <UserTabCard value="likes">
+                {likeLoading ? (
+                  <TopicListSkeleton />
+                ) : !likeData?.topics?.length ? (
+                  <EmptyState
+                    size="sm"
+                    icon={Heart}
+                    title="还没有喜欢任何帖子"
+                    description="看到喜欢的帖子点个赞，就会出现在这里"
+                    action={
+                      <Button
+                        variant="outline"
+                        render={<Link to="/topics" search={{ page: 1 }} />}
                       >
-                        上一页
-                      </button>
-                      <span className="text-sm text-muted-foreground">
-                        {page} / {likeData.totalPages}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={page >= likeData.totalPages}
-                        onClick={() =>
-                          navigate({
-                            search: (s) => ({
-                              ...s,
-                              page: page + 1,
-                            }),
-                            resetScroll: false,
-                          })
-                        }
-                        className="px-3 py-1 text-sm rounded border disabled:opacity-40"
-                      >
-                        下一页
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                        去论坛逛逛
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    {likeData.topics.map((topic) => (
+                      <TopicCard key={topic.id} topic={topic} />
+                    ))}
+                    <Pagination
+                      page={page}
+                      totalPages={likeData.totalPages}
+                      totalItems={likeData.total}
+                      onPageChange={goPage}
+                    />
+                  </div>
+                )}
+            </UserTabCard>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   )
 }
 
+/**
+ * 路由 pending：标题、页签、卡片外壳都是静态 HTML，直接渲染真实组件；
+ * 只有用户资料（头像/昵称/邮箱）和表单/帖子内容出骨架。
+ * 这样加载完成时只换内容，不会整页重排，也不会把「个人中心」标题变成灰条。
+ */
 function UserPageSkeleton() {
+  const { tab } = Route.useSearch()
+  const navigate = Route.useNavigate()
+
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <Card>
-        <CardContent className="pt-6">
+    <div className="mx-auto w-full max-w-3xl">
+      <PageHeader
+        icon={User}
+        title="个人中心"
+        description="管理头像、账户安全，以及收藏和喜欢的帖子"
+      />
+
+      <div className="space-y-6">
+        {/* 用户资料卡：卡片外壳固定，只有头像和文字出骨架 */}
+        <UserCardShell>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-            <Skeleton className="size-20 rounded-full" />
+            <div className="flex flex-col items-center gap-1.5">
+              <Skeleton className="size-10 rounded-full" />
+              <Skeleton className="h-3 w-20" />
+            </div>
             <div className="flex-1 space-y-2">
-              <Skeleton className="h-6 w-32" />
-              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-3.5 w-48" />
             </div>
           </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="p-6">
-          <div className="space-y-3">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-          </div>
-        </CardContent>
-      </Card>
+        </UserCardShell>
+
+        {/* 页签栏是静态导航，加载中也可用；内容区按当前 tab 出对应骨架 */}
+        <Tabs
+          value={tab}
+          onValueChange={(v) =>
+            navigate({
+              search: (s) => ({ ...s, tab: v as typeof tab }),
+              resetScroll: false,
+            })
+          }
+        >
+          <UserTabsList />
+          {USER_TABS.map(({ value }) => (
+            <TabsContent key={value} value={value} className="mt-4">
+              <UserTabCard value={value}>
+                {value === "profile" || value === "security" ? (
+                  <FormSkeleton />
+                ) : (
+                  <TopicListSkeleton />
+                )}
+              </UserTabCard>
+            </TabsContent>
+          ))}
+        </Tabs>
+      </div>
     </div>
   )
 }

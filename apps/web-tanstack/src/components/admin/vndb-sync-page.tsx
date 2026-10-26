@@ -1,5 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { StatusPill, type StatusTone } from "@web/components/admin/admin-table";
 import { AdminPageHeader } from "@web/components/admin/admin-page-header";
+import { EmptyState } from "@web/components/shared/empty-state";
+import { IconTile } from "@web/components/shared/icon-tile";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
 import {
@@ -34,15 +37,19 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-const statusConfig = {
-	idle: { label: "空闲", variant: "secondary" as const, icon: null },
-	running: { label: "运行中", variant: "default" as const, icon: Loader2Icon },
-	completed: {
-		label: "已完成",
-		variant: "default" as const,
-		icon: CheckCircleIcon,
-	},
-	failed: { label: "失败", variant: "destructive" as const, icon: XCircleIcon },
+const statusConfig: Record<
+	"idle" | "running" | "completed" | "failed",
+	{
+		label: string;
+		tone: StatusTone;
+		icon?: typeof CheckCircleIcon;
+		spin?: boolean;
+	}
+> = {
+	idle: { label: "空闲", tone: "neutral" },
+	running: { label: "运行中", tone: "info", icon: Loader2Icon, spin: true },
+	completed: { label: "已完成", tone: "success", icon: CheckCircleIcon },
+	failed: { label: "失败", tone: "destructive", icon: XCircleIcon },
 };
 
 const stageLabels: Record<string, string> = {
@@ -58,8 +65,8 @@ const logLevelConfig: Record<
 	{ icon: typeof CheckCircleIcon | null; className: string }
 > = {
 	info: { icon: null, className: "text-muted-foreground" },
-	success: { icon: CheckCircleIcon, className: "text-green-600" },
-	error: { icon: AlertCircleIcon, className: "text-red-600" },
+	success: { icon: CheckCircleIcon, className: "text-success" },
+	error: { icon: AlertCircleIcon, className: "text-destructive" },
 };
 
 export default function RouteComponent() {
@@ -170,6 +177,7 @@ export default function RouteComponent() {
 	return (
 		<div className="flex flex-col gap-6">
 			<AdminPageHeader
+				icon={DatabaseIcon}
 				eyebrow="系统"
 				title="VNDB 数据同步"
 				description="管理 VNDB 数据全量/增量同步，实时监控同步进度"
@@ -178,8 +186,8 @@ export default function RouteComponent() {
 			{/* Sync Controls */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<DatabaseIcon className="size-5" />
+					<CardTitle className="flex items-center gap-2.5 text-base">
+						<IconTile icon={DatabaseIcon} size="sm" tone="muted" />
 						同步控制
 					</CardTitle>
 				</CardHeader>
@@ -191,9 +199,9 @@ export default function RouteComponent() {
 							variant="default"
 						>
 							{fullSync.isPending ? (
-								<Loader2Icon className="size-4 mr-2 animate-spin" />
+								<Loader2Icon className="size-4 animate-spin" />
 							) : (
-								<PlayIcon className="size-4 mr-2" />
+								<PlayIcon className="size-4" />
 							)}
 							全量同步
 						</Button>
@@ -203,9 +211,9 @@ export default function RouteComponent() {
 							variant="outline"
 						>
 							{deltaSync.isPending ? (
-								<Loader2Icon className="size-4 mr-2 animate-spin" />
+								<Loader2Icon className="size-4 animate-spin" />
 							) : (
-								<PlayIcon className="size-4 mr-2" />
+								<PlayIcon className="size-4" />
 							)}
 							增量同步
 						</Button>
@@ -215,9 +223,9 @@ export default function RouteComponent() {
 							variant="outline"
 						>
 							{producersSync.isPending ? (
-								<Loader2Icon className="size-4 mr-2 animate-spin" />
+								<Loader2Icon className="size-4 animate-spin" />
 							) : (
-								<PlayIcon className="size-4 mr-2" />
+								<PlayIcon className="size-4" />
 							)}
 							开发者同步
 						</Button>
@@ -236,7 +244,7 @@ export default function RouteComponent() {
 						</Button>
 						{isPolling && (
 							<span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-								<RadioIcon className="size-3 text-green-500" />
+								<RadioIcon className="size-3 text-success" />
 								自动刷新中...
 							</span>
 						)}
@@ -247,8 +255,8 @@ export default function RouteComponent() {
 			{/* Cloudreve 文件同步 */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<FolderSyncIcon className="size-5" />
+					<CardTitle className="flex items-center gap-2.5 text-base">
+						<IconTile icon={FolderSyncIcon} size="sm" tone="muted" />
 						Cloudreve 文件同步
 					</CardTitle>
 				</CardHeader>
@@ -289,9 +297,12 @@ export default function RouteComponent() {
 							</div>
 						</div>
 					) : (
-						<p className="text-muted-foreground text-sm">
-							尚未执行过 Cloudreve 文件同步，点击下方按钮开始
-						</p>
+						<EmptyState
+							icon={FolderSyncIcon}
+							title="尚未执行过 Cloudreve 文件同步"
+							description="点击下方「立即同步」开始拉取文件目录"
+							size="sm"
+						/>
 					)}
 
 					<div className="flex flex-wrap gap-3">
@@ -301,9 +312,9 @@ export default function RouteComponent() {
 							variant="default"
 						>
 							{cloudreveSync.isPending ? (
-								<Loader2Icon className="size-4 mr-2 animate-spin" />
+								<Loader2Icon className="size-4 animate-spin" />
 							) : (
-								<PlayIcon className="size-4 mr-2" />
+								<PlayIcon className="size-4" />
 							)}
 							{cloudreveSync.isPending ? "同步中..." : "立即同步"}
 						</Button>
@@ -313,9 +324,9 @@ export default function RouteComponent() {
 							variant="outline"
 						>
 							{cloudreveCheck.isPending ? (
-								<Loader2Icon className="size-4 mr-2 animate-spin" />
+								<Loader2Icon className="size-4 animate-spin" />
 							) : (
-								<FolderSearchIcon className="size-4 mr-2" />
+								<FolderSearchIcon className="size-4" />
 							)}
 							检测文件缺失
 						</Button>
@@ -328,17 +339,17 @@ export default function RouteComponent() {
 			{/* Progress Overview */}
 			<Card>
 				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
+					<CardTitle className="flex items-center gap-2.5 text-base">
+						<IconTile icon={RadioIcon} size="sm" tone="muted" />
 						同步状态
 						{progress && (
-							<Badge variant={status.variant}>
-								{status.icon && (
-									<status.icon
-										className={cn("size-3 mr-1", isRunning && "animate-spin")}
-									/>
-								)}
+							<StatusPill
+								tone={status.tone}
+								icon={status.icon}
+								spin={isRunning}
+							>
 								{status.label}
-							</Badge>
+							</StatusPill>
 						)}
 					</CardTitle>
 				</CardHeader>
@@ -398,9 +409,12 @@ export default function RouteComponent() {
 							)}
 						</>
 					) : (
-						<p className="text-muted-foreground text-sm">
-							暂无同步记录，点击上方按钮开始同步
-						</p>
+						<EmptyState
+							icon={DatabaseIcon}
+							title="暂无同步记录"
+							description="点击上方按钮开始一次全量或增量同步"
+							size="sm"
+						/>
 					)}
 				</CardContent>
 			</Card>
@@ -408,12 +422,12 @@ export default function RouteComponent() {
 			{/* Log Output */}
 			<Card>
 				<CardHeader>
-					<CardTitle>同步日志</CardTitle>
+					<CardTitle className="text-base">同步日志</CardTitle>
 				</CardHeader>
 				<CardContent>
 					<div
 						ref={logsRef}
-						className="bg-muted rounded-lg p-4 max-h-96 overflow-y-auto font-mono text-xs space-y-1"
+						className="max-h-96 space-y-1 overflow-y-auto rounded-xl bg-muted/60 p-4 font-mono text-xs"
 					>
 						{progress?.logs && progress.logs.length > 0 ? (
 							progress.logs.map((log, i) => {
@@ -476,7 +490,7 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 			</div>
 
 			{!hasIssue && (
-				<p className="text-sm text-green-600">
+				<p className="text-sm font-medium text-success">
 					未发现异常，Cloudreve 目录与文件条目一致
 				</p>
 			)}
@@ -493,7 +507,7 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 								<span className="text-muted-foreground line-through">
 									{r.oldPaths.join(" / ") || "（无路径）"}
 								</span>
-								<span className="text-green-600">{r.newPaths.join(" / ")}</span>
+								<span className="text-success">{r.newPaths.join(" / ")}</span>
 							</div>
 						))}
 					</div>
@@ -503,7 +517,8 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 			{report.renamedRows.length > 0 && (
 				<div className="flex flex-col gap-1">
 					<p className="text-sm font-medium">
-						条目身份已收口（kungal 锚点补到 vndb / 文件夹改名，同步后合并为一条）
+						条目身份已收口（kungal 锚点补到 vndb /
+						文件夹改名，同步后合并为一条）
 					</p>
 					<div className="max-h-48 overflow-y-auto rounded-lg bg-muted p-3 font-mono text-xs flex flex-col gap-2">
 						{report.renamedRows.map((r) => (
@@ -513,9 +528,7 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 									{" → "}
 									{r.toId}
 								</span>
-								<span className="text-green-600">
-									{r.paths.join(" / ")}
-								</span>
+								<span className="text-success">{r.paths.join(" / ")}</span>
 							</div>
 						))}
 					</div>

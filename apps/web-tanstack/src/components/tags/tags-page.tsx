@@ -1,23 +1,25 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { EmptyState } from "@web/components/shared/empty-state";
+import { PageHeader } from "@web/components/shared/page-header";
+import {
+	SectionHeader,
+	sectionActionClass,
+} from "@web/components/shared/section-header";
+import { SearchField } from "@web/components/shared/search-field";
 import { TagSortBar, tagMetricsTitle } from "@web/components/tags/tag-sort-bar";
 import {
 	TagTooltip,
 	TagTooltipContent,
 } from "@web/components/tags/tag-tooltip";
+import { Button } from "@web/components/ui/button";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { TooltipTrigger } from "@web/components/ui/tooltip";
 import { cn } from "@web/lib/utils";
 import type { TagHubCategory, TagOrderKey, TagSortKey } from "@web/server/tags";
 import { getSearchTags, getTagHub } from "@web/server/tags";
 import { tagHeroActions } from "@web/stores/tagHeroStore";
-import {
-	ArrowRightIcon,
-	Loader2Icon,
-	SearchIcon,
-	TagsIcon,
-	XIcon,
-} from "lucide-react";
+import { ArrowRightIcon, Loader2Icon, TagsIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export type TagHit = {
@@ -29,6 +31,14 @@ export type TagHit = {
 
 type DebounceTimer = ReturnType<typeof setTimeout>;
 
+/** 行式标签的公共类：保持高密度（不卡片化），hover 只提亮底色 */
+const tagRowClass =
+	"-mx-1.5 flex items-baseline gap-3 rounded-sm border-b border-border/70 px-1.5 py-[5px] text-xs leading-[18px] no-underline transition-colors duration-200 hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none";
+
+/**
+ * 标签库入口页：PageHeader + SearchField +（搜索结果 | 分类 hub）。
+ * 防抖、URL 同步、keepPreviousData 等原有逻辑保持不变。
+ */
 export default function TagsIndexPage({
 	q,
 	sort,
@@ -51,6 +61,8 @@ export default function TagsIndexPage({
 
 	const handleSearch = useCallback(
 		(value: string) => {
+			// 回车提交时取消尚未触发的防抖导航，避免同值导航跑两次
+			clearTimeout(debounceRef.current ?? undefined);
 			const trimmed = value.trim();
 			if (trimmed === queryRef.current) return;
 			navigate({
@@ -64,8 +76,7 @@ export default function TagsIndexPage({
 		[navigate, sort, order],
 	);
 
-	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const value = e.target.value;
+	const handleInputChange = (value: string) => {
 		setInputValue(value);
 		clearTimeout(debounceRef.current ?? undefined);
 		debounceRef.current = setTimeout(() => {
@@ -74,6 +85,7 @@ export default function TagsIndexPage({
 	};
 
 	const handleClear = () => {
+		clearTimeout(debounceRef.current ?? undefined);
 		setInputValue("");
 		navigate({
 			to: "/tags",
@@ -81,14 +93,6 @@ export default function TagsIndexPage({
 			replace: true,
 			viewTransition: false,
 		});
-	};
-
-	const handleKeyDown = (e: React.KeyboardEvent) => {
-		if (e.key === "Enter") {
-			e.preventDefault();
-			clearTimeout(debounceRef.current ?? undefined);
-			handleSearch(inputValue);
-		}
 	};
 
 	useEffect(() => {
@@ -108,43 +112,26 @@ export default function TagsIndexPage({
 	const searchQ = q?.trim();
 
 	return (
-		<section className="flex flex-col gap-2">
-			<div className="flex flex-col gap-1.5">
-				<div className="flex items-center gap-2">
-					<TagsIcon className="size-5 text-primary" />
-					<h1 className="text-2xl font-semibold">标签库</h1>
-				</div>
-				<p className="text-sm text-muted-foreground">
-					浏览、搜索与发现游戏标签
-				</p>
-			</div>
+		<section>
+			<PageHeader
+				icon={TagsIcon}
+				title="标签库"
+				description="浏览、搜索与发现游戏标签"
+			/>
 
-			<div className="md:w-1/2">
-				<div className="relative">
-					<SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-					<input
-						type="text"
-						value={inputValue}
-						onChange={handleInputChange}
-						onKeyDown={handleKeyDown}
-						placeholder="搜索标签名称（中文 / 英文 / 别名）…"
-						className="h-9 w-full rounded-md bg-muted/60 pl-9 pr-8 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
-					/>
-					{inputValue && (
-						<button
-							type="button"
-							onClick={handleClear}
-							className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
-							aria-label="清除搜索"
-						>
-							<XIcon className="size-4" />
-						</button>
-					)}
-				</div>
+			<div className="mb-6 w-full sm:max-w-md">
+				<SearchField
+					value={inputValue}
+					onChange={handleInputChange}
+					onSubmit={handleSearch}
+					onClear={handleClear}
+					placeholder="搜索标签名称（中文 / 英文 / 别名）…"
+					ariaLabel="搜索标签"
+				/>
 			</div>
 
 			{searchQ ? (
-				<TagSearchResults q={searchQ} />
+				<TagSearchResults q={searchQ} onClearSearch={handleClear} />
 			) : (
 				<TagHubBrowser sort={sort} order={order} />
 			)}
@@ -152,7 +139,13 @@ export default function TagsIndexPage({
 	);
 }
 
-function TagSearchResults({ q }: { q: string }) {
+function TagSearchResults({
+	q,
+	onClearSearch,
+}: {
+	q: string;
+	onClearSearch: () => void;
+}) {
 	// 非 suspense：换关键词时留旧结果占位（keepPreviousData），
 	// 只在局部显示加载态，避免整块结果区闪骨架
 	const {
@@ -171,7 +164,7 @@ function TagSearchResults({ q }: { q: string }) {
 	if (isPending) {
 		return (
 			<div className="w-full">
-				<p className="text-xs text-muted-foreground mb-3">搜索中…</p>
+				<p className="mb-3 text-xs text-muted-foreground">搜索中…</p>
 				<ul className="grid grid-cols-2 gap-x-7 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
 					{Array.from({ length: 12 }, (_, i) => (
 						<li key={i} className="min-w-0 py-[5px]">
@@ -185,11 +178,16 @@ function TagSearchResults({ q }: { q: string }) {
 
 	if (tagItems.length === 0) {
 		return (
-			<div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-				<TagsIcon className="size-12 mb-4 opacity-30" />
-				<p className="text-lg">没有找到匹配的标签</p>
-				<p className="text-sm mt-1">试试其他关键词吧</p>
-			</div>
+			<EmptyState
+				icon={TagsIcon}
+				title="没有找到匹配的标签"
+				description="试试其他关键词，或清空搜索浏览全部标签"
+				action={
+					<Button variant="outline" size="sm" onClick={onClearSearch}>
+						清空搜索
+					</Button>
+				}
+			/>
 		);
 	}
 
@@ -202,11 +200,11 @@ function TagSearchResults({ q }: { q: string }) {
 				isFetching && "pointer-events-none opacity-60",
 			)}
 		>
-			<p className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+			<p className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
 				共找到 {searchTags?.totalHits ?? tagItems.length} 个标签
 				{isFetching && (
 					<>
-						<Loader2Icon className="size-3 animate-spin" />
+						<Loader2Icon aria-hidden="true" className="size-3 animate-spin" />
 						更新中…
 					</>
 				)}
@@ -239,7 +237,7 @@ function TagSearchResults({ q }: { q: string }) {
 													name: hit.name,
 												})
 											}
-											className="-mx-1.5 flex items-baseline gap-3 border-b border-border/70 px-1.5 py-[5px] text-xs leading-[18px] no-underline transition-colors hover:bg-muted/40"
+											className={tagRowClass}
 										>
 											{/* 中文名压住英文名：最多占 7 成宽度，超出才截断 */}
 											<span className="min-w-0 max-w-[70%] shrink-0 truncate font-medium">
@@ -301,25 +299,27 @@ function TagHubBrowser({
 	}
 
 	const categories = hub?.categories ?? [];
+	const totalTagCount = categories
+		.filter((c) => c.key !== "hot")
+		.reduce((n, c) => n + c.tagCount, 0);
 
 	return (
 		<div className="flex flex-col gap-8">
-			<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-				<p className="text-xs text-muted-foreground">
-					共{" "}
-					{categories
-						.filter((c) => c.key !== "hot")
-						.reduce((n, c) => n + c.tagCount, 0)}{" "}
-					个标签
+			<div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-2xl bg-muted/40 px-3 py-2 ring-1 ring-border/60">
+				<p className="text-sm text-muted-foreground tabular-nums">
+					共 {totalTagCount} 个标签
 				</p>
 				{/* 一处切换，下面所有分类块按同一口径排序 */}
 				<TagSortBar scope="hub" value={sort} order={order} />
 			</div>
 
 			{categories.length === 0 ? (
-				<p className="text-center text-sm text-muted-foreground py-8">
-					暂无标签数据
-				</p>
+				<EmptyState
+					icon={TagsIcon}
+					title="暂无标签数据"
+					description="标签数据正在同步，稍后再来看看吧"
+					size="sm"
+				/>
 			) : (
 				<div className="relative">
 					{/* 换筛选时旧数据留在原位但变暗且不可点，避免点到已经作废的条目 */}
@@ -351,8 +351,8 @@ function TagHubBrowser({
 }
 
 /**
- * hub 的单个分类块。标题区整块可点击 → 分类页，底部「查看全部」同样指向
- * 分类页，由那边列出该分类下的**全部**标签（依据 × 方向可再排）。
+ * hub 的单个分类块。标题行用 SectionHeader（标题可点 → 分类页，「查看全部」
+ * 走 sectionActionClass），底部列出该分类的前 N 条预览。
  *
  * 预览直接取接口给的前 N 条 —— 排序已在服务端切片之前完成，前端不再对预览
  * 二次排序（那只会得到「收录数前 N 条里再排」，与「站内前 N」不是一回事）。
@@ -386,75 +386,75 @@ function TagHubSection({
 
 	return (
 		<section>
-			<Link
-				{...categoryTo}
-				className="group -mx-2 flex flex-col gap-1.5 rounded-md px-2 py-1.5 no-underline transition-colors hover:bg-muted/40"
-			>
-				<div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-					<h2 className="text-lg font-semibold transition-colors group-hover:text-primary">
+			<SectionHeader
+				title={
+					<Link
+						{...categoryTo}
+						className="rounded-sm transition-colors duration-200 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+					>
 						{category.name}
-					</h2>
-					<span className="text-xs text-muted-foreground tabular-nums">
-						{category.tagCount}
-					</span>
-					<ArrowRightIcon className="size-3.5 self-center text-muted-foreground opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" />
-				</div>
-				{category.description && (
-					<p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
-						{category.description}
-					</p>
-				)}
-			</Link>
-			<div className="mt-2.5 border-t border-border/80" />
+					</Link>
+				}
+				count={category.tagCount}
+				action={
+					hasMore ? (
+						<Link {...categoryTo} className={sectionActionClass}>
+							查看全部 {category.tagCount} 个标签
+							<ArrowRightIcon aria-hidden="true" className="size-3.5" />
+						</Link>
+					) : undefined
+				}
+				className="mb-2"
+			/>
+			{category.description && (
+				<p className="mb-2 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+					{category.description}
+				</p>
+			)}
+			<div className="mt-2 border-t border-border/80" />
 
 			{tags.length === 0 ? (
-				<p className="mt-4 text-xs text-muted-foreground">该分类暂无标签</p>
+				<EmptyState
+					icon={TagsIcon}
+					title="该分类暂无标签"
+					size="sm"
+					className="py-8"
+				/>
 			) : (
-				<>
-					<ul className="mt-4 grid grid-cols-2 gap-x-7 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
-						{tags.map((t) => {
-							// 尾部固定显示收录游戏数（站内口径，与游戏列表一致）。
-							// 换排序不改这一列，避免同一位置上的数字含义跟着漂移；
-							// 浏览量放在 tooltip 里给。
-							return (
-								<li key={t.id} className="min-w-0">
-									<TagTooltip>
-										<TooltipTrigger
-											render={
-												<Link
-													to="/tags/$tagId"
-													params={{ tagId: t.id }}
-													// 点击时回写展示名，标签详情 pending 态复用
-													onClick={() => tagHeroActions.fromTag(t)}
-													className="-mx-1.5 flex items-baseline gap-3 border-b border-border/70 px-1.5 py-[5px] text-xs leading-[18px] no-underline transition-colors hover:bg-muted/40"
-												>
-													<span className="min-w-0 flex-1 truncate">
-														{t.name}
+				<ul className="mt-4 grid grid-cols-2 gap-x-7 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
+					{tags.map((t) => {
+						// 尾部固定显示收录游戏数（站内口径，与游戏列表一致）。
+						// 换排序不改这一列，避免同一位置上的数字含义跟着漂移；
+						// 浏览量放在 tooltip 里给。
+						return (
+							<li key={t.id} className="min-w-0">
+								<TagTooltip>
+									<TooltipTrigger
+										render={
+											<Link
+												to="/tags/$tagId"
+												params={{ tagId: t.id }}
+												// 点击时回写展示名，标签详情 pending 态复用
+												onClick={() => tagHeroActions.fromTag(t)}
+												className={tagRowClass}
+											>
+												<span className="min-w-0 flex-1 truncate">
+													{t.name}
+												</span>
+												{t.vnCount > 0 && (
+													<span className="shrink-0 font-mono tabular-nums text-muted-foreground/80">
+														{t.vnCount}
 													</span>
-													{t.vnCount > 0 && (
-														<span className="shrink-0 font-mono tabular-nums text-muted-foreground/80">
-															{t.vnCount}
-														</span>
-													)}
-												</Link>
-											}
-										/>
-										<TagTooltipContent>{tagMetricsTitle(t)}</TagTooltipContent>
-									</TagTooltip>
-								</li>
-							);
-						})}
-					</ul>
-					{hasMore && (
-						<Link
-							{...categoryTo}
-							className="mt-3 inline-flex items-center gap-1 text-xs text-muted-foreground no-underline transition-colors hover:text-foreground"
-						>
-							查看全部 {category.tagCount} 个标签
-							<ArrowRightIcon className="size-3.5" />
-						</Link>
-					)}
-				</>
+												)}
+											</Link>
+										}
+									/>
+									<TagTooltipContent>{tagMetricsTitle(t)}</TagTooltipContent>
+								</TagTooltip>
+							</li>
+						);
+					})}
+				</ul>
 			)}
 		</section>
 	);
@@ -483,18 +483,28 @@ function TagHubCategoriesSkeleton() {
 function TagHubBrowserSkeleton() {
 	return (
 		<div className="flex flex-col gap-8">
-			<Skeleton className="h-3 w-24" />
+			<div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-muted/40 px-3 py-2 ring-1 ring-border/60">
+				<Skeleton className="h-4 w-24" />
+				<Skeleton className="h-8 w-48" />
+			</div>
 			<TagHubCategoriesSkeleton />
 		</div>
 	);
 }
 
+/** 路由 pending：页头/搜索框外壳是真实内容，只有分类区出骨架 */
 export function TagsHubSkeleton() {
 	return (
-		<div className="flex flex-col gap-8">
-			<Skeleton className="h-8 w-32" />
-			<Skeleton className="h-9 w-full md:w-1/2" />
-			<TagHubCategoriesSkeleton />
-		</div>
+		<section>
+			<PageHeader
+				icon={TagsIcon}
+				title="标签库"
+				description="浏览、搜索与发现游戏标签"
+			/>
+			<div className="mb-6 w-full sm:max-w-md">
+				<Skeleton className="h-9 w-full rounded-xl" />
+			</div>
+			<TagHubBrowserSkeleton />
+		</section>
 	);
 }

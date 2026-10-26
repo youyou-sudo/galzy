@@ -11,12 +11,22 @@ import {
 } from "@web/components/ui/dialog";
 import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
 import { formatLooseDate } from "@web/lib";
+import { cn } from "@web/lib/utils";
 import type { getGameDetail } from "@web/server/game";
 import { producerHeroActions } from "@web/stores/producerHeroStore";
 import { Search } from "lucide-react";
 import { useState } from "react";
 
 type GameData = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>;
+
+/** 元信息行：与 pending 骨架的「发布：/开发：/发行：」三行同字号同色 */
+const infoRowClass = "text-sm text-muted-foreground";
+/** 行内主链接：默认就是 secondary 灰，hover 才提亮（顶栏语言） */
+const metaLinkClass =
+	"text-primary transition-colors duration-200 hover:text-primary/80";
+/** 小眉标：与 PageHeader 的 eyebrow 同一套字距与透明度 */
+const eyebrowClass =
+	"mb-1 text-[11px] font-medium tracking-wider text-muted-foreground/70 uppercase";
 
 export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 	const description = game?.otherData?.description || game?.vn?.description;
@@ -56,7 +66,7 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 		<>
 			{/* 发行日期 */}
 			{game?.released_first && (
-				<div className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+				<div className={`${infoRowClass} mt-1`}>
 					发布：
 					<Link
 						to="/search"
@@ -64,88 +74,87 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 							startDate: `${formatLooseDate(game.released_first ?? undefined).year}-01-01`,
 							endDate: `${formatLooseDate(game.released_first ?? undefined).year}-12-31`,
 						}}
-						className="relative inline-flex items-center gap-0.5 text-cyan-600"
+						className="group inline-flex items-center gap-1 text-primary transition-colors duration-200 hover:text-primary/80"
 					>
-						<span className="relative">
-							{formatLooseDate(game.released_first ?? undefined).year}-
-							{formatLooseDate(game.released_first ?? undefined).formatted}
-							<Search className="absolute -top-1 -right-3 size-3 text-zinc-400" />
-						</span>
+						{formatLooseDate(game.released_first ?? undefined).year}-
+						{formatLooseDate(game.released_first ?? undefined).formatted}
+						<Search
+							aria-hidden="true"
+							className="size-3 text-muted-foreground transition-colors group-hover:text-primary"
+						/>
 					</Link>
 				</div>
 			)}
 
 			{/* 开发组织 */}
 			{developers.length > 0 && (
-				<div className="text-sm text-zinc-500 dark:text-zinc-400">
+				<div className={infoRowClass}>
 					开发：
 					{developers.map((producer, index, arr) => (
-						<Link
-							to={`/producer/$pid`}
-							params={{ pid: producer.id }}
-							preload="viewport"
-							key={producer.id}
-							onClick={() => producerHeroActions.set(producer.id)}
-						>
-							<span
-								className="relative inline-flex items-center gap-0.5 text-cyan-600 wrap-break-word hover:underline"
-								style={vtNameFor(producer.id)}
+						<span key={producer.id}>
+							<Link
+								to={"/producer/$pid"}
+								params={{ pid: producer.id }}
+								preload="viewport"
+								onClick={() => producerHeroActions.set(producer.id)}
 							>
-								{producer.name}
-							</span>
+								<span
+									className={`${metaLinkClass} wrap-break-word hover:underline`}
+									style={vtNameFor(producer.id)}
+								>
+									{producer.name}
+								</span>
+							</Link>
 							{index < arr.length - 1 ? " & " : ""}
-						</Link>
+						</span>
 					))}
 				</div>
 			)}
 
 			{/* 发行组织 */}
 			{publishers.length > 0 && (
-				<div className="text-sm">
-					<span className="text-zinc-500 dark:text-zinc-400">发行：</span>
-					<span className="">
-						{publishers.map((producer, index, arr) => (
+				<div className={infoRowClass}>
+					发行：
+					{publishers.map((producer, index, arr) => (
+						<span key={producer.id}>
 							<Link
-								to={`/producer/$pid`}
+								to={"/producer/$pid"}
 								params={{ pid: producer.id }}
 								preload="viewport"
-								key={producer.id}
 								onClick={() => producerHeroActions.set(producer.id)}
 							>
 								<span
-									className={`${producer.type === "ng" ? "text-cyan-900 opacity-50 dark:opacity-100" : "text-cyan-600"} wrap-break-word hover:underline`}
+									className={cn(
+										"wrap-break-word transition-colors duration-200 hover:underline",
+										producer.type === "ng"
+											? "text-muted-foreground/70"
+											: "text-primary hover:text-primary/80",
+									)}
 									style={vtNameFor(producer.id)}
 								>
 									{producer.name}
 								</span>
-								{index < arr.length - 1 ? (
-									<span className="text-zinc-500 dark:text-zinc-400 opacity-100">
-										{" "}
-										&{" "}
-									</span>
-								) : (
-									""
-								)}
 							</Link>
-						))}
-					</span>
+							{index < arr.length - 1 ? " & " : ""}
+						</span>
+					))}
 				</div>
 			)}
 
 			{/* Description */}
 			{description && (
 				<Dialog open={descriptionOpen} onOpenChange={onDescriptionOpenChange}>
-					<div className="mt-2">
-						<div className="text-xs text-zinc-500 uppercase mb-1">游戏简介</div>
-						<div className="text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
-							<div className="relative pr-12 line-clamp-3 sm:line-clamp-4">
+					<div className="mt-4">
+						<div className={eyebrowClass}>游戏简介</div>
+						<div className="text-sm leading-relaxed text-foreground/85">
+							<div className="relative line-clamp-3 pr-14 sm:line-clamp-4">
 								<BBCodeRenderer inline text={descriptionPreview} />
 								<DialogTrigger
 									render={
 										<Button
-											variant="link"
-											size="xs"
-											className="absolute right-0 bottom-0 z-10 h-auto bg-card pl-1 align-baseline"
+											variant="ghost"
+											size="sm"
+											className="absolute right-0 bottom-0 z-10 bg-card px-2 text-primary hover:bg-muted hover:text-primary"
 										/>
 									}
 								>
@@ -158,7 +167,7 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 						<DialogHeader>
 							<DialogTitle>游戏简介</DialogTitle>
 						</DialogHeader>
-						<div className="min-h-0 min-w-0 max-h-[70vh] overflow-x-hidden overflow-y-auto text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
+						<div className="max-h-[70vh] min-h-0 min-w-0 overflow-x-hidden overflow-y-auto text-sm leading-relaxed text-foreground/85">
 							<BBCodeRenderer
 								text={
 									game?.otherData?.description || game?.vn?.description || ""

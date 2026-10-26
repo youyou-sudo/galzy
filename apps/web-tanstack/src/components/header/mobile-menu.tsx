@@ -1,17 +1,19 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@web/lib/utils";
-import { ChevronRight } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { ChevronRight, Info } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import type { Ref } from "react";
 import { mobilePrimaryKeys, navItem, toolMenuKeys } from "./nav-config";
 import type { HeaderNavItem } from "./nav-config";
 
 /**
- * 覆盖层里的一行：左侧图标（圆角小方块）+ 主文案 + 次要描述 + 右侧箭头。
- * 参考 new-api PublicHeader 的大号单列语言，比旧版两列按钮更易点、更好扫读。
+ * 覆盖层里的一行：左侧图标 + 主文案 +（可选）次要描述 + 右侧箭头。
+ *
+ * 手机端默认折叠说明文字，只保留一行 44px 的可点区域：
+ * 8 个主入口 + 工具分组可以在不滚动的一屏内看完；需要看说明时由底部按钮展开。
  */
 const rowClass = cn(
-	"galzy-mobile-item group/row flex items-center gap-3 rounded-2xl px-3 py-2.5",
+	"galzy-mobile-item group/row flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 py-2",
 	"text-foreground no-underline outline-none transition-colors duration-200",
 	"hover:bg-muted/60 focus-visible:bg-muted/60",
 	"focus-visible:ring-2 focus-visible:ring-ring/60",
@@ -26,13 +28,22 @@ type NavRowProps = {
 	open: boolean;
 	onSelect: () => void;
 	rowRef?: Ref<HTMLAnchorElement>;
+	/** 默认 false：说明文字折叠，保证首屏信息密度 */
+	showDescription: boolean;
 };
 
 /**
  * 站外条目走原生 <a>（新标签页打开），站内条目走 TanStack Link 保留预取；
  * 两种行共享同一套排版，只差渲染目标。
  */
-function NavRow({ item, index, open, onSelect, rowRef }: NavRowProps) {
+function NavRow({
+	item,
+	index,
+	open,
+	onSelect,
+	rowRef,
+	showDescription,
+}: NavRowProps) {
 	const Icon = item.icon;
 	// 关闭后移除延迟，下次打开时关键帧从干净的起点重播
 	const style = open ? { animationDelay: `${80 + index * 45}ms` } : undefined;
@@ -41,20 +52,22 @@ function NavRow({ item, index, open, onSelect, rowRef }: NavRowProps) {
 		<>
 			<span
 				className={cn(
-					"flex size-10 shrink-0 items-center justify-center rounded-xl",
+					"flex size-8 shrink-0 items-center justify-center rounded-lg",
 					"bg-muted/70 text-muted-foreground transition-colors duration-200",
 					"group-hover/row:bg-background group-hover/row:text-foreground",
 				)}
 			>
-				<Icon className="size-5" />
+				<Icon className="size-4" />
 			</span>
-			<span className="flex min-w-0 flex-1 flex-col gap-0.5">
-				<span className="text-base font-medium leading-tight">
+			<span className="flex min-w-0 flex-1 flex-col">
+				<span className="truncate text-sm leading-tight font-medium">
 					{item.label}
 				</span>
-				<span className="truncate text-xs font-normal text-muted-foreground">
-					{item.description}
-				</span>
+				{showDescription && (
+					<span className="mt-0.5 truncate text-xs font-normal text-muted-foreground">
+						{item.description}
+					</span>
+				)}
 			</span>
 			<ChevronRight
 				className={cn(
@@ -119,6 +132,8 @@ export function HeaderMobileMenu({
 	const overlayRef = useRef<HTMLDivElement | null>(null);
 	// 点导航行/外链后关闭：焦点应该跟着导航走，不能抢回汉堡按钮
 	const skipFocusReturn = useRef(false);
+	// 说明文字默认折叠：手机端首屏优先放完整入口，需要解释时再展开
+	const [showDescriptions, setShowDescriptions] = useState(false);
 
 	const dismissByNavigation = () => {
 		skipFocusReturn.current = true;
@@ -150,6 +165,11 @@ export function HeaderMobileMenu({
 						);
 		}
 		firstRowRef.current?.focus();
+	}, [open]);
+
+	// 关闭菜单后恢复折叠，下次打开仍是高密度的一屏
+	useEffect(() => {
+		if (!open) setShowDescriptions(false);
 	}, [open]);
 
 	// 滚动锁：保存原值再恢复，避免覆盖其他组件对 body.style.overflow 的写法。
@@ -216,7 +236,7 @@ export function HeaderMobileMenu({
 			className={cn(
 				"galzy-mobile-overlay fixed inset-0 z-40",
 				// 顶部留出 z-50 顶栏的安全区，汉堡按钮始终露在外面可点
-				"overflow-y-auto overscroll-contain pt-20 pb-10",
+				"overflow-y-auto overscroll-contain pt-16 pb-6",
 				"bg-background/95 backdrop-blur-xl",
 				"transition-opacity duration-200 ease-out",
 				open ? "opacity-100" : "pointer-events-none opacity-0",
@@ -245,13 +265,14 @@ export function HeaderMobileMenu({
 						open={open}
 						onSelect={dismissByNavigation}
 						rowRef={index === 0 ? firstRowRef : undefined}
+						showDescription={showDescriptions}
 					/>
 				))}
 
-				<div className="mx-3 my-2 h-px bg-border" />
+				<div className="mx-2 my-1.5 h-px bg-border" />
 				<p
 					className={cn(
-						"px-3 pt-1 pb-2 text-xs font-semibold tracking-wider",
+						"px-2.5 pt-1 pb-1 text-[10px] font-semibold tracking-wider",
 						"text-muted-foreground uppercase",
 					)}
 				>
@@ -265,13 +286,26 @@ export function HeaderMobileMenu({
 						index={mobilePrimaryKeys.length + index}
 						open={open}
 						onSelect={dismissByNavigation}
+						showDescription={showDescriptions}
 					/>
 				))}
+
 			</nav>
 
-			<p className="mt-6 text-center text-xs text-muted-foreground">
-				点击顶栏按钮或按 Esc 关闭
-			</p>
+			{/* 折叠说明 + 关闭提示合并为一行，少占一屏高度 */}
+			<div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
+				<button
+					type="button"
+					aria-pressed={showDescriptions}
+					onClick={() => setShowDescriptions((value) => !value)}
+					className="inline-flex min-h-8 items-center gap-1 rounded-lg px-2 transition-colors duration-200 hover:bg-muted/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+				>
+					<Info className="size-3.5" aria-hidden="true" />
+					{showDescriptions ? "收起说明" : "显示说明"}
+				</button>
+				<span aria-hidden="true">·</span>
+				<span>Esc 关闭</span>
+			</div>
 		</div>
 	);
 }

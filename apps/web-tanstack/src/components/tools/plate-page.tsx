@@ -2,6 +2,7 @@ import {
 	RadioGroup,
 	RadioGroupItem,
 } from "@web/components/animate-ui/components/radix/radio-group";
+import { PageHeader } from "@web/components/shared/page-header";
 import { Button } from "@web/components/ui/button";
 import {
 	Card,
@@ -18,8 +19,6 @@ type PlateSite = {
 	id: string;
 	name: string;
 	icon: string;
-	color: string;
-	bg: string;
 	url?: string;
 	channels?: { id: string; name: string; url: string }[];
 };
@@ -33,16 +32,12 @@ const sites: PlateSite[] = [
 			{ id: "NHX", name: "NHX", url: "https://nhentai.xxx/g/{id}/" },
 		],
 		icon: "N",
-		color: "text-rose-500",
-		bg: "bg-rose-500/10",
 	},
 	{
 		id: "18comic",
 		name: "禁漫天堂 (18comic)",
 		url: "https://18comic.vip/album/{id}/",
 		icon: "禁",
-		color: "text-sky-500",
-		bg: "bg-sky-500/10",
 	},
 	{
 		id: "ehentai",
@@ -52,8 +47,6 @@ const sites: PlateSite[] = [
 			{ id: "EXH", name: "ExHentai", url: "https://exhentai.org/g/{id}/" },
 		],
 		icon: "E",
-		color: "text-emerald-500",
-		bg: "bg-emerald-500/10",
 	},
 	{
 		id: "pixiv",
@@ -71,27 +64,25 @@ const sites: PlateSite[] = [
 			},
 		],
 		icon: "绘",
-		color: "text-pink-500",
-		bg: "bg-pink-500/10",
 	},
 	{
 		id: "gelbooru",
 		name: "Gelbooru",
 		url: "https://gelbooru.com/index.php?page=post&s=view&id={id}",
 		icon: "G",
-		color: "text-orange-500",
-		bg: "bg-orange-500/10",
 	},
 	{
 		id: "hitomi",
 		name: "Hitomi.la",
 		url: "https://hitomi.la/galleries/{id}.html",
 		icon: "H",
-		color: "text-violet-500",
-		bg: "bg-violet-500/10",
 	},
 ];
 
+/**
+ * 车牌号跳转：统一页头 + 一个主输入框 + 站点卡片。
+ * 站名图标不再使用六种品牌色，统一为主色淡底，避免一屏六种颜色打架。
+ */
 export default function RouteComponent() {
 	const [plate, setPlate] = useState("");
 	const [selectedChannels, setSelectedChannels] = useState<
@@ -107,110 +98,112 @@ export default function RouteComponent() {
 
 	return (
 		<MotionConfig reducedMotion="user">
-			<section className="flex justify-center items-start min-h-[60vh]">
-				<div className="w-full max-w-2xl">
-					{/* Header */}
-					<div className="text-center mb-6">
-						<h1 className="text-3xl font-bold mb-2">车牌号跳转工具</h1>
-						<p className="text-muted-foreground">输入车牌号，直通车喵～</p>
-					</div>
+			<section className="mx-auto w-full max-w-2xl py-6">
+				<PageHeader
+					align="center"
+					icon={ExternalLink}
+					title="车牌号跳转工具"
+					description="输入车牌号，直通车喵～"
+				/>
 
-					{/* Prominent Input — THE primary action */}
-					<div className="relative mb-8">
-						<Hash className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none" />
-						<Input
-							value={plate}
-							onChange={(e) => setPlate(e.target.value)}
-							placeholder="输入车牌号..."
-							className="h-12 pl-12 text-lg rounded-xl"
-						/>
-					</div>
+				<div className="relative mb-8">
+					<Hash
+						aria-hidden="true"
+						className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground"
+					/>
+					<Input
+						value={plate}
+						onChange={(event) => setPlate(event.target.value)}
+						placeholder="输入车牌号..."
+						aria-label="车牌号"
+						className="h-12 rounded-2xl pl-12 text-lg"
+					/>
+				</div>
 
-					{/* Site Grid — always visible */}
-					<h2 className="text-sm font-medium text-muted-foreground mb-3">
-						选择班次喵～
-					</h2>
-					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-						{sites.map((site) => {
-							const channel =
-								site.channels?.find(
-									(c) => c.id === selectedChannels[site.id],
-								) ?? site.channels?.[0];
-							const url = channel?.url ?? site.url ?? "";
-							return (
-								<Card key={site.id}>
-									<CardHeader className="pb-2">
-										<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-											<CardTitle className="text-base flex items-center gap-2">
-												<span
-													className={`inline-flex items-center justify-center size-6 rounded ${site.bg} ${site.color} text-xs font-bold`}
-												>
-													{site.icon}
-												</span>
-												{site.name}
-											</CardTitle>
-											{site.channels && (
-												<RadioGroup
-													value={channel?.id ?? ""}
-													onValueChange={(value: string) =>
-														setSelectedChannels((current) => ({
-															...current,
-															[site.id]: value,
-														}))
-													}
-													className="flex flex-row items-center gap-4"
-												>
-													{site.channels.map((c) => (
-														<label
-															key={c.id}
-															htmlFor={`plate-channel-${site.id}-${c.id}`}
-															className="flex items-center gap-2 text-sm cursor-pointer"
-														>
-															<RadioGroupItem
-																id={`plate-channel-${site.id}-${c.id}`}
-																value={c.id}
-															/>
-															{c.name}
-														</label>
-													))}
-												</RadioGroup>
-											)}
-										</div>
-									</CardHeader>
-									<CardContent className="pt-0">
-										{plate.trim() ? (
-											<>
-												<p className="text-xs text-muted-foreground truncate mb-2">
-													{resolvedUrl(url)}
-												</p>
-												<Button
-													size="sm"
-													variant="outline"
-													className="w-full cursor-pointer"
-													onClick={() =>
-														openSite(url.replace("{id}", plate.trim()))
-													}
-												>
-													<ExternalLink data-icon="inline-start" />
-													打开
-												</Button>
-											</>
-										) : (
+				<h2 className="mb-3 text-sm font-medium text-muted-foreground">
+					选择班次喵～
+				</h2>
+				<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+					{sites.map((site) => {
+						const channel =
+							site.channels?.find(
+								(item) => item.id === selectedChannels[site.id],
+							) ?? site.channels?.[0];
+						const url = channel?.url ?? site.url ?? "";
+						return (
+							<Card
+								key={site.id}
+								className="transition-colors duration-200 hover:ring-border"
+							>
+								<CardHeader className="pb-2">
+									<div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+										<CardTitle className="flex items-center gap-2.5 text-base font-medium">
+											<span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">
+												{site.icon}
+											</span>
+											{site.name}
+										</CardTitle>
+										{site.channels && (
+											<RadioGroup
+												value={channel?.id ?? ""}
+												onValueChange={(value: string) =>
+													setSelectedChannels((current) => ({
+														...current,
+														[site.id]: value,
+													}))
+												}
+												className="flex flex-row items-center gap-4"
+											>
+												{site.channels.map((item) => (
+													<label
+														key={item.id}
+														htmlFor={`plate-channel-${site.id}-${item.id}`}
+														className="flex cursor-pointer items-center gap-2 text-sm"
+													>
+														<RadioGroupItem
+															id={`plate-channel-${site.id}-${item.id}`}
+															value={item.id}
+														/>
+														{item.name}
+													</label>
+												))}
+											</RadioGroup>
+										)}
+									</div>
+								</CardHeader>
+								<CardContent className="pt-0">
+									{plate.trim() ? (
+										<>
+											<p className="mb-2 truncate text-xs text-muted-foreground">
+												{resolvedUrl(url)}
+											</p>
 											<Button
 												size="sm"
 												variant="outline"
-												className="w-full cursor-pointer"
-												disabled
+												className="w-full"
+												onClick={() =>
+													openSite(url.replace("{id}", plate.trim()))
+												}
 											>
 												<ExternalLink data-icon="inline-start" />
-												输入车牌号后可上车喵～
+												打开
 											</Button>
-										)}
-									</CardContent>
-								</Card>
-							);
-						})}
-					</div>
+										</>
+									) : (
+										<Button
+											size="sm"
+											variant="outline"
+											className="w-full"
+											disabled
+										>
+											<ExternalLink data-icon="inline-start" />
+											输入车牌号后可上车喵～
+										</Button>
+									)}
+								</CardContent>
+							</Card>
+						);
+					})}
 				</div>
 			</section>
 		</MotionConfig>

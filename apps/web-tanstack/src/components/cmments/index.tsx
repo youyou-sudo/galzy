@@ -2,41 +2,43 @@
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import { memo, useMemo } from 'react'
+import { EmptyState } from '@web/components/shared/empty-state'
 import { elysiaErrorF } from '@web/lib'
 import { authClient } from '@web/server/auth/auth-client'
 import { getCmments } from '@web/server/comments'
 import { replycardActions } from '@web/stores/reply-edit-input'
 import {
   MessageCircleQuestionMark,
+  MessageSquare,
   MessageSquareHeart,
   ShieldQuestionMark,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { Badge } from '../ui/badge'
-import { Button } from '../ui/button'
-import { Separator } from '../ui/separator'
 import { ReplyEidtInput } from './reply-edit-input'
 import { CommentMarkdown } from './comment-markdown'
 
+/**
+ * 评论类型徽标：只用语义色（info / primary / warning）+ 同色淡底，
+ * 不再写死 blue/purple/yellow 原始调色板，深浅色主题共用一套。
+ */
 const typeLabelMap: Record<
   string,
   { label: string; className: string; icon: typeof ShieldQuestionMark }
 > = {
   comment: {
     label: '讨论',
-    className: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+    className: 'bg-info/10 text-info',
     icon: MessageSquareHeart,
   },
   feedback: {
     label: '反馈',
-    className:
-      'bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
+    className: 'bg-primary/10 text-primary',
     icon: MessageCircleQuestionMark,
   },
   question: {
     label: '提问',
-    className:
-      'bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300',
+    className: 'bg-warning/10 text-warning',
     icon: ShieldQuestionMark,
   },
 }
@@ -67,10 +69,12 @@ const ReplyItem = memo(function ReplyItem({
   comment,
   commentMap,
   targetId,
+  depth = 0,
 }: {
   comment: CommentEntry | undefined
   commentMap: Map<string, CommentEntry>
   targetId: string
+  depth?: number
 }) {
   const replies = useMemo(
     () =>
@@ -82,65 +86,71 @@ const ReplyItem = memo(function ReplyItem({
   )
 
   if (!comment) return null
-  if (replies.length === 0) return <Separator />
+  if (replies.length === 0) return null
 
-  return replies.map((reply) => (
-    <div className="flex -ml-6" key={reply.id}>
-      <Separator orientation="vertical" />
-      <div className="flex space-x-3 pl-3 py-2 w-full">
-        <Avatar className="size-8">
-          <AvatarImage src={reply.user?.image || ''} alt={reply.user?.name} />
-          <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-            {reply.user?.name.slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-foreground">
-              {reply.user?.name}
-            </span>
-          </div>
-          <div className="text-sm text-foreground/80 mt-0.5">
-            {reply.reUser && (
-              <span className="text-primary">回复@{reply.reUser.name}：</span>
-            )}
-            <CommentMarkdown content={reply.content} />
-          </div>
+  return (
+    // 一级回复只缩进 10px；更深层不再继续加缩进（扁平化），靠「回复@xx」保留上下文，
+    // 避免 3 层嵌套后正文被挤到半屏宽。
+    <div className={depth === 0 ? "mt-1 border-l border-border/60 pl-2.5" : "mt-1"}>
+      {replies.map((reply) => (
+        <div className="py-1.5 first:pt-0 last:pb-0" key={reply.id}>
+          <div className="flex gap-2">
+            <Avatar className="size-6">
+              <AvatarImage src={reply.user?.image || ''} alt={reply.user?.name} />
+              <AvatarFallback className="bg-muted text-[10px] text-muted-foreground">
+                {reply.user?.name.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span className="text-[13px] font-medium text-foreground">
+                  {reply.user?.name}
+                </span>
+                {reply.reUser && (
+                  <span className="text-xs text-primary">
+                    回复 @{reply.reUser.name}
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  {formatTime(reply.createdAt.toString())}
+                </span>
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+                  onClick={() => {
+                    replycardActions.openReId(reply.id, {
+                      id: reply.id,
+                      userId: reply.user?.id,
+                      userName: reply.user?.name,
+                    })
+                  }}
+                >
+                  回复
+                </button>
+              </div>
 
-          <div className="flex items-center">
-            <span className="text-xs text-muted-foreground">
-              {formatTime(reply.createdAt.toString())}
-            </span>
-            <Button
-              variant="ghost"
-              className="text-muted-foreground"
-              onClick={() => {
-                replycardActions.openReId(reply.id, {
-                  id: reply.id,
-                  userId: reply.user?.id,
-                  userName: reply.user?.name,
-                })
-              }}
-            >
-              回复
-            </Button>
-          </div>
+              <div className="mt-0.5 text-sm text-foreground/80">
+                <CommentMarkdown content={reply.content} />
+              </div>
 
-          <ReplyEidtInput
-            reId={reply.id}
-            targetId={targetId}
-            commentscomp={false}
-            targetType="game"
-          />
-          <ReplyItem
-            comment={commentMap.get(reply.id)}
-            commentMap={commentMap}
-            targetId={targetId}
-          />
+              <ReplyEidtInput
+                reId={reply.id}
+                targetId={targetId}
+                commentscomp={false}
+                targetType="game"
+              />
+              <ReplyItem
+                comment={commentMap.get(reply.id)}
+                commentMap={commentMap}
+                targetId={targetId}
+                depth={depth + 1}
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      ))}
     </div>
-  ))
+  )
 })
 
 export function CommentItem({ targetType }: { targetType: string }) {
@@ -175,73 +185,92 @@ export function CommentItem({ targetType }: { targetType: string }) {
 
   if (data?.comments.length === 0)
     return (
-      <div className="text-center mt-5 items-center">此条目没有评论喵～</div>
+      <EmptyState
+        size="sm"
+        icon={MessageSquare}
+        title="暂无评论"
+        description="来写第一条评论吧"
+      />
     )
 
-  return data?.comments?.map((items) => {
-    const IconComponent = typeLabelMap[items.type]?.icon
-    return (
-      <div key={items.id}>
-        <div className="flex space-x-2 mt-2">
-          <Avatar className="size-8">
-            <AvatarImage src={items.user?.image || ''} alt={items.user?.name} />
-            <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-              {items.user?.name.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-foreground">
-                {items.user?.name}
-              </span>
-              <Badge
-                variant="secondary"
-                className={`text-xs ${typeLabelMap[items.type]?.className} -mb-0.5`}
-              >
-                {IconComponent && <IconComponent data-icon="inline-start" />}
-                {typeLabelMap[items.type]?.label}
-              </Badge>
-            </div>
-            <CommentMarkdown content={items.content} />
-            <div className="flex items-center text-xs -mt-1">
-              <span className="text-muted-foreground my-2">
-                {formatTime(items.createdAt)}
-              </span>
-              {session && (
-                <Button
-                  variant="ghost"
-                  className="text-muted-foreground text-xs"
-                  onClick={() => {
-                    replycardActions.openReId(items.id, {
-                      id: items.id,
-                      userId: items.user?.id,
-                      userName: items.user?.name,
-                    })
-                  }}
-                >
-                  回复
-                </Button>
-              )}
-            </div>
+  return (
+    <div className="mt-3 divide-y divide-border/60">
+      {data?.comments?.map((items) => {
+        const typeMeta = typeLabelMap[items.type]
+        const IconComponent = typeMeta?.icon
+        return (
+          <div key={items.id} className="py-3 first:pt-0 last:pb-0">
+            <div className="flex gap-2.5">
+              <Avatar className="size-7">
+                <AvatarImage
+                  src={items.user?.image || ''}
+                  alt={items.user?.name}
+                />
+                <AvatarFallback className="bg-muted text-[10px] text-muted-foreground">
+                  {items.user?.name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <span className="text-sm font-medium text-foreground">
+                    {items.user?.name}
+                  </span>
+                  {typeMeta && (
+                    <Badge
+                      variant="secondary"
+                      className={`h-[18px] px-1.5 text-[10px] ${typeMeta.className}`}
+                    >
+                      {IconComponent && (
+                        <IconComponent data-icon="inline-start" />
+                      )}
+                      {typeMeta.label}
+                    </Badge>
+                  )}
+                  <span className="ml-auto flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                    <span className="tabular-nums">
+                      {formatTime(items.createdAt)}
+                    </span>
+                    {session && (
+                      <button
+                        type="button"
+                        className="transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
+                        onClick={() => {
+                          replycardActions.openReId(items.id, {
+                            id: items.id,
+                            userId: items.user?.id,
+                            userName: items.user?.name,
+                          })
+                        }}
+                      >
+                        回复
+                      </button>
+                    )}
+                  </span>
+                </div>
 
-            <ReplyEidtInput
-              reId={items.id}
-              targetId={id}
-              commentscomp={false}
-              targetType="game"
-            />
-            {items.re?.length > 0 && (
-              <ReplyItem
-                comment={commentMap.get(items.id)}
-                commentMap={commentMap}
-                targetId={id}
-              />
-            )}
+                <div className="mt-0.5">
+                  <CommentMarkdown content={items.content} />
+                </div>
+
+                <ReplyEidtInput
+                  reId={items.id}
+                  targetId={id}
+                  commentscomp={false}
+                  targetType="game"
+                />
+                {items.re?.length > 0 && (
+                  <ReplyItem
+                    comment={commentMap.get(items.id)}
+                    commentMap={commentMap}
+                    targetId={id}
+                    depth={0}
+                  />
+                )}
+              </div>
+            </div>
           </div>
-        </div>
-
-        {items.re?.length === 0 && <Separator />}
-      </div>
-    )
-  })
+        )
+      })}
+    </div>
+  )
 }

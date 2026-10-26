@@ -1,5 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { EmptyState } from "@web/components/shared/empty-state";
+import { SectionHeader } from "@web/components/shared/section-header";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
 import {
@@ -9,15 +11,23 @@ import {
 } from "@web/components/ui/tooltip";
 import { useViewportPreload } from "@web/hooks/use-viewport-preload";
 import { elysiaErrorF } from "@web/lib";
+import { cn } from "@web/lib/utils";
 import { authClient } from "@web/server/auth/auth-client";
 import { deleteIntroduction } from "@web/server/introduction";
-import { Loader2, NotepadText, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+	BookOpen,
+	Loader2,
+	NotepadText,
+	Pencil,
+	Plus,
+	Trash2,
+} from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 /**
  * 列表条目链接：进入视口即预取文章详情路由数据，点击秒开；
- * 标题与详情页 CardTitle 同名 view-transition-name，路由切换时标题「飞入」详情页
+ * 标题与详情页 PageHeader 同名 view-transition-name，路由切换时标题「飞入」详情页
  */
 function ArticleLink({ item, gameId }: { item: any; gameId: string }) {
 	const linkRef = useRef<HTMLAnchorElement>(null);
@@ -36,34 +46,41 @@ function ArticleLink({ item, gameId }: { item: any; gameId: string }) {
 			to="/$id/introduction/$articleId"
 			params={{ id: gameId, articleId: String(item.id) }}
 			resetScroll={false}
-			className="w-full min-w-0"
+			className="flex min-w-0 flex-1 items-center gap-2 py-2.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-inset"
 		>
-			<div className="py-2 flex items-center w-full min-w-0">
-				<NotepadText className="size-4 mr-1 shrink-0" />
-				<span
-					className="truncate"
-					style={{
-						viewTransitionName: `article-title-${item.id}`,
-						viewTransitionClass: "article-title",
-					}}
-				>
-					{item.title}
-				</span>
-				{item.status === "pending" && (
-					<Badge variant="outline" className="ml-2 shrink-0">
-						待审核
-					</Badge>
-				)}
-				{item.status === "rejected" && (
-					<Badge variant="secondary" className="ml-2 shrink-0">
-						已驳回
-					</Badge>
-				)}
-			</div>
+			<NotepadText
+				aria-hidden="true"
+				className="size-4 shrink-0 text-muted-foreground"
+			/>
+			<span
+				className="truncate"
+				style={{
+					viewTransitionName: `article-title-${item.id}`,
+					viewTransitionClass: "article-title",
+				}}
+			>
+				{item.title}
+			</span>
+			{item.status === "pending" && (
+				<Badge variant="outline" className="ml-2 shrink-0 text-warning">
+					待审核
+				</Badge>
+			)}
+			{item.status === "rejected" && (
+				<Badge variant="secondary" className="ml-2 shrink-0">
+					已驳回
+				</Badge>
+			)}
 		</Link>
 	);
 }
 
+/**
+ * 攻略文章列表（详情页「攻略」页签）。
+ *
+ * 区块头走 SectionHeader、空态走 EmptyState，与列表/首页同一套标题语言；
+ * 行内编辑/删除在触屏上常显，桌面端 hover/focus 才出现（不依赖 hover 表达关键操作）。
+ */
 export default function IntroductionPage({
 	introductionList,
 	id,
@@ -86,6 +103,7 @@ export default function IntroductionPage({
 
 	const isAdmin = session?.user?.role === "admin";
 	const isLoggedIn = !!session?.user;
+	const canCreate = isLoggedIn && !sessionPending;
 
 	const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set());
 
@@ -119,68 +137,66 @@ export default function IntroductionPage({
 		});
 	};
 
+	const goCreate = () => {
+		navigate({
+			to: "/introduction/create",
+			search: { gameId: id },
+		});
+	};
+
+	const createButton = canCreate ? (
+		<Button size="sm" variant="outline" onClick={goCreate}>
+			<Plus className="size-4" />
+			{isAdmin ? "创建文章" : "提交攻略"}
+		</Button>
+	) : undefined;
+
+	const list: any[] = introductionList ?? [];
+
 	return (
 		<section>
-			{/* Header with create button */}
-			<div className="flex items-center justify-between mb-4">
-				<h2 className="text-lg font-semibold">攻略文章</h2>
-				{isLoggedIn && !sessionPending && (
-					<Button
-						onClick={() => {
-							navigate({
-								to: "/introduction/create",
-								search: { gameId: id },
-							});
-						}}
-						size="sm"
-						variant="outline"
-					>
-						<Plus className="size-4 mr-1" />
-						{isAdmin ? "创建文章" : "提交攻略"}
-					</Button>
-				)}
-			</div>
+			<SectionHeader
+				icon={BookOpen}
+				title="攻略文章"
+				count={list.length > 0 ? list.length : undefined}
+				action={createButton}
+			/>
 
-			{(!introductionList || introductionList.length === 0) && (
-				<div className="text-center text-muted-foreground py-8">
-					暂无攻略文章喵～
-					{isLoggedIn && !sessionPending && (
-						<div className="mt-2">
-							<Button
-								onClick={() => {
-									navigate({
-										to: "/introduction/create",
-										search: { gameId: id },
-									});
-								}}
-								variant="outline"
-								size="sm"
-							>
-								<Plus className="size-4 mr-1" />
-								{isAdmin ? "来写第一篇攻略吧～" : "来提交第一篇攻略吧～"}
+			{list.length === 0 ? (
+				<EmptyState
+					icon={BookOpen}
+					size="sm"
+					title="暂无攻略文章"
+					description="还没有人分享这部作品的攻略"
+					action={
+						canCreate ? (
+							<Button size="sm" variant="outline" onClick={goCreate}>
+								<Plus className="size-4" />
+								{isAdmin ? "创建第一篇" : "提交第一篇"}
 							</Button>
-						</div>
-					)}
-				</div>
-			)}
-
-			{introductionList && introductionList.length > 0 && (
-				<div className="rounded-lg">
-					{introductionList.map((item: any) => {
+						) : undefined
+					}
+				/>
+			) : (
+				<ul className="flex flex-col divide-y divide-border/60">
+					{list.map((item: any) => {
 						const isMine =
 							item.author === session?.user?.id &&
 							(item.status === "pending" || item.status === "rejected");
 						const canEdit = isAdmin || isMine;
 						return (
-							<div
+							<li
 								key={item.id}
-								className="flex items-center justify-between px-2 gap-2 rounded-lg group hover:bg-muted/50"
+								className={cn(
+									"group/row -mx-2 flex items-center justify-between gap-2 rounded-xl px-2",
+									"transition-colors duration-200 hover:bg-muted/40",
+								)}
 							>
 								<ArticleLink item={item} gameId={id} />
 
-								{/* Admin / author action buttons */}
+								{/* Admin / author action buttons：触屏常显，桌面 hover 才浮出 */}
 								{canEdit && (
-									<div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+									<div className="flex shrink-0 items-center gap-1 opacity-100 transition-opacity duration-200 sm:opacity-0 sm:group-focus-within/row:opacity-100 sm:group-hover/row:opacity-100">
 										<Tooltip>
 											<TooltipTrigger
 												render={
@@ -197,7 +213,7 @@ export default function IntroductionPage({
 															});
 														}}
 													>
-														<Pencil className="size-3.5" />
+														<Pencil className="size-4 text-muted-foreground" />
 													</Button>
 												}
 											/>
@@ -219,9 +235,9 @@ export default function IntroductionPage({
 															disabled={deletingIds.has(item.id)}
 														>
 															{deletingIds.has(item.id) ? (
-																<Loader2 className="size-3.5 animate-spin" />
+																<Loader2 className="size-4 animate-spin" />
 															) : (
-																<Trash2 className="size-3.5 text-destructive" />
+																<Trash2 className="size-4 text-destructive" />
 															)}
 														</Button>
 													}
@@ -231,10 +247,10 @@ export default function IntroductionPage({
 										)}
 									</div>
 								)}
-							</div>
+							</li>
 						);
 					})}
-				</div>
+				</ul>
 			)}
 		</section>
 	);

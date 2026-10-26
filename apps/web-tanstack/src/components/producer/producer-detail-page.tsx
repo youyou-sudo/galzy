@@ -52,7 +52,7 @@ export default function ProducerDetailPage({
 						<Link
 							to="/producer/$pid"
 							params={{ pid: item.pid }}
-							className="text-cyan-600 hover:underline"
+							className="rounded-sm text-primary transition-colors duration-200 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
 						>
 							{item.name}
 						</Link>
