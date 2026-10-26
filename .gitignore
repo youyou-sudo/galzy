@@ -25,6 +25,7 @@ coverage
 out/
 build
 dist
+.dsh-tmp
 
 # bun-queue patched Lua scripts (copied from node_modules by postinstall)
 apps/api/commands/
