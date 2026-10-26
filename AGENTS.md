@@ -21,7 +21,7 @@ PostgreSQL    Redis     Meilisearch
  (Drizzle)   (cache)    (search)
 ```
 
-- **API** (`apps/api/`): ElysiaJS HTTP server. 18 domain modules, each a three-file Elysia plugin (`index.ts` routes, `model.ts` TypeBox schemas, `service.ts` business logic). Better Auth handles authentication with `auth`/`isAdmin` macros. Drizzle ORM (bun-sql adapter) for PostgreSQL. Redis for caching + distributed locks. Meilisearch for full-text search.
+- **API** (`apps/api/`): ElysiaJS HTTP server. 19 domain modules, each a three-file Elysia plugin (`index.ts` routes, `model.ts` TypeBox schemas, `service.ts` business logic). Better Auth handles authentication with `auth`/`isAdmin` macros. Drizzle ORM (bun-sql adapter) for PostgreSQL. Redis for caching + distributed locks. Meilisearch for full-text search.
 - **Web** (`apps/web-tanstack/`): TanStack Start SSR app. TanStack Router file-based routing. Server Functions (`createServerFn`) act as BFF layer, calling the API via Eden Treaty. TanStack Query v5 for server state. TanStack React Store for UI state. shadcn/ui (base-nova style) + Tailwind CSS v4.
 - **Shared** (`packages/`): `libs` provides the Eden Treaty client (`treaty<app>`) with cookie forwarding and timeout. `config` provides shared TypeScript configs with path aliases (`@api`, `@web`, `@libs`). Pure TypeScript source — no build step.
 - **Data flow:** Browser → SSR (server functions) → Eden Treaty → Elysia API → Drizzle ORM → PostgreSQL. Redis sits alongside as cache. Meilisearch is populated by cron jobs and queried by the search module.
@@ -33,7 +33,7 @@ galzy/
 ├── apps/api/                     # ElysiaJS backend (port 3001)
 │   ├── src/
 │   │   ├── index.ts              # App bootstrap — builds Elysia, mounts all modules
-│   │   ├── modules/              # 18 domain modules (see below)
+│   │   ├── modules/              # 19 domain modules (see below)
 │   │   ├── db/                   # Drizzle ORM schema + client
 │   │   │   ├── client.ts         # Bun SQL → drizzle() initialization
 │   │   │   ├── schema/           # 5 schema files: alist, auth, content, services, vndb
@@ -270,7 +270,7 @@ export const myActions = {
 | File | Purpose |
 |------|---------|
 | `apps/api/src/index.ts` | API entry — builds Elysia app, mounts all modules, exports `type app` |
-| `apps/api/src/modules/index.ts` | Module barrel — re-exports all 17 plugins |
+| `apps/api/src/modules/index.ts` | Module barrel — re-exports all API plugins |
 | `apps/api/src/modules/auth/index.ts` | Auth plugin — CORS, Better Auth mount, auth/isAdmin macros |
 | `apps/api/src/modules/auth/service.ts` | Better Auth config — OAuth providers, email OTP, plugins |
 | `apps/api/src/db/client.ts` | DB connection — Bun SQL → drizzle() |
@@ -354,6 +354,7 @@ export const myActions = {
 | comments | `/comments` | auth + admin | Nested comments, admin pin/status, email notifications |
 | topics | `/topics` | auth | Forum: CRUD, like, favorite |
 | collections | `/collections` | admin (write) | Curated game collections |
+| friend-links | `/friend-links` | public list / admin (write) | 友情链接：公开列表，管理员增删与拖动排序 |
 | producer | `/producer` | public | Producer/developer info, game lists |
 | search | `/search` | public | Meilisearch full-text search, admin embedder management |
 | media | `/media` | auth | S3 image upload (avatars, game media), hash-based dedup |

@@ -39,6 +39,22 @@ function emptyToNull(value: string | null | undefined): string | null {
   return trimmed.length === 0 ? null : trimmed
 }
 
+/** 必填文本：先 trim 再判空，避免 '   ' 通过校验后落库成空白卡片。 */
+function requiredText(value: string, label: string): string {
+  const trimmed = value.trim()
+  if (!trimmed) throw status(400, `${label}不能为空喵～`)
+  return trimmed
+}
+
+/**
+ * 排序号的串行化闸门。
+ *
+ * 「读 max(sort_order) → 插入」与「整表重排」都必须互斥，否则并发新增会拿到
+ * 同一个 sortOrder，两个后台同时拖动会互相覆盖。advisory lock 是事务级的，
+ * 提交/回滚自动释放，不需要额外清理。
+ */
+const SORT_LOCK_KEY = 'galzy:friend-links:sort-order'
+
 export const FriendLinkService = {
   /** 公开列表：前台按 sort_order 展示，id 兜底保证顺序稳定。 */
   async list(): Promise<FriendLinkDTO[]> {
@@ -51,26 +67,35 @@ export const FriendLinkService = {
 
   /** 新增：sortOrder 省略时排到末尾（当前最大值 + 1，空表为 0）。 */
   async create(data: FriendLinkModel.create): Promise<FriendLinkDTO> {
-    let sortOrder = data.sortOrder
-    if (sortOrder === undefined) {
-      const [row] = await db
-        .select({ max: sql<number | null>`max(${friendLinks.sortOrder})` })
-        .from(friendLinks)
-      sortOrder =
-        row?.max === null || row?.max === undefined ? 0 : Number(row.max) + 1
-    }
+    const title = requiredText(data.title, '标题')
+    const href = requiredText(data.href, '链接')
 
-    const [created] = await db
-      .insert(friendLinks)
-      .values({
-        title: data.title,
-        avatar: emptyToNull(data.avatar),
-        href: data.href,
-        description: emptyToNull(data.description),
-        sortOrder,
-      })
-      .returning()
-    return toDTO(created)
+    return db.transaction(async (trx) => {
+      await trx.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${SORT_LOCK_KEY}))`,
+      )
+
+      let sortOrder = data.sortOrder
+      if (sortOrder === undefined) {
+        const [row] = await trx
+          .select({ max: sql<number | null>`max(${friendLinks.sortOrder})` })
+          .from(friendLinks)
+        sortOrder =
+          row?.max === null || row?.max === undefined ? 0 : Number(row.max) + 1
+      }
+
+      const [created] = await trx
+        .insert(friendLinks)
+        .values({
+          title,
+          avatar: emptyToNull(data.avatar),
+          href,
+          description: emptyToNull(data.description),
+          sortOrder,
+        })
+        .returning()
+      return toDTO(created)
+    })
   },
 
   /** 更新：body 字段全部可选，只写显式传入的列（undefined = 保持不变）。 */
@@ -78,51 +103,80 @@ export const FriendLinkService = {
     id: number,
     data: FriendLinkModel.update,
   ): Promise<FriendLinkDTO> {
-    const [existing] = await db
-      .select({ id: friendLinks.id })
-      .from(friendLinks)
-      .where(eq(friendLinks.id, id))
-      .limit(1)
-    if (!existing) throw status(404, '友情链接不存在喵～')
+    const patch = {
+      ...(data.title !== undefined && {
+        title: requiredText(data.title, '标题'),
+      }),
+      ...(data.href !== undefined && { href: requiredText(data.href, '链接') }),
+      ...(data.avatar !== undefined && { avatar: emptyToNull(data.avatar) }),
+      ...(data.description !== undefined && {
+        description: emptyToNull(data.description),
+      }),
+      ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
+    }
 
+    // 空 patch 会让 drizzle 抛 "No values to set"（500），提前转成 400
+    if (Object.keys(patch).length === 0) {
+      throw status(400, '没有需要更新的字段喵～')
+    }
+
+    // 直接用 returning() 判存在性：省一次 select，也没有「先查后改」的 TOCTOU
     const [updated] = await db
       .update(friendLinks)
-      .set({
-        ...(data.title !== undefined && { title: data.title }),
-        ...(data.avatar !== undefined && { avatar: emptyToNull(data.avatar) }),
-        ...(data.href !== undefined && { href: data.href }),
-        ...(data.description !== undefined && {
-          description: emptyToNull(data.description),
-        }),
-        ...(data.sortOrder !== undefined && { sortOrder: data.sortOrder }),
-      })
+      .set(patch)
       .where(eq(friendLinks.id, id))
       .returning()
+    if (!updated) throw status(404, '友情链接不存在喵～')
     return toDTO(updated)
   },
 
   async delete(id: number): Promise<{ success: true }> {
-    const [existing] = await db
-      .select({ id: friendLinks.id })
-      .from(friendLinks)
+    const deleted = await db
+      .delete(friendLinks)
       .where(eq(friendLinks.id, id))
-      .limit(1)
-    if (!existing) throw status(404, '友情链接不存在喵～')
-
-    await db.delete(friendLinks).where(eq(friendLinks.id, id))
+      .returning({ id: friendLinks.id })
+    if (deleted.length === 0) throw status(404, '友情链接不存在喵～')
     return { success: true }
   },
 
-  /** 拖动排序：数组下标即新的 sortOrder；不存在的 id 更新 0 行，自动忽略。 */
+  /**
+   * 拖动排序：数组下标即新的 sortOrder。
+   *
+   * - 先校验「提交的 id 集合 == 表里现有 id 集合」：少传会让未提交的行保留旧序号、
+   *   与新序号 0..n-1 重叠，前台顺序错乱；
+   * - 更新按 id 升序执行，两个后台同时拖动时加锁顺序一致，不会死锁。
+   */
   async reorder(ids: number[]): Promise<{ success: true }> {
-    await db.transaction(async (trx) => {
-      for (const [index, id] of ids.entries()) {
+    const unique = new Set(ids)
+    if (unique.size !== ids.length) {
+      throw status(400, '排序列表里有重复 id 喵～')
+    }
+
+    return db.transaction(async (trx) => {
+      await trx.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${SORT_LOCK_KEY}))`,
+      )
+
+      const rows = await trx.select({ id: friendLinks.id }).from(friendLinks)
+      const existing = new Set(rows.map((row) => row.id))
+      const matches =
+        existing.size === unique.size &&
+        [...unique].every((id) => existing.has(id))
+      if (!matches) {
+        throw status(400, '排序列表与现有友链不匹配，请刷新后重试喵～')
+      }
+
+      const ordered = ids
+        .map((id, index) => ({ id, index }))
+        .sort((a, b) => a.id - b.id)
+      for (const { id, index } of ordered) {
         await trx
           .update(friendLinks)
           .set({ sortOrder: index })
           .where(eq(friendLinks.id, id))
       }
+
+      return { success: true }
     })
-    return { success: true }
   },
 }
