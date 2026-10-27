@@ -1,5 +1,5 @@
 import type { GameModel } from "@api/modules/games/model";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
 import { useSelector } from "@tanstack/react-store";
 import {
@@ -16,6 +16,8 @@ import { AnimateIcon } from "@web/components/animate-ui/icons/icon";
 import { FileListSkeleton } from "@web/components/game/game-tab-skeleton";
 import { MarkdownAsync } from "@web/components/markdownAync";
 import { CopyButton } from "@web/components/shadcn-io/copy-button";
+import { EmptyState } from "@web/components/shared/empty-state";
+import { IconTile } from "@web/components/shared/icon-tile";
 import { Alert, AlertDescription } from "@web/components/ui/alert";
 import { Button } from "@web/components/ui/button";
 import {
@@ -35,15 +37,13 @@ import {
 	ItemTitle,
 } from "@web/components/ui/item";
 import { Skeleton } from "@web/components/ui/skeleton";
-import { EmptyState } from "@web/components/shared/empty-state";
-import { IconTile } from "@web/components/shared/icon-tile";
 import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
 import { commitAfterViewTransition } from "@web/lib/reveal-gate";
 import { groupSplitArchives } from "@web/lib/split-archives";
 import { cn } from "@web/lib/utils";
-import { dwAcConst } from "@web/server/game";
+import { dwAcConst, refreshFileList } from "@web/server/game";
 import { downCardStore, downmodalActions } from "@web/stores/downCardData";
-import { AlertTriangle, FileArchive, Info } from "lucide-react";
+import { AlertTriangle, FileArchive, Info, RefreshCw } from "lucide-react";
 import { MotionConfig } from "motion/react";
 import { tryit } from "radash";
 import { useEffect, useMemo, useState } from "react";
@@ -143,6 +143,7 @@ export const DownloadOptions = () => {
 	return (
 		<MotionConfig reducedMotion="user">
 			<>
+				{settledFilelist.canManage && <FileListAdminRefresh id={id} />}
 				<UnzipPasswordAlert />
 				<FileExplorer
 					items={settledFilelist.game}
@@ -153,6 +154,52 @@ export const DownloadOptions = () => {
 				<DownCardDialog />
 			</>
 		</MotionConfig>
+	);
+};
+
+/**
+ * 文件列表的管理员刷新入口。
+ *
+ * 文件树缓存在 Redis（OpenListFiles:<canonicalId>，TTL 360s），网盘目录增删后
+ * 页面不会立刻变；这里调管理端接口「删缓存 + 重建」，把新树直接写回查询缓存。
+ *
+ * 显隐由服务端返回的 canManage 决定（BFF 用 cookie 会话判定），
+ * 前端不额外拉 session；接口侧还有 isAdmin 兜底，非管理员调也只会拿到 403。
+ */
+const FileListAdminRefresh = ({ id }: { id: string }) => {
+	const queryClient = useQueryClient();
+	const refresh = useMutation({
+		mutationFn: () => refreshFileList({ data: { id } }),
+		onSuccess: (data) => {
+			// 新树直接写回缓存：省一次 GET，且立刻生效（staleTime 内不会自己重拉）
+			queryClient.setQueryData(["filelist", id], data);
+			toast.success("文件列表已刷新");
+		},
+		onError: (error) => {
+			toast.error(
+				error instanceof Error && error.message
+					? error.message
+					: "刷新失败，请稍后重试",
+			);
+		},
+	});
+
+	return (
+		<div className="flex justify-end mb-2">
+			<Button
+				size="sm"
+				variant="outline"
+				className="gap-1.5"
+				disabled={refresh.isPending}
+				onClick={() => refresh.mutate()}
+				title="清空该作品的文件列表缓存并重新拉取（仅管理员）"
+			>
+				<RefreshCw
+					className={cn("size-3.5", refresh.isPending && "animate-spin")}
+				/>
+				{refresh.isPending ? "刷新中…" : "刷新文件列表"}
+			</Button>
+		</div>
 	);
 };
 

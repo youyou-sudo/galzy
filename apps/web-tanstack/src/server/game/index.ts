@@ -1,7 +1,9 @@
 import { api } from "@libs";
 import { createServerFn } from "@tanstack/react-start";
 import { elysiaErrorF } from "@web/lib";
+import { cookiePass } from "@web/lib/cookie-pass";
 import type { StripUnknown } from "@web/lib/serializable";
+import { authServerClient } from "@web/server/auth/auth.server";
 import * as z from "zod/mini";
 
 /**
@@ -68,7 +70,37 @@ export const getFileList = createServerFn()
 			query: { id: data.id },
 		});
 		elysiaErrorF(error);
-		return { game: filelist };
+
+		// 管理员的「刷新文件列表」入口由服务端判定：
+		// 前端不必为「按钮是否显示」再拉一次 session，也不用把 better-auth
+		// 带进下载 tab 的客户端 chunk；刷新接口本身还有 isAdmin 二次校验。
+		let canManage = false;
+		try {
+			const session = await authServerClient.getSession();
+			canManage = session?.data?.user?.role === "admin";
+		} catch {
+			canManage = false;
+		}
+
+		return { game: filelist, canManage };
+	});
+
+/**
+ * 管理员刷新文件列表（仅管理员可用，API 侧还有 isAdmin 二次校验）。
+ *
+ * 会清掉该作品在 Redis 的 OpenListFiles 缓存并重建文件树，返回新树；
+ * 前端拿到后直接写入 filelist 查询缓存，避免再发一次 GET。
+ */
+export const refreshFileList = createServerFn({ method: "POST" })
+	.validator(z.object({ id: z.string().check(z.minLength(1)) }))
+	.handler(async ({ data }) => {
+		const { data: filelist, error } =
+			await api.games.openlistfiles.refresh.post({ id: data.id }, cookiePass());
+		elysiaErrorF(error);
+		// canManage 恒为 true：接口本身 isAdmin 校验通过才会走到这里。
+		// 保留该字段是为了让返回值与 getFileList 同形，前端可以直接 setQueryData
+		// 而不会把「刷新按钮」本身写没。
+		return { game: filelist, canManage: true };
 	});
 
 export const translateData = createServerFn()
