@@ -6,12 +6,15 @@ import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 /**
- * 后台列表的统一外壳与表格基元。
+ * 后台表格「原子层」：状态徽标、卡片外壳、表头/行/单元格等最小组件。
  *
- * 视觉契约来自顶栏：rounded-2xl + ring-1 ring-border/60（不再用 border）、
+ * 列表页请优先使用 `@web/components/admin/data-table` 的 <AdminDataTable>
+ * （列定义驱动、内置选择/骨架/空态/移动端卡片）。这里保留给：
+ * - StatusPill：全站唯一的状态徽标（语义色 + 图标 + 可选 spin）；
+ * - TableCard：需要一块独立圆角卡片但内容不是表格时使用（如死信列表）。
+ *
+ * 视觉契约：rounded-2xl + ring-1 ring-border/60（不用 border）、
  * 表头用 --table-header 底色、行 hover 用 muted/40、状态只用语义令牌。
- * 6 个手写表格页（users/collections/comments/articles/topics/tasks）共用这一份，
- * 不再各页复制 th/td 的 className 与分页块。
  */
 
 /** 列表容器：圆角 + 发丝描边，移动端不溢出页面（横滚交给 TableScroll）。 */

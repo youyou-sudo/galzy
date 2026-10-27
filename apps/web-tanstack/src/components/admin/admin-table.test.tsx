@@ -8,8 +8,8 @@ import {
 	TableEmpty,
 	TablePagination,
 	TableScroll,
-	Th,
 	THead,
+	Th,
 	Tr,
 } from "./admin-table";
 
