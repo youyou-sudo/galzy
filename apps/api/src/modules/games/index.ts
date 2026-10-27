@@ -1,8 +1,12 @@
+import { betterAuth } from '@api/modules/auth'
 import { Elysia } from 'elysia'
 import { GameModel } from './model'
 import { Game } from './service'
 
 export const game = new Elysia({ prefix: '/games' })
+  // 只有 openlistfiles/refresh 需要管理员身份；betterAuth 有 name 去重，
+  // 这里再 use 一次不会重复注册 CORS/onRequest（与 modules/tasks 同一写法）。
+  .use(betterAuth)
   .get(
     '/',
     async ({ query: { id } }) => {
@@ -47,6 +51,20 @@ export const game = new Elysia({ prefix: '/games' })
     },
     {
       query: GameModel.openListFiles,
+    },
+  )
+  /**
+   * 管理员刷新文件列表：删除该作品在 Redis 的 OpenListFiles 缓存并重建，
+   * 返回新的文件树（前端直接 setQueryData，无需再发一次 GET）。
+   */
+  .post(
+    '/openlistfiles/refresh',
+    async ({ body }) => {
+      return await Game.RefreshOpenListFiles(body)
+    },
+    {
+      isAdmin: true,
+      body: GameModel.openListFilesRefresh,
     },
   )
   .get('/datafilteringstats', async () => {

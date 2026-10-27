@@ -939,6 +939,25 @@ export const Game = {
     type DataType = typeof data
     return data
   },
+
+  /**
+   * 管理员刷新文件列表。
+   *
+   * 下载 tab 的文件树缓存在 Redis（OpenListFiles:<canonicalId>，TTL 360s），
+   * 网盘目录增删后页面不会立刻变化。这里先删缓存再走一遍 OpenListFiles
+   * （缓存未命中 → 重新查 alistb + Cloudreve/OpenList → 回写缓存），
+   * 把新树直接返回，前端无需再发一次 GET。
+   */
+  async RefreshOpenListFiles({ id }: GameModel.openListFilesRefresh) {
+    const canonicalId = (await resolveDisplayId(id)) ?? id
+    // 两个形态都清：调用方可能用 /kgX，也可能用 canonical /vNNN
+    await Promise.all([
+      id === canonicalId ? Promise.resolve() : delKv(`OpenListFiles:${id}`),
+      delKv(`OpenListFiles:${canonicalId}`),
+    ])
+    // 复用同一套构建逻辑：未命中缓存时会重新查库并回写缓存（TTL 360s）
+    return await Game.OpenListFiles({ id })
+  },
   async DataFilteringStats() {
     const [result] = await db
       .select({
