@@ -42,6 +42,29 @@ export const queueJob = pgTable(
     statusIdx: index('idx_queue_job_status').on(table.status),
     // 支撑 TTL 清理（按 createdAt 分批删除）与「最近任务」查询
     createdAtIdx: index('idx_queue_job_created_at').on(table.createdAt),
+    // ── 以下为列表 V2 的排序白名单与「筛选 + 排序」组合索引 ──
+    // 列表默认视图按 created_at DESC + status/queue/type 过滤，
+    // 单列低基数索引（status 只有 6 值）planner 常直接放弃，组合索引才真正可用。
+    queueCreatedIdx: index('idx_queue_job_queue_created').on(
+      table.queue,
+      table.createdAt.desc(),
+    ),
+    statusCreatedIdx: index('idx_queue_job_status_created').on(
+      table.status,
+      table.createdAt.desc(),
+    ),
+    typeCreatedIdx: index('idx_queue_job_type_created').on(
+      table.type,
+      table.createdAt.desc(),
+    ),
+    queueStatusCreatedIdx: index('idx_queue_job_queue_status_created').on(
+      table.queue,
+      table.status,
+      table.createdAt.desc(),
+    ),
+    // 排序白名单新增的两列：排队任务的这两列为 NULL，需 NULLS LAST 语义
+    startedIdx: index('idx_queue_job_started_at').on(table.startedAt.desc()),
+    finishedIdx: index('idx_queue_job_finished_at').on(table.finishedAt.desc()),
   }),
 )
 

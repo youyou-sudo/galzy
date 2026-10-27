@@ -322,3 +322,46 @@ Worker handler 注入一个 `logger`（薄封装），内部实现：
 - [ ] `apps/api/src/modules/vndb-sync/index.ts` —— 触发点改造
 - [ ] `apps/api/.env.example` —— 队列相关环境变量（如需）
 - [ ] 移除 croner 依赖与 `startCronTasks`
+
+---
+
+## 10. 列表查询契约 V2（2026-10 落地）
+
+任务管理页重构（见 `docs/admin-task-list-refactor.md`）把 `GET /tasks` 从「3 个单值等值 + 固定排序」升级为可筛选/可排序/带分面的查询。本节记录**已落地**的契约，旧参数语义全部保留。
+
+### 10.1 `GET /tasks`
+
+| 参数 | 说明 |
+|---|---|
+| `q` | 关键字（`id` / `type` / `error` 子串，LIKE 通配符已转义） |
+| `status` / `statuses` | 单值 + 多值（并集），非法值 400 `INVALID_FILTER` |
+| `queue` / `queues` | 同上，队列名以 `QUEUE` 常量为白名单 |
+| `type` / `types` | 同上，类型以 `QUEUE_TASKS` 为白名单 |
+| `dateFrom` / `dateTo` | `created_at` 半开区间 |
+| `overdue` | 非终态且超过 SLA（queued: 创建 + 10min；running: 开始 + 该类型 SLA） |
+| `retryable` | 等价于 `status ∈ failed/dead-letter/interrupted` |
+| `sort` / `order` | 白名单 `createdAt/startedAt/finishedAt/status/type` + `asc/desc`，带 `id` 稳定二级键 |
+| `page` / `pageIndex` / `pageSize` | 1 基优先；pageSize ≤ 100 |
+| `withCounts` | 是否返回分面 `counts`（轮询可关，省一次聚合） |
+
+响应：`{ items, total, page, pageIndex, pageSize, totalPages, counts?, applied }`。
+**counts 口径**：where 不含状态、total 含状态 ⇒ 点任意状态后 `total === counts[status]`。
+
+### 10.2 写操作（门控 + 幂等）
+
+| 路由 | 语义 |
+|---|---|
+| `POST /tasks/:jobId/delete` | 非终态 409 `TASK_NOT_TERMINAL`；body `{ force?: true }` 才允许（先 removeJob 再删记录） |
+| `POST /tasks/batchDelete` | 逐项判定：终态删除、非终态进 `failed`、不存在进 `missing`；日志与任务同事务 |
+| `POST /tasks/:jobId/retry` | 死信走 DLQ 重放（`mode=republish`）；其余新 jobId（`mode=requeue`）；同 queue+type 有活跃任务 409 `TASK_ALREADY_ACTIVE` |
+| `POST /tasks/batchRetry` | 逐项独立结果，部分失败不整体回滚 |
+| `POST /tasks/deadLetter/:queue/{republish,remove,batchRepublish,batchRemove}` | 幂等：已不存在计 `missing`，不整体 404 |
+
+错误体统一 `{ code, message }`；BFF（`apps/web-tanstack/src/server/admin/tasks.ts`）把 code 编码进 message（`CODE|message`）以穿过 server fn 的跨进程边界。
+
+### 10.3 迁移
+
+- `0026_nasty_the_twelve.sql`：6 条组合/排序索引（`db:generate` 生成）
+- `0027_queue_job_search_indexes.sql`：`id/type/error` 的 `pg_trgm` GIN（手写，参照 0009/0023）
+- 应用方式不变：`bun --cwd apps/api db:up`
+
