@@ -1,16 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import TopicsPage from "@web/components/admin/topics-page";
-import { adminGetAllTopics } from "@web/server/admin/topics";
+import TopicsPage, {
+	DEFAULT_TOPICS_FILTERS,
+	topicsQueryOptions,
+} from "@web/components/admin/topics-page";
 
 export const Route = createFileRoute("/admin/_authL/topics")({
 	loader: async ({ context }) => {
-		await context.queryClient.ensureQueryData({
-			queryKey: ["admin-all-topics", { status: "", offset: 0, limit: 20 }],
-			queryFn: async () => {
-				const res = await adminGetAllTopics({ data: { page: 1, limit: 20 } });
-				return res as any;
-			},
-		});
+		// 与页面 useQuery 共用 topicsQueryOptions，key 一致才不会首屏闪空列表
+		await context.queryClient.ensureQueryData(
+			topicsQueryOptions(DEFAULT_TOPICS_FILTERS),
+		);
 	},
 	component: TopicsPage,
 });

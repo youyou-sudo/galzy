@@ -1,21 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import ArticlesPage from "@web/components/admin/articles-page";
-import { adminGetAllArticles } from "@web/server/admin/articles";
+import ArticlesPage, {
+	articlesQueryOptions,
+	DEFAULT_ARTICLES_FILTERS,
+} from "@web/components/admin/articles-page";
 
 export const Route = createFileRoute("/admin/_authL/articles")({
 	loader: async ({ context }) => {
-		await context.queryClient.ensureQueryData({
-			queryKey: [
-				"admin-all-articles",
-				{ searchValue: "", status: "", type: "", offset: 0, limit: 20 },
-			],
-			queryFn: async () => {
-				const res = await adminGetAllArticles({
-					data: { page: 1, limit: 20 },
-				});
-				return res as any;
-			},
-		});
+		// 与页面 useQuery 共用 articlesQueryOptions，key 一致才不会首屏闪空列表
+		await context.queryClient.ensureQueryData(
+			articlesQueryOptions(DEFAULT_ARTICLES_FILTERS),
+		);
 	},
 	component: ArticlesPage,
 });

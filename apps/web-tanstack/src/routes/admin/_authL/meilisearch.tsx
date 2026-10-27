@@ -26,23 +26,57 @@ import {
 	SearchIcon,
 	ServerIcon,
 } from "lucide-react";
+import { useState } from "react";
 import * as z from "zod/mini";
 
-const indexTypeSchema = z.object({
+const MEILI_TABS = [
+	"overview",
+	"embedders",
+	"searchable",
+	"properties",
+	"indexes",
+] as const;
+
+type MeiliTab = (typeof MEILI_TABS)[number];
+
+const meiliSearchSchema = z.object({
 	indexType: z._default(
 		z.optional(z.enum(["game", "tag", "producer"])),
 		"game",
 	),
+	tab: z._default(z.optional(z.enum(MEILI_TABS)), "overview"),
 });
 
 export const Route = createFileRoute("/admin/_authL/meilisearch")({
 	component: RouteComponent,
-	validateSearch: indexTypeSchema,
+	validateSearch: meiliSearchSchema,
 });
 
 function RouteComponent() {
-	const { indexType } = Route.useSearch();
+	const { indexType, tab } = Route.useSearch();
 	const navigate = Route.useNavigate();
+
+	// 只挂载访问过的标签页：切回来时组件不卸载，查询缓存与滚动位置都还在，
+	// 不会每次都闪一次骨架。
+	const [visitedTabs, setVisitedTabs] = useState<Set<MeiliTab>>(
+		() => new Set<MeiliTab>([tab]),
+	);
+
+	const handleTabChange = (value: string | number | null) => {
+		if (typeof value !== "string") return;
+		const nextTab = value as MeiliTab;
+		setVisitedTabs((previous) => {
+			if (previous.has(nextTab)) return previous;
+			const next = new Set(previous);
+			next.add(nextTab);
+			return next;
+		});
+		void navigate({
+			search: (previous) => ({ ...previous, tab: nextTab }),
+			replace: true,
+		});
+	};
+
 	return (
 		<div className="flex flex-col gap-6">
 			<AdminPageHeader
@@ -53,8 +87,13 @@ function RouteComponent() {
 				actions={
 					<Select
 						value={indexType}
-						onValueChange={(v) =>
-							navigate({ search: { indexType: v as IndexType } })
+						onValueChange={(value) =>
+							navigate({
+								search: (previous) => ({
+									...previous,
+									indexType: value as IndexType,
+								}),
+							})
 						}
 					>
 						<SelectTrigger size="sm" className="w-36">
@@ -69,7 +108,7 @@ function RouteComponent() {
 				}
 			/>
 
-			<Tabs defaultValue="overview" className="w-full">
+			<Tabs value={tab} onValueChange={handleTabChange} className="w-full">
 				<div className="overflow-x-auto pb-[5px] -mb-[5px] max-w-full">
 					<TabsList variant="line">
 						<TabsTrigger value="overview">
@@ -95,20 +134,24 @@ function RouteComponent() {
 					</TabsList>
 				</div>
 
-				<TabsContent value="overview" className="mt-4">
-					<OverviewTab />
+				<TabsContent value="overview" keepMounted className="mt-4">
+					{visitedTabs.has("overview") && <OverviewTab />}
 				</TabsContent>
-				<TabsContent value="embedders" className="mt-4">
-					<EmbeddersTab />
+				<TabsContent value="embedders" keepMounted className="mt-4">
+					{visitedTabs.has("embedders") && <EmbeddersTab />}
 				</TabsContent>
-				<TabsContent value="searchable" className="mt-4">
-					<SearchableTab indexType={indexType} />
+				<TabsContent value="searchable" keepMounted className="mt-4">
+					{visitedTabs.has("searchable") && (
+						<SearchableTab indexType={indexType} />
+					)}
 				</TabsContent>
-				<TabsContent value="properties" className="mt-4">
-					<PropertiesTab indexType={indexType} />
+				<TabsContent value="properties" keepMounted className="mt-4">
+					{visitedTabs.has("properties") && (
+						<PropertiesTab indexType={indexType} />
+					)}
 				</TabsContent>
-				<TabsContent value="indexes" className="mt-4">
-					<IndexesTab />
+				<TabsContent value="indexes" keepMounted className="mt-4">
+					{visitedTabs.has("indexes") && <IndexesTab />}
 				</TabsContent>
 			</Tabs>
 		</div>

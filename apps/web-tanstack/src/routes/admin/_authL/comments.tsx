@@ -1,28 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import CommentsPage from "@web/components/admin/comments-page";
-import { adminGetAllComments } from "@web/server/admin/comments";
+import CommentsPage, {
+	commentsQueryOptions,
+	DEFAULT_COMMENTS_FILTERS,
+} from "@web/components/admin/comments-page";
 
 export const Route = createFileRoute("/admin/_authL/comments")({
 	loader: async ({ context }) => {
-		await context.queryClient.ensureQueryData({
-			queryKey: [
-				"admin-all-comments",
-				{
-					searchValue: "",
-					status: "",
-					type: "",
-					excludeReplies: false,
-					offset: 0,
-					limit: 20,
-				},
-			],
-			queryFn: async () => {
-				const res = await adminGetAllComments({
-					data: { page: 1, limit: 20 },
-				});
-				return res as any;
-			},
-		});
+		// 与页面 useQuery 共用 commentsQueryOptions，key 一致才不会首屏闪空列表
+		await context.queryClient.ensureQueryData(
+			commentsQueryOptions(DEFAULT_COMMENTS_FILTERS),
+		);
 	},
 	component: CommentsPage,
 });

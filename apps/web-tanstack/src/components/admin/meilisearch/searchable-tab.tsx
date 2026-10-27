@@ -15,15 +15,10 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
+import { StatusPill } from "@web/components/admin/admin-table";
 import { Button } from "@web/components/ui/button";
-import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "@web/components/ui/card";
+import { Card, CardContent, CardHeader } from "@web/components/ui/card";
 import { Label } from "@web/components/ui/label";
 import {
 	Select,
@@ -33,18 +28,15 @@ import {
 	SelectValue,
 } from "@web/components/ui/select";
 import { Separator } from "@web/components/ui/separator";
-import { Spinner } from "@web/components/ui/spinner";
+import { useAdminMutation } from "@web/hooks/use-admin-mutation";
+import { adminKeys } from "@web/lib/admin/query-keys";
+import { cn } from "@web/lib/utils";
 import {
 	getPropertyList,
 	getSearchableAttributes,
 	updateSearchableAttributes,
 } from "@web/server/admin/meilisearch";
-import {
-	CheckCircle2Icon,
-	GripVerticalIcon,
-	RotateCcwIcon,
-	XIcon,
-} from "lucide-react";
+import { GripVerticalIcon, RotateCcwIcon, SaveIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -53,6 +45,9 @@ import {
 	ErrorDisplay,
 	extractError,
 	ignoreAbort,
+	indexTypeLabels,
+	Panel,
+	SectionHeader,
 } from "./shared";
 import type { IndexType } from "./types";
 
@@ -116,30 +111,25 @@ function SortableFieldItem({
 // ─── Main Tab ─────────────────────────────────────────────────
 
 export function SearchableTab({ indexType }: { indexType: IndexType }) {
-	const queryClient = useQueryClient();
-	const [saving, setSaving] = useState(false);
-
-	// 可编辑字段列表
+	// 可编辑字段列表（null = 跟随服务端）
 	const [fields, setFields] = useState<string[] | null>(null);
 
-	// 搜索属性
 	const {
 		data: searchableData,
-		isLoading: searchableLoading,
-		error: searchableError,
-		refetch: refetchSearchable,
-		isFetching: searchableFetching,
+		isLoading,
+		error,
+		refetch,
+		isFetching,
 	} = useQuery({
-		queryKey: ["admin", "meiliSearchable", indexType],
+		queryKey: adminKeys.meiliSearchable(indexType),
 		queryFn: ignoreAbort(() =>
 			getSearchableAttributes({ data: { indexType } }),
 		),
 		staleTime: 5 * 60 * 1000,
 	});
 
-	// 属性列表（用于下拉选择）
-	const { data: propertyList = [], isLoading: propsLoading } = useQuery({
-		queryKey: ["admin", "meiliProperties", indexType],
+	const { data: propertyList = [], isLoading: propertiesLoading } = useQuery({
+		queryKey: adminKeys.meiliProperties(indexType),
 		queryFn: ignoreAbort(() => getPropertyList({ data: { indexType } })),
 		staleTime: 5 * 60 * 1000,
 	});
@@ -147,7 +137,9 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 	const safeSearchable = useMemo(
 		() =>
 			Array.isArray(searchableData)
-				? searchableData.filter((f): f is string => typeof f === "string")
+				? searchableData.filter(
+						(field): field is string => typeof field === "string",
+					)
 				: [],
 		[searchableData],
 	);
@@ -156,10 +148,9 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 
 	// 服务端数据同步到本地编辑状态
 	useEffect(() => {
-		setFields((prev) => {
-			if (prev === null) return [...safeSearchable];
-			const prevHash = prev.join(",");
-			if (prevHash === searchableHash) return prev;
+		setFields((previous) => {
+			if (previous === null) return [...safeSearchable];
+			if (previous.join(",") === searchableHash) return previous;
 			return [...safeSearchable];
 		});
 	}, [searchableHash]);
@@ -167,7 +158,7 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 	const isDirty = useMemo(() => {
 		if (fields === null) return false;
 		if (fields.length !== safeSearchable.length) return true;
-		return fields.some((f, i) => f !== safeSearchable[i]);
+		return fields.some((field, index) => field !== safeSearchable[index]);
 	}, [fields, safeSearchable]);
 
 	// 可选字段
@@ -175,7 +166,8 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 		if (!Array.isArray(propertyList)) return [];
 		const current = fields ?? [];
 		return propertyList.filter(
-			(p) => typeof p === "string" && !current.includes(p),
+			(property): property is string =>
+				typeof property === "string" && !current.includes(property),
 		);
 	}, [propertyList, fields]);
 
@@ -201,7 +193,9 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 	};
 
 	const handleRemove = useCallback((field: string) => {
-		setFields((prev) => (prev ? prev.filter((f) => f !== field) : prev));
+		setFields((previous) =>
+			previous ? previous.filter((item) => item !== field) : previous,
+		);
 	}, []);
 
 	const handleReset = useCallback(() => {
@@ -209,28 +203,36 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 		toast.info("已还原至服务端数据");
 	}, [safeSearchable]);
 
-	const handleSave = useCallback(async () => {
+	// 保存：乐观把缓存字段改成提交内容，失败由 useAdminMutation 回滚
+	const saveMutation = useAdminMutation<unknown, string[]>({
+		mutationFn: (nextFields) =>
+			updateSearchableAttributes({ data: { fields: nextFields, indexType } }),
+		optimistic: (queryClient, nextFields) => {
+			queryClient.setQueryData<string[]>(
+				adminKeys.meiliSearchable(indexType),
+				nextFields,
+			);
+		},
+		affects: [
+			adminKeys.meiliSearchable(indexType),
+			adminKeys.meiliProperties(indexType),
+			adminKeys.meiliStats(),
+		],
+		successMessage: "搜索属性已更新",
+		errorMessage: (error) => `保存失败：${extractError(error)}`,
+	});
+
+	const handleSave = useCallback(() => {
 		if (!fields || fields.length === 0) {
 			toast.error("请至少保留一个搜索属性字段");
 			return;
 		}
-		setSaving(true);
-		try {
-			await updateSearchableAttributes({ data: { fields, indexType } });
-			toast.success("搜索属性已更新");
-			queryClient.invalidateQueries({
-				queryKey: ["admin", "meiliSearchable", indexType],
-			});
-		} catch (e) {
-			toast.error(extractError(e));
-		} finally {
-			setSaving(false);
-		}
-	}, [fields, indexType, queryClient]);
+		saveMutation.mutate(fields);
+	}, [fields, saveMutation]);
 
 	// ─── Render States ──────────────────────────────────────────
 
-	if (searchableLoading) {
+	if (isLoading) {
 		return (
 			<Card>
 				<CardSkeleton rows={4} />
@@ -238,13 +240,13 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 		);
 	}
 
-	if (searchableError) {
+	if (error) {
 		return (
 			<Card>
-				<CardContent className="pt-6">
+				<CardContent className="pt-2">
 					<ErrorDisplay
-						message={extractError(searchableError)}
-						onRetry={() => refetchSearchable()}
+						message={extractError(error)}
+						onRetry={() => refetch()}
 					/>
 				</CardContent>
 			</Card>
@@ -252,72 +254,74 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 	}
 
 	const currentFields = fields ?? [];
-	const isRefreshing = searchableFetching && !searchableLoading;
+	const isRefreshing = isFetching && !isLoading;
+	const isSaving = saveMutation.isPending;
 
 	return (
 		<Card>
 			<CardHeader>
-				<div className="flex gap-2 justify-between items-center">
-					<div>
-						<CardTitle>搜索属性</CardTitle>
-						<CardDescription>
-							拖拽排序，配置索引中可被全文搜索的字段。含{" "}
-							<code className="px-1 text-xs bg-muted rounded">*</code>{" "}
-							表示所有字段可搜索（自动展开为字段列表）。
-						</CardDescription>
-					</div>
-					{isDirty && (
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={handleReset}
-							className="shrink-0 text-muted-foreground"
-						>
-							<RotateCcwIcon className="size-3" />
-							还原
-						</Button>
-					)}
-				</div>
+				<SectionHeader
+					title="搜索属性"
+					description="拖拽排序，配置索引中可被全文搜索的字段。含 * 表示所有字段可搜索（自动展开为字段列表）。"
+					action={
+						<div className="flex gap-2 items-center">
+							{isDirty && (
+								<StatusPill tone="warning">有未保存的更改</StatusPill>
+							)}
+							{isSaving && (
+								<StatusPill tone="info" spin icon={SaveIcon}>
+									保存中
+								</StatusPill>
+							)}
+							{isDirty && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={handleReset}
+									disabled={isSaving}
+									className="text-muted-foreground"
+								>
+									<RotateCcwIcon className="size-3" />
+									还原
+								</Button>
+							)}
+						</div>
+					}
+				/>
 			</CardHeader>
-			<CardContent className="space-y-5">
-				{/* Status Bar */}
-				<div className="flex gap-3 items-center text-xs">
+			<CardContent
+				className={cn(
+					"flex flex-col gap-4 transition-opacity duration-200",
+					(isRefreshing || isSaving) && "opacity-70",
+				)}
+			>
+				<div className="flex flex-wrap gap-3 items-center text-xs">
 					<span className="text-muted-foreground">
-						目标索引:
-						<span className="ml-1 font-medium text-foreground">
-							{indexType === "game"
-								? "游戏"
-								: indexType === "tag"
-									? "标签"
-									: "厂商"}
+						目标索引：
+						<span className="font-medium text-foreground">
+							{indexTypeLabels[indexType]}
 						</span>
 					</span>
-					{isDirty && (
-						<span className="font-medium text-warning">有未保存的更改</span>
-					)}
-					{isRefreshing && (
-						<span className="inline-flex gap-1 items-center text-muted-foreground">
-							<Spinner className="size-3" />
-							同步中...
+					<span className="text-muted-foreground tabular-nums">
+						字段数：
+						<span className="font-medium text-foreground">
+							{currentFields.length}
 						</span>
+					</span>
+					{isRefreshing && (
+						<span className="text-muted-foreground">同步中…</span>
 					)}
 				</div>
 
 				<Separator />
 
-				{/* Field List */}
-				<div className="space-y-3">
-					<div className="flex justify-between items-center">
-						<Label>
-							当前字段
-							<span className="ml-2 text-xs font-normal text-muted-foreground">
-								{currentFields.length} 个
-							</span>
-						</Label>
-					</div>
-
+				<div className="flex flex-col gap-3">
+					<Label>当前字段</Label>
 					{currentFields.length === 0 ? (
-						<EmptyState text="暂无搜索字段，请从下方添加" />
+						<EmptyState
+							text="暂无搜索字段"
+							description="从下方下拉框添加需要参与全文检索的字段"
+						/>
 					) : (
 						<DndContext
 							sensors={sensors}
@@ -328,7 +332,7 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 								items={currentFields}
 								strategy={verticalListSortingStrategy}
 							>
-								<div className="overflow-y-auto p-2 space-y-1.5 max-h-80 bg-muted/30 rounded-xl ring-1 ring-border/60">
+								<Panel className="overflow-y-auto p-2 space-y-1.5 max-h-80">
 									{currentFields.map((field) => (
 										<SortableFieldItem
 											key={field}
@@ -337,68 +341,60 @@ export function SearchableTab({ indexType }: { indexType: IndexType }) {
 											onRemove={handleRemove}
 										/>
 									))}
-								</div>
+								</Panel>
 							</SortableContext>
 						</DndContext>
 					)}
 
-					{/* Add Field */}
-					<div className="flex gap-2 items-end">
-						<div className="flex-1 space-y-1.5">
-							<Label className="text-xs text-muted-foreground">添加字段</Label>
-							<Select
-								value=""
-								onValueChange={(v) => {
-									if (!v) return;
-									setFields((prev) => {
-										if (!prev) return [v];
-										if (prev.includes(v)) return prev;
-										return [...prev, v];
-									});
-								}}
-								disabled={propsLoading || availableFields.length === 0}
-							>
-								<SelectTrigger>
-									<SelectValue
-										placeholder={
-											propsLoading
-												? "加载可用字段中..."
-												: availableFields.length === 0
-													? currentFields.length === 0
-														? "索引暂无可用字段"
-														: "所有字段已添加"
-													: "选择要添加的字段..."
-										}
-									/>
-								</SelectTrigger>
-								<SelectContent className="max-h-60">
-									{availableFields.map((prop) => (
-										<SelectItem key={prop} value={prop}>
-											<span className="font-mono text-xs">{prop}</span>
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
+					<div className="flex flex-col gap-1.5">
+						<Label className="text-xs text-muted-foreground">添加字段</Label>
+						<Select
+							value=""
+							onValueChange={(value) => {
+								if (!value) return;
+								setFields((previous) => {
+									if (!previous) return [value];
+									if (previous.includes(value)) return previous;
+									return [...previous, value];
+								});
+							}}
+							disabled={propertiesLoading || availableFields.length === 0}
+						>
+							<SelectTrigger>
+								<SelectValue
+									placeholder={
+										propertiesLoading
+											? "加载可用字段中..."
+											: availableFields.length === 0
+												? currentFields.length === 0
+													? "索引暂无可用字段"
+													: "所有字段已添加"
+												: "选择要添加的字段..."
+									}
+								/>
+							</SelectTrigger>
+							<SelectContent className="max-h-60">
+								{availableFields.map((property) => (
+									<SelectItem key={property} value={property}>
+										<span className="font-mono text-xs">{property}</span>
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 					</div>
 				</div>
 
 				<Separator />
 
-				{/* Actions */}
-				<div className="flex gap-3 items-center">
+				<div className="flex flex-wrap gap-3 items-center">
 					<Button
 						onClick={handleSave}
-						disabled={saving || !isDirty || fields === null}
+						disabled={isSaving || !isDirty || fields === null}
 					>
-						{saving ? (
-							<Spinner className="size-4" />
-						) : (
-							<CheckCircle2Icon className="size-4" />
-						)}
+						<SaveIcon className={cn("size-4", isSaving && "animate-pulse")} />
 						保存属性
 					</Button>
-					{!isDirty && !saving && (
+					{!isDirty && !isSaving && (
 						<span className="text-xs text-muted-foreground">已是最新配置</span>
 					)}
 				</div>
