@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-router'
 import { Image } from '@unpic/react'
 import Errors from '@web/components/error'
+import { RouteLoadingIndicator } from '@web/components/shared/route-loading-indicator'
 import { TooltipProvider } from '@web/components/ui/tooltip'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Toaster } from 'sonner'
@@ -148,6 +149,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             </Suspense>
           ) : null}
         </TanStackQueryProvider>
+        {/* 路由切换加载指示器：右上角一个小图标，不遮挡页面内容 */}
+        <RouteLoadingIndicator />
         <Scripts />
       </body>
     </html>
