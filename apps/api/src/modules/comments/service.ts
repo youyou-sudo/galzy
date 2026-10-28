@@ -298,11 +298,18 @@ export const CommentService = {
             .then((r) => r[0])
 
           if (!parentUser?.email) return
-          let commentUrl = ''
-          if (parent.targetType === 'game') {
-            commentUrl = `${process.env.WEB_HOST}/${parent.targetId}`
+          // 各 targetType 对应的前端路由前缀：游戏条目页为 /:id（无 game 前缀），
+          // 话题页为 /topics/:id。切勿统一拼成 `${targetType}/${targetId}`。
+          const webHost = process.env.WEB_HOST || 'http://localhost:3000'
+          const targetPathOf = (targetType: string, targetId: string) => {
+            if (targetType === 'game') return `/${targetId}`
+            if (targetType === 'topic') return `/topics/${targetId}`
+            return `/${targetType}/${targetId}`
           }
-          commentUrl = `${process.env.WEB_HOST}/${parent.targetType}/${parent.targetId}`
+          const commentUrl = `${webHost}${targetPathOf(
+            parent.targetType,
+            parent.targetId,
+          )}`
           const preview =
             content.length > 100 ? content.slice(0, 100) + '…' : content
 
