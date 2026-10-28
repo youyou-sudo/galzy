@@ -7,10 +7,12 @@ import {
   Scripts,
   useMatches,
 } from '@tanstack/react-router'
-import { Image } from '@unpic/react'
+import { TopAdSlot } from '@web/components/adverts/top-ad-slot'
 import Errors from '@web/components/error'
 import { RouteLoadingIndicator } from '@web/components/shared/route-loading-indicator'
 import { TooltipProvider } from '@web/components/ui/tooltip'
+import { TOP_AD_SLOT_KEY } from '@web/lib/adverts'
+import { adSlotQueryOptions } from '@web/server/adverts'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Toaster } from 'sonner'
 import Footer from '../components/Footer'
@@ -48,6 +50,18 @@ export type MyRouterContext = {
 
 const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+  /**
+   * 顶部广告位数据在根布局预取：SSR 首帧直接出广告（避免客户端补数据导致布局跳动），
+   * 客户端导航命中同一份 query 缓存（60s 内不重复请求）。
+   * 数据按广告位 key 取（home_top），设备定向 / 条数上限 / 权重轮换由 API 完成。
+   * - 后台路由 /admin/** 不渲染广告位，直接跳过；
+   * - prefetchQuery 自身吞掉错误：广告接口异常时静默降级为「不展示」，
+   *   导航不会因此中断；命中缓存零成本，过期后为拿到首帧数据会等这一次请求。
+   */
+  beforeLoad: async ({ location, context }) => {
+    if (location.pathname.startsWith('/admin')) return
+    await context.queryClient.prefetchQuery(adSlotQueryOptions(TOP_AD_SLOT_KEY))
+  },
   head: () => ({
     meta: [
       {
@@ -190,46 +204,9 @@ function AppChrome({ children }: { children: React.ReactNode }) {
         tabIndex={-1}
         className="flex-1 px-4 pt-[var(--app-header-height)] mx-auto w-full max-w-7xl outline-none sm:px-6"
       >
-        {/* 广告：与正文同容器居中，不再用 lg:px-24 让图片比正文更窄 */}
-        <aside
-          id="sidebar-ad"
-          className="flex relative justify-center mx-auto mb-3 w-full max-w-5xl opacity-[0.65] transition-opacity duration-200 hover:opacity-90"
-        >
-          <a
-            data-umami-event="广告点击"
-            data-umami-event-name="dzmm"
-            data-umami-event-position="Banner-dzmm"
-            target="_blank"
-            rel="noopener noreferrer"
-            href="https://umami.galzy.moe/q/KrhnTk4vg"
-            className="block overflow-hidden w-full rounded-xl ring-1 ring-border/50"
-          >
-            <div className="overflow-hidden sm:hidden">
-              <Image
-                width={1425}
-                height={120}
-                src="/dzmm.webp"
-                alt="dzmm 广告图片"
-                className="object-cover w-full scale-[1.03]"
-                loading="lazy"
-                fetchPriority="low"
-                decoding="async"
-              />
-            </div>
-            <div className="hidden sm:block">
-              <Image
-                width={1425}
-                height={113}
-                src="/dzmm.webp"
-                alt="dzmm 广告图片"
-                className="object-cover w-full"
-                loading="lazy"
-                fetchPriority="low"
-                decoding="async"
-              />
-            </div>
-          </a>
-        </aside>
+        {/* 广告：与正文同容器居中。数据由后台「广告位 + 广告素材」管理，
+            桌面 1 条整宽 / 多条两列，手机端按广告位配置轮播或堆叠（见 components/adverts/top-ad-slot.tsx） */}
+        <TopAdSlot />
         {children}
       </main>
       <Footer />

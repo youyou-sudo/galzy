@@ -1,4 +1,5 @@
 import type { QueryKey } from "@tanstack/react-query";
+import { AD_SLOT_QUERY_ROOT, adSlotQueryKey } from "@web/lib/adverts";
 
 /**
  * 后台查询键单一来源。
@@ -51,6 +52,14 @@ export const adminKeys = {
 	friendLinksRoot: () => [...root, "friend-links"] as const,
 	friendLinks: () => [...root, "friend-links", "list"] as const,
 
+	/** 广告位（配置）：后台列表，前台按 key 读公开接口。 */
+	adSlotsRoot: () => [...root, "ad-slots"] as const,
+	adSlots: () => [...root, "ad-slots", "list"] as const,
+	/** 广告素材（含停用/排期），可按广告位筛选；slotId 为 null 表示全部。 */
+	advertsRoot: () => [...root, "adverts"] as const,
+	adverts: (slotId: number | null = null) =>
+		[...root, "adverts", "list", slotId ?? "all"] as const,
+
 	/* ── 用户 ─────────────────────────────────────────────────── */
 	usersRoot: () => [...root, "users"] as const,
 	users: (filters: ListFilters) => [...root, "users", "list", filters] as const,
@@ -89,6 +98,9 @@ export const adminKeys = {
 /** 站点公开侧、需要被后台变更连带刷新的缓存键（不放在 admin 命名空间下）。 */
 export const publicKeys = {
 	friendLinks: ["friend-links"] as const,
+	/** 公开广告位数据：与根布局预取 / 前台组件共用 lib/adverts 的 key 构造，避免两处漂移。 */
+	adSlotRoot: AD_SLOT_QUERY_ROOT,
+	adSlot: (key: string) => adSlotQueryKey(key),
 	collections: () => ["collections"] as const,
 } as const;
 
@@ -112,6 +124,11 @@ export const invalidations = {
 	friendLinks: [
 		adminKeys.friendLinksRoot(),
 		publicKeys.friendLinks,
+	] as QueryKey[],
+	adverts: [
+		adminKeys.adSlotsRoot(),
+		adminKeys.advertsRoot(),
+		publicKeys.adSlotRoot,
 	] as QueryKey[],
 	tasks: [
 		adminKeys.tasksRoot(),

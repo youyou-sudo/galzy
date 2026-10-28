@@ -39,6 +39,7 @@ import { Route as IdLayoutCommentRouteImport } from './routes/$id/_layout/commen
 import { Route as IdLayoutRelationsRouteImport } from './routes/$id/_layout/relations'
 import { Route as IdLayoutTranslateRouteImport } from './routes/$id/_layout/translate'
 import { Route as AdminAuthLIndexRouteImport } from './routes/admin/_authL/index'
+import { Route as AdminAuthLAdvertsRouteImport } from './routes/admin/_authL/adverts'
 import { Route as AdminAuthLArticlesRouteImport } from './routes/admin/_authL/articles'
 import { Route as AdminAuthLCollectionsRouteImport } from './routes/admin/_authL/collections'
 import { Route as AdminAuthLCommentsRouteImport } from './routes/admin/_authL/comments'
@@ -210,6 +211,11 @@ const AdminAuthLIndexRoute = AdminAuthLIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminAuthLRoute,
 } as any)
+const AdminAuthLAdvertsRoute = AdminAuthLAdvertsRouteImport.update({
+  id: '/adverts',
+  path: '/adverts',
+  getParentRoute: () => AdminAuthLRoute,
+} as any)
 const AdminAuthLArticlesRoute = AdminAuthLArticlesRouteImport.update({
   id: '/articles',
   path: '/articles',
@@ -344,6 +350,7 @@ export interface FileRoutesByFullPath {
   '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/relations': typeof IdLayoutRelationsRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
+  '/admin/adverts': typeof AdminAuthLAdvertsRoute
   '/admin/articles': typeof AdminAuthLArticlesRouteWithChildren
   '/admin/collections': typeof AdminAuthLCollectionsRoute
   '/admin/comments': typeof AdminAuthLCommentsRoute
@@ -394,6 +401,7 @@ export interface FileRoutesByTo {
   '/$id/comment': typeof IdLayoutCommentRoute
   '/$id/relations': typeof IdLayoutRelationsRoute
   '/$id/translate': typeof IdLayoutTranslateRoute
+  '/admin/adverts': typeof AdminAuthLAdvertsRoute
   '/admin/articles': typeof AdminAuthLArticlesRouteWithChildren
   '/admin/collections': typeof AdminAuthLCollectionsRoute
   '/admin/comments': typeof AdminAuthLCommentsRoute
@@ -447,6 +455,7 @@ export interface FileRoutesById {
   '/$id/_layout/comment': typeof IdLayoutCommentRoute
   '/$id/_layout/relations': typeof IdLayoutRelationsRoute
   '/$id/_layout/translate': typeof IdLayoutTranslateRoute
+  '/admin/_authL/adverts': typeof AdminAuthLAdvertsRoute
   '/admin/_authL/articles': typeof AdminAuthLArticlesRouteWithChildren
   '/admin/_authL/collections': typeof AdminAuthLCollectionsRoute
   '/admin/_authL/comments': typeof AdminAuthLCommentsRoute
@@ -501,6 +510,7 @@ export interface FileRouteTypes {
     | '/$id/comment'
     | '/$id/relations'
     | '/$id/translate'
+    | '/admin/adverts'
     | '/admin/articles'
     | '/admin/collections'
     | '/admin/comments'
@@ -551,6 +561,7 @@ export interface FileRouteTypes {
     | '/$id/comment'
     | '/$id/relations'
     | '/$id/translate'
+    | '/admin/adverts'
     | '/admin/articles'
     | '/admin/collections'
     | '/admin/comments'
@@ -603,6 +614,7 @@ export interface FileRouteTypes {
     | '/$id/_layout/comment'
     | '/$id/_layout/relations'
     | '/$id/_layout/translate'
+    | '/admin/_authL/adverts'
     | '/admin/_authL/articles'
     | '/admin/_authL/collections'
     | '/admin/_authL/comments'
@@ -874,6 +886,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuthLIndexRouteImport
       parentRoute: typeof AdminAuthLRoute
     }
+    '/admin/_authL/adverts': {
+      id: '/admin/_authL/adverts'
+      path: '/adverts'
+      fullPath: '/admin/adverts'
+      preLoaderRoute: typeof AdminAuthLAdvertsRouteImport
+      parentRoute: typeof AdminAuthLRoute
+    }
     '/admin/_authL/articles': {
       id: '/admin/_authL/articles'
       path: '/articles'
@@ -1051,6 +1070,7 @@ const AdminAuthLArticlesRouteWithChildren =
   AdminAuthLArticlesRoute._addFileChildren(AdminAuthLArticlesRouteChildren)
 
 interface AdminAuthLRouteChildren {
+  AdminAuthLAdvertsRoute: typeof AdminAuthLAdvertsRoute
   AdminAuthLArticlesRoute: typeof AdminAuthLArticlesRouteWithChildren
   AdminAuthLCollectionsRoute: typeof AdminAuthLCollectionsRoute
   AdminAuthLCommentsRoute: typeof AdminAuthLCommentsRoute
@@ -1064,6 +1084,7 @@ interface AdminAuthLRouteChildren {
 }
 
 const AdminAuthLRouteChildren: AdminAuthLRouteChildren = {
+  AdminAuthLAdvertsRoute: AdminAuthLAdvertsRoute,
   AdminAuthLArticlesRoute: AdminAuthLArticlesRouteWithChildren,
   AdminAuthLCollectionsRoute: AdminAuthLCollectionsRoute,
   AdminAuthLCommentsRoute: AdminAuthLCommentsRoute,
