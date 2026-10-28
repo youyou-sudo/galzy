@@ -38,12 +38,13 @@ import {
 } from "@web/components/ui/item";
 import { Skeleton } from "@web/components/ui/skeleton";
 import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
+import { getFileIcon } from "@web/lib/file-icon";
 import { commitAfterViewTransition } from "@web/lib/reveal-gate";
 import { groupSplitArchives } from "@web/lib/split-archives";
 import { cn } from "@web/lib/utils";
 import { dwAcConst, refreshFileList } from "@web/server/game";
 import { downCardStore, downmodalActions } from "@web/stores/downCardData";
-import { AlertTriangle, FileArchive, Info, RefreshCw } from "lucide-react";
+import { AlertTriangle, Info, RefreshCw } from "lucide-react";
 import { MotionConfig } from "motion/react";
 import { tryit } from "radash";
 import { useEffect, useMemo, useState } from "react";
@@ -87,6 +88,26 @@ const UnzipPasswordAlert = () => {
 				<UnzipPassword />
 			</AlertDescription>
 		</Alert>
+	);
+};
+
+/** 文件类型图标：映射见 lib/file-icon，文件树与下载弹窗共用同一套语义 */
+const FileTypeIcon = ({
+	name,
+	format,
+	className,
+}: {
+	name?: string;
+	format?: string;
+	className?: string;
+}) => {
+	const Icon = getFileIcon(name, format);
+	return (
+		<Icon
+			aria-hidden="true"
+			className={cn("size-4", className)}
+			strokeWidth={1.75}
+		/>
 	);
 };
 
@@ -238,8 +259,13 @@ const FileExplorer = ({
 					</FolderItem>
 				);
 			}
+			// 文件行按扩展名显示图标（映射与下载弹窗共用 lib/file-icon）
 			return (
-				<FileItem key={item.id} onClick={() => onFileClick(item)}>
+				<FileItem
+					icon={getFileIcon(item.name, item.format)}
+					key={item.id}
+					onClick={() => onFileClick(item)}
+				>
 					{item.name}
 				</FileItem>
 			);
@@ -341,12 +367,12 @@ export const DownCardDialog = () => {
 								variant="outline"
 								className="gap-2 py-2 rounded-xl transition-colors duration-200 hover:bg-muted/40"
 							>
-								{/* 与文件树保持一致的「文件图标 + 名称」行结构 */}
+								{/* 与文件树保持一致的「文件图标 + 名称」行结构；图标取自同一份类型映射 */}
 								<ItemMedia
 									variant="icon"
 									className="size-8 text-muted-foreground bg-muted/60 rounded-lg ring-1 ring-border/60"
 								>
-									<FileArchive className="size-4" strokeWidth={1.75} />
+									<FileTypeIcon name={item.name} className="size-4" />
 								</ItemMedia>
 								<ItemContent className="min-w-0">
 									<ItemTitle className="w-full text-xs leading-snug line-clamp-2 break-all">
@@ -442,7 +468,11 @@ export const DownCardDialog = () => {
 				) : (
 					<>
 						<span className="flex justify-center">
-							<IconTile icon={FileArchive} size="lg" tone="muted" />
+							<IconTile
+								icon={getFileIcon(data?.name, data?.format)}
+								size="lg"
+								tone="muted"
+							/>
 						</span>
 
 						<span className="text-sm font-medium text-center wrap-break-word">
