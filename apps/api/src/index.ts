@@ -1,6 +1,7 @@
 import { startDbWatchdog } from '@api/db/watchdog'
 import { dbAction, initValidationError } from '@api/libs'
 import {
+  adverts,
   betterAuth,
   collections,
   comments,
@@ -65,6 +66,7 @@ async function buildApp() {
     )
     .use(betterAuth)
     .use(health)
+    .use(adverts)
     .use(game)
     .use(collections)
     .use(comments)
