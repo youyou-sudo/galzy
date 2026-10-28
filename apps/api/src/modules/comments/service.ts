@@ -298,8 +298,11 @@ export const CommentService = {
             .then((r) => r[0])
 
           if (!parentUser?.email) return
-
-          const commentUrl = `${process.env.WEB_HOST}/${parent.targetType}/${parent.targetId}`
+          let commentUrl = ''
+          if (parent.targetType === 'game') {
+            commentUrl = `${process.env.WEB_HOST}/${parent.targetId}`
+          }
+          commentUrl = `${process.env.WEB_HOST}/${parent.targetType}/${parent.targetId}`
           const preview =
             content.length > 100 ? content.slice(0, 100) + '…' : content
 
