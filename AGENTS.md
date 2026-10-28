@@ -355,6 +355,7 @@ export const myActions = {
 | topics | `/topics` | auth | Forum: CRUD, like, favorite |
 | collections | `/collections` | admin (write) | Curated game collections |
 | friend-links | `/friend-links` | public list / admin (write) | 友情链接：公开列表，管理员增删与拖动排序 |
+| adverts | `/adverts` | public read / admin (write) | 广告位 + 素材：公开按广告位 key 读取（在投过滤 / 设备定向 / 权重轮换，Redis 60s 缓存），管理员管理广告位、素材、排期与曝光/点击统计 |
 | producer | `/producer` | public | Producer/developer info, game lists |
 | search | `/search` | public | Meilisearch full-text search, admin embedder management |
 | media | `/media` | auth | S3 image upload (avatars, game media), hash-based dedup |
