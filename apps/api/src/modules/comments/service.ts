@@ -302,7 +302,7 @@ export const CommentService = {
           // 话题页为 /topics/:id。切勿统一拼成 `${targetType}/${targetId}`。
           const webHost = process.env.WEB_HOST || 'http://localhost:3000'
           const targetPathOf = (targetType: string, targetId: string) => {
-            if (targetType === 'game') return `/${targetId}`
+            if (targetType === 'game') return `/${targetId}/comment`
             if (targetType === 'topic') return `/topics/${targetId}`
             return `/${targetType}/${targetId}`
           }
