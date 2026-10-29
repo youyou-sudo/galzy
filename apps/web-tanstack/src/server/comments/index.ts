@@ -32,7 +32,7 @@ export const getCmments = createServerFn()
 		return res as StripUnknown<NonNullable<typeof res>> | null;
 	});
 
-export const createCmments = createServerFn()
+export const createCmments = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			targetType: z.string(),

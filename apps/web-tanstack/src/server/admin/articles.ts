@@ -29,7 +29,7 @@ export const adminGetAllArticles = createServerFn({ method: "GET" })
 		return res;
 	});
 
-export const adminUpdateArticle = createServerFn()
+export const adminUpdateArticle = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			id: z.number(),
@@ -54,7 +54,7 @@ export const adminUpdateArticle = createServerFn()
 		return { success: true };
 	});
 
-export const adminDeleteArticle = createServerFn()
+export const adminDeleteArticle = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			strategyId: z.number(),
@@ -73,7 +73,7 @@ export const adminDeleteArticle = createServerFn()
 		return { success: true };
 	});
 
-export const adminChangeArticleStatus = createServerFn()
+export const adminChangeArticleStatus = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			id: z.number(),

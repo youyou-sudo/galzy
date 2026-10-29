@@ -35,7 +35,7 @@ export const getintroductionList = createServerFn()
 		return res;
 	});
 
-export const createIntroduction = createServerFn()
+export const createIntroduction = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			gameId: z.string(),
@@ -62,7 +62,7 @@ export const createIntroduction = createServerFn()
 		return { success: true };
 	});
 
-export const updateIntroduction = createServerFn()
+export const updateIntroduction = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			id: z.string(),
@@ -91,7 +91,7 @@ export const updateIntroduction = createServerFn()
 		return { success: true };
 	});
 
-export const deleteIntroduction = createServerFn()
+export const deleteIntroduction = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			strategyId: z.number(),

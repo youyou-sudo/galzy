@@ -25,7 +25,7 @@ export const adminGetAllTopics = createServerFn()
 		return res;
 	});
 
-export const adminUpdateTopicStatus = createServerFn()
+export const adminUpdateTopicStatus = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			id: z.number(),
@@ -40,7 +40,7 @@ export const adminUpdateTopicStatus = createServerFn()
 		elysiaErrorF(error);
 		return res;
 	});
-export const adminDeleteTopic = createServerFn()
+export const adminDeleteTopic = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			id: z.number(),

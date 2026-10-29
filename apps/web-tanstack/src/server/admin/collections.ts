@@ -29,7 +29,7 @@ export const adminGetCollections = createServerFn()
 		return res as StripUnknown<NonNullable<typeof res>> | null;
 	});
 
-export const adminCreateCollection = createServerFn()
+export const adminCreateCollection = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			title: z.string().check(z.minLength(1)),
@@ -52,7 +52,7 @@ export const adminCreateCollection = createServerFn()
 		};
 	});
 
-export const adminUpdateCollection = createServerFn()
+export const adminUpdateCollection = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			id: z.number(),
@@ -73,7 +73,7 @@ export const adminUpdateCollection = createServerFn()
 		return { success: true };
 	});
 
-export const adminDeleteCollection = createServerFn()
+export const adminDeleteCollection = createServerFn({ method: "POST" })
 	.validator(z.object({ id: z.number() }))
 	.handler(async ({ data }) => {
 		const { error } = await api
@@ -83,7 +83,7 @@ export const adminDeleteCollection = createServerFn()
 		return { success: true };
 	});
 
-export const adminUpdateCollectionEntries = createServerFn()
+export const adminUpdateCollectionEntries = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			id: z.number(),

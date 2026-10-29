@@ -96,7 +96,7 @@ export const getTopic = createServerFn()
 		return res;
 	});
 
-export const createTopic = createServerFn()
+export const createTopic = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			title: z.string().check(z.minLength(1)),
@@ -117,7 +117,7 @@ export const createTopic = createServerFn()
 		return res;
 	});
 
-export const updateTopic = createServerFn()
+export const updateTopic = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			id: z.number(),
@@ -141,7 +141,7 @@ export const updateTopic = createServerFn()
 		return res;
 	});
 
-export const toggleTopicLike = createServerFn()
+export const toggleTopicLike = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			id: z.number(),
@@ -155,7 +155,7 @@ export const toggleTopicLike = createServerFn()
 		return res;
 	});
 
-export const toggleTopicFavorite = createServerFn()
+export const toggleTopicFavorite = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			id: z.number(),
@@ -169,7 +169,7 @@ export const toggleTopicFavorite = createServerFn()
 		return res;
 	});
 
-export const deleteTopic = createServerFn()
+export const deleteTopic = createServerFn({ method: "POST" })
 	.validator(
 		z.object({
 			id: z.number(),
