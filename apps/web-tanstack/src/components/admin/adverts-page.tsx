@@ -20,7 +20,7 @@ import {
 	useQuery,
 	useQueryClient,
 } from "@tanstack/react-query";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@web/lib/nav";
 import { AdminPageHeader } from "@web/components/admin/admin-page-header";
 import {
 	StatusPill,

@@ -7,7 +7,7 @@ import { HomePagePending } from "./home-page-pending";
 // pending 态本身就渲染在 router 上下文内（真实应用里 Link/useNavigate/useSearch
 // 都可用），测试只 mock 掉路由以便 SSR 渲染：Link 变成可断言的 <a>，$param 用
 // params 替换；Search 里的导航/search 取值不会在 pending 态被触发，置空即可。
-vi.mock("@tanstack/react-router", async () => {
+vi.mock("@web/lib/nav", async () => {
 	const { createElement } = await import("react");
 	// 把 to/$param/search 还原成真实 href：这样断言能覆盖「更多 →」的查询串，
 	// 而不只是基础路径（真实应用里它们分别是 ?sort=hotWeek&order=desc 等）。

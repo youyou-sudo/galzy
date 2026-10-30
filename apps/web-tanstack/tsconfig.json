@@ -4,6 +4,8 @@
   // server-prod.ts 与 .assets.generated.ts 是二进制入口/构建产物（Bun 专属 API、
   // 内嵌资源导入），不参与应用类型检查；scripts/build-binary.ts 同理。
   "exclude": [
+    "src/routes/**",
+    "src/routes",
     "node_modules",
     "coverage",
     ".storybook",
@@ -28,7 +30,7 @@
       "@libs/*": ["../../packages/libs/src/*"]
     },
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vite/client"],
+    "types": ["bun"],
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,

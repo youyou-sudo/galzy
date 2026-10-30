@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@web/lib/nav";
 import {
 	Select,
 	SelectContent,

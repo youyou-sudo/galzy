@@ -1,4 +1,4 @@
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@web/lib/nav";
 import { Badge } from "@web/components/ui/badge";
 import { Button } from "@web/components/ui/button";
 import { Input } from "@web/components/ui/input";
@@ -21,6 +21,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 interface SearchInputProps {
 	placeholder?: string;
 	liveSearch?: boolean;
+	/** 当前路由 id（如 "/games"）：furin 的 useSearch 必须显式指定 pattern */
+	from?: string;
 }
 
 // 以路由 search 作为初值来源（而非 window.location）：SSR 与客户端水合
@@ -36,12 +38,12 @@ type SearchInputParams = {
 export default function SearchInput({
 	placeholder = "标题、标签、回车，喵喵喵～🐾",
 	liveSearch = false,
+	from,
 }: SearchInputProps) {
 	const navigate = useNavigate();
-	// strict: false —— 本组件同时用于首页（无 search 校验）与 /games（有 schema）
-	const routeSearch = useSearch({
-		strict: false,
-	}) as unknown as SearchInputParams;
+	// 本组件同时用于首页（无 search 校验）与 /games（有 schema）；
+	// furin 的 useSearch 需要当前激活路由的 pattern，由调用方通过 from 传入。
+	const routeSearch = useSearch(from ? { from } : undefined) as unknown as SearchInputParams;
 	const currentQ = routeSearch.q ?? "";
 	const currentStartDate = routeSearch.startDate ?? "";
 	const currentEndDate = routeSearch.endDate ?? "";

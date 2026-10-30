@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@web/lib/nav";
 import { Tabs, TabsList, TabsTrigger } from "@web/components/ui/tabs";
 import { cn } from "@web/lib/utils";
 import {
@@ -44,9 +44,11 @@ export function gameTabOf(pathname: string): string {
 	return segment && TAB_SEGMENTS.has(segment) ? segment : "download";
 }
 
-export function GameTabs({ id }: { id: string }) {
+export function GameTabs({ id, path }: { id: string; path?: string }) {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
-	const currentTab = gameTabOf(pathname);
+	// SSR 下 useRouterState 拿不到真实 location（shim 回退到 "/"），优先用服务端
+	// 下发的当前路径，保证首屏 HTML 的选中页签与 URL 一致、hydration 不抖。
+	const currentTab = gameTabOf(path ?? pathname);
 
 	return (
 		<Tabs value={currentTab}>

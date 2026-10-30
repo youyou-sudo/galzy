@@ -3,7 +3,7 @@ import {
 	useQuery,
 	useQueryClient,
 } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link } from "@web/lib/nav";
 import { AdminPageHeader } from "@web/components/admin/admin-page-header";
 import { StatusPill, type StatusTone } from "@web/components/admin/admin-table";
 import { ConfirmDialog } from "@web/components/admin/confirm-dialog";

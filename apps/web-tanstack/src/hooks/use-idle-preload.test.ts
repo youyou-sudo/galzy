@@ -12,7 +12,7 @@ vi.mock("@web/lib/view-transition", () => ({
 	isViewTransitionActive: () => vtState.active,
 }));
 
-vi.mock("@tanstack/react-router", () => ({
+vi.mock("@web/lib/nav", () => ({
 	useRouter: () => routerStub,
 }));
 

@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from "@web/lib/nav";
 import { BBCodeRenderer } from "@web/components/bbcode";
 import { ProducerGamelist } from "@web/components/home/producer/ProducerGameList";
 import {

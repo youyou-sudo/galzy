@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi } from "@web/lib/nav";
 import { EmptyState } from "@web/components/shared/empty-state";
 import { Button } from "@web/components/ui/button";
 import { preferredTitleFrom } from "@web/lib/game-title";
@@ -69,7 +69,7 @@ export const TagGamelist = () => {
 						width={item.images?.width ?? 200}
 						height={item.images?.height ?? 300}
 						thumbhash={item.images?.thumbhash}
-						src={item.images?.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
+						src={item.images?.imageUrl ?? "/public/No-Image-Placeholder.svg.webp"}
 						cSexualAvg={item.images?.c_sexual_avg}
 						title={preferredTitleFrom(item.titles, item.olang) ?? "null"}
 					/>

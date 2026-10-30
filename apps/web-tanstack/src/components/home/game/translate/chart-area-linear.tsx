@@ -1,4 +1,4 @@
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi } from "@web/lib/nav";
 import { EmptyState } from "@web/components/shared/empty-state";
 import { SectionHeader } from "@web/components/shared/section-header";
 import {

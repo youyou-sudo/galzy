@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from "@web/lib/nav";
 import { useSelector } from "@tanstack/react-store";
 import { ProducerGameGridSkeleton } from "@web/components/producer/producer-game-grid";
 import {

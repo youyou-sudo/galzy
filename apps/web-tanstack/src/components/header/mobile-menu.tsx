@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from "@web/lib/nav";
 import { cn } from "@web/lib/utils";
 import { ChevronRight, Info } from "lucide-react";
 import { useEffect, useRef, useState } from "react";

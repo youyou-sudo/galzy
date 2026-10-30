@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from "@web/lib/nav";
 import { Image } from "@unpic/react";
 import { ExternalLink } from "lucide-react";
 
@@ -30,7 +30,7 @@ export default function Footer() {
 					<div className="flex gap-2.5 items-center">
 						<span className="flex overflow-hidden justify-center items-center size-8 rounded-xl ring-1 ring-border/60">
 							<Image
-								src="/favicon.ico"
+								src="/public/favicon.ico"
 								width={20}
 								height={20}
 								alt=""

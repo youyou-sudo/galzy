@@ -1,7 +1,7 @@
 import { MarkdownAsync } from "@web/components/markdownAync";
 import { PageHeader } from "@web/components/shared/page-header";
 import { Card, CardContent } from "@web/components/ui/card";
-import openapiDoc from "@web/markdown/openapi.md?raw";
+import { openapiMarkdown as openapiDoc } from "@web/markdown/openapi";
 import { Code2 } from "lucide-react";
 
 export default function RouteComponent() {

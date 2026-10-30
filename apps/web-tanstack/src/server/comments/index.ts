@@ -1,60 +1,7 @@
-import { api } from "@libs";
-import { createServerFn } from "@tanstack/react-start";
-import { elysiaErrorF } from "@web/lib";
-import { cookiePass } from "@web/lib/cookie-pass";
-import type { StripUnknown } from "@web/lib/serializable";
-import * as z from "zod/mini";
+import { bffFn } from "@web/lib/bff/fn";
+import type * as impl from "./../impl/comments/index";
 
-export const getCmments = createServerFn()
-	.validator(
-		z.object({
-			targetType: z.string(),
-			targetId: z.string(),
-			page: z.optional(z.number()),
-			limit: z.optional(z.number()),
-			type: z.optional(z.string()),
-			status: z.optional(z.string()),
-		}),
-	)
-	.handler(async ({ data }) => {
-		const { data: res, error } = await api.comments.get({
-			query: {
-				targetType: data.targetType,
-				targetId: data.targetId,
-				page: data.page,
-				limit: data.limit,
-				type: data.type,
-				status: data.status,
-			},
-			...cookiePass(),
-		});
-		elysiaErrorF(error);
-		return res as StripUnknown<NonNullable<typeof res>> | null;
-	});
+export const getCmments = bffFn<typeof impl.getCmments>("comments.getCmments");
+export const createCmments = bffFn<typeof impl.createCmments>("comments.createCmments");
 
-export const createCmments = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			targetType: z.string(),
-			targetId: z.string(),
-			content: z.string(),
-			parentId: z.optional(z.string()),
-			replyToUserId: z.optional(z.string()),
-			type: z.optional(z.string()),
-		}),
-	)
-	.handler(async ({ data }) => {
-		const { data: res, error } = await api.comments.post(
-			{
-				targetType: data.targetType,
-				targetId: data.targetId,
-				content: data.content,
-				parentId: data.parentId,
-				replyToUserId: data.replyToUserId,
-				type: data.type,
-			},
-			cookiePass(),
-		);
-		elysiaErrorF(error);
-		return res as StripUnknown<NonNullable<typeof res>> | null;
-	});
+export type * from "./../impl/comments/index";

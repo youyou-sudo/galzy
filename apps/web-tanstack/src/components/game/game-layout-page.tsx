@@ -1,4 +1,4 @@
-import { Outlet } from "@tanstack/react-router";
+import { Outlet } from "@web/lib/nav";
 import {
 	GameCover,
 	GameTitle,
@@ -8,6 +8,7 @@ import { GameTabs } from "@web/components/home/game/GameTabs";
 import { Glgczujm } from "@web/components/home/game/tips";
 import { Card, CardContent } from "@web/components/ui/card";
 import { useIdlePreload } from "@web/hooks/use-idle-preload";
+import type { ReactNode } from "react";
 
 /**
  * 游戏详情页外壳（三明治：概览卡 → 页签 → 内容卡）。
@@ -19,9 +20,15 @@ import { useIdlePreload } from "@web/hooks/use-idle-preload";
 export default function GameLayoutPage({
 	game,
 	id,
+	path,
+	children,
 }: {
 	game: any;
 	id: string;
+	/** 当前请求路径（furin 从 page/layout props 下发）；SSR 下用它判定选中页签 */
+	path?: string;
+	/** 当前页签内容：furin 用 children 渲染子页面，替代 TanStack 的 <Outlet/> */
+	children?: ReactNode;
 }) {
 	// 首屏渲染完成后，空闲时预取各 tab 的 JS chunk + loader 数据，
 	// 切换 tab 时命中路由缓存，体验如 SPA 般即时；不阻塞首屏加载。
@@ -63,11 +70,11 @@ export default function GameLayoutPage({
 				</CardContent>
 			</Card>
 
-			<GameTabs id={id} />
+			<GameTabs id={id} path={path} />
 
 			<Card className="ring-border/60">
 				<CardContent>
-					<Outlet />
+					{children ?? <Outlet />}
 					<Glgczujm />
 				</CardContent>
 			</Card>

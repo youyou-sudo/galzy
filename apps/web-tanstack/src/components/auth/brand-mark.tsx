@@ -11,7 +11,7 @@ export function BrandMark() {
 		<span className="flex gap-2 justify-center items-center mb-1">
 			{/* 与顶栏一致：站标不放进 overflow-hidden 的圆角容器，避免裁掉四角 */}
 			<span className="flex justify-center items-center size-7">
-				<Image src="/favicon.ico" width={28} height={28} alt="" />
+				<Image src="/public/favicon.ico" width={28} height={28} alt="" />
 			</span>
 			<span className="text-sm font-semibold tracking-tight text-foreground/80">
 				GalZY

@@ -1,6 +1,6 @@
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@web/lib/nav";
 import { useSelector } from "@tanstack/react-store";
 import { Image } from "@unpic/react";
 import { Field, FieldError, FieldGroup } from "@web/components/ui/field";
@@ -153,7 +153,7 @@ export const ReplyEidtInput = ({
 			<div className="flex flex-col gap-3 justify-center items-center px-6 py-8 text-center bg-card/60 rounded-2xl ring-1 ring-border/60">
 				<Image
 					className="rounded-xl"
-					src="/neko.webp"
+					src="/public/neko.webp"
 					width={80}
 					height={80}
 					alt="喵喵喵～这个图片用于提示用户未登陆"

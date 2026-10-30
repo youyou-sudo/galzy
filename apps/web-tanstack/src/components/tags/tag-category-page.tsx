@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from "@web/lib/nav";
 import { EmptyState } from "@web/components/shared/empty-state";
 import { PageHeader } from "@web/components/shared/page-header";
 import { TagSortBar, tagMetricsTitle } from "@web/components/tags/tag-sort-bar";

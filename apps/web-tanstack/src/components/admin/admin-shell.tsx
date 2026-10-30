@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation } from "@web/lib/nav";
 import { AdminCommandMenu } from "@web/components/admin/admin-command-menu";
 import {
 	adminNav,

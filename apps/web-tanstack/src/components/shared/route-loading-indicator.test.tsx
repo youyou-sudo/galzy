@@ -14,7 +14,7 @@ const routerMock = vi.hoisted(() => ({
 	matches: [] as { routeId: string }[],
 }));
 
-vi.mock("@tanstack/react-router", () => ({
+vi.mock("@web/lib/nav", () => ({
 	useRouterState: (options?: {
 		select?: (state: {
 			status: "idle" | "pending";

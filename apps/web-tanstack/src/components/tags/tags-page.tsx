@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@web/lib/nav";
 import { EmptyState } from "@web/components/shared/empty-state";
 import { PageHeader } from "@web/components/shared/page-header";
 import {

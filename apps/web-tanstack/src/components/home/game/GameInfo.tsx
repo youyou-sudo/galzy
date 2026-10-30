@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from "@web/lib/nav";
 import { BBCodeRenderer, getDescriptionPreview } from "@web/components/bbcode";
 import { TagsCard } from "@web/components/home/game/tags";
 import { Button } from "@web/components/ui/button";
@@ -180,7 +180,7 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 			)}
 
 			{/* Tags section */}
-			<TagsCard />
+			<TagsCard gameId={gameId} />
 		</>
 	);
 }

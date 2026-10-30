@@ -1,4 +1,4 @@
-import { useRouterState } from "@tanstack/react-router";
+import { useRouterState } from "@web/lib/nav";
 import { Spinner } from "@web/components/ui/spinner";
 import { cn } from "@web/lib/utils";
 import { useEffect, useRef, useState } from "react";

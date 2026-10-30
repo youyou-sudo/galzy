@@ -69,7 +69,7 @@ export const OauthButton = () => {
 				>
 					{loading === "kungal" && <Loader2 className="animate-spin" />}
 					<Image
-						src="/kungal.webp"
+						src="/public/kungal.webp"
 						width={16}
 						height={16}
 						alt="这是 KunGalgame 登陆按钮图标"
@@ -92,7 +92,7 @@ export const OauthButton = () => {
 									<Loader2 className="animate-spin" />
 								)}
 								<Image
-									src="/hikarinagi-icon.webp"
+									src="/public/hikarinagi-icon.webp"
 									width={16}
 									height={16}
 									alt="这是 Hikarinagi ID 登录按钮图标"
@@ -114,7 +114,7 @@ export const OauthButton = () => {
 				>
 					{loading === "linuxdo" && <Loader2 className="animate-spin" />}
 					<Image
-						src="/linuxdo.webp"
+						src="/public/linuxdo.webp"
 						width={16}
 						height={16}
 						alt="这是 linux.do 登陆按钮图标"

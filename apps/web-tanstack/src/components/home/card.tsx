@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from "@web/lib/nav";
 import { useSelector } from "@tanstack/react-store";
 import { Image, type ImageProps } from "@unpic/react";
 import { AspectRatio } from "@web/components/ui/aspect-ratio";
@@ -103,7 +103,7 @@ type ThumbHashImageProps = ImagePropsWithStyle & {
 	placeholderOnly?: boolean;
 };
 
-const NO_IMAGE_SRC = "/No-Image-Placeholder.svg.webp";
+const NO_IMAGE_SRC = "/public/No-Image-Placeholder.svg.webp";
 
 function ThumbHashImage({
 	thumbhash,

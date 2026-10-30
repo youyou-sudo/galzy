@@ -1,4 +1,4 @@
-import { useRouter, type RegisteredRouter } from "@tanstack/react-router";
+import { useRouter, type RegisteredRouter } from "@web/lib/nav";
 import { isViewTransitionActive } from "@web/lib/view-transition";
 import { useEffect, useRef } from "react";
 

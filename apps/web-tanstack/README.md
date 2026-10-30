@@ -1,247 +1,78 @@
-Welcome to your new TanStack Start app! 
+# Galzy Web（@teyik0/furin）
 
-# Getting Started
+Galzy 前端：Bun + Elysia 2 + Furin 文件路由，React 19 SSR。
+API 网关由同进程的 Elysia 插件承担，页面通过 loader 在服务端取数、客户端通过 `/api/_bff/*` 复用同一份 BFF 处理逻辑。
 
-To run this application:
+## 目录结构
+
+```text
+src/
+├── server.ts              # Furin 入口：Elysia(api) + furin({ pagesDir })
+├── api/                   # Elysia 路由：/api/health、/api/_bff/:id、/api/auth/*、/api/search、/api/game、上传代理
+├── pages/                 # 文件路由（URL 即路径）
+│   ├── root.tsx           # 文档外壳：HeadContent/Scripts、主题脚本、Provider、Header/Footer
+│   ├── error.tsx          # 全站错误边界
+│   ├── not-found.tsx      # 404
+│   ├── index.tsx          # /
+│   ├── [id]/_route.tsx    # /:id 游戏详情布局（tab 导航）
+│   └── ...                # 其余页面同 URL 结构
+├── server/                # BFF 层（同构 surface + server-only impl）
+│   ├── <domain>.ts        # 浏览器可 import：bffFn("domain.fn")，SSR 走进程内、浏览器走 POST /api/_bff
+│   └── impl/<domain>.ts   # 真正实现（@teyik0/furin/server-only），只被 registry 引入
+├── components/            # 业务组件（shadcn/@base-ui + Tailwind v4）
+├── lib/                   # 工具、nav 兼容层、BFF 运行时、query 播种
+└── store`, `hooks`, `integrations`
+```
+
+## 开发
 
 ```bash
 bun install
-bun --bun run dev
+bun run dev            # bun --hot src/server.ts，默认 :3000
+bunx furin typegen     # 重新生成 furin-env.d.ts（新增/移动页面后）
+bunx tsc --noEmit -p tsconfig.json
 ```
 
-# Building For Production
+后端 API 默认 `http://localhost:3001`（`API_HOST`）。
 
-生产构建由 Nitro（`nitro/vite` 插件，preset `bun`）完成，产物在 `.output/`，再编译成单文件二进制：
+## 页面约定
+
+```tsx
+import { defineRoute } from "@teyik0/furin";
+import { t } from "elysia";
+import * as z from "zod/mini";
+
+export const route = defineRoute("/tags/[tagId]")
+  .config({ mode: "ssr", params: t.Object({ tagId: t.String() }), query: z.object({ page: z.optional(z.number()) }) })
+  .loader(async ({ params, query, request }) => ({ data: await getTagData({ data: { tagId: params.tagId } }) }))
+  .head(({ data }) => seoMeta({ title: data.title, path: `/tags/${data.id}` }) as never)
+  .page(({ data, params }) => <TagDetailPage data={data} />);
+```
+
+- `params` 必须用 TypeBox（`t.Object`）；`query` 用 zod（zod v4 作为 Standard Schema 直接可用），但**多选/布尔**字段要用 TypeBox（zod 不会把 `?a=1&a=2` 聚合成数组，也不会把 `"true"` 转 boolean）。
+- loader 返回值就是 page props（扁平展开）；旧代码里 `context.queryClient.setQueryData` 的语义用 `lib/query-seed.ts` 的 `useSeedQueries` 复刻。
+- 组件沿用 `@web/lib/nav`（`Link`/`useNavigate`/`useRouterState`/`useSearch`/`useParams`/`getRouteApi` 等），它是 @tanstack/react-router 的兼容层，旧 route id 由 `lib/route-manifest.ts` 映射为 furin pattern。
+- BFF：新增服务端逻辑写 `server/impl/<domain>.ts` 的 `defineBff`，再在 `server/<domain>.ts` 用 `bffFn<typeof impl.fn>("domain.fn")` 暴露；`server/registry.ts` 由 `bun scripts/furin/gen-registry.mjs` 生成。
+
+## 构建与部署
 
 ```bash
-bun --bun run build         # Vite + Nitro → .output/{server,public}
-bun --bun run build:binary  # → .output/server-bin（Windows 为 .output/server-bin.exe）
-bun --bun run start         # 本地运行 .output/server/index.mjs
+bun run build           # furin build --target bun → .furin/build/bun/{server.js,client,public}
+bun run build:binary    # --compile embed → 单文件 .furin/build/bun/server(.exe)
+bun run start           # 运行 server.js
 ```
 
-- `build`：Nitro 在 Vite 构建流程里产出 `.output/server`（SSR 入口）与 `.output/public`（客户端静态资源）。
-- `build:binary`：`scripts/build-binary.ts` 把 `.output/public/**` 以 `with { type: "file" }` 内嵌，再用 `bun build --compile` 编成单个可执行文件。
-- Docker 运行阶段（`cgr.dev/chainguard/glibc-dynamic`，非 root 65532）只放一个 `/app/server` 二进制：没有 Bun 运行时、`node_modules` 和 `public` 目录。
-- 健康检查：镜像 `HEALTHCHECK` 用 `/app/server --healthcheck`；二进制同时兼容 Dokploy 既有的 `/app/server healthcheck` 写法（无前导 `--`）。
+Dockerfile 使用 `build:binary` 产物；运行镜像（chainguard glibc-dynamic，非 root 65532）只放 `/app/server`。
+健康检查：`/app/server --healthcheck`（请求本机 `/api/health`），同时兼容 Dokploy 的 `healthcheck` 写法。
 
-运行时 Nitro 负责 SSR 与静态资源：`/assets/**` 走 `immutable` 长缓存，`.gz`/`.br` 预压缩副本按 `Accept-Encoding` 直接下发。SSR 文本响应的流式压缩交给前置 CDN（Cloudflare 自动 br/gzip），应用自身不再做。
+静态资源放在 `public/`，对外 URL 前缀为 `/public/*`（favicon.ico 例外）。
 
-## Testing
-
-This project uses [Vitest](https://vitest.dev/) for testing. You can run the tests with:
+## 测试与校验
 
 ```bash
-bun --bun run test
+bun run test            # vitest（组件层）
+bunx oxlint             # lint
+bun run format          # biome format
 ```
 
-## Styling
-
-This project uses [Tailwind CSS](https://tailwindcss.com/) for styling.
-
-### Removing Tailwind CSS
-
-If you prefer not to use Tailwind CSS:
-
-1. Remove the demo pages in `src/routes/demo/`
-2. Replace the Tailwind import in `src/styles.css` with your own styles
-3. Remove `tailwindcss()` from the plugins array in `vite.config.ts`
-4. Uninstall the packages: `bun install @tailwindcss/vite tailwindcss -D`
-
-## Linting & Formatting
-
-This project uses [Biome](https://biomejs.dev/) for linting and formatting. The following scripts are available:
-
-
-```bash
-bun --bun run lint
-bun --bun run format
-bun --bun run check
-```
-
-
-## Setting up Better Auth
-
-1. Generate and set the `BETTER_AUTH_SECRET` environment variable in your `.env.local`:
-
-   ```bash
-   bunx --bun @better-auth/cli secret
-   ```
-
-2. Visit the [Better Auth documentation](https://www.better-auth.com) to unlock the full potential of authentication in your app.
-
-### Adding a Database (Optional)
-
-Better Auth can work in stateless mode, but to persist user data, add a database:
-
-```typescript
-// src/lib/auth.ts
-import { betterAuth } from "better-auth";
-import { Pool } from "pg";
-
-export const auth = betterAuth({
-  database: new Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
-  // ... rest of config
-});
-```
-
-Then run migrations:
-
-```bash
-bunx --bun @better-auth/cli migrate
-```
-
-
-
-## Routing
-
-This project uses [TanStack Router](https://tanstack.com/router) with file-based routing. Routes are managed as files in `src/routes`.
-
-### Adding A Route
-
-To add a new route to your application just add a new file in the `./src/routes` directory.
-
-TanStack will automatically generate the content of the route file for you.
-
-Now that you have two routes you can use a `Link` component to navigate between them.
-
-### Adding Links
-
-To use SPA (Single Page Application) navigation you will need to import the `Link` component from `@tanstack/react-router`.
-
-```tsx
-import { Link } from "@tanstack/react-router";
-```
-
-Then anywhere in your JSX you can use it like so:
-
-```tsx
-<Link to="/about">About</Link>
-```
-
-This will create a link that will navigate to the `/about` route.
-
-More information on the `Link` component can be found in the [Link documentation](https://tanstack.com/router/v1/docs/framework/react/api/router/linkComponent).
-
-### Using A Layout
-
-In the File Based Routing setup the layout is located in `src/routes/__root.tsx`. Anything you add to the root route will appear in all the routes. The route content will appear in the JSX where you render `{children}` in the `shellComponent`.
-
-Here is an example layout that includes a header:
-
-```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-
-export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
-})
-```
-
-More information on layouts can be found in the [Layouts documentation](https://tanstack.com/router/latest/docs/framework/react/guide/routing-concepts#layouts).
-
-## Server Functions
-
-TanStack Start provides server functions that allow you to write server-side code that seamlessly integrates with your client components.
-
-```tsx
-import { createServerFn } from '@tanstack/react-start'
-
-const getServerTime = createServerFn({
-  method: 'GET',
-}).handler(async () => {
-  return new Date().toISOString()
-})
-
-// Use in a component
-function MyComponent() {
-  const [time, setTime] = useState('')
-  
-  useEffect(() => {
-    getServerTime().then(setTime)
-  }, [])
-  
-  return <div>Server time: {time}</div>
-}
-```
-
-## API Routes
-
-You can create API routes by using the `server` property in your route definitions:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-
-export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
-    },
-  },
-})
-```
-
-## Data Fetching
-
-There are multiple ways to fetch data in your application. You can use TanStack Query to fetch data from a server. But you can also use the `loader` functionality built into TanStack Router to load the data for a route before it's rendered.
-
-For example:
-
-```tsx
-import { createFileRoute } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people')
-    return response.json()
-  },
-  component: PeopleComponent,
-})
-
-function PeopleComponent() {
-  const data = Route.useLoaderData()
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  )
-}
-```
-
-Loaders simplify your data fetching logic dramatically. Check out more information in the [Loader documentation](https://tanstack.com/router/latest/docs/framework/react/guide/data-loading#loader-parameters).
-
-# Demo files
-
-Files prefixed with `demo` can be safely deleted. They are there to provide a starting point for you to play around with the features you've installed.
-
-# Learn More
-
-You can learn more about all of the offerings from TanStack in the [TanStack documentation](https://tanstack.com).
-
-For TanStack Start specific documentation, visit [TanStack Start](https://tanstack.com/start).
+UI 平价回归：`scripts/parity/`（CDP 截图 + 逐路由像素/文本 diff），用法见 `.parity/README.md`。

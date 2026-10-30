@@ -2,15 +2,15 @@
 
 ## Project Overview
 
-Galzy is a Chinese-language Galgame resource platform — a Bun monorepo with an ElysiaJS backend API and a TanStack Start (React 19) frontend. It provides game discovery via VNDB data sync, Meilisearch full-text search, OAuth authentication, nested comments, strategy guides, download management via Alist + Cloudflare Workers, and an admin panel.
+Galzy is a Chinese-language Galgame resource platform — a Bun monorepo with an ElysiaJS backend API and a Furin (React 19 on Bun + Elysia 2) frontend. It provides game discovery via VNDB data sync, Meilisearch full-text search, OAuth authentication, nested comments, strategy guides, download management via Alist + Cloudflare Workers, and an admin panel.
 
-**Stack:** Bun 1.3+, TypeScript 6 strict, PostgreSQL 16+ (Drizzle ORM), Redis 7+, Meilisearch, Better Auth, Biome 2.x, Docker multi-stage builds.
+**Stack:** Bun 1.3+, TypeScript 6 strict, PostgreSQL 16+ (Drizzle ORM), Redis 7+, Meilisearch, Better Auth, Furin 0.8 (Elysia 2 + Bun) frontend, Biome 2.x, Docker multi-stage builds.
 
 ## Architecture & Data Flow
 
 ```
-Browser ──▶ TanStack Start SSR (port 3000)
-                │  createServerFn (BFF layer)
+Browser ──▶ Furin SSR (Bun + Elysia 2, port 3000)
+                │  loader → BFF (in-process dispatch)
                 │  Eden Treaty (typed RPC)
                 ▼
          ElysiaJS API (port 3001)
@@ -22,7 +22,7 @@ PostgreSQL    Redis     Meilisearch
 ```
 
 - **API** (`apps/api/`): ElysiaJS HTTP server. 19 domain modules, each a three-file Elysia plugin (`index.ts` routes, `model.ts` TypeBox schemas, `service.ts` business logic). Better Auth handles authentication with `auth`/`isAdmin` macros. Drizzle ORM (bun-sql adapter) for PostgreSQL. Redis for caching + distributed locks. Meilisearch for full-text search.
-- **Web** (`apps/web-tanstack/`): TanStack Start SSR app. TanStack Router file-based routing. Server Functions (`createServerFn`) act as BFF layer, calling the API via Eden Treaty. TanStack Query v5 for server state. TanStack React Store for UI state. shadcn/ui (base-nova style) + Tailwind CSS v4.
+- **Web** (`apps/web-tanstack/`): Furin SSR app on Bun + Elysia 2. File-based pages (`src/pages/**`, `defineRoute(...).config().loader().head().page()`); the same Elysia process serves `/api/*`. BFF handlers live in `src/server/impl/<domain>.ts` (`defineBff`) and are exposed through isomorphic surfaces in `src/server/<domain>.ts` (`bffFn`): SSR dispatches in-process, the browser POSTs `/api/_bff/:id`. TanStack Query v5 for client state (seeded from loader data via `useSeedQueries`). `src/lib/nav.tsx` is a TanStack-Router-compatible navigation layer (Link/useNavigate/useRouterState/useSearch/getRouteApi/redirect). shadcn/ui (base-nova style) + Tailwind CSS v4 via `bun-plugin-tailwind`.
 - **Shared** (`packages/`): `libs` provides the Eden Treaty client (`treaty<app>`) with cookie forwarding and timeout. `config` provides shared TypeScript configs with path aliases (`@api`, `@web`, `@libs`). Pure TypeScript source — no build step.
 - **Data flow:** Browser → SSR (server functions) → Eden Treaty → Elysia API → Drizzle ORM → PostgreSQL. Redis sits alongside as cache. Meilisearch is populated by cron jobs and queried by the search module.
 
@@ -41,17 +41,18 @@ galzy/
 │   │   └── libs/                 # Shared utilities (redis, meilisearch, typebox)
 │   ├── drizzle/                  # Migration SQL files (Drizzle Kit)
 │   └── .env.example              # All environment variables
-├── apps/web-tanstack/            # TanStack Start frontend (port 3000)
+├── apps/web-tanstack/            # Furin frontend (port 3000)
 │   ├── src/
-│   │   ├── routes/               # File-based routes (~35 route files)
-│   │   ├── server/               # Server Functions (BFF layer per domain)
+│   │   ├── pages/                # Furin file-based pages (~46 incl. layouts/root)
+│   │   ├── server/               # BFF: impl/** (server-only) + <domain>.ts (isomorphic surfaces)
+│   │   ├── api/                  # Elysia routes: /api/_bff, /api/auth, /api/search, /api/game, upload proxies
 │   │   ├── components/           # shadcn/ui + custom components
 │   │   ├── stores/               # TanStack React Store (UI state)
 │   │   ├── hooks/                # Custom React hooks
 │   │   ├── lib/                  # cn(), cookiePass(), elysiaErrorF(), etc.
 │   │   ├── integrations/         # TanStack Query provider, Better Auth
 │   │   └── styles.css            # Tailwind CSS v4 entry + theme variables
-│   └── vite.config.ts            # Vite 8 + TanStack Start + Tailwind + Nitro
+│   └── furin.config.ts / bunfig.toml  # Furin build + dev plugins
 ├── packages/
 │   ├── libs/src/api/index.ts     # Eden Treaty client — treaty<app>(host, opts)
 │   └── config/typescript/        # Shared tsconfig (base.json, react-library.json)
@@ -75,9 +76,9 @@ galzy/
 | `bun run lint` | Run Biome check + oxlint across workspaces |
 | `bun run docker` | Build all Docker images |
 | `bun --cwd apps/api dev` | Start API only (watch mode, port 3001) |
-| `bun --cwd apps/web-tanstack dev` | Start Web only (Vite dev, port 3000) |
-| `bun --cwd apps/web-tanstack start` | Run Nitro production server (`.output/server/index.mjs`, port 3000) |
-| `bun --cwd apps/web-tanstack build:binary` | Compile Nitro output into single-file binary (`.output/server-bin`) |
+| `bun --cwd apps/web-tanstack dev` | Start Web only (`bun --hot src/server.ts`, port 3000) |
+| `bun --cwd apps/web-tanstack start` | Run the Furin production server (`.furin/build/bun/server.js`, port 3000) |
+| `bun --cwd apps/web-tanstack build` / `build:binary` | `furin build --target bun` → `.furin/build/bun/`; `--compile embed` → single-file binary |
 | `bun --cwd apps/api db:generate` | Generate Drizzle migration |
 | `bun --cwd apps/api db:up` | Apply migrations |
 | `bun --cwd apps/api db:check` | Verify schema ↔ database consistency |
@@ -191,39 +192,35 @@ Utilities in `apps/api/src/libs/redis/kv.ts`:
 - Typical TTLs: 30min (counts), 1hr (tags, lists), 2hr (game lists), 6hr (game info)
 - All operations use `safeRedisOp` wrapper — fails gracefully if Redis is unavailable
 
-### Frontend: TanStack Start Patterns
+### Frontend: Furin Patterns
 
-**Server Functions (BFF layer)** — `apps/web-tanstack/src/server/<domain>/`:
-```typescript
-import { api } from '@libs'
-import { createServerFn } from '@tanstack/react-start'
-import { elysiaErrorF } from '@web/lib'
-import z from 'zod'
+**Pages** — `apps/web-tanstack/src/pages/**` (文件即路由):
+```tsx
+import { defineRoute } from "@teyik0/furin"
+import { t } from "elysia"
+import * as z from "zod/mini"
 
-// GET with Zod validation
-export const getGameDetail = createServerFn()
-  .validator(z.object({ id: z.string() }))
-  .handler(async ({ data }) => {
-    const { data: result, error } = await api.games.get({ query: { id: data.id } })
-    elysiaErrorF(error)  // MUST call on every Eden response
-    return result
-  })
-
-// Authenticated request — forward cookies
-import { cookiePass } from '@web/lib'
-const { data, error } = await api.comments.post(body, cookiePass())
+export const route = defineRoute("/tags/[tagId]")
+  .config({ mode: "ssr", params: t.Object({ tagId: t.String() }), query: z.object({ page: z.optional(z.number()) }) })
+  .loader(async ({ params, query }) => ({ data: await getTagData({ data: { tagId: params.tagId } }) }))
+  .head(({ data }) => seoMeta({ title: data.title, path: "/tags/" + data.id }) as never)
+  .page(({ data }) => <TagDetailPage data={data} />)
 ```
-- All server functions MUST use `.validator()` with Zod for input validation.
-- Every Eden response MUST pass `error` to `elysiaErrorF()` — 401 redirects to login, others throw structured errors.
-- Authenticated calls use `cookiePass()` which returns `{ fetch: { headers: { cookie: ... } } }`.
+- `params` 必须用 TypeBox（furin 从 `schema.properties` 读取动态段）；`query` 可用 zod（Standard Schema），但**多选 / 布尔**字段要用 TypeBox（zod 不会聚合重复 key，也不会把 "true" 转 boolean）。
+- loader 返回值就是 page props；旧 `context.queryClient.setQueryData` 语义用 `@web/lib/query-seed` 的 `useSeedQueries` 复刻。
+- 组件仍从 `@web/lib/nav` 导入 Link / useNavigate / useRouterState / useSearch / useParams / getRouteApi / redirect（兼容层，旧 route id 由 `lib/route-manifest.ts` 映射）。
+- `pendingComponent` 无对应机制；`isNavigating` 可做顶栏加载指示。
 
-**Route patterns:**
-- `beforeLoad` for auth guards (admin `_authL.tsx` only)
-- `loader` + `loaderDeps` for data loading with search param dependencies
-- `validateSearch` with Zod schemas for typed search params
-- `head()` for dynamic meta/title
-- `pendingComponent` for loading skeletons
-- `staleTime`/`gcTime` in loaders for client-side caching
+**BFF** — `apps/web-tanstack/src/server`:
+```ts
+// impl/admin/adverts.ts (server-only)
+export const adminCreateAdSlot = defineBff(z.object({ key: z.string() }), async ({ data }) => { /* Eden 调用 */ })
+// server/admin/adverts.ts (browser-safe surface)
+export const adminCreateAdSlot = bffFn<typeof impl.adminCreateAdSlot>("admin/adverts.adminCreateAdSlot")
+```
+- 页面 loader / 组件都调用 surface：SSR 走进程内 dispatch，浏览器走 `POST /api/_bff/:id`（同源 cookie）。
+- 新增 handler 后运行 `bun scripts/furin/gen-registry.mjs` 重建 registry。
+- `cookiePass()` / `ipPass()` 从 `src/lib/request-context.ts` 的 AsyncLocalStorage 读当前请求（Elysia `onRequest` 注入）。
 
 **Auth (Better Auth):**
 - Browser: `createAuthClient` from `better-auth/react` → `authClient.useSession()`, `authClient.signIn.email()`
@@ -279,14 +276,15 @@ export const myActions = {
 | `apps/api/src/libs/meilisearch/index.ts` | Meilisearch singleton client |
 | `apps/api/.env.example` | All environment variables |
 | `apps/api/drizzle.config.ts` | Drizzle Kit config |
-| `apps/web-tanstack/src/routes/__root.tsx` | Root route — HTML shell, theme script, providers |
+| `apps/web-tanstack/src/pages/root.tsx` | Root document — HTML shell, theme script, providers, Header/Footer/ads |
 | `apps/web-tanstack/src/router.tsx` | TanStack Router config |
 | `apps/web-tanstack/src/server/auth/auth.server.ts` | SSR auth client with cookie forwarding |
 | `apps/web-tanstack/src/server/auth/auth-client.ts` | Browser auth client |
 | `apps/web-tanstack/src/server/auth/betterPlugins.ts` | Shared Better Auth plugin config |
 | `apps/web-tanstack/src/lib/cookie-pass.ts` | SSR cookie forwarding for Eden calls |
 | `apps/web-tanstack/src/lib/elysia-error.ts` | Eden error → redirect/throw |
-| `apps/web-tanstack/vite.config.ts` | Vite config — TanStack Start, Tailwind, React Compiler, Nitro (preset `bun`) |
+| `apps/web-tanstack/src/lib/nav.tsx` | TanStack Router compatible navigation layer |
+| `apps/web-tanstack/src/lib/bff/` | Isomorphic BFF runtime (transport, dispatch, registry) |
 | `packages/libs/src/api/index.ts` | Eden Treaty client — `treaty<app>(host, opts)` |
 | `packages/config/typescript/base.json` | Shared tsconfig with path aliases |
 | `scripts/run.ts` | Concurrent workspace command runner |
@@ -330,7 +328,7 @@ export const myActions = {
 - Multi-stage builds → 运行期精简镜像（无 shell / 无包管理器）
 - API 运行镜像：`gcr.io/distroless/base`；Web 运行镜像：`cgr.dev/chainguard/glibc-dynamic`（glibc + ca-certificates，非 root 65532）
 - API: `bun build --compile` → single binary
-- Web: Vite build + Nitro → `.output/` → `bun build --compile` 单文件二进制（静态资源内嵌）
+- Web: `furin build --compile embed` → `.furin/build/bun/server` 单文件二进制（静态资源内嵌）
 - Web 运行镜像只有 `/app/server`，`HEALTHCHECK` 调用二进制自带的 `--healthcheck`（请求本机 `/api/health`）；入口同时兼容 Dokploy 既有的 `healthcheck` 拼写
 - CI: GitHub Actions → `ghcr.io` → webhook deploy
 

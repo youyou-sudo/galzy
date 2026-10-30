@@ -13,7 +13,7 @@ import {
 // 测试里改 routerMock.pathname 即可切到不同页签，不必起真实 router。
 const routerMock = vi.hoisted(() => ({ pathname: "/v17" }));
 
-vi.mock("@tanstack/react-router", async () => {
+vi.mock("@web/lib/nav", async () => {
 	const { createElement } = await import("react");
 	const state = () => ({
 		location: { pathname: routerMock.pathname },

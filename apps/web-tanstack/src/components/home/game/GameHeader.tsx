@@ -75,7 +75,7 @@ export function GameCover({
 		return commitAfterViewTransition(() => setVtPending(false));
 	}, [vtPending]);
 	const thumbhashUrl = useThumbHashDataUrl(image?.thumbhash);
-	const src = image?.imageUrl ?? "/No-Image-Placeholder.svg.webp";
+	const src = image?.imageUrl ?? "/public/No-Image-Placeholder.svg.webp";
 	const cachedRevealed = useRevealedOnce(src);
 	const vtGated = vtPending && !cachedRevealed;
 

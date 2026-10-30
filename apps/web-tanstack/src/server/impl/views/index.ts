@@ -1,0 +1,23 @@
+import "@teyik0/furin/server-only";
+import { defineBff } from "@web/lib/bff/define";
+import { api } from "@libs";
+import { elysiaErrorF } from "@web/lib";
+import { ipPass } from "@web/lib/ip-pass";
+import * as z from "zod/mini";
+
+// 记录游戏访问（热榜计数）。IP 在服务端通过 ipPass 透传（客户端无法触达
+// @tanstack/react-start/server，必须放在 server function 层），供 API 按 IP 防刷。
+// 限流(429)/网络失败由 elysiaErrorF 抛出，调用方（route loader）try/catch 静默忽略。
+export const recordGameView = defineBff(z.object({
+			id: z.string().check(z.minLength(1)),
+		}), async ({ data }) => {
+		const { error } = await api.views.game.post({ gameId: data.id }, ipPass());
+		elysiaErrorF(error);
+	});
+
+export const recordTagView = defineBff(z.object({
+			tagId: z.string().check(z.minLength(1)),
+		}), async ({ data }) => {
+		const { error } = await api.views.tag.post({ tagId: data.tagId }, ipPass());
+		elysiaErrorF(error);
+	});
