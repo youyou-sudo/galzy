@@ -1,48 +1,52 @@
 import { Elysia } from "elysia";
 
-import background from "../../public/background.webp" with { type: "file" };
-import dzmm from "../../public/dzmm.webp" with { type: "file" };
-import favicon from "../../public/favicon.ico" with { type: "file" };
-import hikarinagi from "../../public/hikarinagi-icon.webp" with { type: "file" };
-import kungal from "../../public/kungal.webp" with { type: "file" };
-import linuxdo from "../../public/linuxdo.webp" with { type: "file" };
-import neko from "../../public/neko.webp" with { type: "file" };
-import noImage from "../../public/No-Image-Placeholder.svg.webp" with { type: "file" };
-import robots from "../../public/robots.txt" with { type: "file" };
-import telegram from "../../public/telegram.png" with { type: "file" };
-
 /**
- * Root-path aliases for public assets.
+ * Root-path aliases for files served from `public/`.
  *
- * Furin serves the public directory under /public/*, but data-driven URLs
- * (advert materials, friend-link icons, robots.txt) were stored as root paths
- * by the previous frontend. Keep those URLs working so existing data and
- * parity with the old site are preserved.
+ * Furin serves the public directory under `/public/*`, but plenty of URLs still
+ * arrive as root paths: advert materials and friend-link avatars are stored in
+ * the database as `/dzmm.webp` / `/telegram.png`, and crawlers ask for
+ * `/robots.txt`. They are permanently redirected to the canonical `/public/*`
+ * URL, so old data keeps working without duplicating assets or depending on
+ * bundler asset hashing.
  *
- * The imports above also make the files part of the production asset graph,
- * so compiled (embed) binaries serve them from the executable.
+ * The explicit list keeps the well-known assets documented (and fast); the
+ * generic rule catches any other root-level asset path that data may carry.
+ * Paths with a subdirectory, framework assets (`/public`, `/_client`, `/_bun`)
+ * and the API are never touched, and page URLs never contain a file extension,
+ * so a game detail route such as `/:id` cannot be shadowed.
  */
-const ROOT_ASSETS: Record<string, string> = {
-	"/background.webp": background,
-	"/dzmm.webp": dzmm,
-	"/favicon.ico": favicon,
-	"/hikarinagi-icon.webp": hikarinagi,
-	"/kungal.webp": kungal,
-	"/linuxdo.webp": linuxdo,
-	"/neko.webp": neko,
-	"/No-Image-Placeholder.svg.webp": noImage,
-	"/robots.txt": robots,
-	"/telegram.png": telegram,
-};
+const ROOT_ASSET_ALIASES = [
+	"/background.webp",
+	"/dzmm.webp",
+	"/favicon.ico",
+	"/hikarinagi-icon.webp",
+	"/kungal.webp",
+	"/linuxdo.webp",
+	"/neko.webp",
+	"/No-Image-Placeholder.svg.webp",
+	"/robots.txt",
+	"/telegram.png",
+];
 
-let publicApi = new Elysia();
-for (const [path, file] of Object.entries(ROOT_ASSETS)) {
-	publicApi = publicApi.get(path, {}, () => {
-		// In a bundled/compiled build the import resolves to an emitted asset path
-		// relative to the server entry, so resolve it against import.meta.url.
-		const resolved = new URL(file, import.meta.url);
-		return new Response(Bun.file(resolved));
-	});
+/** `/file.ext` at the site root, excluding framework and API prefixes. */
+const ROOT_ASSET_PATH =
+	/^\/(?!public\/|_client\/|_bun\/|_furin\/|api\/)[^/]+\.(?:webp|png|jpe?g|gif|svg|ico|txt|xml|woff2?)$/;
+
+function redirectToPublic(path: string, request: Request): Response {
+	return Response.redirect(new URL("/public" + path, request.url), 301);
+}
+
+let publicApi = new Elysia().onRequest(({ request }) => {
+	const pathname = new URL(request.url).pathname;
+	if (ROOT_ASSET_PATH.test(pathname)) return redirectToPublic(pathname, request);
+	return undefined;
+});
+
+for (const path of ROOT_ASSET_ALIASES) {
+	publicApi = publicApi.get(path, {}, ({ request }) =>
+		redirectToPublic(path, request),
+	);
 }
 
 export { publicApi };

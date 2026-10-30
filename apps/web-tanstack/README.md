@@ -65,7 +65,7 @@ bun run start           # 运行 server.js
 Dockerfile 使用 `build:binary` 产物；运行镜像（chainguard glibc-dynamic，非 root 65532）只放 `/app/server`。
 健康检查：`/app/server --healthcheck`（请求本机 `/api/health`），同时兼容 Dokploy 的 `healthcheck` 写法。
 
-静态资源放在 `public/`，对外 URL 前缀为 `/public/*`（favicon.ico 例外）。
+静态资源放在 `public/`，对外 URL 前缀为 `/public/*`；历史根路径（`/dzmm.webp`、`/telegram.png`、`/robots.txt` 等，含数据库里存的素材地址）由 `src/api/public.ts` 301 到 `/public/*`，新增 public 文件时同步该文件里的别名表即可（通用扩展名规则已覆盖未列出的文件）。
 
 ## 测试与校验
 

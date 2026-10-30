@@ -85,7 +85,7 @@ export const Glgczujm = () => {
 						<Image
 							width={1425}
 							height={120}
-							src="/dzmm.webp"
+							src="/public/dzmm.webp"
 							alt="DZMM 广告图片"
 							className="object-cover w-full opacity-[0.65] transition-opacity duration-200 group-hover:opacity-100"
 						/>
