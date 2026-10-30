@@ -75,7 +75,7 @@ Elysia API (:3001)
 1. **pendingComponent 无对应机制**：Furin SPA 导航在 loader 完成前保留旧页面（旧版 60ms 后切骨架屏）。顶栏 spinner 仍由兼容层的导航态驱动；整页骨架屏不再出现。
 2. **共享元素 View Transition 未接线**：旧版 `defaultViewTransition` 让游戏封面/标题跨页飞入；Furin 侧保留组件的 `viewTransitionName`，但兼容层尚未用 `document.startViewTransition` 包裹导航（可在 `lib/nav.tsx` 单点补上）。
 3. **响应头**：Furin 按渲染模式接管 `Cache-Control`（ssr 一律 `no-store`），旧 `headers(): Cache-Control/Cache-Tag` 的 CDN 语义只能改为 ISR + `config({ tags })`，本次未切换（页面行为不变，CDN 缓存策略需部署侧确认）。预压缩 `.gz/.br` 产物没有对应物。
-4. **静态资源 URL**：Furin 的 public 资源在 `/public/*`（favicon.ico 例外），代码内引用已同步；DB 里若存了根路径（如 `/dzmm.webp`）需要部署侧兼容或数据修正。`robots.txt` 不再自动挂根。
+4. **静态资源 URL**：Furin 的 public 资源在 `/public/*`，代码内引用已同步；历史遗留的根路径资源（广告素材 `/dzmm.webp`、友情链接头像 `/telegram.png`、`/robots.txt` 等，含 DB 里存的值）由 `src/api/public.ts` 统一 **301 到 `/public/*`**：内置 10 个已知文件 + 通用规则（根级 `*.webp|png|ico|txt|xml|woff2` 等，排除 `/api`、`/public`、`/_client`、`/_bun`、`/_furin`），因此不会再出现 `dzmm-bk0xvbek.webp` 这类打包哈希路径或 500。页面 URL 不含扩展名，`/:id` 游戏页不受影响。
 5. **Better Auth**：`tanstackStartCookies` 插件已移除（与 Furin 不兼容）。读会话正常；若某流程依赖「服务端 server function 设置 cookie」（如 email OTP 验证），需要 BFF 侧补 Set-Cookie 转发（当前登录走 `/api/auth/*` 代理，不受影响）。
 6. **zod query 限制**：重复 key 聚合与 `"true"` → boolean 仅 TypeBox 支持；`/admin/tasks` 已改用 TypeBox 双生 schema，其余页面仅用标量参数。
 7. **admin 视觉未验证**：无管理员凭据，仅验证 302 守卫、类型、模块注册；登录态下的首屏播种需要人工 QA。
