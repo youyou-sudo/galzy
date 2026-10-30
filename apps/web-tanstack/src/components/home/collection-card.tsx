@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from "@web/lib/nav";
 import { GameCard } from "@web/components/home/card";
 import { useViewportPreload } from "@web/hooks/use-viewport-preload";
 import { cn } from "@web/lib/utils";
@@ -61,7 +61,7 @@ function PokerStack({
 				return (
 					<GameCard.ThumbHashImage
 						key={item.id}
-						src={item.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
+						src={item.imageUrl ?? "/public/No-Image-Placeholder.svg.webp"}
 						thumbhash={item.imageThumbhash}
 						width={item.imageWidth ?? 200}
 						height={item.imageHeight ?? 300}

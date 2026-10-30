@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@web/lib/nav";
 import { RichContent } from "@web/components/RichContent";
 import { PageHeader } from "@web/components/shared/page-header";
 import { Button } from "@web/components/ui/button";

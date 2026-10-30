@@ -1,0 +1,47 @@
+import "@teyik0/furin/server-only";
+import { defineBff } from "@web/lib/bff/define";
+import { api } from "@libs";
+import { elysiaErrorF } from "@web/lib";
+import { cookiePass } from "@web/lib/cookie-pass";
+import * as z from "zod/mini";
+
+const uploadAvatarInputSchema = z.object({
+	image: z.instanceof(File).check(
+		z.refine((f) => f.type.startsWith("image/"), {
+			message: "请选择图片文件喵",
+		}),
+		z.refine((f) => f.size <= 5 * 1024 * 1024, {
+			message: "图片大小不能超过 5MB 喵",
+		}),
+	),
+	name: z.string(),
+	type: z.string(),
+});
+export const uploadAvatar = defineBff((formData: FormData) => {
+		const name = formData.get("name");
+		const type = formData.get("type");
+		const image = formData.get("image");
+		const raw = {
+			name,
+			type,
+			image,
+		};
+		const parsed = uploadAvatarInputSchema.parse(raw);
+		return { name: parsed.name, type: parsed.type, image: parsed.image };
+	}, async ({ data }) => {
+		const { image } = data;
+		const { data: res, error } = await api.media.uploadavatar.post(
+			{
+				image: image,
+			},
+			cookiePass(),
+		);
+		elysiaErrorF(error);
+		if (!res)
+			throw {
+				status: 422,
+				message: "头像 url 未获取到喵",
+			};
+
+		return res;
+	});

@@ -11,7 +11,7 @@ vi.mock("@web/lib/view-transition", () => ({
 }));
 
 /** 调度器本身与 router 无关，避免在单测里拉起真实路由运行时 */
-vi.mock("@tanstack/react-router", () => ({
+vi.mock("@web/lib/nav", () => ({
 	useRouter: () => ({}),
 }));
 

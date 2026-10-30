@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from "@web/lib/nav";
 import { Avatar, AvatarFallback, AvatarImage } from "@web/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@web/components/ui/card";
 import { useViewportPreload } from "@web/hooks/use-viewport-preload";

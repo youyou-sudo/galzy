@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link } from "@web/lib/nav";
 import { useSelector } from "@tanstack/react-store";
 import { GameCard } from "@web/components/home/card";
 import {
@@ -97,7 +97,7 @@ export function HotGamesSection({ games: initialGames }: HotGamesSectionProps) {
 							width={game.imageWidth ?? 200}
 							height={game.imageHeight ?? 300}
 							thumbhash={game.imageThumbhash}
-							src={game.imageUrl ?? "/No-Image-Placeholder.svg.webp"}
+							src={game.imageUrl ?? "/public/No-Image-Placeholder.svg.webp"}
 							cSexualAvg={game.cSexualAvg ?? null}
 						/>
 						<span className="flex absolute top-1.5 left-1.5 z-20 justify-center items-center size-5 text-xs font-semibold text-foreground bg-background/85 rounded-full ring-1 ring-border/60 backdrop-blur-sm pointer-events-none">

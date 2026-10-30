@@ -1,6 +1,6 @@
 import type { GameModel } from "@api/modules/games/model";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi } from "@web/lib/nav";
 import { useSelector } from "@tanstack/react-store";
 import {
 	FileItem,

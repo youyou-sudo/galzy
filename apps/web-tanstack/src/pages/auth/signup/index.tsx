@@ -1,0 +1,334 @@
+import { useForm } from "@tanstack/react-form";
+import { useQueryClient } from "@tanstack/react-query";
+import { defineRoute } from "@teyik0/furin";
+import { BrandMark } from "@web/components/auth/brand-mark";
+import { Button } from "@web/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@web/components/ui/card";
+import {
+	Field,
+	FieldContent,
+	FieldDescription,
+	FieldError,
+	FieldLabel,
+	FieldTitle,
+} from "@web/components/ui/field";
+import { Input } from "@web/components/ui/input";
+import { InputGroup, InputGroupInput } from "@web/components/ui/input-group";
+import { Link, redirect, useNavigate } from "@web/lib/nav";
+import { seoMeta } from "@web/lib/seo";
+import { getSession } from "@web/server/auth/auth.functions";
+import { authClient } from "@web/server/auth/auth-client";
+import { Eye, EyeOff, Loader2, LogIn, Mail, User } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import * as z from "zod/mini";
+import { ReturnToSchema } from "../login";
+
+const signupSchema = z
+	.object({
+		name: z.string().check(z.minLength(1, "请输入用户名")),
+		email: z
+			.string()
+			.check(z.minLength(1, "请输入邮箱地址"), z.email("请输入有效的邮箱地址")),
+		password: z.string().check(z.minLength(6, "密码至少需要6个字符")),
+		confirmPassword: z.string().check(z.minLength(1, "请确认密码")),
+	})
+	.check(
+		z.refine((data) => data.password === data.confirmPassword, {
+			message: "两次输入的密码不一致",
+			path: ["confirmPassword"],
+		}),
+	);
+
+export const route = defineRoute("/auth/signup")
+	.config({ mode: "ssr", query: ReturnToSchema })
+	.loader(async ({ query }) => {
+		const auth = await getSession();
+		if (auth) {
+			throw redirect({ to: query.return_to || "/" });
+		}
+		return {};
+	})
+	.head(() =>
+		seoMeta({
+			title: "注册 | GalZY - Galgame 资源站",
+			noindex: true,
+		}) as never,
+	)
+	.page(({ query }) => <SignupPage search={query} />);
+
+function SignupPage({ search }: { search: z.infer<typeof ReturnToSchema> }) {
+	const { return_to } = search;
+	const [showPassword, setShowPassword] = useState(false);
+	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+	const queryClient = useQueryClient();
+	const navigate = useNavigate();
+
+	const form = useForm({
+		defaultValues: {
+			name: "",
+			email: "",
+			password: "",
+			confirmPassword: "",
+		},
+		validators: {
+			onChange: signupSchema,
+		},
+		onSubmit: async ({ value }) => {
+			await authClient.signUp.email({
+				name: value.name,
+				email: value.email,
+				password: value.password,
+				fetchOptions: {
+					onSuccess: () => {
+						queryClient.invalidateQueries({
+							queryKey: ["auth"],
+						});
+						toast.success("注册成功，跳转到验证喵...");
+						navigate({
+							to: "/auth/signup/Verification",
+							search: {
+								email: value.email,
+								...(return_to ? { return_to } : {}),
+							},
+						});
+					},
+					onError: ({ error }) => {
+						toast.error(error.message || "注册失败，请重试");
+					},
+				},
+			});
+		},
+	});
+
+	return (
+		<div className="py-6 mx-auto w-full max-w-md">
+			<Card className="w-full">
+				<CardHeader className="gap-2 items-center text-center">
+					<BrandMark />
+					<CardTitle className="text-2xl font-semibold tracking-tight">
+						注册
+					</CardTitle>
+					<CardDescription>创建一个新账户</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<form
+						onSubmit={(e) => {
+							e.preventDefault();
+							e.stopPropagation();
+							void form.handleSubmit();
+						}}
+						className="flex flex-col gap-4"
+					>
+						<form.Field name="name">
+							{(field) => (
+								<Field orientation="vertical">
+									<FieldLabel>
+										<FieldTitle className="flex gap-1.5 items-center">
+											<User className="size-3.5" />
+											用户名
+										</FieldTitle>
+									</FieldLabel>
+									<FieldContent>
+										<Input
+											type="text"
+											placeholder="您的用户名"
+											autoComplete="name"
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											aria-invalid={
+												field.state.meta.isTouched &&
+												field.state.meta.errors.length > 0
+											}
+										/>
+										<FieldDescription className="text-xs">
+											设置您的显示名称喵～
+										</FieldDescription>
+										<FieldError
+											className="text-xs"
+											errors={field.state.meta.errors}
+										/>
+									</FieldContent>
+								</Field>
+							)}
+						</form.Field>
+
+						<form.Field name="email">
+							{(field) => (
+								<Field orientation="vertical">
+									<FieldLabel>
+										<FieldTitle className="flex gap-1.5 items-center">
+											<Mail className="size-3.5" />
+											邮箱
+										</FieldTitle>
+									</FieldLabel>
+									<FieldContent>
+										<Input
+											type="email"
+											placeholder="{{EMAIL_qaiqwufz}}"
+											autoComplete="email"
+											value={field.state.value}
+											onChange={(e) => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											aria-invalid={
+												field.state.meta.isTouched &&
+												field.state.meta.errors.length > 0
+											}
+										/>
+										<FieldDescription className="text-xs">
+											用于登录和接收通知喵～
+										</FieldDescription>
+										<FieldError
+											className="text-xs"
+											errors={field.state.meta.errors}
+										/>
+									</FieldContent>
+								</Field>
+							)}
+						</form.Field>
+
+						<form.Field name="password">
+							{(field) => (
+								<Field orientation="vertical">
+									<FieldLabel>
+										<FieldTitle className="flex gap-1.5 items-center">
+											<LogIn className="size-3.5" />
+											密码
+										</FieldTitle>
+									</FieldLabel>
+									<FieldContent>
+										<InputGroup>
+											<InputGroupInput
+												type={showPassword ? "text" : "password"}
+												placeholder="至少6个字符"
+												autoComplete="new-password"
+												value={field.state.value}
+												onChange={(e) => field.handleChange(e.target.value)}
+												onBlur={field.handleBlur}
+												aria-invalid={
+													field.state.meta.isTouched &&
+													field.state.meta.errors.length > 0
+												}
+											/>
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon-sm"
+												onClick={() => setShowPassword(!showPassword)}
+												aria-label={showPassword ? "隐藏密码" : "显示密码"}
+											>
+												{showPassword ? (
+													<EyeOff className="size-3.5" />
+												) : (
+													<Eye className="size-3.5" />
+												)}
+											</Button>
+										</InputGroup>
+										<FieldDescription className="text-xs">
+											至少6个字符
+										</FieldDescription>
+										<FieldError
+											className="text-xs"
+											errors={field.state.meta.errors}
+										/>
+									</FieldContent>
+								</Field>
+							)}
+						</form.Field>
+
+						<form.Field name="confirmPassword">
+							{(field) => (
+								<Field orientation="vertical">
+									<FieldLabel>
+										<FieldTitle className="flex gap-1.5 items-center">
+											<LogIn className="size-3.5" />
+											确认密码
+										</FieldTitle>
+									</FieldLabel>
+									<FieldContent>
+										<InputGroup>
+											<InputGroupInput
+												type={showConfirmPassword ? "text" : "password"}
+												placeholder="再次输入密码"
+												autoComplete="new-password"
+												value={field.state.value}
+												onChange={(e) => field.handleChange(e.target.value)}
+												onBlur={field.handleBlur}
+												aria-invalid={
+													field.state.meta.isTouched &&
+													field.state.meta.errors.length > 0
+												}
+											/>
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon-sm"
+												onClick={() =>
+													setShowConfirmPassword(!showConfirmPassword)
+												}
+												aria-label={
+													showConfirmPassword ? "隐藏密码" : "显示密码"
+												}
+											>
+												{showConfirmPassword ? (
+													<EyeOff className="size-3.5" />
+												) : (
+													<Eye className="size-3.5" />
+												)}
+											</Button>
+										</InputGroup>
+										<FieldDescription className="text-xs">
+											请再次输入密码以确认
+										</FieldDescription>
+										<FieldError
+											className="text-xs"
+											errors={field.state.meta.errors}
+										/>
+									</FieldContent>
+								</Field>
+							)}
+						</form.Field>
+
+						<form.Subscribe selector={(state) => state.isSubmitting}>
+							{(isSubmitting) => (
+								<Button
+									type="submit"
+									size="lg"
+									className="w-full"
+									disabled={isSubmitting}
+								>
+									{isSubmitting ? (
+										<>
+											<Loader2 className="size-4 animate-spin" />
+											注册中...
+										</>
+									) : (
+										"注册"
+									)}
+								</Button>
+							)}
+						</form.Subscribe>
+					</form>
+
+					<p className="mt-5 text-xs text-center text-muted-foreground">
+						已有账户？{" "}
+						<Link
+							to="/auth/login"
+							className="font-medium text-primary transition-colors hover:text-primary/80"
+						>
+							去登录
+						</Link>
+					</p>
+				</CardContent>
+			</Card>
+		</div>
+	);
+}

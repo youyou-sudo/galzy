@@ -1,69 +1,12 @@
-import { api } from "@libs";
-import { createServerFn } from "@tanstack/react-start";
-import { elysiaErrorF } from "@web/lib";
-import { cookiePass } from "@web/lib/cookie-pass";
+import { bffFn } from "@web/lib/bff/fn";
+import type * as impl from "./../impl/admin/vndb-sync";
 
-export const getSyncProgress = createServerFn({ method: "GET" }).handler(
-	async () => {
-		const { data, error } = await api["vndb-sync"].progress.get(cookiePass());
-		elysiaErrorF(error);
-		return data;
-	},
-);
+export const getSyncProgress = bffFn<typeof impl.getSyncProgress>("admin.vndb-sync.getSyncProgress");
+export const triggerFullSync = bffFn<typeof impl.triggerFullSync>("admin.vndb-sync.triggerFullSync");
+export const triggerDeltaSync = bffFn<typeof impl.triggerDeltaSync>("admin.vndb-sync.triggerDeltaSync");
+export const triggerProducersSync = bffFn<typeof impl.triggerProducersSync>("admin.vndb-sync.triggerProducersSync");
+export const getCloudreveSyncStatus = bffFn<typeof impl.getCloudreveSyncStatus>("admin.vndb-sync.getCloudreveSyncStatus");
+export const triggerCloudreveSync = bffFn<typeof impl.triggerCloudreveSync>("admin.vndb-sync.triggerCloudreveSync");
+export const checkCloudreveFiles = bffFn<typeof impl.checkCloudreveFiles>("admin.vndb-sync.checkCloudreveFiles");
 
-export const triggerFullSync = createServerFn({ method: "POST" }).handler(
-	async () => {
-		const { data, error } = await api["vndb-sync"].full.post({}, cookiePass());
-		elysiaErrorF(error);
-		return data;
-	},
-);
-
-export const triggerDeltaSync = createServerFn({ method: "POST" }).handler(
-	async () => {
-		const { data, error } = await api["vndb-sync"].delta.post({}, cookiePass());
-		elysiaErrorF(error);
-		return data;
-	},
-);
-
-export const triggerProducersSync = createServerFn({ method: "POST" }).handler(
-	async () => {
-		const { data, error } = await api["vndb-sync"].producers.post(
-			{},
-			cookiePass(),
-		);
-		elysiaErrorF(error);
-		return data;
-	},
-);
-
-export const getCloudreveSyncStatus = createServerFn({
-	method: "GET",
-}).handler(async () => {
-	const { data, error } = await api["vndb-sync"].cloudreve.get(cookiePass());
-	elysiaErrorF(error);
-	return data;
-});
-
-export const triggerCloudreveSync = createServerFn({ method: "POST" }).handler(
-	async () => {
-		const { data, error } = await api["vndb-sync"].cloudreve.sync.post(
-			{},
-			cookiePass(),
-		);
-		elysiaErrorF(error);
-		return data;
-	},
-);
-
-export const checkCloudreveFiles = createServerFn({ method: "POST" }).handler(
-	async () => {
-		const { data, error } = await api["vndb-sync"].cloudreve.check.post(
-			{},
-			cookiePass(),
-		);
-		elysiaErrorF(error);
-		return data;
-	},
-);
+export type * from "./../impl/admin/vndb-sync";

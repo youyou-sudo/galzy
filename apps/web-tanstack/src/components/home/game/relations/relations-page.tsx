@@ -1,4 +1,4 @@
-import { getRouteApi } from "@tanstack/react-router";
+import { getRouteApi } from "@web/lib/nav";
 import { GameCard } from "@web/components/home/card";
 import { EmptyState } from "@web/components/shared/empty-state";
 import { preferredTitleFrom } from "@web/lib/game-title";
@@ -84,7 +84,7 @@ export function RelationsPage() {
 								height={rel.game!.images?.height ?? 300}
 								thumbhash={rel.game!.images?.thumbhash}
 								src={
-									rel.game!.images?.imageUrl ?? "/No-Image-Placeholder.svg.webp"
+									rel.game!.images?.imageUrl ?? "/public/No-Image-Placeholder.svg.webp"
 								}
 								cSexualAvg={rel.game!.images?.c_sexual_avg}
 								title={

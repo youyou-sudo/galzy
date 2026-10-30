@@ -1,90 +1,9 @@
-import { api } from "@libs";
-import { createServerFn } from "@tanstack/react-start";
-import { elysiaErrorF } from "@web/lib";
-import { cookiePass } from "@web/lib/cookie-pass";
-import * as z from "zod/mini";
+import { bffFn } from "@web/lib/bff/fn";
+import type * as impl from "./../impl/admin/articles";
 
-export const adminGetAllArticles = createServerFn({ method: "GET" })
-	.validator(
-		z.object({
-			page: z.optional(z.number()),
-			limit: z.optional(z.number()),
-			status: z.optional(z.string()),
-			type: z.optional(z.string()),
-			search: z.optional(z.string()),
-		}),
-	)
-	.handler(async ({ data }) => {
-		const { data: res, error } = await api.strategy.admin.articles.get({
-			query: {
-				page: data.page,
-				limit: data.limit,
-				status: data.status,
-				type: data.type,
-				search: data.search,
-			},
-			...cookiePass(),
-		});
-		elysiaErrorF(error);
-		return res;
-	});
+export const adminGetAllArticles = bffFn<typeof impl.adminGetAllArticles>("admin.articles.adminGetAllArticles");
+export const adminUpdateArticle = bffFn<typeof impl.adminUpdateArticle>("admin.articles.adminUpdateArticle");
+export const adminDeleteArticle = bffFn<typeof impl.adminDeleteArticle>("admin.articles.adminDeleteArticle");
+export const adminChangeArticleStatus = bffFn<typeof impl.adminChangeArticleStatus>("admin.articles.adminChangeArticleStatus");
 
-export const adminUpdateArticle = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			id: z.number(),
-			title: z.optional(z.string()),
-			content: z.optional(z.string()),
-			contentType: z.optional(z.enum(["markdown", "html"])),
-		}),
-	)
-	.handler(async ({ data }) => {
-		const { error } = await api.strategy.strategylistupdate.post(
-			{
-				id: String(data.id),
-				data: {
-					title: data.title,
-					content: data.content,
-					contentType: data.contentType,
-				},
-			},
-			cookiePass(),
-		);
-		elysiaErrorF(error);
-		return { success: true };
-	});
-
-export const adminDeleteArticle = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			strategyId: z.number(),
-			gameId: z.optional(z.string()),
-		}),
-	)
-	.handler(async ({ data }) => {
-		const { error } = await api.strategy.strategylistdelete.post(
-			{
-				strategyId: data.strategyId,
-				gameId: data.gameId ?? "",
-			},
-			cookiePass(),
-		);
-		elysiaErrorF(error);
-		return { success: true };
-	});
-
-export const adminChangeArticleStatus = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			id: z.number(),
-			status: z.string(),
-		}),
-	)
-	.handler(async ({ data }) => {
-		const { error } = await api.strategy.admin.articles.status.post(
-			{ id: data.id, status: data.status },
-			cookiePass(),
-		);
-		elysiaErrorF(error);
-		return { success: true };
-	});
+export type * from "./../impl/admin/articles";

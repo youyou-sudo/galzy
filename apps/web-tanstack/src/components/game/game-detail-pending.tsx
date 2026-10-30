@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@web/lib/nav";
 import { useSelector } from "@tanstack/react-store";
 import {
 	GameTabSkeleton,

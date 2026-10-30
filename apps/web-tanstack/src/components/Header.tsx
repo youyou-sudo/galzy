@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@web/lib/nav";
 import { Image } from "@unpic/react";
 import { useHeaderTone } from "@web/hooks/use-header-tone";
 import { cn } from "@web/lib/utils";
@@ -142,7 +142,7 @@ export default function Header() {
 								    会把四个角裁掉。这里只保留 hover 缩放，不做任何裁剪。 */}
 								<span className="flex shrink-0 justify-center items-center size-8 transition-transform duration-300 group-hover/brand:scale-105">
 									<Image
-										src="/favicon.ico"
+										src="/public/favicon.ico"
 										width={32}
 										height={32}
 										fetchPriority="low"

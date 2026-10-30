@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { Link, useNavigate, useRouter } from "@web/lib/nav";
 import { EmptyState } from "@web/components/shared/empty-state";
 import { SectionHeader } from "@web/components/shared/section-header";
 import { Badge } from "@web/components/ui/badge";
@@ -117,7 +117,7 @@ export default function IntroductionPage({
 		onSuccess: () => {
 			toast.success("文章已删除～");
 			router.invalidate({
-				filter: (match) => match.routeId === "/$id/_layout/introduction/",
+				filter: (match: any) => match.routeId === "/$id/_layout/introduction/",
 			});
 		},
 		onError: (error: any) => {

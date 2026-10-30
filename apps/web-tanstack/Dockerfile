@@ -1,8 +1,8 @@
-# 生产镜像：Nitro（bun preset）产物 + 内嵌静态资源 → 单文件可执行程序。
+# 生产镜像：Furin（bun target）产物 + 内嵌静态资源 → 单文件可执行程序。
 #
 # 构建阶段用 Bun 安装依赖并构建：`bun run build` 产出 .output/，
-# `bun run build:binary` 再用 bun build --compile 编成 .output/server-bin
-# （.output/public/** 全部内嵌）。运行阶段只有 Chainguard glibc-dynamic + 二进制：
+# `bun run build:binary` 再由 furin build --compile embed 编成 .furin/build/bun/server
+# （client/public 全部内嵌）。运行阶段只有 Chainguard glibc-dynamic + 二进制：
 # 没有 Bun 运行时、没有 node_modules、没有 public 目录。
 #
 # 运行期密钥绝不写入镜像，只通过部署平台注入；构建期公开变量只有 BUILD_ID。
@@ -36,7 +36,6 @@ ENV NODE_ENV=production
 ENV BUILD_ID=${BUILD_ID}
 
 WORKDIR /app/apps/web-tanstack
-RUN bun run build
 RUN bun run build:binary
 
 # 运行阶段：Chainguard glibc-dynamic（Wolfi 基础镜像，glibc + libgcc/libstdc++ +
@@ -54,8 +53,8 @@ ENV BUILD_ID=${BUILD_ID}
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-# 单文件二进制：Nitro 服务端 + 全部静态资源都在这一个文件里
-COPY --from=build --chown=65532:65532 /app/apps/web-tanstack/.output/server-bin /app/server
+# 单文件二进制：Furin 服务端 + 全部静态资源都在这一个文件里
+COPY --from=build --chown=65532:65532 /app/apps/web-tanstack/.furin/build/bun/server /app/server
 
 USER 65532:65532
 

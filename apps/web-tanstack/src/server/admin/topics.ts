@@ -1,56 +1,8 @@
-import { api } from "@libs";
-import { createServerFn } from "@tanstack/react-start";
-import { elysiaErrorF } from "@web/lib";
-import { cookiePass } from "@web/lib/cookie-pass";
-import * as z from "zod/mini";
+import { bffFn } from "@web/lib/bff/fn";
+import type * as impl from "./../impl/admin/topics";
 
-export const adminGetAllTopics = createServerFn()
-	.validator(
-		z.object({
-			page: z.optional(z.number()),
-			limit: z.optional(z.number()),
-			status: z.optional(z.string()),
-		}),
-	)
-	.handler(async ({ data }) => {
-		const { data: res, error } = await api.topics.get({
-			query: {
-				page: data.page,
-				limit: data.limit,
-				status: data.status,
-			},
-			...cookiePass(),
-		});
-		elysiaErrorF(error);
-		return res;
-	});
+export const adminGetAllTopics = bffFn<typeof impl.adminGetAllTopics>("admin.topics.adminGetAllTopics");
+export const adminUpdateTopicStatus = bffFn<typeof impl.adminUpdateTopicStatus>("admin.topics.adminUpdateTopicStatus");
+export const adminDeleteTopic = bffFn<typeof impl.adminDeleteTopic>("admin.topics.adminDeleteTopic");
 
-export const adminUpdateTopicStatus = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			id: z.number(),
-			status: z.string(),
-		}),
-	)
-	.handler(async ({ data }) => {
-		const { data: res, error } = await api.topics({ id: data.id }).put(
-			{ status: data.status },
-			cookiePass(),
-		);
-		elysiaErrorF(error);
-		return res;
-	});
-export const adminDeleteTopic = createServerFn({ method: "POST" })
-	.validator(
-		z.object({
-			id: z.number(),
-		}),
-	)
-	.handler(async ({ data }) => {
-		const { data: res, error } = await api.topics({ id: data.id }).delete(
-			undefined,
-			cookiePass(),
-		);
-		elysiaErrorF(error);
-		return res;
-	});
+export type * from "./../impl/admin/topics";

@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@web/lib/nav";
 import {
 	NavigationMenu,
 	NavigationMenuContent,

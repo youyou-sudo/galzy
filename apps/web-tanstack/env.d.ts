@@ -1,11 +1,3 @@
-/// <reference types="vite/client" />
-
-type ImportMetaEnv = {}
-
-interface ImportMeta {
-  readonly env: ImportMetaEnv
-}
-
 // Server-side environment variables
 declare global {
   namespace NodeJS {

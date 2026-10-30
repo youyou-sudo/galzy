@@ -1,6 +1,6 @@
 'use client'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
+import { getRouteApi } from '@web/lib/nav'
 import { memo, useMemo } from 'react'
 import { EmptyState } from '@web/components/shared/empty-state'
 import { elysiaErrorF } from '@web/lib'
@@ -141,7 +141,7 @@ const ReplyItem = memo(function ReplyItem({
               />
               <ReplyItem
                 comment={commentMap.get(reply.id)}
-                commentMap={commentMap}
+                commentMap={commentMap as any}
                 targetId={targetId}
                 depth={depth + 1}
               />
@@ -179,7 +179,7 @@ export function CommentItem({ targetType }: { targetType: string }) {
   })
 
   const commentMap = useMemo(
-    () => new Map((data?.comments ?? []).map((c) => [c.id, c] as const)),
+    () => new Map((data?.comments ?? []).map((c: any) => [c.id, c] as const)),
     [data?.comments],
   )
 
@@ -195,7 +195,7 @@ export function CommentItem({ targetType }: { targetType: string }) {
 
   return (
     <div className="mt-3 divide-y divide-border/60">
-      {data?.comments?.map((items) => {
+      {data?.comments?.map((items: any) => {
         const typeMeta = typeLabelMap[items.type]
         const IconComponent = typeMeta?.icon
         return (
@@ -260,8 +260,8 @@ export function CommentItem({ targetType }: { targetType: string }) {
                 />
                 {items.re?.length > 0 && (
                   <ReplyItem
-                    comment={commentMap.get(items.id)}
-                    commentMap={commentMap}
+                    comment={commentMap.get(items.id) as any}
+                    commentMap={commentMap as any}
                     targetId={id}
                     depth={0}
                   />

@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from "@web/lib/nav";
 import { useSelector } from "@tanstack/react-store";
 import { PageHeader } from "@web/components/shared/page-header";
 import { Button } from "@web/components/ui/button";

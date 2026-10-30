@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@web/lib/nav";
 import { AdminPageHeader } from "@web/components/admin/admin-page-header";
 import { StatusPill, type StatusTone } from "@web/components/admin/admin-table";
 import { AdminUserTooltip } from "@web/components/admin/admin-user-tooltip";

@@ -1,4 +1,4 @@
-import { getRequestHeader } from "@tanstack/react-start/server";
+import { getRequestHeader } from "@web/lib/request-context";
 import { createAuthClient } from "better-auth/client";
 import { betterPlugins } from "./betterPlugins";
 

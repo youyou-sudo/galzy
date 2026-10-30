@@ -1,4 +1,4 @@
-import { Link, useRouter } from "@tanstack/react-router";
+import { Link, useRouter } from "@web/lib/nav";
 import { EmptyState } from "@web/components/shared/empty-state";
 import { Button } from "@web/components/ui/button";
 import { AlertTriangle, Home, RotateCw, Undo2 } from "lucide-react";

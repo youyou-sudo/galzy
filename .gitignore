@@ -54,3 +54,9 @@ reasonix.toml
 .playwright-mcp/*
 
 todo.md
+
+# Furin build output / local research + parity snapshots
+.furin/
+.furin-research/
+.parity/
+apps/web-tanstack/.furin/

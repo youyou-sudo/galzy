@@ -1,78 +1,10 @@
-import { createServerFn } from "@tanstack/react-start";
-import * as z from "zod/mini";
-import { authServerClient } from "./auth.server";
+import { bffFn } from "@web/lib/bff/fn";
+import type * as impl from "./../impl/auth/auth.functions";
 
-export const getSession = createServerFn({ method: "GET" }).handler(
-  async () => {
-    try {
-      const { data: session } = await authServerClient.getSession();
-      return session;
-    } catch {
-      // Network errors already caught by safeFetch in auth.server.ts,
-      // but catch any unexpected errors here so SSR doesn't crash.
-      return null;
-    }
-  },
-);
+export const getSession = bffFn<typeof impl.getSession>("auth.auth.functions.getSession");
+export const seedVerification = bffFn<typeof impl.seedVerification>("auth.auth.functions.seedVerification");
+export const listAccounts = bffFn<typeof impl.listAccounts>("auth.auth.functions.listAccounts");
+export const getAccountInfo = bffFn<typeof impl.getAccountInfo>("auth.auth.functions.getAccountInfo");
+export const adminListUsers = bffFn<typeof impl.adminListUsers>("auth.auth.functions.adminListUsers");
 
-export const seedVerification = createServerFn({ method: "GET" })
-	.validator(z.object({ email: z.email() }))
-	.handler(async ({ data }) => {
-		const { data: res, error } =
-			await authServerClient.emailopt.seedverificationemail({
-				email: data.email,
-				type: "email-verification",
-			});
-		return {
-			status: res?.success,
-			error: error,
-		};
-	});
-
-export const listAccounts = createServerFn({ method: "GET" }).handler(
-	async () => {
-		const { data: res, error } = await authServerClient.listAccounts();
-		return {
-			data: res,
-			error: error,
-		};
-	},
-);
-
-export const getAccountInfo = createServerFn({ method: "GET" })
-	.validator(
-		z.object({
-			accountId: z.string(),
-		}),
-	)
-	.handler(async ({ data }) => {
-		const { data: res, error } = await authServerClient.accountInfo({
-			query: { accountId: data.accountId },
-		});
-		return {
-			data: res,
-			error: error,
-		};
-	});
-
-export const adminListUsers = createServerFn({ method: "GET" })
-	.validator(
-		z.object({
-			limit: z.optional(z.number()),
-			offset: z.optional(z.number()),
-			searchValue: z.optional(z.string()),
-		}),
-	)
-	.handler(async ({ data }) => {
-		const res = await authServerClient.admin.listUsers({
-			query: {
-				limit: data.limit ?? 15,
-				offset: data.offset ?? 0,
-				searchValue: data.searchValue,
-				sortBy: "createdAt",
-				sortDirection: "desc",
-			},
-		});
-		if (res.error) throw new Error(res.error.message || "获取用户列表失败");
-		return res.data;
-	});
+export type * from "./../impl/auth/auth.functions";

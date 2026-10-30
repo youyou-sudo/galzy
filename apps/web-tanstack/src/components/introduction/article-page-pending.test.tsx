@@ -9,7 +9,7 @@ import { ArticlePagePending } from "./article-page-pending";
 
 // 只 mock 路由 Link：pending 组件本身不吃路由状态（articleId/gameId 由父级传入），
 // 但页头的「返回列表」是真实 Button + Link，脱离 Router 渲染会抛错。
-vi.mock("@tanstack/react-router", async () => {
+vi.mock("@web/lib/nav", async () => {
 	const { createElement } = await import("react");
 	const href = (to: string, params?: Record<string, string>) =>
 		params

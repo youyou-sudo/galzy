@@ -17,7 +17,7 @@ export function HomeHero() {
 				{/* 站标原图直接显示：与顶栏一致，不加底片/描边/圆角容器，
 				    避免出现多余的白色方块与发丝边。 */}
 				<Image
-					src="/favicon.ico"
+					src="/public/favicon.ico"
 					width={32}
 					height={32}
 					fetchPriority="low"

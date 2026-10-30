@@ -10,7 +10,7 @@ import { ProducerGameGridSkeleton } from "./producer-game-grid";
 
 // 只 mock 路由 Link：pending 组件本身不吃路由状态（pid 由父级传入），
 // 但面包屑用的是真实 BreadcrumbLink + Link，脱离 Router 渲染会抛错。
-vi.mock("@tanstack/react-router", async () => {
+vi.mock("@web/lib/nav", async () => {
 	const { createElement } = await import("react");
 	const href = (to: string, params?: Record<string, string>) =>
 		params

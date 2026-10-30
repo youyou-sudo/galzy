@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { getRouteApi } from "@tanstack/react-router";
 import {
 	CollapsibleTagList,
 	type FlowTag,
@@ -12,10 +11,11 @@ import { gameTagsQueryOptions } from "./game-tags-queries";
 // 与组件内 useQuery 共用同一 queryKey/queryFn，首次进入即缓存命中。
 // 声明在独立零 UI 模块，避免 route 模块把它提升进 entry chunk（见该文件注释）。
 
-export function TagsCard() {
-	const routeApi = getRouteApi("/$id/_layout");
-	const { id } = routeApi.useLoaderData();
-	const { data: tags } = useQuery(gameTagsQueryOptions(id));
+export function TagsCard({ gameId }: { gameId: string }) {
+	// gameId 由 GameInfo（route page props）显式传入：本组件在详情页各 tab 下都会
+	// 渲染，而 getRouteApi("/$id/_layout") 只在 /$id 这一层 pattern 下成立（furin
+	// 的 getRouteApi 要求 pattern 与当前激活页面完全一致）。
+	const { data: tags } = useQuery(gameTagsQueryOptions(gameId));
 	// VT 结束 gate：数据到达时若正处 View Transition 动画中，先保持骨架，
 	// 等 commitAfterViewTransition 在动画结束后提交渲染 —— VT 进行中的重渲染
 	// 会打断动画帧；useDeferredValue 只降优先级，不保证等动画结束。
