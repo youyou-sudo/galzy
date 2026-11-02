@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@web/lib/nav";
+import { Link, usePathname } from "@web/lib/nav";
 import {
 	NavigationMenu,
 	NavigationMenuContent,
@@ -73,7 +73,7 @@ function PanelRow({ item }: { item: HeaderNavItem }) {
 
 /** 桌面端主导航（md 及以上）。顺序来自 nav-config.desktopNavEntries。 */
 export function DesktopNav() {
-	const pathname = useRouterState({ select: (s) => s.location.pathname });
+	const pathname = usePathname();
 	// 下拉触发器没有 Link 的 data-status，按路径前缀判断所属区块
 	const activeMenu =
 		pathname === "/" || pathname.startsWith("/contact")

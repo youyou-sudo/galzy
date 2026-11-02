@@ -95,12 +95,20 @@
 
     /* ── 表格 ────────────────────────────────────────────────────────
        表头/禁用态只做同色系微提亮（叠 1.5%~16% 前景色），不引入第二色相。
-       取代各后台页手写的 bg-muted/50、hover:bg-muted/30。 */
-    --table-header: color-mix(in oklab, var(--foreground) 1.5%, var(--background));
-    --table-header-hover: color-mix(in oklab, var(--foreground) 3%, var(--background));
-    --table-disabled: color-mix(in oklab, var(--foreground) 3%, var(--background));
-    --table-disabled-hover: color-mix(in oklab, var(--foreground) 4.5%, var(--background));
-    --table-disabled-border: color-mix(in oklab, var(--foreground) 16%, var(--background));
+       取代各后台页手写的 bg-muted/50、hover:bg-muted/30。
+
+       ⚠ 必须写 oklch 字面量，不能写
+       `color-mix(in oklab, var(--foreground) 1.5%, var(--background))`：
+       bun 的 CSS 管线（lightningcss）会把同一规则里**除第一条以外**的
+       color-mix 自定义属性降级成第一个颜色操作数（`var(--foreground)`），
+       且不再补 @supports 真值 —— 深色下表头直接变成近白色。
+       本主题的 foreground/background 都是 chroma = 0 的中性灰，
+       按 oklab 亮度线性插值出的字面量与 color-mix 结果完全一致。 */
+    --table-header: oklch(0.987 0 0);
+    --table-header-hover: oklch(0.974 0 0);
+    --table-disabled: oklch(0.974 0 0);
+    --table-disabled-hover: oklch(0.962 0 0);
+    --table-disabled-border: oklch(0.863 0 0);
 
     /* 骨架屏：双色驱动 shimmer 扫光，见 .skeleton-shimmer。 */
     --skeleton-base: oklch(0.97 0 0);
@@ -166,12 +174,12 @@
     --chart-4: oklch(0.488 0.243 264.376);
     --chart-5: oklch(0.424 0.199 265.638);
 
-    /* 深底上同色系提亮需要更大混入量（亮色 1.5% → 6%）。 */
-    --table-header: color-mix(in oklab, var(--foreground) 6%, var(--background));
-    --table-header-hover: color-mix(in oklab, var(--foreground) 9%, var(--background));
-    --table-disabled: color-mix(in oklab, var(--foreground) 7%, var(--background));
-    --table-disabled-hover: color-mix(in oklab, var(--foreground) 9.5%, var(--background));
-    --table-disabled-border: color-mix(in oklab, var(--foreground) 24%, var(--background));
+    /* 深底上同色系提亮需要更大混入量（亮色 1.5% → 6%）。字面量原因见 :root 表格段。 */
+    --table-header: oklch(0.195 0 0);
+    --table-header-hover: oklch(0.221 0 0);
+    --table-disabled: oklch(0.204 0 0);
+    --table-disabled-hover: oklch(0.225 0 0);
+    --table-disabled-border: oklch(0.347 0 0);
 
     --skeleton-base: oklch(0.335 0 0);
     --skeleton-highlight: oklch(0.44 0 0);
@@ -274,20 +282,49 @@
    避免届时回头改组件。
 
    ⚠ 同样必须用 oklab：若写成 oklch，色相会被白色端点拉走
-   （245° → 348.5°），"3% 蓝卡片" 会变成 "3% 粉卡片"。 */
+   （245° → 348.5°），"3% 蓝卡片" 会变成 "3% 粉卡片"。
+
+   ⚠ 每条 color-mix 必须独占一条规则：bun 的 CSS 管线会把同一规则里
+   第二条起的 color-mix 自定义属性降级成第一个颜色操作数（`var(--primary)`）
+   且不补 @supports 真值，色板一开就会变成「满饱和主色卡片」。
+   拆成多条规则后每条都能拿到 @supports 里的真值。 */
 [data-theme-preset]:not([data-theme-preset='default']) {
     --card: color-mix(in oklab, var(--primary) 3%, var(--background));
+}
+
+[data-theme-preset]:not([data-theme-preset='default']) {
     --popover: color-mix(in oklab, var(--primary) 5%, var(--background));
+}
+
+[data-theme-preset]:not([data-theme-preset='default']) {
     --muted: color-mix(in oklab, var(--primary) 7%, var(--background));
+}
+
+[data-theme-preset]:not([data-theme-preset='default']) {
     --accent: color-mix(in oklab, var(--primary) 14%, var(--background));
+}
+
+[data-theme-preset]:not([data-theme-preset='default']) {
     --border: color-mix(in oklab, var(--primary) 20%, var(--background));
 }
 
 .dark [data-theme-preset]:not([data-theme-preset='default']) {
     --card: color-mix(in oklab, var(--primary) 8%, var(--background));
+}
+
+.dark [data-theme-preset]:not([data-theme-preset='default']) {
     --popover: color-mix(in oklab, var(--primary) 12%, var(--background));
+}
+
+.dark [data-theme-preset]:not([data-theme-preset='default']) {
     --muted: color-mix(in oklab, var(--primary) 12%, var(--background));
+}
+
+.dark [data-theme-preset]:not([data-theme-preset='default']) {
     --accent: color-mix(in oklab, var(--primary) 20%, var(--background));
+}
+
+.dark [data-theme-preset]:not([data-theme-preset='default']) {
     --border: color-mix(in oklab, var(--primary) 26%, var(--background));
 }
 
@@ -577,7 +614,9 @@
    滚动条本身不占宽，此属性无副作用。
    滑块颜色引用主题变量，:root / .dark 各自定义，明暗主题自动跟随。 */
 
-* {
+/* 滚动条颜色/宽度是可继承属性，写在 :root 即可；
+   用通配选择器会让每个元素多匹配一条规则。 */
+:root {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }

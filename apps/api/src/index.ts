@@ -1,6 +1,11 @@
 import { startDbWatchdog } from '@api/db/watchdog'
 import { dbAction, initValidationError } from '@api/libs'
 import {
+  invalidateAfterMutation,
+  isMutatingRequest,
+} from '@api/libs/isr-invalidation'
+import { startIsrCdnPurgeSubscriber } from '@api/libs/redis/pubsub'
+import {
   adverts,
   betterAuth,
   collections,
@@ -29,61 +34,74 @@ import { openapi } from '@elysia/openapi'
 import { Elysia } from 'elysia'
 
 async function buildApp() {
-  return new Elysia({
-    serve: {
-      // Prevent hanging connections from blocking the event loop
-      idleTimeout: 30,
-    },
-  })
-    .onError(({ code, error, set }) => {
-      if (code === 'VALIDATION') {
-        set.status = 400
-        return error.message
-      }
-      // 4xx 业务错误（未找到、参数错误等）是正常业务流，不按服务端错误记录；
-      // 只有 5xx 才需要 error 级日志用于排查。
-      const statusCode = typeof code === 'number' ? code : Number(code)
-      const is4xx =
-        Number.isInteger(statusCode) && statusCode >= 400 && statusCode < 500
-      if (is4xx || code === 'NOT_FOUND') return
-      const msg = error instanceof Error ? error.message : error
-      const cause = error instanceof Error ? (error as any).cause : undefined
-      console.error(`[err] ${code ?? 'UNKNOWN'}:`, msg)
-      if (cause) {
-        console.error(
-          `[err]   caused by:`,
-          cause instanceof Error ? cause.message : cause,
-        )
-      }
+  return (
+    new Elysia({
+      serve: {
+        // Prevent hanging connections from blocking the event loop
+        idleTimeout: 30,
+      },
     })
-    .use(
-      openapi({
-        documentation: {
-          components: await OpenAPI.components,
-          paths: await OpenAPI.getPaths(),
-        },
-      }),
-    )
-    .use(betterAuth)
-    .use(health)
-    .use(adverts)
-    .use(game)
-    .use(collections)
-    .use(comments)
-    .use(cronServer)
-    .use(views)
-    .use(tags)
-    .use(download)
-    .use(friendLinks)
-    .use(search)
-    .use(strategy)
-    .use(media)
-    .use(producer)
-    .use(status)
-    .use(topics)
-    .use(tasks)
-    .use(vndbSync)
-    .use(kungalSync)
+      /**
+       * 用户视图是 ISR + CDN 两层缓存：任何写操作成功后都要失效相关页面，
+       * 否则最长要等一个 revalidate 周期才能看到新数据。这里按路由前缀统一处理
+       * （映射见 libs/isr-invalidation.ts），异步发出不阻塞响应。
+       */
+      .onAfterHandle(({ request, set }) => {
+        if (!isMutatingRequest(request.method)) return
+        const status = Number(set.status ?? 200)
+        if (Number.isInteger(status) && status >= 400) return
+        void invalidateAfterMutation(new URL(request.url).pathname)
+      })
+      .onError(({ code, error, set }) => {
+        if (code === 'VALIDATION') {
+          set.status = 400
+          return error.message
+        }
+        // 4xx 业务错误（未找到、参数错误等）是正常业务流，不按服务端错误记录；
+        // 只有 5xx 才需要 error 级日志用于排查。
+        const statusCode = typeof code === 'number' ? code : Number(code)
+        const is4xx =
+          Number.isInteger(statusCode) && statusCode >= 400 && statusCode < 500
+        if (is4xx || code === 'NOT_FOUND') return
+        const msg = error instanceof Error ? error.message : error
+        const cause = error instanceof Error ? (error as any).cause : undefined
+        console.error(`[err] ${code ?? 'UNKNOWN'}:`, msg)
+        if (cause) {
+          console.error(
+            `[err]   caused by:`,
+            cause instanceof Error ? cause.message : cause,
+          )
+        }
+      })
+      .use(
+        openapi({
+          documentation: {
+            components: await OpenAPI.components,
+            paths: await OpenAPI.getPaths(),
+          },
+        }),
+      )
+      .use(betterAuth)
+      .use(health)
+      .use(adverts)
+      .use(game)
+      .use(collections)
+      .use(comments)
+      .use(cronServer)
+      .use(views)
+      .use(tags)
+      .use(download)
+      .use(friendLinks)
+      .use(search)
+      .use(strategy)
+      .use(media)
+      .use(producer)
+      .use(status)
+      .use(topics)
+      .use(tasks)
+      .use(vndbSync)
+      .use(kungalSync)
+  )
 }
 
 export type app = Awaited<ReturnType<typeof buildApp>>
@@ -109,6 +127,9 @@ async function startServer() {
   const app = (await buildApp()).listen(Number(process.env.PORT) || 3001)
 
   process.on('beforeExit', app.stop)
+
+  // 订阅 web 回传的「已失效 URL」，用 Cloudflare 凭据清 CDN（见 libs/redis/pubsub.ts）
+  await startIsrCdnPurgeSubscriber()
 
   console.log(
     `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,

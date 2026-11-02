@@ -95,7 +95,12 @@ type CommentsListData = {
 	totalPages: number;
 };
 
-/** 列表筛选：路由预取与组件 useQuery 必须共用这一份构造。 */
+/**
+ * 列表筛选：路由预取与组件 useQuery 必须共用这一份构造。
+ *
+ * 默认只看「正常」评论：已隐藏 / 已删除属于清理场景，需要时在状态筛选里主动切过去。
+ * 这样后台首屏不会混进已经删掉的评论（它们只应该出现在「全部 / 已删除」视图里）。
+ */
 export type CommentsFilters = {
 	targetId: string;
 	status: string;
@@ -107,7 +112,7 @@ export type CommentsFilters = {
 
 export const DEFAULT_COMMENTS_FILTERS: CommentsFilters = {
 	targetId: "",
-	status: "",
+	status: "normal",
 	type: "",
 	excludeReplies: false,
 	page: 1,
@@ -214,10 +219,13 @@ function IconAction({
 
 function CommentsTable() {
 	const [searchInput, setSearchInput] = useState("");
-	const [search, setSearch] = useState("");
-	const [status, setStatus] = useState("");
-	const [type, setType] = useState("");
-	const [excludeReplies, setExcludeReplies] = useState(false);
+	const [search, setSearch] = useState(DEFAULT_COMMENTS_FILTERS.targetId);
+	// 默认只看正常评论（与 loader 预取共用同一份默认值，首屏才命中缓存）
+	const [status, setStatus] = useState(DEFAULT_COMMENTS_FILTERS.status);
+	const [type, setType] = useState(DEFAULT_COMMENTS_FILTERS.type);
+	const [excludeReplies, setExcludeReplies] = useState(
+		DEFAULT_COMMENTS_FILTERS.excludeReplies,
+	);
 	const [editing, setEditing] = useState<AdminComment | null>(null);
 	const [deleting, setDeleting] = useState<AdminComment | null>(null);
 
@@ -319,8 +327,9 @@ function CommentsTable() {
 		mutationFn: ({ id }) => adminDeleteComment({ data: { id } }),
 		affects: invalidations.comments,
 		optimistic: (qc, { id }) => {
-			// 默认「全部」视图里后端仍会返回软删行：就地把状态改成 deleted，
+			// 「全部 / 已删除」视图里后端仍会返回软删行：就地把状态改成 deleted，
 			// 否则乐观移除后 revalidate 又会让这一行「自己回来」。
+			// 其它状态视图（默认「正常」、隐藏）里这行本就不该存在，直接移除。
 			if (status !== "" && status !== "deleted") {
 				removeListItems<AdminComment>(
 					qc,
@@ -346,14 +355,19 @@ function CommentsTable() {
 	const pendingStatus = usePendingMutationVars<{ id: string }>(STATUS_KEY);
 	const pendingDelete = usePendingMutationVars<{ id: string }>(DELETE_KEY);
 
-	const isFiltered = !!search || !!status || !!type || excludeReplies;
+	// 「默认视图」不算筛选：状态默认是「正常」，只有偏离默认才提示清除筛选
+	const isFiltered =
+		!!search ||
+		status !== DEFAULT_COMMENTS_FILTERS.status ||
+		!!type ||
+		excludeReplies;
 
 	const resetFilters = () => {
 		setSearchInput("");
-		setSearch("");
-		setStatus("");
-		setType("");
-		setExcludeReplies(false);
+		setSearch(DEFAULT_COMMENTS_FILTERS.targetId);
+		setStatus(DEFAULT_COMMENTS_FILTERS.status);
+		setType(DEFAULT_COMMENTS_FILTERS.type);
+		setExcludeReplies(DEFAULT_COMMENTS_FILTERS.excludeReplies);
 		resetToFirstPage();
 	};
 

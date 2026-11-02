@@ -746,6 +746,14 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 	const movedRef = useRef(0);
 	// 用户一旦手动平移/缩放，就不再自动取景（否则窗口尺寸变化会把视角跳回去）
 	const touchedRef = useRef(false);
+	/** wheel 增量合并：同一帧内的多个事件只渲染一次（触控板一帧可派发 3–10 个） */
+	const wheelPendingRef = useRef<{ delta: number; px: number; py: number } | null>(null);
+	const wheelFrameRef = useRef(0);
+	/** 拖拽增量合并：同上 */
+	const dragPendingRef = useRef<{ dx: number; dy: number } | null>(null);
+	const dragFrameRef = useRef(0);
+	/** 上一帧量到的包围盒，供 deltaMode=2（按页）换算高度用 */
+	const frameRectRef = useRef<DOMRect | null>(null);
 	// 记住当前画的是哪个标签。`useState` 不会在导航后重挂载这个组件（路由只是换了
 	// loader 数据），所以「切换标签 = 重置取景」得靠 id 变化来触发；touched 也一起
 	// 清掉，否则上一个标签里拖过的偏移会顺着 touchedRef 继承到下一个标签。
@@ -901,39 +909,67 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 	useEffect(() => {
 		const el = frameRef.current;
 		if (!el || !graph || !active) return;
+		// 注册时先量一次包围盒：deltaMode=2（按页）换算要用，resize 时本 effect 会重跑
+		frameRectRef.current = el.getBoundingClientRect();
 		// 整图中心在图坐标系里的位置
 		const origin = { x: graph.width / 2, y: graph.height / 2 };
 		const onWheel = (e: WheelEvent) => {
 			e.preventDefault();
 			touchedRef.current = true;
-			const rect = el.getBoundingClientRect();
-			const px = e.clientX - rect.left;
-			const py = e.clientY - rect.top;
 			// deltaMode 1 = 行、2 = 页；换算成像素级增量，触控板与滚轮手感一致
-			const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? rect.height : 1;
+			const unit =
+				e.deltaMode === 1
+					? 16
+					: e.deltaMode === 2
+						? (frameRectRef.current?.height ?? 800)
+						: 1;
 			// 单次增量必须封顶：翻页式滚轮会送出上千的 deltaY，不封顶的话一滚滚轮
 			// 就把缩放从 100% 直接砸到下限，中间没有任何过渡。
 			const delta = Math.max(-160, Math.min(160, e.deltaY * unit));
-			// 符号取反：向下滚（deltaY > 0）放大，向上滚缩小。
-			// 与页面滚动的直觉一致 —— 往下「推进」内容看细节。
-			const factor = Math.exp(-delta * 0.002);
-			setView((v) => {
-				const zoom = clampZoom(v.zoom * factor);
-				const ratio = zoom / v.zoom;
-				// 光标下的图坐标点在缩放前后必须重合
-				const tx = frameW / 2 - origin.x * v.zoom + v.dx;
-				const ty = frameH / 2 - origin.y * v.zoom + v.dy;
-				const tx2 = px - (px - tx) * ratio;
-				const ty2 = py - (py - ty) * ratio;
-				return {
-					zoom,
-					dx: tx2 - frameW / 2 + origin.x * zoom,
-					dy: ty2 - frameH / 2 + origin.y * zoom,
-				};
+			// 每事件先 clamp 再累加：同一帧内多个 wheel 事件合并成一次渲染
+			const pending = (wheelPendingRef.current ??= { delta: 0, px: 0, py: 0 });
+			pending.delta += delta;
+			pending.px = e.clientX;
+			pending.py = e.clientY;
+			if (wheelFrameRef.current) return;
+			wheelFrameRef.current = requestAnimationFrame(() => {
+				wheelFrameRef.current = 0;
+				const p = wheelPendingRef.current;
+				wheelPendingRef.current = null;
+				if (!p) return;
+				const rect = el.getBoundingClientRect();
+				frameRectRef.current = rect;
+				const px = p.px - rect.left;
+				const py = p.py - rect.top;
+				// 符号取反：向下滚（deltaY > 0）放大，向上滚缩小。
+				// 与页面滚动的直觉一致 —— 往下「推进」内容看细节。
+				const factor = Math.exp(-p.delta * 0.002);
+				setView((v) => {
+					const zoom = clampZoom(v.zoom * factor);
+					const ratio = zoom / v.zoom;
+					// 光标下的图坐标点在缩放前后必须重合
+					const tx = frameW / 2 - origin.x * v.zoom + v.dx;
+					const ty = frameH / 2 - origin.y * v.zoom + v.dy;
+					const tx2 = px - (px - tx) * ratio;
+					const ty2 = py - (py - ty) * ratio;
+					return {
+						zoom,
+						dx: tx2 - frameW / 2 + origin.x * zoom,
+						dy: ty2 - frameH / 2 + origin.y * zoom,
+					};
+				});
 			});
 		};
 		el.addEventListener("wheel", onWheel, { passive: false });
-		return () => el.removeEventListener("wheel", onWheel);
+		return () => {
+			el.removeEventListener("wheel", onWheel);
+			if (wheelFrameRef.current) cancelAnimationFrame(wheelFrameRef.current);
+			wheelFrameRef.current = 0;
+			wheelPendingRef.current = null;
+			if (dragFrameRef.current) cancelAnimationFrame(dragFrameRef.current);
+			dragFrameRef.current = 0;
+			dragPendingRef.current = null;
+		};
 	}, [graph, frameW, frameH, active]);
 
 	// 激活时点外部 → 交还页面
@@ -964,6 +1000,16 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 			const ratio = zoom / v.zoom;
 			return { zoom, dx: v.dx * ratio, dy: v.dy * ratio };
 		});
+	};
+
+	/** 拖拽增量合并：同一帧内的 pointermove 只渲染一次。 */
+	const flushDrag = () => {
+		dragFrameRef.current = 0;
+		const pending = dragPendingRef.current;
+		dragPendingRef.current = null;
+		if (!pending) return;
+		const { dx, dy } = pending;
+		setView((v) => ({ ...v, dx: v.dx + dx, dy: v.dy + dy }));
 	};
 
 	/**
@@ -997,6 +1043,12 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 					mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
 					view,
 				};
+				// 进入捏合：丢弃在途的单指拖拽增量，避免下一帧把旧位移叠到捏合结果上
+				if (dragFrameRef.current) {
+					cancelAnimationFrame(dragFrameRef.current);
+					dragFrameRef.current = 0;
+				}
+				dragPendingRef.current = null;
 				dragRef.current = null;
 			} else {
 				dragRef.current = { x: e.clientX, y: e.clientY };
@@ -1058,7 +1110,12 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 			drag.x = e.clientX;
 			drag.y = e.clientY;
 			movedRef.current += Math.hypot(tdx, tdy);
-			setView((v) => ({ ...v, dx: v.dx + tdx, dy: v.dy + tdy }));
+			const pending = (dragPendingRef.current ??= { dx: 0, dy: 0 });
+			pending.dx += tdx;
+			pending.dy += tdy;
+			if (!dragFrameRef.current) {
+				dragFrameRef.current = requestAnimationFrame(flushDrag);
+			}
 			return;
 		}
 		const drag = dragRef.current;
@@ -1067,7 +1124,12 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 		const dy = e.clientY - drag.y;
 		drag.x = e.clientX;
 		drag.y = e.clientY;
-		setView((v) => ({ ...v, dx: v.dx + dx, dy: v.dy + dy }));
+		const pending = (dragPendingRef.current ??= { dx: 0, dy: 0 });
+		pending.dx += dx;
+		pending.dy += dy;
+		if (!dragFrameRef.current) {
+			dragFrameRef.current = requestAnimationFrame(flushDrag);
+		}
 	};
 	const endPan = (e: ReactPointerEvent<HTMLDivElement>) => {
 		if (e.pointerType === "touch") pointersRef.current.delete(e.pointerId);

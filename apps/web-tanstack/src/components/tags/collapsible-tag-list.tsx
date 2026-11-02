@@ -7,7 +7,7 @@ import { TooltipTrigger } from "@web/components/ui/tooltip";
 import { cn } from "@web/lib/utils";
 import { tagHeroActions } from "@web/stores/tagHeroStore";
 import { ChevronDown, MousePointerClick } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { Fragment, useLayoutEffect, useRef, useState } from "react";
 
 export type FlowTag = {
 	id: string;
@@ -178,25 +178,31 @@ export function CollapsibleTagList({
 					!expanded && "overflow-hidden max-h-6",
 				)}
 			>
-				{shown.map((t) => (
-					<TagTooltip key={t.id}>
-						<TooltipTrigger
-							render={
-								<Link
-									to="/tags/$tagId"
-									params={{ tagId: t.id }}
-									preload={preload}
-									// 点击时回写展示名，标签详情 pending 态复用
-									onClick={() => tagHeroActions.fromTag(t)}
-									className={cn(pill, "mr-1.5 mb-1.5 max-w-full")}
-								>
-									<span className="truncate">#{tagLabel(t)}</span>
-								</Link>
-							}
-						/>
-						<TagTooltipContent>{tagLabel(t)}</TagTooltipContent>
-					</TagTooltip>
-				))}
+				{shown.map((t) => {
+					const link = (
+						<Link
+							to="/tags/$tagId"
+							params={{ tagId: t.id }}
+							preload={preload}
+							// 点击时回写展示名，标签详情 pending 态复用
+							onClick={() => tagHeroActions.fromTag(t)}
+							className={cn(pill, "mr-1.5 mb-1.5 max-w-full")}
+						>
+							<span className="truncate">#{tagLabel(t)}</span>
+						</Link>
+					);
+					// 测量轮（fitCount === null）只渲染裸 Link：几何完全一致，但省掉 N 套
+					// Tooltip 状态机的挂载/卸载（下一帧就要裁掉九成）。
+					if (fitCount === null && !expanded) {
+						return <Fragment key={t.id}>{link}</Fragment>;
+					}
+					return (
+						<TagTooltip key={t.id}>
+							<TooltipTrigger render={link} />
+							<TagTooltipContent>{tagLabel(t)}</TagTooltipContent>
+						</TagTooltip>
+					);
+				})}
 				{toggle}
 			</div>
 		</div>

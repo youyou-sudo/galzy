@@ -179,7 +179,7 @@ const searchSchema = z.object({
 });
 
 export const route = defineRoute("/games")
-	.config({ mode: "ssr", query: searchSchema })
+	.config({ mode: "isr", revalidate: 60, query: searchSchema, tags: ["page-games"] })
 	.loader(async ({ query }) => {
 		const { q, startDate, endDate, sortBy, order } = query;
 		// 搜索模式（q 存在）不启用 R18 过滤，敏感图片由卡片模糊组件兜底；
@@ -620,6 +620,7 @@ function GamesRoute({
 						showR18={showR18}
 						// 首行（3 列移动端 / 6 列桌面端取并集，首 6 张）优先加载
 						fetchPriority={item.index < 6 ? "high" : "low"}
+						loading={item.index < 6 ? "eager" : "lazy"}
 						onActivate={handleActivate}
 						title={item.title}
 					/>,

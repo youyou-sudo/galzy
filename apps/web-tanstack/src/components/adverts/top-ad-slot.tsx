@@ -43,11 +43,15 @@ export function AdSlotView({ payload }: { payload: AdSlotPayload }) {
 			{desktop.length > 0 ? (
 				<div className="hidden sm:block" data-testid="advert-desktop">
 					{desktop.length === 1 ? (
-						<AdvertBanner advert={desktop[0]} />
+						<AdvertBanner advert={desktop[0]} priority />
 					) : (
 						<div className="grid grid-cols-2 gap-2">
-							{desktop.map((advert) => (
-								<AdvertBanner key={advert.id} advert={advert} />
+							{desktop.map((advert, index) => (
+								<AdvertBanner
+									key={advert.id}
+									advert={advert}
+									priority={index === 0}
+								/>
 							))}
 						</div>
 					)}
@@ -58,8 +62,12 @@ export function AdSlotView({ payload }: { payload: AdSlotPayload }) {
 				<div className="sm:hidden" data-testid="advert-mobile">
 					{slot.mobileMode === "stack" ? (
 						<div className="flex flex-col gap-2">
-							{mobile.map((advert) => (
-								<AdvertBanner key={advert.id} advert={advert} />
+							{mobile.map((advert, index) => (
+								<AdvertBanner
+									key={advert.id}
+									advert={advert}
+									priority={index === 0}
+								/>
 							))}
 						</div>
 					) : (
@@ -80,7 +88,14 @@ export function AdSlotView({ payload }: { payload: AdSlotPayload }) {
  * 曝光：素材有 50% 可见并持续 1s 才计一次（行业常用的「可见曝光」口径），
  * 点击：跳转的同时 fire-and-forget 上报；两者失败都静默忽略。
  */
-function AdvertBanner({ advert }: { advert: PublicAdvert }) {
+function AdvertBanner({
+	advert,
+	priority = false,
+}: {
+	advert: PublicAdvert;
+	/** 首条横幅：把排队优先级提到 high（loading 仍为 lazy，隐藏分支因此不会被下载） */
+	priority?: boolean;
+}) {
 	const ref = useRef<HTMLAnchorElement>(null);
 	useAdvertImpression(ref, advert.id);
 
@@ -100,13 +115,14 @@ function AdvertBanner({ advert }: { advert: PublicAdvert }) {
 			data-umami-event-position={`Banner-${advert.name}`}
 			className="block overflow-hidden rounded-xl bg-muted ring-1 ring-border/50 outline-none transition-shadow duration-200 focus-visible:ring-2 focus-visible:ring-ring/60"
 		>
+			{/* 横幅尺寸未知：CLS 需要 API 侧补 imageWidth/imageHeight，此处不做猜测性预留 */}
 			{/* 横幅按原始比例铺满；max-h-40 只是兜底：万一塞进一张竖图/方图，
 			    不会把整个首屏撑变形，而是裁成一条横幅。正常横幅（≤160px 高）不受影响。 */}
 			<img
 				src={advert.image}
 				alt={`${advert.name} 广告图片`}
 				loading="lazy"
-				fetchPriority="low"
+				fetchPriority={priority ? "high" : "low"}
 				decoding="async"
 				className="block w-full h-auto max-h-40 object-cover"
 			/>
@@ -265,7 +281,7 @@ function MobileAdvertCarousel({
 						aria-label={`第 ${slideIndex + 1} 条，共 ${count} 条`}
 						className="w-full shrink-0 snap-center"
 					>
-						<AdvertBanner advert={advert} />
+						<AdvertBanner advert={advert} priority={slideIndex === 0} />
 					</div>
 				))}
 			</div>

@@ -186,16 +186,33 @@ function buildHref(target: LegacyTarget): string {
 	return path + (qs ? "?" + qs : "") + hash;
 }
 
+/** 路由匹配缓存：matchPattern 是 46 条路由的线性扫描，按 pathname 缓存；
+ * 用 Map 而不是单槽，避免并发 SSR 请求互相顶掉（命中率≈0）。 */
+const MATCH_CACHE_MAX = 8;
+const matchCache = new Map<
+	string,
+	{ ids: string[]; hit: ReturnType<typeof matchPattern> }
+>();
+
 function buildMatches(pathname: string) {
-	const ids = matchedRouteIds(pathname);
-	const hit = matchPattern(pathname);
-	return ids.map((routeId) => ({
+	let entry = matchCache.get(pathname);
+	if (!entry) {
+		entry = { ids: matchedRouteIds(pathname), hit: matchPattern(pathname) };
+		if (matchCache.size >= MATCH_CACHE_MAX) {
+			const oldest = matchCache.keys().next().value;
+			if (oldest !== undefined) matchCache.delete(oldest);
+		}
+		matchCache.set(pathname, entry);
+	}
+	const search = parseSearch(snapshot.searchStr);
+	return entry.ids.map((routeId) => ({
 		routeId,
 		pathname,
-		pattern: hit?.pattern,
+		pattern: entry.hit?.pattern,
 		status: "success" as const,
 		params: {},
-		search: parseSearch(snapshot.searchStr),
+		// 每项一个副本：保持「各 match 各自持有 search 对象」的原有可观察语义
+		search: { ...search },
 	}));
 }
 
@@ -223,6 +240,21 @@ export function useNavigationPending(): boolean {
 		subscribePending,
 		() => pendingDepth > 0,
 		() => false,
+	);
+}
+
+/**
+ * 只订阅 pathname 字符串：useSyncExternalStore 用 Object.is 比较，
+ * 路由其它状态（pending / search）变化时不会让调用方重渲染。
+ * 供只需要 pathname 的组件替代 useRouterState({ select: s => s.location.pathname })。
+ */
+export function usePathname(): string {
+	ensureHistoryPatched();
+	const initialPath = React.useContext(NavPathContext);
+	return React.useSyncExternalStore(
+		subscribeLocation,
+		() => snapshot.pathname,
+		() => getServerSnapshot(initialPath).pathname,
 	);
 }
 
@@ -277,14 +309,20 @@ export function useNavigate(_options?: { from?: string } | string) {
 				return Promise.resolve();
 			}
 			markNavigationPending();
-			return runViewTransition(() => navigateFurin({
-				to: toFurinPattern(options.to as string),
-				params: options.params,
-				search: normalizeSearch(options.search),
-				hash: options.hash === undefined ? undefined : String(options.hash),
-				replace: options.replace,
-				resetScroll: options.resetScroll,
-			} as never)) as unknown as Promise<void>;
+			const run = () =>
+				navigateFurin({
+					to: toFurinPattern(options.to as string),
+					params: options.params,
+					search: normalizeSearch(options.search),
+					hash: options.hash === undefined ? undefined : String(options.hash),
+					replace: options.replace,
+					resetScroll: options.resetScroll,
+				} as never);
+			// 同页筛选/排序等高频交互显式要求不要整页快照（viewTransition: false）
+			if (options.viewTransition === false) {
+				return Promise.resolve(run()).catch(() => undefined) as unknown as Promise<void>;
+			}
+			return runViewTransition(run) as unknown as Promise<void>;
 		},
 		[navigateFurin],
 	);

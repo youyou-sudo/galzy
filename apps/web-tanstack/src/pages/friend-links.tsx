@@ -9,7 +9,7 @@ import {
 import { getFriendLinks } from "@web/server/friend-links";
 
 export const route = defineRoute("/friend-links")
-	.config({ mode: "ssr" })
+	.config({ mode: "isr", revalidate: 300, tags: ["page-friend-links"] })
 	.loader(async () => {
 		const links = await getFriendLinks({ data: {} });
 		return { links };

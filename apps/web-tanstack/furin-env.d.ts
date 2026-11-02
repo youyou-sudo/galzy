@@ -324,3 +324,15 @@ declare module "@teyik0/furin/routes" {
     "/user": typeof import("./src/pages/user/index").route;
   }
 }
+
+declare module "@teyik0/furin" {
+  interface FurinCacheTags {
+    "page-collections": 'page-collections';
+    "page-friend-links": 'page-friend-links';
+    "page-games": 'page-games';
+    "page-home": 'page-home';
+    "page-producers": 'page-producers';
+    "page-tags": 'page-tags';
+    "page-topics": 'page-topics';
+  }
+}

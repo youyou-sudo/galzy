@@ -103,8 +103,17 @@ describe("AdSlotView", () => {
 		render(<AdSlotView payload={payload({ desktop: [ad(1), ad(2)] })} />);
 
 		const desktop = screen.getByTestId("advert-desktop");
-		expect(within(desktop).getAllByRole("link")).toHaveLength(2);
+		const links = within(desktop).getAllByRole("link");
+		expect(links).toHaveLength(2);
 		expect(desktop.querySelector('[class*="grid-cols-2"]')).not.toBeNull();
+		// 只有首条提优先级，第二条保持 low（且 loading 仍是 lazy）
+		expect(links[0].querySelector("img")?.getAttribute("fetchpriority")).toBe(
+			"high",
+		);
+		expect(links[1].querySelector("img")?.getAttribute("fetchpriority")).toBe(
+			"low",
+		);
+		expect(links[1].querySelector("img")?.getAttribute("loading")).toBe("lazy");
 	});
 
 	it("广告位配置了更多展示位时，返回的素材全部渲染", () => {
@@ -215,7 +224,10 @@ describe("AdSlotView", () => {
 			"https://cdn.example.com/ad-3.webp",
 		);
 		expect(image?.getAttribute("alt")).toBe("ad3 广告图片");
+		// 首条横幅：只把排队优先级提到 high；loading 一律 lazy
+		// （display:none 的隐藏分支因此不会被下载）
 		expect(image?.getAttribute("loading")).toBe("lazy");
+		expect(image?.getAttribute("fetchpriority")).toBe("high");
 	});
 
 	it("素材可见 1s 后上报一次曝光，点击后上报点击", () => {

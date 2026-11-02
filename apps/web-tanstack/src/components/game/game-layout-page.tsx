@@ -4,7 +4,8 @@ import {
 	GameTitle,
 } from "@web/components/home/game/GameHeader";
 import { GameInfo } from "@web/components/home/game/GameInfo";
-import { GameTabs } from "@web/components/home/game/GameTabs";
+import { DownloadSpotlight } from "@web/components/home/game/download-spotlight";
+import { GameTabs, gameTabOf } from "@web/components/home/game/GameTabs";
 import { Glgczujm } from "@web/components/home/game/tips";
 import { Card, CardContent } from "@web/components/ui/card";
 import { useIdlePreload } from "@web/hooks/use-idle-preload";
@@ -54,6 +55,9 @@ export default function GameLayoutPage({
 		{ staggerMs: 300 },
 	);
 
+	// 下载 tab 才在封面下方给出「下载」定位按钮（其它 tab 没有文件列表可定位）
+	const isDownloadTab = gameTabOf(path ?? "") === "download";
+
 	return (
 		<div className="space-y-2">
 			{/* 概览卡：桌面左右两栏（信息 / 封面），移动端封面在前。
@@ -64,8 +68,11 @@ export default function GameLayoutPage({
 						<GameTitle game={game} id={id} />
 						<GameInfo game={game} gameId={id} />
 					</div>
-					<div className="order-1 self-start sm:order-2">
+					{/* 移动端单列：封面自行居中、按钮占满整行；桌面端第二轨宽 = 封面宽 */}
+					<div className="order-1 flex flex-col gap-2 self-start sm:order-2">
 						<GameCover game={game} id={id} />
+						{/* 所有页签都保留「下载」入口；不在下载页签时点击会先切回去 */}
+						<DownloadSpotlight gameId={id} isDownloadTab={isDownloadTab} />
 					</div>
 				</CardContent>
 			</Card>
@@ -74,7 +81,10 @@ export default function GameLayoutPage({
 
 			<Card className="ring-border/60">
 				<CardContent>
-					{children ?? <Outlet />}
+					{/* 下载定位按钮的高亮锚点：包住 tab 内容本体（不含下方推荐位） */}
+					<div data-download-target="">
+						{children ?? <Outlet />}
+					</div>
 					<Glgczujm />
 				</CardContent>
 			</Card>

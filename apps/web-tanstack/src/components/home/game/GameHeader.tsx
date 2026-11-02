@@ -89,19 +89,6 @@ export function GameCover({
 	const coverSensitiveHidden =
 		!showR18 && (game?.vn?.image?.cSexualAvg ?? 0) >= 1 && !coverRevealed;
 
-	useEffect(() => {
-		const href = image?.imageUrl;
-		if (!href) return;
-		const link = document.createElement("link");
-		link.rel = "preload";
-		link.as = "image";
-		link.href = href;
-		document.head.appendChild(link);
-		return () => {
-			link.remove();
-		};
-	}, [image?.imageUrl]);
-
 	const coverClassName = `${
 		(game?.vn?.image?.height ?? 0) > 0 &&
 		(game?.vn?.image?.height ?? 0) < (game?.vn?.image?.width ?? 0)

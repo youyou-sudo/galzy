@@ -3,7 +3,7 @@ import ContactPage from "@web/components/contact-page";
 import { seoTemplate } from "@web/config/seoTemplate";
 
 export const route = defineRoute("/contact")
-	.config({ mode: "ssr" })
+	.config({ mode: "isr", revalidate: 3600 })
 	.head(() => ({
 		meta: [{ title: `联系喵喵们 | ${seoTemplate.title}` }],
 	}))

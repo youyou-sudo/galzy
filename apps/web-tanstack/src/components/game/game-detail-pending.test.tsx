@@ -37,6 +37,7 @@ vi.mock("@web/lib/nav", async () => {
 		useRouterState: (options?: {
 			select?: (s: ReturnType<typeof state>) => unknown;
 		}) => (options?.select ? options.select(state()) : state()),
+		usePathname: () => routerMock.pathname,
 		useRouter: () => ({ preloadRoute: () => Promise.resolve() }),
 	};
 });

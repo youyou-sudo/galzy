@@ -19,9 +19,15 @@ import {
 	TabsList,
 	TabsTrigger,
 } from "@web/components/ui/tabs";
-import { useNavigate } from "@web/lib/nav";
+import { useShallowSearch } from "@web/lib/admin/use-shallow-search";
 import { seoMeta } from "@web/lib/seo";
-import { BracesIcon, DatabaseIcon, ListIcon, SearchIcon, ServerIcon } from "lucide-react";
+import {
+	BracesIcon,
+	DatabaseIcon,
+	ListIcon,
+	SearchIcon,
+	ServerIcon,
+} from "lucide-react";
 import { useState } from "react";
 import * as z from "zod/mini";
 
@@ -29,7 +35,9 @@ import * as z from "zod/mini";
  * Meilisearch 管理（等价旧 `routes/admin/_authL/meilisearch.tsx`）。
  *
  * indexType / tab 放进 URL（旧 validateSearch 的 zod schema 原样搬进 config.query），
- * 旧路由的 Route.useSearch/useNavigate 换成页面 props 的 query + @web/lib/nav。
+ * 但**不用 furin 导航**更新它们：切 Tab 只是换一块已挂载的面板，
+ * 走 `useShallowSearch` 的 history.replaceState 即可（URL 可分享/刷新还原，
+ * 又不会重新请求页面、重挂载组件）。见 `@web/lib/admin/use-shallow-search`。
  */
 
 const MEILI_TABS = [
@@ -52,34 +60,32 @@ const meiliSearchSchema = z.object({
 
 type MeiliSearch = z.infer<typeof meiliSearchSchema>;
 
+/** 与 schema 默认值一致：浅层 URL 序列化时把默认值从地址栏剥掉。 */
+const MEILI_SEARCH_DEFAULTS: MeiliSearch = {
+	indexType: "game",
+	tab: "overview",
+};
+
 const ADMIN_TITLE = "管理后台 | GalZY - Galgame 资源站";
 
 export const route = defineRoute("/admin/meilisearch")
 	.config({ mode: "ssr", query: meiliSearchSchema })
 	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }) as never)
-	.page(({ query }) => <MeilisearchPage query={query} />);
+	.page(({ query }) => <MeilisearchPage initialQuery={query} />);
 
-function MeilisearchPage({ query }: { query: MeiliSearch }) {
+function MeilisearchPage({ initialQuery }: { initialQuery: MeiliSearch }) {
+	// URL 只作初始值：之后 Tab / 索引切换走浅层更新，不触发 furin 页面导航
+	const [query, patchSearch] = useShallowSearch<MeiliSearch>(
+		initialQuery,
+		MEILI_SEARCH_DEFAULTS,
+	);
 	const { indexType, tab } = query;
-	const navigate = useNavigate();
 
 	// 只挂载访问过的标签页：切回来时组件不卸载，查询缓存与滚动位置都还在，
 	// 不会每次都闪一次骨架。
 	const [visitedTabs, setVisitedTabs] = useState<Set<MeiliTab>>(
 		() => new Set<MeiliTab>([tab]),
 	);
-
-	/** 合并式改 URL：与旧 Route.useNavigate 的 search reducer 等价。 */
-	const patchSearch = (
-		patch: Partial<MeiliSearch>,
-		options?: { replace?: boolean },
-	) => {
-		void navigate({
-			to: "/admin/meilisearch",
-			search: { ...query, ...patch },
-			replace: options?.replace,
-		});
-	};
 
 	const handleTabChange = (value: string | number | null) => {
 		if (typeof value !== "string") return;
@@ -90,7 +96,7 @@ function MeilisearchPage({ query }: { query: MeiliSearch }) {
 			next.add(nextTab);
 			return next;
 		});
-		patchSearch({ tab: nextTab }, { replace: true });
+		patchSearch({ tab: nextTab });
 	};
 
 	return (

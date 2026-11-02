@@ -488,6 +488,8 @@ export type GameCardItemProps = {
 	showR18?: boolean;
 	/** 首屏行优先加载：首行传 high，其余 low，避免几十张图同时抢带宽 */
 	fetchPriority?: "high" | "low" | "auto";
+	/** 覆盖 <img> 的 loading：首屏首排传 "eager"，其余保持默认 "lazy" */
+	loading?: "lazy" | "eager";
 	/** 点击时同步回写（state + sessionStorage），供回程恢复配对。
 	 * 第二个参数是被点卡片顶部的文档绝对 Y（调用方无需再自行计算 scrollY）。 */
 	onActivate?: (id: string, cardTopY?: number) => void;
@@ -504,6 +506,7 @@ function ItemInner({
 	hasVT = false,
 	showR18: showR18Prop,
 	fetchPriority = "low",
+	loading,
 	onActivate,
 }: GameCardItemProps) {
 	const THRESHOLD = 1.0;
@@ -548,6 +551,13 @@ function ItemInner({
 			// 卡片被包进任何 Card（详情页、合集页）时，悬停外层 Card 会让所有标题一起变色。
 			className="group/game-card block rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 			onClick={() => {
+				// 先读几何再写 style：反过来会强制同步布局（写后读 = layout thrash）
+				// 卡片顶部的文档绝对位置：link 元素 bounding rect + scrollY。
+				// 同步读取，不受后续 VT/导航的 layout 变化影响；回程恢复时
+				// 被点卡回到视口内同一位置（scrollY = cardTop − 点击时行内偏移，
+				// 在 /games index.tsx 的 handleActivate 内换算）。
+				const cardTopY =
+					(linkRef.current?.getBoundingClientRect().top ?? 0) + window.scrollY;
 				// 同步写 DOM：VT 旧快照在 startViewTransition 调用瞬间采集，
 				// React state 重渲染赶不上，必须在导航前直接给被点卡挂上名字；
 				// 回程靠 hasVT（sessionStorage 恢复）提前渲染配对。
@@ -559,12 +569,6 @@ function ItemInner({
 					"view-transition-name",
 					`game-title-${gameid}`,
 				);
-				// 卡片顶部的文档绝对位置：link 元素 bounding rect + scrollY。
-				// 同步读取，不受后续 VT/导航的 layout 变化影响；回程恢复时
-				// 被点卡回到视口内同一位置（scrollY = cardTop − 点击时行内偏移，
-				// 在 /games index.tsx 的 handleActivate 内换算）。
-				const cardTopY =
-					(linkRef.current?.getBoundingClientRect().top ?? 0) + window.scrollY;
 				onActivate?.(gameid, cardTopY);
 				// 进入详情页前先用列表数据填充英雄区，详情 loader 完成前即可首屏渲染
 				gameHeroActions.set({
@@ -597,7 +601,7 @@ function ItemInner({
 						width={width ?? 200}
 						height={height ?? 300}
 						thumbhash={thumbhash}
-						loading="lazy"
+						loading={loading ?? "lazy"}
 						decoding="async"
 						fetchPriority={fetchPriority}
 						src={src}

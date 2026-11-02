@@ -34,7 +34,7 @@ export const TagsSearchSchema = z.object({
 });
 
 export const route = defineRoute("/tags")
-	.config({ mode: "ssr", query: TagsSearchSchema })
+	.config({ mode: "isr", revalidate: 120, query: TagsSearchSchema, tags: ["page-tags"] })
 	.loader(async ({ query }) => {
 		const q = query.q?.trim() ?? "";
 		const [hub, searchTags] = await Promise.all([

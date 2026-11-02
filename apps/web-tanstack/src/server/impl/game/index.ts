@@ -1,10 +1,10 @@
 import "@teyik0/furin/server-only";
-import { defineBff, defineBffNoInput } from "@web/lib/bff/define";
 import { api } from "@libs";
 import { elysiaErrorF } from "@web/lib";
+import { defineBff, defineBffNoInput } from "@web/lib/bff/define";
 import { cookiePass } from "@web/lib/cookie-pass";
 import type { StripUnknown } from "@web/lib/serializable";
-import { authServerClient } from "@web/server/auth/auth.server";
+import { getServerSession } from "@web/server/auth/server-session";
 import * as z from "zod/mini";
 
 /**
@@ -19,7 +19,9 @@ export const GAME_ORDER_KEYS = ["desc", "asc"] as const;
 
 export type GameOrderKey = (typeof GAME_ORDER_KEYS)[number];
 
-export const getGameDetail = defineBff(z.object({ id: z.string() }), async ({ data }) => {
+export const getGameDetail = defineBff(
+	z.object({ id: z.string() }),
+	async ({ data }) => {
 		const { data: getgame, error } = await api.games.get({
 			query: {
 				id: data.id,
@@ -40,23 +42,32 @@ export const getGameDetail = defineBff(z.object({ id: z.string() }), async ({ da
 			vn: vn ? vnSlim : null,
 			otherData: otherData ? otherDataSlim : null,
 		} as StripUnknown<NonNullable<typeof getgame>> | null;
-	});
+	},
+);
 
-export const getGameTags = defineBff(z.object({ id: z.string() }), async ({ data }) => {
+export const getGameTags = defineBff(
+	z.object({ id: z.string() }),
+	async ({ data }) => {
 		const { data: tags, error } = await api.tags.gametags.post({ id: data.id });
 		elysiaErrorF(error);
 		return tags;
-	});
+	},
+);
 
-export const getGameRelations = defineBff(z.object({ id: z.string() }), async ({ data }) => {
+export const getGameRelations = defineBff(
+	z.object({ id: z.string() }),
+	async ({ data }) => {
 		const { data: relations, error } = await api.games.relations.get({
 			query: { id: data.id },
 		});
 		elysiaErrorF(error);
 		return relations;
-	});
+	},
+);
 
-export const getFileList = defineBff(z.object({ id: z.string() }), async ({ data }) => {
+export const getFileList = defineBff(
+	z.object({ id: z.string() }),
+	async ({ data }) => {
 		// 不再吞错返回空列表：上游故障会被 UI 区分成「加载失败可重试」，
 		// 而不是伪装成「此游戏没有文件」
 		const { data: filelist, error } = await api.games.openlistfiles.get({
@@ -67,16 +78,14 @@ export const getFileList = defineBff(z.object({ id: z.string() }), async ({ data
 		// 管理员的「刷新文件列表」入口由服务端判定：
 		// 前端不必为「按钮是否显示」再拉一次 session，也不用把 better-auth
 		// 带进下载 tab 的客户端 chunk；刷新接口本身还有 isAdmin 二次校验。
-		let canManage = false;
-		try {
-			const session = await authServerClient.getSession();
-			canManage = session?.data?.user?.role === "admin";
-		} catch {
-			canManage = false;
-		}
+		// 会话走带缓存的服务端读取：详情页首屏/预取会多次走到这里，别每次打 DB。
+		const session = await getServerSession();
+		const canManage =
+			(session?.user as { role?: string } | undefined)?.role === "admin";
 
 		return { game: filelist, canManage };
-	});
+	},
+);
 
 /**
  * 管理员刷新文件列表（仅管理员可用，API 侧还有 isAdmin 二次校验）。
@@ -84,7 +93,9 @@ export const getFileList = defineBff(z.object({ id: z.string() }), async ({ data
  * 会清掉该作品在 Redis 的 OpenListFiles 缓存并重建文件树，返回新树；
  * 前端拿到后直接写入 filelist 查询缓存，避免再发一次 GET。
  */
-export const refreshFileList = defineBff(z.object({ id: z.string().check(z.minLength(1)) }), async ({ data }) => {
+export const refreshFileList = defineBff(
+	z.object({ id: z.string().check(z.minLength(1)) }),
+	async ({ data }) => {
 		const { data: filelist, error } =
 			await api.games.openlistfiles.refresh.post({ id: data.id }, cookiePass());
 		elysiaErrorF(error);
@@ -92,43 +103,52 @@ export const refreshFileList = defineBff(z.object({ id: z.string().check(z.minLe
 		// 保留该字段是为了让返回值与 getFileList 同形，前端可以直接 setQueryData
 		// 而不会把「刷新按钮」本身写没。
 		return { game: filelist, canManage: true };
-	});
+	},
+);
 
-export const translateData = defineBff(z.object({
-			id: z.string(),
-		}), async ({ data }) => {
+export const translateData = defineBff(
+	z.object({
+		id: z.string(),
+	}),
+	async ({ data }) => {
 		const { data: translate, error } = await api.games.gameTimeNumberGet.get({
 			query: { id: data.id, time: "week" },
 		});
 		elysiaErrorF(error);
 		return translate;
-	});
+	},
+);
 
-export const dwAcConst = defineBff(z.object({ path: z.string(), game_id: z.string() }), async ({ data }) => {
+export const dwAcConst = defineBff(
+	z.object({ path: z.string(), game_id: z.string() }),
+	async ({ data }) => {
 		const { data: res, error } = await api.download.path.get({
 			query: { path: data.path, game_id: data.game_id },
 		});
 		elysiaErrorF(error);
 		return res;
-	});
+	},
+);
 
-export const getGameList = defineBff(z._default(
-			z.partial(
-				z.object({
-					pageSize: z.optional(z.number()),
-					pageIndex: z.optional(z.number()),
-					sortBy: z.optional(z.string()),
-					order: z.optional(z.string()),
-					q: z.optional(z.string()),
-					olang: z.optional(z.string()),
-					tags: z.optional(z.union([z.string(), z.array(z.string())])),
-					startDate: z.optional(z.string()),
-					endDate: z.optional(z.string()),
-					showR18: z.optional(z.boolean()),
-				}),
-			),
-			{},
-		), async ({ data }) => {
+export const getGameList = defineBff(
+	z._default(
+		z.partial(
+			z.object({
+				pageSize: z.optional(z.number()),
+				pageIndex: z.optional(z.number()),
+				sortBy: z.optional(z.string()),
+				order: z.optional(z.string()),
+				q: z.optional(z.string()),
+				olang: z.optional(z.string()),
+				tags: z.optional(z.union([z.string(), z.array(z.string())])),
+				startDate: z.optional(z.string()),
+				endDate: z.optional(z.string()),
+				showR18: z.optional(z.boolean()),
+			}),
+		),
+		{},
+	),
+	async ({ data }) => {
 		// Map legacy sortBy values to Meilisearch sortable attributes
 		const sortByMap: Record<string, string> = {
 			released: "released_first",
@@ -172,14 +192,17 @@ export const getGameList = defineBff(z._default(
 				totalCount: result?.totalHits || 0,
 			},
 		};
-	});
+	},
+);
 
 export const getTotalCount = defineBffNoInput(async () => {
 	const { data: totalRes, error } = await api.games.count.get();
 	elysiaErrorF(error);
 	return totalRes;
 });
-export const getCritical = defineBff(z.object({ showR18: z.optional(z.boolean()) }), async ({ data }) => {
+export const getCritical = defineBff(
+	z.object({ showR18: z.optional(z.boolean()) }),
+	async ({ data }) => {
 		const [gameResult, tagResult] = await Promise.allSettled([
 			api.views.hot.game.get({ query: { r18: data.showR18 } }),
 			api.views.hot.tag.get(),
@@ -196,4 +219,5 @@ export const getCritical = defineBff(z.object({ showR18: z.optional(z.boolean())
 				: null;
 
 		return { game, tag };
-	});
+	},
+);

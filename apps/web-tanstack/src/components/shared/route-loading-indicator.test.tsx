@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	EXIT_MS,
 	MIN_VISIBLE_MS,
+	PENDING_DELAY_MS,
 	RouteLoadingIndicator,
 } from "./route-loading-indicator";
 
@@ -44,6 +45,12 @@ function navigate(
 ) {
 	routerMock.status = status;
 	rerender(<RouteLoadingIndicator />);
+}
+
+/** 进入 pending 并跨过延迟阈值，让指示器真正亮起。 */
+function navigateAndShow(rerender: (ui: React.ReactElement) => void) {
+	navigate(rerender, "pending");
+	tick(PENDING_DELAY_MS);
 }
 
 beforeEach(() => {
@@ -96,22 +103,34 @@ describe("RouteLoadingIndicator", () => {
 		);
 	});
 
-	it("导航进入 pending 立即淡入并向读屏播报一次", () => {
+	it("预取命中的快速导航（延迟阈值内结束）不闪指示器", () => {
 		const { rerender } = render(<RouteLoadingIndicator />);
 
 		navigate(rerender, "pending");
+		// 还没到延迟阈值就结束
+		tick(PENDING_DELAY_MS - 10);
+		navigate(rerender, "idle");
+
+		expect(phase()).toBe("idle");
+		expect(indicator()?.textContent).toBe("");
+	});
+
+	it("导航 pending 超过延迟阈值后淡入并向读屏播报一次", () => {
+		const { rerender } = render(<RouteLoadingIndicator />);
+
+		navigateAndShow(rerender);
 		expect(phase()).toBe("active");
 		expect(indicator()?.className).toContain("opacity-100");
 		expect(indicator()?.className).toContain("translate-y-0");
 		expect(indicator()?.textContent).toBe("页面加载中");
 	});
 
-	it("秒开跳转也至少亮满最短可见时长，再向下淡出", () => {
+	it("亮起后也至少亮满最短可见时长，再向下淡出", () => {
 		const { rerender } = render(<RouteLoadingIndicator />);
 
-		navigate(rerender, "pending");
+		navigateAndShow(rerender);
 		tick(1);
-		// 40ms 后加载结束：剩余最短可见时长 160ms
+		// 亮起后 40ms 加载结束：剩余最短可见时长 160ms
 		tick(39);
 		navigate(rerender, "idle");
 
@@ -131,7 +150,7 @@ describe("RouteLoadingIndicator", () => {
 	it("长时间 pending 期间持续显示，不会到点自行消失", () => {
 		const { rerender } = render(<RouteLoadingIndicator />);
 
-		navigate(rerender, "pending");
+		navigateAndShow(rerender);
 		tick(MIN_VISIBLE_MS * 3);
 		expect(phase()).toBe("active");
 
@@ -145,7 +164,7 @@ describe("RouteLoadingIndicator", () => {
 	it("淡出途中再次导航直接转回常显，不先隐后现", () => {
 		const { rerender } = render(<RouteLoadingIndicator />);
 
-		navigate(rerender, "pending");
+		navigateAndShow(rerender);
 		tick(1);
 		navigate(rerender, "idle");
 		tick(MIN_VISIBLE_MS);
@@ -159,7 +178,7 @@ describe("RouteLoadingIndicator", () => {
 	it("卸载时清理未触发的定时器", () => {
 		const { rerender, unmount } = render(<RouteLoadingIndicator />);
 
-		navigate(rerender, "pending");
+		navigateAndShow(rerender);
 		navigate(rerender, "idle");
 		expect(vi.getTimerCount()).toBeGreaterThan(0);
 

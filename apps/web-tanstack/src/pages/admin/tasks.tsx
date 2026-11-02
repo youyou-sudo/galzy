@@ -1,71 +1,77 @@
 import { defineRoute } from "@teyik0/furin";
 import TaskListPage from "@web/components/admin/tasks/task-list-page";
 import {
+	TASK_SEARCH_DEFAULTS,
 	type TaskSearch,
 } from "@web/lib/admin/tasks/params";
 import { taskSearchQuery } from "@web/lib/admin/tasks/params.typebox";
-import { useNavigate } from "@web/lib/nav";
+import { useShallowSearch } from "@web/lib/admin/use-shallow-search";
 import { seoMeta } from "@web/lib/seo";
+import { useCallback } from "react";
 
 const ADMIN_TITLE = "管理后台 | GalZY - Galgame 资源站";
 
 /**
  * 任务队列（等价旧 `routes/admin/_authL/tasks.tsx`）。
  *
- * URL 仍然是筛选/排序/分页/详情的唯一真源：旧 validateSearch 的 zod schema
- * 原样搬进 `config.query`，旧 `Route.useSearch/useNavigate` 换成页面 props 的
- * `query` + @web/lib/nav 的 useNavigate（compat 层强制 `to`，这里显式给全路径）。
- *
- * 与旧实现的差异（均为 furin 机制缺失，不是业务改动）：
- * - `stripSearchParams`：furin 导航时用 schema 默认值做 deepEqual 剥离，不需要中间件；
- * - `loaderDeps + loader` 的「客户端预热」：SSR 不会 await 预取，页面靠 TaskListPage
- *   内部的 useQuery 骨架态加载（旧实现也只在客户端预热）；
- * - `pendingComponent`：无对应机制，TaskRoutePending 骨架保留但不再当作整页 pending；
- * - `errorComponent`：无对应机制，失败落到最近的 pages/error.tsx。
+ * URL 仍然是筛选/排序/分页/详情的真源（可分享、刷新还原）：旧 validateSearch 的
+ * zod schema 原样搬进 `config.query` 撑起首次解析。但**页内交互不再走 furin 导航**：
+ * 改筛选、翻页、开任务详情都只用 `useShallowSearch` 改写地址栏（replace），
+ * 页面组件不重新请求、不重挂载，列表用 keepPreviousData 平滑过渡。
+ * 旧实现里这类改动也是 `replace: true`，历史记录语义不变。
  */
 export const route = defineRoute("/admin/tasks")
 	.config({ mode: "ssr", query: taskSearchQuery as never })
 	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }) as never)
-	.page(({ query }) => <TasksRoute search={query as TaskSearch} />);
+	.page(({ query }) => (
+		<TasksRoute initialSearch={withTaskSearchDefaults(query)} />
+	));
 
-function TasksRoute({ search }: { search: TaskSearch }) {
-	const navigate = useNavigate();
+/**
+ * 补齐 TypeBox 查询参数里缺省的键。
+ *
+ * 路由的 query schema 是 TypeBox（为了把重复 key 聚合成数组、把 "true" 收敛成布尔），
+ * 但它只给部分字段声明了 `default`：`range` / `sortBy` / `order` / `pageSize` /
+ * `status` 等缺省时是 `undefined`，直接喂给 `toTaskListFilters()` 会算出 Invalid Date。
+ * 这里用 zod 侧的单一默认值源补齐（深链只带部分参数时也能还原完整筛选）。
+ */
+function withTaskSearchDefaults(query: unknown): TaskSearch {
+	return { ...TASK_SEARCH_DEFAULTS, ...(query as Partial<TaskSearch>) };
+}
 
-	/** 改筛选：回第 1 页；用 replace 避免每次微调都产生一条历史记录。 */
-	const onPatch = (patch: Partial<TaskSearch>) => {
-		void navigate({
-			to: "/admin/tasks",
-			search: { ...search, ...patch, page: 1 },
-			replace: true,
-			resetScroll: false,
-		});
-	};
+function TasksRoute({ initialSearch }: { initialSearch: TaskSearch }) {
+	const [search, patchSearch] = useShallowSearch<TaskSearch>(
+		initialSearch,
+		TASK_SEARCH_DEFAULTS,
+	);
 
-	const onPageChange = (page: number) => {
-		void navigate({
-			to: "/admin/tasks",
-			search: { ...search, page },
-			resetScroll: false,
-		});
-	};
+	// 回调保持稳定：TaskListPage 的搜索防抖 / 页码纠偏 effect 依赖这些函数，
+	// 每次渲染换新引用会让它们反复清定时器（浅层更新本来就会频繁重渲染）。
+	const onPatch = useCallback(
+		(patch: Partial<TaskSearch>) => {
+			patchSearch({ ...patch, page: 1 });
+		},
+		[patchSearch],
+	);
 
-	const onOpenDetail = (jobId: string) => {
-		void navigate({
-			to: "/admin/tasks",
-			search: { ...search, job: jobId },
-			resetScroll: false,
-		});
-	};
+	const onPageChange = useCallback(
+		(page: number) => {
+			patchSearch({ page });
+		},
+		[patchSearch],
+	);
 
-	const onCloseDetail = () => {
-		// job: undefined 会被 search 序列化器丢弃，等价于从 URL 删掉这个键
-		void navigate({
-			to: "/admin/tasks",
-			search: { ...search, job: undefined },
-			replace: true,
-			resetScroll: false,
-		});
-	};
+	const onOpenDetail = useCallback(
+		(jobId: string) => {
+			patchSearch({ job: jobId });
+		},
+		[patchSearch],
+	);
+
+	const onCloseDetail = useCallback(() => {
+		// job: undefined 会被 URL 序列化器丢弃，等价于从地址栏删掉这个键
+		patchSearch({ job: undefined });
+	}, [patchSearch]);
 
 	return (
 		<TaskListPage

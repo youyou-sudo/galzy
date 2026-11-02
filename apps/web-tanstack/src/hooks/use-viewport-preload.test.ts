@@ -98,10 +98,11 @@ describe("use-viewport-preload 的 VT 派发门控", () => {
 		expect(task).not.toHaveBeenCalled();
 	});
 
-	it("VT 结束后仍按 MAX_CONCURRENT=4 派发，多余任务继续排队", async () => {
+	it("VT 结束后仍按 MAX_CONCURRENT 派发，多余任务继续排队", async () => {
 		vtState.active = true;
 		const started: number[] = [];
-		for (let i = 0; i < 6; i++) {
+		const total = mod.MAX_CONCURRENT + 2;
+		for (let i = 0; i < total; i++) {
 			mod.__testSchedule(() => {
 				started.push(i);
 				// 永不 resolve：占住并发名额，便于观察并发上限
@@ -114,7 +115,42 @@ describe("use-viewport-preload 的 VT 派发门控", () => {
 		vtState.active = false;
 		flushFrame();
 		await flushMicrotasks();
-		expect(started).toEqual([0, 1, 2, 3]);
+		expect(started).toEqual(
+			Array.from({ length: mod.MAX_CONCURRENT }, (_, i) => i),
+		);
+	});
+
+	it("默认意图模式：挂载不预取，hover 停留后才预取一条", async () => {
+		vi.useFakeTimers();
+		const el = document.createElement("a");
+		document.body.appendChild(el);
+		const makeTask = vi.fn(() => () => Promise.resolve());
+		const ref = { current: el } as React.RefObject<HTMLAnchorElement>;
+		renderHook(() => mod.useViewportPreload(ref, makeTask));
+
+		await flushMicrotasks();
+		expect(makeTask).not.toHaveBeenCalled();
+
+		el.dispatchEvent(new Event("pointerenter"));
+		vi.advanceTimersByTime(59);
+		await flushMicrotasks();
+		expect(makeTask).not.toHaveBeenCalled();
+
+		vi.advanceTimersByTime(2);
+		await flushMicrotasks();
+		expect(makeTask).toHaveBeenCalledTimes(1);
+
+		// 移开鼠标：取消尚未完成的那条预取
+		el.dispatchEvent(new Event("pointerleave"));
+
+		// 再次悬停不会重复绑定
+		el.dispatchEvent(new Event("pointerenter"));
+		vi.advanceTimersByTime(100);
+		await flushMicrotasks();
+		expect(makeTask).toHaveBeenCalledTimes(2);
+
+		el.remove();
+		vi.useRealTimers();
 	});
 
 	it("超过 1500ms 兜底时限后即使 VT 仍活跃也强制放行", async () => {
@@ -147,7 +183,9 @@ describe("use-viewport-preload 的 VT 派发门控", () => {
 		// 意图预取（hover/focus）与视口预取共享同一个 schedule 队列
 		renderHook(() => mod.useIntentPreload(ref, () => task));
 
+		// pointerenter 有 60ms 意图停留（避免划过列表连发请求）：等停留结束再断言
 		el.dispatchEvent(new Event("pointerenter"));
+		await new Promise((resolve) => setTimeout(resolve, 80));
 		await flushMicrotasks();
 		expect(task).not.toHaveBeenCalled();
 		expect(frames).toHaveLength(1);

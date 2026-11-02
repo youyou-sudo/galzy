@@ -7,6 +7,15 @@ const SAMPLE_HEIGHT = 72;
 const SAMPLE_WIDTH = 32;
 const SAMPLE_ROWS = 8;
 
+/** 采样结果缓存：key 含图片 URL + 视口尺寸 + 叠层透明度 + 主题底色。
+ * 只缓存最终那条 72px 的平均色，不缓存整张解码位图（1920×1080 ≈ 8MB）。 */
+const sampleCache = new Map<string, [number, number, number]>();
+const SAMPLE_CACHE_MAX = 8;
+/** 颜色字符串 → RGB 缓存（getComputedStyle 结果随主题变化，按字符串缓存即可） */
+const colorCache = new Map<string, [number, number, number]>();
+/** 1×1 探针画布复用：原来每次 toRgb 都 createElement 一个 */
+let probeCtx: CanvasRenderingContext2D | null | undefined;
+
 /**
  * 顶栏透明态的自动对比度。
  *
@@ -33,15 +42,23 @@ export function useHeaderTone(enabled: boolean): HeaderTone | null {
 		if (!ctx) return;
 
 		const toRgb = (color: string): [number, number, number] => {
-			const probe = document.createElement("canvas");
-			probe.width = 1;
-			probe.height = 1;
-			const probeCtx = probe.getContext("2d", { willReadFrequently: true });
+			const cached = colorCache.get(color);
+			if (cached) return cached;
+			if (probeCtx === undefined) {
+				const probe = document.createElement("canvas");
+				probe.width = 1;
+				probe.height = 1;
+				probeCtx = probe.getContext("2d", { willReadFrequently: true });
+			}
 			if (!probeCtx) return [255, 255, 255];
+			// fillRect 是合成而非替换：带 alpha 的颜色会与上次结果混合，先清空
+			probeCtx.clearRect(0, 0, 1, 1);
 			probeCtx.fillStyle = color;
 			probeCtx.fillRect(0, 0, 1, 1);
 			const data = probeCtx.getImageData(0, 0, 1, 1).data;
-			return [data[0], data[1], data[2]];
+			const rgb: [number, number, number] = [data[0], data[1], data[2]];
+			colorCache.set(color, rgb);
+			return rgb;
 		};
 
 		const channel = (value: number) => {
@@ -85,14 +102,18 @@ export function useHeaderTone(enabled: boolean): HeaderTone | null {
 			const style = window.getComputedStyle(bgEl);
 			const opacity = Number.parseFloat(style.opacity || "1");
 			const match = style.backgroundImage.match(/url\((?:"|')?(.+?)(?:"|')?\)/);
-			let sampled: [number, number, number] = bodyBg;
+			const vw = window.innerWidth;
+			const vh = window.innerHeight;
+			// 采样结果按「图片 + 视口 + 叠层透明度 + 主题底色」缓存：
+			// 只缓存最终那条平均色，位图用完即弃（整张 1920×1080 位图 ≈ 8MB）。
+			const sampleKey = `${match?.[1] ?? ""}|${vw}|${vh}|${opacity}|${bodyBg.join(",")}`;
+			const cachedSample = sampleCache.get(sampleKey);
+			let sampled: [number, number, number] = cachedSample ?? bodyBg;
 
-			if (match?.[1]) {
+			if (!cachedSample && match?.[1]) {
 				const img = await loadImage(match[1]);
 				if (!img || cancelled) return;
 
-				const vw = window.innerWidth;
-				const vh = window.innerHeight;
 				const iw = img.naturalWidth;
 				const ih = img.naturalHeight;
 				if (iw > 0 && ih > 0) {
@@ -149,6 +170,16 @@ export function useHeaderTone(enabled: boolean): HeaderTone | null {
 							sampled = bodyBg;
 						}
 					}
+				}
+
+				// 只缓存真正采样成功的结果（sampled 与 bodyBg 是同一引用 = 走了回退分支）：
+				// 画布污染是一次性失败，不该被永久固化到缓存里。
+				if (sampled !== bodyBg) {
+					if (sampleCache.size >= SAMPLE_CACHE_MAX) {
+						const oldest = sampleCache.keys().next().value;
+						if (oldest !== undefined) sampleCache.delete(oldest);
+					}
+					sampleCache.set(sampleKey, sampled);
 				}
 			}
 

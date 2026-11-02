@@ -1,4 +1,5 @@
 import { accounts, db, sessions, users, verifications } from '@api/db'
+import { delKv, getKv, incrKv, setKv } from '@api/libs/redis'
 import { drizzleAdapter } from '@better-auth/drizzle-adapter'
 import { APIError, type BetterAuthOptions, betterAuth } from 'better-auth'
 import { admin, genericOAuth, openAPI } from 'better-auth/plugins'
@@ -47,6 +48,46 @@ const readKungalOAuthBody = <T>(body: unknown, status: number): T => {
   return obj as T
 }
 
+/**
+ * 会话二级存储（Redis）。
+ *
+ * 背景：cookieCache 只有 5 分钟有效期，过期后每次 `get-session` 都要回
+ * PostgreSQL 查 `galrc_session`。开发库在远端时单次查询 250~500ms，而列表页
+ * 一次加载会并发触发十几次服务端取数（首屏数据 + 视口预取），每个取数路径
+ * （`getTopics` / `getTopic` / `getFileList` / 后台守卫）都会各自查一次会话 ——
+ * 登录用户因此明显比匿名慢（匿名没有会话 cookie，直接短路返回 null）。
+ *
+ * 把会话镜像进 Redis 后：命中只有一次 Redis 往返（毫秒级）；Redis 未命中
+ * （包括 Redis 不可用）时 better-auth 会回源数据库 —— 这依赖下面的
+ * `storeSessionInDatabase: true`，所以缓存丢失不会导致用户被登出。
+ * 写入/更新/删除都同时走两层，登出会先删 Redis 再删数据库行。
+ */
+const secondaryStorage = {
+  async get(key: string) {
+    return (await getKv(`galzy:auth:${key}`)) ?? null
+  },
+  async set(key: string, value: string, ttl?: number) {
+    await setKv(`galzy:auth:${key}`, value, ttl)
+  },
+  async delete(key: string) {
+    await delKv(`galzy:auth:${key}`)
+  },
+  /**
+   * 「读后删」：验证码一类的单次消费值需要它。
+   * 这里用 GET + DEL（同一进程内足够；跨进程原子性由 Redis 单实例保证）。
+   */
+  async getAndDelete(key: string) {
+    const fullKey = `galzy:auth:${key}`
+    const value = await getKv(fullKey)
+    if (value !== null) await delKv(fullKey)
+    return value
+  },
+  /** 计数器 + TTL（better-auth 的限流/尝试次数用）。 */
+  async increment(key: string, ttl?: number) {
+    return await incrKv(`galzy:auth:${key}`, ttl)
+  },
+}
+
 const _authConfig = {
   database: drizzleAdapter(db, {
     provider: 'pg',
@@ -66,12 +107,17 @@ const _authConfig = {
       enabled: true,
       maxAge: 5 * 60,
     },
+    // Redis 只是加速层：数据库始终保留会话，缓存未命中时回源，避免「缓存抖动 = 登出」
+    storeSessionInDatabase: true,
   },
+  secondaryStorage,
   account: {
     modelName: 'galrc_account',
   },
   verification: {
     modelName: 'galrc_verification',
+    // 验证码/邮箱验证继续落库：不让「Redis 抖动」影响登录验证码这类单次凭证
+    storeInDatabase: true,
   },
   plugins: [
     admin(),

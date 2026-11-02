@@ -8,6 +8,7 @@ import { adminKeys } from "@web/lib/admin/query-keys";
 import { Link } from "@web/lib/nav";
 import { useSeedQueries } from "@web/lib/query-seed";
 import { seoMeta } from "@web/lib/seo";
+import { documentOnly } from "@web/lib/spa-request";
 import { cn } from "@web/lib/utils";
 import { adminGetAllArticles } from "@web/server/admin/articles";
 import { adminGetAllComments } from "@web/server/admin/comments";
@@ -32,13 +33,16 @@ import type { ReactNode } from "react";
  *
  * 4 个计数接口在 loader 里并发取（与旧实现同一组 BFF 调用），
  * 页面组件用 useSeedQueries 灌进 adminKeys.dashboard()，组件里的 useQuery 直接命中。
+ * 首屏 SSR 取数，站内切页的 loader 返回 null，交由组件里的 useQuery 取数。
  */
 
 const ADMIN_TITLE = "管理后台 | GalZY - Galgame 资源站";
 
 export const route = defineRoute("/admin")
 	.config({ mode: "ssr" })
-	.loader(async () => ({ stats: await fetchDashboardStats() }))
+	.loader(async ({ request }) => ({
+		stats: await documentOnly(request, () => fetchDashboardStats()),
+	}))
 	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }) as never)
 	.page(({ stats }) => <DashboardPage initialStats={stats} />);
 
@@ -325,8 +329,13 @@ function SystemStatus() {
 
 // ─── 页面 ────────────────────────────────────────────────────
 
-function DashboardPage({ initialStats }: { initialStats: DashboardStats }) {
-	useSeedQueries([[adminKeys.dashboard(), initialStats]]);
+function DashboardPage({
+	initialStats,
+}: {
+	initialStats: DashboardStats | null;
+}) {
+	// null = 站内切页：不 seed，让下面的 useQuery 自己取数
+	useSeedQueries(initialStats ? [[adminKeys.dashboard(), initialStats]] : []);
 
 	const { data: stats, isLoading } = useQuery({
 		queryKey: adminKeys.dashboard(),

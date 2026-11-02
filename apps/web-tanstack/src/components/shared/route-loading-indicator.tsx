@@ -1,5 +1,5 @@
-import { useRouterState } from "@web/lib/nav";
 import { Spinner } from "@web/components/ui/spinner";
+import { useRouterState } from "@web/lib/nav";
 import { cn } from "@web/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
@@ -7,16 +7,21 @@ import { useEffect, useRef, useState } from "react";
 export const MIN_VISIBLE_MS = 200;
 /** 与淡出 transition 的 duration-150 对齐（略留余量）；播完才回到 idle。 */
 export const EXIT_MS = 150;
+/**
+ * 延迟显示阈值：后台改成 SPA 式导航（预取命中时切页 1~2 帧完成）以后，
+ * 每次点击都亮一下反而像卡了一下；超过这个时长才是真的在等。
+ */
+export const PENDING_DELAY_MS = 180;
 
 type Phase = "idle" | "active" | "leaving";
 
 /**
  * 页面切换加载指示器：右上角一个 spinner，不遮内容、不显示进度条。
  *
- * 交互与 nprogress 一类「切换即亮」一致：
- * - 路由进入 pending 立即淡入（预加载命中的 1~2 帧跳转也至少亮 MIN_VISIBLE_MS，
- *   否则图标只会闪一帧）；
- * - pending 结束后先停到最短可见时长，再淡出；淡出播完 EXIT_MS 回 idle。
+ * 交互与 nprogress 一类「切换即亮」不同的一点：**先等 PENDING_DELAY_MS 再亮**。
+ * 预取命中的导航通常在一两帧内 commit，此时什么都不显示才是「顺畅」；
+ * 只有真的慢（预取未命中 / 服务端慢）才淡入，并至少亮满 MIN_VISIBLE_MS，
+ * 避免图标闪一帧。pending 结束后淡出，播完 EXIT_MS 回 idle。
  *
  * 动效「从上往下」：淡入时从上方 16px 落到原位，淡出时继续向下 8px 消失。
  * 只过渡 opacity 与 translate 两个合成器属性，不触发 layout/paint。
@@ -39,10 +44,18 @@ export function RouteLoadingIndicator() {
 	useEffect(() => {
 		if (isPending) {
 			if (phase === "active") return;
-			// 立即亮起；上一轮淡出还没播完时也走这里转回常显（重置计时）
-			shownAtRef.current = Date.now();
-			setPhase("active");
-			return;
+			if (phase === "leaving") {
+				// 上一轮淡出还没播完又开始了新导航：直接转回常显（重置计时），不先隐后现
+				shownAtRef.current = Date.now();
+				setPhase("active");
+				return;
+			}
+			// idle：延迟亮起，快导航不闪图标
+			const timer = setTimeout(() => {
+				shownAtRef.current = Date.now();
+				setPhase("active");
+			}, PENDING_DELAY_MS);
+			return () => clearTimeout(timer);
 		}
 
 		if (phase === "active") {
