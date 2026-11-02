@@ -195,11 +195,11 @@
 ### 7.5 验收
 
 ```bash
-bun --cwd apps/web-tanstack lint      # 0 warnings / 0 errors
-bunx tsc --noEmit -p apps/web-tanstack/tsconfig.json
-bun --cwd apps/web-tanstack test      # 19 files / 114 tests
-bun --cwd apps/web-tanstack build     # ✓
-bun run lint                          # 全仓通过（仅 biome schema 版本提示）
+bun --cwd apps/web lint      # 0 warnings / 0 errors
+bunx tsc --noEmit -p apps/web/tsconfig.json
+bun --cwd apps/web test      # 19 files / 114 tests
+bun --cwd apps/web build     # ✓
+bun run lint                 # 全仓通过（仅 biome schema 版本提示）
 ```
 
 > 说明：本次没有可用的 API/数据库环境，未进行浏览器逐页视觉回归；所有页面结构均通过 SSR 单测、类型检查与生产构建验证。真机/浏览器复核建议执行 `bun run dev` 后过一遍首页、/games、/topics、/$id、/admin。

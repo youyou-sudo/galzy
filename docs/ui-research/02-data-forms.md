@@ -298,7 +298,7 @@ export const sideDrawerFooterClassName = (className?: string) =>
 
 ## 8. 对 galzy 的落地建议（按收益排序）
 
-1. **先补原子层，别急着上 TanStack Table。** galzy `apps/web-tanstack/src/components/ui/` 没有 `table.tsx`，admin 各页手写 `<table className="w-full">`（`components/admin/users-page.tsx:190` 起），表头 `bg-muted/50`、行 `hover:bg-muted/30`、`PAGE_SIZE = 15` + offset 分页。先把薄壳（`[&>tr]:h-15`、单元格继承字号、`color-mix` hover）与 6 个 `--table-*` 变量搬过来，统一 5 个 admin 列表页的视觉即可。
+1. **先补原子层，别急着上 TanStack Table。** galzy `apps/web/src/components/ui/` 没有 `table.tsx`，admin 各页手写 `<table className="w-full">`（`components/admin/users-page.tsx:190` 起），表头 `bg-muted/50`、行 `hover:bg-muted/30`、`PAGE_SIZE = 15` + offset 分页。先把薄壳（`[&>tr]:h-15`、单元格继承字号、`color-mix` hover）与 6 个 `--table-*` 变量搬过来，统一 5 个 admin 列表页的视觉即可。
 2. **抽 `StatusBadge` 作为语义色唯一入口。** 一张 variant→class 映射表 + 5 个语义 token + 3 种形态，一处改全局生效，还能靠 context 在移动卡片里自动降级为纯文本。
 3. **抽屉骨架做成 className 常量而非组件。** galzy 已有 `sheet.tsx`/`drawer.tsx`，缺统一骨架；照 `drawer-layout.ts` 搬 5 个工厂，宽度分 600px（普通实体）/ 2xl（多分组配置）两档，提交按钮用 `form={id}` 跨 DOM 关联，省掉每页重复 footer。
 4. **反馈三态收敛成三个原子。** galzy 现在是页内内联 `py-16` 空态 + `Loader2`（`users-page.tsx:183-188`）；替换成 Empty（`min-h-[300px]` / `h-[400px]`）+ ErrorState（唯一红图标 + outline Retry）+ 骨架屏，成本低、收益大。

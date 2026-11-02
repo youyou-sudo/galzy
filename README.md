@@ -59,7 +59,7 @@ galzy/
 │   │       ├── modules/          # 20 个业务模块（index / model / service 三文件）
 │   │       ├── db/               # Drizzle schema、客户端、启动自动迁移
 │   │       └── libs/             # redis / meilisearch / queue / vndb-api / cloudreve / identity
-│   └── web-tanstack/             # Furin 前端（:3000）
+│   └── web/                      # Furin 前端（:3000）
 │       └── src/
 │           ├── pages/            # 文件即路由（defineRoute）
 │           ├── server/           # BFF：impl/（defineBff）+ 同构 surface（bffFn）
@@ -141,7 +141,7 @@ bun --cwd apps/api db:studio     # 可视化管理
 
 - **API**：`bun build --compile` 单二进制 → `gcr.io/distroless/base`
 - **Web**：`furin build --compile embed` 单文件（静态资源内嵌）→ `cgr.dev/chainguard/glibc-dynamic`，非 root 65532，健康检查走二进制自带 `--healthcheck`
-- 构建：`bun run docker`（或 `bun --cwd apps/api docker` / `bun --cwd apps/web-tanstack docker`）
+- 构建：`bun run docker`（或 `bun --cwd apps/api docker` / `bun --cwd apps/web docker`）
 - CI：push `main` → 按路径过滤 → typecheck → buildx 推送 `ghcr.io` → Dokploy webhook（`DEPLOY_WEBHOOK_API` / `DEPLOY_WEBHOOK_WEB`）
 
 ## 开发约定
@@ -157,8 +157,8 @@ bun --cwd apps/api db:studio     # 可视化管理
 |---|---|
 | `bun run dev` / `build` / `lint` / `typecheck` | 全工作空间并行执行 |
 | `bun --cwd apps/api dev` | 仅 API（watch，:3001） |
-| `bun --cwd apps/web-tanstack dev` | 仅 Web（`bun --hot src/server.ts`，:3000） |
-| `bun --cwd apps/web-tanstack test` | Vitest |
+| `bun --cwd apps/web dev` | 仅 Web（`bun --hot src/server.ts`，:3000） |
+| `bun --cwd apps/web test` | Vitest |
 
 ## 许可证
 

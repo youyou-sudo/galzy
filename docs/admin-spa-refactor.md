@@ -3,7 +3,7 @@
 > 目标：`/admin/**` 的页面切换与页内操作（Tab / 筛选 / 分页 / 详情）达到 SPA 的响应速度，
 > 不再出现「点侧栏 → 旧页面停住 → 等服务端数据 → 才换页」的等待。
 >
-> 范围：`apps/web-tanstack`（furin 前端），不涉及 API 业务逻辑。
+> 范围：`apps/web`（furin 前端），不涉及 API 业务逻辑。
 
 ## 1. 为什么原来慢
 
@@ -28,7 +28,7 @@ furin 的站内导航不是「换组件」，而是：
 
 ### 2.1 区分「文档请求」与「切页取数」
 
-新增 [`apps/web-tanstack/src/lib/spa-request.ts`](../apps/web-tanstack/src/lib/spa-request.ts)：
+新增 [`apps/web/src/lib/spa-request.ts`](../apps/web/src/lib/spa-request.ts)：
 
 - `isSpaDataRequest()`：识别 `?_furin=data` / `__furin_data.ndjson`；
 - `documentOnly(request, load)`：文档请求执行取数，切页取数返回 `null`。
@@ -83,7 +83,7 @@ Query 缓存默认 `gcTime` 从 60s 提到 5min，后台各页来回切换时优
 
 ### 2.5 页内操作：浅层 URL 更新，不触发页面导航
 
-新增 [`apps/web-tanstack/src/lib/admin/use-shallow-search.ts`](../apps/web-tanstack/src/lib/admin/use-shallow-search.ts)：
+新增 [`apps/web/src/lib/admin/use-shallow-search.ts`](../apps/web/src/lib/admin/use-shallow-search.ts)：
 
 - 页内状态（Tab / 筛选 / 分页 / 任务详情 id）放在 React state 中，组件不重挂载；
 - 地址栏用 `history.replaceState` 改写（`lib/nav.tsx` patch 过 history，会同步
@@ -120,7 +120,7 @@ curl -s 'http://localhost:3000/auth/login' | grep -c adSlot
 curl -s 'http://localhost:3000/auth/login?_furin=data' | grep -c adSlot
 ```
 
-单测：`bun --cwd apps/web-tanstack test`（含 `spa-request.test.ts`、`use-shallow-search.test.tsx`、
+单测：`bun --cwd apps/web test`（含 `spa-request.test.ts`、`use-shallow-search.test.tsx`、
 `adverts-data.test.ts`、`route-loading-indicator.test.tsx`）。
 
 ## 5. 取舍与后续

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * 从 apps/web-tanstack/src/routes 下的 .tsx 路由文件推导路由清单，并解析动态段真实 ID。
+ * 从 apps/web/src/routes 下的 .tsx 路由文件推导路由清单，并解析动态段真实 ID。
  *
  * 用法：
  *   bun scripts/parity/route-manifest.ts \
@@ -51,7 +51,7 @@ type Override = {
   fallback?: Record<string, string>
 }
 
-const ROUTES_DIR = 'apps/web-tanstack/src/routes'
+const ROUTES_DIR = 'apps/web/src/routes'
 
 const NAME_OVERRIDES: Record<string, string> = {
   '/': 'home',

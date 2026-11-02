@@ -172,7 +172,7 @@ kungal-only（`kungalOnly === true`）时：**`vn` 不是 null，而是由 kunga
 | `apps/api/src/modules/vndb-sync/service.ts`（vid 口径）                                                                             | Lead           |
 | `apps/api/src/modules/games/**`, `apps/api/src/modules/views/**`                                                                    | Lead           |
 | `apps/api/src/modules/kungal-sync/**`, `apps/api/src/libs/kungal-api/**`                                                            | kungal-anchors |
-| `apps/web-tanstack/src/routes/$id/**`, `apps/web-tanstack/src/server/game/index.ts`, `apps/web-tanstack/src/lib/game-id.ts`（新建） | web-route      |
+| `apps/web/src/routes/$id/**`, `apps/web/src/server/game/index.ts`, `apps/web/src/lib/game-id.ts`（新建）                            | web-route      |
 | `apps/api/src/modules/tasks/**`（扫描文案/统计展示）                                                                                | tasks-panel    |
 
 写入他人作用域前必须先发消息给 owner。

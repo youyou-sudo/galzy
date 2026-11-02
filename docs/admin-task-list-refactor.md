@@ -1,6 +1,6 @@
 # 后台任务列表页重构方案（诊断 → 设计 → 契约 → 关键代码 → 验收）
 
-> 对象：`apps/web-tanstack/src/components/admin/tasks-page.tsx`（1492 行，主组件 657 行）+ `apps/web-tanstack/src/routes/admin/_authL/tasks.tsx`（21 行）+ `apps/api/src/modules/tasks/*`
+> 对象：`apps/web/src/components/admin/tasks-page.tsx`（1492 行，主组件 657 行）+ `apps/web/src/routes/admin/_authL/tasks.tsx`（21 行）+ `apps/api/src/modules/tasks/*`
 > 立场：**先诊断后重构**。本文不重写那 1492 行，只给判断、边界、契约与可落地的关键切片。
 > 证据全部可回溯：`文件:行号`；三份只读审计见 `.dsh-research/ui-audit.md`、`.dsh-research/api-audit.md`、`.dsh-research/router-audit.md`。
 > 行号说明：§1–§6 的 `tasks-page.tsx:NNNN` 是审计时点工作区快照的行号，与仓库 HEAD 的 868 行版本不能一一对应（该文件已在 §11 中删除），引用只当定位线索用。
@@ -234,7 +234,7 @@ type SlaState = 'normal' | 'due-soon' | 'overdue' | 'stalled'
 ### 4.1 文件级结构（拆分后）
 
 ```
-apps/web-tanstack/src/
+apps/web/src/
 ├── routes/admin/_authL/tasks.tsx                 # ~70 行：validateSearch + loaderDeps + loader + errorComponent
 ├── lib/admin/tasks/
 │   ├── params.ts                                 # ★ schema + 默认值 + toTaskListFilters（唯一映射）
@@ -1244,7 +1244,7 @@ const orderBy = [
 
 - `bun run typecheck`：api + web 全绿
 - `bun run lint`：biome + oxlint 全绿（0 warning / 0 error）
-- `bun --cwd apps/web-tanstack test`：32 个文件 / 258 个用例通过（含新增 params 15、sla 17、data-table-extras 13、menu-group 5、loading-states 5）
+- `bun --cwd apps/web test`：32 个文件 / 258 个用例通过（含新增 params 15、sla 17、data-table-extras 13、menu-group 5、loading-states 5）
 - 迁移：`db:check` 通过；**上线前需执行 `bun --cwd apps/api db:up`** 应用 0026/0027
 
 ### 11.5 上线前回归修复：Base UI 菜单分组

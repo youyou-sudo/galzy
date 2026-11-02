@@ -21,7 +21,7 @@
  *   --url <url>     SSR 服务地址（默认 http://127.0.0.1:3000）
  *   --path <path>   抓取的路径（默认 /）
  *   --html <file>   分析已保存的 HTML（优先于 --url，不发起请求）
- *   --dist <dir>    client 产物目录（默认 apps/web-tanstack/.output/public）
+ *   --dist <dir>    client 产物目录（默认 apps/web/.output/public）
  *   --top <n>       顺序列表最多打印多少条资源标签（默认 12）
  *   --timeout <ms>  HTML 请求超时（默认 5000）
  *   --json          输出 JSON（便于两次构建对比 / CI）
@@ -42,7 +42,7 @@ const DEFAULTS = {
 	url: "http://127.0.0.1:3000",
 	path: "/",
 	// Nitro（bun preset）把客户端产物写到 .output/public；旧的 dist/client 已不再生成。
-	dist: path.join(REPO_ROOT, "apps", "web-tanstack", ".output", "public"),
+	dist: path.join(REPO_ROOT, "apps", "web", ".output", "public"),
 	top: 12,
 	timeout: 5000,
 	html: null,
@@ -59,7 +59,7 @@ const HELP = [
 	"  --url <url>     SSR 服务地址（默认 http://127.0.0.1:3000）",
 	"  --path <path>   抓取的路径（默认 /）",
 	"  --html <file>   分析已保存的 HTML（优先于 --url）",
-	"  --dist <dir>    client 产物目录（默认 apps/web-tanstack/.output/public）",
+	"  --dist <dir>    client 产物目录（默认 apps/web/.output/public）",
 	"  --top <n>       顺序列表最多打印多少条（默认 12）",
 	"  --timeout <ms>  HTML 请求超时（默认 5000）",
 	"  --json          输出 JSON",
@@ -724,7 +724,7 @@ async function main() {
 		if (!inventory.exists) {
 			console.error(
 				"警告：目录不存在 " + opts.dist +
-					"；请先构建（bun --cwd apps/web-tanstack build）。",
+					"；请先构建（bun --cwd apps/web build）。",
 			);
 		}
 		if (error) {

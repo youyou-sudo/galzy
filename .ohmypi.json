@@ -4,7 +4,7 @@
 
 ### Browser Verification (MANDATORY)
 After every code change that affects the frontend, you MUST:
-1. Start/restart the dev server (`bun --cwd apps/web-tanstack dev`)
+1. Start/restart the dev server (`bun --cwd apps/web dev`)
 2. Open the affected page(s) in the browser
 3. Take a full-page screenshot
 4. Inspect the screenshot with `inspect_image` to verify correct rendering
@@ -23,7 +23,7 @@ This applies to:
 - Do NOT claim "verified" without an `inspect_image` result confirming correctness
 
 ### Dev Server
-- Dev command: `bun --cwd apps/web-tanstack dev`
+- Dev command: `bun --cwd apps/web dev`
 - Default port: 3000
 - API port: 3001
 - Both must be running for full-stack verification

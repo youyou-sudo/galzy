@@ -393,7 +393,7 @@ const { navGroups } = useSidebarView()   // 已被角色 + 配置过滤过
 
 ## 6. 给 galzy 的移植建议（按性价比排序）
 
-1. **先抄「尺寸变量 + 两行布局骨架」，别抄组件。** galzy 的 `apps/web-tanstack/src/components/admin/admin-shell.tsx` 目前是 `sticky h-14` 顶栏（`:203`）+ `aside fixed w-64`（`:243`）+ `lg:pl-64`（`:252`）+ `main max-w-6xl`（`:254`），高度 14 与左内边距 64 是两处必须人肉同步的魔法数。改成 `--app-header-height` + `SidebarInset` 的 `h-[calc(100svh-var(--app-header-height))]` 后，折叠/展开/换 variant 都不再动布局代码。
+1. **先抄「尺寸变量 + 两行布局骨架」，别抄组件。** galzy 的 `apps/web/src/components/admin/admin-shell.tsx` 目前是 `sticky h-14` 顶栏（`:203`）+ `aside fixed w-64`（`:243`）+ `lg:pl-64`（`:252`）+ `main max-w-6xl`（`:254`），高度 14 与左内边距 64 是两处必须人肉同步的魔法数。改成 `--app-header-height` + `SidebarInset` 的 `h-[calc(100svh-var(--app-header-height))]` 后，折叠/展开/换 variant 都不再动布局代码。
 2. **把 `adminNav` 平铺组升级成 `NavGroup/NavItem` + drill-in 视图注册表。** galzy 已有单一配置源 `components/admin/admin-nav.ts`（5 个分区 / 10 个入口，同时喂侧栏、仪表盘快捷入口、系统状态），这点比 new-api 更干净，别退回去。要补的是：给 `AdminNavItem` 加 `activeUrls` / `requiredRole` / `badge`，再引入 `pathPattern → getNavGroups` 的 `SidebarView`（new-api 只注册 1 个视图、41 行代码），让「VNDB 同步 / Meilisearch / 任务」进入后换掉整个侧栏。
 3. **导航数据只留一份，让 ⌘K、侧栏、面包屑都吃它**。new-api 的 `useSidebarView()` 同时供 `AppSidebar`（`app-sidebar.tsx:48`）与 `CommandMenu`（`command-menu.tsx:47`）使用，过滤逻辑（角色 10/100、后台开关、用户偏好）自然对两者一致。galzy 目前 `header/nav-config.ts` 与 `admin/admin-nav` 是两套，容易长歪。
 4. **表格化过滤不要抄硬编码 URL 白名单**。`use-sidebar-config.ts:99-123` 的 `URL_TO_CONFIG_MAP` 有 20 条硬编码，新路由默认可见（`:177-181`）——正确但容易漏配。galzy 建议改成 `NavItem.configKeys?: string[]`，让配置键跟着导航定义走。

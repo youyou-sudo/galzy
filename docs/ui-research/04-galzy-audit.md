@@ -1,6 +1,6 @@
 # galzy 前端现状审计（UX / UI）
 
-> 审计对象：`apps/web-tanstack`（TanStack Start + React 19 + shadcn/ui base-nova + Tailwind v4）
+> 审计对象：`apps/web`（TanStack Start + React 19 + shadcn/ui base-nova + Tailwind v4）
 > 对照实现：`new-api/web`（同栈）
 > 全部结论附 `文件:行号`，行号对应当前工作区。**只读审计，未改动任何源码。**
 
@@ -11,7 +11,7 @@
 ### 1.1 双壳：用户端 Header+Footer / 后台独立 Shell
 
 ```tsx
-// apps/web-tanstack/src/routes/__root.tsx:173-233（节选）
+// apps/web/src/routes/__root.tsx:173-233（节选）
 function AppChrome({ children }) {
   const matches = useMatches()
   const isAdmin = matches.some((m) => m.routeId.startsWith('/admin/'))
@@ -161,7 +161,7 @@ data-table/
 
 ### 3.3 表单与交互基础件的错配
 
-- `@tanstack/react-form` **已装**（`apps/web-tanstack/package.json`），仅 6 处使用：`auth/login.tsx:96`、`auth/signup/index.tsx:81`、`topics/topic-form.tsx:56`、`introduction/article-form.tsx:84`、`user/ProfileMenu/SecurityTab.tsx:35`、`cmments/reply-edit-input.tsx:111`。**后台 CRUD 页面 0 处使用**，全部裸 `useState`。
+- `@tanstack/react-form` **已装**（`apps/web/package.json`），仅 6 处使用：`auth/login.tsx:96`、`auth/signup/index.tsx:81`、`topics/topic-form.tsx:56`、`introduction/article-form.tsx:84`、`user/ProfileMenu/SecurityTab.tsx:35`、`cmments/reply-edit-input.tsx:111`。**后台 CRUD 页面 0 处使用**，全部裸 `useState`。
 - **没有 `@tanstack/react-table`**（依赖清单里不存在），所以即使补 `ui/table` 也只是样式壳。
 - **没有 `cmdk`**，无命令面板。
 - `react-day-picker` 在依赖里，`ui/calendar.tsx` 存在但被 `@source not` 排除，结果是日期选择一律退回原生 `<input type="date">`。

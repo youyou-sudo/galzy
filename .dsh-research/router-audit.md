@@ -1,7 +1,7 @@
 # 后台任务列表页重构 · 路由 / URL 状态与移动端现状审计
 
 > 只读审计，未修改任何源码。所有结论附证据（文件:行号）。
-> 审计对象：`apps/web-tanstack/src/components/admin/tasks-page.tsx`（1492 行 god component）及其路由 `apps/web-tanstack/src/routes/admin/_authL/tasks.tsx`。
+> 审计对象：`apps/web/src/components/admin/tasks-page.tsx`（1492 行 god component）及其路由 `apps/web/src/routes/admin/_authL/tasks.tsx`。
 > 目标：为「筛选 / 排序 / 分页 / 详情抽屉同步到 URL」给出本仓库可落地的写法，并列出移动端与 URL 状态现存坑。
 
 ---
@@ -21,17 +21,17 @@
 
 | 项 | 版本 / 事实 | 证据 |
 | --- | --- | --- |
-| @tanstack/react-router | `^1.170.45`，bun.lock 锁定 **1.170.45** | `apps/web-tanstack/package.json:32`；`bun.lock:860` |
+| @tanstack/react-router | `^1.170.45`，bun.lock 锁定 **1.170.45** | `apps/web/package.json:32`；`bun.lock:860` |
 | @tanstack/router-core | **1.171.38**（序列化实现所在） | `bun.lock:878` |
-| @tanstack/react-start | 1.169.3 | `apps/web-tanstack/package.json:35` |
-| @tanstack/router-plugin | ^1.168.47，仅构建期启用、`autoCodeSplitting: true` | `apps/web-tanstack/package.json:91`；`vite.config.ts:192-196` |
+| @tanstack/react-start | 1.169.3 | `apps/web/package.json:35` |
+| @tanstack/router-plugin | ^1.168.47，仅构建期启用、`autoCodeSplitting: true` | `apps/web/package.json:91`；`vite.config.ts:192-196` |
 | @tanstack/react-query | ^5.104.5；全局 `staleTime: 30_000`、`gcTime: 60_000` | `package.json:29`；`integrations/tanstack-query/root-provider.tsx:11-14` |
 | zod | 4.6.7（根依赖），前端统一 `import * as z from "zod/mini"` | `package.json:40`；`routes/tags/index.tsx:21` |
 | zod/mini API | `z.array / z.catch / z._default / z.enum / z.int / z.optional / z.string` 均为函数导出（已实测） | `node_modules/zod/v4/mini/index.js` |
 
 ### 1.1 Router 未做任何 search 级定制
 
-`apps/web-tanstack/src/router.tsx:12-29` 只配置了 `scrollRestoration / defaultViewTransition / defaultPreload: "intent" / defaultPreloadStaleTime: 30_000 / defaultPendingMs: 60`，**没有** `parseSearch`、`stringifySearch`、`search.strict`、`search.middlewares`。
+`apps/web/src/router.tsx:12-29` 只配置了 `scrollRestoration / defaultViewTransition / defaultPreload: "intent" / defaultPreloadStaleTime: 30_000 / defaultPendingMs: 60`，**没有** `parseSearch`、`stringifySearch`、`search.strict`、`search.middlewares`。
 
 全仓 grep `stringifySearch|parseSearch|stripSearchParams|retainSearchParams` → **0 处使用**（两个中间件在本版本可用但未被使用）。
 
@@ -57,7 +57,7 @@
 
 ## 2. 现状证据：routes 下的 search param 用法
 
-统计（`apps/web-tanstack/src` 全量 grep）：`validateSearch` 14 命中（13 个路由选项 + 1 个导出 schema 常量）、`loaderDeps` 10、`Route.useSearch()` 13、`useNavigate` 39（含组件内）。
+统计（`apps/web/src` 全量 grep）：`validateSearch` 14 命中（13 个路由选项 + 1 个导出 schema 常量）、`loaderDeps` 10、`Route.useSearch()` 13、`useNavigate` 39（含组件内）。
 
 ### 2.1 validateSearch 逐条清单
 
@@ -184,7 +184,7 @@
 ### 4.2 schema（可直接落地，风格对齐现有代码）
 
 ```ts
-// apps/web-tanstack/src/routes/admin/_authL/tasks.tsx（重构后）
+// apps/web/src/routes/admin/_authL/tasks.tsx（重构后）
 import { createFileRoute, stripSearchParams } from "@tanstack/react-router";
 import * as z from "zod/mini";
 
@@ -387,7 +387,7 @@ onSortChange={(next) =>
 ### 5.1 断点与 Hook
 
 ```
-apps/web-tanstack/src/hooks/use-mobile.ts
+apps/web/src/hooks/use-mobile.ts
 3   const MOBILE_BREAKPOINT = 768;
 6-8   useState<boolean | undefined>(undefined)        // SSR / 首帧 = undefined
 11    matchMedia("(max-width: 767px)")
@@ -510,13 +510,13 @@ tasks-page.tsx
 
 ```bash
 # 1) validateSearch / loaderDeps / useSearch / useNavigate 全量清单
-rg -n "validateSearch|loaderDeps|useSearch|useNavigate" apps/web-tanstack/src
+rg -n "validateSearch|loaderDeps|useSearch|useNavigate" apps/web/src
 
 # 2) 是否已存在 search 级定制（结论：没有）
-rg -n "stringifySearch|parseSearch|stripSearchParams|retainSearchParams" apps/web-tanstack/src
+rg -n "stringifySearch|parseSearch|stripSearchParams|retainSearchParams" apps/web/src
 
 # 3) 版本
-rg -n '"@tanstack/react-router"|"@tanstack/react-start"|"zod"' apps/web-tanstack/package.json package.json
+rg -n '"@tanstack/react-router"|"@tanstack/react-start"|"zod"' apps/web/package.json package.json
 rg -n '@tanstack/react-router@|@tanstack/router-core@' bun.lock
 
 # 4) 序列化实现（本机安装版本）
@@ -525,8 +525,8 @@ sed -n '300,340p' node_modules/.bun/@tanstack+router-core@1.171.38/node_modules/
 sed -n '1,75p'    node_modules/.bun/@tanstack+router-core@1.171.38/node_modules/@tanstack/router-core/dist/esm/searchMiddleware.js
 
 # 5) 移动端
-rg -n "useIsMobile|MOBILE_BREAKPOINT" apps/web-tanstack/src
-rg -n "lg:flex|lg:hidden|sm:block|sm:hidden|min-w-" apps/web-tanstack/src/components/admin
+rg -n "useIsMobile|MOBILE_BREAKPOINT" apps/web/src
+rg -n "lg:flex|lg:hidden|sm:block|sm:hidden|min-w-" apps/web/src/components/admin
 ```
 
 ---

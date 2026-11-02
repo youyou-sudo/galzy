@@ -14,7 +14,7 @@ WORKDIR /app
 
 # 依赖元数据 + 仓库锁文件：先于源码拷贝，只有依赖变更时才失效层缓存
 COPY package.json bun.lock ./
-COPY apps/web-tanstack/package.json apps/web-tanstack/package.json
+COPY apps/web/package.json apps/web/package.json
 COPY apps/api/package.json apps/api/package.json
 COPY packages/libs/package.json packages/libs/package.json
 COPY packages/config/package.json packages/config/package.json
@@ -24,7 +24,7 @@ RUN bun install --frozen-lockfile
 # 构建期防线：react / react-dom 版本不一致或存在多个副本时直接失败
 RUN bun scripts/check-react-versions.ts
 
-COPY apps/web-tanstack apps/web-tanstack
+COPY apps/web apps/web
 COPY apps/api apps/api
 COPY packages packages
 
@@ -35,7 +35,7 @@ ARG BUILD_ID
 ENV NODE_ENV=production
 ENV BUILD_ID=${BUILD_ID}
 
-WORKDIR /app/apps/web-tanstack
+WORKDIR /app/apps/web
 RUN bun run build:binary
 
 # 运行阶段：Chainguard glibc-dynamic（Wolfi 基础镜像，glibc + libgcc/libstdc++ +
@@ -54,7 +54,7 @@ ENV HOST=0.0.0.0
 ENV PORT=3000
 
 # 单文件二进制：Furin 服务端 + 全部静态资源都在这一个文件里
-COPY --from=build --chown=65532:65532 /app/apps/web-tanstack/.furin/build/bun/server /app/server
+COPY --from=build --chown=65532:65532 /app/apps/web/.furin/build/bun/server /app/server
 
 USER 65532:65532
 

@@ -1,5 +1,5 @@
 {
-  "name": "web-tanstack",
+  "name": "web",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -13,8 +13,8 @@
     "test": "vitest run",
     "check:contrast": "bun scripts/check-contrast.ts",
     "format": "biome format --write",
-    "docker": "cd ../.. && docker build -t mono-web:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/web-tanstack/Dockerfile .",
-    "docker:web-tanstack": "cd ../.. && docker build -t mono-web:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/web-tanstack/Dockerfile .",
+    "docker": "cd ../.. && docker build -t mono-web:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/web/Dockerfile .",
+    "docker:web": "cd ../.. && docker build -t mono-web:$(node -e \"console.log(require('./apps/api/package.json').version)\") -f ./apps/web/Dockerfile .",
     "start:binary": "./.furin/build/bun/server",
     "typegen": "furin typegen"
   },

@@ -104,7 +104,7 @@ AGPL-3.0 是**传染性最强**的 copyleft：把 new-api 的前端源码（含 
 
 ### 4.1 令牌层（P0，一个文件搞定大半）
 
-改 `apps/web-tanstack/src/styles.css`。三块改动：
+改 `apps/web/src/styles.css`。三块改动：
 
 **① 补语义色 + 扩展令牌**（在现有 `:root` / `.dark` 内追加）
 
@@ -253,11 +253,11 @@ AGPL-3.0 是**传染性最强**的 copyleft：把 new-api 的前端源码（含 
 
 ### P0 · 令牌（约 0.5 天，1 个文件）
 
-- 文件：`apps/web-tanstack/src/styles.css`（+ `__root.tsx` 的 `THEME_INIT_SCRIPT` 若要改主色）
+- 文件：`apps/web/src/styles.css`（+ `__root.tsx` 的 `THEME_INIT_SCRIPT` 若要改主色）
 - 内容：§4.1 三块 + 品牌主色（D1）
 - **`--radius` 改动单独一次 commit**（整站观感变化，便于单独回滚）
 - 验收：
-  - `bun --cwd apps/web-tanstack build` 通过
+  - `bun --cwd apps/web build` 通过
   - 手动核对明暗两态下 `Button/Card/Input/Badge` 四件的对比度
   - 截图留档（首页 / 列表 / 详情 / 后台各一张，明暗各一份）作为后续回归基线
 
@@ -322,7 +322,7 @@ hooks/use-data-table.ts                        TanStack Table 封装
 2. 写死 `PAGE_SIZE` → 全局 localStorage 键 + URL `page/pageSize`（修掉 9 处分页 2 套实现）
 3. 每个动作一个 Dialog → 一个 `UsersMutateDrawer`（抽屉）+ `ConfirmDialog`（破坏性），参照 §4 的宽度谱系：普通实体 `600px`、多分组配置 `2xl`
 
-验收：6 个页面净删代码 ≥ 3000 行；`rg '<table' apps/web-tanstack/src/components/admin` 返回 0；375px 视口下列表可用（卡片降级）。
+验收：6 个页面净删代码 ≥ 3000 行；`rg '<table' apps/web/src/components/admin` 返回 0；375px 视口下列表可用（卡片降级）。
 
 ### P3 · 后台外壳（2–3 天）
 
@@ -372,7 +372,7 @@ admin-shell.tsx
 ~~~bash
 # 基线（改造前跑一次，记下数字）
 rg -c 'text-(green|red|blue|amber|yellow|emerald|sky|rose|orange)-[0-9]{3}' \
-   apps/web-tanstack/src --glob '!**/ui/**' | wc -l
+   apps/web/src --glob '!**/ui/**' | wc -l
 ~~~
 
 映射表（机械替换，逐文件 review）：
@@ -428,7 +428,7 @@ rg -c 'text-(green|red|blue|amber|yellow|emerald|sky|rose|orange)-[0-9]{3}' \
 
 ## 10. P0 落地记录（已完成）
 
-**改动范围：1 个文件 + 1 个新脚本。** `apps/web-tanstack/src/styles.css` 422 → 609 行。
+**改动范围：1 个文件 + 1 个新脚本。** `apps/web/src/styles.css` 422 → 609 行。
 
 ### 10.1 实际写入的令牌
 
@@ -455,11 +455,11 @@ rg -c 'text-(green|red|blue|amber|yellow|emerald|sky|rose|orange)-[0-9]{3}' \
 
 ### 10.3 对比度验收（可复跑）
 
-新增 `apps/web-tanstack/scripts/check-contrast.ts`，直接解析 `styles.css` 的真实令牌值计算
+新增 `apps/web/scripts/check-contrast.ts`，直接解析 `styles.css` 的真实令牌值计算
 WCAG 对比度，不达标即非零退出：
 
 ~~~bash
-cd apps/web-tanstack && bun run check:contrast
+cd apps/web && bun run check:contrast
 ~~~
 
 当前 **24 对全部通过**：亮色最低 4.67:1（按钮白字 / primary），暗色最低 5.06:1。

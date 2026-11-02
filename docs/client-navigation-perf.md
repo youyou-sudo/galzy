@@ -27,7 +27,7 @@
 
 ### 2.1 卡片预取：视口 → 意图
 
-`apps/web-tanstack/src/hooks/use-viewport-preload.ts`
+`apps/web/src/hooks/use-viewport-preload.ts`
 
 - 新增 `PREFETCH_MODE`：`intent`（默认）/ `viewport` / `off`；
 - `intent` 模式监听 `pointerenter`（停留 60ms 才发）、`focus`、`pointerdown`
@@ -39,7 +39,7 @@
 
 ### 2.2 空闲预取：等 load + 预算 + 开发模式关闭
 
-`apps/web-tanstack/src/hooks/use-idle-preload.ts`
+`apps/web/src/hooks/use-idle-preload.ts`
 
 - 等 `window.load`（首屏图片/字体下完）再进 `requestIdleCallback`，不和首屏抢连接；
 - 整页预算 `IDLE_PRELOAD_BUDGET = 6`，超出不再自动预取；

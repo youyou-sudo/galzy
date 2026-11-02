@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join, basename, relative } from "node:path";
 import { scanServerFns } from "./lib/scan-server-fns.mjs";
 
-const root = "apps/web-tanstack/src";
+const root = "apps/web/src";
 const targets = process.argv.slice(2);
 const files = targets.length ? targets : [];
 const registryImports = [];

@@ -19,7 +19,7 @@
   },
   "overrides": [
     {
-      "includes": ["apps/web-tanstack/**"],
+      "includes": ["apps/web/**"],
       "formatter": {
         "indentStyle": "tab"
       },

@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 
-const implRoot = "apps/web-tanstack/src/server/impl";
+const implRoot = "apps/web/src/server/impl";
 function walk(d, out = []) {
   for (const e of readdirSync(d, { withFileTypes: true })) {
     const p = join(d, e.name);
@@ -35,5 +35,5 @@ out.push("export const bffRegistry: Record<string, BffImplLike> = {");
 out.push(...entries);
 out.push("};");
 out.push("");
-writeFileSync("apps/web-tanstack/src/server/registry.ts", out.join("\n"));
+writeFileSync("apps/web/src/server/registry.ts", out.join("\n"));
 console.log("impl files:", files.length, "entries:", entries.length);

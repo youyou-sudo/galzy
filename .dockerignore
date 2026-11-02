@@ -4,13 +4,14 @@
 **/.nitro
 **/.vinxi
 **/.tanstack
+**/.furin
 **/dist
 **/.codegraph
 **/coverage
 **/*.tsbuildinfo
 **/playwright-report
 **/test-results
-apps/web-tanstack/.assets.generated.ts
+apps/web/.assets.generated.ts
 
 # 本地运行时密钥：绝不进入构建上下文
 **/.env

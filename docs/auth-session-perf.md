@@ -67,7 +67,7 @@ verification: { storeInDatabase: true }, // 验证码不走 Redis，避免 Redis
 
 ### 3.2 Web：服务端会话读取带短缓存 + 并行合并
 
-新增 `apps/web-tanstack/src/server/auth/server-session.ts`：
+新增 `apps/web/src/server/auth/server-session.ts`：
 
 - 没有 better-auth cookie → 直接返回 null，**不发请求**（匿名页面零开销）；
 - 同一份 cookie 15s 内复用结果；并发请求合并成一次（single-flight）；
@@ -79,7 +79,7 @@ verification: { storeInDatabase: true }, // 验证码不走 Redis，避免 Redis
 
 ### 3.3 根布局：登录态随文档下发
 
-`apps/web-tanstack/src/pages/root.tsx` 的 loader 增加 `authSession`：
+`apps/web/src/pages/root.tsx` 的 loader 增加 `authSession`：
 
 ```ts
 loader: async ({ request }) => ({
@@ -95,7 +95,7 @@ loader: async ({ request }) => ({
 
 ### 3.4 客户端：统一读会话
 
-新增 `apps/web-tanstack/src/lib/use-auth-session.ts`（`useAuthSession()`），
+新增 `apps/web/src/lib/use-auth-session.ts`（`useAuthSession()`），
 `UserMenu`、后台 `AdminShell`（会话兜底 + 侧栏头像）改为复用它（同一个 `['auth']` key），
 不再各自 `authClient.useSession()` / `authClient.getSession()` 重复拉取。
 
@@ -111,8 +111,8 @@ curl -s -o /dev/null -w '%{http_code} %{time_total}s\n' http://localhost:3001/au
 # 3) 登录态页面：浏览器 Network 里 /api/auth/get-session 应消失（改由文档内联会话提供）
 ```
 
-`bun --cwd apps/web-tanstack test`、`bunx tsc --noEmit`（web + api）、
-`bun --cwd apps/web-tanstack build` 均通过。
+`bun --cwd apps/web test`、`bunx tsc --noEmit`（web + api）、
+`bun --cwd apps/web build` 均通过。
 
 ## 5. 还没做的（可选下一步）
 
