@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - "apps/api/**"
-      - "apps/web-tanstack/**"
+      - "apps/web/**"
       - "packages/**"
       - "scripts/**"
       - "bun.lock"
@@ -45,7 +45,7 @@ jobs:
               - 'bun.lock'
               - 'package.json'
             web:
-              - 'apps/web-tanstack/**'
+              - 'apps/web/**'
               - 'packages/**'
               - 'scripts/**'
               - 'bun.lock'
@@ -67,10 +67,10 @@ jobs:
         run: bunx tsc --noEmit -p apps/api/tsconfig.json
 
       - name: Build Web artifacts for typecheck
-        run: bun --cwd apps/web-tanstack build
+        run: bun --cwd apps/web build
 
       - name: Typecheck Web
-        run: bunx tsc --noEmit -p apps/web-tanstack/tsconfig.json
+        run: bunx tsc --noEmit -p apps/web/tsconfig.json
 
   build:
     needs: [changes, typecheck]
@@ -83,7 +83,7 @@ jobs:
             changed: ${{ needs.changes.outputs.api == 'true' || github.event_name == 'workflow_dispatch' }}
             build_args: ""
           - app: web
-            dir: web-tanstack
+            dir: web
             changed: ${{ needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch' }}
             build_args: "BUILD_ID=${{ github.run_id }}-${{ github.run_attempt }}"
     runs-on: ubuntu-latest

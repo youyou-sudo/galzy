@@ -5,7 +5,7 @@
 > 支持排期、设备定向、权重轮换、启停状态与曝光/点击统计。
 >
 > 本文是 2026-10 的调研记录与实现说明，代码见 `apps/api/src/modules/adverts/`、
-> `apps/web-tanstack/src/components/adverts/` 与后台「内容管理 → 广告位」。
+> `apps/web/src/components/adverts/` 与后台「内容管理 → 广告位」。
 
 ## 1. 调研：行业里通常怎么管广告
 

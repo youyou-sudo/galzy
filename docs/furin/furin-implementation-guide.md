@@ -647,7 +647,7 @@ export default defineConfig({
 
 spike `globals.css`（`@import "tailwindcss"; @import "tw-animate-css"; @theme inline {...} @custom-variant dark ... @utility container-page {...}`）→ 生产构建产出 `_hydrate-*.css (14.1 KB)` + 每页 CSS chunk ✅；`container-page`、`oklch`、dark variant 都生效。
 
-⚠️ 现有 `apps/web-tanstack/src/styles.css` 里的 `@plugin "@tailwindcss/typography"`、`@source not "..."`、`@import "shadcn/tailwind.css"`、`@import "react-photo-view/..."` 都是 Tailwind v4 CSS 语法，理论上无痛；但 `@source` 的相对路径要按新目录重写，且需要把 `@tailwindcss/typography` 装进新工程（现有依赖里已有）。**未逐行迁移验证**（只验证了同语法子集）。
+⚠️ 现有 `apps/web/src/styles.css` 里的 `@plugin "@tailwindcss/typography"`、`@source not "..."`、`@import "shadcn/tailwind.css"`、`@import "react-photo-view/..."` 都是 Tailwind v4 CSS 语法，理论上无痛；但 `@source` 的相对路径要按新目录重写，且需要把 `@tailwindcss/typography` 装进新工程（现有依赖里已有）。**未逐行迁移验证**（只验证了同语法子集）。
 ⚠️ 生产环境 **不再有 `@tailwindcss/vite`**，靠 `bun-plugin-tailwind`；若某插件只支持 PostCSS/Vite 管线，要改写。
 
 ---
@@ -733,7 +733,7 @@ Either change their mode to "ssg", remove them, or set onSSR: "skip" in your sta
 
 ### 13.4 Docker（无 shell 镜像）方案 ✅ 设计可行
 
-现有 `apps/web-tanstack/Dockerfile` 是「Nitro 产物 + `bun build --compile` + `cgr.dev/chainguard/glibc-dynamic`」。迁移后：
+现有 `apps/web/Dockerfile` 是「Nitro 产物 + `bun build --compile` + `cgr.dev/chainguard/glibc-dynamic`」。迁移后：
 
 ```dockerfile
 # build 阶段（linux/amd64，必须与运行镜像同架构；Windows 上不能交叉产出 linux 二进制，未验证交叉编译）
@@ -1063,7 +1063,7 @@ const ctx = als.getStore();  // ✅ 实测拿到 url + cookie
 ### 23.1 目录结构
 
 ```text
-apps/web-furin/                       # 新前端（与 apps/web-tanstack 并存，灰度切换）
+apps/web-furin/                       # 新前端（与 apps/web 并存，灰度切换）
 ├── public/                           # favicon.ico 特判根；其余 /public/*
 ├── src/
 │   ├── server.ts                     # new Elysia().onRequest(ALS).use(await furin()).use(apiApp)

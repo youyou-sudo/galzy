@@ -1,7 +1,7 @@
-# Tailwind 类名整理报告 — apps/web-tanstack
+# Tailwind 类名整理报告 — apps/web
 
 > 基线 commit： `4559044`　工作区改动：149 files changed, 1077 insertions(+), 1077 deletions(-)
-> 范围：apps/web-tanstack/src 下全部 .tsx/.ts（排除自动生成的 routeTree.gen.ts）
+> 范围：apps/web/src 下全部 .tsx/.ts（排除自动生成的 routeTree.gen.ts）
 
 **一句话总结**：149 个文件、1079 处类名字符串按 Tailwind 官方分组顺序重排，10 处 px/py -> p 等值合并，0 处删除类名；机器验证「字符串外零改动 + 再跑幂等 + tsc 通过 + oxlint 0 警告」。剩余 1 处真实冲突与若干口径问题需你拍板（见 §3），重复组合与拆分建议见 §4。
 
@@ -11,13 +11,13 @@
 
 所有文件**已在原位置改写完成**（工作区即最终结果，可直接提交/替换原文件），不是片段：
 
-- 涉及文件 149 个，全部位于 `apps/web-tanstack/src/`。
+- 涉及文件 149 个，全部位于 `apps/web/src/`。
 - 改动只发生在字符串字面量内部（类名 token 顺序 + 10 处等价简写合并）：代码结构、缩进、换行、非类名字符串零改动。
-- 查看完整 diff：`git diff -- apps/web-tanstack/src`。
+- 查看完整 diff：`git diff -- apps/web/src`。
 
 下面给出 3 个示例文件的**完整内容**（与原文件同路径同格式，可直接替换）：
 
-### `apps/web-tanstack/src/components/header/mobile-menu.tsx`
+### `apps/web/src/components/header/mobile-menu.tsx`
 
 ```tsx
 import { Link } from "@tanstack/react-router";
@@ -333,7 +333,7 @@ export function HeaderMobileMenu({
 }
 ```
 
-### `apps/web-tanstack/src/components/home/Count.tsx`
+### `apps/web/src/components/home/Count.tsx`
 
 ```tsx
 import { useQuery } from "@tanstack/react-query";
@@ -386,7 +386,7 @@ const Count = () => {
 };
 ```
 
-### `apps/web-tanstack/src/components/shared/page-header.tsx`
+### `apps/web/src/components/shared/page-header.tsx`
 
 ```tsx
 import { cn } from "@web/lib/utils";

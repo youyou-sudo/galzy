@@ -357,7 +357,7 @@ Worker handler 注入一个 `logger`（薄封装），内部实现：
 | `POST /tasks/batchRetry` | 逐项独立结果，部分失败不整体回滚 |
 | `POST /tasks/deadLetter/:queue/{republish,remove,batchRepublish,batchRemove}` | 幂等：已不存在计 `missing`，不整体 404 |
 
-错误体统一 `{ code, message }`；BFF（`apps/web-tanstack/src/server/admin/tasks.ts`）把 code 编码进 message（`CODE|message`）以穿过 server fn 的跨进程边界。
+错误体统一 `{ code, message }`；BFF（`apps/web/src/server/admin/tasks.ts`）把 code 编码进 message（`CODE|message`）以穿过 server fn 的跨进程边界。
 
 ### 10.3 迁移
 

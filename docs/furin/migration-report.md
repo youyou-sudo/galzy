@@ -2,7 +2,7 @@
 
 ## 目标
 
-把 `apps/web-tanstack` 从 TanStack Start 重构到 [@teyik0/furin](https://teyik0.github.io/furin/) 0.8.0-alpha.0（Bun + Elysia 2 + 文件路由 + SSR），**UX 与 UI 结果保持与迁移前一致**。
+把 `apps/web` 从 TanStack Start 重构到 [@teyik0/furin](https://teyik0.github.io/furin/) 0.8.0-alpha.0（Bun + Elysia 2 + 文件路由 + SSR），**UX 与 UI 结果保持与迁移前一致**。
 
 调研产物：[furin-implementation-guide.md](./furin-implementation-guide.md)（1229 行，20 项能力逐项 ✅/⚠️/❌ + TanStack 对照表 + 10 个决策点）。
 
@@ -87,9 +87,9 @@ Elysia API (:3001)
 
 ```bash
 bun install
-bun --cwd apps/web-tanstack dev        # :3000（API 需在 :3001）
-bun --cwd apps/web-tanstack typegen    # 新增/移动页面后
-bun --cwd apps/web-tanstack build      # .furin/build/bun/
+bun --cwd apps/web dev        # :3000（API 需在 :3001）
+bun --cwd apps/web typegen    # 新增/移动页面后
+bun --cwd apps/web build      # .furin/build/bun/
 ```
 
 平价回归：

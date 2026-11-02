@@ -298,7 +298,7 @@ pageEnter: {
 
 ## 8. 对「仿照 new-api 改造 galzy」的差异与建议
 
-galzy 现状（`apps/web-tanstack/src/styles.css`）与 new-api 的硬差异：
+galzy 现状（`apps/web/src/styles.css`）与 new-api 的硬差异：
 
 | 维度 | galzy 现状 | new-api |
 | --- | --- | --- |

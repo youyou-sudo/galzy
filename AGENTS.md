@@ -22,7 +22,7 @@ PostgreSQL    Redis     Meilisearch
 ```
 
 - **API** (`apps/api/`): ElysiaJS HTTP server. 19 domain modules, each a three-file Elysia plugin (`index.ts` routes, `model.ts` TypeBox schemas, `service.ts` business logic). Better Auth handles authentication with `auth`/`isAdmin` macros. Drizzle ORM (bun-sql adapter) for PostgreSQL. Redis for caching + distributed locks. Meilisearch for full-text search.
-- **Web** (`apps/web-tanstack/`): Furin SSR app on Bun + Elysia 2. File-based pages (`src/pages/**`, `defineRoute(...).config().loader().head().page()`); the same Elysia process serves `/api/*`. BFF handlers live in `src/server/impl/<domain>.ts` (`defineBff`) and are exposed through isomorphic surfaces in `src/server/<domain>.ts` (`bffFn`): SSR dispatches in-process, the browser POSTs `/api/_bff/:id`. TanStack Query v5 for client state (seeded from loader data via `useSeedQueries`). `src/lib/nav.tsx` is a TanStack-Router-compatible navigation layer (Link/useNavigate/useRouterState/useSearch/getRouteApi/redirect). shadcn/ui (base-nova style) + Tailwind CSS v4 via `bun-plugin-tailwind`.
+- **Web** (`apps/web/`): Furin SSR app on Bun + Elysia 2. File-based pages (`src/pages/**`, `defineRoute(...).config().loader().head().page()`); the same Elysia process serves `/api/*`. BFF handlers live in `src/server/impl/<domain>.ts` (`defineBff`) and are exposed through isomorphic surfaces in `src/server/<domain>.ts` (`bffFn`): SSR dispatches in-process, the browser POSTs `/api/_bff/:id`. TanStack Query v5 for client state (seeded from loader data via `useSeedQueries`). `src/lib/nav.tsx` is a TanStack-Router-compatible navigation layer (Link/useNavigate/useRouterState/useSearch/getRouteApi/redirect). shadcn/ui (base-nova style) + Tailwind CSS v4 via `bun-plugin-tailwind`.
 - **Shared** (`packages/`): `libs` provides the Eden Treaty client (`treaty<app>`) with cookie forwarding and timeout. `config` provides shared TypeScript configs with path aliases (`@api`, `@web`, `@libs`). Pure TypeScript source — no build step.
 - **Data flow:** Browser → SSR (server functions) → Eden Treaty → Elysia API → Drizzle ORM → PostgreSQL. Redis sits alongside as cache. Meilisearch is populated by cron jobs and queried by the search module.
 
@@ -41,7 +41,7 @@ galzy/
 │   │   └── libs/                 # Shared utilities (redis, meilisearch, typebox)
 │   ├── drizzle/                  # Migration SQL files (Drizzle Kit)
 │   └── .env.example              # All environment variables
-├── apps/web-tanstack/            # Furin frontend (port 3000)
+├── apps/web/                     # Furin frontend (port 3000)
 │   ├── src/
 │   │   ├── pages/                # Furin file-based pages (~46 incl. layouts/root)
 │   │   ├── server/               # BFF: impl/** (server-only) + <domain>.ts (isomorphic surfaces)
@@ -76,14 +76,14 @@ galzy/
 | `bun run lint` | Run Biome check + oxlint across workspaces |
 | `bun run docker` | Build all Docker images |
 | `bun --cwd apps/api dev` | Start API only (watch mode, port 3001) |
-| `bun --cwd apps/web-tanstack dev` | Start Web only (`bun --hot src/server.ts`, port 3000) |
-| `bun --cwd apps/web-tanstack start` | Run the Furin production server (`.furin/build/bun/server.js`, port 3000) |
-| `bun --cwd apps/web-tanstack build` / `build:binary` | `furin build --target bun` → `.furin/build/bun/`; `--compile embed` → single-file binary |
+| `bun --cwd apps/web dev` | Start Web only (`bun --hot src/server.ts`, port 3000) |
+| `bun --cwd apps/web start` | Run the Furin production server (`.furin/build/bun/server.js`, port 3000) |
+| `bun --cwd apps/web build` / `build:binary` | `furin build --target bun` → `.furin/build/bun/`; `--compile embed` → single-file binary |
 | `bun --cwd apps/api db:generate` | Generate Drizzle migration |
 | `bun --cwd apps/api db:up` | Apply migrations |
 | `bun --cwd apps/api db:check` | Verify schema ↔ database consistency |
 | `bun --cwd apps/api db:studio` | Open Drizzle Studio (visual DB explorer) |
-| `bun --cwd apps/web-tanstack test` | Run Vitest tests |
+| `bun --cwd apps/web test` | Run Vitest tests |
 | `bun add:api <pkg>` | Add dependency to API workspace |
 | `bun add:web <pkg>` | Add dependency to Web workspace |
 
@@ -194,7 +194,7 @@ Utilities in `apps/api/src/libs/redis/kv.ts`:
 
 ### Frontend: Furin Patterns
 
-**Pages** — `apps/web-tanstack/src/pages/**` (文件即路由):
+**Pages** — `apps/web/src/pages/**` (文件即路由):
 ```tsx
 import { defineRoute } from "@teyik0/furin"
 import { t } from "elysia"
@@ -222,7 +222,7 @@ export const route = defineRoute("/tags/[tagId]")
 - **连接配置**：web 与 API 一样只认一条 `REDIS_URL`（`@web/lib/redis` 用 Bun 内置客户端；本地开发默认不用 Redis，可设 `REDIS_ENABLED=true` 调试）。Cloudflare 凭据/`SITE_URL` 只留在 API 进程；CDN 侧仍需 Cache Rule：`/admin/*`、`/api/*`、`/auth/*`、`/user/*` Bypass，其余 GET 页面尊重源站 Cache-Control。
 - 设计与取舍见 `docs/isr-cdn-cache.md`。
 
-**BFF** — `apps/web-tanstack/src/server`:
+**BFF** — `apps/web/src/server`:
 ```ts
 // impl/admin/adverts.ts (server-only)
 export const adminCreateAdSlot = defineBff(z.object({ key: z.string() }), async ({ data }) => { /* Eden 调用 */ })
@@ -271,7 +271,7 @@ export const myActions = {
 
 ### Import Conventions
 
-- **Path aliases:** `@api` → `apps/api/src`, `@web` → `apps/web-tanstack/src`, `@libs` → `packages/libs/src`
+- **Path aliases:** `@api` → `apps/api/src`, `@web` → `apps/web/src`, `@libs` → `packages/libs/src`
 - API modules import from `@api/libs` (barrel: db, schema, redis, meilisearch)
 - Web server functions import `api` from `@libs` (Eden Treaty client)
 - Web components import from `@web/components/ui/<name>` or `@web/components/<name>`
@@ -290,15 +290,15 @@ export const myActions = {
 | `apps/api/src/libs/meilisearch/index.ts` | Meilisearch singleton client |
 | `apps/api/.env.example` | All environment variables |
 | `apps/api/drizzle.config.ts` | Drizzle Kit config |
-| `apps/web-tanstack/src/pages/root.tsx` | Root document — HTML shell, theme script, providers, Header/Footer/ads |
-| `apps/web-tanstack/src/router.tsx` | TanStack Router config |
-| `apps/web-tanstack/src/server/auth/auth.server.ts` | SSR auth client with cookie forwarding |
-| `apps/web-tanstack/src/server/auth/auth-client.ts` | Browser auth client |
-| `apps/web-tanstack/src/server/auth/betterPlugins.ts` | Shared Better Auth plugin config |
-| `apps/web-tanstack/src/lib/cookie-pass.ts` | SSR cookie forwarding for Eden calls |
-| `apps/web-tanstack/src/lib/elysia-error.ts` | Eden error → redirect/throw |
-| `apps/web-tanstack/src/lib/nav.tsx` | TanStack Router compatible navigation layer |
-| `apps/web-tanstack/src/lib/bff/` | Isomorphic BFF runtime (transport, dispatch, registry) |
+| `apps/web/src/pages/root.tsx` | Root document — HTML shell, theme script, providers, Header/Footer/ads |
+| `apps/web/src/router.tsx` | TanStack Router config |
+| `apps/web/src/server/auth/auth.server.ts` | SSR auth client with cookie forwarding |
+| `apps/web/src/server/auth/auth-client.ts` | Browser auth client |
+| `apps/web/src/server/auth/betterPlugins.ts` | Shared Better Auth plugin config |
+| `apps/web/src/lib/cookie-pass.ts` | SSR cookie forwarding for Eden calls |
+| `apps/web/src/lib/elysia-error.ts` | Eden error → redirect/throw |
+| `apps/web/src/lib/nav.tsx` | TanStack Router compatible navigation layer |
+| `apps/web/src/lib/bff/` | Isomorphic BFF runtime (transport, dispatch, registry) |
 | `packages/libs/src/api/index.ts` | Eden Treaty client — `treaty<app>(host, opts)` |
 | `packages/config/typescript/base.json` | Shared tsconfig with path aliases |
 | `scripts/run.ts` | Concurrent workspace command runner |
@@ -328,7 +328,7 @@ export const myActions = {
 ### Linting & Formatting
 - **Formatter:** Biome (`bun run format` or `biome format --write`)
 - **Linter (API):** Biome (`bun run lint` in api)
-- **Linter (Web):** oxlint (`bun run lint` in web-tanstack)
+- **Linter (Web):** oxlint (`bun run lint` in web)
 - **Root lint:** `bun run lint` runs both via `scripts/run.ts`
 
 ### TypeScript
@@ -348,7 +348,7 @@ export const myActions = {
 
 ## Testing & QA
 
-- **Web:** Vitest v4 + Testing Library + jsdom. Run via `bun --cwd apps/web-tanstack test`.
+- **Web:** Vitest v4 + Testing Library + jsdom. Run via `bun --cwd apps/web test`.
 - **API:** No test infrastructure yet (no vitest config, no test files).
 - Test files do not currently exist in any workspace — testing is declared but not yet implemented.
 - Before adding tests, follow existing patterns: Vitest for the web app, no established convention for the API.

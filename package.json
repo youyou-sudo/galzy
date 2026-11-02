@@ -10,7 +10,7 @@
     "add:api": "bun add --cwd apps/api",
     "add:web": "bun add --cwd apps/web",
     "lint": "bun scripts/run lint",
-    "typecheck": "bunx tsc --noEmit -p apps/api/tsconfig.json && bunx tsc --noEmit -p apps/web-tanstack/tsconfig.json"
+    "typecheck": "bunx tsc --noEmit -p apps/api/tsconfig.json && bunx tsc --noEmit -p apps/web/tsconfig.json"
   },
   "devDependencies": {
     "@elysiajs/cron": "^1.4.2",

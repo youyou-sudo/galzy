@@ -1,6 +1,6 @@
 ---
 name: frontend-pattern
-description: 项目前端组件架构、路由模式、Server Function 约定、Eden Treaty 客户端、Store/Hook/Form 用法、样式体系。应用于 apps/web-tanstack/src/ 下所有文件。
+description: 项目前端组件架构、路由模式、Server Function 约定、Eden Treaty 客户端、Store/Hook/Form 用法、样式体系。应用于 apps/web/src/ 下所有文件。
 ---
 
 # 前端模式 — GalZY (Aqua)
@@ -9,7 +9,7 @@ description: 项目前端组件架构、路由模式、Server Function 约定、
 
 ## 何时应用
 
-- 在 `apps/web-tanstack/src/routes/` 下创建或修改路由
+- 在 `apps/web/src/routes/` 下创建或修改路由
 - 编写 Server Function（`createServerFn`）
 - 调用后端 API（Eden Treaty）
 - 创建或修改组件（`components/`）
@@ -59,7 +59,7 @@ src/
 
 每个路由文件导出 `Route` 常量，使用 `createFileRoute`。
 
-**参考**: `apps/web-tanstack/src/routes/index.tsx`
+**参考**: `apps/web/src/routes/index.tsx`
 
 ```typescript
 import { createFileRoute } from '@tanstack/react-router'
@@ -87,7 +87,7 @@ function App() {
 
 ### 带 Search 参数校验
 
-**参考**: `apps/web-tanstack/src/routes/auth/login.tsx`
+**参考**: `apps/web/src/routes/auth/login.tsx`
 
 ```typescript
 import { createFileRoute, redirect } from '@tanstack/react-router'
@@ -110,7 +110,7 @@ export const Route = createFileRoute('/auth/login')({
 
 ### 根路由 (__root.tsx)
 
-**参考**: `apps/web-tanstack/src/routes/__root.tsx`
+**参考**: `apps/web/src/routes/__root.tsx`
 
 ```typescript
 import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/react-router'
@@ -139,7 +139,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 使用 `createServerFn` + Zod 校验。
 
-**参考**: `apps/web-tanstack/src/server/game/index.ts`, `apps/web-tanstack/src/server/auth/auth.functions.ts`
+**参考**: `apps/web/src/server/game/index.ts`, `apps/web/src/server/auth/auth.functions.ts`
 
 ```typescript
 import { api } from '@libs'
@@ -219,7 +219,7 @@ const { data, error } = await api.games.gamelist.get({
 
 ### 在 Server Function 中传递 Cookie
 
-**参考**: `apps/web-tanstack/src/lib/cookie-pass.ts`
+**参考**: `apps/web/src/lib/cookie-pass.ts`
 
 ```typescript
 import { getRequestHeader } from '@tanstack/react-start/server'
@@ -237,7 +237,7 @@ export const cookiePass = () => ({
 
 ### 在 Server Function 中处理 Eden 错误
 
-**参考**: `apps/web-tanstack/src/lib/elysia-error.ts`
+**参考**: `apps/web/src/lib/elysia-error.ts`
 
 ```typescript
 import { redirect } from '@tanstack/react-router'
@@ -337,7 +337,7 @@ const Count = () => {
 
 ## 5. Store 模式 (TanStack React Store)
 
-**参考**: `apps/web-tanstack/src/stores/downCardData.ts`
+**参考**: `apps/web/src/stores/downCardData.ts`
 
 ```typescript
 import { createStore } from '@tanstack/react-store'
@@ -379,7 +379,7 @@ export const downmodalActions = {
 
 ## 6. Hook 模式
 
-**参考**: `apps/web-tanstack/src/hooks/`
+**参考**: `apps/web/src/hooks/`
 
 ```typescript
 // src/hooks/use-mobile.ts — 简单 hook
@@ -415,7 +415,7 @@ export function usePagination({
 
 ## 7. 表单模式 (TanStack Form)
 
-**参考**: `apps/web-tanstack/src/routes/auth/login.tsx`
+**参考**: `apps/web/src/routes/auth/login.tsx`
 
 ```typescript
 import { useForm } from '@tanstack/react-form'
@@ -477,7 +477,7 @@ function LoginForm() {
 
 ### 客户端 (Browser)
 
-**文件**: `apps/web-tanstack/src/server/auth/auth-client.ts`
+**文件**: `apps/web/src/server/auth/auth-client.ts`
 
 ```typescript
 import { createAuthClient } from 'better-auth/react'
@@ -490,7 +490,7 @@ export const authClient = createAuthClient({
 
 ### 服务端 (SSR)
 
-**文件**: `apps/web-tanstack/src/server/auth/auth.server.ts`
+**文件**: `apps/web/src/server/auth/auth.server.ts`
 
 ```typescript
 import { getRequestHeader } from '@tanstack/react-start/server'
@@ -512,7 +512,7 @@ export const authServerClient = createAuthClient({
 
 ### 插件统一配置
 
-**文件**: `apps/web-tanstack/src/server/auth/betterPlugins.ts`
+**文件**: `apps/web/src/server/auth/betterPlugins.ts`
 
 ```typescript
 import { adminClient } from 'better-auth/client/plugins'
@@ -544,7 +544,7 @@ import { Gamepad2, Tags, Mail, LogIn, Eye, EyeOff, Loader2 } from 'lucide-react'
 
 ### Tailwind CSS v4
 
-**文件**: `apps/web-tanstack/src/styles.css`
+**文件**: `apps/web/src/styles.css`
 
 ```css
 @import "tailwindcss";
@@ -596,7 +596,7 @@ className="rounded-full"
 
 ### `cn()` — 条件 class 合并
 
-**文件**: `apps/web-tanstack/src/lib/utils.ts`
+**文件**: `apps/web/src/lib/utils.ts`
 
 ```typescript
 import { clsx, type ClassValue } from 'clsx'
@@ -615,7 +615,7 @@ export function cn(...inputs: ClassValue[]) {
 
 ## 12. 路径别名
 
-**文件**: `apps/web-tanstack/tsconfig.json`
+**文件**: `apps/web/tsconfig.json`
 
 ```json
 {

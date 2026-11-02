@@ -1,6 +1,6 @@
 # 任务队列 API 审计与契约 V2
 
-> 审计范围：`apps/api/src/modules/tasks/*`、`apps/api/src/db/schema/task-log.ts`、`apps/api/src/libs/queue/*`、`apps/web-tanstack/src/server/admin/tasks.ts`、`apps/web-tanstack/src/components/admin/tasks-page.tsx`、`docs/task-queue-migration.md`。
+> 审计范围：`apps/api/src/modules/tasks/*`、`apps/api/src/db/schema/task-log.ts`、`apps/api/src/libs/queue/*`、`apps/web/src/server/admin/tasks.ts`、`apps/web/src/components/admin/tasks-page.tsx`、`docs/task-queue-migration.md`。
 > 方式：只读取证，**未修改任何源码**。所有结论附 `文件:行号`。
 > 状态：审计时点 2026-10-27，基于当前工作区未提交状态。
 
@@ -374,7 +374,7 @@ tasks 插件整体 `.use(betterAuth)`（`modules/tasks/index.ts:30`），所有�
 - 全局 `onError`（`apps/api/src/index.ts:37-57`）：
   - `VALIDATION` → `set.status=400` + **返回 `error.message` 字符串**（`:38-41`）；前端拿到的 `error.value` 就是纯字符串。
   - 4xx 不打印日志（`:42-47`），5xx 打印（`:48-56`）。
-- `status()` 第二参是泛型（`elysia/dist/error.d.ts:22`：`const T = ...`），**因此可以传对象体** `status(400, { code, message })`；这不破坏前端，因为 `elysiaErrorF` 的 `toMessage` 优先取 `value.message`（`apps/web-tanstack/src/lib/elysia-error.ts:10-14`）。
+- `status()` 第二参是泛型（`elysia/dist/error.d.ts:22`：`const T = ...`），**因此可以传对象体** `status(400, { code, message })`；这不破坏前端，因为 `elysiaErrorF` 的 `toMessage` 优先取 `value.message`（`apps/web/src/lib/elysia-error.ts:10-14`）。
 
 ### 7.3 前端 403 应如何处理（现状与建议）
 
@@ -662,7 +662,7 @@ type JobLogsResponseV2 = {
 | 500 | `INTERNAL` | 其它 | `apps/api/src/index.ts:42-56` |
 
 错误体统一：`{ code: string, message: string }`（`throw status(400, { code:'INVALID_SORT', message:'...' })`）。
-前端兼容性已确认：`elysiaErrorF` → `toMessage` 取 `value.message`（`apps/web-tanstack/src/lib/elysia-error.ts:10-14`）。
+前端兼容性已确认：`elysiaErrorF` → `toMessage` 取 `value.message`（`apps/web/src/lib/elysia-error.ts:10-14`）。
 
 ### 8.7 Service 实现骨架（提案，未落地）
 
