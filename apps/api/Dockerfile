@@ -8,6 +8,10 @@ COPY package.json package.json
 
 COPY apps/api/package.json apps/api/package.json
 COPY packages/config/package.json packages/config/package.json
+# API 通过 `@libs/*` 路径别名引用共享契约（如 libs/redis/pubsub.ts 的 `@libs/isr`），
+# 别名指向 packages/libs/src，构建阶段必须存在该工作区，否则 bun build 报
+# "Could not resolve: @libs/isr"。
+COPY packages/libs/package.json packages/libs/package.json
 
 # postinstall（patch-bun-queue）所需脚本。首次 install 用 --ignore-scripts：
 # 此时 apps/api 源码尚未 COPY、node_modules 布局未建立，postinstall 无意义；
@@ -18,6 +22,7 @@ RUN bun install --ignore-scripts
 
 COPY apps/api apps/api
 COPY packages/config packages/config
+COPY packages/libs packages/libs
 
 # Debug step: List files in the apps/api folder
 RUN ls -al /app/apps/api
