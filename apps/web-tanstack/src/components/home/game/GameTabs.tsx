@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@web/lib/nav";
+import { Link, usePathname } from "@web/lib/nav";
 import { Tabs, TabsList, TabsTrigger } from "@web/components/ui/tabs";
 import { cn } from "@web/lib/utils";
 import {
@@ -45,9 +45,9 @@ export function gameTabOf(pathname: string): string {
 }
 
 export function GameTabs({ id, path }: { id: string; path?: string }) {
-	const pathname = useRouterState({ select: (s) => s.location.pathname });
-	// SSR 下 useRouterState 拿不到真实 location（shim 回退到 "/"），优先用服务端
-	// 下发的当前路径，保证首屏 HTML 的选中页签与 URL 一致、hydration 不抖。
+	const pathname = usePathname();
+	// SSR 首帧 getServerSnapshot 已给出真实 pathname；path prop 仍优先，
+	// 用于 context 缺失时兜底，保证首屏 HTML 的选中页签与 URL 一致。
 	const currentTab = gameTabOf(path ?? pathname);
 
 	return (

@@ -20,7 +20,6 @@ import {
 	useQuery,
 	useQueryClient,
 } from "@tanstack/react-query";
-import { useNavigate, useSearch } from "@web/lib/nav";
 import { AdminPageHeader } from "@web/components/admin/admin-page-header";
 import {
 	StatusPill,
@@ -72,6 +71,7 @@ import {
 	invalidations,
 	publicKeys,
 } from "@web/lib/admin/query-keys";
+import { useShallowSearch } from "@web/lib/admin/use-shallow-search";
 import {
 	AD_MOBILE_MODE_LABEL,
 	AD_SLOT_MAX_ITEMS_LIMIT,
@@ -493,19 +493,22 @@ function reorderSlotAdverts(
 
 // ── 页面 ──────────────────────────────────────────────────────
 
-export default function AdvertsAdminPage() {
-	// Tab 写进 URL：刷新 / 分享链接都能回到同一个视图（与 Meilisearch 后台一致）
-	// useSearch 的 from 用路由 id，useNavigate 的 from 用完整路径（TanStack 的口径不同）
-	const { tab } = useSearch({ from: "/admin/_authL/adverts" });
-	// 带上 from，search 的 reducer 才能拿到本路由的 schema 类型
-	const navigate = useNavigate({ from: "/admin/adverts" });
+export default function AdvertsAdminPage({
+	initialTab = "slots",
+}: {
+	initialTab?: "slots" | "adverts";
+}) {
+	// Tab 写进 URL：刷新 / 分享链接都能回到同一个视图（与 Meilisearch 后台一致）。
+	// 但切 Tab 走浅层 URL 更新（history.replaceState）而不是 furin 导航：
+	// 面板一直是挂载的，切 Tab 不该重新请求页面、重挂载面板、闪一次骨架。
+	const [{ tab }, patchSearch] = useShallowSearch<{ tab: "slots" | "adverts" }>(
+		{ tab: initialTab },
+		{ tab: "slots" },
+	);
 
 	const handleTabChange = (value: string | number | null) => {
 		if (value !== "slots" && value !== "adverts") return;
-		void navigate({
-			search: (previous) => ({ ...previous, tab: value }),
-			replace: true,
-		});
+		patchSearch({ tab: value });
 	};
 
 	return (

@@ -28,7 +28,7 @@ type TagDetail = {
 } | null;
 
 export const route = defineRoute("/tags/[tagId]")
-	.config({ mode: "ssr", params: paramsSchema })
+	.config({ mode: "isr", revalidate: 300, params: paramsSchema })
 	.loader(async ({ params }) => {
 		const { tagId } = params;
 		const [tag, game] = await Promise.all([

@@ -20,16 +20,8 @@ interface WorkerScope {
 
 const scope = self as unknown as WorkerScope;
 
-/** Worker 内缓存：同一 thumbhash 不重复做 IDCT + PNG 编码。 */
-const cache = new Map<string, string | null>();
-
 scope.onmessage = (event: MessageEvent<ThumbHashDecodeRequest>) => {
 	const { value, candidates } = event.data;
-	const cached = cache.get(value);
-	if (cached !== undefined) {
-		scope.postMessage({ value, dataUrl: cached });
-		return;
-	}
 
 	let dataUrl: string | null = null;
 	for (const bytes of candidates) {
@@ -40,6 +32,5 @@ scope.onmessage = (event: MessageEvent<ThumbHashDecodeRequest>) => {
 			// Try the next supported encoding before falling back to null.
 		}
 	}
-	cache.set(value, dataUrl);
 	scope.postMessage({ value, dataUrl });
 };

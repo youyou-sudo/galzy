@@ -43,7 +43,7 @@ type ProducersResult = {
 };
 
 export const route = defineRoute("/producer")
-	.config({ mode: "ssr", query: producerSearchSchema })
+	.config({ mode: "isr", revalidate: 300, query: producerSearchSchema, tags: ["page-producers"] })
 	.loader(async ({ query }) => {
 		const producers = (await getSearchProducers({
 			data: { q: query.q, page: query.page, hitsPerPage: PAGE_SIZE },

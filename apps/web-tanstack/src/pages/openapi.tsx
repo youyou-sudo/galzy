@@ -3,7 +3,7 @@ import OpenapiPage from "@web/components/openapi-page";
 import { seoTemplate } from "@web/config/seoTemplate";
 
 export const route = defineRoute("/openapi")
-	.config({ mode: "ssr" })
+	.config({ mode: "isr", revalidate: 3600 })
 	.head(() => ({
 		meta: [{ title: `API 文档 | ${seoTemplate.title}` }],
 	}))

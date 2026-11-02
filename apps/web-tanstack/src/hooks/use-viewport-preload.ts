@@ -1,10 +1,12 @@
-import { useRouter, type RegisteredRouter } from "@web/lib/nav";
+import { type RegisteredRouter, useRouter } from "@web/lib/nav";
 import { isViewTransitionActive } from "@web/lib/view-transition";
-import { useEffect, useRef, type RefObject } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 
-/** 全局并发上限：首屏卡片进入视口时批量预热详情，避免瞬时打爆 server function RPC。
- * 列表页「加载更多」后卡片数翻倍，并发 8 会抢占点击导航的网络/主线程，降到 4。 */
-const MAX_CONCURRENT = 4;
+/** 全局并发上限：预取只做「点击前最后一跳」，2 个并发足够；
+ * 早期取 4 时首屏一次挂载几十张卡会让浏览器 6 条连接被预取占满，
+ * 图片/会话请求排队，反而让页面变卡（实测首页一次发 16 条 _furin=data）。
+ * 导出供单测断言。 */
+export const MAX_CONCURRENT = 2;
 /** 大列表阈值：超过此卡片数时视口预取自动降级（只响应 hover/focus 意图），
  * 滚动不再触发成片 preloadRoute，避免返回列表时的预取洪峰。 */
 export const VIEWPORT_PRELOAD_DEGRADE_AFTER = 96;
@@ -178,11 +180,167 @@ export const __testSchedule = schedule;
  *   由调用方按需改用 useIntentPreload（悬停预热）
  * - 仅运行 loader，不触发路由 onEnter，view/下载计数不受影响
  */
+/** 预取策略：
+ * - `intent`（默认）：只有 hover / focus / pointerdown 才预取（滚动零请求）；
+ * - `viewport`：滚入视口即预取（旧行为，会形成首屏请求洪峰，仅在明确需要时开启）；
+ * - `off`：完全不预取。
+ *
+ * 为什么默认改成 intent：实测首页加载会一次发起 16 条 `?_furin=data`
+ * （10 张游戏卡 + 5 个标签页 + 若干列表页），每条都要跑完整 loader 链；
+ * 浏览器对同源只有 ~6 条并发连接，这些请求把连接占满后，
+ * 图片/会话/后续点击数据全部排队，页面体感上被「预取」拖住。
+ * 而 hover 意图预取的命中率接近视口预取，却只在用户真的指向卡片时才发 1 条。
+ */
+export const PREFETCH_MODE: "intent" | "viewport" | "off" = "intent";
+
+/** hover 停留多久才预取：避免鼠标划过列表时连续触发 */
+const INTENT_DWELL_MS = 60;
+
+/** 视口模式（非默认）下，页面级预取预算：超过就不再自动预取，避免长列表滚动洪峰 */
+const VIEWPORT_BUDGET = 8;
+let viewportBudgetLeft = VIEWPORT_BUDGET;
+
+/** 省流/弱网下不预取（Chrome/Safari 的 navigator.connection） */
+export function canPrefetch(): boolean {
+	if (typeof navigator === "undefined") return false;
+	const connection = (
+		navigator as Navigator & {
+			connection?: { saveData?: boolean; effectiveType?: string };
+		}
+	).connection;
+	if (connection?.saveData) return false;
+	if (
+		connection?.effectiveType !== undefined &&
+		["slow-2g", "2g"].includes(connection.effectiveType)
+	) {
+		return false;
+	}
+	return true;
+}
+
+/** 空闲时执行（不支持 rIC 的环境退回 setTimeout） */
+function whenIdle(fn: () => void, timeout = 1200): () => void {
+	if (typeof requestIdleCallback === "function") {
+		const handle = requestIdleCallback(fn, { timeout });
+		return () => cancelIdleCallback(handle);
+	}
+	const handle = setTimeout(fn, 200);
+	return () => clearTimeout(handle);
+}
+
+/**
+ * 开发模式标记（由根布局按服务端 NODE_ENV 设置）。
+ * `bun --hot` 下 `?_furin=data` 会在服务端**按需编译路由**，一次预取要 1~8s，
+ * 空闲预取反而把浏览器连接占满、拖慢本地调试；生产构建没有这个开销。
+ */
+let devMode = false;
+
+export function setPrefetchDevMode(value: boolean) {
+	devMode = value;
+}
+
+export function isPrefetchDevMode() {
+	return devMode;
+}
+
+/** 低优先级的「空闲预取」是否允许：dev 下关闭（详见 devMode 注释） */
+export function idlePrefetchAllowed(): boolean {
+	return !devMode && PREFETCH_MODE !== "off" && canPrefetch();
+}
+
+/** 已经绑定过意图监听的元素（两个 hook 同时用在同一个 <a> 上时只绑一次） */
+const intentBound = new WeakSet<HTMLElement>();
+
+/**
+ * 意图预取绑定：hover 停留 60ms / focus / pointerdown（含触屏）时预热路由。
+ * 返回解绑函数。
+ */
+function bindIntentPreload(
+	el: HTMLElement,
+	getRouter: () => RegisteredRouter,
+	makeTask: (router: RegisteredRouter) => (() => Promise<unknown>) | undefined,
+): () => void {
+	if (intentBound.has(el)) return () => {};
+	intentBound.add(el);
+
+	let cancelPreload: (() => void) | null = null;
+	let dwellTimer: ReturnType<typeof setTimeout> | undefined;
+
+	const run = () => {
+		if (cancelPreload || !canPrefetch()) return;
+		try {
+			const task = makeTask(getRouter());
+			if (task) cancelPreload = schedule(task);
+		} catch {
+			// 预取失败静默忽略，不影响后续导航
+		}
+	};
+
+	const startDelayed = () => {
+		if (cancelPreload || dwellTimer !== undefined) return;
+		dwellTimer = setTimeout(() => {
+			dwellTimer = undefined;
+			run();
+		}, INTENT_DWELL_MS);
+	};
+
+	const startNow = () => {
+		if (dwellTimer !== undefined) {
+			clearTimeout(dwellTimer);
+			dwellTimer = undefined;
+		}
+		run();
+	};
+
+	const stop = () => {
+		if (dwellTimer !== undefined) {
+			clearTimeout(dwellTimer);
+			dwellTimer = undefined;
+		}
+		cancelPreload?.();
+		cancelPreload = null;
+	};
+
+	el.addEventListener("pointerenter", startDelayed);
+	el.addEventListener("focus", startNow);
+	// 触屏没有 hover：按下即预取，能在点击导航前抢出一次请求
+	el.addEventListener("pointerdown", startNow);
+	el.addEventListener("pointerleave", stop);
+	el.addEventListener("blur", stop);
+	el.addEventListener("pointercancel", stop);
+
+	return () => {
+		stop();
+		el.removeEventListener("pointerenter", startDelayed);
+		el.removeEventListener("focus", startNow);
+		el.removeEventListener("pointerdown", startNow);
+		el.removeEventListener("pointerleave", stop);
+		el.removeEventListener("blur", stop);
+		el.removeEventListener("pointercancel", stop);
+		intentBound.delete(el);
+	};
+}
+
+/**
+ * 卡片预热入口（名字沿用旧 API）：默认走**意图预取**，见 `PREFETCH_MODE`。
+ *
+ * - `intent`：hover / focus / pointerdown 才预取；
+ * - `viewport`：滚入视口即预取（旧行为；带空闲调度 + 全页预算，避免洪峰）；
+ * - `off`：不预取。
+ *
+ * 仅运行 loader，不触发路由 onEnter，view/下载计数不受影响。
+ */
 export function useViewportPreload(
 	ref: RefObject<HTMLElement | null>,
 	makeTask: (router: RegisteredRouter) => (() => Promise<unknown>) | undefined,
 ) {
 	const router = useRouter();
+	const routerRef = useRef(router);
+	// 只更新 ref，不进 effect 依赖：router 每次导航都会换引用，
+	// 作为依赖会让每张卡重绑监听器。
+	useEffect(() => {
+		routerRef.current = router;
+	}, [router]);
 	const makeTaskRef = useRef(makeTask);
 	makeTaskRef.current = makeTask;
 
@@ -196,23 +354,39 @@ export function useViewportPreload(
 	}, []);
 
 	useEffect(() => {
+		if (PREFETCH_MODE === "off") return;
 		const el = ref.current;
-		if (!el || typeof IntersectionObserver === "undefined") return;
-		// 降级模式下不建立视口观察（hover 意图预取见 useIntentPreload）
+		if (!el) return;
+
+		if (PREFETCH_MODE === "intent") {
+			return bindIntentPreload(el, () => routerRef.current, (r) =>
+				makeTaskRef.current(r),
+			);
+		}
+
+		// 视口模式（非默认）：滚入视口后在空闲时预取，且受全页预算限制
+		if (typeof IntersectionObserver === "undefined") return;
+		// ⚠ effect 依赖只有 ref：这里早退的卡片不会因降级解除而重跑，
+		// 切回 PREFETCH_MODE = "viewport" 前必须把降级信号做成订阅式依赖。
 		if (isViewportPreloadDegraded()) return;
 		let cancelPreload: (() => void) | null = null;
-		// 暂停期间已滚入视口但未调度的条目：解除暂停时补一次调度
+		let cancelIdle: (() => void) | null = null;
 		let pendingResume = false;
+
+		const runScheduled = () => {
+			cancelIdle = null;
+			if (cancelPreload || viewportBudgetLeft <= 0) return;
+			const task = makeTaskRef.current(routerRef.current);
+			if (!task) return;
+			viewportBudgetLeft--;
+			cancelPreload = schedule(task);
+		};
+
 		const onResume = () => {
 			if (!pendingResume || cancelPreload) return;
 			pendingResume = false;
-			try {
-				const task = makeTaskRef.current(router);
-				if (task) cancelPreload = schedule(task);
-				else io.disconnect();
-			} catch {
-				// 预取失败静默忽略，不影响后续导航
-			}
+			if (viewportBudgetLeft <= 0) return;
+			cancelIdle ??= whenIdle(runScheduled);
 		};
 		resumeListeners.add(onResume);
 
@@ -220,78 +394,59 @@ export function useViewportPreload(
 			(entries) => {
 				for (const entry of entries) {
 					if (entry.isIntersecting) {
-						if (cancelPreload) continue;
-						// 「加载更多」进行中：暂停新调度，等解除暂停后补发
+						if (cancelPreload || cancelIdle) continue;
 						if (preloadPaused) {
 							pendingResume = true;
 							continue;
 						}
-						try {
-							const task = makeTaskRef.current(router);
-							if (task) cancelPreload = schedule(task);
-							else io.disconnect();
-						} catch {
-							// 预取失败静默忽略，不影响后续导航
-						}
-					} else if (cancelPreload) {
-						cancelPreload();
+						cancelIdle = whenIdle(runScheduled);
+					} else {
+						cancelIdle?.();
+						cancelIdle = null;
+						cancelPreload?.();
 						cancelPreload = null;
 					}
 				}
 			},
-			{ rootMargin: "100px" },
+			{ rootMargin: "0px" },
 		);
 
 		io.observe(el);
 		return () => {
 			resumeListeners.delete(onResume);
+			cancelIdle?.();
 			cancelPreload?.();
 			io.disconnect();
 		};
-	}, [router, ref]);
+		// router 走 ref，故意不进依赖：否则每次导航都会重绑监听器
+	}, [ref]);
 }
 
 /**
- * 意图预取：hover / focus 时预热路由。大列表降级模式下的替代方案 —
- * 用户明确表达兴趣才发请求，点击秒开率接近视口预取，但零滚动洪峰。
+ * 意图预取：hover / focus / pointerdown 时预热路由。
+ * 与 `useViewportPreload`（默认 intent 模式）共用同一绑定，同一元素只绑一次。
  */
 export function useIntentPreload(
 	ref: RefObject<HTMLElement | null>,
 	makeTask: (router: RegisteredRouter) => (() => Promise<unknown>) | undefined,
 ) {
 	const router = useRouter();
+	const routerRef = useRef(router);
+	// 只更新 ref，不进 effect 依赖：router 每次导航都会换引用，
+	// 作为依赖会让每张卡重绑监听器。
+	useEffect(() => {
+		routerRef.current = router;
+	}, [router]);
 	const makeTaskRef = useRef(makeTask);
 	makeTaskRef.current = makeTask;
 
 	useEffect(() => {
+		if (PREFETCH_MODE === "off") return;
 		const el = ref.current;
 		if (!el) return;
-		let cancelPreload: (() => void) | null = null;
-
-		const onEnter = () => {
-			if (cancelPreload) return;
-			try {
-				const task = makeTaskRef.current(router);
-				if (task) cancelPreload = schedule(task);
-			} catch {
-				// 预取失败静默忽略，不影响后续导航
-			}
-		};
-		const onLeave = () => {
-			cancelPreload?.();
-			cancelPreload = null;
-		};
-
-		el.addEventListener("pointerenter", onEnter);
-		el.addEventListener("focus", onEnter);
-		el.addEventListener("pointerleave", onLeave);
-		el.addEventListener("blur", onLeave);
-		return () => {
-			onLeave();
-			el.removeEventListener("pointerenter", onEnter);
-			el.removeEventListener("focus", onEnter);
-			el.removeEventListener("pointerleave", onLeave);
-			el.removeEventListener("blur", onLeave);
-		};
-	}, [router, ref]);
+		return bindIntentPreload(el, () => routerRef.current, (r) =>
+			makeTaskRef.current(r),
+		);
+		// router 走 ref，故意不进依赖：否则每次导航都会重绑监听器
+	}, [ref]);
 }

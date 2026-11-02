@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@web/lib/nav";
+import { Link, usePathname } from "@web/lib/nav";
 import { Image } from "@unpic/react";
 import { useHeaderTone } from "@web/hooks/use-header-tone";
 import { cn } from "@web/lib/utils";
@@ -32,7 +32,7 @@ const SCROLL_PILL_THRESHOLD = 8;
  *   视觉几乎无差异。
  */
 export default function Header() {
-	const pathname = useRouterState({ select: (s) => s.location.pathname });
+	const pathname = usePathname();
 	const [isOpen, setIsOpen] = useState(false);
 	// 首次打开后保持挂载：关闭动画由 mobile-menu 自己用 open 过渡，卸载会丢掉动画
 	const [menuReady, setMenuReady] = useState(false);

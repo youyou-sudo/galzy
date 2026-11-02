@@ -21,7 +21,7 @@ import { t } from "elysia";
 const paramsSchema = t.Object({ pid: t.String() });
 
 export const route = defineRoute("/producer/[pid]")
-	.config({ mode: "ssr", params: paramsSchema })
+	.config({ mode: "isr", revalidate: 300, params: paramsSchema })
 	.loader(async ({ params }) => {
 		const { pid } = params;
 		const [producer, gameList] = await Promise.all([

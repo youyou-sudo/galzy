@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@web/lib/nav";
+import { Link, usePathname } from "@web/lib/nav";
 import { useSelector } from "@tanstack/react-store";
 import {
 	GameTabSkeleton,
@@ -53,7 +53,7 @@ function heroTitle(hero: GameHeroData | null): string {
 export function GameDetailPending({ id }: { id: string }) {
 	// 列表点击进入时 gameHeroStore 已有封面/标题；id 不匹配（换了条目）时不用旧数据
 	const hero = useSelector(gameHeroStore, (s) => (s.id === id ? s.data : null));
-	const pathname = useRouterState({ select: (s) => s.location.pathname });
+	const pathname = usePathname();
 	// 与页签栏共用同一份判定（GameTabs 导出），新增页签不会让 pending 掉回文件列表骨架
 	const currentTab = gameTabOf(pathname);
 

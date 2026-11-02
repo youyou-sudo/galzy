@@ -1,117 +1,111 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link } from '@web/lib/nav'
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@web/components/ui/dropdown-menu'
-import { elysiaErrorF } from '@web/lib'
-import { authClient } from '@web/server/auth/auth-client'
-import { LogOut, User, UserCog } from 'lucide-react'
-import { toast } from 'sonner'
-import { Button } from '../ui/button'
-import AvatarComp from './ProfileMenu/AvatarEditor'
-import UserHeader from './ProfileMenu/UserHeader'
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@web/components/ui/dropdown-menu";
+import { Link } from "@web/lib/nav";
+import { useAuthSession } from "@web/lib/use-auth-session";
+import { authClient } from "@web/server/auth/auth-client";
+import { LogOut, User, UserCog } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "../ui/button";
+import AvatarComp from "./ProfileMenu/AvatarEditor";
+import UserHeader from "./ProfileMenu/UserHeader";
 
 export default function UserMenu() {
-  const queryClient = useQueryClient()
-  const { data: session, isPending } = useQuery({
-    queryKey: ['auth'],
-    queryFn: async () => {
-      const { data: res, error } = await authClient.getSession()
-      elysiaErrorF(error)
-      return res
-    },
-  })
+	const queryClient = useQueryClient();
+	// 会话由根布局随 HTML seed 进 ['auth']：首帧就是登录态，不再等一次客户端请求
+	const { data: session, isPending } = useAuthSession();
 
-  if (isPending) {
-    return <div className="size-8 bg-muted rounded-full animate-pulse" />
-  }
+	if (isPending) {
+		return <div className="size-8 bg-muted rounded-full animate-pulse" />;
+	}
 
-  if (!session) {
-    return (
-      <Button
-        variant="default"
-        size="sm"
-        nativeButton={false}
-        className="px-3 h-8 rounded-lg"
-        render={<Link to="/auth/login" />}
-      >
-        <User className="size-3.5" />
-        登录
-      </Button>
-    )
-  }
+	if (!session) {
+		return (
+			<Button
+				variant="default"
+				size="sm"
+				nativeButton={false}
+				className="px-3 h-8 rounded-lg"
+				render={<Link to="/auth/login" />}
+			>
+				<User className="size-3.5" />
+				登录
+			</Button>
+		);
+	}
 
-  const { user } = session
+	const { user } = session;
 
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label="账户菜单"
-        className="rounded-full outline-none ring-offset-2 ring-offset-background transition-shadow hover:ring-2 hover:ring-border focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <AvatarComp
-          name={user.name}
-          image={user.image}
-          editor={false}
-          size="sm"
-        />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>账户</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <div className="px-1.5 py-2">
-            <UserHeader
-              name={user.name}
-              email={user.email}
-              image={user.image}
-              profileMenu={true}
-              avatarSize="sm"
-            />
-          </div>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem render={(props) => <Link to="/user" {...props} />}>
-          <UserCog className="size-4" />
-          个人设置
-        </DropdownMenuItem>
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger
+				aria-label="账户菜单"
+				className="rounded-full outline-none ring-offset-2 ring-offset-background transition-shadow hover:ring-2 hover:ring-border focus-visible:ring-2 focus-visible:ring-ring"
+			>
+				<AvatarComp
+					name={user.name}
+					image={user.image}
+					editor={false}
+					size="sm"
+				/>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end" className="w-56">
+				<DropdownMenuGroup>
+					<DropdownMenuLabel>账户</DropdownMenuLabel>
+					<DropdownMenuSeparator />
+					<div className="px-1.5 py-2">
+						<UserHeader
+							name={user.name}
+							email={user.email}
+							image={user.image}
+							profileMenu={true}
+							avatarSize="sm"
+						/>
+					</div>
+				</DropdownMenuGroup>
+				<DropdownMenuSeparator />
+				<DropdownMenuItem render={(props) => <Link to="/user" {...props} />}>
+					<UserCog className="size-4" />
+					个人设置
+				</DropdownMenuItem>
 
-        {user.role === 'admin' && (
-          <DropdownMenuItem render={(props) => <Link to="/admin" {...props} />}>
-            <UserCog className="size-4" />
-            后台管理
-          </DropdownMenuItem>
-        )}
+				{user.role === "admin" && (
+					<DropdownMenuItem render={(props) => <Link to="/admin" {...props} />}>
+						<UserCog className="size-4" />
+						后台管理
+					</DropdownMenuItem>
+				)}
 
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          variant="destructive"
-          onClick={async () =>
-            await authClient.signOut({
-              fetchOptions: {
-                onError: () => {
-                  toast.error(`退出登陆失败喵`)
-                },
-                onSuccess: () => {
-                  queryClient.invalidateQueries({
-                    queryKey: ['auth'],
-                  })
-                  toast.success(`退出登陆成功喵～`)
-                },
-              },
-            })
-          }
-        >
-          <LogOut className="size-4" />
-          退出登录
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
+				<DropdownMenuSeparator />
+				<DropdownMenuItem
+					variant="destructive"
+					onClick={async () =>
+						await authClient.signOut({
+							fetchOptions: {
+								onError: () => {
+									toast.error(`退出登陆失败喵`);
+								},
+								onSuccess: () => {
+									queryClient.invalidateQueries({
+										queryKey: ["auth"],
+									});
+									toast.success(`退出登陆成功喵～`);
+								},
+							},
+						})
+					}
+				>
+					<LogOut className="size-4" />
+					退出登录
+				</DropdownMenuItem>
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
 }

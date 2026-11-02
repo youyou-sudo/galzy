@@ -210,6 +210,17 @@ export const route = defineRoute("/tags/[tagId]")
 - loader 返回值就是 page props；旧 `context.queryClient.setQueryData` 语义用 `@web/lib/query-seed` 的 `useSeedQueries` 复刻。
 - 组件仍从 `@web/lib/nav` 导入 Link / useNavigate / useRouterState / useSearch / useParams / getRouteApi / redirect（兼容层，旧 route id 由 `lib/route-manifest.ts` 映射）。
 - `pendingComponent` 无对应机制；`isNavigating` 可做顶栏加载指示。
+- **loader 只服务首屏**：furin 的站内切页会重跑整条 loader 链（root → `_route` → 页面），loader 里做 `web → API → DB` 取数会直接变成切页等待。需要首屏 SSR 数据时用 `@web/lib/spa-request` 的 `documentOnly(request, load)` 包住取数：文档请求正常返回，`?_furin=data` 切页请求返回 `null`，页面内 `useQuery` 自己取（`gcTime` 5 分钟，切回命中缓存）。后台示例见 `docs/admin-spa-refactor.md`。
+- 页内状态（Tab / 筛选 / 分页）用 `@web/lib/admin/use-shallow-search` 的 `useShallowSearch` 改地址栏（`history.replaceState`），**不要**用 `useNavigate`——那会触发一次页面取数与重挂载。
+- **客户端预取策略**：卡片/列表默认走**意图预取**（`hooks/use-viewport-preload.ts` 的 `PREFETCH_MODE = "intent"`：hover 停留 60ms / focus / pointerdown 才发 `?_furin=data`），不要在挂载或滚入视口时成片预取——实测首页一次会打出 16 条预取，占满同源连接后把图片/会话/点击导航全排在后面。`useIdlePreload` 只用于极少量入口：等 `load` 后空闲调度、整页预算 6 条、开发模式（`bun --hot` 按需编译路由）自动关闭。排查数据与取舍见 `docs/client-navigation-perf.md`。
+
+### 用户视图缓存（ISR + CDN）
+
+- **页面分级**：用户视图（首页/游戏/标签/合集/厂商/论坛/友链/contact 等）用 `config({ mode: "isr", revalidate, tags })`，由源站（Redis 页面缓存）+ CDN（Cloudflare）两层缓存；后台/用户中心/登录/创建编辑页保持 `ssr`。根布局 `pages/root.tsx` 必须是 `isr`——它若为 ssr，furin 的 `resolveDocumentMode` 会把整条链回落成 ssr。
+- **登录态绝不进缓存**：根布局只用 `isPersonalizedPath(path)` 命中的路径在服务端取会话（`authKnown = true` 时才 seed `['auth']`）；用户视图的登录态由客户端 `useAuthSession()` 取。ISR 页面的 loader 禁止读会话/cookie（`PublicLoaderContext` 会直接抛错），需要个性化数据要么给 BFF 加 `publicOnly` 跳过会话，要么放到组件里的 `useQuery`。
+- **失效链路（Redis 频道，跨进程只靠一条 `REDIS_URL`）**：API 写操作（2xx 的 POST/PUT/PATCH/DELETE）→ `apps/api/src/libs/isr-invalidation.ts` 按路由前缀分流 → `libs/cloudflare-cache.ts` 的语义 helper → publish `galzy:isr:invalidate` → web 订阅后 `revalidatePath()` / `revalidateTag()` 删 Redis 页面产物，并把实际失效 URL publish 到 `galzy:isr:cdn-purge` → API 订阅后用 Cloudflare 凭据按 URL 清 CDN（频道常量见 `packages/libs/src/isr.ts`）。新增写接口要把它加进前缀映射；新增列表筛选维度时给路由补 `tags`（标签能连带清掉所有查询串变体）。
+- **连接配置**：web 与 API 一样只认一条 `REDIS_URL`（`@web/lib/redis` 用 Bun 内置客户端；本地开发默认不用 Redis，可设 `REDIS_ENABLED=true` 调试）。Cloudflare 凭据/`SITE_URL` 只留在 API 进程；CDN 侧仍需 Cache Rule：`/admin/*`、`/api/*`、`/auth/*`、`/user/*` Bypass，其余 GET 页面尊重源站 Cache-Control。
+- 设计与取舍见 `docs/isr-cdn-cache.md`。
 
 **BFF** — `apps/web-tanstack/src/server`:
 ```ts
@@ -220,12 +231,15 @@ export const adminCreateAdSlot = bffFn<typeof impl.adminCreateAdSlot>("admin/adv
 ```
 - 页面 loader / 组件都调用 surface：SSR 走进程内 dispatch，浏览器走 `POST /api/_bff/:id`（同源 cookie）。
 - 新增 handler 后运行 `bun scripts/furin/gen-registry.mjs` 重建 registry。
-- `cookiePass()` / `ipPass()` 从 `src/lib/request-context.ts` 的 AsyncLocalStorage 读当前请求（Elysia `onRequest` 注入）。
+- `cookiePass()` / `ipPass()` 从 `src/lib/request-context.ts` 的 AsyncLocalStorage 读当前请求（`src/server.ts` 最外层 `.wrap()` 注入；必须比 furin 的 wrap 更外，才能拿到带 `?_furin=data` 的原始请求）。
 
 **Auth (Better Auth):**
 - Browser: `createAuthClient` from `better-auth/react` → `authClient.useSession()`, `authClient.signIn.email()`
 - SSR: `createAuthClient` from `better-auth/client` → cookie forwarding via `getRequestHeader('Cookie')`
 - Session query key: `['auth']` — prefetched via `ensureQueryData` in loaders, invalidated on signIn/signOut
+- **服务端读会话一律用 `@web/server/auth/server-session` 的 `getServerSession()`**（15s 进程内缓存 + 并发合并 + 无 cookie 直接返回 null），不要直接 `authServerClient.getSession()`：会话查询在远端库上单次可达 1.2s，而它散落在多个 BFF/loader 里，列表页预取会把开销放大十倍。
+- 根布局 `pages/root.tsx` 随文档下发 `authSession` 并 seed 进 `['auth']`；客户端统一用 `@web/lib/use-auth-session` 的 `useAuthSession()` 读会话，不要各自 `authClient.getSession()`（否则每次刷新都要等一次会话请求才出登录态）。详见 `docs/auth-session-perf.md`。
+- API 侧会话配了 Redis secondary storage（`apps/api/src/modules/auth/service.ts`，`storeSessionInDatabase: true` 保底）；升级前的旧会话可用 `bun --cwd apps/api run scripts/prewarm-auth-sessions.ts --apply` 预热进 Redis。
 
 **State (TanStack React Store):**
 ```typescript

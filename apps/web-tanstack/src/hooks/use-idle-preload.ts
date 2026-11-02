@@ -1,6 +1,16 @@
-import { useRouter, type RegisteredRouter } from "@web/lib/nav";
+import { idlePrefetchAllowed } from "@web/hooks/use-viewport-preload";
+import { type RegisteredRouter, useRouter } from "@web/lib/nav";
 import { isViewTransitionActive } from "@web/lib/view-transition";
 import { useEffect, useRef } from "react";
+
+/**
+ * 整页空闲预取预算：一次文档内最多预取这么多个路由。
+ * 首页有 5 个「更多…」入口、详情页有 5 个 tab，叠加起来仍会占满
+ * 浏览器同源连接池，给点击导航造成排队（实测首页一次 16 条 `?_furin=data`
+ * 中 5 条来自这里）。预算在文档生命周期内共享，滚动/懒加载不会重置。
+ */
+const IDLE_PRELOAD_BUDGET = 6;
+let idlePrefetchBudget = IDLE_PRELOAD_BUDGET;
 
 /** VT 播放期间延后实际预取的兜底上限：超过仍判定活跃就强制放行，
  * 避免 rAF 被后台标签页节流时预取永久悬空。 */
@@ -24,30 +34,30 @@ function now(): number {
  *
  * staggerMs > 0 时错峰执行：每隔 staggerMs 发一个预取，避免详情页 5 个 tab
  * 同时 preloadRoute 抢占返回列表所需的主线程/网络。卸载时取消剩余任务。
- * 省流模式（navigator.saveData）下直接跳过全部预取。
+ * 另外做了三层节流，避免「预取把页面拖住」：
+ * - 等 `load` 事件之后再找空闲（首屏图片/字体下完之前不抢连接）；
+ * - 省流/弱网（saveData、2g）不预取；
+ * - 整页预算 `IDLE_PRELOAD_BUDGET`，超出就不再自动预取；
+ * - `bun --hot` 开发模式（按需编译，预取会阻塞调试）直接跳过。
  */
 export function useIdlePreload(
 	targets: ReadonlyArray<(router: RegisteredRouter) => void>,
 	options?: { staggerMs?: number },
 ) {
 	const router = useRouter();
+	const routerRef = useRef(router);
+	// 只更新 ref，不进 effect 依赖：router 每次导航都会换引用，
+	// 作为依赖会让 effect 重跑、重新调度整页空闲预取。
+	useEffect(() => {
+		routerRef.current = router;
+	}, [router]);
 	const targetsRef = useRef(targets);
 	targetsRef.current = targets;
 	const staggerMs = options?.staggerMs ?? 0;
 
 	useEffect(() => {
-		// 省流模式：跳过一切预取
-		try {
-			if (
-				typeof navigator !== "undefined" &&
-				(navigator as Navigator & { connection?: { saveData?: boolean } })
-					.connection?.saveData
-			) {
-				return;
-			}
-		} catch {
-			// navigator 不可用时继续正常预取
-		}
+		// 策略关闭 / 省流 / 弱网 / 开发模式：跳过一切空闲预取
+		if (!idlePrefetchAllowed()) return;
 
 		let cancelled = false;
 		const timers: Array<ReturnType<typeof setTimeout>> = [];
@@ -58,7 +68,7 @@ export function useIdlePreload(
 		const runOne = (index: number) => {
 			if (cancelled) return;
 			try {
-				targetsRef.current[index]?.(router);
+				targetsRef.current[index]?.(routerRef.current);
 			} catch {
 				// 预取失败静默忽略，不影响后续导航
 			}
@@ -67,12 +77,23 @@ export function useIdlePreload(
 		/** 真正执行 targets（staggerMs > 0 时按索引错峰） */
 		const runTargets = () => {
 			if (cancelled) return;
+			// 后台标签页、预算耗尽时不预取
+			if (
+				(typeof document !== "undefined" &&
+					document.visibilityState === "hidden") ||
+				idlePrefetchBudget <= 0
+			) {
+				return;
+			}
+			const allowed = Math.min(idlePrefetchBudget, targetsRef.current.length);
+			idlePrefetchBudget -= allowed;
+			const targets = targetsRef.current.slice(0, allowed);
 			if (staggerMs > 0) {
-				targetsRef.current.forEach((_, index) => {
+				targets.forEach((_, index) => {
 					timers.push(setTimeout(() => runOne(index), index * staggerMs));
 				});
 			} else {
-				targetsRef.current.forEach((_, index) => runOne(index));
+				for (const [index] of targets.entries()) runOne(index);
 			}
 		};
 
@@ -106,11 +127,27 @@ export function useIdlePreload(
 			frameHandle = requestAnimationFrame(tick);
 		};
 
-		if (typeof requestIdleCallback === "function") {
-			idleHandle = requestIdleCallback(run, { timeout: 2000 });
-		} else {
-			timers.push(setTimeout(run, 300));
+		/** 等首屏资源全部就绪（load）之后再进入空闲调度，避免和图片抢连接 */
+		const scheduleWhenIdle = () => {
+			if (cancelled) return;
+			if (typeof requestIdleCallback === "function") {
+				idleHandle = requestIdleCallback(run, { timeout: 3000 });
+			} else {
+				timers.push(setTimeout(run, 800));
+			}
+		};
+
+		if (typeof document !== "undefined" && document.readyState !== "complete") {
+			const onLoad = () => scheduleWhenIdle();
+			window.addEventListener("load", onLoad, { once: true });
+			return () => {
+				cancelled = true;
+				window.removeEventListener("load", onLoad);
+				for (const t of timers) clearTimeout(t);
+			};
 		}
+		scheduleWhenIdle();
+
 		return () => {
 			cancelled = true;
 			for (const t of timers) clearTimeout(t);
@@ -122,5 +159,6 @@ export function useIdlePreload(
 				frameHandle = undefined;
 			}
 		};
-	}, [router, staggerMs]);
+		// router 走 ref，故意不进依赖：否则每次导航都会重新注册预取调度
+	}, [staggerMs]);
 }

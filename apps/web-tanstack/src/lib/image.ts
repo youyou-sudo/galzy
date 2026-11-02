@@ -14,6 +14,17 @@ export function fullSizeCoverUrl(url: string): string {
 }
 
 const thumbHashCache = new Map<string, string | null>();
+/** 解码结果缓存上限：每条是 32×32 PNG 的 dataURL（1.5–3KB），
+ * 无限滚动下只写不删会让长会话常驻数 MB。Map 插入序 + 命中 touch = LRU。 */
+const THUMB_HASH_CACHE_MAX = 400;
+
+function setThumbHashCache(value: string, dataUrl: string | null): void {
+	if (thumbHashCache.size >= THUMB_HASH_CACHE_MAX && !thumbHashCache.has(value)) {
+		const oldest = thumbHashCache.keys().next().value;
+		if (oldest !== undefined) thumbHashCache.delete(oldest);
+	}
+	thumbHashCache.set(value, dataUrl);
+}
 const thumbHashListeners = new Map<
 	string,
 	Set<(dataUrl: string | null) => void>
@@ -74,21 +85,21 @@ export function getThumbHashDataUrl(thumbhash?: string | null): string | null {
 
 	const candidates = decodeThumbHash(value);
 	if (candidates.length === 0) {
-		thumbHashCache.set(value, null);
+		setThumbHashCache(value, null);
 		return null;
 	}
 
 	for (const bytes of candidates) {
 		try {
 			const dataUrl = thumbHashToDataURL(bytes);
-			thumbHashCache.set(value, dataUrl);
+			setThumbHashCache(value, dataUrl);
 			return dataUrl;
 		} catch {
 			// Try the next supported encoding before falling back to the real image.
 		}
 	}
 
-	thumbHashCache.set(value, null);
+	setThumbHashCache(value, null);
 	return null;
 }
 
@@ -106,7 +117,7 @@ function decodeThumbHashCached(value: string): string | null {
 			// Try the next supported encoding before falling back to null.
 		}
 	}
-	thumbHashCache.set(value, result);
+	setThumbHashCache(value, result);
 	return result;
 }
 
@@ -122,7 +133,7 @@ function scheduleIdleCallback(
 
 /** 写缓存 + 派发通知；滚动中先攒进 deferredResults，恢复时补发。 */
 function resolveThumbHash(value: string, dataUrl: string | null): void {
-	thumbHashCache.set(value, dataUrl);
+	setThumbHashCache(value, dataUrl);
 	if (decodePaused) {
 		deferredResults.push({ value, dataUrl });
 		return;
@@ -250,7 +261,11 @@ function subscribeThumbHash(
 	listener: (dataUrl: string | null) => void,
 ): () => void {
 	if (thumbHashCache.has(value)) {
-		listener(thumbHashCache.get(value) ?? null);
+		// 命中即 touch：Map 插入序当 LRU 用，避免高频页面的条目被 FIFO 淘汰后重解码
+		const hit = thumbHashCache.get(value) ?? null;
+		thumbHashCache.delete(value);
+		thumbHashCache.set(value, hit);
+		listener(hit);
 		return () => {};
 	}
 	enqueueThumbHashDecode(value);

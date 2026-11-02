@@ -19,7 +19,7 @@ function gameDescription(game: GameSeoSource | undefined) {
 
 /** 攻略文章列表页签（/$id/introduction） */
 export const route = defineRoute("/[id]/introduction")
-	.config({ mode: "ssr", params: paramsSchema })
+	.config({ mode: "isr", revalidate: 300, params: paramsSchema })
 	.loader(async ({ params }) => ({
 		introductionList: await getintroductionList({ data: { id: params.id } }),
 	}))

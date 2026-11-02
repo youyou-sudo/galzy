@@ -4,7 +4,10 @@ import { type ReactNode, useState } from "react";
 
 const defaultOptions = {
 	queries: {
-		gcTime: 60_000,
+		// 后台改成 SPA 式导航后，页面数据只在客户端加载：留 5 分钟缓存，
+		// 在后台各页之间来回切换时直接命中上次的数据（stale 也会先渲染再后台刷新），
+		// 不会每进一次页面就看一次骨架。
+		gcTime: 5 * 60_000,
 		staleTime: 30_000,
 	},
 } as const;
@@ -30,7 +33,10 @@ export function shouldPersistQuery(query: {
 	queryKey: readonly unknown[];
 	state?: { status?: string };
 }) {
-	return PERSIST_PREFIXES.has(String(query.queryKey[0])) && query.state?.status === "success";
+	return (
+		PERSIST_PREFIXES.has(String(query.queryKey[0])) &&
+		query.state?.status === "success"
+	);
 }
 
 function createPersister(storage: Storage) {
@@ -79,5 +85,7 @@ export default function QueryProvider({ children }: { children: ReactNode }) {
 		}
 		return client;
 	});
-	return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+	return (
+		<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+	);
 }

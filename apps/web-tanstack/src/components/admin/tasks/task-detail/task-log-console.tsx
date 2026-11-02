@@ -38,6 +38,9 @@ const POLL_INTERVAL_MS = 2000;
 /** 单次增量拉取的条数上限。 */
 const LOG_PAGE_LIMIT = 200;
 
+/** 累积日志上限：控制台只展示最近部分，更早的历史按契约 V2 的 beforeId 再补。 */
+const LOG_MAX_ROWS = 2000;
+
 type LogLevelFilter = "all" | "warn" | "error";
 
 const LEVEL_FILTERS: ReadonlyArray<{ key: LogLevelFilter; label: string }> = [
@@ -65,7 +68,10 @@ function mergeLogs(
 	const byId = new Map<number, QueueJobLogRow>();
 	for (const log of previous) byId.set(log.id, log);
 	for (const log of incoming) byId.set(log.id, log);
-	return [...byId.values()].sort((a, b) => a.id - b.id);
+	const merged = [...byId.values()].sort((a, b) => a.id - b.id);
+	return merged.length > LOG_MAX_ROWS
+		? merged.slice(merged.length - LOG_MAX_ROWS)
+		: merged;
 }
 
 function formatClock(input: string): string {
@@ -170,12 +176,15 @@ export function TaskLogConsole({
 		return logs.filter((log) => log.level === "error");
 	}, [logs, level]);
 
-	// 只在「行数变化」时滚到底：切换级别过滤不改变阅读位置
+	// 尾行 id 会持续变化（截断后行数恒为 LOG_MAX_ROWS，只靠 length 无法感知新增）
+	const lastLogId = visibleLogs[visibleLogs.length - 1]?.id;
+
+	// 只在「有新日志」时滚到底：切换级别过滤时若尾行未变则不移动阅读位置
 	useEffect(() => {
 		if (!autoScroll) return;
 		const element = scrollRef.current;
 		if (element) element.scrollTop = element.scrollHeight;
-	}, [visibleLogs.length, autoScroll]);
+	}, [visibleLogs.length, lastLogId, autoScroll]);
 
 	const copyAll = async () => {
 		if (visibleLogs.length === 0) return;

@@ -143,6 +143,24 @@ export const getKv = async (key: string) => {
 }
 
 /**
+ * 自增计数：首次创建时设置 TTL（秒）。
+ *
+ * 供 better-auth 的 secondaryStorage.increment 等「计数器 + 过期」场景使用；
+ * 只有从 0 → 1 的那次才设置 TTL，后续自增不重置过期时间。
+ */
+export const incrKv = async (key: string, time?: number) => {
+  return safeRedisOp(
+    async (client) => {
+      const value = await client.incr(key)
+      if (time && value === 1) await client.expire(key, time)
+      return value
+    },
+    0,
+    `incrKv(${key})`,
+  )
+}
+
+/**
  * 删除 Key
  * @param key 键
  * @returns 被删除的 Key 数量

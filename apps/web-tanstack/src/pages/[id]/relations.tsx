@@ -19,7 +19,7 @@ function gameDescription(game: GameSeoSource | undefined) {
 
 /** 系列关系页签（/$id/relations）：数据给 RelationsPage 自己从 page props 读 */
 export const route = defineRoute("/[id]/relations")
-	.config({ mode: "ssr", params: paramsSchema })
+	.config({ mode: "isr", revalidate: 300, params: paramsSchema })
 	.loader(async ({ params }) => ({
 		relations: await getGameRelations({ data: { id: params.id } }),
 	}))

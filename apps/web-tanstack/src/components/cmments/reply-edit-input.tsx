@@ -1,6 +1,6 @@
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useRouterState } from "@web/lib/nav";
+import { useNavigate, usePathname } from "@web/lib/nav";
 import { useSelector } from "@tanstack/react-store";
 import { Image } from "@unpic/react";
 import { Field, FieldError, FieldGroup } from "@web/components/ui/field";
@@ -67,7 +67,13 @@ export const ReplyEidtInput = ({
 	const formId = `reply-edit-form-${reId}-${targetId}`;
 	const cursorPosRef = useRef({ start: 0, end: 0 });
 
-	const data = useSelector(replyCardStore, (s) => s.data);
+	// 只有「当前被打开的那条回复」需要 data；否则返回稳定的 null，
+	// 避免点一次「回复」让页面上所有回复框（每条评论 + 每条回复各一个）一起重渲染。
+	// 顶层评论输入框（commentscomp、reId 为 undefined）因此恒为 null，
+	// 顺带修掉它读到上一次打开回复的 data、提交时 replyToUserId 被写成无关用户的既有 bug。
+	const data = useSelector(replyCardStore, (s) =>
+		s.openReId === reId ? s.data : null,
+	);
 	const openReId = useSelector(replyCardStore, (s) => s.openReId);
 
 	const formSchema = useMemo(
@@ -141,9 +147,7 @@ export const ReplyEidtInput = ({
 	});
 
 	const navigate = useNavigate();
-	const pathname = useRouterState({
-		select: (state) => state.location.pathname,
-	});
+	const pathname = usePathname();
 
 	if (isPending && !reId)
 		return <Skeleton className="w-full h-24 rounded-xl" />;

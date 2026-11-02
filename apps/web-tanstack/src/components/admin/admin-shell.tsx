@@ -1,8 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useLocation } from "@web/lib/nav";
 import { AdminCommandMenu } from "@web/components/admin/admin-command-menu";
 import {
 	adminNav,
+	adminNavItems,
 	findNavItem,
 	isNavItemActive,
 } from "@web/components/admin/admin-nav";
@@ -21,6 +21,8 @@ import {
 import { Sheet, SheetContent, SheetTitle } from "@web/components/ui/sheet";
 import { useLocalStorageState } from "@web/hooks/use-local-storage-state";
 import { adminKeys } from "@web/lib/admin/query-keys";
+import { Link, useLocation, useRouter } from "@web/lib/nav";
+import { useAuthSession } from "@web/lib/use-auth-session";
 import { cn } from "@web/lib/utils";
 import { getTaskStats } from "@web/server/admin/tasks";
 import { authClient } from "@web/server/auth/auth-client";
@@ -36,8 +38,60 @@ import {
 	UserIcon,
 	XIcon,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+
+/**
+ * 后台会话的客户端兜底。
+ *
+ * 站内切页不再走服务端的会话校验（见 `pages/admin/_route.tsx`：每次切页都做一次
+ * `web → API → DB` 往返是后台变慢的主因），所以这里在客户端补一次判断：
+ * 会话过期或未登录时直接跳登录页，避免停留在一个点哪儿都 403 的空壳上。
+ * 真正的数据安全仍由每个后台接口的 `isAdmin` 宏保证。
+ */
+function useAdminSessionGuard() {
+	// 与用户菜单同一份 ['auth'] 缓存（根布局已 seed），不再单独发 /auth/get-session
+	const { data: session, isPending } = useAuthSession();
+
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		if (isPending || session) return;
+		const returnTo = window.location.pathname + window.location.search;
+		window.location.replace(
+			"/auth/login?return_to=" + encodeURIComponent(returnTo),
+		);
+	}, [isPending, session]);
+}
+
+/**
+ * 空闲时预取全部后台路由。
+ *
+ * furin 的站内导航是「先取页面壳再 commit」：页面模块与 `?_furin=data` 没到位，
+ * 旧页面就会一直停在原地。侧栏只有 11 个入口，首屏渲染完以后在浏览器空闲时
+ * 全部预取（框架内部按 30s 缓存、in-flight 去重），点侧栏就是直接换页，不再等网络。
+ */
+function useAdminRoutePrefetch() {
+	const router = useRouter();
+	const prefetched = useRef(false);
+
+	useEffect(() => {
+		if (typeof window === "undefined" || prefetched.current) return;
+		const run = () => {
+			prefetched.current = true;
+			for (const { to } of adminNavItems) {
+				void Promise.resolve(router.preloadRoute({ to })).catch(
+					() => undefined,
+				);
+			}
+		};
+		if (typeof requestIdleCallback === "function") {
+			const handle = requestIdleCallback(run, { timeout: 1200 });
+			return () => cancelIdleCallback(handle);
+		}
+		const timer = setTimeout(run, 300);
+		return () => clearTimeout(timer);
+	}, [router]);
+}
 
 /** 运行中 + 排队中的任务数，用于侧栏徽标（后台任意页面都能看到积压）。 */
 function useRunningTaskCount() {
@@ -144,7 +198,8 @@ function NavList({ pathname, collapsed, runningCount, onNavigate }: NavProps) {
 
 function SidebarFooter({ collapsed }: { collapsed: boolean }) {
 	const queryClient = useQueryClient();
-	const { data: session } = authClient.useSession();
+	// 复用 ['auth'] 缓存（根布局已 seed），避免每次进入后台再拉一次会话
+	const { data: session } = useAuthSession();
 	const user = session?.user;
 
 	const signOut = async () => {
@@ -368,6 +423,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 	);
 	const [commandOpen, setCommandOpen] = useState(false);
 	const runningCount = useRunningTaskCount();
+	useAdminSessionGuard();
+	useAdminRoutePrefetch();
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {

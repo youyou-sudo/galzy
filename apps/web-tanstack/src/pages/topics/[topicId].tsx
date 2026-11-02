@@ -66,9 +66,12 @@ const byCreatedAtAsc = (a: any, b: any) =>
 	Date.parse(a.createdAt) - Date.parse(b.createdAt);
 
 export const route = defineRoute("/topics/[topicId]")
-	.config({ mode: "ssr", params: t.Object({ topicId: t.String() }) })
+	.config({ mode: "isr", revalidate: 120, params: t.Object({ topicId: t.String() }) })
 	.loader(async ({ params }) => {
-		const topic = await getTopic({ data: { id: Number(params.topicId) } });
+		// ISR：跳过会话/cookie，保证缓存内容是所有人一致的公共视图
+		const topic = await getTopic({
+			data: { id: Number(params.topicId), publicOnly: true },
+		});
 		return { topic };
 	})
 	.head(({ topic, params }) =>
