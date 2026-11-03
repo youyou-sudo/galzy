@@ -27,25 +27,33 @@
 :root {
     /* ── 基础面 ──────────────────────────────────────────────────────
        中性面刻意保持 chroma = 0：它们是「可被主色乘色的基底」，
-       色板切换时由 [data-theme-preset] 用 color-mix 派生，见文件末尾。 */
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
+       色板切换时由 [data-theme-preset] 用 color-mix 派生，见文件末尾。
+
+       底色取 #f2f2f2（L 0.961）而不是纯白：屏幕纯白是 100% 反射的「纸」，
+       大面积阅读时瞳孔持续收缩、眨眼频率下降，是「页面太亮」的主因。
+       压到 0.961 后正文对比度 19.8:1 → 13.9:1（仍在 AAA 区间），眩光明显减弱。
+       层级改用明度差表达：底色 0.961 → 卡片 0.985 → 弹层 1.0（纯白只留给
+       浮起的弹层），不再依赖阴影把卡片从白底上「抬」起来。 */
+    --background: oklch(0.961 0 0);
+    --foreground: oklch(0.26 0 0);
+    --card: oklch(0.985 0 0);
+    --card-foreground: oklch(0.26 0 0);
     --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
+    --popover-foreground: oklch(0.26 0 0);
 
     /* ── 品牌色：深海蓝 ──────────────────────────────────────────────
-       L 压在 0.55 是为了让白字达到 WCAG AA 4.5:1（实测 4.7:1）。
-       彩度封顶 0.14：hue 245 在 L 0.55 处的 sRGB 边界就是 0.14，
+       底色压灰后，L 0.55 在白底上还有 4.8:1，到 #f2f2f2 上只剩 4.29:1，
+       text-primary 链接会掉出 AA。L 收到 0.53（#0a71b1）重新拿回 4.68:1，
+       白字仍有 5.24:1，两个方向都过线。
+       彩度封顶 0.13：hue 245 在 L 0.53 处的 sRGB 边界就是 0.13，
        再高会溢出到 P3 色域、浏览器裁切后色相会偏。 */
-    --primary: oklch(0.55 0.14 245);
+    --primary: oklch(0.53 0.13 245);
     --primary-foreground: oklch(0.99 0 0);
 
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
+    --secondary: oklch(0.931 0 0);
+    --secondary-foreground: oklch(0.26 0 0);
+    --muted: oklch(0.931 0 0);
+    --muted-foreground: oklch(0.485 0 0);
 
     /* hover / 选中底色从主色派生：10% 混入画布 → 极淡蓝，
        这样按钮、菜单项、日历选中态自动跟主色同族，不必逐组件调。
@@ -56,17 +64,20 @@
        实测 Chrome 即此行为。oklab 是直角空间、不含色相分量，
        混色只改变明度与彩度，色相恒定 —— 这才是"染色"想要的语义。 */
     --accent: color-mix(in oklab, var(--primary) 10%, var(--background));
-    --accent-foreground: oklch(0.205 0 0);
+    --accent-foreground: oklch(0.26 0 0);
 
     /* ── 语义色：五件套，各带 -foreground 成对使用 ───────────────────
        用来收敛散落全站的 104 处硬编码调色板（text-green-600 之类）。 */
-    /* 亮色明度普遍压到 0.53–0.58：这批色既要当「淡底 + 彩字」徽标的文字色，
+    /* 亮色明度普遍压到 0.51–0.58：这批色既要当「淡底 + 彩字」徽标的文字色，
        又要当实心填充色，所以必须同时满足两个方向 ≥4.5:1。
        常用的 Tailwind 500 档（L≈0.60–0.68）在白底上只有 2.9–3.7:1，
-       直接拿来做 text-success 是不达标的。 */
-    --destructive: oklch(0.577 0.245 27.325);
+       直接拿来做 text-success 是不达标的。
+       底色换成 #f2f2f2 后，红/绿在灰底上只剩 4.26 / 4.37:1，因此再各压
+       一档（0.555 / 0.515），重新回到 4.7:1 以上；彩度同步收到该明度处的
+       sRGB 边界内（0.226 / 0.11），避免浏览器裁切后色相偏移。 */
+    --destructive: oklch(0.555 0.226 27.325);
     --destructive-foreground: oklch(0.985 0 0);
-    --success: oklch(0.535 0.115 163.225);
+    --success: oklch(0.515 0.11 163.225);
     --success-foreground: oklch(0.985 0 0);
     /* warning 用色相 62（琥珀橙）而非默认的 75.8：后者压到 AA 明度后会偏橄榄绿，
        62° 压暗后仍是「暗金橙」，语义更明确。 */
@@ -80,8 +91,8 @@
     --neutral: oklch(0.708 0 0);
     --neutral-foreground: oklch(0.145 0 0);
 
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
+    --border: oklch(0.907 0 0);
+    --input: oklch(0.907 0 0);
     --ring: var(--primary);
 
     --chart-1: oklch(0.809 0.105 251.813);
@@ -94,7 +105,7 @@
     --radius: 0.75rem;
 
     /* ── 表格 ────────────────────────────────────────────────────────
-       表头/禁用态只做同色系微提亮（叠 1.5%~16% 前景色），不引入第二色相。
+       表头/禁用态只做同色系微调（叠 1.5%~16% 前景色），不引入第二色相。
        取代各后台页手写的 bg-muted/50、hover:bg-muted/30。
 
        ⚠ 必须写 oklch 字面量，不能写
@@ -104,26 +115,26 @@
        且不再补 @supports 真值 —— 深色下表头直接变成近白色。
        本主题的 foreground/background 都是 chroma = 0 的中性灰，
        按 oklab 亮度线性插值出的字面量与 color-mix 结果完全一致。 */
-    --table-header: oklch(0.987 0 0);
-    --table-header-hover: oklch(0.974 0 0);
-    --table-disabled: oklch(0.974 0 0);
-    --table-disabled-hover: oklch(0.962 0 0);
-    --table-disabled-border: oklch(0.863 0 0);
+    --table-header: oklch(0.973 0 0);
+    --table-header-hover: oklch(0.958 0 0);
+    --table-disabled: oklch(0.958 0 0);
+    --table-disabled-hover: oklch(0.943 0 0);
+    --table-disabled-border: oklch(0.894 0 0);
 
     /* 骨架屏：双色驱动 shimmer 扫光，见 .skeleton-shimmer。 */
-    --skeleton-base: oklch(0.97 0 0);
-    --skeleton-highlight: oklch(0.985 0 0);
+    --skeleton-base: oklch(0.943 0 0);
+    --skeleton-highlight: oklch(0.979 0 0);
 
     /* 顶栏高度统一出口：消除 pt-14 / scroll-padding-top 两处不同步魔法数。 */
     --app-header-height: 3.5rem;
 
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar: oklch(0.949 0 0);
+    --sidebar-foreground: oklch(0.26 0 0);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: oklch(0.99 0 0);
     --sidebar-accent: color-mix(in oklab, var(--primary) 10%, var(--background));
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-accent-foreground: oklch(0.26 0 0);
+    --sidebar-border: oklch(0.907 0 0);
     --sidebar-ring: var(--primary);
 }
 
@@ -131,27 +142,33 @@
     /* 原生控件与滚动条跟随主题；Dark Reader 也靠这一行判断站内已有暗色。 */
     color-scheme: dark;
 
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
+    /* 暗色不用纯黑打底：0.145（#0a0a0a）配近白正文是 19:1 的极端对比，
+       在 OLED 上还会出现纯黑拖影。底色抬到 0.222（#1b1b1b）、正文降到
+       0.855（#cfcfcf），对比度落在 11:1 —— 这是 Kindle / Apple Books /
+       Medium 深色阅读的共同区间：清晰度足够，又不会在白字边缘产生
+       halation（光晕），浅色虹膜的人尤其敏感。
+       面层同样靠明度分级：底色 0.222 → 卡片 0.248 → 弹层 0.269。 */
+    --background: oklch(0.222 0 0);
+    --foreground: oklch(0.855 0 0);
+    --card: oklch(0.248 0 0);
+    --card-foreground: oklch(0.855 0 0);
+    --popover: oklch(0.269 0 0);
+    --popover-foreground: oklch(0.855 0 0);
 
     /* 暗色沿用「浅底 + 深前景」的反转约定（与改造前的近白 primary 同构）：
-       L 0.72 让 text-primary 在 0.145 深底上有 8.1:1，
+       L 0.72 让 text-primary 在 0.222 深底上有 7.0:1（卡片上 6.6:1），
        同时 primary-foreground 取深灰保证按钮内文字 7.3:1。 */
     --primary: oklch(0.72 0.12 245);
     --primary-foreground: oklch(0.205 0 0);
 
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
+    --secondary: oklch(0.301 0 0);
+    --secondary-foreground: oklch(0.855 0 0);
+    --muted: oklch(0.301 0 0);
+    --muted-foreground: oklch(0.65 0 0);
 
     /* 深底上需要更高混入比例才可见（10% → 18%）。 */
     --accent: color-mix(in oklab, var(--primary) 18%, var(--background));
-    --accent-foreground: oklch(0.985 0 0);
+    --accent-foreground: oklch(0.855 0 0);
 
     --destructive: oklch(0.704 0.191 22.216);
     --destructive-foreground: oklch(0.145 0 0);
@@ -175,21 +192,21 @@
     --chart-5: oklch(0.424 0.199 265.638);
 
     /* 深底上同色系提亮需要更大混入量（亮色 1.5% → 6%）。字面量原因见 :root 表格段。 */
-    --table-header: oklch(0.195 0 0);
-    --table-header-hover: oklch(0.221 0 0);
-    --table-disabled: oklch(0.204 0 0);
-    --table-disabled-hover: oklch(0.225 0 0);
-    --table-disabled-border: oklch(0.347 0 0);
+    --table-header: oklch(0.269 0 0);
+    --table-header-hover: oklch(0.289 0 0);
+    --table-disabled: oklch(0.277 0 0);
+    --table-disabled-hover: oklch(0.297 0 0);
+    --table-disabled-border: oklch(0.368 0 0);
 
-    --skeleton-base: oklch(0.335 0 0);
-    --skeleton-highlight: oklch(0.44 0 0);
+    --skeleton-base: oklch(0.293 0 0);
+    --skeleton-highlight: oklch(0.348 0 0);
 
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar: oklch(0.248 0 0);
+    --sidebar-foreground: oklch(0.855 0 0);
     --sidebar-primary: var(--primary);
     --sidebar-primary-foreground: oklch(0.205 0 0);
     --sidebar-accent: color-mix(in oklab, var(--primary) 18%, var(--background));
-    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-accent-foreground: oklch(0.855 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: var(--primary);
 }
