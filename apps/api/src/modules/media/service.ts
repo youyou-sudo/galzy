@@ -1,5 +1,4 @@
 import {
-  alistb,
   db,
   deleteCloudreveFiles,
   media as mediaTable,
@@ -8,8 +7,6 @@ import {
 } from '@api/libs'
 import {
   acquireIdempotentKey,
-  delKv,
-  delKvPattern,
   generateIdempotentHash,
   getIdempotentResult,
   storeIdempotentResult,
@@ -18,19 +15,6 @@ import { S3Client } from 'bun'
 import { and, eq, sql } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { MediaModel } from './model'
-
-async function invalidateOtherCaches(otherId: number) {
-  const vids = await db
-    .select({ vid: alistb.vid })
-    .from(alistb)
-    .where(eq(alistb.other, otherId))
-  await Promise.all([
-    delKv(`galzy:game:info:${otherId}`),
-    ...vids.map((r) => delKv(`galzy:game:info:${r.vid}`)),
-  ])
-  await delKvPattern('galzy:game:list*')
-  await delKvPattern('galzy:tag:games:*')
-}
 
 // Bun's S3Client reads S3_* or AWS_* env vars automatically.
 const config = {
@@ -125,7 +109,6 @@ export const Media = {
       })
     })
 
-    await invalidateOtherCaches(entryId)
     await storeIdempotentResult(
       `galzy:idempotent:insertmediatoentry:${hash}`,
       { success: true },
@@ -172,7 +155,6 @@ export const Media = {
       await deleteCloudreveFiles([pathToCloudreveUri(`${uploadDir}/${name}`)])
     }
 
-    await invalidateOtherCaches(id)
     await storeIdempotentResult(
       `galzy:idempotent:delemediatoentry:${hash}`,
       { success: true },
@@ -217,7 +199,6 @@ export const Media = {
       return updated
     })
 
-    await invalidateOtherCaches(other)
     await storeIdempotentResult(
       `galzy:idempotent:getMediaByCover:${hash}`,
       mediaResult,

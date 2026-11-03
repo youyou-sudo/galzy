@@ -18,12 +18,7 @@ import {
 } from '@api/libs'
 import { purgeByTags, purgeTagPages } from '@api/libs/cloudflare-cache'
 import { isKungalDisplayId, resolveDisplayId } from '@api/libs/identity'
-import { delKv, delKvPattern, getKv, setKv } from '@api/libs/redis'
-import {
-  getEffectiveWeekStart,
-  getMonthStart,
-  getWindowKey,
-} from '@api/libs/time-window'
+import { getEffectiveWeekStart, getMonthStart } from '@api/libs/time-window'
 import {
   and,
   asc,
@@ -52,23 +47,8 @@ async function getTagDescendantIds(
   tagId: string,
 ): Promise<Array<{ id: string; depth: number }>> {
   // 层级边只有约 3600 行，递归本身很便宜，但 detail/taggames 每次请求都会走到这。
-  // 根标签扇出很大（g1 Theme 有 1399 个后代），缓存解析结果避免重复递归。
+  // 这里不做任何缓存，因此 tags_relations(parent) 上的索引是本查询的性能保障。
   //
-  // 注意失效依赖：层级只在官方 tag dump 同步时变化，所有写层级的路径都必须清掉
-  // galzy:tags:rel:*。目前有两条 —— syncTagHierarchy() 与 purgeAfterSync()，
-  // 两者都执行 delKvPattern('galzy:tags:*')。若将来新增写入层级的路径，
-  // 必须同步补上失效，否则本缓存最长会滞留 24h（而依赖它的 tag / tagGames
-  // 缓存只有 1h，它们的正确性也一并建立在这两个失效调用之上）。
-  const cacheKey = `galzy:tags:rel:v2:down:${tagId}`
-  const cached = await getKv(cacheKey)
-  if (cached) {
-    try {
-      return JSON.parse(cached) as Array<{ id: string; depth: number }>
-    } catch {
-      await delKv(cacheKey)
-    }
-  }
-
   // 向下：parent -> child（列名直接写在 SQL 里，不做动态拼接）
   const rows = await db.execute(sql`
     WITH RECURSIVE walk(id, depth) AS (
@@ -86,9 +66,7 @@ async function getTagDescendantIds(
     GROUP BY id
     ORDER BY MIN(depth) ASC, id
   `)
-  const result = rows as Array<{ id: string; depth: number }>
-  void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 24)
-  return result
+  return rows as Array<{ id: string; depth: number }>
 }
 
 /**
@@ -105,19 +83,7 @@ async function getTagDescendantIds(
  * 同一节点的多条分支，而深度上限只是兜底。
  */
 async function getTagAncestorPaths(tagId: string): Promise<string[][]> {
-  // 失效依赖与 getTagDescendantIds 相同（层级只在 tag dump 同步时变化，
-  // syncTagHierarchy / purgeAfterSync 都会 delKvPattern('galzy:tags:*')）。
-  // 前缀故意选 galzy:tags: 而不是 galzy:tag:，好被那条 pattern 覆盖到。
-  const cacheKey = `galzy:tags:paths:v1:${tagId}`
-  const cached = await getKv(cacheKey)
-  if (cached) {
-    try {
-      return JSON.parse(cached) as string[][]
-    } catch {
-      await delKv(cacheKey)
-    }
-  }
-
+  // 与 getTagDescendantIds 一样不做缓存：每次请求直接跑递归 CTE。
   const rows = await db.execute(sql`
     WITH RECURSIVE up(id, path, depth) AS (
       SELECT r.parent, ARRAY[r.parent], 1
@@ -141,10 +107,9 @@ async function getTagAncestorPaths(tagId: string): Promise<string[][]> {
   const paths = (rows as Array<{ path: string[] }>)
     // CTE 累积的是「父 → … → 根」，反转成「根 → … → 父」
     .map((r) => [...r.path].reverse())
-    // 排序只为稳定输出（同一标签每次拿到的顺序一致，便于缓存与快照对比）
+    // 排序只为稳定输出（同一标签每次拿到的顺序一致，便于快照对比）
     .sort((a, b) => a.join(',').localeCompare(b.join(',')))
 
-  void setKv(cacheKey, JSON.stringify(paths), 60 * 60 * 24)
   return paths
 }
 
@@ -224,71 +189,40 @@ function stripVndbMarkup(text: string): string {
 /**
  * 每个标签在「站内收录」口径下的游戏数（tags_vn ⋈ galrc_alistb，count(DISTINCT vid)）。
  *
- * tagHub 与 tagCategories 原本各自跑一次同样的全量聚合（实测 96ms），同一小时里
- * 因为缓存 key 不同会重复算。抽成带缓存的共享 helper，两边共用一份结果。
- *
- * 失效依赖：key 在 `galzy:tags:*` 命名空间下，层级/本地化同步的
- * delKvPattern('galzy:tags:*') 会一并清掉（见 syncTagHierarchy / purgeAfterSync）。
+ * 共享 helper：tagHub / tagGroup / tagCategories 都走这里，避免各自维护同一段 SQL。
+ * 不做缓存（全站去掉读缓存），单次实测约 96ms，依赖 tags_vn(vid) 与
+ * galrc_alistb(vid) 上的索引。
  */
 async function getTagGameCountMap(): Promise<Map<string, number>> {
-  const cacheKey = 'galzy:tags:gamecount:v1'
-  const cached = await getKv(cacheKey)
-  if (cached) {
-    try {
-      return new Map(JSON.parse(cached) as Array<[string, number]>)
-    } catch {
-      await delKv(cacheKey)
-    }
-  }
   const rows = (await db.execute(
     sql`SELECT tv.tag, count(DISTINCT tv.vid)::int AS cnt FROM tags_vn tv INNER JOIN galrc_alistb a ON a.vid = tv.vid GROUP BY tv.tag`,
   )) as Array<{ tag: string; cnt: number }>
-  const map = new Map(rows.map((r) => [r.tag, r.cnt]))
-  void setKv(cacheKey, JSON.stringify([...map]), 60 * 60)
-  return map
+  return new Map(rows.map((r) => [r.tag, r.cnt]))
 }
 
 /**
  * 每个标签的终身累计浏览量。
  *
- * 累计值 = 已 rollup 进 galrc_stat_counters 的历史部分 + 明细表剩余行
- * （明细行按 EVENT_VIEW_RETENTION_DAYS 被 TTL 清理前会先 rollup，见
- * modules/tasks/service.ts 的 rollupAndPruneEventViews 与 libs/stats.ts）。
- *
- * 这句聚合实测 237ms（要在约 250 万行 tag_view 分区上做全量 GROUP BY），是全站
- * 最贵的单条读查询之一，因此必须缓存：原实现由 tagHub / tagCategories 各跑一遍。
+ * 数据源是写时增量聚合的 galrc_stat_windows（kind = 'tag_view'）：每个标签每周
+ * 只有一行，行数上限 = 标签数 × 保留周数，不再随访问量增长。终身累计 = 全部窗口求和，
+ * 走 (kind, window_start, total) 索引，不再扫描百万级明细行。
  */
 async function getTagViewCountMap(): Promise<Map<string, number>> {
-  const cacheKey = 'galzy:tags:viewcount:v1'
-  const cached = await getKv(cacheKey)
-  if (cached) {
-    try {
-      return new Map(JSON.parse(cached) as Array<[string, number]>)
-    } catch {
-      await delKv(cacheKey)
-    }
-  }
   const rows = (await db.execute(
-    sql`SELECT target_id, SUM(cnt)::int AS cnt FROM (
-      SELECT target_id, count(*)::int AS cnt FROM galrc_event_views WHERE event_type = 'tag_view' GROUP BY target_id
-      UNION ALL
-      SELECT target_id, total::int AS cnt FROM galrc_stat_counters WHERE kind = 'tag_view'
-    ) s GROUP BY target_id`,
+    sql`SELECT target_id, SUM(total)::int AS cnt
+        FROM galrc_stat_windows
+        WHERE kind = 'tag_view'
+        GROUP BY target_id`,
   )) as Array<{ target_id: string; cnt: number }>
-  const map = new Map(rows.map((r) => [r.target_id, r.cnt]))
-  void setKv(cacheKey, JSON.stringify([...map]), 60 * 60)
-  return map
+  return new Map(rows.map((r) => [r.target_id, r.cnt]))
 }
 
 /**
  * 本周 / 本月每个标签的浏览量（分类页「本周热门 / 本月热门」排序的数据源）。
  *
- * 只用明细表：galrc_stat_counters 是终身累计，没有时间桶，切不出时间窗；
- * 明细保留 EVENT_VIEW_RETENTION_DAYS（默认 90 天），「本月」窗口最长 31 天，
- * 始终落在保留期内。「本周」用 getEffectiveWeekStart 口径，与首页周榜一致。
- *
- * 时间窗聚合走 idx_galrc_event_views_type_created，只扫窗口内的行，
- * 比上面那句终身累计（237ms）便宜得多；而且只在 getTagGroups 缓存未命中时跑。
+ * 同一张 galrc_stat_windows 按周窗口切片：本周 = window_start >= 本周一，
+ * 本月 = window_start >= 本月 1 日（跨月的那一周按整周计入本月，口径与首页周榜一致）。
+ * 每次 getTagGroups 调用只扫最近几周的窗口行。
  */
 async function getTagRecentViewCountMap(
   weekStart: Date,
@@ -296,10 +230,10 @@ async function getTagRecentViewCountMap(
 ): Promise<Map<string, { week: number; month: number }>> {
   const rows = (await db.execute(
     sql`SELECT target_id,
-          count(*) FILTER (WHERE created_at >= ${weekStart})::int AS week_cnt,
-          count(*)::int AS month_cnt
-        FROM galrc_event_views
-        WHERE event_type = 'tag_view' AND created_at >= ${monthStart}
+          COALESCE(SUM(total) FILTER (WHERE window_start >= ${weekStart}::date), 0)::int AS week_cnt,
+          SUM(total)::int AS month_cnt
+        FROM galrc_stat_windows
+        WHERE kind = 'tag_view' AND window_start >= ${monthStart}::date
         GROUP BY target_id`,
   )) as Array<{ target_id: string; week_cnt: number; month_cnt: number }>
   return new Map(
@@ -421,32 +355,15 @@ const CAT_FALLBACK: Record<string, TagGroupKey> = {
 }
 
 /**
- * 计算标签库的全部分类，以及每个分类下的**全部**标签（不截断），并缓存。
+ * 计算标签库的全部分类，以及每个分类下的**全部**标签（不截断）。
  *
- * hub（预览若干条）与分类页（列全部）都从这里取数，避免同一份全量聚合
- * 与层级递归被算两遍。标签一律按收录游戏数降序（参考站口径），同分按中文名
- * 排序，保证输出稳定、缓存可比对。
+ * hub（预览若干条）与分类页（列全部）都从这里取数，避免各自维护一份全量聚合
+ * 与层级递归。标签一律按收录游戏数降序（参考站口径），同分按中文名排序，
+ * 保证输出稳定。
  *
- * 失效依赖：key 落在 `galzy:tags:hub:v3:*` 命名空间内 —— tagEdit / tagFileAdd /
- * vndb-sync / kungal-sync 的既有失效 pattern 会一并清掉，无需新增失效点。
- *
- * v3：条目新增 viewsWeek / viewsMonth（分类页「本周热门 / 本月热门」排序），
- * 旧缓存里没有这两个字段，必须换 key 而不是等 1h TTL 自然过期。
- * key 里还带窗口标识（getWindowKey）：这两个字段是时间窗聚合，换周 / 换月之后
- * 旧条目描述的已经是上一个窗口，靠 TTL 兜最多会让边界后的一小时内继续按旧窗口
- * 排序。窗口段在版本段之后，上面的 `galzy:tags:hub:v3:*` 失效 pattern 照旧覆盖。
+ * 不做缓存：viewsWeek / viewsMonth 是时间窗聚合，每次调用都按当前窗口实时算。
  */
 async function getTagGroups(): Promise<TagGroups> {
-  const cacheKey = `galzy:tags:hub:v3:${getWindowKey()}:groups`
-  const cached = await getKv(cacheKey)
-  if (cached) {
-    try {
-      return JSON.parse(cached) as TagGroups
-    } catch {
-      await delKv(cacheKey)
-    }
-  }
-
   // 仅展示已本地化（zhtags 存在）的标签，避免点进去 404
   const rows = await db
     .select({
@@ -458,8 +375,7 @@ async function getTagGroups(): Promise<TagGroups> {
     .from(tags)
     .innerJoin(zhtags, eq(tags.id, zhtags.id))
 
-  // 两个全量聚合都走共享缓存 helper（与 tagCategories 共用同一份结果）
-  // 时间窗聚合没有单独缓存：它只在 getTagGroups 缓存未命中时跑一次
+  // 两个全量聚合都走共享 helper（与 tagCategories 共用同一段 SQL）
   const [countMap, viewMap, recentViewMap] = await Promise.all([
     getTagGameCountMap(),
     getTagViewCountMap(),
@@ -572,9 +488,7 @@ async function getTagGroups(): Promise<TagGroups> {
     }
   }
 
-  const data = { hierarchyReady, groups }
-  void setKv(cacheKey, JSON.stringify(data), 60 * 60)
-  return data
+  return { hierarchyReady, groups }
 }
 
 /** 分类标签的排序依据，与 TagsModel.tagHub 的 sort 字面量联合对齐 */
@@ -598,15 +512,15 @@ const SORT_METRIC: Record<
  * 按「依据 + 方向」排列分类标签。
  *
  * count + desc 就是 getTagGroups 的规范顺序（收录数降序 + 中文名升序），
- * 直接原样返回；其余组合在这里读时排序 —— 全量列表只缓存一份，不值得为
- * 每种排序各缓存一遍。必须**先排序再切片**，否则「按浏览次数取前 N」会退化
+ * 直接原样返回；其余组合在这里读时排序 —— 全量列表只算一份，不值得为
+ * 每种排序各算一遍。必须**先排序再切片**，否则「按浏览次数取前 N」会退化
  * 成「收录数前 N 条里再按浏览次数排」，两个口径完全不是一回事（实测 恋爱
  * 661 收录 / 2.7 万浏览，处女丧失 869 收录 / 36 浏览，两者经常不在同一批
  * 候选里）。
  *
  * hotWeek / hotMonth 是时间窗热度（本周 / 本月 tag_view 浏览量），窗口内
  * 数据会随事件增长而变化。方向只翻转主键，并列时一律回落规范次序
- * （收录数降序 + 中文名升序），保证输出稳定、缓存可比对。
+ * （收录数降序 + 中文名升序），保证输出稳定、可比对。
  */
 function sortTagItems(
   list: TagGroupItem[],
@@ -635,36 +549,21 @@ function sortTagItems(
 
 export const Tags = {
   async gameTags({ id }: TagsModel.gameTags) {
-    const cacheKey = `galzy:game:tags:${id}`
-
-    // 1. 尝试从缓存读取
-    const redisData = await getKv(cacheKey)
-    if (redisData) {
-      try {
-        return JSON.parse(redisData) as Tag
-      } catch {
-        // 缓存损坏 → 删除并继续查库
-        await delKv(cacheKey)
-      }
-    }
-
-    // 2. 判断 id 是否为数字
+    // 判断 id 是否为数字
     const idIsNumber = /^\d+$/.test(id)
 
-    // 2.5 kungal-only 条目（无 vn 行）没有 VNDB 标签数据，直接返回空数组。
-    //     必须先 resolveDisplayId 归一到展示身份（CONTRACT §7）：否则 /kgX 的
-    //     别名写法会走到下面 innerJoin(vn) 的零行分支，被误判成 404。
+    // kungal-only 条目（无 vn 行）没有 VNDB 标签数据，直接返回空数组。
+    // 必须先 resolveDisplayId 归一到展示身份（CONTRACT §7）：否则 /kgX 的
+    // 别名写法会走到下面 innerJoin(vn) 的零行分支，被误判成 404。
     if (!idIsNumber) {
       const canonicalId = await resolveDisplayId(id)
       if (canonicalId && isKungalDisplayId(canonicalId)) {
         // 形状与下面查库分支一致（{ tags: [...] }），前端 TagsCard 直接消费。
-        const empty = { tags: [] as Array<Record<string, any>> }
-        void setKv(cacheKey, JSON.stringify(empty), 60 * 60)
-        return empty
+        return { tags: [] as Array<Record<string, any>> }
       }
     }
 
-    // 3. 查询数据库
+    // 查询数据库
     const items = await db
       .select({
         tags: sql<Array<Record<string, any>>>`COALESCE(
@@ -707,26 +606,14 @@ export const Tags = {
       throw status(404, `没有找到数据: id=${id}`)
     }
 
-    const result = structuredClone(items)
-
-    // 写入缓存（失败时只记录，不影响结果返回）
-    void setKv(cacheKey, JSON.stringify(result), 60 * 60)
-
-    // 类型定义：保证 result 不会是 undefined
-    type Tag = NonNullable<typeof result>
-    return result
+    return items
   },
   async tag({ tagId }: TagsModel.tagId) {
-    // v5：新增 ancestorPaths —— 层级是 DAG，同一个标签可能有多条到根的路径
+    // 新增 ancestorPaths —— 层级是 DAG，同一个标签可能有多条到根的路径
     // （g513 Netorare 同时属于 Jealousy 与 Sex with Others 两条链）。
-    // ancestors 保持 v4 的旧语义（扁平 + 最短距离）仅供不关心分支的调用方使用；
+    // ancestors 保持旧的扁平语义（扁平 + 最短距离）仅供不关心分支的调用方使用；
     // 面包屑改用 ancestorPaths，否则把不同分支按深度拼成一条线会渲染出
     // 「Drama > Sexual Content > …」这类并不存在的祖先链。
-    const cacheKey = `galzy:tag:v5:${tagId}`
-    const redisdata = await getKv(cacheKey)
-    if (redisdata !== null && redisdata !== undefined) {
-      return JSON.parse(redisdata) as Tag
-    }
     const items = await db
       .select({
         id: tags.id,
@@ -761,8 +648,8 @@ export const Tags = {
       labelMap.get(id) ?? { id, name: null, zht_name: null }
     // 每条路径直接渲染成一行面包屑（根 → … → 直接父级）
     const ancestorPaths = ancestorPathIds.map((path) => path.map(labelOf))
-    // 兼容字段：扁平祖先集合（不区分分支），保持 v4 的「最短距离降序」语义。
-    // v4 走 fetchTagLabels（innerJoin zhtags），未本地化的祖先会被过滤掉；这里
+    // 兼容字段：扁平祖先集合（不区分分支），保持旧的「最短距离降序」语义。
+    // 这里走 fetchTagLabels（innerJoin zhtags），未本地化的祖先会被过滤掉；
     // 同样过滤，避免旧调用方拿到必然 404 的节点。未本地化的祖先只出现在
     // ancestorPaths 里（那里必须保留，否则链路会断），由前端渲染成不可点击文本。
     const depthOf = new Map<string, number>()
@@ -793,8 +680,6 @@ export const Tags = {
       children: directChildren,
       descendantCount: descendants.length,
     }
-    void setKv(cacheKey, JSON.stringify(result), 60 * 60 * 1)
-    type Tag = typeof result
     return result
   },
   async tagGames({
@@ -803,8 +688,6 @@ export const Tags = {
     pageIndex,
     includeChildren = false,
   }: TagsModel.tagGames) {
-    const cacheKey = `galzy:tag:games:v2:${tagId}:${pageSize}:${pageIndex}:${includeChildren}`
-
     const offset = pageIndex * pageSize
 
     // includeChildren 对齐 VNDB `tag` 过滤器的语义：命中该标签或任意后代标签。
@@ -815,17 +698,9 @@ export const Tags = {
     const tagMatch = inArray(tagsVn.tag, matchIds)
 
     // 并行执行 主查询 + 统计查询
-    // 总数只由 (tagId, includeChildren) 决定，与分页无关。原实现把它和分页结果塞进
-    // 同一个含 pageIndex 的缓存 key，导致每翻一页都重算一次 count(DISTINCT vid)
-    // （实测 g1 + includeChildren：count 94ms、主查询 252ms）。这里单独缓存总数。
-    const countCacheKey = `galzy:tag:games:count:v1:${tagId}:${includeChildren}`
-    const cachedCountRaw = await getKv(countCacheKey)
-    const cachedCount =
-      cachedCountRaw === null || cachedCountRaw === undefined
-        ? null
-        : Number(cachedCountRaw)
-
-    const [mainResult, resolvedCount] = await Promise.all([
+    // 总数只由 (tagId, includeChildren) 决定，与分页无关；这里不做缓存，
+    // 每次请求都实时 count(DISTINCT vid)（实测 g1 + includeChildren 约 94ms）。
+    const [mainResult, totalCount] = await Promise.all([
       db
         .select({
           id: vn.id,
@@ -882,22 +757,15 @@ export const Tags = {
         .limit(pageSize)
         .offset(offset),
 
-      cachedCount !== null && Number.isFinite(cachedCount)
-        ? Promise.resolve(cachedCount)
-        : db
-            .select({ count: countDistinct(tagsVn.vid) })
-            .from(tagsVn)
-            .innerJoin(alistb, eq(alistb.vid, tagsVn.vid))
-            .where(tagMatch)
-            .then((r) => Number(r[0]?.count ?? 0)),
+      db
+        .select({ count: countDistinct(tagsVn.vid) })
+        .from(tagsVn)
+        .innerJoin(alistb, eq(alistb.vid, tagsVn.vid))
+        .where(tagMatch)
+        .then((r) => Number(r[0]?.count ?? 0)),
     ])
 
     const items = mainResult
-
-    const totalCount = resolvedCount
-    if (cachedCount === null) {
-      void setKv(countCacheKey, String(totalCount), 60 * 60)
-    }
 
     const kungalRows =
       items.length > 0
@@ -957,16 +825,12 @@ export const Tags = {
     }
     const totalPages = Math.ceil(totalCount / pageSize)
 
-    const data = {
+    return {
       items,
       currentPage: pageIndex,
       totalPages,
       totalCount,
     }
-
-    void setKv(cacheKey, JSON.stringify(data), 60 * 60)
-
-    return data
   },
   async tagAllGet({ pageSize, pageIndex, keyword, id }: TagsModel.tagAll) {
     const offset = pageIndex * pageSize
@@ -1047,7 +911,7 @@ export const Tags = {
    * 若按 ero 单独分组，就得让同一个标签同时出现在两个分类里。
    * 分类归属由 tags_relations 的祖先关系推导，因此依赖层级同步已跑过。
    *
-   * 完整分类树来自 getTagGroups()（缓存），这里只做预览截断。
+   * 完整分类树来自 getTagGroups()，这里只做预览截断。
    * 「每个分类下还有多少标签」由 tagCount 诚实给出，前端的「查看全部」
    * 走 tagGroup() 拿未截断的全量列表。
    *
@@ -1063,19 +927,6 @@ export const Tags = {
       order = 'desc',
     }: TagsModel.tagHub = {} as TagsModel.tagHub,
   ) {
-    // v3：条目带 viewsWeek / viewsMonth，与 getTagGroups 的缓存版本同步
-    // 窗口标识与 getTagGroups 同理：切到「本周热门 / 本月热门」时，跨过窗口
-    // 边界必须换键，否则返回的是上一个窗口切片出来的前 N 名。
-    const cacheKey = `galzy:tags:hub:v3:${getWindowKey()}:${group ?? 'all'}:${limit}:${sort}:${order}`
-    const cached = await getKv(cacheKey)
-    if (cached) {
-      try {
-        return JSON.parse(cached)
-      } catch {
-        await delKv(cacheKey)
-      }
-    }
-
     const { groups } = await getTagGroups()
     const categories = groups
       .filter((g) => !group || g.key === group)
@@ -1089,9 +940,7 @@ export const Tags = {
         previewTags: sortTagItems(g.tags, sort, order).slice(0, limit),
       }))
 
-    const data = { categories }
-    void setKv(cacheKey, JSON.stringify(data), 60 * 60)
-    return data
+    return { categories }
   },
   /**
    * 标签库分类页：某一分类下的**全部**标签（不截断）。
@@ -1122,16 +971,6 @@ export const Tags = {
       Array<{ id: string; name: string; vnCount: number; views: number }>
     >
   > {
-    const cacheKey = 'galzy:tags:categories:v4'
-    const cached = await getKv(cacheKey)
-    if (cached) {
-      try {
-        return JSON.parse(cached)
-      } catch {
-        await delKv(cacheKey)
-      }
-    }
-
     // 与详情页口径一致：仅展示已本地化（zhtags 存在）的标签，避免点进去 404
     // vnCount = 站内收录（alistb 存在）的关联游戏数，与标签详情页列表口径一致
     // views = 累计 tag_view 浏览量（供排序）
@@ -1144,7 +983,7 @@ export const Tags = {
         })
         .from(tags)
         .innerJoin(zhtags, eq(zhtags.id, tags.id)),
-      // 与 tagHub 共用同一份缓存结果，避免同一小时里重复算两遍
+      // 与 tagHub / tagGroup 共用同一段聚合 SQL
       getTagGameCountMap(),
       getTagViewCountMap(),
     ])
@@ -1170,7 +1009,6 @@ export const Tags = {
       list.sort((a, b) => a.name.localeCompare(b.name, 'zh'))
     }
 
-    void setKv(cacheKey, JSON.stringify(grouped), 60 * 60)
     return grouped
   },
   async tagEdit({
@@ -1191,13 +1029,6 @@ export const Tags = {
         })
         .where(eq(zhtags.id, id))
       await purgeTagPages(String(id))
-      // 标签详情 / 游戏标签 / 分类页缓存同步失效（含本地化名称、展示状态）
-      await delKv(`galzy:tag:v5:${id}`)
-      await delKvPattern('galzy:game:tags:*')
-      await delKv('galzy:tags:categories:v4')
-      // 标签库 hub 也读 zhtags.name，编辑后必须一并失效，
-      // 否则 /tags 会继续展示旧中文名直到 1h TTL 自然过期。
-      await delKvPattern('galzy:tags:hub:v3:*')
       return true
     } catch {
       return false
@@ -1242,17 +1073,7 @@ export const Tags = {
         })
     }
 
-    // Batch import: purge tag list (individual pages too many)
     await purgeByTags(['page-tags'])
-    // 批量导入影响所有标签缓存：详情页 / 游戏标签 / 分类页 / 层级递归 / 标签库 hub。
-    // galzy:tag:* 匹配不到 galzy:tags:hub:v3:*（Redis MATCH 要求 tag 后紧跟冒号），
-    // 所以 hub 缓存必须单独按完整前缀删除。
-    await delKvPattern('galzy:tag:*')
-    await delKvPattern('galzy:game:tags:*')
-    await delKvPattern('galzy:tags:rel:*')
-    await delKvPattern('galzy:tags:hub:v3:*')
-    await delKv('galzy:tags:categories:v4')
-
     return true
   },
   async tagAllFileDwn() {

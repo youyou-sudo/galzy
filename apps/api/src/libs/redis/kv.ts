@@ -122,27 +122,6 @@ export const getKvTime = async (key: string) => {
 }
 
 /**
- * 获取 Key 对应的值
- * @param key 键
- * @returns 对应的值，如果 Key 不存在则返回 null
- */
-export const getKv = async (key: string) => {
-  return safeRedisOp(
-    async (client) => {
-      const start = Date.now()
-      const value = await client.get(key)
-      const elapsed = Date.now() - start
-      redisLog.debug(
-        `[Redis] getKv(${key}) ${value !== null ? 'HIT' : 'MISS'} (${elapsed}ms)`,
-      )
-      return value
-    },
-    null,
-    `getKv(${key})`,
-  )
-}
-
-/**
  * 自增计数：首次创建时设置 TTL（秒）。
  *
  * 供 better-auth 的 secondaryStorage.increment 等「计数器 + 过期」场景使用；
@@ -157,19 +136,6 @@ export const incrKv = async (key: string, time?: number) => {
     },
     0,
     `incrKv(${key})`,
-  )
-}
-
-/**
- * 删除 Key
- * @param key 键
- * @returns 被删除的 Key 数量
- */
-export const delKv = async (key: string) => {
-  return safeRedisOp(
-    (client) => client.del(key) as Promise<number>,
-    0,
-    `delKv(${key})`,
   )
 }
 

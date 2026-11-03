@@ -1,12 +1,4 @@
-import {
-  db,
-  eventViews,
-  gameDownloadStats,
-  queueJob,
-  queueJobLog,
-  sql,
-  statCounters,
-} from '@api/libs'
+import { db, queueJob, queueJobLog, sql } from '@api/libs'
 import type { TaskPayload } from '@api/libs/queue'
 import {
   defaultJobOptions,
@@ -17,8 +9,6 @@ import {
   queueOf,
 } from '@api/libs/queue'
 import {
-  EVENT_VIEW_RETENTION_DAYS,
-  GAME_DOWNLOAD_STATS_RETENTION_DAYS,
   QUEUE_JOB_RETENTION_DAYS,
   QUEUE_LOG_TTL_DAYS,
 } from '@api/libs/queue/config'
@@ -1213,80 +1203,11 @@ async function pruneByBatch(
 }
 
 /**
- * 分批删除过期事件明细，并把每批删除的行按 (event_type, target_id) 聚合进
- * galrc_stat_counters。删除与聚合在同一条语句（CTE）里完成，要么都生效要么都回滚，
- * 因此「累计值 = counters.total + 明细剩余行数」不会因并发/中途失败而重复计数。
- */
-async function rollupAndPruneEventViews(cutoff: Date): Promise<number> {
-  let deleted = 0
-  for (;;) {
-    const res = await db.execute(sql`
-      WITH batch AS (
-        SELECT id FROM ${eventViews}
-        WHERE ${eventViews.createdAt} < ${cutoff}
-        ORDER BY ${eventViews.id}
-        LIMIT ${PRUNE_BATCH_SIZE}
-      ),
-      moved AS (
-        DELETE FROM ${eventViews} e
-        USING batch b
-        WHERE e.id = b.id
-        RETURNING e.event_type AS kind, e.target_id AS target_id
-      ),
-      rolled AS (
-        INSERT INTO ${statCounters} (kind, target_id, total, updated_at)
-        SELECT kind, target_id, COUNT(*), now() FROM moved GROUP BY kind, target_id
-        ON CONFLICT (kind, target_id)
-        DO UPDATE SET total = ${statCounters}.total + EXCLUDED.total, updated_at = now()
-        RETURNING 1
-      )
-      SELECT (SELECT COUNT(*) FROM moved)::int AS removed
-    `)
-    const removed = Number((res as Array<{ removed: number }>)[0]?.removed ?? 0)
-    if (removed === 0) break
-    deleted += removed
-    if (removed < PRUNE_BATCH_SIZE) break
-  }
-  return deleted
-}
-
-/** 分批删除过期下载明细并 rollup 进 counters（kind = 'game_download'）。 */
-async function rollupAndPruneGameDownloads(cutoff: Date): Promise<number> {
-  let deleted = 0
-  for (;;) {
-    const res = await db.execute(sql`
-      WITH batch AS (
-        SELECT id FROM ${gameDownloadStats}
-        WHERE ${gameDownloadStats.createdAt} < ${cutoff}
-        ORDER BY ${gameDownloadStats.id}
-        LIMIT ${PRUNE_BATCH_SIZE}
-      ),
-      moved AS (
-        DELETE FROM ${gameDownloadStats} d
-        USING batch b
-        WHERE d.id = b.id
-        RETURNING d.game_id AS target_id
-      ),
-      rolled AS (
-        INSERT INTO ${statCounters} (kind, target_id, total, updated_at)
-        SELECT 'game_download', target_id, COUNT(*), now() FROM moved GROUP BY target_id
-        ON CONFLICT (kind, target_id)
-        DO UPDATE SET total = ${statCounters}.total + EXCLUDED.total, updated_at = now()
-        RETURNING 1
-      )
-      SELECT (SELECT COUNT(*) FROM moved)::int AS removed
-    `)
-    const removed = Number((res as Array<{ removed: number }>)[0]?.removed ?? 0)
-    if (removed === 0) break
-    deleted += removed
-    if (removed < PRUNE_BATCH_SIZE) break
-  }
-  return deleted
-}
-
-/**
- * 队列日志/记录 + 事件/下载明细的 TTL 清理（分批物理删除，避免长事务锁表）。
- * 明细清理前先 rollup 进 galrc_stat_counters，保证累计统计不因清理而下降。
+ * 队列日志/记录的 TTL 清理（分批物理删除，避免长事务锁表）。
+ *
+ * 事件/下载明细（galrc_event_views / galrc_gameDownloadStats）不再在这里清理：
+ * 统计已改为写时增量聚合（galrc_stat_windows），明细表不再有写入方，
+ * 历史数据由 scripts/backfill-stat-windows.ts 一次性回填后 TRUNCATE。
  */
 async function runPruneHandler() {
   const logCutoff = new Date(Date.now() - QUEUE_LOG_TTL_DAYS * 86400_000)
@@ -1306,26 +1227,7 @@ async function runPruneHandler() {
     jobCutoff,
   )
 
-  // 明细清理（保留天数 <= 0 视为关闭）
-  const deletedEventViews =
-    EVENT_VIEW_RETENTION_DAYS > 0
-      ? await rollupAndPruneEventViews(
-          new Date(Date.now() - EVENT_VIEW_RETENTION_DAYS * 86400_000),
-        )
-      : 0
-  const deletedDownloadStats =
-    GAME_DOWNLOAD_STATS_RETENTION_DAYS > 0
-      ? await rollupAndPruneGameDownloads(
-          new Date(Date.now() - GAME_DOWNLOAD_STATS_RETENTION_DAYS * 86400_000),
-        )
-      : 0
-
-  return {
-    deletedLogs,
-    deletedJobs,
-    deletedEventViews,
-    deletedDownloadStats,
-  }
+  return { deletedLogs, deletedJobs }
 }
 
 // ── 通用 Worker 包装器 ───────────────────────────────────────────

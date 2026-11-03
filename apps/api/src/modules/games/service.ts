@@ -24,14 +24,8 @@ import { purgeGamePages } from '@api/libs/cloudflare-cache'
 import { displayIdWhere, resolveDisplayId } from '@api/libs/identity'
 import {
   acquireIdempotentKey,
-  acquireLockKv,
-  delKv,
-  delKvPattern,
   generateIdempotentHash,
   getIdempotentResult,
-  getKv,
-  releaseLockKv,
-  setKv,
   storeIdempotentResult,
 } from '@api/libs/redis'
 
@@ -62,23 +56,13 @@ import type { GameModel } from './model'
  */
 const DISPLAY_FALLBACK_LANG = 'zh-Hans'
 
-/**
- * 详情缓存的响应版本。
- *
- * 响应形状或「数据来源口径」变化时递增，让已写入 Redis 的旧响应自动作废 ——
- * 否则最长要等 6 小时 TTL 才生效。
- * v2：kungal 封面兜底（无其它图时横版封面也会被采用），此前的缓存里
- *     kungal-only 条目的 vn.image 恒为 null。
- */
-const GAME_INFO_CACHE_VERSION = 2
-
 /** VNDB relation 反向映射（seq↔preq；其余保持原值） */
 const RELATION_INVERSE: Record<string, string> = {
   seq: 'preq',
   preq: 'seq',
 }
 
-/** `/games/gamelist` 响应形状，同时也是 `galzy:game:list:*` 缓存的值形状。 */
+/** `/games/gamelist` 响应形状。 */
 type GameListData = {
   items: unknown[]
   currentPage: number
@@ -164,10 +148,6 @@ function titleFromAlistbPath(path: unknown): string | null {
 
 export const Game = {
   async Count() {
-    const redisData = await getKv('galzy:game:count')
-    if (redisData !== null && redisData !== undefined) {
-      return Number(redisData)
-    }
     const totalCountResult = await db
       .select({ count: countAll() })
       .from(alistb)
@@ -179,9 +159,7 @@ export const Game = {
       // 因此这里保留 kungal_id 判定即可，不要改成只看 vn。
       .where(or(isNotNull(vn.id), isNotNull(alistb.kungalId)))
       .then((r) => r[0])
-    const total = Number(totalCountResult?.count || 0)
-    void setKv('galzy:game:count', String(total), 60 * 30)
-    return total
+    return Number(totalCountResult?.count || 0)
   },
   async List({
     pageIndex,
@@ -189,24 +167,8 @@ export const Game = {
     sortBy,
     order,
   }: GameModel.gameList): Promise<GameListData> {
-    const cacheKey = `galzy:game:list:${pageIndex}:${pageSize}:${sortBy ?? 'id'}:${order}`
-    // 三种排序都读写缓存：此前只有 id 排序走缓存，released/downloads/views
-    // 每次请求都跑完整查询（端到端实测 1.8–2.2s）。计数类排序的数值持续增长，
-    // 用短 TTL 换新鲜度；id/released 几乎不变，给长 TTL。
-    const cacheTtl =
-      sortBy === 'downloads' || sortBy === 'views' ? 60 * 10 : 60 * 60 * 2
     const offset = pageIndex * pageSize
     const dir = order === 'asc' ? 'ASC' : 'DESC'
-
-    // 命中缓存直接返回：排序键聚合是这条查询里最贵的部分，重复访问不应重复付。
-    const cached = await getKv(cacheKey)
-    if (cached) {
-      try {
-        return JSON.parse(cached) as GameListData
-      } catch {
-        await delKv(cacheKey)
-      }
-    }
 
     // 排序键预聚合：把「每个候选行求值一次」的相关子查询换成「整表聚合一次 + LEFT JOIN」。
     //
@@ -214,26 +176,16 @@ export const Game = {
     // alistb ⋈ vn 的全部候选行各跑一遍聚合 —— 实测 SubPlan loops=1984，
     // sortBy=views 515ms / downloads 290ms；预聚合后 loops=3，实测 187ms / 80ms。
     //
-    // 计数走「galrc_stat_counters + 明细表」的 UNION：明细行被 TTL 清理前会先
-    // rollup 进 counters，两者相加才是终身累计值（口径见 libs/stats.ts）。
+    // 计数走写时增量聚合表 galrc_stat_windows（kind + target_id + window_start，
+    // 每次事件 upsert 一行）：按 target_id 求和即终身累计值，读侧不再扫明细表。
     const releasedAgg = sql`(SELECT rv.vid AS target_id, MIN(r.released) AS released_first
       FROM releases_vn rv INNER JOIN releases r ON r.id = rv.id GROUP BY rv.vid) AS rel_agg`
     const kungalAgg = sql`(SELECT vndb_id AS target_id, released_first
       FROM galrc_kungal_works WHERE vndb_id IS NOT NULL) AS kw_agg`
-    const viewAgg = sql`(SELECT target_id, SUM(cnt)::int AS total FROM (
-        SELECT target_id, COUNT(*)::int AS cnt
-          FROM galrc_event_views WHERE event_type = 'game_view' GROUP BY target_id
-        UNION ALL
-        SELECT target_id, total::int AS cnt
-          FROM galrc_stat_counters WHERE kind = 'game_view'
-      ) s GROUP BY target_id) AS vw_agg`
-    const downloadAgg = sql`(SELECT target_id, SUM(cnt)::int AS total FROM (
-        SELECT game_id AS target_id, COUNT(*)::int AS cnt
-          FROM "galrc_gameDownloadStats" GROUP BY game_id
-        UNION ALL
-        SELECT target_id, total::int AS cnt
-          FROM galrc_stat_counters WHERE kind = 'game_download'
-      ) s GROUP BY target_id) AS dl_agg`
+    const viewAgg = sql`(SELECT target_id, SUM(total)::int AS total
+      FROM galrc_stat_windows WHERE kind = 'game_view' GROUP BY target_id) AS vw_agg`
+    const downloadAgg = sql`(SELECT target_id, SUM(total)::int AS total
+      FROM galrc_stat_windows WHERE kind = 'game_download' GROUP BY target_id) AS dl_agg`
 
     let orderClause: SQL
     if (sortBy === 'released') {
@@ -407,7 +359,6 @@ export const Game = {
       totalPages,
       totalCount,
     }
-    void setKv(cacheKey, JSON.stringify(datas), cacheTtl)
     return datas
   },
   async InfoGet({ id }: GameModel.infoId) {
@@ -417,53 +368,6 @@ export const Game = {
     if (!canonicalId) {
       throw status(404, `未找到 id=${id} 对应的游戏信息`)
     }
-
-    const cacheKey = `galzy:game:info:${canonicalId}`
-    type InfoResult = Awaited<ReturnType<typeof queryDb>>
-
-    /**
-     * 读取并校验详情缓存；版本不符、结构残缺或损坏 → 删除该键并返回 null。
-     *
-     * 校验点：
-     * - `__cacheVersion` 必须匹配，否则是旧口径写入的响应（见常量注释）；
-     * - `vn` 键必须存在：契约 §5 要求响应恒带 vn（kungal-only 也要合成），
-     *   整个键不见说明是旧版本写的残缺缓存。注意「vn 为 null」不再算残缺。
-     * - image 若是 Drizzle 关系行（cSexualAvg 驼峰），必须已带 imageUrl。
-     */
-    const readInfoCache = async (): Promise<InfoResult | null> => {
-      const raw = await getKv(cacheKey)
-      if (!raw) return null
-      try {
-        const parsed = JSON.parse(raw) as InfoResult & {
-          __cacheVersion?: number
-        }
-        if (
-          parsed === null ||
-          typeof parsed !== 'object' ||
-          parsed.__cacheVersion !== GAME_INFO_CACHE_VERSION ||
-          !('vn' in parsed) ||
-          (parsed.vn?.image && !('imageUrl' in parsed.vn.image))
-        ) {
-          await delKv(cacheKey)
-          return null
-        }
-        const { __cacheVersion: _cacheVersion, ...rest } = parsed
-        return rest as InfoResult
-      } catch {
-        await delKv(cacheKey)
-        return null
-      }
-    }
-
-    const writeInfoCache = (value: InfoResult) =>
-      setKv(
-        cacheKey,
-        JSON.stringify({ ...value, __cacheVersion: GAME_INFO_CACHE_VERSION }),
-        60 * 60 * 6,
-      )
-
-    const cachedInfo = await readInfoCache()
-    if (cachedInfo) return cachedInfo
 
     const queryDb = async () => {
       // 锚点行：拿到 vid（VNDB）与 kungalId（kungal work），供下面并行查询
@@ -736,8 +640,7 @@ export const Game = {
         // alistb、kungal 同步尚未补建 work 行，或该 work 在 kungal 侧已下线。
         //
         // 此时不合成 vn 会违反 CONTRACT §5（kungalOnly=true 必须给出 vn 形状），
-        // 前端会渲染出字面 "null" 的标题与空壳封面；而且下面缓存入口的
-        // 「!cached?.vn 就删缓存」判据会让这个条目永远缓存不命中。
+        // 前端会渲染出字面 "null" 的标题与空壳封面。
         //
         // 数据只能从 alistb 自身取：展示标题用网盘目录名（去掉 [kungal-X] 前缀），
         // 其余字段留空，等下一次 kungal 同步补齐。
@@ -784,46 +687,13 @@ export const Game = {
       }
     }
 
-    const lockKey = `lock:${cacheKey}`
-    const lockVal = crypto.randomUUID()
-    const locked = await acquireLockKv(lockKey, lockVal, 5000)
-    if (locked) {
-      try {
-        const doubleCheck = await readInfoCache()
-        if (doubleCheck) return doubleCheck
-
-        const data = await queryDb()
-        const result = structuredClone(data)
-        void writeInfoCache(result)
-
-        return result
-      } finally {
-        void releaseLockKv(lockKey, lockVal)
-      }
-    } else {
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      const retryCached = await readInfoCache()
-      if (retryCached) return retryCached
-
-      const data = await queryDb()
-      return data
-    }
+    return await queryDb()
   },
   async OpenListFiles({
     id,
   }: GameModel.OpenListFiles): Promise<GameModel.TreeNode[]> {
     // 统一按展示身份取资源行：/kgX 与 /vNNN 都能命中同一条目
     const canonicalId = (await resolveDisplayId(id)) ?? id
-    const cacheKey = `OpenListFiles:${canonicalId}`
-    const redisData = await getKv(cacheKey)
-
-    if (redisData) {
-      try {
-        return JSON.parse(redisData) as DataType
-      } catch {
-        await delKv(cacheKey)
-      }
-    }
     const viddata = (await db
       .select({
         id: alistb.id,
@@ -934,28 +804,17 @@ export const Game = {
     }
     if (!viddata?.path) throw status(404, `未找到相关文件`)
 
-    const data = await buildAllTrees(viddata?.path)
-    void setKv(cacheKey, JSON.stringify(data), 60 * 6)
-    type DataType = typeof data
-    return data
+    return await buildAllTrees(viddata.path)
   },
 
   /**
    * 管理员刷新文件列表。
    *
-   * 下载 tab 的文件树缓存在 Redis（OpenListFiles:<canonicalId>，TTL 360s），
-   * 网盘目录增删后页面不会立刻变化。这里先删缓存再走一遍 OpenListFiles
-   * （缓存未命中 → 重新查 alistb + Cloudreve/OpenList → 回写缓存），
-   * 把新树直接返回，前端无需再发一次 GET。
+   * 文件树已不再缓存：OpenListFiles 每次请求都实时查 alistb + Cloudreve/OpenList，
+   * 网盘目录增删后下一次请求就能看到。这里直接复用同一套构建逻辑把最新树返回，
+   * 前端无需再发一次 GET。
    */
   async RefreshOpenListFiles({ id }: GameModel.openListFilesRefresh) {
-    const canonicalId = (await resolveDisplayId(id)) ?? id
-    // 两个形态都清：调用方可能用 /kgX，也可能用 canonical /vNNN
-    await Promise.all([
-      id === canonicalId ? Promise.resolve() : delKv(`OpenListFiles:${id}`),
-      delKv(`OpenListFiles:${canonicalId}`),
-    ])
-    // 复用同一套构建逻辑：未命中缓存时会重新查库并回写缓存（TTL 360s）
     return await Game.OpenListFiles({ id })
   },
   async DataFilteringStats() {
@@ -1078,9 +937,6 @@ export const Game = {
             .set({ other: newOtherId.id })
             .where(eq(alistb.vid, id))
           data = await fetchData(trx)
-          await delKv(`galzy:game:info:${id}`)
-          await delKvPattern('galzy:game:list*')
-          await delKvPattern('galzy:tag:games:*')
         }
         if (!data?.otherData) {
           throw status(404, `未找到 id=${id} 对应的关联数据`)
@@ -1109,9 +965,6 @@ export const Game = {
             .set({ other: newOtherId.id })
             .where(eq(alistb.other, Number(id)))
           result = await fetchData(trx)
-          await delKv(`galzy:game:info:${id}`)
-          await delKvPattern('galzy:game:list*')
-          await delKvPattern('galzy:tag:games:*')
         }
         if (!result) {
           throw status(404, `未找到 id=${id} 对应的条目`)
@@ -1147,15 +1000,11 @@ export const Game = {
         alias: alias,
       })
       .where(eq(others.id, Number(id)))
+    await purgeGamePages(String(id))
     const datas = {
       message: '更新 galrc_other 成功',
       status: 'success',
     }
-    await delKv(`galzy:game:info:${id}`)
-    await delKv(`galzy:game:vidassociation:${id}`)
-    await delKvPattern('galzy:game:list*')
-    await delKv('galzy:game:count')
-    await purgeGamePages(String(id))
     await storeIdempotentResult(
       `galzy:idempotent:vidassociationUpdate:${hash}`,
       datas,
@@ -1199,8 +1048,6 @@ export const Game = {
       otherId,
       60,
     )
-    await delKvPattern('galzy:game:list*')
-    await delKv('galzy:game:count')
     type OtherId = typeof otherId
     return otherId
   },
@@ -1227,13 +1074,16 @@ export const Game = {
     ) AS start
   ),
   totals AS (
+    -- 时间桶：galrc_stat_windows 的 window_start 已是周一（date_trunc('week')），
+    -- 按月/季出图时把周桶再聚合到对应日期截断点即可。
     SELECT
-      date_trunc(${mode}, d.created_at) AS bucket,
-      COUNT(d.id)::int AS total
-    FROM "galrc_gameDownloadStats" d
-    WHERE d.game_id = ${id}
-      AND d.created_at >= (SELECT min(start) FROM series)
-      AND d.created_at <  (SELECT max(start) + CASE ${mode}
+      date_trunc(${mode}, d.window_start::timestamp) AS bucket,
+      SUM(d.total)::int AS total
+    FROM galrc_stat_windows d
+    WHERE d.kind = 'game_download'
+      AND d.target_id = ${id}
+      AND d.window_start >= (SELECT min(start) FROM series)
+      AND d.window_start <  (SELECT max(start) + CASE ${mode}
             WHEN 'week' THEN interval '1 week'
             WHEN 'month' THEN interval '1 month'
             ELSE interval '3 month'
@@ -1241,11 +1091,10 @@ export const Game = {
     GROUP BY bucket
   ),
   grand AS (
-    -- 累计下载数 = 已 rollup 的历史计数 + 明细剩余行（明细会被 TTL 清理）
-    SELECT (
-      COALESCE((SELECT c.total FROM galrc_stat_counters c WHERE c.kind = 'game_download' AND c.target_id = ${id}), 0)
-      + (SELECT COUNT(*) FROM "galrc_gameDownloadStats" WHERE game_id = ${id})
-    )::int AS total
+    -- 累计下载数 = 全部周窗口求和（写时增量聚合，不再依赖明细表 TTL/rollup）
+    SELECT COALESCE(SUM(d.total), 0)::int AS total
+    FROM galrc_stat_windows d
+    WHERE d.kind = 'game_download' AND d.target_id = ${id}
   )
   SELECT
     CASE
@@ -1410,16 +1259,6 @@ export const Game = {
     // 与 InfoGet 同一套解析：任意形态 id → 展示身份 → 锚点行 → vid
     const canonicalId = await resolveDisplayId(id)
     if (!canonicalId) throw status(404, `未找到 id=${id} 对应的游戏信息`)
-    const cacheKey = `galzy:game:relations:${canonicalId}`
-    type RelResult = typeof data
-    const redisData = await getKv(cacheKey)
-    if (redisData) {
-      try {
-        return JSON.parse(redisData) as RelResult
-      } catch {
-        await delKv(cacheKey)
-      }
-    }
 
     const lookupVid = await db
       .select({ vid: alistb.vid })
@@ -1438,7 +1277,7 @@ export const Game = {
     const MAX_DEPTH = 6
     const MAX_TOTAL = 100
     // 单条 SQL：递归 CTE 闭包边 + vn 数据 + kungal 数据全部折叠（json_agg 子查询），
-    // 冷路径 DB 网络往返从 3 次降到 1 次（另有 Redis 检查 1 次）。
+    // 每次请求的 DB 往返固定为 1 次（无缓存层）。
     const merged = await db.execute(sql`
       WITH RECURSIVE closure AS (
         SELECT r.id, r.vid, r.relation, r.relation_official, r.title, 1 AS depth
@@ -1652,7 +1491,6 @@ export const Game = {
         game: buildCard(r.vid),
       })),
     }
-    void setKv(cacheKey, JSON.stringify(data), 60 * 60)
     return data
   },
 }

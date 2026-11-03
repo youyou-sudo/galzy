@@ -1,5 +1,4 @@
-import { buildCoverUrl, db, eventViews, MeiliClient } from '@api/libs'
-import { delKv, getKv, setKv } from '@api/libs/redis'
+import { buildCoverUrl, bumpStatWindows, MeiliClient } from '@api/libs'
 import { status } from 'elysia'
 import { t } from 'try'
 import type { SearchModel } from './model'
@@ -7,24 +6,6 @@ import type { SearchModel } from './model'
 export const Search = {
   async get({ q, limit, startDate, endDate }: SearchModel.search) {
     const safeQ = q?.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim()
-    const cacheKey = `galzy:search:${safeQ}:${limit}:${startDate ?? ''}:${endDate ?? ''}`
-    const redisData = await getKv(cacheKey)
-
-    if (redisData) {
-      try {
-        const parsed = JSON.parse(redisData)
-        // Stale entries written before imageUrl existed must be rebuilt
-        const hits = (parsed?.hits ?? []) as Array<Record<string, unknown>>
-        const stale = hits.some((h) => {
-          const img = h.images as Record<string, unknown> | null
-          return !!img && !('imageUrl' in img)
-        })
-        if (!stale) return parsed as SearchReturn
-        await delKv(cacheKey)
-      } catch {
-        await delKv(cacheKey)
-      }
-    }
     const filters: string[] = []
 
     if (startDate && endDate) {
@@ -58,14 +39,7 @@ export const Search = {
     if (topTag && safeQ) {
       const tagId = (topTag as Record<string, unknown>).id as string | undefined
       if (tagId) {
-        void db
-          .insert(eventViews)
-          .values({
-            eventType: 'tag_view',
-            targetId: tagId,
-            createdAt: new Date(),
-          })
-          .catch(() => {})
+        void bumpStatWindows('tag_view', tagId).catch(() => {})
       }
     }
     const data = {
@@ -91,8 +65,6 @@ export const Search = {
         img.imageUrl = img.url as string
       }
     }
-    void setKv(cacheKey, JSON.stringify(data), 60 * 60 * 1)
-    type SearchReturn = typeof data
     return data
   },
 
@@ -146,21 +118,6 @@ export const Search = {
       sort.push(`${sortBy}:${dir}`)
     }
 
-    // Redis 页缓存：key 前缀与 cron 索引重建后的 delKvPattern('galzy:search:*') 对齐，
-    // Meili 数据变化时同步失效。tag_view 计数走 DB fire-and-forget，不进缓存。
-    const tagKey = Array.isArray(tags)
-      ? [...tags].sort().join(',')
-      : (tags ?? '')
-    const cacheKey = `galzy:search:games:${safeQ}:${page}:${hitsPerPage}:${sortBy ?? ''}:${order ?? ''}:${olang ?? ''}:${tagKey}:${startDate ?? ''}:${endDate ?? ''}:${r18 === false ? '0' : '1'}:${includeFacets ? 'f' : 'n'}`
-    const cached = await getKv(cacheKey)
-    if (cached) {
-      try {
-        return JSON.parse(cached) as SearchGamesReturn
-      } catch {
-        await delKv(cacheKey)
-      }
-    }
-
     const index = MeiliClient.index(
       process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
     )
@@ -187,14 +144,7 @@ export const Search = {
       const hitTags = firstHit.tags as string[] | undefined
       const topTagId = hitTags?.[0]
       if (topTagId) {
-        void db
-          .insert(eventViews)
-          .values({
-            eventType: 'tag_view' as const,
-            targetId: topTagId,
-            createdAt: new Date(),
-          })
-          .catch(() => {})
+        void bumpStatWindows('tag_view', topTagId).catch(() => {})
       }
     }
 
@@ -235,11 +185,6 @@ export const Search = {
     }
     if (includeFacets) {
       data.facetDistribution = result.facetDistribution
-    }
-    // 列表翻页高频且 Meili 结果稳定：缓存 5 分钟。空结果不缓存，
-    // 避免索引延迟/新建游戏导致的空洞被放大。
-    if (result.hits.length > 0) {
-      void setKv(cacheKey, JSON.stringify(data), 60 * 5)
     }
     return data
   },

@@ -22,7 +22,7 @@ export namespace GameModel {
     id: t.String({ minLength: 1 }),
   })
   /**
-   * 管理员刷新文件列表：清掉该作品在 Redis 里的 OpenListFiles 缓存并重新构建。
+   * 管理员刷新文件列表：实时重建该作品的文件树并返回。
    * 与 openListFiles 同一个 id 语义（/kgX 与 /vNNN 都接受）。
    */
   export const openListFilesRefresh = t.Object({

@@ -1,10 +1,9 @@
-import { cloudflare, db, gameDownloadStats } from '@api/libs'
+import { bumpStatWindows, cloudflare, db } from '@api/libs'
 import {
   CloudreveError,
   createCloudreveDownloadUrl,
   pathToCloudreveUri,
 } from '@api/libs/cloudreve'
-import { delKvPattern } from '@api/libs/redis'
 import { eq } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { DownloadModel } from './model'
@@ -23,16 +22,12 @@ export const Download = {
       throw err
     }
 
-    // Fire-and-forget: stats tracking MUST NOT block the download response
-    void db
-      .insert(gameDownloadStats)
-      .values({
-        gameId: game_id,
-        filePath: path,
-        createdAt: new Date(),
-      })
-      .then(() => delKvPattern('galzy:game:list*'))
-      .catch((err) => console.error('[DownloadGet] 统计写入失败:', err))
+    // Fire-and-forget: stats tracking MUST NOT block the download response。
+    // 写时增量：只自增本周窗口的一行（kind='game_download'），不再往明细表
+    // galrc_gameDownloadStats（线上 35 万行 / 79MB）写一行。
+    void bumpStatWindows('game_download', game_id).catch((err) =>
+      console.error('[DownloadGet] 统计写入失败:', err),
+    )
 
     return {
       success: true,

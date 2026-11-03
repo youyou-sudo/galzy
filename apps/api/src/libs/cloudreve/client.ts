@@ -1,5 +1,3 @@
-import { delKv, getKv, setKv } from '@api/libs/redis'
-
 // ── 环境配置 ──────────────────────────────────────────
 const CLOUDREVE_HOST = process.env.CLOUDREVE_HOST
 const CLOUDREVE_EMAIL = process.env.CLOUDREVE_EMAIL
@@ -8,7 +6,6 @@ const CLOUDREVE_PASSWORD = process.env.CLOUDREVE_PASSWORD
 // Cloudreve 文件 URI 前缀：cloudreve://my 表示当前登录用户自己的网盘
 const CLOUDREVE_FS_PREFIX = 'cloudreve://my'
 
-const TOKEN_CACHE_KEY = 'galzy:cloudreve:access_token'
 const REQUEST_TIMEOUT_MS = 30_000
 // 默认分页大小（List files 接口的 max_page_size 一般为 2000）
 const DEFAULT_PAGE_SIZE = 2000
@@ -43,6 +40,10 @@ interface TokenCache {
   expiresAt: number
 }
 
+/**
+ * 进程内 token（模块级内存变量）：过期或接口返回 401 后重新登录。
+ * 多实例部署时各自持有自己的 token，互不影响。
+ */
 let memToken: TokenCache | null = null
 
 async function login(): Promise<TokenCache> {
@@ -79,24 +80,8 @@ async function getAccessToken(): Promise<string> {
   const now = Date.now()
   if (memToken && memToken.expiresAt > now + 60_000) return memToken.token
 
-  // Redis 缓存（开发模式 Redis 不生效时退化为每次登录，配合内存缓存兜底）
-  const cached = await getKv(TOKEN_CACHE_KEY)
-  if (cached) {
-    try {
-      const parsed = JSON.parse(cached) as TokenCache
-      if (parsed.token && parsed.expiresAt > now + 60_000) {
-        memToken = parsed
-        return parsed.token
-      }
-    } catch {
-      // 缓存损坏，重新登录
-    }
-  }
-
   const fresh = await login()
   memToken = fresh
-  const ttl = Math.max(60, Math.floor((fresh.expiresAt - now) / 1000) - 60)
-  await setKv(TOKEN_CACHE_KEY, JSON.stringify(fresh), ttl)
   return fresh.token
 }
 
@@ -125,10 +110,9 @@ async function cloudreveRequest(
 
   const json = (await res.json().catch(() => ({}))) as CloudreveResponse
 
-  // token 过期：清缓存后重试一次
+  // token 过期：丢掉进程内 token 后重新登录并重试一次
   if (res.status === 401 && !retried) {
     memToken = null
-    await delKv(TOKEN_CACHE_KEY)
     return cloudreveRequest(path, init, true)
   }
   return json

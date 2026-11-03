@@ -1,6 +1,5 @@
 import { adSlots, adverts, db } from '@api/libs'
-import { delKv, getKv, setKv } from '@api/libs/redis'
-import { and, asc, eq, gte, inArray, isNull, lte, or, sql } from 'drizzle-orm'
+import { and, asc, eq, gte, isNull, lte, or, sql } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { AdvertModel } from './model'
 
@@ -72,21 +71,6 @@ export type AdSlotPayloadDTO = {
 type AdSlotRow = typeof adSlots.$inferSelect
 type AdvertRow = typeof adverts.$inferSelect
 
-/** 缓存内容：广告位配置 + 该位「在投」素材（已按 sort_order 排序，未做设备过滤）。 */
-type SlotCachePayload = { slot: AdSlotDTO; ads: AdvertDTO[] }
-
-/**
- * 公开数据缓存键前缀。
- *
- * 写操作（广告位/素材的增删改、拖动排序）成功后精确失效「受影响广告位」的 key，
- * 否则后台停用一张横幅，前台最长还要再展示 60 秒。
- * track（曝光/点击）只改计数，不影响公开数据，不失效缓存。
- */
-const SLOT_CACHE_PREFIX = 'galzy:adverts:slot:'
-const SLOT_CACHE_TTL = 60
-
-const slotCacheKey = (key: string) => `${SLOT_CACHE_PREFIX}${key}`
-
 /**
  * 排序号的串行化闸门（按广告位分锁）。
  *
@@ -103,41 +87,6 @@ async function lockSlotSortOrder(
   await trx.execute(
     sql`select pg_advisory_xact_lock(hashtext(${SORT_LOCK_KEY + ':' + slotId}))`,
   )
-}
-
-/**
- * 写操作成功后失效「受影响广告位」的缓存（1~2 个 key）。
- *
- * 这里刻意不用 delKvPattern（SCAN 遍历整个 keyspace）：共享 Redis 上可能有上万
- * 个 key，跨机房 RTT 250ms 时单次 SCAN 全库要几十秒，而一次后台写只影响一两个
- * 广告位。精确 DEL 后行为不变——后台改完，下一次读取立刻拿到新数据。
- *
- * 失效失败只告警：缓存最多再脏 60s（TTL 到期自愈），不能因此回滚已提交的业务。
- */
-async function invalidateSlotCache(keys: string[]): Promise<void> {
-  const unique = [...new Set(keys)]
-  if (unique.length === 0) return
-  await Promise.all(
-    unique.map((key) =>
-      delKv(slotCacheKey(key)).catch((e) => {
-        console.warn(
-          `[adverts] 广告位缓存失效失败: ${slotCacheKey(key)}`,
-          e instanceof Error ? e.message : String(e),
-        )
-      }),
-    ),
-  )
-}
-
-/** 按广告位 id 查 key（查库 1 次，一般返回 1 条）。 */
-async function slotKeysOf(slotIds: number[]): Promise<string[]> {
-  const unique = [...new Set(slotIds)]
-  if (unique.length === 0) return []
-  const rows = await db
-    .select({ key: adSlots.key })
-    .from(adSlots)
-    .where(inArray(adSlots.id, unique))
-  return rows.map((row) => row.key)
 }
 
 function toSlotDTO(row: AdSlotRow): AdSlotDTO {
@@ -312,21 +261,6 @@ function pickForDevice(
   return chosen.map(toPublicAdvert)
 }
 
-/**
- * 读缓存。内容损坏（历史格式 / 手工写入）时按未命中处理并删键，
- * 不要让一个坏 JSON 把整个广告位打成 500。
- */
-async function readSlotCache(key: string): Promise<SlotCachePayload | null> {
-  const cached = await getKv(slotCacheKey(key))
-  if (!cached) return null
-  try {
-    return JSON.parse(cached) as SlotCachePayload
-  } catch {
-    await delKv(slotCacheKey(key)).catch(() => {})
-    return null
-  }
-}
-
 /** 在投过滤：enabled=true 且已开始 且未结束。 */
 function liveWhereClause(slotId: number, now: Date) {
   return and(
@@ -343,12 +277,8 @@ export const AdvertService = {
    *
    * 返回值：广告位不存在或 enabled=false → null（前台据此隐藏整个区块）；
    * 否则 { slot, desktop, mobile }，两个列表各自已做设备定向 + 权重抽样。
-   * 缓存 60s，写操作主动失效；track 不影响缓存。
    */
   async getSlot(key: string): Promise<AdSlotPayloadDTO | null> {
-    const cached = await readSlotCache(key)
-    if (cached) return buildPayload(cached.slot, cached.ads)
-
     const [slotRow] = await db
       .select()
       .from(adSlots)
@@ -366,20 +296,6 @@ export const AdvertService = {
 
     const slot = toSlotDTO(slotRow)
     const ads = rows.map((row) => toAdvertDTO(row, now))
-
-    // Redis 不可用时 safeRedisOp 已吞掉错误（返回 undefined），这里只兜底日志
-    try {
-      await setKv(
-        slotCacheKey(key),
-        JSON.stringify({ slot, ads } satisfies SlotCachePayload),
-        SLOT_CACHE_TTL,
-      )
-    } catch (e) {
-      console.warn(
-        `[adverts] 广告位缓存写入失败: ${slotCacheKey(key)}`,
-        e instanceof Error ? e.message : String(e),
-      )
-    }
 
     return buildPayload(slot, ads)
   },
@@ -440,7 +356,6 @@ export const AdvertService = {
           ...(data.enabled !== undefined && { enabled: data.enabled }),
         })
         .returning()
-      await invalidateSlotCache([inserted.key])
       return toSlotDTO(inserted)
     } catch (e) {
       if (isUniqueViolation(e)) throw status(409, '广告位标识已存在喵～')
@@ -474,7 +389,6 @@ export const AdvertService = {
       // updated_at 只有 defaultNow()、没有 ON UPDATE 触发器，这里显式刷新
       updatedAt: new Date(),
     }
-    // 先读旧 key：改了 key 时旧缓存也要删，否则旧 key 还读得到旧配置
     const [existing] = await db
       .select({ id: adSlots.id, key: adSlots.key })
       .from(adSlots)
@@ -497,13 +411,11 @@ export const AdvertService = {
       throw e
     }
 
-    await invalidateSlotCache([existing.key, updated.key])
     return toSlotDTO(updated)
   },
 
   /** 管理：删除广告位；该位下还有素材时 400（不静默级联删素材）。 */
   async deleteSlot(id: number): Promise<{ success: true }> {
-    // 先读 key：删除后就查不到了，而缓存要按 key 精确失效
     const [existing] = await db
       .select({ key: adSlots.key })
       .from(adSlots)
@@ -524,7 +436,6 @@ export const AdvertService = {
       })
     })
     if (deleted.length === 0) throw status(404, '广告位不存在喵～')
-    await invalidateSlotCache([existing.key])
     return { success: true }
   },
 
@@ -592,7 +503,6 @@ export const AdvertService = {
       return inserted
     })
 
-    await invalidateSlotCache([slotRow.key])
     return toAdvertDTO(created, new Date())
   },
 
@@ -648,21 +558,16 @@ export const AdvertService = {
       .returning()
     if (!updated) throw status(404, '广告不存在喵～')
 
-    await invalidateSlotCache(await slotKeysOf([existing.slotId]))
     return toAdvertDTO(updated, new Date())
   },
 
   async delete(id: number): Promise<{ success: true }> {
-    // returning slotId：删除后还要按它精确失效缓存，避免多一次 SELECT
     const deleted = await db
       .delete(adverts)
       .where(eq(adverts.id, id))
-      .returning({ id: adverts.id, slotId: adverts.slotId })
+      .returning({ id: adverts.id })
     if (deleted.length === 0) throw status(404, '广告不存在喵～')
 
-    await invalidateSlotCache(
-      await slotKeysOf(deleted.map((row) => row.slotId)),
-    )
     return { success: true }
   },
 
@@ -708,7 +613,6 @@ export const AdvertService = {
       }
     })
 
-    await invalidateSlotCache(await slotKeysOf([slotId]))
     return { success: true }
   },
 }
@@ -716,9 +620,8 @@ export const AdvertService = {
 /**
  * 组装公开返回：设备定向 + 权重抽样。
  *
- * 缓存里存的是「在投素材全集」（不按设备切分），因为同一份数据要服务
- * 桌面与手机两种请求；抽样是每次请求现做的，所以缓存 60s 也不会让
- * 权重轮换停止（每次命中也重新抽）。
+ * 同一份「在投素材全集」要服务桌面与手机两种请求，抽样每次请求现做，
+ * 权重轮换因此是实时的。
  */
 function buildPayload(slot: AdSlotDTO, ads: AdvertDTO[]): AdSlotPayloadDTO {
   return {

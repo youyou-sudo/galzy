@@ -54,8 +54,8 @@ export const game = new Elysia({ prefix: '/games' })
     },
   )
   /**
-   * 管理员刷新文件列表：删除该作品在 Redis 的 OpenListFiles 缓存并重建，
-   * 返回新的文件树（前端直接 setQueryData，无需再发一次 GET）。
+   * 管理员刷新文件列表：文件树已不缓存，这里实时重建并返回最新文件树
+   * （前端直接 setQueryData，无需再发一次 GET）。
    */
   .post(
     '/openlistfiles/refresh',

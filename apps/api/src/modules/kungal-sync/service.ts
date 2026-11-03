@@ -17,9 +17,8 @@ import {
   parseRefs,
   refsToAliasPairs,
 } from '@api/libs/kungal-api'
-import { acquireLockKv, delKvPattern, releaseLockKv } from '@api/libs/redis'
+import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
 import { CronService } from '@api/modules/cron/service'
-import { VndbSync } from '@api/modules/vndb-sync/service'
 import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
 
 const RESOLVE_BATCH = 100
@@ -433,8 +432,6 @@ export const KungalSync = {
         kungalTarget.map((r) => r.displayId),
       )
     }
-    await this.invalidateCache()
-    await purgeAfterSync()
     await this.updateProgress({
       status: 'completed',
       completedAt: new Date().toISOString(),
@@ -447,6 +444,7 @@ export const KungalSync = {
     console.log(
       `✅ Kungal ${type} 同步完成: upsert ${upserted}, 失败 ${errors}, 别名 ${aliases}`,
     )
+    await purgeAfterSync()
   },
 
   /** delta 阶段 2.5 入口：消费 redirects feed；失败只记日志，不打断本次同步。 */
@@ -826,16 +824,5 @@ export const KungalSync = {
       }
     }
     return [...out.values()]
-  },
-
-  /** 复用 VNDB 同步的缓存失效键集（games 读侧缓存） + kungal 专属键。 */
-  async invalidateCache() {
-    await VndbSync.invalidateCache()
-    await delKvPattern('galzy:kungal:*').catch((e) =>
-      console.warn('[Cache] kungal cache invalidation failed:', e),
-    )
-    await delKvPattern('galzy:views:hot:*').catch((e) =>
-      console.warn('[Cache] hot views invalidation failed:', e),
-    )
   },
 }

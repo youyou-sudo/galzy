@@ -10,7 +10,6 @@ import {
   shouldUseKungalCover,
   vn,
 } from '@api/libs'
-import { getKv, setKv } from '@api/libs/redis'
 import {
   count,
   eq,
@@ -25,12 +24,6 @@ import type { ProducerModel } from './model'
 
 export const Producer = {
   async info({ pid }: ProducerModel.ProducerGet) {
-    const redisKey = `galzy:producer:info:${pid}`
-    const redisData = await getKv(redisKey)
-    if (redisData !== null && redisData !== undefined) {
-      return JSON.parse(redisData) as Producer
-    }
-
     const producer = await db
       .select({
         ...getTableColumns(producers),
@@ -43,15 +36,9 @@ export const Producer = {
 
     if (!producer) throw status(404, `未找到 pid 为 ${pid} 的 producer`)
 
-    type Producer = typeof producer
-
-    void setKv(redisKey, JSON.stringify(producer), 60 * 30)
-
     return producer
   },
   async gamelists({ pid, page = 1, limit = 50 }: ProducerModel.ProducerGet) {
-    const cacheKey = `galzy:producer:gamelist:${pid}:${page}:${limit}`
-
     const offset = (page - 1) * limit
 
     const [producerGamelists, countResult] = await Promise.all([
@@ -154,20 +141,9 @@ export const Producer = {
     if (!producerGamelists.length && totalCount === 0)
       throw status(404, `未找到该生产者的游戏列表喵~`)
 
-    void setKv(cacheKey, JSON.stringify(data), 60 * 30)
-
     return data
   },
   async search({ q, limit = 20 }: ProducerModel.search) {
-    const cacheKey = `galzy:producer:search:${q}:${limit}`
-    const cached = await getKv(cacheKey)
-    if (cached)
-      return JSON.parse(cached) as Array<{
-        id: string
-        name: string | null
-        latin: string | null
-      }>
-
     const results = await db
       .select({
         id: producers.id,
@@ -185,7 +161,6 @@ export const Producer = {
       .limit(limit)
       .orderBy(producers.name)
 
-    void setKv(cacheKey, JSON.stringify(results), 60)
     return results
   },
 }

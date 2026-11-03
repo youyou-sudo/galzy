@@ -15,18 +15,9 @@ export const QUEUE_JOB_RETENTION_DAYS = Number(
   process.env.QUEUE_JOB_RETENTION_DAYS ?? 90,
 )
 
-/**
- * 事件明细（galrc_event_views）与下载明细（galrc_gameDownloadStats）的保留天数。
- * 明细既是时间窗口排行榜的数据源，也是累计统计的数据源；清理前会把即将删除的行
- * 聚合进 galrc_stat_counters（见 modules/tasks/service.ts），累计值不会下降。
- * 设为 0 或负数则关闭对应表的清理。
- */
-export const EVENT_VIEW_RETENTION_DAYS = Number(
-  process.env.EVENT_VIEW_RETENTION_DAYS ?? 90,
-)
-export const GAME_DOWNLOAD_STATS_RETENTION_DAYS = Number(
-  process.env.GAME_DOWNLOAD_STATS_RETENTION_DAYS ?? 365,
-)
+// 事件/下载明细的保留天数（EVENT_VIEW_RETENTION_DAYS / GAME_DOWNLOAD_STATS_RETENTION_DAYS）
+// 已随「写时增量聚合」一起移除：统计改写 galrc_stat_windows，明细表不再有写入方，
+// 历史数据由 scripts/backfill-stat-windows.ts 回填后一次性 TRUNCATE，不需要 TTL 清理。
 
 /**
  * 队列是否可用：仅生产环境（Redis 生效）才启用。

@@ -1,7 +1,7 @@
 import {
   buildCoverUrl,
+  bumpStatWindows,
   db,
-  eventViews,
   images,
   kungalWorks,
   shouldUseKungalCover,
@@ -12,21 +12,11 @@ import {
   vnTitles,
   zhtags,
 } from '@api/libs'
-import {
-  delKv,
-  getKv,
-  getRedisClient,
-  isRedisEnabled,
-  setKv,
-} from '@api/libs/redis'
-import { getEffectiveWeekStart, getWeekKey } from '@api/libs/time-window'
-import { and, count, desc, eq, gte, inArray, isNull, or } from 'drizzle-orm'
+import { getRedisClient, isRedisEnabled } from '@api/libs/redis'
+import { getWeekKey } from '@api/libs/time-window'
+import { and, eq, inArray, isNull, or } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { ViewsModel } from './model'
-
-// 周榜窗口是 date_trunc('week', …)，同一周内结果只随新事件增长而变，5 分钟重算
-// 纯属浪费（每次要 bitmap-scan 十几万到几十万行 event_views）。1 小时足够新鲜。
-const WEEK_CACHE_TTL = 60 * 60
 
 // ============================================================
 // 访问防刷：固定窗口计数（Redis INCR），每 IP 每端点独立限额。
@@ -53,25 +43,33 @@ async function hitViewRateLimit(
   }
 }
 
-async function queryGameRankings(weekStart: Date, excludeR18 = false) {
+/**
+ * 本周游戏榜：浏览 ×1 + 下载 ×3，数据源是写时增量表 galrc_stat_windows。
+ *
+ * 旧实现每次请求都要 bitmap-scan galrc_event_views 里本周的几十万行
+ * （线上 61ms/次；本地按线上量级造数 218ms），只能靠 Redis 缓存掩盖；
+ * 现在只扫 (kind, window_start) 索引上「近两周 × 每个对象一行」的少量行
+ * （同一造数下 5ms）。
+ *
+ * @param weekStartKey 周窗口起点（YYYY-MM-DD，getWeekKey()），周一当天仍是上一周
+ */
+async function queryGameRankings(weekStartKey: string, excludeR18 = false) {
   // r18 关闭时在 SQL 层剔除涩涩游戏，保证仍取满 30 名健康游戏（前端显示 24 个）
   const r18Filter = (idExpr: string) =>
     excludeR18
       ? sql`AND NOT EXISTS (SELECT 1 FROM ${vn} v JOIN ${images} i ON i.id = v.c_image WHERE v.id = ${sql.raw(idExpr)} AND i.c_sexual_avg >= 1)`
       : sql``
   const result = await db.execute(sql`
-    SELECT id, SUM(score)::int AS total FROM (
-      SELECT target_id AS id, COUNT(*) * 1 AS score
-      FROM galrc_event_views
-      WHERE event_type = 'game_view' AND created_at >= ${weekStart}
+    SELECT target_id AS id, SUM(score)::int AS total FROM (
+      SELECT target_id, total * 1 AS score
+      FROM galrc_stat_windows
+      WHERE kind = 'game_view' AND window_start >= ${weekStartKey}::date
       ${r18Filter('target_id')}
-      GROUP BY target_id
       UNION ALL
-      SELECT game_id AS id, COUNT(*) * 3 AS score
-      FROM "galrc_gameDownloadStats"
-      WHERE created_at >= ${weekStart}
-      ${r18Filter('game_id')}
-      GROUP BY game_id
+      SELECT target_id, total * 3 AS score
+      FROM galrc_stat_windows
+      WHERE kind = 'game_download' AND window_start >= ${weekStartKey}::date
+      ${r18Filter('target_id')}
     ) combined
     GROUP BY id
     ORDER BY total DESC
@@ -80,22 +78,19 @@ async function queryGameRankings(weekStart: Date, excludeR18 = false) {
   return result as unknown as Array<{ id: string; total: number }>
 }
 
-async function queryTagRankings(weekStart: Date) {
-  return db
-    .select({
-      targetId: eventViews.targetId,
-      total: count().mapWith(Number).as('total'),
-    })
-    .from(eventViews)
-    .where(
-      and(
-        eq(eventViews.eventType, 'tag_view'),
-        gte(eventViews.createdAt, weekStart),
-      ),
-    )
-    .groupBy(eventViews.targetId)
-    .orderBy(desc(sql`count(*)`))
-    .limit(30)
+/** 本周标签榜：直接对 stat_windows 的 tag_view 窗口求和（同样不再扫明细表）。 */
+async function queryTagRankings(weekStartKey: string) {
+  const rows = await db.execute(sql`
+    SELECT target_id, SUM(total)::int AS total
+    FROM galrc_stat_windows
+    WHERE kind = 'tag_view' AND window_start >= ${weekStartKey}::date
+    GROUP BY target_id
+    ORDER BY 2 DESC
+    LIMIT 30
+  `)
+  return (rows as unknown as Array<{ target_id: string; total: number }>).map(
+    (r) => ({ targetId: r.target_id, total: r.total }),
+  )
 }
 
 export const ViewsService = {
@@ -103,62 +98,36 @@ export const ViewsService = {
     { gameId }: ViewsModel.recordGameView,
     ip: string | null,
   ) {
+    // 限流仍走 Redis INCR（固定窗口计数，不是缓存），超限直接 429。
     if (await hitViewRateLimit(ip, 'game'))
       throw status(429, '请求过于频繁，请稍后再试喵～')
-    await db.insert(eventViews).values({
-      eventType: 'game_view',
-      targetId: gameId,
-      createdAt: new Date(),
-    })
+    // 写时增量：每次浏览只自增本周窗口的一行，不再写明细（明细表 450 万行 / 569MB）。
+    await bumpStatWindows('game_view', gameId)
   },
 
   async recordTagView({ tagId }: ViewsModel.recordTagView, ip: string | null) {
     if (await hitViewRateLimit(ip, 'tag'))
       throw status(429, '请求过于频繁，请稍后再试喵～')
-    await db.insert(eventViews).values({
-      eventType: 'tag_view',
-      targetId: tagId,
-      createdAt: new Date(),
-    })
+    await bumpStatWindows('tag_view', tagId)
   },
 
+  /** 标签页一次记录多个标签（含父标签链）：合并成一条多行 upsert。 */
   async recordTagViews(tagIds: string[]) {
     if (tagIds.length === 0) return
-    await db.insert(eventViews).values(
-      tagIds.map((tagId) => ({
-        eventType: 'tag_view' as const,
-        targetId: tagId,
-        createdAt: new Date(),
-      })),
-    )
+    await bumpStatWindows('tag_view', tagIds)
   },
 
   async getHotGames({
     r18,
   }: ViewsModel.hotGame = {}): Promise<ViewsModel.GameRankingItem[]> {
-    const weekStart = getEffectiveWeekStart()
-    const weekKey = getWeekKey(weekStart)
-    const cacheKey = `galzy:views:hot:game:${weekKey}:${r18 ? '1' : '0'}`
-
-    // 命中缓存直接返回。此前这里只写不读，排行榜的聚合查询每次请求都要重跑。
-    const cached = await getKv(cacheKey)
-    if (cached) {
-      try {
-        return JSON.parse(cached) as ViewsModel.GameRankingItem[]
-      } catch {
-        await delKv(cacheKey)
-      }
-    }
+    const weekStartKey = getWeekKey()
 
     // r18 未开启（undefined / false）时必须在 SQL 层剔除涩涩游戏，
     // 否则 LIMIT 30 会被 R18 作品占满，内存过滤后榜单名额不足。
     const excludeR18 = r18 !== true
-    const rows = await queryGameRankings(weekStart, excludeR18)
+    const rows = await queryGameRankings(weekStartKey, excludeR18)
 
-    if (rows.length === 0) {
-      void setKv(cacheKey, JSON.stringify([]), WEEK_CACHE_TTL)
-      return []
-    }
+    if (rows.length === 0) return []
 
     const ids = rows.map((r) => r.id)
     // 热榜 id 是「展示身份」，可能是 'vNNN'（VNDB）或 'kgX'（kungal-only）。
@@ -297,27 +266,15 @@ export const ViewsService = {
     })
 
     // r18 关闭时剔除涩涩游戏（无封面 → cSexualAvg null → 保留）
-    const result = excludeR18
-      ? mapped.filter((g) => (g.cSexualAvg ?? 0) < 1)
-      : mapped
-
-    void setKv(cacheKey, JSON.stringify(result), WEEK_CACHE_TTL)
-    return result
+    return excludeR18 ? mapped.filter((g) => (g.cSexualAvg ?? 0) < 1) : mapped
   },
 
   async getHotTags(): Promise<ViewsModel.TagRankingItem[]> {
-    const weekStart = getEffectiveWeekStart()
-    const weekKey = getWeekKey(weekStart)
-    const cacheKey = `galzy:views:hot:tag:${weekKey}`
-    const cached = await getKv(cacheKey)
-    if (cached) return JSON.parse(cached) as ViewsModel.TagRankingItem[]
+    const weekStartKey = getWeekKey()
 
-    const rows = await queryTagRankings(weekStart)
+    const rows = await queryTagRankings(weekStartKey)
 
-    if (rows.length === 0) {
-      void setKv(cacheKey, JSON.stringify([]), WEEK_CACHE_TTL)
-      return []
-    }
+    if (rows.length === 0) return []
 
     const tagIds = rows.map((r) => r.targetId)
     // 优先中文名，未本地化的回退 VNDB 英文名，避免显示原始 tag id；
@@ -340,15 +297,12 @@ export const ViewsService = {
     const visibleIds = new Set(tagRows.map((r) => r.id))
     const titleMap = new Map(tagRows.map((r) => [r.id, r.zhName ?? r.name]))
 
-    const result = rows
+    return rows
       .filter((r) => visibleIds.has(r.targetId))
       .map((r) => ({
         tag: r.targetId,
         title: titleMap.get(r.targetId) ?? null,
         total: r.total,
       }))
-
-    void setKv(cacheKey, JSON.stringify(result), WEEK_CACHE_TTL)
-    return result
   },
 }

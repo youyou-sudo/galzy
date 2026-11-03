@@ -18,9 +18,8 @@ import {
   zhtags,
 } from '@api/libs'
 import { purgeAfterSync } from '@api/libs/cloudflare-cache'
-
 import { MeiliClient } from '@api/libs/meilisearch'
-import { acquireLockKv, delKvPattern, releaseLockKv } from '@api/libs/redis'
+import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
 import {
   dumpIdToTagId,
   idOrFilter,
@@ -237,7 +236,6 @@ export const VndbSync = {
       await this.addLog('error', `Producer sync failed: ${String(err)}`)
     }
 
-    await this.invalidateCache()
     await this.updateProgress({
       status: 'completed',
       completedAt: new Date().toISOString(),
@@ -245,6 +243,7 @@ export const VndbSync = {
     })
     await this.addLog('success', 'VNDB 全量同步完成')
     console.log('✅ VNDB 全量同步完成')
+    await purgeAfterSync()
   },
 
   async syncProducersFromDb(
@@ -287,8 +286,6 @@ export const VndbSync = {
       })
       onProgress?.(processed, total)
     })
-    await this.invalidateCache()
-    await purgeAfterSync()
     await this.updateProgress({
       status: 'completed',
       completedAt: new Date().toISOString(),
@@ -467,8 +464,6 @@ export const VndbSync = {
         await this.addLog('error', `Producer sync failed: ${String(err)}`)
       }
 
-      await this.invalidateCache()
-      await purgeAfterSync()
       await this.updateProgress({
         status: 'completed',
         completedAt: new Date().toISOString(),
@@ -476,6 +471,7 @@ export const VndbSync = {
       })
       await this.addLog('success', 'VNDB 增量同步完成')
       console.log('✅ VNDB 增量同步完成')
+      await purgeAfterSync()
     } finally {
       await releaseLockKv(lockKey, lockVal)
     }
@@ -553,40 +549,6 @@ export const VndbSync = {
       .where(eq(siteConfig.key, CLOUDREVE_SYNC_TIME_KEY))
       .limit(1)
     return (row[0]?.config as CloudreveSyncStats | undefined) ?? null
-  },
-
-  async invalidateCache() {
-    await delKvPattern('galzy:game:list*').catch((e) =>
-      console.warn('[Cache] gameList invalidation failed:', e),
-    )
-    await delKvPattern('galzy:game:info*').catch((e) =>
-      console.warn('[Cache] gameInfo invalidation failed:', e),
-    )
-    await delKvPattern('galzy:game:relations*').catch((e) =>
-      console.warn('[Cache] gameRelations invalidation failed:', e),
-    )
-    await delKvPattern('OpenListFiles:*').catch((e) =>
-      console.warn('[Cache] OpenListFiles invalidation failed:', e),
-    )
-    await delKvPattern('galzy:game:tags*').catch((e) =>
-      console.warn('[Cache] gameTags invalidation failed:', e),
-    )
-    await delKvPattern('galzy:tag:games*').catch((e) =>
-      console.warn('[Cache] tagGames invalidation failed:', e),
-    )
-    // 标签层级缓存（galzy:tags:rel:*）与分类页
-    await delKvPattern('galzy:tags:*').catch((e) =>
-      console.warn('[Cache] tags invalidation failed:', e),
-    )
-    await delKvPattern('galzy:producer*').catch((e) =>
-      console.warn('[Cache] Producer* invalidation failed:', e),
-    )
-    await delKvPattern('galzy:game:count').catch((e) =>
-      console.warn('[Cache] gameCount invalidation failed:', e),
-    )
-    await delKvPattern('galzy:search:*').catch((e) =>
-      console.warn('[Cache] search invalidation failed:', e),
-    )
   },
 
   // ========== VN Sync ==========
@@ -945,11 +907,6 @@ export const VndbSync = {
           .onConflictDoNothing()
       }
     })
-
-    // 层级变化会影响面包屑 / 子标签展开 / 按标签筛选的作品数
-    await delKvPattern('galzy:tag:*')
-    await delKvPattern('galzy:game:tags*')
-    await delKvPattern('galzy:tags:*')
 
     console.log(
       `✅ Tag hierarchy synced: ${tagRows.length} tags, ${edges.length} edges`,

@@ -1,13 +1,8 @@
-import { createHash } from 'node:crypto'
 import { articles, db, sanitizeHtml, sql } from '@api/libs'
 import {
   acquireIdempotentKey,
-  delKv,
-  delKvPattern,
   generateIdempotentHash,
   getIdempotentResult,
-  getKv,
-  setKv,
   storeIdempotentResult,
 } from '@api/libs/redis'
 import { auth } from '@api/modules/auth/service'
@@ -82,10 +77,6 @@ function strategyListQuery(
 
 export const Strategy = {
   async strategy({ strategyId }: StrategyModel.strategy) {
-    const redisData = await getKv(`galzy:strategy:${strategyId}`)
-    if (redisData !== null && redisData !== undefined) {
-      return JSON.parse(redisData) as StrategyContent
-    }
     const strategyContent = await db
       .select({
         ...getTableColumns(articles),
@@ -99,31 +90,14 @@ export const Strategy = {
     if (!strategyContent) {
       throw status(404, '文章不存在或未通过审核')
     }
-    void setKv(
-      `galzy:strategy:${strategyId}`,
-      JSON.stringify(strategyContent),
-      60 * 60 * 1,
-    )
-    type StrategyContent = typeof strategyContent
     return strategyContent
   },
   async gameStrategys({
     gameId,
     headers,
   }: StrategyModel.gameStrategys & { headers: Headers }) {
-    const redisData = await getKv(`galzy:game:strategys:${gameId}`)
-    let data: StrategyListRow[]
-    if (redisData !== null && redisData !== undefined) {
-      data = JSON.parse(redisData) as StrategyListRow[]
-    } else {
-      data = await strategyListQuery(gameId)
-      void setKv(
-        `galzy:game:strategys:${gameId}`,
-        JSON.stringify(data),
-        60 * 60 * 1,
-      )
-    }
-    // 作者本人的未过审文章实时追加（不缓存，避免跨用户串数据）
+    let data: StrategyListRow[] = await strategyListQuery(gameId)
+    // 作者本人的未过审文章实时追加
     const session = await auth.api.getSession({ headers })
     if (session?.user?.id) {
       const mine = await strategyListQuery(gameId, {
@@ -163,14 +137,6 @@ export const Strategy = {
       article.status !== 'rejected'
     ) {
       throw status(403, '已发布的文章不能直接编辑')
-    }
-    await delKv(`galzy:strategy:${id}`)
-    void delKvPattern('galzy:strategy:admin:articles:*')
-    if (article.vid) {
-      void delKv(`galzy:game:strategys:${article.vid}`)
-    }
-    if (article.otherid) {
-      void delKv(`galzy:game:strategys:${article.otherid}`)
     }
     const hash = generateIdempotentHash({ id, data })
     const cached = await getIdempotentResult(
@@ -213,8 +179,6 @@ export const Strategy = {
     userid,
     isAdmin,
   }: StrategyModel.strategyListCreate & { userid: string; isAdmin: boolean }) {
-    await delKv(`galzy:game:strategys:${id}`)
-    void delKvPattern('galzy:strategy:admin:articles:*')
     const hash = generateIdempotentHash({ id, data })
     const cached = await getIdempotentResult(
       `galzy:idempotent:strategyListCreate:${hash}`,
@@ -263,9 +227,7 @@ export const Strategy = {
     )
     return { success: true }
   },
-  async strategyDelete({ strategyId, gameId }: StrategyModel.strategy) {
-    await delKv(`galzy:game:strategys:${gameId}`)
-    void delKvPattern('galzy:strategy:admin:articles:*')
+  async strategyDelete({ strategyId }: StrategyModel.strategy) {
     const hash = generateIdempotentHash({ strategyId })
     const cached = await getIdempotentResult(
       `galzy:idempotent:strategyListDelete:${hash}`,
@@ -282,7 +244,6 @@ export const Strategy = {
     }
     await db.delete(articles).where(eq(articles.id, Number(strategyId)))
 
-    await delKv(`galzy:strategy:${strategyId}`)
     await storeIdempotentResult(
       `galzy:idempotent:strategyListDelete:${hash}`,
       { success: true },
@@ -298,12 +259,6 @@ export const Strategy = {
     const page = params.page ?? 1
     const limit = params.limit ?? 20
     const offset = (page - 1) * limit
-
-    const cacheKey = `galzy:strategy:admin:articles:${createHash('md5').update(JSON.stringify(params)).digest('hex')}`
-    const redisData = await getKv(cacheKey)
-    if (redisData !== null && redisData !== undefined) {
-      return JSON.parse(redisData) as any
-    }
 
     const conditions: any[] = []
 
@@ -347,9 +302,7 @@ export const Strategy = {
     const total = Number(countResult?.count ?? 0)
     const totalPages = Math.ceil(total / limit)
 
-    const result = { articles: articlesData, total, totalPages }
-    void setKv(cacheKey, JSON.stringify(result), 60)
-    return result
+    return { articles: articlesData, total, totalPages }
   },
   async adminChangeStatus({
     id,
@@ -381,15 +334,6 @@ export const Strategy = {
 
     if (!article) {
       throw status(404, '文章不存在')
-    }
-
-    await delKv(`galzy:strategy:${id}`)
-    void delKvPattern('galzy:strategy:admin:articles:*')
-    if (article.vid) {
-      void delKv(`galzy:game:strategys:${article.vid}`)
-    }
-    if (article.otherid) {
-      void delKv(`galzy:game:strategys:${article.otherid}`)
     }
 
     await db
