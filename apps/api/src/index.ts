@@ -3,8 +3,7 @@ import { dbAction, initValidationError } from '@api/libs'
 import {
   invalidateAfterMutation,
   isMutatingRequest,
-} from '@api/libs/isr-invalidation'
-import { startIsrCdnPurgeSubscriber } from '@api/libs/redis/pubsub'
+} from '@api/libs/cdn-invalidation'
 import {
   adverts,
   betterAuth,
@@ -42,9 +41,9 @@ async function buildApp() {
       },
     })
       /**
-       * 用户视图是 ISR + CDN 两层缓存：任何写操作成功后都要失效相关页面，
-       * 否则最长要等一个 revalidate 周期才能看到新数据。这里按路由前缀统一处理
-       * （映射见 libs/isr-invalidation.ts），异步发出不阻塞响应。
+       * 公开页面由 CDN 边缘缓存（源站 SSR 不缓存）：写操作成功后主动清掉相关
+       * URL，否则最长要等一个 s-maxage 周期才能看到新数据。这里按路由前缀兜底，
+       * 精确 id 的清理由各 service 调 libs/cloudflare-cache 的语义 helper。
        */
       .onAfterHandle(({ request, set }) => {
         if (!isMutatingRequest(request.method)) return
@@ -127,9 +126,6 @@ async function startServer() {
   const app = (await buildApp()).listen(Number(process.env.PORT) || 3001)
 
   process.on('beforeExit', app.stop)
-
-  // 订阅 web 回传的「已失效 URL」，用 Cloudflare 凭据清 CDN（见 libs/redis/pubsub.ts）
-  await startIsrCdnPurgeSubscriber()
 
   console.log(
     `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`,
