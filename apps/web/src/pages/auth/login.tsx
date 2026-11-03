@@ -74,7 +74,7 @@ export const route = defineRoute("/auth/login")
 		seoMeta({
 			title: "登录 | GalZY - Galgame 资源站",
 			noindex: true,
-		}) as never,
+		}),
 	)
 	.page(({ query }) => <LoginPage search={query} />);
 

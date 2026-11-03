@@ -51,7 +51,7 @@ export const route = defineRoute("/topics")
       description:
         'GalZY 玩家论坛，讨论 Galgame 汉化资源、攻略心得、游戏推荐与避雷，快来和大家一起交流吧。',
       path: '/topics',
-    }) as never,
+    }),
   )
   .page(({ data, query }) => <TopicsPage data={data} page={query.page} />)
 

@@ -183,7 +183,7 @@ export function DownloadSpotlight({
 		}
 		// 不在下载页签：先切回去，等 isDownloadTab 变 true 再由上面的 effect 高亮
 		setPendingShow(true);
-		void navigate({ to: "/$id", params: { id: gameId } });
+		void navigate({ to: "/:id", params: { id: gameId } });
 	};
 
 	return (

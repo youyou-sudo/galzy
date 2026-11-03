@@ -14,7 +14,7 @@ export const route = defineRoute("/admin/vndb-sync")
 	.loader(async ({ request }) => ({
 		progress: await documentOnly(request, () => getSyncProgress()),
 	}))
-	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }) as never)
+	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }))
 	.page(({ progress }) => <VndbSyncRoute progress={progress} />);
 
 function VndbSyncRoute({

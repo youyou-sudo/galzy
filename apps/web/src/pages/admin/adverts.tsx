@@ -39,7 +39,7 @@ export const route = defineRoute("/admin/adverts")
 		});
 		return { slots: seed?.slots ?? null, adverts: seed?.adverts ?? null };
 	})
-	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }) as never)
+	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }))
 	.page(({ slots, adverts, query }) => (
 		<AdvertsPage slots={slots} adverts={adverts} initialTab={query.tab} />
 	));

@@ -9,16 +9,12 @@ import {
 	PendingGameInfo,
 } from "./game-detail-pending";
 
-// 路由状态用可变对象驱动：mock 的 Link / useRouterState 每次渲染时读取当前值，
+// 路由状态用可变对象驱动：mock 的 Link / usePathname 每次渲染时读取当前值，
 // 测试里改 routerMock.pathname 即可切到不同页签，不必起真实 router。
 const routerMock = vi.hoisted(() => ({ pathname: "/v17" }));
 
 vi.mock("@web/lib/nav", async () => {
 	const { createElement } = await import("react");
-	const state = () => ({
-		location: { pathname: routerMock.pathname },
-		matches: [] as unknown[],
-	});
 	return {
 		Link: ({
 			to,
@@ -31,14 +27,11 @@ vi.mock("@web/lib/nav", async () => {
 		}) =>
 			createElement(
 				"a",
-				{ href: params?.id ? to.replace("$id", params.id) : to },
+				{ href: params?.id ? to.replace(":id", params.id) : to },
 				children,
 			),
-		useRouterState: (options?: {
-			select?: (s: ReturnType<typeof state>) => unknown;
-		}) => (options?.select ? options.select(state()) : state()),
 		usePathname: () => routerMock.pathname,
-		useRouter: () => ({ preloadRoute: () => Promise.resolve() }),
+		useRouter: () => ({ prefetch: () => Promise.resolve() }),
 	};
 });
 

@@ -225,7 +225,7 @@ function TagSearchResults({
 								<TooltipTrigger
 									render={
 										<Link
-											to="/tags/$tagId"
+											to="/tags/:tagId"
 											params={{ tagId: hit.id }}
 											// 点击时回写展示名，标签详情 pending 态复用。搜索结果来自
 											// Meilisearch 的 Hit<RecordAny>，逐字段取值而不是整体传入，
@@ -379,7 +379,7 @@ function TagHubSection({
 			? { sort: "hotWeek", order: "desc" }
 			: { sort, order };
 	const categoryTo = {
-		to: "/tags/category/$categoryKey" as const,
+		to: "/tags/category/:categoryKey" as const,
 		params: { categoryKey: category.key },
 		search,
 	};
@@ -432,7 +432,7 @@ function TagHubSection({
 									<TooltipTrigger
 										render={
 											<Link
-												to="/tags/$tagId"
+												to="/tags/:tagId"
 												params={{ tagId: t.id }}
 												// 点击时回写展示名，标签详情 pending 态复用
 												onClick={() => tagHeroActions.fromTag(t)}

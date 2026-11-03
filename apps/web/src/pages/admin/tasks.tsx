@@ -22,7 +22,7 @@ const ADMIN_TITLE = "管理后台 | GalZY - Galgame 资源站";
  */
 export const route = defineRoute("/admin/tasks")
 	.config({ mode: "ssr", query: taskSearchQuery as never })
-	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }) as never)
+	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }))
 	.page(({ query }) => (
 		<TasksRoute initialSearch={withTaskSearchDefaults(query)} />
 	));

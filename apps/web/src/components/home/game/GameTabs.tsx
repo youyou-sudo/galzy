@@ -35,7 +35,7 @@ const tabTriggerClass = cn(
 
 /**
  * 由 pathname 推断当前页签：/<id>/<segment> 的第二段属于页签段就用它，
- * 否则（含 /<id> 本身，以及 introduction 下嵌套的 /$articleId）归到默认的下载页签。
+ * 否则（含 /<id> 本身，以及 introduction 下嵌套的 /:articleId）归到默认的下载页签。
  * 详情页 pending 态（game-detail-pending.tsx）复用同一判定，避免两处逻辑漂移：
  * 以后新增页签只改这里，pending 的内容区骨架不会掉回文件列表。
  */
@@ -59,10 +59,9 @@ export function GameTabs({ id, path }: { id: string; path?: string }) {
 					className={tabTriggerClass}
 					render={
 						<Link
-							to="/$id"
+							to="/:id"
 							params={{ id: id }}
 							resetScroll={false}
-							viewTransition={false}
 						/>
 					}
 				>
@@ -75,10 +74,9 @@ export function GameTabs({ id, path }: { id: string; path?: string }) {
 					className={tabTriggerClass}
 					render={
 						<Link
-							to="/$id/introduction"
+							to="/:id/introduction"
 							params={{ id: id }}
 							resetScroll={false}
-							viewTransition={false}
 						/>
 					}
 				>
@@ -91,10 +89,9 @@ export function GameTabs({ id, path }: { id: string; path?: string }) {
 					className={tabTriggerClass}
 					render={
 						<Link
-							to="/$id/comment"
+							to="/:id/comment"
 							params={{ id: id }}
 							resetScroll={false}
-							viewTransition={false}
 						/>
 					}
 				>
@@ -107,10 +104,9 @@ export function GameTabs({ id, path }: { id: string; path?: string }) {
 					className={tabTriggerClass}
 					render={
 						<Link
-							to="/$id/translate"
+							to="/:id/translate"
 							params={{ id: id }}
 							resetScroll={false}
-							viewTransition={false}
 						/>
 					}
 				>
@@ -123,10 +119,9 @@ export function GameTabs({ id, path }: { id: string; path?: string }) {
 					className={tabTriggerClass}
 					render={
 						<Link
-							to="/$id/relations"
+							to="/:id/relations"
 							params={{ id: id }}
 							resetScroll={false}
-							viewTransition={false}
 						/>
 					}
 				>

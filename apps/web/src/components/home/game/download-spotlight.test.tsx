@@ -98,7 +98,7 @@ describe("DownloadSpotlight", () => {
 		fireEvent.click(button());
 		// 只发起导航，不立刻高亮（此时列表还不是下载页签的内容）
 		expect(navMock.navigate).toHaveBeenCalledWith({
-			to: "/$id",
+			to: "/:id",
 			params: { id: "v9" },
 		});
 		expect(opacity()).toBe("0");

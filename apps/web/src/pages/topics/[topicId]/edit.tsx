@@ -64,7 +64,7 @@ function EditTopicPage({
 			queryClient.invalidateQueries({ queryKey: ["topic", topicId] });
 			queryClient.invalidateQueries({ queryKey: ["topics"] });
 			toast.success("更新成功喵～");
-			navigate({ to: "/topics/$topicId", params: { topicId } });
+			navigate({ to: "/topics/:topicId", params: { topicId } });
 		} catch (error: any) {
 			toast.error(error?.message || "更新失败，请稍后重试");
 		}
@@ -86,7 +86,7 @@ function EditTopicPage({
 				<BreadcrumbItem>
 					<BreadcrumbLink
 						render={
-							<Link to="/topics/$topicId" params={{ topicId }} />
+							<Link to="/topics/:topicId" params={{ topicId }} />
 						}
 					>
 						{(topic as any)?.title ?? "帖子"}

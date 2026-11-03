@@ -60,7 +60,7 @@ function formatTime(dateStr: string | Date) {
   return date.toLocaleDateString('zh-CN')
 }
 
-const Route = getRouteApi('/$id/_layout/comment')
+const Route = getRouteApi('/:id/comment')
 
 type CommentsData = Exclude<Awaited<ReturnType<typeof getCmments>>, null>
 type CommentEntry = NonNullable<CommentsData['comments']>[number]

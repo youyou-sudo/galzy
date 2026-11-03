@@ -7,13 +7,13 @@ import { commitAfterViewTransition } from "@web/lib/reveal-gate";
 import { useEffect, useState } from "react";
 import { gameTagsQueryOptions } from "./game-tags-queries";
 
-// queryOptions 提取：供 /$id/_layout loader 在导航关键路径上 prefetchQuery 预热，
+// queryOptions 提取：供 /:id 布局 loader 在导航关键路径上 prefetchQuery 预热，
 // 与组件内 useQuery 共用同一 queryKey/queryFn，首次进入即缓存命中。
 // 声明在独立零 UI 模块，避免 route 模块把它提升进 entry chunk（见该文件注释）。
 
 export function TagsCard({ gameId }: { gameId: string }) {
 	// gameId 由 GameInfo（route page props）显式传入：本组件在详情页各 tab 下都会
-	// 渲染，而 getRouteApi("/$id/_layout") 只在 /$id 这一层 pattern 下成立（furin
+	// 渲染，而 getRouteApi("/:id") 只在 /:id 这一层 pattern 下成立（furin
 	// 的 getRouteApi 要求 pattern 与当前激活页面完全一致）。
 	const { data: tags } = useQuery(gameTagsQueryOptions(gameId));
 	// VT 结束 gate：数据到达时若正处 View Transition 动画中，先保持骨架，

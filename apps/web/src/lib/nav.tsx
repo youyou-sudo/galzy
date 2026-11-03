@@ -4,44 +4,50 @@ import {
 	useNavigate as useFurinNavigate,
 	useRouter as useFurinRouter,
 } from "@teyik0/furin/link";
-import { Await as FurinAwait, getRouteApi as furinGetRouteApi } from "@teyik0/furin/client";
-import { useSearch as useFurinSearch } from "@teyik0/furin/search";
+import { getRouteApi as furinGetRouteApi } from "@teyik0/furin/client";
 import * as React from "react";
-import { legacyToPattern, matchPattern, matchedRouteIds, toFurinPattern } from "./route-manifest";
 
-/* -------------------------------------------------------------------------
- * TanStack-compatible navigation surface for Furin.
+/**
+ * 站内导航门面（furin 适配层）。
  *
- * The components in this app were written against @tanstack/react-router.
- * This module is a drop-in replacement for the subset they use: Link,
- * useNavigate, useRouter, useRouterState, useSearch, useParams, useMatches,
- * useLocation, Outlet, getRouteApi and redirect. Legacy route ids
- * ("/$id/_layout/comment") are translated to Furin patterns ("/:id/comment")
- * through the generated route manifest, so call sites keep their strings.
- * ---------------------------------------------------------------------- */
+ * 历史背景：这套代码从 TanStack Router 迁到 furin，`lib/nav.tsx` 曾是
+ * 「TanStack 语义 → furin」的兼容层（`$id` 路由 id、`useRouter().invalidate`、
+ * `<Outlet/>`、`useMatches()` 等）。现在按 furin 官方文档收敛成三层：
+ *
+ * 1. **公开 API 再导出**：`Link` / `useNavigate` / `useRouter` / `getRouteApi`
+ *    都来自 `@teyik0/furin`，路由 id 一律用 furin 的 pattern（`/:id`）。
+ * 2. **本应用的 UX 约定**：站内导航统一包一层 View Transition（页面有
+ *    `view-transition-name` 配对），顶部进度条/右上角 spinner 读 `isNavigating`。
+ * 3. **框架缺陷绕行**：`useSearch` 见下方注释（furin 0.8.0-alpha 的
+ *    SearchStore 提交晚于渲染，官方用法在切页首帧会抛断言）。
+ *
+ * 文档：https://teyik0.github.io/furin/llms-full.txt
+ * - Link & Navigation / Search State / Router Controls / Reading Data In Descendant Components
+ */
 
-type LegacyTarget = {
-	to?: string;
-	params?: Record<string, unknown>;
-	search?: Record<string, unknown> | ((prev: Record<string, unknown>) => Record<string, unknown>);
-	hash?: string | number;
-	replace?: boolean;
-	resetScroll?: boolean;
-	state?: unknown;
-	mask?: unknown;
-	viewTransition?: boolean;
-	[extra: string]: unknown;
-};
-
-/* ---------------------------- location store --------------------------- */
+/* ---------------------------- location store ---------------------------- */
 
 type Loc = { pathname: string; searchStr: string; hash: string; href: string };
 
-/** SSR path supplied by the root layout loader (see pages/root.tsx). */
-export const NavPathContext = React.createContext<string | null>(null);
+/** SSR 首屏的 path + search，由根布局 loader 下发（见 pages/root.tsx）。 */
+export type NavPathValue = { pathname: string; searchStr: string };
 
-export function NavPathProvider({ initialPath, children }: { initialPath: string; children: React.ReactNode }) {
-	return <NavPathContext.Provider value={initialPath}>{children}</NavPathContext.Provider>;
+export const NavPathContext = React.createContext<NavPathValue | null>(null);
+
+export function NavPathProvider({
+	initialPath,
+	initialSearch = "",
+	children,
+}: {
+	initialPath: string;
+	initialSearch?: string;
+	children: React.ReactNode;
+}) {
+	const value = React.useMemo(
+		() => ({ pathname: initialPath, searchStr: initialSearch }),
+		[initialPath, initialSearch],
+	);
+	return <NavPathContext.Provider value={value}>{children}</NavPathContext.Provider>;
 }
 
 function readLocation(): Loc {
@@ -57,54 +63,40 @@ function readLocation(): Loc {
 }
 
 const locationListeners = new Set<() => void>();
-const pendingListeners = new Set<() => void>();
 let snapshot: Loc = readLocation();
-let serverSnapshot: { path: string | null; loc: Loc } | null = null;
+let serverSnapshot: { pathname: string; searchStr: string; loc: Loc } | null =
+	null;
 
-function getServerSnapshot(initialPath: string | null): Loc {
-	if (serverSnapshot && serverSnapshot.path === initialPath) return serverSnapshot.loc;
-	const path = initialPath ?? "/";
-	const loc = { pathname: path, searchStr: "", hash: "", href: path };
-	serverSnapshot = { path: initialPath, loc };
+function getServerSnapshot(initial: NavPathValue | null): Loc {
+	const pathname = initial?.pathname ?? "/";
+	const searchStr = initial?.searchStr ?? "";
+	if (
+		serverSnapshot &&
+		serverSnapshot.pathname === pathname &&
+		serverSnapshot.searchStr === searchStr
+	) {
+		return serverSnapshot.loc;
+	}
+	const loc = { pathname, searchStr, hash: "", href: pathname + searchStr };
+	serverSnapshot = { pathname, searchStr, loc };
 	return loc;
 }
-let pendingDepth = 0;
-let patchedHistory = false;
 
 function notifyLocation() {
 	snapshot = readLocation();
-	setPending(false);
 	for (const listener of locationListeners) listener();
 }
 
-function setPending(next: boolean) {
-	pendingDepth = next ? pendingDepth + 1 : 0;
-	for (const listener of pendingListeners) listener();
-}
-
-export function runViewTransition(run: () => unknown): unknown {
-	if (typeof document === "undefined" || typeof (document as Document & { startViewTransition?: unknown }).startViewTransition !== "function") {
-		return run();
-	}
-	try {
-		const vt = (document as Document & { startViewTransition: (cb: () => unknown) => { finished: Promise<void> } }).startViewTransition(run);
-		return vt.finished.catch(() => undefined);
-	} catch {
-		return run();
-	}
-}
-
-export function markNavigationPending() {
-	pendingDepth += 1;
-	for (const listener of pendingListeners) listener();
-}
-
 function ensureHistoryPatched() {
-	if (patchedHistory || typeof window === "undefined") return;
-	patchedHistory = true;
+	if (typeof window === "undefined") return;
+	const history = window.history as History & {
+		__furinishPatched?: boolean;
+	};
+	if (history.__furinishPatched) return;
+	history.__furinishPatched = true;
 	for (const name of ["pushState", "replaceState"] as const) {
-		const original = window.history[name].bind(window.history);
-		window.history[name] = ((...args: unknown[]) => {
+		const original = history[name].bind(history);
+		history[name] = ((...args: unknown[]) => {
 			const result = (original as (...a: unknown[]) => void)(...args);
 			notifyLocation();
 			return result;
@@ -119,11 +111,6 @@ function subscribeLocation(listener: () => void) {
 	return () => locationListeners.delete(listener);
 }
 
-function subscribePending(listener: () => void) {
-	pendingListeners.add(listener);
-	return () => pendingListeners.delete(listener);
-}
-
 function parseSearch(searchStr: string): Record<string, unknown> {
 	const out: Record<string, string | string[]> = {};
 	const params = new URLSearchParams(searchStr);
@@ -134,40 +121,92 @@ function parseSearch(searchStr: string): Record<string, unknown> {
 	return out;
 }
 
-/* ------------------------------- helpers ------------------------------- */
-
-function resolvePattern(from?: string): string {
-	if (from) return legacyToPattern(from) ?? toFurinPattern(from);
-	if (typeof window !== "undefined") {
-		const hit = matchPattern(window.location.pathname);
-		if (hit) return hit.pattern;
-	}
-	return "/";
+export function useLocationSnapshot(): Loc {
+	ensureHistoryPatched();
+	const initial = React.useContext(NavPathContext);
+	return React.useSyncExternalStore(
+		subscribeLocation,
+		() => snapshot,
+		() => getServerSnapshot(initial),
+	);
 }
 
-function normalizeSearch(
-	search: LegacyTarget["search"],
-	current?: Record<string, unknown>,
-): Record<string, unknown> | undefined {
-	if (search === undefined) return undefined;
-	if (typeof search === "function") {
-		return search(current ?? parseSearch(snapshot.searchStr));
-	}
-	return search;
+/** 只订阅 pathname 字符串（`useSyncExternalStore` 用 Object.is 比较，search 变化不触发重渲染）。 */
+export function usePathname(): string {
+	ensureHistoryPatched();
+	const initial = React.useContext(NavPathContext);
+	return React.useSyncExternalStore(
+		subscribeLocation,
+		() => snapshot.pathname,
+		() => getServerSnapshot(initial).pathname,
+	);
 }
 
-function buildHref(target: LegacyTarget): string {
-	if (!target.to) return snapshot.href;
-	if (/^(https?:|mailto:|tel:|\/\/)/.test(target.to) || target.to.startsWith("#")) {
-		return target.to;
+/** 当前地址（pathname / search / hash），等价 TanStack 的 `useLocation()`。 */
+export function useLocation() {
+	const location = useLocationSnapshot();
+	return {
+		pathname: location.pathname,
+		search: parseSearch(location.searchStr),
+		searchStr: location.searchStr,
+		hash: location.hash,
+		href: location.href,
+	};
+}
+
+/* ------------------------------- view transition ------------------------------- */
+
+export function runViewTransition(run: () => unknown): unknown {
+	if (
+		typeof document === "undefined" ||
+		typeof (document as Document & { startViewTransition?: unknown })
+			.startViewTransition !== "function"
+	) {
+		return run();
 	}
-	const pattern = toFurinPattern(target.to);
-	const params = target.params ?? {};
-	const path = pattern.replace(/:([A-Za-z0-9_]+)/g, (_match, key: string) => {
+	try {
+		const vt = (
+			document as Document & {
+				startViewTransition: (cb: () => unknown) => {
+					finished: Promise<void>;
+				};
+			}
+		).startViewTransition(run);
+		return vt.finished.catch(() => undefined);
+	} catch {
+		return run();
+	}
+}
+
+/* ------------------------------- destinations ------------------------------- */
+
+type Destination = {
+	to?: string;
+	params?: Record<string, unknown>;
+	search?: Record<string, unknown> | ((prev: Record<string, unknown>) => Record<string, unknown>);
+	hash?: string | number;
+	replace?: boolean;
+	resetScroll?: boolean;
+	viewTransition?: boolean;
+	[extra: string]: unknown;
+};
+
+function isExternal(to: string): boolean {
+	return /^(https?:|mailto:|tel:|\/\/)/.test(to) || to.startsWith("#");
+}
+
+function buildHref(destination: Destination): string {
+	const to = destination.to ?? snapshot.pathname;
+	if (isExternal(to)) return to;
+	const params = destination.params ?? {};
+	const path = to.replace(/:([A-Za-z0-9_]+)/g, (_match, key: string) => {
 		const value = params[key];
 		return value === undefined || value === null ? "" : encodeURIComponent(String(value));
 	});
-	const search = normalizeSearch(target.search);
+	const search =
+		typeof destination.search === "function"
+			? destination.search(parseSearch(snapshot.searchStr))
+			: destination.search;
 	const query = new URLSearchParams();
 	if (search) {
 		for (const [key, value] of Object.entries(search)) {
@@ -182,242 +221,27 @@ function buildHref(target: LegacyTarget): string {
 		}
 	}
 	const qs = query.toString();
-	const hash = target.hash !== undefined && target.hash !== null ? "#" + String(target.hash).replace(/^#/, "") : "";
+	const hash =
+		destination.hash === undefined || destination.hash === null
+			? ""
+			: "#" + String(destination.hash).replace(/^#/, "");
 	return path + (qs ? "?" + qs : "") + hash;
 }
 
-/** 路由匹配缓存：matchPattern 是 46 条路由的线性扫描，按 pathname 缓存；
- * 用 Map 而不是单槽，避免并发 SSR 请求互相顶掉（命中率≈0）。 */
-const MATCH_CACHE_MAX = 8;
-const matchCache = new Map<
-	string,
-	{ ids: string[]; hit: ReturnType<typeof matchPattern> }
->();
-
-function buildMatches(pathname: string) {
-	let entry = matchCache.get(pathname);
-	if (!entry) {
-		entry = { ids: matchedRouteIds(pathname), hit: matchPattern(pathname) };
-		if (matchCache.size >= MATCH_CACHE_MAX) {
-			const oldest = matchCache.keys().next().value;
-			if (oldest !== undefined) matchCache.delete(oldest);
-		}
-		matchCache.set(pathname, entry);
-	}
-	const search = parseSearch(snapshot.searchStr);
-	return entry.ids.map((routeId) => ({
-		routeId,
-		pathname,
-		pattern: entry.hit?.pattern,
-		status: "success" as const,
-		params: {},
-		// 每项一个副本：保持「各 match 各自持有 search 对象」的原有可观察语义
-		search: { ...search },
-	}));
-}
-
-export type RouterState = {
-	status: "idle" | "pending";
-	isLoading: boolean;
-	location: { pathname: string; search: Record<string, unknown>; searchStr: string; hash: string; href: string };
-	matches: Array<{ routeId: string; pathname: string; pattern?: string; status: "success"; params: Record<string, unknown>; search: Record<string, unknown> }>;
-};
-
-/* -------------------------------- hooks -------------------------------- */
-
-export function useLocationSnapshot(): Loc {
-	ensureHistoryPatched();
-	const initialPath = React.useContext(NavPathContext);
-	return React.useSyncExternalStore(
-		subscribeLocation,
-		() => snapshot,
-		() => getServerSnapshot(initialPath),
-	);
-}
-
-export function useNavigationPending(): boolean {
-	return React.useSyncExternalStore(
-		subscribePending,
-		() => pendingDepth > 0,
-		() => false,
-	);
-}
-
 /**
- * 只订阅 pathname 字符串：useSyncExternalStore 用 Object.is 比较，
- * 路由其它状态（pending / search）变化时不会让调用方重渲染。
- * 供只需要 pathname 的组件替代 useRouterState({ select: s => s.location.pathname })。
+ * 文档约定的重定向：loader 里抛一个带 Location 的 Response，furin 会把它当作导航处理。
+ * 见官方文档 Error Handling → Redirects And Responses。
  */
-export function usePathname(): string {
-	ensureHistoryPatched();
-	const initialPath = React.useContext(NavPathContext);
-	return React.useSyncExternalStore(
-		subscribeLocation,
-		() => snapshot.pathname,
-		() => getServerSnapshot(initialPath).pathname,
-	);
+export function redirect(destination: Destination): never {
+	throw new Response(null, {
+		status: 302,
+		headers: { location: buildHref(destination) },
+	});
 }
 
-export function useRouterState<T = RouterState>(options?: { select?: (state: RouterState) => T }): T {
-	const location = useLocationSnapshot();
-	const isNavigating = useNavigationPending();
-	const state: RouterState = {
-		status: isNavigating ? "pending" : "idle",
-		isLoading: isNavigating,
-		location: {
-			pathname: location.pathname,
-			search: parseSearch(location.searchStr),
-			searchStr: location.searchStr,
-			hash: location.hash,
-			href: location.href,
-		},
-		matches: buildMatches(location.pathname),
-	};
-	return options?.select ? options.select(state) : (state as unknown as T);
-}
+/* ------------------------------- Link ------------------------------- */
 
-export function useMatches() {
-	const location = useLocationSnapshot();
-	return buildMatches(location.pathname);
-}
-
-export function useLocation() {
-	const location = useLocationSnapshot();
-	return {
-		pathname: location.pathname,
-		search: parseSearch(location.searchStr),
-		searchStr: location.searchStr,
-		hash: location.hash,
-		href: location.href,
-		state: undefined as unknown,
-		key: "",
-	};
-}
-
-export function useNavigate(_options?: { from?: string } | string) {
-	const navigateFurin = useFurinNavigate();
-	return React.useCallback(
-		(target?: LegacyTarget | string) => {
-			const options: LegacyTarget = typeof target === "string" ? { to: target } : { ...(target ?? {}) };
-			// TanStack allows navigate({ search }) on the current route; Furin needs a target.
-			if (!options.to) {
-				if (options.search === undefined && options.hash === undefined) return Promise.resolve();
-				options.to = snapshot.pathname;
-			}
-			if (/^(https?:|mailto:|tel:|\/\/)/.test(options.to)) {
-				if (typeof window !== "undefined") window.location.assign(options.to);
-				return Promise.resolve();
-			}
-			markNavigationPending();
-			const run = () =>
-				navigateFurin({
-					to: toFurinPattern(options.to as string),
-					params: options.params,
-					search: normalizeSearch(options.search),
-					hash: options.hash === undefined ? undefined : String(options.hash),
-					replace: options.replace,
-					resetScroll: options.resetScroll,
-				} as never);
-			// 同页筛选/排序等高频交互显式要求不要整页快照（viewTransition: false）
-			if (options.viewTransition === false) {
-				return Promise.resolve(run()).catch(() => undefined) as unknown as Promise<void>;
-			}
-			return runViewTransition(run) as unknown as Promise<void>;
-		},
-		[navigateFurin],
-	);
-}
-
-export function useRouter() {
-	const navigate = useNavigate();
-	const router = useFurinRouter() as unknown as {
-		refresh?: (options?: unknown) => Promise<void>;
-		prefetch?: (options: unknown) => Promise<void> | void;
-	};
-	const prefetch = React.useCallback(
-		(target: LegacyTarget) => {
-			if (!target?.to || !router?.prefetch) return Promise.resolve();
-			return Promise.resolve(
-				router.prefetch({
-					to: toFurinPattern(target.to),
-					params: target.params,
-					search: normalizeSearch(target.search),
-				}),
-			);
-		},
-		[router],
-	);
-	return React.useMemo(
-		() => ({
-			navigate,
-			invalidate: (_options?: unknown) => {
-				markNavigationPending();
-				return router?.refresh?.() ?? Promise.resolve();
-			},
-			preloadRoute: prefetch,
-			buildLocation: (target: LegacyTarget) => ({ href: buildHref(target), publicHref: buildHref(target) }),
-			history: {
-				back: () => window.history.back(),
-				forward: () => window.history.forward(),
-				go: (delta: number) => window.history.go(delta),
-				push: (href: string) => window.history.pushState({}, "", href),
-				replace: (href: string) => window.history.replaceState({}, "", href),
-				location: snapshot,
-			},
-			options: { context: { queryClient: undefined } },
-			state: {
-				location: { pathname: snapshot.pathname, search: parseSearch(snapshot.searchStr), href: snapshot.href },
-				matches: buildMatches(snapshot.pathname),
-			},
-			subscribe: () => () => undefined,
-		}),
-		[navigate, prefetch, router],
-	);
-}
-
-export function useSearch<T = any>(options?: { from?: string; strict?: boolean }): T {
-	const pattern = resolvePattern(options?.from);
-	const [search] = useFurinSearch(pattern as never);
-	return search as T;
-}
-
-export function useParams(options?: { from?: string; select?: (params: any) => any; [extra: string]: unknown }): any {
-	const pattern = resolvePattern(options?.from);
-	const api = furinGetRouteApi(pattern as never) as { useParams: () => Record<string, string> };
-	const params = api.useParams();
-	return options?.select ? options.select(params) : params;
-}
-
-export function getRouteApi(legacyId: string) {
-	const pattern = resolvePattern(legacyId);
-	const api = furinGetRouteApi(pattern as never) as {
-		useLoaderData: <T = Record<string, unknown>>() => T;
-		useParams: () => Record<string, string>;
-	};
-	return {
-		useLoaderData: <T = any>() => api.useLoaderData<T>(),
-		useParams: () => api.useParams(),
-		useSearch: <T = any>() => useSearch<T>({ from: legacyId }),
-		useRouteContext: () => ({} as Record<string, unknown>),
-		useNavigate: () => useNavigate(),
-	};
-}
-
-export const Outlet = () => null;
-
-export function redirect(target: LegacyTarget): never {
-	throw new Response(null, { status: 302, headers: { location: buildHref(target) } });
-}
-
-export function isRedirect(error: unknown): error is Response {
-	return (
-		error instanceof Response &&
-		(error.status === 302 || error.status === 303 || error.status === 307 || error.status === 308)
-	);
-}
-
-export type LinkProps = LegacyTarget & {
-	className?: string;
+export type LinkProps = Destination & {
 	activeProps?: Record<string, unknown> | ((opts: { isActive: boolean }) => Record<string, unknown>);
 	inactiveProps?: Record<string, unknown> | ((opts: { isActive: boolean }) => Record<string, unknown>);
 	preload?: false | "intent" | "viewport" | "render";
@@ -429,61 +253,109 @@ export type LinkProps = LegacyTarget & {
 	[key: string]: unknown;
 };
 
-const FurinLinkAny = FurinLink as any;
+const FurinLinkAny = FurinLink as unknown as React.ComponentType<Record<string, unknown>>;
 
-export const Link = React.forwardRef<HTMLAnchorElement, any>(function Link(props: any, ref) {
-	const { to, params, search, hash, replace, resetScroll, activeProps, inactiveProps, onClick, preload, ...rest } = props;
-	const navigate = useNavigate();
-	const navigateRef = React.useRef(navigate);
-	navigateRef.current = navigate;
-	const pattern = toFurinPattern(String(to ?? "/"));
-	const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-		onClick?.(event);
-		if (event.defaultPrevented) return;
-		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-		markNavigationPending();
-	};
-	return (
-		<FurinLinkAny
-			ref={ref}
-			to={pattern as never}
-			params={params as never}
-			search={normalizeSearch(search) as never}
-			hash={hash === undefined ? undefined : String(hash)}
-			replace={replace}
-			resetScroll={resetScroll}
-			preload={preload}
-			activeProps={activeProps as never}
-			inactiveProps={inactiveProps as never}
-			onClick={handleClick}
-			{...(rest as Record<string, unknown>)}
-		>
-			{props.children as React.ReactNode}
-		</FurinLinkAny>
+/**
+ * 站内链接。直接复用 furin 的 `<Link>`（真实 `<a href>` + 同源拦截 + 预取），
+ * 只把 TanStack 时代的 `hash` 数字形态归一成字符串。
+ */
+export const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
+	function Link({ hash, children, ...rest }, ref) {
+		return (
+			<FurinLinkAny ref={ref} hash={hash === undefined ? undefined : String(hash)} {...rest}>
+				{children}
+			</FurinLinkAny>
+		);
+	},
+);
+
+/* ------------------------------- navigation ------------------------------- */
+
+export function useNavigate(_options?: { from?: string } | string) {
+	const navigate = useFurinNavigate();
+	return React.useCallback(
+		(destination?: Destination | string) => {
+			const target: Destination =
+				typeof destination === "string" ? { to: destination } : { ...destination };
+			// TanStack 允许只改 search：furin 需要一个目标，缺省用当前路径
+			if (!target.to) {
+				if (target.search === undefined && target.hash === undefined) return Promise.resolve();
+				target.to = snapshot.pathname;
+			}
+			if (isExternal(target.to as string)) {
+				if (typeof window !== "undefined") window.location.assign(target.to as string);
+				return Promise.resolve();
+			}
+			const { viewTransition, ...options } = target;
+			const run = () => navigate(options as never);
+			if (viewTransition === false) return Promise.resolve(run()) as Promise<void>;
+			return runViewTransition(run) as Promise<void>;
+		},
+		[navigate],
 	);
-});
+}
+
+/**
+ * furin 的路由句柄（文档：Router Controls）。`isNavigating` 驱动顶部进度条与 spinner。
+ *
+ * 唯一适配：furin 的 `prefetch()` 返回 `void`，而站内的「空闲/视口预取」队列按
+ * `() => Promise<unknown>` 编排（便于统一 catch/取消）。这里把它归一成 Promise，
+ * 调用方不用到处写 `Promise.resolve(...)`。
+ */
+export function useRouter() {
+	const router = useFurinRouter();
+	return React.useMemo(() => {
+		const prefetch = router.prefetch.bind(router);
+		return {
+			...router,
+			prefetch: (destination: unknown, options?: unknown) =>
+				Promise.resolve(prefetch(destination as never, options as never)),
+		};
+	}, [router]);
+}
 
 export type RegisteredRouter = ReturnType<typeof useRouter>;
 
-export function Await({
-	promise,
-	resolve,
-	fallback = null,
-	errorElement,
-	children,
-}: {
-	promise?: unknown;
-	resolve?: unknown;
-	fallback?: React.ReactNode;
-	errorElement?: React.ReactNode;
-	children: (value: any) => React.ReactNode;
-}) {
-	const target = (resolve ?? promise) as never;
-	return (
-		<React.Suspense fallback={fallback}>
-			<FurinAwait resolve={target} errorElement={errorElement as never}>
-				{(value: any) => children(value)}
-			</FurinAwait>
-		</React.Suspense>
+/** 站内是否正在切换（文档：`router.isNavigating`）。 */
+export function useNavigationPending(): boolean {
+	const router = useFurinRouter();
+	return Boolean(router?.isNavigating);
+}
+
+/* ------------------------------- search ------------------------------- */
+
+/**
+ * 读取地址栏的 query（TanStack `useSearch()` 的等价物）。
+ *
+ * ⚠️ 为什么不直接用 `@teyik0/furin/search` 的 `useSearch(pattern)`：
+ * furin 的 SearchStore 在 `useLayoutEffect` 里提交（渲染之后），而
+ * `assertSearchRoute` 在渲染期用「上一帧快照」校验 `from`；站内切页时
+ * 地址栏先变、store 后提交，于是首帧必然抛
+ * `[furin] useSearch("…") does not match the current route.`，整页被打成 500。
+ *
+ * 2026-11-04 复核：npm `latest` 与 GitHub `main`（0.8.0-alpha.0 之后 10 天）的代码仍与
+ * 已发布版本一致，实测切回框架实现会在 `/admin` → 「查看站点」重新打回 500 错误页。
+ * 在上游把 store 提交挪到渲染之前（或让断言容忍切页首帧）之前，保持只读地址栏。
+ * 复验方法与切换清单：`docs/furin-navigation-alignment.md#切换到框架的-usesearch待上游修复`
+ */
+export function useSearch<T = any>(_options?: { from?: string; strict?: boolean }): T {
+	const location = useLocationSnapshot();
+	return React.useMemo(
+		() => parseSearch(location.searchStr) as T,
+		[location.searchStr],
 	);
+}
+
+/* ------------------------------- route api ------------------------------- */
+
+/**
+ * 读取当前页面 loader 数据 / 校验后的 params（文档：Reading Data In Descendant Components）。
+ * 参数是 furin 的 route pattern（如 `"/:id/comment"`）。
+ */
+export function getRouteApi(pattern: string) {
+	return furinGetRouteApi(pattern as never) as unknown as {
+		// 返回类型由调用方显式标注（各页面 loader 的数据结构不同，这里不做约束）
+		useLoaderData: <T = any>() => T;
+		useParams: () => Record<string, string>;
+	};
 }

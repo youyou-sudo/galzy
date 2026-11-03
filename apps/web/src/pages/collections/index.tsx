@@ -47,7 +47,7 @@ export const route = defineRoute("/collections")
 			description:
 				"GalZY 精选游戏合集：官方中文、经典名作、会社作品集等主题合集，一次发现更多好游戏。",
 			path: "/collections",
-		}) as never,
+		}),
 	)
 	.page(({ collections, page }) => (
 		<CollectionsPage collections={collections} page={page} />

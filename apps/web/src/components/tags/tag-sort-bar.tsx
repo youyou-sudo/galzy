@@ -123,7 +123,7 @@ export function TagSortBar(props: TagSortBarProps) {
 			return;
 		}
 		navigate({
-			to: "/tags/category/$categoryKey",
+			to: "/tags/category/:categoryKey",
 			params: { categoryKey: props.categoryKey },
 			search,
 			replace: true,

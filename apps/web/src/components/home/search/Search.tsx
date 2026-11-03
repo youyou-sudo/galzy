@@ -21,12 +21,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 interface SearchInputProps {
 	placeholder?: string;
 	liveSearch?: boolean;
-	/** 当前路由 id（如 "/games"）：furin 的 useSearch 必须显式指定 pattern */
-	from?: string;
 }
 
-// 以路由 search 作为初值来源（而非 window.location）：SSR 与客户端水合
-// 读取同一份值，且在浏览器前进/后退时能随 URL 变化同步。
+// 以地址栏 query 作为初值来源：SSR 首屏用根布局下发的 search（NavPathProvider），
+// 客户端随前进/后退同步；取值逻辑见 lib/nav 的 useSearch。
 type SearchInputParams = {
 	q?: string;
 	startDate?: string;
@@ -38,12 +36,11 @@ type SearchInputParams = {
 export default function SearchInput({
 	placeholder = "标题、标签、回车，喵喵喵～🐾",
 	liveSearch = false,
-	from,
 }: SearchInputProps) {
 	const navigate = useNavigate();
-	// 本组件同时用于首页（无 search 校验）与 /games（有 schema）；
-	// furin 的 useSearch 需要当前激活路由的 pattern，由调用方通过 from 传入。
-	const routeSearch = useSearch(from ? { from } : undefined) as unknown as SearchInputParams;
+	// 读地址栏 query（首屏由根布局下发 SSR 值）。不要去调 furin 的 useSearch(pattern)：
+	// 它会在切页后第一帧拿上一帧的 SearchStore 快照做断言并抛错，把整页打成 500。
+	const routeSearch = useSearch() as unknown as SearchInputParams;
 	const currentQ = routeSearch.q ?? "";
 	const currentStartDate = routeSearch.startDate ?? "";
 	const currentEndDate = routeSearch.endDate ?? "";

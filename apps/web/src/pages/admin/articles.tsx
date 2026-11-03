@@ -23,7 +23,7 @@ export const route = defineRoute("/admin/articles")
 	.loader(async ({ request }) => ({
 		articles: await documentOnly(request, () => DEFAULT_QUERY.queryFn()),
 	}))
-	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }) as never)
+	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }))
 	.page(({ articles }) => <ArticlesRoute articles={articles} />);
 
 function ArticlesRoute({

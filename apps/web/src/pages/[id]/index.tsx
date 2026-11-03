@@ -17,7 +17,7 @@ function downloadDescription(game: GameSeoSource | undefined) {
 }
 
 /**
- * 下载页签（/$id 本身）。
+ * 下载页签（/:id 本身）。
  *
  * 文件列表沿用「懒加载」设计：不在 loader 里阻塞，由 DownloadOptions 内部的
  * useQuery(filelistQueryOptions) 在客户端拉取；任务书里「下载 tab 懒加载」是

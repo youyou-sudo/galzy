@@ -17,7 +17,7 @@ function gameDescription(game: GameSeoSource | undefined) {
 	return `${title} 资源下载，游戏别名：${game?.vn?.alias || "无"}，简介：${game?.vn?.description || "暂无简介"}`;
 }
 
-/** 攻略文章列表页签（/$id/introduction） */
+/** 攻略文章列表页签（/:id/introduction） */
 export const route = defineRoute("/[id]/introduction")
 	.config({ mode: "ssr", params: paramsSchema })
 	.loader(async ({ params }) => ({

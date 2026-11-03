@@ -47,7 +47,7 @@ export const route = defineRoute("/introduction/[articleId]/edit")
 			seoMeta({
 				title: `编辑攻略 | ${seoTemplate.title}`,
 				noindex: true,
-			}) as never,
+			}),
 	)
 	.page(({ article, articleId }) => (
 		<EditArticlePage article={article} articleId={articleId} />
@@ -69,11 +69,11 @@ function EditArticlePage({
 		(article as { otherid?: string | null } | null)?.otherid;
 
 	const handleSuccess = () => {
-		// 旧的 router.invalidate({ filter }) 在 furin 下退化为一次整页数据刷新
-		void router.invalidate();
+		// 旧 TanStack 的 invalidate({ filter }) 在 furin 下退化为 router.refresh()（一次整页数据刷新）
+		void router.refresh();
 		if (gameId) {
 			navigate({
-				to: "/$id/introduction/$articleId",
+				to: "/:id/introduction/:articleId",
 				params: { id: String(gameId), articleId },
 			});
 		} else {

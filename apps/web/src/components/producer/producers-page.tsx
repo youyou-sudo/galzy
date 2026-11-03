@@ -141,7 +141,7 @@ export default function ProducersPage({
 					{producerItems.map((producer) => (
 						<Link
 							key={producer.id}
-							to="/producer/$pid"
+							to="/producer/:pid"
 							params={{ pid: producer.id }}
 							// 厂商名先落到 store：详情 pending 态直接用它渲染面包屑/卡片标题
 							onClick={() =>

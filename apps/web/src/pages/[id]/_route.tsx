@@ -26,7 +26,7 @@ const paramsSchema = t.Object({ id: t.String() });
 type GameDetail = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>;
 
 /** 攻略文章页的 loader 数据（面包屑末两级）。pattern 必须与激活页面完全一致。 */
-const articleRouteApi = getRouteApi("/$id/_layout/introduction/$articleId");
+const articleRouteApi = getRouteApi("/:id/introduction/:articleId");
 
 /**
  * 游戏详情布局：/[id] 及其全部页签（下载/评论/攻略/统计/系列）。
@@ -53,7 +53,7 @@ export const route = defineRoute("/[id]/_route")
 		// vndb 锚点收编）302 到最终路由身份，避免别名页留在历史栈里。
 		const gameId = canonicalGameId(game, requestedId);
 		if (!isSameGameRouteId(gameId, requestedId)) {
-			throw redirect({ to: "/$id", params: { id: gameId }, replace: true });
+			throw redirect({ to: "/:id", params: { id: gameId }, replace: true });
 		}
 		return { game, id: gameId };
 	})
@@ -98,7 +98,7 @@ function GameDetailShell({
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
 						<BreadcrumbLink
-							render={<Link to="/$id" params={{ id }} />}
+							render={<Link to="/:id" params={{ id }} />}
 						>
 							{gameTitleOf(game)}
 						</BreadcrumbLink>
@@ -126,7 +126,7 @@ function ArticleCrumbs({ gameId }: { gameId: string }) {
 			<BreadcrumbSeparator />
 			<BreadcrumbItem>
 				<BreadcrumbLink
-					render={<Link to="/$id/introduction" params={{ id: gameId }} />}
+					render={<Link to="/:id/introduction" params={{ id: gameId }} />}
 				>
 					攻略
 				</BreadcrumbLink>

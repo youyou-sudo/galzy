@@ -36,7 +36,7 @@ export const route = defineRoute("/introduction/create")
 			seoMeta({
 				title: `提交攻略 | ${seoTemplate.title}`,
 				noindex: true,
-			}) as never,
+			}),
 	)
 	.page(({ query }) => <CreateArticlePage gameId={query.gameId} />);
 
@@ -60,8 +60,8 @@ function CreateArticlePage({ gameId }: { gameId?: string }) {
 	}
 
 	const handleSuccess = () => {
-		void router.invalidate();
-		navigate({ to: "/$id/introduction", params: { id: gameId } });
+		void router.refresh();
+		navigate({ to: "/:id/introduction", params: { id: gameId } });
 	};
 
 	return (

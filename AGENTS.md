@@ -22,7 +22,7 @@ PostgreSQL    Redis     Meilisearch
 ```
 
 - **API** (`apps/api/`): ElysiaJS HTTP server. 19 domain modules, each a three-file Elysia plugin (`index.ts` routes, `model.ts` TypeBox schemas, `service.ts` business logic). Better Auth handles authentication with `auth`/`isAdmin` macros. Drizzle ORM (bun-sql adapter) for PostgreSQL. Redis only for distributed locks / idempotency / rate-limit / task queue (no business cache). Meilisearch for full-text search.
-- **Web** (`apps/web/`): Furin SSR app on Bun + Elysia 2. File-based pages (`src/pages/**`, `defineRoute(...).config().loader().head().page()`); the same Elysia process serves `/api/*`. BFF handlers live in `src/server/impl/<domain>.ts` (`defineBff`) and are exposed through isomorphic surfaces in `src/server/<domain>.ts` (`bffFn`): SSR dispatches in-process, the browser POSTs `/api/_bff/:id`. TanStack Query v5 for client state (seeded from loader data via `useSeedQueries`). `src/lib/nav.tsx` is a TanStack-Router-compatible navigation layer (Link/useNavigate/useRouterState/useSearch/getRouteApi/redirect). shadcn/ui (base-nova style) + Tailwind CSS v4 via `bun-plugin-tailwind`.
+- **Web** (`apps/web/`): Furin SSR app on Bun + Elysia 2. File-based pages (`src/pages/**`, `defineRoute(...).config().loader().head().page()`); the same Elysia process serves `/api/*`. BFF handlers live in `src/server/impl/<domain>.ts` (`defineBff`) and are exposed through isomorphic surfaces in `src/server/<domain>.ts` (`bffFn`): SSR dispatches in-process, the browser POSTs `/api/_bff/:id`. TanStack Query v5 for client state (seeded from loader data via `useSeedQueries`). `src/lib/nav.tsx` is a thin navigation adapter over Furin's public APIs (`Link`/`useNavigate`/`useRouter`/`getRouteApi`/`redirect`, plus local `usePathname`/`useLocation`/`useSearch`); route ids are Furin patterns (`/:id`). shadcn/ui (base-nova style) + Tailwind CSS v4 via `bun-plugin-tailwind`.
 - **Shared** (`packages/`): `libs` provides the Eden Treaty client (`treaty<app>`) with cookie forwarding and timeout. `config` provides shared TypeScript configs with path aliases (`@api`, `@web`, `@libs`). Pure TypeScript source — no build step.
 - **Data flow:** Browser → SSR (server functions) → Eden Treaty → Elysia API → Drizzle ORM → PostgreSQL. Redis sits alongside only for locks / idempotency / rate-limit / queue — there is **no business read cache**. Meilisearch is populated by cron jobs and queried by the search module.
 
@@ -199,7 +199,11 @@ export const route = defineRoute("/tags/[tagId]")
 ```
 - `params` 必须用 TypeBox（furin 从 `schema.properties` 读取动态段）；`query` 可用 zod（Standard Schema），但**多选 / 布尔**字段要用 TypeBox（zod 不会聚合重复 key，也不会把 "true" 转 boolean）。
 - loader 返回值就是 page props；旧 `context.queryClient.setQueryData` 语义用 `@web/lib/query-seed` 的 `useSeedQueries` 复刻。
-- 组件仍从 `@web/lib/nav` 导入 Link / useNavigate / useRouterState / useSearch / useParams / getRouteApi / redirect（兼容层，旧 route id 由 `lib/route-manifest.ts` 映射）。
+- **路由 id 一律用 furin pattern**（`/:id`、`/tags/:tagId`、`/admin`），不再有 TanStack 的 `$id` / `_layout` / `_authL`（`lib/route-manifest.ts` 已删除）。
+- 组件从 `@web/lib/nav` 导入导航 API：`Link` / `useNavigate` / `useRouter` / `getRouteApi` / `redirect` 直接复用 `@teyik0/furin` 的公开接口，`usePathname` / `useLocation` / `useSearch` 是本地薄封装。
+  - `router.preloadRoute` → `router.prefetch`，`router.invalidate` → `router.refresh`（furin 命名）。
+  - `<Link>` 不支持 `viewTransition` 属性；需要退出过渡时只在 `navigate()` 上传 `viewTransition: false`。
+  - `useSearch()` 只读地址栏：furin 0.8.0-alpha 的 `useSearch(pattern)` 在切页首帧会用上一帧 SearchStore 快照断言并抛错（把整页打成 500），绕行原因见 `docs/admin-view-site-500.md`，升级 furin 后复评。
 - `pendingComponent` 无对应机制；`isNavigating` 可做顶栏加载指示。
 - **loader 只服务首屏**：furin 的站内切页会重跑整条 loader 链（root → `_route` → 页面），loader 里做 `web → API → DB` 取数会直接变成切页等待。需要首屏 SSR 数据时用 `@web/lib/spa-request` 的 `documentOnly(request, load)` 包住取数：文档请求正常返回，`?_furin=data` 切页请求返回 `null`，页面内 `useQuery` 自己取（`gcTime` 5 分钟，切回命中缓存）。后台示例见 `docs/admin-spa-refactor.md`。
 - 页内状态（Tab / 筛选 / 分页）用 `@web/lib/admin/use-shallow-search` 的 `useShallowSearch` 改地址栏（`history.replaceState`），**不要**用 `useNavigate`——那会触发一次页面取数与重挂载。
@@ -283,13 +287,12 @@ export const myActions = {
 | `apps/api/.env.example` | All environment variables |
 | `apps/api/drizzle.config.ts` | Drizzle Kit config |
 | `apps/web/src/pages/root.tsx` | Root document — HTML shell, theme script, providers, Header/Footer/ads |
-| `apps/web/src/router.tsx` | TanStack Router config |
 | `apps/web/src/server/auth/auth.server.ts` | SSR auth client with cookie forwarding |
 | `apps/web/src/server/auth/auth-client.ts` | Browser auth client |
 | `apps/web/src/server/auth/betterPlugins.ts` | Shared Better Auth plugin config |
 | `apps/web/src/lib/cookie-pass.ts` | SSR cookie forwarding for Eden calls |
 | `apps/web/src/lib/elysia-error.ts` | Eden error → redirect/throw |
-| `apps/web/src/lib/nav.tsx` | TanStack Router compatible navigation layer |
+| `apps/web/src/lib/nav.tsx` | Navigation facade — re-exports Furin `Link`/`useNavigate`/`useRouter`/`getRouteApi`, adds view transitions, `usePathname`/`useLocation`/`useSearch` |
 | `apps/web/src/lib/bff/` | Isomorphic BFF runtime (transport, dispatch, registry) |
 | `packages/libs/src/api/index.ts` | Eden Treaty client — `treaty<app>(host, opts)` |
 | `packages/config/typescript/base.json` | Shared tsconfig with path aliases |

@@ -54,7 +54,7 @@ import { toast } from "sonner";
 import { filelistQueryOptions } from "./download-options-queries";
 import { GlgczujmDl } from "./tips";
 
-const apiroute = getRouteApi("/$id/_layout/");
+const apiroute = getRouteApi("/:id");
 
 // 解压密码统一为 玖辞；密码的复制按钮复用下载弹窗（文件信息）中的 CopyButton 组件
 const UNZIP_PASSWORD = "玖辞";

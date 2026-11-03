@@ -236,7 +236,7 @@ function TopicsTable() {
 			cell: (row) => (
 				<div className="flex flex-col gap-0.5 max-w-xs min-w-0">
 					<Link
-						to={"/topics/$topicId"}
+						to={"/topics/:topicId"}
 						params={{ topicId: String(row.id) }}
 						target="_blank"
 						className={cn(

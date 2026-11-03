@@ -59,7 +59,7 @@ export const route = defineRoute("/auth/signup")
 		seoMeta({
 			title: "注册 | GalZY - Galgame 资源站",
 			noindex: true,
-		}) as never,
+		}),
 	)
 	.page(({ query }) => <SignupPage search={query} />);
 

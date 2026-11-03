@@ -15,7 +15,7 @@ vi.mock("@web/lib/nav", async () => {
 	const href = (to: string, params?: Record<string, string>) =>
 		params
 			? Object.entries(params).reduce(
-					(acc, [key, value]) => acc.replace("$" + key, value),
+					(acc, [key, value]) => acc.replace(":" + key, value),
 					to,
 				)
 			: to;

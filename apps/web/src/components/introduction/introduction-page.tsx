@@ -35,8 +35,8 @@ function ArticleLink({ item, gameId }: { item: any; gameId: string }) {
 	useViewportPreload(
 		linkRef,
 		(router) => () =>
-			router.preloadRoute({
-				to: "/$id/introduction/$articleId",
+			router.prefetch({
+				to: "/:id/introduction/:articleId",
 				params: { id: gameId, articleId: String(item.id) },
 			}),
 	);
@@ -44,7 +44,7 @@ function ArticleLink({ item, gameId }: { item: any; gameId: string }) {
 	return (
 		<Link
 			ref={linkRef}
-			to="/$id/introduction/$articleId"
+			to="/:id/introduction/:articleId"
 			params={{ id: gameId, articleId: String(item.id) }}
 			resetScroll={false}
 			// 点击时回写标题：详情 pending 态直接复用，与列表条目同一组 VT 衔接
@@ -116,9 +116,7 @@ export default function IntroductionPage({
 		mutationFn: deleteIntroduction,
 		onSuccess: () => {
 			toast.success("文章已删除～");
-			router.invalidate({
-				filter: (match: any) => match.routeId === "/$id/_layout/introduction/",
-			});
+			void router.refresh();
 		},
 		onError: (error: any) => {
 			toast.error(error?.message || "删除失败，请稍后重试");
@@ -213,7 +211,7 @@ export default function IntroductionPage({
 															e.preventDefault();
 															e.stopPropagation();
 															navigate({
-																to: "/introduction/$articleId/edit",
+																to: "/introduction/:articleId/edit",
 																params: { articleId: String(item.id) },
 															});
 														}}

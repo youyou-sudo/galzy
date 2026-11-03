@@ -31,7 +31,7 @@ export type GameIdentity = {
 	kungalOnly?: boolean;
 };
 
-/** URL 段是否能命中 `/$id` 路由（供 params.parse 使用） */
+/** URL 段是否能命中 `/:id` 路由（供 params.parse 使用） */
 export function isGameRouteId(raw: string): boolean {
 	const id = raw.trim();
 	return VNDB_ROUTE_ID_RE.test(id) || KUNGAL_ROUTE_ID_RE.test(id);
@@ -88,7 +88,7 @@ export function readGameIdentity(game: unknown): GameIdentity {
 
 /**
  * 该条目最终应落在的路由身份：canonicalId 优先；API 未返回时回退请求 id。
- * 只信任路由可表达的形态（vNNN / kgX），避免跳到 `/$id` 无法承载的 id。
+ * 只信任路由可表达的形态（vNNN / kgX），避免跳到 `/:id` 无法承载的 id。
  */
 export function canonicalGameId(game: unknown, requestedId: string): string {
 	return (

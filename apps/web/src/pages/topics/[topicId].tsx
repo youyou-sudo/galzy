@@ -82,7 +82,7 @@ export const route = defineRoute("/topics/[topicId]")
 				: undefined,
 			path: `/topics/${params.topicId}`,
 			type: "article",
-		}) as never,
+		}),
 	)
 	.page(({ topic: loadedTopic, params }) => (
 		<TopicDetailPage topic={loadedTopic} topicId={params.topicId} />
@@ -208,7 +208,7 @@ function TopicDetailPage({
 						</span>
 						{(isOwner || isAdmin) && (
 							<div className="flex gap-1 items-center ml-auto">
-								<Link to="/topics/$topicId/edit" params={{ topicId }}>
+								<Link to="/topics/:topicId/edit" params={{ topicId }}>
 									<Button variant="ghost" size="sm">
 										<Pencil className="size-3.5" aria-hidden="true" />
 										编辑

@@ -252,7 +252,7 @@ function ArticlesTable() {
 
 	const openEditor = (row: AdminArticle) => {
 		navigate({
-			to: "/admin/articles/$articleId/edit",
+			to: "/admin/articles/:articleId/edit",
 			params: { articleId: String(row.id) },
 		});
 	};

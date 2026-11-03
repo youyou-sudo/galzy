@@ -14,7 +14,7 @@ import {
 import { loadTopAdSlot } from "@web/lib/adverts-data";
 import { AUTH_QUERY_KEY } from "@web/lib/auth-session-key";
 import { isPersonalizedPath } from "@web/lib/is-personalized-path";
-import { NavPathProvider, useMatches } from "@web/lib/nav";
+import { NavPathProvider, usePathname } from "@web/lib/nav";
 import { useSeedQueries } from "@web/lib/query-seed";
 import { isSpaDataRequest } from "@web/lib/spa-request";
 import { getSession } from "@web/server/auth/auth.functions";
@@ -34,6 +34,8 @@ const THEME_INIT_SCRIPT =
 type RootLayoutProps = {
 	children: ReactNode;
 	path: string;
+	/** 本次请求的 query 串（含前导 ?），交给 NavPathProvider 供 SSR 期 useSearch 读取 */
+	search: string;
 	adSlot: AdSlotPayload | null;
 	authSession: AuthSession;
 	/** 本次渲染的会话是否可信（仅登录态相关页面为 true；用户视图走客户端查询） */
@@ -61,7 +63,7 @@ export const route = defineRootRoute()
 	 * 登录态只在个性化页面随文档下发（用户菜单/后台守卫 hydration 命中，
 	 * 不必等客户端 get-session）；用户视图交给客户端查询，首屏少一次阻塞。
 	 */
-	.loader(async ({ path }) => {
+	.loader(async ({ path, request }) => {
 		const personalized = isPersonalizedPath(path);
 		// 站内切页（?_furin=data）不重取会话：客户端缓存里已经有了
 		const fetchAuth = personalized && !isSpaDataRequest();
@@ -70,12 +72,14 @@ export const route = defineRootRoute()
 			authSession: fetchAuth ? await getSession() : null,
 			authKnown: fetchAuth,
 			dev: process.env.NODE_ENV !== "production",
+			search: requestSearch(request),
 		};
 	})
 	.layout(
 		({
 			children,
 			path,
+			search,
 			adSlot,
 			authSession,
 			authKnown,
@@ -89,7 +93,7 @@ export const route = defineRootRoute()
 					<HeadContent />
 				</head>
 				<body className="flex flex-col min-h-screen font-sans antialiased">
-					<NavPathProvider initialPath={path}>
+					<NavPathProvider initialPath={path} initialSearch={search}>
 						<QueryProvider>
 							<TooltipProvider>
 								<AppChrome
@@ -111,6 +115,16 @@ export const route = defineRootRoute()
 			</html>
 		),
 	);
+
+/** 本次请求的 query 串（含前导 ?；取不到时返回空串）。 */
+function requestSearch(request: Request | undefined): string {
+	if (!request) return "";
+	try {
+		return new URL(request.url).search;
+	} catch {
+		return "";
+	}
+}
 
 /**
  * User / admin shell switch. /admin/** routes render their own AdminShell
@@ -142,8 +156,8 @@ function AppChrome({
 	if (authKnown) seeds.push([AUTH_QUERY_KEY, authSession ?? null]);
 	useSeedQueries(seeds);
 
-	const matches = useMatches();
-	const isAdmin = matches.some((m) => m.routeId.startsWith("/admin/"));
+	const pathname = usePathname();
+	const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
 
 	if (isAdmin) return <>{children}</>;
 

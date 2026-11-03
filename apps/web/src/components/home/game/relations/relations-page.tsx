@@ -4,7 +4,7 @@ import { EmptyState } from "@web/components/shared/empty-state";
 import { preferredTitleFrom } from "@web/lib/game-title";
 import { GitFork } from "lucide-react";
 
-const apiroute = getRouteApi("/$id/_layout/relations");
+const apiroute = getRouteApi("/:id/relations");
 
 /** VNDB relation 类型 → 中文标签 */
 const RELATION_LABELS: Record<string, string> = {

@@ -532,20 +532,20 @@ function ItemInner({
 	useViewportPreload(
 		linkRef,
 		(router) => () =>
-			router.preloadRoute({ to: "/$id", params: { id: gameid } }),
+			router.prefetch({ to: "/:id", params: { id: gameid } }),
 	);
 	// 大列表降级时视口预取自动停用，hover/focus 意图预取接管：
 	// 滚动零请求，悬停卡仍秒开。
 	useIntentPreload(
 		linkRef,
 		(router) => () =>
-			router.preloadRoute({ to: "/$id", params: { id: gameid } }),
+			router.prefetch({ to: "/:id", params: { id: gameid } }),
 	);
 
 	return (
 		<Link
 			ref={linkRef}
-			to="/$id"
+			to="/:id"
 			params={{ id: gameid }}
 			// 不能叫 group/card：ui/card 的根节点已经用了 group/card，
 			// 卡片被包进任何 Card（详情页、合集页）时，悬停外层 Card 会让所有标题一起变色。

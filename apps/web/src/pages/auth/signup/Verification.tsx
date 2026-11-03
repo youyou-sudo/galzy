@@ -40,7 +40,7 @@ export const route = defineRoute("/auth/signup/Verification")
     seoMeta({
       title: '邮箱验证 | GalZY - Galgame 资源站',
       noindex: true,
-    }) as never,
+    }),
   )
   .page(({ seedS, query }) => (
     <VerificationPage seedS={seedS} search={query} />

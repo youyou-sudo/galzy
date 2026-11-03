@@ -16,7 +16,7 @@ type ArticlePayload = {
 	otherid?: string | null;
 } | null;
 
-/** 攻略文章详情（/$id/introduction/:articleId） */
+/** 攻略文章详情（/:id/introduction/:articleId） */
 export const route = defineRoute("/[id]/introduction/[articleId]")
 	.config({ mode: "ssr", params: paramsSchema })
 	.loader(async ({ params }) => ({

@@ -23,7 +23,7 @@ export const route = defineRoute("/admin/comments")
 	.loader(async ({ request }) => ({
 		comments: await documentOnly(request, () => DEFAULT_QUERY.queryFn()),
 	}))
-	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }) as never)
+	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }))
 	.page(({ comments }) => <CommentsRoute comments={comments} />);
 
 function CommentsRoute({

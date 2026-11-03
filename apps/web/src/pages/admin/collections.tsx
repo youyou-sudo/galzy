@@ -22,7 +22,7 @@ export const route = defineRoute("/admin/collections")
 			fetchCollectionsList(DEFAULT_FILTERS),
 		),
 	}))
-	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }) as never)
+	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }))
 	.page(({ collections }) => <CollectionsRoute collections={collections} />);
 
 function CollectionsRoute({

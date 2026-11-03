@@ -43,7 +43,7 @@ export const route = defineRoute("/admin")
 	.loader(async ({ request }) => ({
 		stats: await documentOnly(request, () => fetchDashboardStats()),
 	}))
-	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }) as never)
+	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }))
 	.page(({ stats }) => <DashboardPage initialStats={stats} />);
 
 // ─── 数据（数据来源与原先保持一致的 4 个接口） ──────────────

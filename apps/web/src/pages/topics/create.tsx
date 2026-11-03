@@ -32,7 +32,7 @@ export const route = defineRoute('/topics/create')
     seoMeta({
       title: '发帖 | ' + seoTemplate.title,
       noindex: true,
-    }) as never,
+    }),
   )
   .page(() => <CreateTopicPage />)
 
@@ -49,7 +49,7 @@ function CreateTopicPage() {
     queryClient.invalidateQueries({ queryKey: ['topics'] })
     toast.success('发布成功喵～')
     navigate({
-      to: '/topics/$topicId',
+      to: '/topics/:topicId',
       params: { topicId: String((result as any).id) },
     })
   }

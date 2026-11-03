@@ -681,7 +681,7 @@ function NodeChip({
 			<TooltipTrigger
 				render={
 					<Link
-						to="/tags/$tagId"
+						to="/tags/:tagId"
 						params={{ tagId: id }}
 						// 点击时回写展示名，标签详情 pending 态复用
 						onClick={() => tagHeroActions.fromTag({ id, name: label })}
@@ -1314,7 +1314,7 @@ export function TagHierarchy({ tag }: { tag?: TagHierarchyTag | null }) {
 											<TooltipTrigger
 												render={
 													<Link
-														to="/tags/$tagId"
+														to="/tags/:tagId"
 														params={{ tagId: child.id }}
 														// 点击时回写展示名，标签详情 pending 态复用
 														onClick={() =>

@@ -14,7 +14,7 @@ export const route = defineRoute("/admin/friend-links")
 	.loader(async ({ request }) => ({
 		links: await documentOnly(request, () => adminGetFriendLinks({ data: {} })),
 	}))
-	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }) as never)
+	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }))
 	.page(({ links }) => <FriendLinksRoute links={links} />);
 
 function FriendLinksRoute({

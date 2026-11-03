@@ -359,7 +359,7 @@ function CollectionsTable({ onCreate }: { onCreate: () => void }) {
 					/>
 					<div className="flex flex-col min-w-0">
 						<Link
-							to="/collections/$id"
+							to="/collections/:id"
 							params={{ id: String(collection.id) }}
 							target="_blank"
 							className="inline-flex gap-1 items-center text-sm font-medium text-primary rounded transition-colors duration-200 hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"

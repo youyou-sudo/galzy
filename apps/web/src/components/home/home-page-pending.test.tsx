@@ -18,7 +18,7 @@ vi.mock("@web/lib/nav", async () => {
 	) => {
 		const url = params
 			? Object.entries(params).reduce(
-					(acc, [key, value]) => acc.replace("$" + key, value),
+					(acc, [key, value]) => acc.replace(":" + key, value),
 					to,
 				)
 			: to;

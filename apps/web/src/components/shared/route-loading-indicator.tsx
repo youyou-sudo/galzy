@@ -1,5 +1,5 @@
 import { Spinner } from "@web/components/ui/spinner";
-import { useRouterState } from "@web/lib/nav";
+import { useNavigationPending, usePathname } from "@web/lib/nav";
 import { cn } from "@web/lib/utils";
 import { useEffect, useRef, useState } from "react";
 
@@ -32,11 +32,10 @@ type Phase = "idle" | "active" | "leaving";
  * 两种模式的高度都从 --app-header-height 令牌派生，不写魔法数。
  */
 export function RouteLoadingIndicator() {
-	const isPending = useRouterState({ select: (s) => s.status === "pending" });
+	const isPending = useNavigationPending();
 	// 后台顶栏（AdminShell）铺满整宽，右上角被主题/头像占住 → 始终退回顶栏下沿
-	const isAdmin = useRouterState({
-		select: (s) => s.matches.some((m) => m.routeId.startsWith("/admin/")),
-	});
+	const pathname = usePathname();
+	const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
 	const [phase, setPhase] = useState<Phase>("idle");
 	/** 本次亮起的时刻；用 Date.now 记录，测试里 vi.useFakeTimers 会一并接管。 */
 	const shownAtRef = useRef(0);

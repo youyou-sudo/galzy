@@ -28,7 +28,7 @@ export const route = defineRoute("/")
 				title: seoTemplate.title,
 				description: seoTemplate.description,
 				path: "/",
-			}) as never,
+			}),
 	)
 	.page(({ rankings, showR18 }) => (
 		<HomePage rankings={rankings} showR18={showR18} />
@@ -48,13 +48,13 @@ function HomePage({
 	// 之前 5 条一起预取，实测会把浏览器同源连接占满，反而拖慢首屏交互。
 	useIdlePreload([
 		(router) => {
-			void router.preloadRoute({
+			void router.prefetch({
 				to: "/games",
 				search: { sortBy: "downloads", order: "desc" },
 			});
 		},
 		(router) => {
-			void router.preloadRoute({ to: "/collections", search: { page: 1 } });
+			void router.prefetch({ to: "/collections", search: { page: 1 } });
 		},
 	]);
 

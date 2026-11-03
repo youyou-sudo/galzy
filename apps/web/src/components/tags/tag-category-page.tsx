@@ -246,7 +246,7 @@ const TagRow = memo(function TagRow({ tag }: { tag: TagHubTag }) {
 				<TooltipTrigger
 					render={
 						<Link
-							to="/tags/$tagId"
+							to="/tags/:tagId"
 							params={{ tagId: tag.id }}
 							// 点击时回写展示名，标签详情 pending 态复用
 							onClick={() => tagHeroActions.fromTag(tag)}

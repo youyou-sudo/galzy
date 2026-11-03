@@ -25,7 +25,7 @@ export const route = defineRoute("/admin/users")
 			}),
 		),
 	}))
-	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }) as never)
+	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }))
 	.page(({ users }) => <UsersRoute users={users} />);
 
 function UsersRoute({

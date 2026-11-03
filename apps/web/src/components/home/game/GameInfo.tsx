@@ -70,7 +70,7 @@ export function GameInfo({ game, gameId }: { game: GameData; gameId: string }) {
 		list.map((producer, index) => (
 			<span key={producer.id} className="wrap-break-word">
 				<Link
-					to={"/producer/$pid"}
+					to={"/producer/:pid"}
 					params={{ pid: producer.id }}
 					preload="viewport"
 					onClick={() =>

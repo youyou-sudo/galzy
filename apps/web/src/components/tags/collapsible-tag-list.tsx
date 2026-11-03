@@ -181,7 +181,7 @@ export function CollapsibleTagList({
 				{shown.map((t) => {
 					const link = (
 						<Link
-							to="/tags/$tagId"
+							to="/tags/:tagId"
 							params={{ tagId: t.id }}
 							preload={preload}
 							// 点击时回写展示名，标签详情 pending 态复用

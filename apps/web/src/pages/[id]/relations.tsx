@@ -17,7 +17,7 @@ function gameDescription(game: GameSeoSource | undefined) {
 	return `${title} 资源下载，游戏别名：${game?.vn?.alias || "无"}，简介：${game?.vn?.description || "暂无简介"}`;
 }
 
-/** 系列关系页签（/$id/relations）：数据给 RelationsPage 自己从 page props 读 */
+/** 系列关系页签（/:id/relations）：数据给 RelationsPage 自己从 page props 读 */
 export const route = defineRoute("/[id]/relations")
 	.config({ mode: "ssr", params: paramsSchema })
 	.loader(async ({ params }) => ({

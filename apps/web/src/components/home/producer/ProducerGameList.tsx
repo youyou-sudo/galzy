@@ -6,7 +6,7 @@ import { Gamepad2 } from "lucide-react";
 import { useState } from "react";
 import { GameCard } from "../card";
 
-const apiroute = getRouteApi("/producer/$pid");
+const apiroute = getRouteApi("/producer/:pid");
 
 function clickedGameKey(pid: string) {
 	return `galzy:vt:producer:${pid}`;

@@ -18,7 +18,7 @@ export const route = defineRoute("/admin/topics")
 	.loader(async ({ request }) => ({
 		topics: await documentOnly(request, () => DEFAULT_QUERY.queryFn()),
 	}))
-	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }) as never)
+	.head(() => seoMeta({ title: ADMIN_TITLE, noindex: true }))
 	.page(({ topics }) => <TopicsRoute topics={topics} />);
 
 function TopicsRoute({

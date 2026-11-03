@@ -49,13 +49,13 @@ function TagChip({
 	useViewportPreload(
 		linkRef,
 		(router) => () =>
-			router.preloadRoute({ to: "/tags/$tagId", params: { tagId: tag.tag } }),
+			router.prefetch({ to: "/tags/:tagId", params: { tagId: tag.tag } }),
 	);
 
 	return (
 		<Link
 			ref={linkRef}
-			to="/tags/$tagId"
+			to="/tags/:tagId"
 			params={{ tagId: tag.tag }}
 			// 点击时回写展示名，标签详情 pending 态复用；榜单没有中文标题时用
 			// 榜单上展示的 id 兜底，和用户刚看到的文案保持一致
@@ -93,7 +93,7 @@ export function HotTagsSectionHeader() {
 				<Link
 					// 首页这块展示的就是「本周热门」标签，所以「更多」落到热门分类页的
 					// 本周热门排序上，翻页时榜单顺序不断层（分类页可再切本月/收录数）
-					to="/tags/category/$categoryKey"
+					to="/tags/category/:categoryKey"
 					params={{ categoryKey: "hot" }}
 					search={{ sort: "hotWeek", order: "desc" }}
 					className={sectionActionClass}

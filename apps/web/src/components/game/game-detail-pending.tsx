@@ -73,7 +73,7 @@ export function GameDetailPending({ id }: { id: string }) {
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
 						{hero ? (
-							<BreadcrumbLink render={<Link to="/$id" params={{ id }} />}>
+							<BreadcrumbLink render={<Link to="/:id" params={{ id }} />}>
 								{heroTitle(hero)}
 							</BreadcrumbLink>
 						) : (

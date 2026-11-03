@@ -1,3 +1,4 @@
+import type { HeadOptions, MetaDescriptor } from "@teyik0/furin/client";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { preferredGameTitle } from "./game-title";
 
@@ -10,8 +11,6 @@ type SeoOptions = {
 	/** 登录后可见/后台页面设为 true，输出 noindex */
 	noindex?: boolean;
 };
-
-type HeadTag = Record<string, string>;
 
 /** 去除 Markdown 语法，得到可用于 meta description 的纯文本 */
 export function stripMarkdown(text: string): string {
@@ -61,36 +60,6 @@ export function gameTitleOf(
 	return preferredGameTitle(game) || firstAliasLine(vn?.alias) || "Galgame";
 }
 
-type LayoutGameMatch = { routeId: string; loaderData?: unknown };
-
-/** 从 route head 的 matches 中取父布局（/$id/_layout）loader 已加载的 game detail，
- *  供子路由复用标题，避免每个 tab 重复请求 game detail。 */
-export function parentGameFromMatches(
-	matches: ReadonlyArray<LayoutGameMatch>,
-): GameTitleSource | undefined {
-	const match = matches.find((m) => m.routeId === "/$id/_layout");
-	if (
-		match &&
-		typeof match === "object" &&
-		"loaderData" in match &&
-		match.loaderData &&
-		typeof match.loaderData === "object" &&
-		"game" in match.loaderData
-	) {
-		const game = match.loaderData.game;
-		if (game && typeof game === "object") return game;
-	}
-	return undefined;
-}
-
-type GameTitleSource = {
-	vn?: {
-		olang?: string | null;
-		titles?: Array<{ lang?: string | null; title?: string | null }>;
-		alias?: string | null;
-	};
-};
-
 /** 生成统一的 SEO head：title + description + robots + OG + canonical */
 export function seoMeta({
 	title,
@@ -98,9 +67,9 @@ export function seoMeta({
 	path,
 	type = "website",
 	noindex,
-}: SeoOptions) {
+}: SeoOptions): HeadOptions {
 	const url = path ? `${seoTemplate.siteUrl}${path}` : undefined;
-	const meta: HeadTag[] = [
+	const meta: MetaDescriptor[] = [
 		{ title },
 		...(description ? [{ name: "description", content: description }] : []),
 		...(noindex ? [{ name: "robots", content: "noindex, nofollow" }] : []),
@@ -111,6 +80,8 @@ export function seoMeta({
 			: []),
 		...(url ? [{ property: "og:url", content: url }] : []),
 	];
-	const links = url ? [{ rel: "canonical", href: url }] : [];
+	const links: HeadOptions["links"] = url
+		? [{ rel: "canonical", href: url }]
+		: [];
 	return { meta, links };
 }

@@ -8,20 +8,16 @@ import {
 	RouteLoadingIndicator,
 } from "./route-loading-indicator";
 
-// 路由状态用可变对象驱动：mock 的 useRouterState 每次渲染读取当前值，
-// 测试里改 routerMock.status 后 rerender 即可模拟一次导航。
+// 路由状态用可变对象驱动：mock 的 useNavigationPending / usePathname 每次渲染
+// 读取当前值，测试里改 routerMock 后 rerender 即可模拟一次导航。
 const routerMock = vi.hoisted(() => ({
-	status: "idle" as "idle" | "pending",
-	matches: [] as { routeId: string }[],
+	pending: false,
+	pathname: "/",
 }));
 
 vi.mock("@web/lib/nav", () => ({
-	useRouterState: (options?: {
-		select?: (state: {
-			status: "idle" | "pending";
-			matches: { routeId: string }[];
-		}) => unknown;
-	}) => (options?.select ? options.select(routerMock) : routerMock),
+	useNavigationPending: () => routerMock.pending,
+	usePathname: () => routerMock.pathname,
 }));
 
 function indicator() {
@@ -43,7 +39,7 @@ function navigate(
 	rerender: (ui: React.ReactElement) => void,
 	status: "idle" | "pending",
 ) {
-	routerMock.status = status;
+	routerMock.pending = status === "pending";
 	rerender(<RouteLoadingIndicator />);
 }
 
@@ -55,8 +51,8 @@ function navigateAndShow(rerender: (ui: React.ReactElement) => void) {
 
 beforeEach(() => {
 	vi.useFakeTimers();
-	routerMock.status = "idle";
-	routerMock.matches = [];
+	routerMock.pending = false;
+	routerMock.pathname = "/";
 });
 
 afterEach(() => {
@@ -95,7 +91,7 @@ describe("RouteLoadingIndicator", () => {
 		expect(className()).toContain("min-[85rem]:top-3");
 
 		// 后台顶栏铺满整宽，右上角被主题/头像占住 → 不提升
-		routerMock.matches = [{ routeId: "/admin/_authL" }];
+		routerMock.pathname = "/admin/tasks";
 		rerender(<RouteLoadingIndicator />);
 		expect(className()).not.toContain("min-[85rem]:top-3");
 		expect(className()).toContain(

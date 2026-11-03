@@ -54,7 +54,7 @@ export const route = defineRoute("/admin/articles/[articleId]/edit")
 			seoMeta({
 				title: "编辑文章 | GalZY - Galgame 资源站",
 				noindex: true,
-			}) as never,
+			}),
 	)
 	.page(({ article, articleId, seeded }) => (
 		<EditArticlePage article={article} articleId={articleId} seeded={seeded} />

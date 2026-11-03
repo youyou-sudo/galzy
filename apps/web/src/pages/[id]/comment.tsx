@@ -19,10 +19,10 @@ function gameDescription(game: GameSeoSource | undefined) {
 }
 
 /**
- * 评论页签（/$id/comment）。
+ * 评论页签（/:id/comment）。
  *
  * 评论数据由 loader 直取（旧实现同样走 loader），并作为 CommentItem 的
- * initialData —— CommentItem 通过 getRouteApi("/$id/_layout/comment") 读取
+ * initialData —— CommentItem 通过 getRouteApi("/:id/comment") 读取
  * 本页 loader data，因此这里返回的字段名必须保持 commentsData / id 不变。
  */
 export const route = defineRoute("/[id]/comment")

@@ -106,8 +106,8 @@ export function CollectionItem({ collection }: { collection: CollectionData }) {
 	useViewportPreload(
 		linkRef,
 		(router) => () =>
-			router.preloadRoute({
-				to: "/collections/$id",
+			router.prefetch({
+				to: "/collections/:id",
 				params: { id: String(collection.id) },
 			}),
 	);
@@ -115,7 +115,7 @@ export function CollectionItem({ collection }: { collection: CollectionData }) {
 	return (
 		<Link
 			ref={linkRef}
-			to="/collections/$id"
+			to="/collections/:id"
 			params={{ id: String(collection.id) }}
 			className="group block rounded-2xl outline-none transition-transform duration-300 hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring/60"
 		>

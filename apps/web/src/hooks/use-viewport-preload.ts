@@ -8,7 +8,7 @@ import { type RefObject, useEffect, useRef } from "react";
  * 导出供单测断言。 */
 export const MAX_CONCURRENT = 2;
 /** 大列表阈值：超过此卡片数时视口预取自动降级（只响应 hover/focus 意图），
- * 滚动不再触发成片 preloadRoute，避免返回列表时的预取洪峰。 */
+ * 滚动不再触发成片 prefetch，避免返回列表时的预取洪峰。 */
 export const VIEWPORT_PRELOAD_DEGRADE_AFTER = 96;
 
 let mountedCards = 0;

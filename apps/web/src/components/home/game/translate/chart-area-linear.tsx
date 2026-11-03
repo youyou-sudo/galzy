@@ -17,7 +17,7 @@ const chartConfig = {
 	},
 } satisfies ChartConfig;
 
-const apiroute = getRouteApi("/$id/_layout/translate");
+const apiroute = getRouteApi("/:id/translate");
 
 /**
  * 统计页签：总下载量 + 每日曲线。

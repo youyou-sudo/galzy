@@ -156,7 +156,7 @@ export const route = defineRoute('/user')
     seoMeta({
       title: '个人中心 | GalZY - Galgame 资源站',
       noindex: true,
-    }) as never,
+    }),
   )
   .page(({ session, accounts, favorites, likes, query }) => (
     <UserPage

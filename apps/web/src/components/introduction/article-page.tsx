@@ -53,7 +53,7 @@ export default function ArticlePage({
 		onSuccess: () => {
 			toast.success("文章已删除～");
 			queryClient.invalidateQueries({ queryKey: ["introductionList"] });
-			router.navigate({ to: "/$id/introduction", params: { id: gameId } });
+			router.navigate({ to: "/:id/introduction", params: { id: gameId } });
 		},
 		onError: (error: any) => {
 			toast.error(error?.message || "删除失败，请稍后重试");
@@ -117,7 +117,7 @@ export default function ArticlePage({
 							// render 成 <a> 时关掉 nativeButton，否则 Base UI 会告警
 							// 「expected a native <button>」（语义仍是链接，见 GameTabs）
 							nativeButton={false}
-							render={<Link to="/$id/introduction" params={{ id: gameId }} />}
+							render={<Link to="/:id/introduction" params={{ id: gameId }} />}
 						>
 							<ArrowLeft className="size-4" />
 							返回列表
@@ -129,7 +129,7 @@ export default function ArticlePage({
 									size="sm"
 									onClick={() => {
 										navigate({
-											to: "/introduction/$articleId/edit",
+											to: "/introduction/:articleId/edit",
 											params: { articleId },
 										});
 									}}

@@ -50,8 +50,8 @@ export function TopicCard({ topic }: TopicCardProps) {
 	useViewportPreload(
 		linkRef,
 		(router) => () =>
-			router.preloadRoute({
-				to: "/topics/$topicId",
+			router.prefetch({
+				to: "/topics/:topicId",
 				params: { topicId: String(topic.id) },
 			}),
 	);
@@ -59,7 +59,7 @@ export function TopicCard({ topic }: TopicCardProps) {
 	return (
 		<Link
 			ref={linkRef}
-			to="/topics/$topicId"
+			to="/topics/:topicId"
 			params={{ topicId: String(topic.id) }}
 			className="group block rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
 		>

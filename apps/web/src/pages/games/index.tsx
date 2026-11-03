@@ -583,7 +583,7 @@ function GamesRoute({
 	]);
 
 	// 「加载更多」请求进行中暂停卡片视口预取调度（useViewportPreload 内全局信号）：
-	// preloadRoute RPC 不再与图片下载/解码抢带宽与主线程；
+	// prefetch RPC 不再与图片下载/解码抢带宽与主线程；
 	// 已排队的并发队列自然消费完，请求结束自动恢复调度。
 	useEffect(() => {
 		setViewportPreloadPaused(isFetchingNextPage);
@@ -642,7 +642,7 @@ function GamesRoute({
 			/>
 
 			<div className="mb-4 w-full max-w-xl">
-				<SearchInput from="/games" />
+				<SearchInput />
 			</div>
 
 			{/* 排序条：一条发丝底工具条，与页头/搜索同一垂直节奏 */}
@@ -838,3 +838,4 @@ function GamesPagePending() {
 		</div>
 	);
 }
+

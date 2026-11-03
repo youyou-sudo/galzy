@@ -21,7 +21,7 @@ import {
 import { Sheet, SheetContent, SheetTitle } from "@web/components/ui/sheet";
 import { useLocalStorageState } from "@web/hooks/use-local-storage-state";
 import { adminKeys } from "@web/lib/admin/query-keys";
-import { Link, useLocation, useRouter } from "@web/lib/nav";
+import { Link, usePathname, useRouter } from "@web/lib/nav";
 import { useAuthSession } from "@web/lib/use-auth-session";
 import { cn } from "@web/lib/utils";
 import { getTaskStats } from "@web/server/admin/tasks";
@@ -79,7 +79,7 @@ function useAdminRoutePrefetch() {
 		const run = () => {
 			prefetched.current = true;
 			for (const { to } of adminNavItems) {
-				void Promise.resolve(router.preloadRoute({ to })).catch(
+				void Promise.resolve(router.prefetch({ to })).catch(
 					() => undefined,
 				);
 			}
@@ -416,7 +416,7 @@ function TopBar({
  * + 内容区容器查询。用户端 Header/Footer 完全隔离。
  */
 export function AdminShell({ children }: { children: React.ReactNode }) {
-	const { pathname } = useLocation();
+	const pathname = usePathname();
 	const [collapsed, setCollapsed] = useLocalStorageState(
 		"galzy:admin:sidebar:collapsed",
 		false,

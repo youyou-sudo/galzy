@@ -7,7 +7,7 @@ import { getVnListByTag } from "@web/server/tags";
 import { Gamepad2 } from "lucide-react";
 import { GameCard } from "../card";
 
-const apiroute = getRouteApi("/tags/$tagId");
+const apiroute = getRouteApi("/tags/:tagId");
 
 export const TagGamelist = () => {
 	const { game, tagId } = apiroute.useLoaderData();

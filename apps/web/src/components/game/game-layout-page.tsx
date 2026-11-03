@@ -1,4 +1,3 @@
-import { Outlet } from "@web/lib/nav";
 import {
 	GameCover,
 	GameTitle,
@@ -37,19 +36,19 @@ export default function GameLayoutPage({
 	useIdlePreload(
 		[
 			(router) => {
-				void router.preloadRoute({ to: "/$id", params: { id } });
+				void router.prefetch({ to: "/:id", params: { id } });
 			},
 			(router) => {
-				void router.preloadRoute({ to: "/$id/introduction", params: { id } });
+				void router.prefetch({ to: "/:id/introduction", params: { id } });
 			},
 			(router) => {
-				void router.preloadRoute({ to: "/$id/comment", params: { id } });
+				void router.prefetch({ to: "/:id/comment", params: { id } });
 			},
 			(router) => {
-				void router.preloadRoute({ to: "/$id/translate", params: { id } });
+				void router.prefetch({ to: "/:id/translate", params: { id } });
 			},
 			(router) => {
-				void router.preloadRoute({ to: "/$id/relations", params: { id } });
+				void router.prefetch({ to: "/:id/relations", params: { id } });
 			},
 		],
 		{ staggerMs: 300 },
@@ -83,7 +82,7 @@ export default function GameLayoutPage({
 				<CardContent>
 					{/* 下载定位按钮的高亮锚点：包住 tab 内容本体（不含下方推荐位） */}
 					<div data-download-target="">
-						{children ?? <Outlet />}
+						{children}
 					</div>
 					<Glgczujm />
 				</CardContent>

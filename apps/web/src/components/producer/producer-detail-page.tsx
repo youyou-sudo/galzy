@@ -51,7 +51,7 @@ export default function ProducerDetailPage({
 					<span key={item.pid}>
 						{idx > 0 && "，"}
 						<Link
-							to="/producer/$pid"
+							to="/producer/:pid"
 							params={{ pid: item.pid }}
 							// 关系链点出去的厂商名也先落 store，目标页 pending 直接复用
 							onClick={() =>

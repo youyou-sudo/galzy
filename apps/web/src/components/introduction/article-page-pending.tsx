@@ -83,7 +83,7 @@ export function ArticlePagePending({
 						// render 成 <a> 时必须关掉 nativeButton，否则 Base UI 会告警
 						// 「expected a native <button>」（语义仍是链接，见 GameTabs）
 						nativeButton={false}
-						render={<Link to="/$id/introduction" params={{ id: gameId }} />}
+						render={<Link to="/:id/introduction" params={{ id: gameId }} />}
 					>
 						<ArrowLeft className="size-4" />
 						返回列表
