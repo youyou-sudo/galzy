@@ -18,7 +18,7 @@ type ArticlePayload = {
 
 /** 攻略文章详情（/$id/introduction/:articleId） */
 export const route = defineRoute("/[id]/introduction/[articleId]")
-	.config({ mode: "isr", revalidate: 300, params: paramsSchema })
+	.config({ mode: "ssr", params: paramsSchema })
 	.loader(async ({ params }) => ({
 		article: (await getIntroductionArticle({
 			data: { id: params.articleId },

@@ -78,7 +78,7 @@ export const getFileList = defineBff(
 		// 管理员的「刷新文件列表」入口由服务端判定：
 		// 前端不必为「按钮是否显示」再拉一次 session，也不用把 better-auth
 		// 带进下载 tab 的客户端 chunk；刷新接口本身还有 isAdmin 二次校验。
-		// 会话走带缓存的服务端读取：详情页首屏/预取会多次走到这里，别每次打 DB。
+		// 会话走请求级合并的服务端读取：同一请求内首屏/预取会多次走到这里，只发一次。
 		const session = await getServerSession();
 		const canManage =
 			(session?.user as { role?: string } | undefined)?.role === "admin";

@@ -31,8 +31,8 @@ function requestPathname(request: Request | undefined): string {
  *   缓存，每次切页重新请求会把导航拖慢一个「web → API → DB」往返；
  * - 广告只是装饰位：接口异常一律吞掉返回 null，绝不能让整页 500。
  *
- * ISR 页面的根布局 loader 拿不到 `request`（缓存渲染不应依赖请求），
- * 所以额外接受 `pathname`（loader ctx 的 `path`）。
+ * 根布局 loader 只拿得到 `path`（loader ctx），不带 `request`，
+ * 所以额外接受 `pathname`。
  */
 export async function loadTopAdSlot(
 	request?: Request,

@@ -44,22 +44,22 @@ type RootLayoutProps = {
 
 export const route = defineRootRoute()
 	/**
-	 * 根布局参与 ISR：用户视图（首页/列表/详情）的 HTML 会进服务端页面缓存
-	 * 并被 CDN 缓存。后台/用户中心/登录/编辑等页面自己的 mode 是 ssr，
-	 * 文档模式仍会回落成 ssr（见 furin 的 resolveDocumentMode）。
+	 * 根布局一律 SSR：源站不做任何服务端缓存，每次请求实时渲染；公开页允许
+	 * CDN 边缘缓存（见 lib/cdn-cache.ts），个性化/评论页保持 no-store。
+	 * 公开页不读会话，因此不存在「登录态被共享缓存复用」的问题。
 	 *
-	 * 广告位是公共数据，随页面一起缓存；**登录态不能进缓存**，所以只有
-	 * `isPersonalizedPath()` 命中的页面才在服务端取会话（见下方 loader）。
+	 * 广告位是公共数据，随页面一起渲染；登录态仍然只在
+	 * `isPersonalizedPath()` 命中的页面于服务端取（见下方 loader）——
+	 * 公开页面交给客户端查询，省掉每个访客一次会话往返。
 	 */
-	.config({ mode: "isr", revalidate: 3600 })
+	.config({ mode: "ssr" })
 	/**
 	 * 顶部广告位在根布局取数（等价于重构前 `__root.tsx` 的 `beforeLoad` 预取）：
 	 * SSR 首帧的 HTML 里就带广告，客户端 hydration 复用同一份数据，
 	 * 不会出现「先没有广告、JS 执行后才补上」的空位与布局跳动。
 	 *
 	 * 登录态只在个性化页面随文档下发（用户菜单/后台守卫 hydration 命中，
-	 * 不必等客户端 get-session）；用户视图交给客户端查询 —— 会话已由 Redis
-	 * 加速，一次往返即可，且绝不能把某个人的登录态写进共享/缓存的 HTML。
+	 * 不必等客户端 get-session）；用户视图交给客户端查询，首屏少一次阻塞。
 	 */
 	.loader(async ({ path }) => {
 		const personalized = isPersonalizedPath(path);
@@ -134,8 +134,8 @@ function AppChrome({
 	setPrefetchDevMode(dev);
 	// 把根布局 loader 拿到的广告位数据灌回与 TopAdSlot 同 key 的 query 缓存：
 	// SSR 与 hydration 的首次渲染就能命中，组件内的 useQuery 不会再补一次请求。
-	// 登录态只在「个性化页面」seed：用户视图的 HTML 会被 ISR/CDN 复用，
-	// 那里的登录态必须由客户端查询取得，不能把 null 也 seed 进去（否则会误判未登录）。
+	// 登录态只在「个性化页面」seed：用户视图的登录态由客户端查询取得，
+	// 不能把 null 也 seed 进去（否则会误判未登录）。
 	// 必须放在下面的 /admin 提前 return 之前，保持 hooks 调用顺序稳定。
 	const seeds: Array<[readonly unknown[], unknown]> = [];
 	if (adSlot !== null) seeds.push([adSlotQueryKey(TOP_AD_SLOT_KEY), adSlot]);

@@ -40,11 +40,9 @@ const isTagGroupKey = (value: string): value is (typeof TAG_GROUP_KEYS)[number] 
 
 export const route = defineRoute("/tags/category/[categoryKey]")
 	.config({
-		mode: "isr",
-		revalidate: 300,
+		mode: "ssr",
 		params: paramsSchema,
 		query: TagCategorySearchSchema,
-		tags: ["page-tags"],
 	})
 	.loader(async ({ params }) => {
 		const categoryKey = params.categoryKey;

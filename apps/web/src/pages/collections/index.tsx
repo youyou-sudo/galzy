@@ -34,7 +34,7 @@ const searchSchema = z.object({
 });
 
 export const route = defineRoute("/collections")
-	.config({ mode: "isr", revalidate: 120, query: searchSchema, tags: ["page-collections"] })
+	.config({ mode: "ssr", query: searchSchema })
 	.loader(async ({ query }) => {
 		const collections = (await getCollectionsWithPreview({
 			data: { page: query.page, limit: PAGE_SIZE, previewLimit: 4 },

@@ -12,14 +12,14 @@ export const getTopics = defineBff(
 		limit: z.optional(z.number()),
 		status: z.optional(z.string()),
 		/**
-		 * ISR 页面用：列表要进服务端/CDN 缓存，绝不能带某个用户的个性化结果。
+		 * 首屏 loader 用：列表只取公共数据，避免每个访客都触发一次会话查询。
 		 * 置 true 时跳过会话读取与 cookie 透传（只取公共数据）；
 		 * 浏览器侧的查询不传，保持原有的「自己的隐藏帖」行为。
 		 */
 		publicOnly: z.optional(z.boolean()),
 	}),
 	async ({ data }) => {
-		// 会话走带缓存的服务端读取：列表页 SSR + 视口预取会反复走到这里
+		// 会话走请求级合并的服务端读取：列表页 SSR + 视口预取会反复走到这里
 		const session = data.publicOnly ? null : await getServerSession();
 		const { data: res, error } = await api.topics.get({
 			query: {
@@ -74,11 +74,11 @@ export const getUserLikes = defineBff(
 export const getTopic = defineBff(
 	z.object({
 		id: z.number(),
-		/** ISR 详页用：跳过会话/cookie，返回所有人一致的公共数据 */
+		/** 首屏详页用：跳过会话/cookie，只取公共数据 */
 		publicOnly: z.optional(z.boolean()),
 	}),
 	async ({ data }) => {
-		// 详情页会被列表页视口预取批量请求，同样复用缓存的会话读取
+		// 详情页会被列表页视口预取批量请求，同样走请求级合并的会话读取
 		const session = data.publicOnly ? null : await getServerSession();
 		const { data: res, error } = await api.topics({ id: data.id }).get({
 			query: {

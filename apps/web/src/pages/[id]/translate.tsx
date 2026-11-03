@@ -19,7 +19,7 @@ function gameDescription(game: GameSeoSource | undefined) {
 
 /** 下载统计页签（/$id/translate） */
 export const route = defineRoute("/[id]/translate")
-	.config({ mode: "isr", revalidate: 300, params: paramsSchema })
+	.config({ mode: "ssr", params: paramsSchema })
 	.loader(async ({ params }) => ({
 		translateData: await translateData({ data: { id: params.id } }),
 	}))

@@ -24,7 +24,7 @@ function downloadDescription(game: GameSeoSource | undefined) {
  * 旧实现的显式决策，迁移不改。
  */
 export const route = defineRoute("/[id]")
-	.config({ mode: "isr", revalidate: 300, params: paramsSchema })
+	.config({ mode: "ssr", params: paramsSchema })
 	.head(({ game }) => ({
 		meta: [
 			{ title: `${gameTitleOf(game)} 下载 | ${seoTemplate.title}` },

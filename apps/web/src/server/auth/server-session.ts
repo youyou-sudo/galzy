@@ -1,9 +1,9 @@
 import "@teyik0/furin/server-only";
-import { getRequestHeader } from "@web/lib/request-context";
+import { getRequestHeader, getRequestScoped } from "@web/lib/request-context";
 import { authServerClient } from "./auth.server";
 
 /**
- * 服务端会话读取（带进程内短缓存 + 并行请求合并）。
+ * 服务端会话读取（**仅当前请求内**的请求合并，不做任何跨请求缓存）。
  *
  * ## 为什么需要它
  *
@@ -18,22 +18,18 @@ import { authServerClient } from "./auth.server";
  * ## 语义
  *
  * - 没有 better-auth cookie：直接判定未登录，**不发请求**；
- * - 15s 内同一份 cookie 复用结果（会话撤销/角色变更最多延迟 15s，接口侧仍有
- *   `isAdmin` 等二次校验；登录/登出会换 cookie，缓存键随之失效）；
- * - 同一 cookie 的并发请求合并成一次（single-flight），避免预取风暴同时打 DB；
- * - 失败不缓存（下一请求重试），异常统一降级为 null。
+ * - 合并只发生在**当前请求**内：同一次请求里同一份 cookie 只查一次
+ *   （并发调用共享同一个 Promise，串行调用直接复用结果）；请求结束随 store
+ *   丢弃，下一次请求重新校验（会话撤销/角色变更立即生效，没有 TTL 缓存）；
+ * - 失败统一降级为 null，不留在请求内（下一次调用重试）。
  */
 type ServerSession = NonNullable<
 	Awaited<ReturnType<typeof authServerClient.getSession>>["data"]
 >;
 
-const CACHE_TTL_MS = 15_000;
-const MAX_ENTRIES = 512;
+type SessionFlights = Map<string, Promise<ServerSession | null>>;
 
-type CacheEntry = { expiresAt: number; session: ServerSession | null };
-
-const cache = new Map<string, CacheEntry>();
-const inflight = new Map<string, Promise<ServerSession | null>>();
+const SESSION_FLIGHTS = Symbol("galzy.server-session.flights");
 
 /** 只保留 better-auth 的 cookie：会话结果只取决于这几个值。 */
 function sessionCookieKey(): string | null {
@@ -44,22 +40,9 @@ function sessionCookieKey(): string | null {
 	return matched.map((item) => item.replace(/^; /, "")).join("; ");
 }
 
-function readCache(key: string): ServerSession | null | undefined {
-	const entry = cache.get(key);
-	if (!entry) return undefined;
-	if (entry.expiresAt <= Date.now()) {
-		cache.delete(key);
-		return undefined;
-	}
-	return entry.session;
-}
-
-function writeCache(key: string, session: ServerSession | null): void {
-	cache.set(key, { expiresAt: Date.now() + CACHE_TTL_MS, session });
-	if (cache.size <= MAX_ENTRIES) return;
-	// Map 保持插入顺序：淘汰最旧的一条即可
-	const oldest = cache.keys().next().value;
-	if (oldest !== undefined) cache.delete(oldest);
+function sessionFlights(): SessionFlights {
+	// 挂在请求上下文上：请求结束即丢弃，绝不跨请求缓存
+	return getRequestScoped(SESSION_FLIGHTS, () => new Map());
 }
 
 /**
@@ -71,10 +54,8 @@ export async function getServerSession(): Promise<ServerSession | null> {
 	const key = sessionCookieKey();
 	if (!key) return null;
 
-	const cached = readCache(key);
-	if (cached !== undefined) return cached;
-
-	const running = inflight.get(key);
+	const flights = sessionFlights();
+	const running = flights.get(key);
 	if (running) return running;
 
 	const pending = (async () => {
@@ -82,18 +63,13 @@ export async function getServerSession(): Promise<ServerSession | null> {
 			const { data } = await authServerClient.getSession();
 			return data ?? null;
 		} catch {
-			// 网络异常/上游 5xx：按未登录处理，别把整页拖挂
+			// 网络异常/上游 5xx：按未登录处理，别把整页拖挂；
+			// 失败不留在请求内，下一次调用重试
+			flights.delete(key);
 			return null;
 		}
-	})()
-		.then((session) => {
-			writeCache(key, session);
-			return session;
-		})
-		.finally(() => {
-			inflight.delete(key);
-		});
+	})();
 
-	inflight.set(key, pending);
+	flights.set(key, pending);
 	return pending;
 }

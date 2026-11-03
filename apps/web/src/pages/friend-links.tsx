@@ -9,7 +9,7 @@ import {
 import { getFriendLinks } from "@web/server/friend-links";
 
 export const route = defineRoute("/friend-links")
-	.config({ mode: "isr", revalidate: 300, tags: ["page-friend-links"] })
+	.config({ mode: "ssr" })
 	.loader(async () => {
 		const links = await getFriendLinks({ data: {} });
 		return { links };
@@ -27,7 +27,7 @@ function FriendLinksRoute({ initialData }: { initialData: unknown }) {
 		queryKey: FRIEND_LINKS_QUERY_KEY,
 		queryFn: () => getFriendLinks({ data: {} }),
 		initialData: initialData as Awaited<ReturnType<typeof getFriendLinks>>,
-		// 与 CDN 的 60s 对齐：客户端二次进入最多旧 30s
+		// 客户端二次进入复用 30s 内的结果（服务端不做页面缓存）
 		staleTime: 30_000,
 	});
 

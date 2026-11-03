@@ -179,7 +179,7 @@ const searchSchema = z.object({
 });
 
 export const route = defineRoute("/games")
-	.config({ mode: "isr", revalidate: 60, query: searchSchema, tags: ["page-games"] })
+	.config({ mode: "ssr", query: searchSchema })
 	.loader(async ({ query }) => {
 		const { q, startDate, endDate, sortBy, order } = query;
 		// 搜索模式（q 存在）不启用 R18 过滤，敏感图片由卡片模糊组件兜底；

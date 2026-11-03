@@ -9,16 +9,12 @@ export const searchApi = new Elysia({ prefix: "/api" }).get("/search", {}, async
 	const { data, error } = await api.search.get({ query: { q, limit: 100 } });
 	if (error) {
 		// Eden 不 throw：API 故障/网络错误都落在 error 上，必须显式处理，
-		// 否则 200+null 会被 CDN 缓存成"空结果"。
+		// 不能把 200+null 当成正常结果返回。
 		return new Response(JSON.stringify({ message: "搜索服务出错喵~" }), {
 			status: 502,
 			headers: { "content-type": "application/json" },
 		});
 	}
-	return Response.json(data, {
-		headers: {
-			"Cache-Control": "public, max-age=300, stale-while-revalidate=600",
-			"CDN-Cache-Control": "max-age=3600",
-		},
-	});
+	// 不做任何响应缓存：搜索每次实时回源 Meilisearch。
+	return Response.json(data);
 });

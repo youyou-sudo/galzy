@@ -14,7 +14,7 @@ import { getCritical } from "@web/server/game";
 type Rankings = Awaited<ReturnType<typeof getCritical>>;
 
 export const route = defineRoute("/")
-	.config({ mode: "isr", revalidate: 60, tags: ["page-home"] })
+	.config({ mode: "ssr" })
 	.loader(async () => {
 		// R18 visibility lives in a client store; the server always renders the
 		// safe variant and the client refetches with its own flag (same as before).
@@ -44,7 +44,7 @@ function HomePage({
 	useSeedQueries([[["hotGames", showR18], rankings.game]] as never);
 
 	// 空闲时只预取首页最常点的两个列表入口（更多游戏 / 更多合集）；
-	// 标签、会社、热门分类页交给点击（ISR 页面本身命中 CDN/页面缓存，代价很小）。
+	// 标签、会社、热门分类页交给点击，不占用空闲预取预算。
 	// 之前 5 条一起预取，实测会把浏览器同源连接占满，反而拖慢首屏交互。
 	useIdlePreload([
 		(router) => {

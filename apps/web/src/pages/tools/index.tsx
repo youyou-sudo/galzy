@@ -12,7 +12,7 @@ import ToolsPage from "@web/components/tools/tools-page";
 import { seoTemplate } from "@web/config/seoTemplate";
 
 export const route = defineRoute("/tools")
-	.config({ mode: "isr", revalidate: 3600 })
+	.config({ mode: "ssr" })
 	.head(() => ({
 		meta: [
 			{ title: `工具箱 | ${seoTemplate.title}` },

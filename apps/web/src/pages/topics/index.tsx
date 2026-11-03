@@ -37,9 +37,9 @@ type TopicListData = {
 }
 
 export const route = defineRoute("/topics")
-  .config({ mode: "isr", revalidate: 60, query: topicsSearchSchema, tags: ["page-topics"] })
+  .config({ mode: "ssr", query: topicsSearchSchema })
   .loader(async ({ query }) => {
-    // ISR：只取公共数据（不带会话），否则缓存里会混入某个用户的隐藏帖
+    // 只取公共数据（不带会话）：列表会被预取批量请求，跳过会话省一次往返
     const data = (await getTopics({
       data: { page: query.page, limit: 20, publicOnly: true },
     })) as unknown as TopicListData
