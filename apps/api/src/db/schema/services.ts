@@ -2,6 +2,7 @@ import { relations } from 'drizzle-orm'
 import {
   bigint,
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -141,13 +142,13 @@ export const collectionsRelations = relations(collections, ({ many }) => ({
   entries: many(collectionEntries),
 }))
 
-// galrc_stat_counters — 明细表被 TTL 清理后，累计计数落在这里。
+// galrc_stat_counters — 【已废弃，仅保留表定义等待后续清理】
 //
-// galrc_event_views / galrc_gameDownloadStats 既是「时间窗口排行榜」的数据源，
-// 也是「累计浏览量 / 累计下载次数」的数据源。前者只需要近期数据，后者的语义是
-// 终身累计。清理明细前先把即将删除的行按 (kind, target_id) 聚合进本表，
-// 读取侧的累计值 = 本表 total + 明细表剩余行数，于是明细可以安全 TTL 清理而
-// 累计数不下降（见 modules/tasks/service.ts 的 rollupAndPrune* 与 libs/stats.ts）。
+// 旧设计：明细表（galrc_event_views / galrc_gameDownloadStats）被 TTL 清理前，
+// 先把即将删除的行按 (kind, target_id) 聚合进本表，读取侧累计值 = 本表 + 明细剩余行。
+// 新设计见下方 galrc_stat_windows：累计与窗口都由同一张计数表承担，本表不再有写入方，
+// 线上行数为 0。保留定义只为「不在这批迁移里 DROP TABLE」（历史数据仍可人工核对），
+// 确认无用后由后续迁移删除。
 export const statCounters = pgTable(
   'galrc_stat_counters',
   {
@@ -162,6 +163,51 @@ export const statCounters = pgTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.kind, table.targetId] }),
+  }),
+)
+
+// galrc_stat_windows — 写时增量聚合的计数窗口表（替代 event_views 的读时聚合）。
+//
+// 旧设计的问题：galrc_event_views 每次浏览写一行明细，线上 450 万行 / 569MB；
+// 「本周热榜」每次读都要 bitmap-scan 数十万到数百万行再聚合 30 条，只能靠 Redis
+// 缓存把代价藏起来（用户要求删除全部缓存，所以必须换设计）。
+//
+// 新设计：按 (kind, target_id, 周窗口) 写时自增，行数上限 ≈ 计数对象数 × 保留周数
+// （线上量级约 2000 × 几十），三条读取路径全部走索引：
+//   * 写：INSERT … ON CONFLICT (kind, target_id, window_start)
+//         DO UPDATE SET total = galrc_stat_windows.total + n
+//   * 累计：SUM(total) WHERE kind = ? AND target_id = ?（主键前缀）
+//   * 周榜：SUM(total) GROUP BY target_id WHERE kind = ? AND window_start >= ?
+//         ORDER BY SUM(total) DESC（kind_window_total 索引）
+//
+// 窗口起点 = getEffectiveWeekStart()（本地时区周一；周一当天仍记上一周，与榜单
+// 展示口径一致，见 libs/time-window.ts）。历史数据由 scripts/backfill-stat-windows.ts
+// 从旧明细表按周聚合回填。
+export const statWindows = pgTable(
+  'galrc_stat_windows',
+  {
+    /** 计数维度：'game_view' | 'tag_view' | 'game_download'。 */
+    kind: varchar('kind', { length: 32 }).notNull(),
+    /** 计数对象：游戏展示身份（alistb.display_id）或 tagId。 */
+    targetId: varchar('target_id', { length: 255 }).notNull(),
+    /** 周窗口起点（date_trunc('week', now())::date）。 */
+    windowStart: date('window_start').notNull(),
+    total: bigint('total', { mode: 'number' }).notNull().default(0),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({
+      columns: [table.kind, table.targetId, table.windowStart],
+    }),
+    // 周榜：WHERE kind = ? AND window_start >= ? → 分组求和；total 放进索引可让
+    // 「近几周窗口」的扫描走 index-only scan。
+    kindWindowTotalIdx: index('idx_galrc_stat_windows_kind_window_total').on(
+      table.kind,
+      table.windowStart,
+      table.total,
+    ),
   }),
 )
 
