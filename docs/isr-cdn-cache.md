@@ -1,5 +1,13 @@
 # 用户视图缓存：ISR 源站缓存 + CDN 边缘缓存 + 数据更新即时失效
 
+> **已废弃（2026-11）**：用户要求删除所有服务端缓存、改为「重设计使其更快」。
+> 本文描述的 ISR 页面缓存 + Redis 失效链路已全部移除：所有页面改为 `mode: "ssr"`，
+> web 不再连接 Redis，`page-cache.ts` / `invalidate.ts` / `cdn-purge.ts` / `libs/isr.ts`
+> 均已删除；统计改为写时增量聚合到 `galrc_stat_windows`。
+> **CDN 边缘缓存保留**：公开页由 `apps/web/src/lib/cdn-cache.ts` 设置 `s-maxage`，
+> 数据更新后由 `apps/api/src/libs/cloudflare-cache.ts` 直接调 Cloudflare purge API。
+> 以下内容仅作历史记录。
+
 > 用户端页面（首页 / 游戏 / 标签 / 合集 / 厂商 / 论坛 / 友链…）走 **ISR** 生成
 > 静态化 HTML，源站（Redis）与 CDN 各存一份；只有数据真的变了，才清掉**相关条目**
 > 的缓存并重新生成。后台、用户中心、登录注册、创建/编辑页仍为纯 SSR。

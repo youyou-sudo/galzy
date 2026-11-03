@@ -18,13 +18,13 @@ Browser ──▶ Furin SSR (Bun + Elysia 2, port 3000)
     ┌───────────┼───────────┐
     ▼           ▼           ▼
 PostgreSQL    Redis     Meilisearch
- (Drizzle)   (cache)    (search)
+ (Drizzle)  (locks/queue) (search)
 ```
 
-- **API** (`apps/api/`): ElysiaJS HTTP server. 19 domain modules, each a three-file Elysia plugin (`index.ts` routes, `model.ts` TypeBox schemas, `service.ts` business logic). Better Auth handles authentication with `auth`/`isAdmin` macros. Drizzle ORM (bun-sql adapter) for PostgreSQL. Redis for caching + distributed locks. Meilisearch for full-text search.
+- **API** (`apps/api/`): ElysiaJS HTTP server. 19 domain modules, each a three-file Elysia plugin (`index.ts` routes, `model.ts` TypeBox schemas, `service.ts` business logic). Better Auth handles authentication with `auth`/`isAdmin` macros. Drizzle ORM (bun-sql adapter) for PostgreSQL. Redis only for distributed locks / idempotency / rate-limit / task queue (no business cache). Meilisearch for full-text search.
 - **Web** (`apps/web/`): Furin SSR app on Bun + Elysia 2. File-based pages (`src/pages/**`, `defineRoute(...).config().loader().head().page()`); the same Elysia process serves `/api/*`. BFF handlers live in `src/server/impl/<domain>.ts` (`defineBff`) and are exposed through isomorphic surfaces in `src/server/<domain>.ts` (`bffFn`): SSR dispatches in-process, the browser POSTs `/api/_bff/:id`. TanStack Query v5 for client state (seeded from loader data via `useSeedQueries`). `src/lib/nav.tsx` is a TanStack-Router-compatible navigation layer (Link/useNavigate/useRouterState/useSearch/getRouteApi/redirect). shadcn/ui (base-nova style) + Tailwind CSS v4 via `bun-plugin-tailwind`.
 - **Shared** (`packages/`): `libs` provides the Eden Treaty client (`treaty<app>`) with cookie forwarding and timeout. `config` provides shared TypeScript configs with path aliases (`@api`, `@web`, `@libs`). Pure TypeScript source — no build step.
-- **Data flow:** Browser → SSR (server functions) → Eden Treaty → Elysia API → Drizzle ORM → PostgreSQL. Redis sits alongside as cache. Meilisearch is populated by cron jobs and queried by the search module.
+- **Data flow:** Browser → SSR (server functions) → Eden Treaty → Elysia API → Drizzle ORM → PostgreSQL. Redis sits alongside only for locks / idempotency / rate-limit / queue — there is **no business read cache**. Meilisearch is populated by cron jobs and queried by the search module.
 
 ## Key Directories
 
@@ -109,7 +109,7 @@ Every module under `apps/api/src/modules/<name>/` follows this pattern:
 modules/games/
 ├── index.ts    # Elysia plugin — routes, middleware, hooks
 ├── model.ts    # TypeBox schemas (namespace + types)
-└── service.ts  # Business logic — Drizzle queries, Redis cache
+└── service.ts  # Business logic — Drizzle queries（不写读缓存）
 ```
 
 **`index.ts` — Route Plugin:**
@@ -138,24 +138,15 @@ export namespace GameModel {
 ```
 Use TypeBox (`@sinclair/typebox`) via Elysia's `t` — NEVER Zod on the API side.
 
-**`service.ts` — Business Logic:**
+**`service.ts` — Business Logic（直连 DB，不写读缓存）:**
 ```typescript
 import { db, sql, vn, vnTitles } from '@api/libs'
 import { eq, desc } from 'drizzle-orm'
-import { getKv, setKv } from '@api/libs/redis'
 
 export const Game = {
   async List({ pageIndex, pageSize }: GameModel.gameList) {
-    // Check Redis cache first
-    const cached = await getKv(`galzy:games:list:${pageIndex}:${pageSize}`)
-    if (cached) return JSON.parse(cached)
-
-    // Query DB
-    const result = await db.select().from(vn)... // Drizzle query
-
-    // Cache result
-    await setKv(`galzy:games:list:${pageIndex}:${pageSize}`, JSON.stringify(result), 3600)
-    return result
+    // 每次请求都实时查库：靠索引与查询本身的速度，不做任何读缓存
+    return await db.select().from(vn)... // Drizzle query
   },
 }
 ```
@@ -181,16 +172,16 @@ Two macros defined in `modules/auth/index.ts`, available to any plugin that `.us
 - **Joins:** Use Drizzle `relations()` API for cross-table references; `sql` template literals for JSON aggregation (`json_agg`, `row_to_json`)
 - **No Kysely** — the codebase uses Drizzle ORM exclusively. The `@api/libs` barrel re-exports `db`, `sql`, and all schema tables.
 
-### Redis Caching
+### Redis 使用（无业务缓存）
 
-Utilities in `apps/api/src/libs/redis/kv.ts`:
-- `getKv(key)` / `setKv(key, value, ttl?)` / `delKv(key)` — basic KV operations
-- `delKvPattern(pattern)` — SCAN-based batch delete (production-safe)
-- `acquireLockKv(lockKey, lockValue, ttl)` / `releaseLockKv(key, value)` — distributed locks via Lua EVALSHA
-- `acquireIdempotentKey(key, ttl)` / `storeIdempotentResult(key, result, ttl)` — idempotency for cron jobs
-- Key convention: `galzy:<domain>:<id>[:<params>]`
-- Typical TTLs: 30min (counts), 1hr (tags, lists), 2hr (game lists), 6hr (game info)
-- All operations use `safeRedisOp` wrapper — fails gracefully if Redis is unavailable
+本仓库**不缓存业务数据**（用户明确要求：缓存是对慢设计的逃避，删掉所有缓存、把查询与索引做快）。Redis 仅承载非缓存原语，工具在 `apps/api/src/libs/redis/kv.ts`：
+- `acquireLockKv(lockKey, lockValue, ttl)` / `releaseLockKv(key, value)` — 分布式锁（Lua EVALSHA）
+- `acquireIdempotentKey(key, ttl)` / `storeIdempotentResult(key, result, ttl)` / `getIdempotentResult(key)` — 定时任务幂等
+- `setKv` / `getKvTime` / `incrKv` — 邮箱验证码冷却、访问限流等短时计数器
+- `delKvPattern(pattern)` — 队列残留锁清理（SCAN，生产安全）
+- 任务队列 `@stacksjs/bun-queue` 复用同一条 `REDIS_URL`
+- 所有操作走 `safeRedisOp`，Redis 不可用时优雅降级
+- **不要新增业务读缓存**：页面全部 SSR，数据直连 PostgreSQL / Meilisearch。
 
 ### Frontend: Furin Patterns
 
@@ -214,13 +205,14 @@ export const route = defineRoute("/tags/[tagId]")
 - 页内状态（Tab / 筛选 / 分页）用 `@web/lib/admin/use-shallow-search` 的 `useShallowSearch` 改地址栏（`history.replaceState`），**不要**用 `useNavigate`——那会触发一次页面取数与重挂载。
 - **客户端预取策略**：卡片/列表默认走**意图预取**（`hooks/use-viewport-preload.ts` 的 `PREFETCH_MODE = "intent"`：hover 停留 60ms / focus / pointerdown 才发 `?_furin=data`），不要在挂载或滚入视口时成片预取——实测首页一次会打出 16 条预取，占满同源连接后把图片/会话/点击导航全排在后面。`useIdlePreload` 只用于极少量入口：等 `load` 后空闲调度、整页预算 6 条、开发模式（`bun --hot` 按需编译路由）自动关闭。排查数据与取舍见 `docs/client-navigation-perf.md`。
 
-### 用户视图缓存（ISR + CDN）
+### 页面渲染（源站全部 SSR + CDN 边缘缓存）
 
-- **页面分级**：用户视图（首页/游戏/标签/合集/厂商/论坛/友链/contact 等）用 `config({ mode: "isr", revalidate, tags })`，由源站（Redis 页面缓存）+ CDN（Cloudflare）两层缓存；后台/用户中心/登录/创建编辑页保持 `ssr`。根布局 `pages/root.tsx` 必须是 `isr`——它若为 ssr，furin 的 `resolveDocumentMode` 会把整条链回落成 ssr。
-- **登录态绝不进缓存**：根布局只用 `isPersonalizedPath(path)` 命中的路径在服务端取会话（`authKnown = true` 时才 seed `['auth']`）；用户视图的登录态由客户端 `useAuthSession()` 取。ISR 页面的 loader 禁止读会话/cookie（`PublicLoaderContext` 会直接抛错），需要个性化数据要么给 BFF 加 `publicOnly` 跳过会话，要么放到组件里的 `useQuery`。
-- **失效链路（Redis 频道，跨进程只靠一条 `REDIS_URL`）**：API 写操作（2xx 的 POST/PUT/PATCH/DELETE）→ `apps/api/src/libs/isr-invalidation.ts` 按路由前缀分流 → `libs/cloudflare-cache.ts` 的语义 helper → publish `galzy:isr:invalidate` → web 订阅后 `revalidatePath()` / `revalidateTag()` 删 Redis 页面产物，并把实际失效 URL publish 到 `galzy:isr:cdn-purge` → API 订阅后用 Cloudflare 凭据按 URL 清 CDN（频道常量见 `packages/libs/src/isr.ts`）。新增写接口要把它加进前缀映射；新增列表筛选维度时给路由补 `tags`（标签能连带清掉所有查询串变体）。
-- **连接配置**：web 与 API 一样只认一条 `REDIS_URL`（`@web/lib/redis` 用 Bun 内置客户端；本地开发默认不用 Redis，可设 `REDIS_ENABLED=true` 调试）。Cloudflare 凭据/`SITE_URL` 只留在 API 进程；CDN 侧仍需 Cache Rule：`/admin/*`、`/api/*`、`/auth/*`、`/user/*` Bypass，其余 GET 页面尊重源站 Cache-Control。
-- 设计与取舍见 `docs/isr-cdn-cache.md`。
+- **源站不缓存**：所有页面（含 `pages/root.tsx`）一律 `config({ mode: "ssr" })`，不接 furin 页面缓存后端（`pageCache`）、不订阅缓存失效频道。每次请求都实时 SSR，数据直连 DB / Meilisearch。
+- **CDN 缓存公开页**：`apps/web/src/lib/cdn-cache.ts` 在 `server.ts` 的 `.wrap()` 里把 furin 的 `no-store` 改写成 `public, max-age=0, s-maxage=<N>, stale-while-revalidate=<N>`（首页 60s、列表 60–120s、详情 300s、contact/tools 3600s）。评论页（`/*/comment`）、后台、用户中心、登录、创建编辑页保持 `no-store`。
+- **写后主动清 CDN**：API 写操作成功后，service 层按精确 id 调 `libs/cloudflare-cache.ts` 的语义 helper（`purgeGamePages` / `purgeTagPages` / `purgeAfterSync` …），API 层再用 `libs/cdn-invalidation.ts` 按路由前缀兜底；两者都直接调 Cloudflare `purge_cache`（`CLOUDFLARE_ZONE_ID` / `CLOUDFLARE_API_TOKEN`，origin 用 `SITE_URL` 或 `WEB_HOST`）。列表页的查询串变体无法枚举，靠较短的 s-maxage 自愈。
+- **登录态**：`getServerSession()` 只在**当前请求内**做 single-flight 合并（基于 `request-context` 的 AsyncLocalStorage，随请求结束丢弃），**无跨请求 TTL 缓存**；root 按 `isPersonalizedPath(path)` 决定是否服务端 seed `['auth']`。公开页不读会话，避免 `Set-Cookie` 让 CDN 无法缓存。
+- **统计改为写时增量聚合**：浏览量/下载量不再「每次事件写一行明细 + 读时聚合 + Redis 缓存」，而是写时自增 `galrc_stat_windows`（每对象每周一行），热榜/累计都只做小范围求和，见 `libs/stats.ts` 的 `bumpStatWindows()`。
+- 历史 ISR 设计见 `docs/isr-cdn-cache.md` 顶部说明（已废弃，CDN 部分以本段为准）。
 
 **BFF** — `apps/web/src/server`:
 ```ts
@@ -237,9 +229,9 @@ export const adminCreateAdSlot = bffFn<typeof impl.adminCreateAdSlot>("admin/adv
 - Browser: `createAuthClient` from `better-auth/react` → `authClient.useSession()`, `authClient.signIn.email()`
 - SSR: `createAuthClient` from `better-auth/client` → cookie forwarding via `getRequestHeader('Cookie')`
 - Session query key: `['auth']` — prefetched via `ensureQueryData` in loaders, invalidated on signIn/signOut
-- **服务端读会话一律用 `@web/server/auth/server-session` 的 `getServerSession()`**（15s 进程内缓存 + 并发合并 + 无 cookie 直接返回 null），不要直接 `authServerClient.getSession()`：会话查询在远端库上单次可达 1.2s，而它散落在多个 BFF/loader 里，列表页预取会把开销放大十倍。
+- **服务端读会话一律用 `@web/server/auth/server-session` 的 `getServerSession()`**（当前请求内 single-flight 合并 + 无 cookie 直接返回 null；**无跨请求缓存**），不要直接 `authServerClient.getSession()`。
 - 根布局 `pages/root.tsx` 随文档下发 `authSession` 并 seed 进 `['auth']`；客户端统一用 `@web/lib/use-auth-session` 的 `useAuthSession()` 读会话，不要各自 `authClient.getSession()`（否则每次刷新都要等一次会话请求才出登录态）。详见 `docs/auth-session-perf.md`。
-- API 侧会话配了 Redis secondary storage（`apps/api/src/modules/auth/service.ts`，`storeSessionInDatabase: true` 保底）；升级前的旧会话可用 `bun --cwd apps/api run scripts/prewarm-auth-sessions.ts --apply` 预热进 Redis。
+- 会话以 PostgreSQL 为准（`storeSessionInDatabase: true`，`cookieCache.enabled: false`）；不再使用 Redis secondary storage。
 
 **State (TanStack React Store):**
 ```typescript
@@ -286,7 +278,7 @@ export const myActions = {
 | `apps/api/src/modules/auth/service.ts` | Better Auth config — OAuth providers, email OTP, plugins |
 | `apps/api/src/db/client.ts` | DB connection — Bun SQL → drizzle() |
 | `apps/api/src/db/schema/` | All table definitions (5 files) |
-| `apps/api/src/libs/redis/kv.ts` | Redis KV, locks, idempotency utilities |
+| `apps/api/src/libs/redis/kv.ts` | Redis locks / idempotency / rate-limit utilities（无业务缓存） |
 | `apps/api/src/libs/meilisearch/index.ts` | Meilisearch singleton client |
 | `apps/api/.env.example` | All environment variables |
 | `apps/api/drizzle.config.ts` | Drizzle Kit config |
@@ -367,7 +359,7 @@ export const myActions = {
 | topics | `/topics` | auth | Forum: CRUD, like, favorite |
 | collections | `/collections` | admin (write) | Curated game collections |
 | friend-links | `/friend-links` | public list / admin (write) | 友情链接：公开列表，管理员增删与拖动排序 |
-| adverts | `/adverts` | public read / admin (write) | 广告位 + 素材：公开按广告位 key 读取（在投过滤 / 设备定向 / 权重轮换，Redis 60s 缓存），管理员管理广告位、素材、排期与曝光/点击统计 |
+| adverts | `/adverts` | public read / admin (write) | 广告位 + 素材：公开按广告位 key 读取（在投过滤 / 设备定向 / 权重轮换，直连 DB），管理员管理广告位、素材、排期与曝光/点击统计 |
 | producer | `/producer` | public | Producer/developer info, game lists |
 | search | `/search` | public | Meilisearch full-text search, admin embedder management |
 | media | `/media` | auth | S3 image upload (avatars, game media), hash-based dedup |

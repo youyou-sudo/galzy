@@ -1,5 +1,10 @@
 # 登录态性能排查：为什么「一登录，每次访问/刷新都慢」
 
+> **已更新（2026-11）**：Redis secondary storage 与 15s 跨请求会话缓存均已移除。
+> 现在会话以 PostgreSQL 为准（`storeSessionInDatabase: true`、`cookieCache.enabled: false`），
+> `getServerSession()` 只在**当前请求内**做 single-flight 合并（AsyncLocalStorage），
+> 无跨请求缓存。下文是当时的分析与历史方案，保留作背景。
+
 > 结论先行：慢的不是「登录」本身，而是**会话查询被放在了每个服务端取数路径里**，
 > 并且**客户端每次刷新都要等一次 `get-session` 才知道登录态**。列表页的视口预取
 > 会把这两件事放大 7~20 倍。修复后：会话查询从「每次取数一次」降到「每 15s 至多一次」，
