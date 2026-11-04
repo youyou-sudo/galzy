@@ -118,7 +118,9 @@ export async function purgeGamePages(gameId: string): Promise<void> {
   await purgeCdnUrls([
     `/${gameId}`,
     `/${gameId}/comment`,
-    `/${gameId}/introduction`,
+    // 攻略页签已换成 kungal walkthrough（站内攻略文章下线，/{gameId}/introduction
+    // 路由已不存在，继续清它只会白占 Cloudflare purge 配额）。
+    `/${gameId}/walkthrough`,
     `/${gameId}/relations`,
     `/${gameId}/translate`,
     '/games',
@@ -152,18 +154,6 @@ export async function purgeTopicPages(topicId?: string): Promise<void> {
   await purgeCdnUrls(
     topicId ? [`/topics/${topicId}`, '/topics', '/'] : ['/topics', '/'],
   )
-}
-
-export async function purgeArticlePages(
-  gameId: string,
-  articleId?: string,
-): Promise<void> {
-  await purgeCdnUrls([
-    `/${gameId}/introduction`,
-    ...(articleId ? [`/${gameId}/introduction/${articleId}`] : []),
-    '/games',
-    '/',
-  ])
 }
 
 export async function purgeFriendLinksPage(): Promise<void> {

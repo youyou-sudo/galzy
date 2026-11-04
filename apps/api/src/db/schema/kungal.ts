@@ -144,3 +144,61 @@ export const kungalCharacterAppearances = pgTable(
     ),
   }),
 )
+
+// galrc_kungal_walkthroughs — 鲲 Galgame 目录的攻略（walkthrough，v2 /catalog/walkthroughs）
+// 一行 = 一条攻略（同一作品可能有日文原版 + 汉化版 + 不同作者的多条，id 全局唯一）。
+// work_id 指向 galrc_kungal_works：攻略没有独立的展示身份，永远跟着作品页走，
+// 作品被删时整行级联删除（否则会留下指向不存在作品的孤儿攻略）。
+//
+// chart 为什么整块 jsonb，不拆成 sections / segments / steps 表：
+// 1) chart 是一棵闭合的图（entry/save/ending 节点 + segment 边的 key 互相引用），
+//    拆表后每次详情读取都要多表 JOIN 再在内存里重建成同一棵树，读侧没有收益；
+// 2) 本系统对 chart **只读**：不做按 step 的检索、统计或编辑，也没有「查某个
+//    选项」这类需求，拆表带来的索引能力用不上；
+// 3) 上游仍在演进（v2 把 steps 从 segment 内联改成数组就换过形状，spec 里每个
+//    对象都是 additionalProperties=true）。整块透传时新增字段自动落库，前端按
+//    snake_case 原样消费；拆表则每次上游加键都要一次迁移 + 回填。
+// 代价是 chart 不能按字段过滤 —— 需要时再用 jsonb 路径表达式，不影响现在的
+// 「按 work 取单行、原样透传给前端」这条唯一读取路径。
+export const kungalWalkthroughs = pgTable(
+  'galrc_kungal_walkthroughs',
+  {
+    id: text('id').primaryKey(), // NextMoe catalog walkthrough id（十进制字符串）
+    workId: text('work_id')
+      .notNull()
+      .references(() => kungalWorks.id, { onDelete: 'cascade' }),
+    lang: text('lang'), // 攻略正文语言（BCP-47：ja / zh-Hans…）
+    // source 是开放词汇（来源站名，或 nextmoe = 平台自写），只做展示与署名，
+    // **不能**当判别字段用（上游 spec 明确写了 "Must not be used as a discriminant"）。
+    source: text('source'),
+    sourceUrl: text('source_url'), // 原页面地址（署名外链）；自写攻略为空
+    sourceAuthor: text('source_author'), // 原页面署名作者，可能为空
+    sourceUpdatedOn: text('source_updated_on'), // 原页面自称的更新日期（YYYY-MM-DD，非时间戳）
+    workContentLimit: text('work_content_limit'), // 作品的展示轴 sfw | nsfw（与 nsfw 年龄轴无关）
+    workRouteHints: boolean('work_route_hints'), // 游戏自带路线提示（前端要先说明）
+    // release / characters 都是「一次读完、原样透传」的小块：
+    // release 是攻略对应的发行版（官方/汉化补丁），characters 是 chart 里的
+    // 角色 key 表（key → 目录角色）。它们与 chart 同生命周期、同一个请求返回，
+    // 拆表同样只增加 JOIN，故一并 jsonb。
+    release: jsonb('release'), // 原始 WalkthroughRelease 块，或 null
+    characters: jsonb('characters'), // 原始 WalkthroughCharacter 数组
+    chart: jsonb('chart'), // 原始 WalkthroughChart 块（列表接口不带，详情才拉）
+    // 三个计数是列表页要显示的标量（「12 个结局 / 8 个存档点」），从 chart 里
+    // 提前算好单独存列：列表页不读 chart，否则每次都把整棵图搬进内存。
+    endingCount: integer('ending_count'),
+    saveCount: integer('save_count'),
+    segmentCount: integer('segment_count'),
+    // 上游行的 updated_at：同步时用它判断「这条攻略有没有变」，没变就跳过
+    // 详情请求（chart 很大，全量重拉一遍的代价远高于列表翻页）。
+    upstreamUpdatedAt: timestamp('upstream_updated_at', { withTimezone: true }),
+    syncedAt: timestamp('synced_at', { withTimezone: true }),
+  },
+  (table) => ({
+    // 作品页/详情页唯一的读取路径是「按 work 取该作品全部攻略，按上游更新时间倒序」。
+    // 复合索引同时覆盖等值过滤与排序，省掉一次 sort。
+    workIdx: index('idx_galrc_kungal_walkthroughs_work').on(
+      table.workId,
+      table.upstreamUpdatedAt,
+    ),
+  }),
+)

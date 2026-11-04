@@ -225,6 +225,13 @@
       "when": 1793792608019,
       "tag": "0031_jazzy_tana_nile",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793800907451,
+      "tag": "0032_colossal_lady_ursula",
+      "breakpoints": true
     }
   ]
 }

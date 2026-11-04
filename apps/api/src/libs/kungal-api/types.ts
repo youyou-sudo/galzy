@@ -181,3 +181,169 @@ export interface KungalProblem {
   code?: string
   detail?: string
 }
+
+/* ─────────────────────── walkthrough（攻略）wire 类型 ─────────────────────── */
+// 下面这些形状与 spec 一一对应，**内层字段一律 snake_case**：chart 是原样透传
+// 给前端的（见 db/schema/kungal.ts 的 galrc_kungal_walkthroughs 注释），所以
+// wire 类型即 DTO 内层类型，中间不做一次改名。只有最外层的标量会映射成
+// camelCase（normalize.normalizeWalkthrough 负责）。
+// 每个对象上游都标了 additionalProperties=true，这里只列当前已知键，读侧遇到
+// 未知键不会报错（jsonb 原样透传）。
+
+/** localized 映射：BCP-47 语言 → 该语言的文本块。 */
+export type KungalLocalizedMap = Record<string, KungalLocalizedText>
+
+/** chart 节点：entry / save / ending 是具名节点，collect / open 是终点占位。 */
+export interface KungalWalkthroughNode {
+  key: string | null
+  node_type: 'entry' | 'save' | 'ending' | 'collect' | 'open'
+}
+
+/**
+ * 步骤的替代选项（收集 CG 差异用）。
+ * 主路径走 WalkthroughStep.text，其余同屏选项在 alternatives。
+ */
+export interface KungalWalkthroughAlternative {
+  text: string
+  localized: KungalLocalizedMap
+}
+
+/**
+ * 一个步骤。step_type 是闭合词表：
+ * choice 选菜单、action 其它操作、save 建存档、heading 分节标题、note 说明。
+ * text 为 null 只出现在 save 步骤；上游若加新的 step_type，前端应只渲染不编号。
+ */
+export interface KungalWalkthroughStep {
+  step_type: 'choice' | 'action' | 'save' | 'heading' | 'note'
+  text: string | null
+  localized: KungalLocalizedMap
+  alternatives: KungalWalkthroughAlternative[]
+  remark: string | null
+  remark_localized: KungalLocalizedMap
+  achievement: boolean
+  save_key: string | null
+}
+
+/** chart 的边：从一个节点走到另一个节点的一串步骤。 */
+export interface KungalWalkthroughSegment {
+  key: string
+  section_key: string | null
+  from_node: KungalWalkthroughNode
+  condition: string | null
+  condition_localized: KungalLocalizedMap
+  /** endings[].key 的前置结局（导入时只填能解析出来的） */
+  requires_ending_keys: string[]
+  steps: KungalWalkthroughStep[]
+  to_node: KungalWalkthroughNode
+}
+
+/** 原页面的分组标题（通常一条路线一个），segments[].section_key 指过来。 */
+export interface KungalWalkthroughSection {
+  key: string
+  title: string
+  localized: KungalLocalizedMap
+  /** characters[].key */
+  character_keys: string[]
+}
+
+/** 起点（标题画面，或某个结局解锁后的续玩入口）。 */
+export interface KungalWalkthroughEntry {
+  key: string
+  label: string
+  localized: KungalLocalizedMap
+  unlocked_by_ending_key: string | null
+}
+
+/** 结局。同名重复出现算多个结局，故 key 才是身份。 */
+export interface KungalWalkthroughEnding {
+  key: string
+  name: string
+  localized: KungalLocalizedMap
+  ending_type:
+    | 'heroine'
+    | 'harem'
+    | 'true'
+    | 'normal'
+    | 'bad'
+    | 'after'
+    | 'other'
+  character_keys: string[]
+}
+
+/** 存档点（save 步骤建立、这里声明它的标签）。 */
+export interface KungalWalkthroughSave {
+  key: string
+  label: string
+  localized: KungalLocalizedMap
+}
+
+/** 原页面对自己记号（★ / ⇒ …）的定义，用来解释步骤上的标记。 */
+export interface KungalWalkthroughLegendLine {
+  text: string
+  localized: KungalLocalizedMap
+}
+
+/**
+ * chart 本体：节点表 + 边表 + 图例。
+ * 六个数组上游承诺「空数组、绝非 null」，故都按非空数组建模。
+ */
+export interface KungalWalkthroughChart {
+  sections: KungalWalkthroughSection[]
+  legend: KungalWalkthroughLegendLine[]
+  entries: KungalWalkthroughEntry[]
+  saves: KungalWalkthroughSave[]
+  endings: KungalWalkthroughEnding[]
+  segments: KungalWalkthroughSegment[]
+}
+
+/** 攻略对应的发行版（官方/汉化补丁）。 */
+export interface KungalWalkthroughRelease {
+  id: string
+  title: string | null
+  release_kind: 'default' | 'digital' | 'physical' | 'trial' | 'patch'
+  lang: string | null
+  companies: string[]
+}
+
+/** chart 里的角色 key 表（section/ending 用 key 引用它）。 */
+export interface KungalWalkthroughCharacter {
+  key: string
+  name: string
+  character_id: string | null
+  display_name: string | null
+  localized: KungalLocalizedMap
+}
+
+/**
+ * catalog walkthrough 行。
+ *
+ * 注意 chart **只出现在详情接口**（GET /catalog/walkthroughs/{id}）；
+ * 列表（?work_id=）不带 chart，其余字段都在 —— 同步侧正是靠这一点先拉列表
+ * 判断 updated_at 有没有变、只为变了的行再拉详情。
+ */
+export interface KungalWalkthrough {
+  object?: 'walkthrough'
+  id: string
+  work_id: string
+  lang: string
+  source: string
+  source_url: string | null
+  source_author: string | null
+  source_updated_on: string | null
+  work_content_limit: 'sfw' | 'nsfw'
+  work_route_hints: boolean
+  release: KungalWalkthroughRelease | null
+  characters: KungalWalkthroughCharacter[]
+  chart?: KungalWalkthroughChart | null
+  ending_count: number
+  save_count: number
+  segment_count: number
+  updated_at: string
+}
+
+/** 攻略列表响应（v2 统一 list 形状）。 */
+export interface KungalWalkthroughListData {
+  items: KungalWalkthrough[]
+  missing?: string[]
+  next_cursor?: string | null
+}
