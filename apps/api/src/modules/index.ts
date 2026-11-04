@@ -1,5 +1,6 @@
 export * from './adverts'
 export * from './auth'
+export * from './characters'
 export * from './collections'
 export * from './comments'
 export * from './cron'

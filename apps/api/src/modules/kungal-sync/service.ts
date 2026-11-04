@@ -1,6 +1,8 @@
 import {
   alistb,
   db,
+  kungalCharacterAppearances,
+  kungalCharacters,
   kungalWorks,
   kungalWorkTitles,
   siteConfig,
@@ -11,30 +13,63 @@ import { linkAliases } from '@api/libs/identity'
 import {
   extractVndbRef,
   jsonbArray,
+  type KungalAppearanceRow,
+  type KungalCharacterItem,
+  type KungalCharacterRow,
   KungalClient,
+  type KungalWorkCharacter,
   type KungalWorkItem,
+  normalizeAppearance,
+  normalizeCharacter,
+  normalizeCharacterFromRoster,
   normalizeWork,
   parseRefs,
   refsToAliasPairs,
 } from '@api/libs/kungal-api'
 import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
 import { CronService } from '@api/modules/cron/service'
-import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, notInArray } from 'drizzle-orm'
 
 const RESOLVE_BATCH = 100
+/** 角色阶段每个事务处理的作品数（每作品名册 1..N 次请求，水合按 100/次）。 */
+const CHARACTER_WORK_BATCH = 10
+/** delta 每次最多补多少个「还没有名册行」的存量作品（避免每轮都扫全表）。 */
+const DELTA_CHARACTER_BACKFILL = 200
+
+/**
+ * jsonb 列写入表达式（null 透传）。
+ *
+ * 与 works.refs 同一个原因：把数组/对象直接交给 drizzle+bun 会被二次编码成
+ * jsonb 字符串（见 jsonbArray 注释）。角色表的 jsonb 列（localized /
+ * measurements / traits / intros / refs / image / figure）统一走显式
+ * text → jsonb，保证列里落的是真 jsonb 数组/对象（jsonb_typeof 可断言），
+ * 也让以后按 traits 做 SQL 过滤时不必先解一层字符串。
+ * null 必须原样透传：jsonbArray 会把 null 变成 []，那会把「没有数据」
+ * 表达成「空数组」，读侧无法区分。
+ */
+function jsonbTextOrNull(value: unknown): unknown {
+  return value === null || value === undefined ? null : jsonbArray(value)
+}
 
 let _progressCache: KungalSyncProgress | null = null
 
 export interface KungalSyncProgress {
   status: 'idle' | 'running' | 'completed' | 'failed'
-  type: 'full' | 'delta' | null
+  /** 'characters' = 只跑角色阶段（POST /kungal-sync/characters）。 */
+  type: 'full' | 'delta' | 'characters' | null
   startedAt: string | null
   completedAt: string | null
-  stage: 'resolve' | 'works' | 'cache' | null
+  stage: 'resolve' | 'works' | 'characters' | 'cache' | null
   totalItems: number
   processedItems: number
   errors: number
   resolvedCount: number
+  /** 角色阶段：本次要处理的作品数。 */
+  characterTotal: number
+  /** 角色阶段：已 upsert 的角色行数。 */
+  charactersUpserted: number
+  /** 角色阶段：已 upsert 的名册（出场）行数。 */
+  appearancesUpserted: number
   logs: Array<{
     time: string
     level: 'info' | 'error' | 'success'
@@ -53,6 +88,9 @@ const IDLE_PROGRESS: KungalSyncProgress = {
   processedItems: 0,
   errors: 0,
   resolvedCount: 0,
+  characterTotal: 0,
+  charactersUpserted: 0,
+  appearancesUpserted: 0,
   logs: [],
   lastUpdated: new Date().toISOString(),
 }
@@ -113,6 +151,345 @@ export const KungalSync = {
     }
   },
 
+  /**
+   * 只同步角色（管理端手动触发 / 队列 type='kungal-characters'）。
+   * 与作品同步共用 runCharacterStage，但锁独立：作品同步与角色同步可以同时跑，
+   * 两次角色同步不会重叠。
+   */
+  async syncCharacters(
+    onProgress?: (processed: number, total: number) => void,
+  ) {
+    const lockKey = 'kungal-sync-characters'
+    const lockVal = crypto.randomUUID()
+    if (!(await acquireLockKv(lockKey, lockVal, 3600_000))) return
+    try {
+      await this.runCharacterStage({ standalone: true }, onProgress)
+    } catch (err) {
+      // 整体失败（kungal 不可达 / DB 连不上）：把进度收尾成 failed，
+      // 否则管理页会一直停在「运行中」。
+      await this.updateProgress({
+        status: 'failed',
+        stage: null,
+        completedAt: new Date().toISOString(),
+      })
+      await this.addLog(
+        'error',
+        `角色同步失败: ${err instanceof Error ? err.message : String(err)}`,
+      )
+      throw err
+    } finally {
+      await releaseLockKv(lockKey, lockVal)
+    }
+  },
+
+  /**
+   * 角色阶段：名册（works/{id}/characters）→ ids= 批量水合 → upsert characters + appearances。
+   *
+   * 为什么要两步：作品行的 include=characters 名册只有名字/图片/roster_role/
+   * spoiler，没有 gender/birthday/三围/简介/traits；这些资料只在
+   * /catalog/characters?ids=…&view=full 上发布，且 ids= 批量通道 ≤100/次。
+   *
+   * 失败口径：单批（10 个作品）失败只计数不抛出 —— 角色是附加数据，
+   * 不应该让整轮作品同步失败；外层的 syncCharacters 才把整体异常收尾成 failed。
+   */
+  async runCharacterStage(
+    options?: { workIds?: string[]; standalone?: boolean },
+    onProgress?: (processed: number, total: number) => void,
+  ) {
+    const targets = await this.getCharacterTargets(options?.workIds)
+    if (targets.length === 0) {
+      if (options?.standalone) {
+        await this.updateProgress({
+          status: 'completed',
+          type: 'characters',
+          startedAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+          stage: null,
+        })
+      }
+      await this.addLog('info', '角色同步: 没有待同步的作品')
+      return
+    }
+
+    await this.updateProgress({
+      ...(options?.standalone
+        ? {
+            status: 'running' as const,
+            type: 'characters' as const,
+            startedAt: new Date().toISOString(),
+            completedAt: null,
+            errors: 0,
+          }
+        : {}),
+      stage: 'characters',
+      characterTotal: targets.length,
+      charactersUpserted: 0,
+      appearancesUpserted: 0,
+    })
+    await this.addLog('info', `角色阶段开始: ${targets.length} 个作品`)
+
+    let charactersUpserted = 0
+    let appearancesUpserted = 0
+    let characterErrors = 0
+    let processed = 0
+
+    for (let i = 0; i < targets.length; i += CHARACTER_WORK_BATCH) {
+      const batch = targets.slice(i, i + CHARACTER_WORK_BATCH)
+      try {
+        // 1) 名册：每作品游标翻页。用 allSettled 而不是 all —— 一个作品
+        //    404/超时不该把同批另外 9 个作品一起丢掉。
+        const settled = await Promise.allSettled(
+          batch.map(async (work) => ({
+            workId: work.id,
+            rows: await KungalClient.fetchWorkCharacters(work.id),
+          })),
+        )
+        const rosters: Array<{
+          workId: string
+          rows: KungalWorkCharacter[]
+        }> = []
+        for (const item of settled) {
+          if (item.status === 'fulfilled') rosters.push(item.value)
+          else {
+            characterErrors++
+            console.error('❌ Kungal 角色名册拉取失败:', item.reason)
+          }
+        }
+        if (rosters.length === 0) continue
+
+        // 2) 名册里的 character id 去重后走 ids= 水合（≤100/次）
+        const ids = [
+          ...new Set(
+            rosters.flatMap((r) => r.rows.map((row) => String(row.id))),
+          ),
+        ]
+        const hydrated = new Map<string, KungalCharacterItem>()
+        for (let h = 0; h < ids.length; h += RESOLVE_BATCH) {
+          const chunk = ids.slice(h, h + RESOLVE_BATCH)
+          try {
+            for (const item of await KungalClient.hydrateCharactersByIds(
+              chunk,
+            )) {
+              hydrated.set(String(item.id), item)
+            }
+          } catch (err) {
+            // 单批水合失败只丢资料字段：下面用名册兜底行继续落库名册行
+            characterErrors++
+            console.error('❌ Kungal 角色水合失败:', err)
+          }
+        }
+
+        // 3) 组装行：水合命中 → full；未命中 → 名册兜底（保证 appearances 外键成立）
+        const characterRows = new Map<string, KungalCharacterRow>()
+        for (const { rows } of rosters) {
+          for (const row of rows) {
+            const id = String(row.id)
+            if (characterRows.has(id)) continue
+            const full = hydrated.get(id)
+            characterRows.set(
+              id,
+              full
+                ? normalizeCharacter(full)
+                : normalizeCharacterFromRoster(row),
+            )
+          }
+        }
+        // 水合多回来的（极少数：NSFW 门差异导致名册里没有）也一并落库，
+        // 但不为它们建本作品的名册行。
+        for (const [id, item] of hydrated) {
+          if (!characterRows.has(id))
+            characterRows.set(id, normalizeCharacter(item))
+        }
+
+        // 4) 名册行：同一 (work, character) 只留第一条 —— 复合主键冲突会在
+        //    ON CONFLICT 里二次命中同一行，Postgres 报 21000 让整批失败。
+        const seen = new Set<string>()
+        const appearanceRows: KungalAppearanceRow[] = []
+        for (const { workId, rows } of rosters) {
+          rows.forEach((row, idx) => {
+            const key = `${workId}:${row.id}`
+            if (seen.has(key)) return
+            seen.add(key)
+            appearanceRows.push(normalizeAppearance(workId, row, idx))
+          })
+        }
+
+        const syncedAt = new Date()
+        const characterValues = [...characterRows.values()].map((row) => ({
+          ...row,
+          // 全部 jsonb 列统一走 ::text::jsonb，绕开驱动二次编码（与 works 同因）
+          localized: jsonbTextOrNull(row.localized),
+          measurements: jsonbTextOrNull(row.measurements),
+          image: jsonbTextOrNull(row.image),
+          figure: jsonbTextOrNull(row.figure),
+          intros: jsonbTextOrNull(row.intros),
+          traits: jsonbTextOrNull(row.traits),
+          refs: jsonbTextOrNull(row.refs),
+          syncedAt,
+        }))
+        const appearanceValues = appearanceRows.map((row) => ({
+          ...row,
+          syncedAt,
+        }))
+
+        // 5) 一个事务写 characters + appearances + 清理上游已删的名册行
+        await db.transaction(async (tx) => {
+          if (characterValues.length > 0) {
+            await tx
+              .insert(kungalCharacters)
+              .values(characterValues)
+              .onConflictDoUpdate({
+                target: kungalCharacters.id,
+                set: {
+                  displayName: sql`excluded.display_name`,
+                  latin: sql`excluded.latin`,
+                  lang: sql`excluded.lang`,
+                  localized: sql`excluded.localized`,
+                  gender: sql`excluded.gender`,
+                  birthday: sql`excluded.birthday`,
+                  bloodType: sql`excluded.blood_type`,
+                  heightCm: sql`excluded.height_cm`,
+                  weightKg: sql`excluded.weight_kg`,
+                  measurements: sql`excluded.measurements`,
+                  imageUrl: sql`excluded.image_url`,
+                  imageWidth: sql`excluded.image_width`,
+                  imageHeight: sql`excluded.image_height`,
+                  imageThumbhash: sql`excluded.image_thumbhash`,
+                  image: sql`excluded.image`,
+                  figure: sql`excluded.figure`,
+                  intro: sql`excluded.intro`,
+                  intros: sql`excluded.intros`,
+                  instanceOfId: sql`excluded.instance_of_id`,
+                  traits: sql`excluded.traits`,
+                  refs: sql`excluded.refs`,
+                  syncedAt: sql`excluded.synced_at`,
+                },
+              })
+          }
+          if (appearanceValues.length > 0) {
+            await tx
+              .insert(kungalCharacterAppearances)
+              .values(appearanceValues)
+              .onConflictDoUpdate({
+                target: [
+                  kungalCharacterAppearances.characterId,
+                  kungalCharacterAppearances.workId,
+                ],
+                set: {
+                  rosterRole: sql`excluded.roster_role`,
+                  spoiler: sql`excluded.spoiler`,
+                  sortOrder: sql`excluded.sort_order`,
+                  syncedAt: sql`excluded.synced_at`,
+                },
+              })
+          }
+          // 名册以本次上游结果为准：清掉本作品已不存在的角色行（角色被删/合并），
+          // 否则作品页会一直显示幽灵角色。名册为空 = 上游确实没有角色，同样清空。
+          for (const { workId, rows } of rosters) {
+            const keep = [...new Set(rows.map((row) => String(row.id)))]
+            await tx
+              .delete(kungalCharacterAppearances)
+              .where(
+                keep.length > 0
+                  ? and(
+                      eq(kungalCharacterAppearances.workId, workId),
+                      notInArray(kungalCharacterAppearances.characterId, keep),
+                    )
+                  : eq(kungalCharacterAppearances.workId, workId),
+              )
+          }
+        })
+
+        charactersUpserted += characterValues.length
+        appearancesUpserted += appearanceValues.length
+      } catch (err) {
+        // 单批失败（DB 抖动/上游形状异常）吞掉并计数，继续下一批：
+        // 角色是附加数据，不该让整轮作品同步失败。
+        characterErrors += batch.length
+        console.error(
+          `❌ Kungal 角色批 ${i / CHARACTER_WORK_BATCH + 1} 失败:`,
+          err,
+        )
+      }
+
+      processed += batch.length
+      await this.updateProgress({
+        stage: 'characters',
+        characterTotal: targets.length,
+        charactersUpserted,
+        appearancesUpserted,
+      })
+      onProgress?.(processed, targets.length)
+      await this.addLog(
+        'info',
+        `characters batch ${Math.min(i + CHARACTER_WORK_BATCH, targets.length)}/${targets.length} done`,
+      )
+    }
+
+    // 角色阶段的失败数并入整轮 errors（standalone 时开头已重置为 0）
+    const current = await this.getProgress()
+    await this.updateProgress({
+      errors: (current.errors ?? 0) + characterErrors,
+      charactersUpserted,
+      appearancesUpserted,
+      ...(options?.standalone
+        ? {
+            status: 'completed' as const,
+            completedAt: new Date().toISOString(),
+            stage: null,
+          }
+        : {}),
+    })
+    await this.addLog(
+      characterErrors > 0 ? 'error' : 'success',
+      `角色阶段完成: 作品 ${targets.length}, 角色 ${charactersUpserted}, 名册 ${appearancesUpserted}, 失败 ${characterErrors}`,
+    )
+    console.log(
+      `✅ Kungal 角色阶段完成: 作品 ${targets.length}, 角色 ${charactersUpserted}, 名册 ${appearancesUpserted}, 失败 ${characterErrors}`,
+    )
+  },
+
+  /**
+   * 角色阶段的作品集合。
+   * - 指定 workIds：只同步这些作品（增量补角色 / 手动补）
+   * - 未指定：galrc_kungal_works 全表，先有 vndb 锚点的、再 kungal-only 的
+   */
+  async getCharacterTargets(
+    workIds?: string[],
+  ): Promise<Array<{ id: string; vndbId: string | null }>> {
+    const columns = { id: kungalWorks.id, vndbId: kungalWorks.vndbId }
+    if (workIds) {
+      const unique = [...new Set(workIds)]
+      if (unique.length === 0) return []
+      return await db
+        .select(columns)
+        .from(kungalWorks)
+        .where(inArray(kungalWorks.id, unique))
+        .orderBy(sql`${kungalWorks.vndbId} IS NULL`, kungalWorks.id)
+    }
+    return await db
+      .select(columns)
+      .from(kungalWorks)
+      .orderBy(sql`${kungalWorks.vndbId} IS NULL`, kungalWorks.id)
+  },
+
+  /**
+   * 增量同步的角色目标：本次同步到的作品 + 还没有任何名册行的存量作品。
+   *
+   * 后者是角色功能上线前的历史缺口。每轮最多补 DELTA_CHARACTER_BACKFILL 个：
+   * 一次 delta 把全表名册请求打出去会占满 kungal 限流，也会让增量任务变慢。
+   */
+  async getDeltaCharacterWorkIds(syncedWorkIds: string[]): Promise<string[]> {
+    const missing = await db
+      .select({ id: kungalWorks.id })
+      .from(kungalWorks)
+      .where(
+        sql`NOT EXISTS (SELECT 1 FROM ${kungalCharacterAppearances} ca WHERE ca.work_id = ${kungalWorks.id})`,
+      )
+      .limit(DELTA_CHARACTER_BACKFILL)
+    return [...new Set([...syncedWorkIds, ...missing.map((r) => r.id)])]
+  },
+
   /** full = 全部 alistb 锚点；delta = 新作品及缺少封面尺寸的旧记录。 */
   async runSync(
     type: 'full' | 'delta',
@@ -125,8 +502,14 @@ export const KungalSync = {
     const vids = await this.getAlistbVids()
     const kungalOnlyIds = await this.getKungalOnlyWorkIds()
     if (vids.length === 0 && kungalOnlyIds.length === 0) {
-      // delta 即使没有需要同步的条目，也要消费一次 redirects（合并事件与条目无关）
-      if (type === 'delta') await this.consumeRedirects()
+      // delta 即使没有需要同步的条目，也要消费 redirects（合并事件与条目无关），
+      // 并补一轮「还没有名册行」的存量作品角色（角色功能上线前的历史缺口）。
+      if (type === 'delta') {
+        await this.consumeRedirects()
+        await this.runCharacterStage({
+          workIds: await this.getDeltaCharacterWorkIds([]),
+        })
+      }
       return
     }
 
@@ -201,7 +584,12 @@ export const KungalSync = {
     }
     if (target.length === 0 && kungalTarget.length === 0) {
       console.log('🔄 Kungal 增量同步: 无新条目')
-      if (type === 'delta') await this.consumeRedirects()
+      if (type === 'delta') {
+        await this.consumeRedirects()
+        await this.runCharacterStage({
+          workIds: await this.getDeltaCharacterWorkIds([]),
+        })
+      }
       return
     }
 
@@ -273,6 +661,8 @@ export const KungalSync = {
     let errors = 0
     let upserted = 0
     let aliases = 0
+    // 本次真正落库的 work id：增量同步的角色阶段只补这些作品（外加无名册的存量）
+    const syncedWorkIds: string[] = []
     const entries = resolvedEntries
     for (let i = 0; i < entries.length; i += RESOLVE_BATCH) {
       const batch = entries.slice(i, i + RESOLVE_BATCH)
@@ -372,6 +762,7 @@ export const KungalSync = {
           })
         }
         upserted += works.length
+        syncedWorkIds.push(...kept.map(({ work }) => work.id))
 
         // 锚点别名（kungal work id + refs 外部锚点 → vndb）：每批一条 upsert。
         // 保证旧 /kgX 链接永久可解析、bangumi/dlsite/… 等外部 id 归一到 vndb；
@@ -420,6 +811,16 @@ export const KungalSync = {
     // 阶段 2.5（仅 delta）：消费 redirects feed —— kungal 作品被合并时
     // old_id → current_id，收口 alistb 并给旧 id 登记别名，旧链接永不 404。
     if (type === 'delta') await this.consumeRedirects()
+
+    // 阶段 2.6：角色名册与资料。必须排在作品落库之后（appearances 外键指向
+    // galrc_kungal_works）；全量跑全表，增量只跑本次作品 + 尚无角色名册的存量，
+    // 避免每轮 delta 都把全目录角色请求重打一遍。
+    await this.runCharacterStage({
+      workIds:
+        type === 'delta'
+          ? await this.getDeltaCharacterWorkIds(syncedWorkIds)
+          : undefined,
+    })
 
     // 阶段 3：缓存与 CDN 失效
     await this.updateProgress({ stage: 'cache' })
@@ -772,7 +1173,10 @@ export const KungalSync = {
       .from(siteConfig)
       .where(eq(siteConfig.key, 'kungalSyncProgress'))
       .limit(1)
-    return (row[0]?.config as KungalSyncProgress | undefined) ?? IDLE_PROGRESS
+    const stored = row[0]?.config as Partial<KungalSyncProgress> | undefined
+    // 老进度 JSON 里没有角色阶段的新计数（角色功能上线前写入的），按默认值补齐，
+    // 否则管理页读到 undefined 会把计数渲染成 NaN。
+    return stored ? { ...IDLE_PROGRESS, ...stored } : IDLE_PROGRESS
   },
 
   async addLog(level: KungalSyncProgress['logs'][0]['level'], message: string) {

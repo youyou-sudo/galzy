@@ -1146,6 +1146,8 @@ async function runKungalHandler(
       return await KungalSync.syncFull(onProgress ?? undefined)
     case 'kungal-delta':
       return await KungalSync.syncDelta(onProgress ?? undefined)
+    case 'kungal-characters':
+      return await KungalSync.syncCharacters(onProgress ?? undefined)
     default:
       throw new Error(
         `未知的 kungal 任务类型: ${(payload as TaskPayload).type}`,

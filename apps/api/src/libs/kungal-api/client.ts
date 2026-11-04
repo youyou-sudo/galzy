@@ -1,7 +1,13 @@
 import type {
+  KungalCharacterAppearance,
+  KungalCharacterAppearanceListData,
+  KungalCharacterDetailListData,
+  KungalCharacterItem,
+  KungalCharacterListData,
   KungalProblem,
   KungalRedirect,
   KungalRedirectListData,
+  KungalWorkCharacter,
   KungalWorkItem,
   KungalWorksListData,
 } from './types'
@@ -104,6 +110,30 @@ function anchoredToVndb(item: KungalWorkItem, vid: string): boolean {
   return (item.refs ?? []).some(
     (r) =>
       r.source === 'vndb' && r.external_id?.toLowerCase() === vid.toLowerCase(),
+  )
+}
+
+/**
+ * 角色详情水合需要的 include 块（名册行只有名字/图片/戏份，没有这些）。
+ *
+ * view=full 实测已包含大部分块，但 spec 只把 view 写成「展开次要字段」，
+ * 显式列全 15 个合法 token 才能保证上游调整 view 语义时不缺块。
+ */
+const CHARACTER_INCLUDE =
+  'gender,birthday,height_cm,weight_kg,measurements,blood_type,instance_of_id,image,figure,traits,aliases,intros,refs,links,work_count'
+
+/** works/{id}/characters 名册单页（游标翻页用；limit 上限 100）。 */
+async function fetchWorkCharacterPage(
+  workId: string,
+  cursor?: string,
+): Promise<KungalCharacterListData> {
+  const params = new URLSearchParams({
+    limit: String(REFS_BATCH),
+    nsfw: 'true',
+  })
+  if (cursor) params.set('cursor', cursor)
+  return await request<KungalCharacterListData>(
+    `/catalog/works/${encodeURIComponent(workId)}/characters?${params.toString()}`,
   )
 }
 
@@ -217,6 +247,91 @@ export async function hydrateWorksByIds(
   return chunks
 }
 
+/**
+ * 作品名册：GET /catalog/works/{id}/characters 游标翻页取全。
+ *
+ * 名册行只有 nsfw/cursor/limit 三个参数（没有 view/include），行内只有
+ * display_name/latin/localized/image/figure/roster_role/spoiler —— 角色资料
+ * 字段要靠 hydrateCharactersByIds 再水合一次。
+ */
+export async function fetchWorkCharacters(
+  workId: string,
+): Promise<KungalWorkCharacter[]> {
+  const out: KungalWorkCharacter[] = []
+  let cursor: string | undefined
+  // 上限 20 页（最多 2000 个角色）：目录里没有这么大的名册，出现异常分页
+  // 说明上游游标坏了，宁可截断也不要在这里无限循环。
+  for (let page = 0; page < 20; page++) {
+    const data = await fetchWorkCharacterPage(workId, cursor)
+    out.push(...(data.items ?? []))
+    cursor = data.next_cursor ?? undefined
+    if (!cursor) break
+  }
+  return out
+}
+
+/**
+ * 角色批量水合：GET /catalog/characters?ids=…&view=full&include=…
+ *
+ * ids= 是批量通道（≤100/次、无分页），view=full 展开 gender/birthday/
+ * blood_type/身高体重/三围/instance_of_id，include 再带图片、figure、简介、
+ * traits 与 refs。未命中的 id 只出现在 missing 里，不抛错。
+ *
+ * 已知上限：该通道没有 spoiler 参数，traits 只返回 spoiler=none 的一档；
+ * minor/major 级属性要逐角色走 /catalog/characters/{id}?spoiler=major 补取
+ * （无批量通道）。角色卡默认不展示剧透属性，本期接受这个口径。
+ */
+export async function hydrateCharactersByIds(
+  ids: string[],
+): Promise<KungalCharacterItem[]> {
+  const unique = [...new Set(ids.map((i) => i?.trim()).filter(Boolean))]
+  const out: KungalCharacterItem[] = []
+  for (let i = 0; i < unique.length; i += REFS_BATCH) {
+    const chunk = unique.slice(i, i + REFS_BATCH)
+    const data = await request<KungalCharacterDetailListData>(
+      `/catalog/characters?ids=${chunk.map(encodeURIComponent).join(',')}&view=full&include=${CHARACTER_INCLUDE}&nsfw=true&limit=${REFS_BATCH}`,
+    )
+    out.push(...(data.items ?? []))
+  }
+  return out
+}
+
+/** 单个角色详情；404（不存在或被隐藏）返回 null，交给调用方决定报错口径。 */
+export async function fetchCharacter(
+  id: string,
+): Promise<KungalCharacterItem | null> {
+  try {
+    return await request<KungalCharacterItem>(
+      `/catalog/characters/${encodeURIComponent(id)}?view=full&include=${CHARACTER_INCLUDE}&nsfw=true`,
+    )
+  } catch (err) {
+    if (err instanceof KungalApiError && err.status === 404) return null
+    throw err
+  }
+}
+
+/** 角色的出场作品（含 roster_role/spoiler），游标翻页取全。 */
+export async function fetchCharacterAppearances(
+  id: string,
+): Promise<KungalCharacterAppearance[]> {
+  const out: KungalCharacterAppearance[] = []
+  let cursor: string | undefined
+  for (let page = 0; page < 20; page++) {
+    const params = new URLSearchParams({
+      limit: String(REFS_BATCH),
+      nsfw: 'true',
+    })
+    if (cursor) params.set('cursor', cursor)
+    const data = await request<KungalCharacterAppearanceListData>(
+      `/catalog/characters/${encodeURIComponent(id)}/appearances?${params.toString()}`,
+    )
+    out.push(...(data.items ?? []))
+    cursor = data.next_cursor ?? undefined
+    if (!cursor) break
+  }
+  return out
+}
+
 /** redirects feed：id 收敛（merge）事件，按 work 族过滤、游标翻页（最多 maxPages 页）。 */
 export async function fetchWorkRedirects(options?: {
   limit?: number
@@ -256,6 +371,10 @@ export const KungalClient = {
   resolveWorksByVndbIds,
   resolveWorksByKungalIds,
   hydrateWorksByIds,
+  fetchWorkCharacters,
+  hydrateCharactersByIds,
+  fetchCharacter,
+  fetchCharacterAppearances,
   fetchWorkRedirects,
   lookupWork,
 }

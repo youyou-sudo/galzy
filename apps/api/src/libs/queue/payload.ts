@@ -11,6 +11,7 @@ export type TaskPayload =
   | { type: 'vndb-producers' }
   | { type: 'kungal-full' }
   | { type: 'kungal-delta' }
+  | { type: 'kungal-characters' }
   | { type: 'meili-game' }
   | { type: 'meili-tag' }
   | { type: 'meili-producer' }

@@ -7,6 +7,7 @@ import {
 import {
   adverts,
   betterAuth,
+  characters,
   collections,
   comments,
   cronServer,
@@ -83,6 +84,7 @@ async function buildApp() {
       .use(betterAuth)
       .use(health)
       .use(adverts)
+      .use(characters)
       .use(game)
       .use(collections)
       .use(comments)

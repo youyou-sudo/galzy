@@ -218,6 +218,13 @@
       "when": 1793690470392,
       "tag": "0030_tricky_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1793792608019,
+      "tag": "0031_jazzy_tana_nile",
+      "breakpoints": true
     }
   ]
 }

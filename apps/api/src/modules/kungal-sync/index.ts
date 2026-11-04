@@ -29,3 +29,15 @@ export const kungalSync = new Elysia({ prefix: '/kungal-sync' })
     },
     { isAdmin: true },
   )
+  // 角色入库单独入口：角色资料只在 kungal 侧（vndb 只做作品锚点），
+  // 全量重刷角色不该连带重刷整轮作品同步。
+  .post(
+    '/characters',
+    async () => {
+      const jobId = await enqueue(QUEUE.kungalSync, {
+        type: 'kungal-characters',
+      })
+      return { ok: true, message: 'Kungal 角色同步已入队', jobId }
+    },
+    { isAdmin: true },
+  )
