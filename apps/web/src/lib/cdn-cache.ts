@@ -89,9 +89,10 @@ export function cdnCacheRuleFor(pathname: string): CdnCacheRule | null {
   if (/^\/producer\/[^/]+$/.test(path)) return rule(300);
   // 论坛主题详情
   if (/^\/topics\/[^/]+$/.test(path)) return rule(120);
-  // 游戏详情页签：/[id]、/[id]/introduction(/[articleId])、/[id]/relations、/[id]/translate
+  // 游戏详情页签：/[id]、/[id]/introduction(/[articleId])、/[id]/relations、
+  // /[id]/translate、/[id]/characters（详情页签的角色名册，公开只读、内容随同步变化）
   if (/^\/[^/]+$/.test(path)) return rule(300);
-  if (/^\/[^/]+\/(introduction|relations|translate)(\/.*)?$/.test(path)) {
+  if (/^\/[^/]+\/(introduction|relations|translate|characters)(\/.*)?$/.test(path)) {
     return rule(300);
   }
 

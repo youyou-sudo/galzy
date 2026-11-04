@@ -22,6 +22,12 @@ declare module "@teyik0/furin/routes" {
       parent: typeof import("./src/pages/root").route;
       pathParams: { id: string };
     };
+    "/[id]/characters": {
+      kind: "page";
+      pattern: "/:id/characters";
+      parent: typeof import("./src/pages/[id]/_route").route;
+      pathParams: { id: string };
+    };
     "/[id]/comment": {
       kind: "page";
       pattern: "/:id/comment";
@@ -281,6 +287,7 @@ declare module "@teyik0/furin/routes" {
   interface RouteMap {
     "/": typeof import("./src/pages/index").route;
     "/:id": typeof import("./src/pages/[id]/index").route;
+    "/:id/characters": typeof import("./src/pages/[id]/characters").route;
     "/:id/comment": typeof import("./src/pages/[id]/comment").route;
     "/:id/introduction": typeof import("./src/pages/[id]/introduction/index").route;
     "/:id/introduction/:articleId": typeof import("./src/pages/[id]/introduction/[articleId]").route;
