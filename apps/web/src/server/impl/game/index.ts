@@ -65,6 +65,35 @@ export const getGameRelations = defineBff(
 	},
 );
 
+/**
+ * 条目页「详情」页签：该作品的角色名册。
+ *
+ * 名册行只带姓名/拉丁名/图片/身份/剧透等级（上游 works/{id}/characters 的字段集），
+ * 性别/生日/三围/简介/属性要等 /characters/info 的 view=full，所以列表页不再额外水合。
+ */
+export const getGameCharacters = defineBff(
+	z.object({ id: z.string().check(z.minLength(1)) }),
+	async ({ data }) => {
+		const { data: characters, error } = await api.characters.game.get({
+			query: { gameId: data.id },
+		});
+		elysiaErrorF(error);
+		return characters;
+	},
+);
+
+/** 角色详情（view=full + 出演作品）：打开角色弹窗时按需拉取，不进首屏关键路径 */
+export const getCharacterInfo = defineBff(
+	z.object({ characterId: z.string().check(z.minLength(1)) }),
+	async ({ data }) => {
+		const { data: info, error } = await api.characters.info.get({
+			query: { id: data.characterId },
+		});
+		elysiaErrorF(error);
+		return info;
+	},
+);
+
 export const getFileList = defineBff(
 	z.object({ id: z.string() }),
 	async ({ data }) => {

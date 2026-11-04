@@ -2,11 +2,12 @@ import { CommentThreadSkeleton } from "@web/components/cmments/comment-skeleton"
 import { GameCard } from "@web/components/home/card";
 import { SectionHeader } from "@web/components/shared/section-header";
 import { Skeleton } from "@web/components/ui/skeleton";
-import { BookOpen, TrendingUp } from "lucide-react";
+import { BookOpen, TrendingUp, Users } from "lucide-react";
 
-/** 详情页五个页签：各自内容形状不同，加载态不能再共用一个通用骨架 */
+/** 详情页六个页签：各自内容形状不同，加载态不能再共用一个通用骨架 */
 export type GameTabKey =
 	| "download"
+	| "characters"
 	| "introduction"
 	| "comment"
 	| "translate"
@@ -23,6 +24,8 @@ export type GameTabKey =
  */
 export function GameTabSkeleton({ tab = "download" }: { tab?: GameTabKey }) {
 	switch (tab) {
+		case "characters":
+			return <CharactersTabSkeleton />;
 		case "introduction":
 			return <IntroductionTabSkeleton />;
 		case "comment":
@@ -63,6 +66,24 @@ function TranslateTabSkeleton() {
 		<div aria-hidden>
 			<SectionHeader icon={TrendingUp} title="总下载量" />
 			<Skeleton className="w-full h-52 rounded-xl" />
+		</div>
+	);
+}
+
+/** 详情（角色）页签：与真实角色栅格相同断点 + 竖版卡片 + 两行姓名 */
+function CharactersTabSkeleton() {
+	return (
+		<div aria-hidden>
+			<SectionHeader icon={Users} title="主要角色" />
+			<div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+				{Array.from({ length: 6 }, (_, i) => (
+					<div key={i} className="flex flex-col gap-2">
+						<Skeleton className="w-full rounded-xl aspect-[3/4]" />
+						<Skeleton className="w-2/3 h-4" />
+						<Skeleton className="w-1/2 h-3" />
+					</div>
+				))}
+			</div>
 		</div>
 	);
 }

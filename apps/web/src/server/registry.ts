@@ -114,6 +114,8 @@ export const bffRegistry: Record<string, BffImplLike> = {
 	"game.getGameDetail": game_index.getGameDetail,
 	"game.getGameTags": game_index.getGameTags,
 	"game.getGameRelations": game_index.getGameRelations,
+	"game.getGameCharacters": game_index.getGameCharacters,
+	"game.getCharacterInfo": game_index.getCharacterInfo,
 	"game.getFileList": game_index.getFileList,
 	"game.refreshFileList": game_index.refreshFileList,
 	"game.translateData": game_index.translateData,

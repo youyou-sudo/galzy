@@ -15,7 +15,7 @@ import type { ReactNode } from "react";
  *
  * 三块共用顶栏的语言：rounded-2xl + 发丝描边（ring-border/60）+ 同一套
  * Card 内边距。内容卡不再套一层 p-1 的内嵌卡——页签切换时内容区就是页面本身，
- * 各 tab（下载/攻略/统计/系列）自己只负责区块内部的排版。
+ * 各 tab（下载/详情/攻略/讨论/统计/系列）自己只负责区块内部的排版。
  */
 export default function GameLayoutPage({
 	game,
@@ -37,6 +37,9 @@ export default function GameLayoutPage({
 		[
 			(router) => {
 				void router.prefetch({ to: "/:id", params: { id } });
+			},
+			(router) => {
+				void router.prefetch({ to: "/:id/characters", params: { id } });
 			},
 			(router) => {
 				void router.prefetch({ to: "/:id/introduction", params: { id } });

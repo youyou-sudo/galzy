@@ -25,6 +25,7 @@ describe("cdnCacheRuleFor", () => {
 		expect(cdnCacheRuleFor("/v123/introduction/42")?.sMaxAge).toBe(300);
 		expect(cdnCacheRuleFor("/v123/relations")?.sMaxAge).toBe(300);
 		expect(cdnCacheRuleFor("/v123/translate")?.sMaxAge).toBe(300);
+		expect(cdnCacheRuleFor("/v123/characters")?.sMaxAge).toBe(300);
 		expect(cdnCacheRuleFor("/tags/category/theme")?.sMaxAge).toBe(300);
 		expect(cdnCacheRuleFor("/tags/123")?.sMaxAge).toBe(300);
 		expect(cdnCacheRuleFor("/collections/12")?.sMaxAge).toBe(300);

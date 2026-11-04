@@ -4,6 +4,12 @@ import type * as impl from "./../impl/game/index";
 export const getGameDetail = bffFn<typeof impl.getGameDetail>("game.getGameDetail");
 export const getGameTags = bffFn<typeof impl.getGameTags>("game.getGameTags");
 export const getGameRelations = bffFn<typeof impl.getGameRelations>("game.getGameRelations");
+export const getGameCharacters = bffFn<typeof impl.getGameCharacters>(
+	"game.getGameCharacters",
+);
+export const getCharacterInfo = bffFn<typeof impl.getCharacterInfo>(
+	"game.getCharacterInfo",
+);
 export const getFileList = bffFn<typeof impl.getFileList>("game.getFileList");
 export const refreshFileList = bffFn<typeof impl.refreshFileList>("game.refreshFileList");
 export const translateData = bffFn<typeof impl.translateData>("game.translateData");

@@ -7,9 +7,11 @@ import {
 	MessageCircle,
 	Swords,
 	TrendingUp,
+	Users,
 } from "lucide-react";
 
 const TAB_SEGMENTS = new Set([
+	"characters",
 	"introduction",
 	"comment",
 	"translate",
@@ -67,6 +69,21 @@ export function GameTabs({ id, path }: { id: string; path?: string }) {
 				>
 					<ArrowDownToLine aria-hidden="true" />
 					下载
+				</TabsTrigger>
+				<TabsTrigger
+					value="characters"
+					nativeButton={false}
+					className={tabTriggerClass}
+					render={
+						<Link
+							to="/:id/characters"
+							params={{ id: id }}
+							resetScroll={false}
+						/>
+					}
+				>
+					<Users aria-hidden="true" />
+					详情
 				</TabsTrigger>
 				<TabsTrigger
 					value="introduction"
