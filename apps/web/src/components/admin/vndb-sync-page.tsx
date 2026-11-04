@@ -388,7 +388,7 @@ export default function RouteComponent() {
 				icon={DatabaseIcon}
 				eyebrow="系统"
 				title="VNDB 数据同步"
-				description="管理 VNDB 数据全量 / 增量同步，实时监控同步进度"
+				description="维护 VNDB 侧的 VN / 标签 / 发行版 / 开发者锚点数据；角色与攻略请到「Kungal 数据同步」"
 				actions={
 					<div className="flex flex-wrap gap-2">
 						<Button

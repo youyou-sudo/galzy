@@ -3,6 +3,7 @@ import * as admin_adverts from "@web/server/impl/admin/adverts";
 import * as admin_collections from "@web/server/impl/admin/collections";
 import * as admin_comments from "@web/server/impl/admin/comments";
 import * as admin_friend_links from "@web/server/impl/admin/friend-links";
+import * as admin_kungal_sync from "@web/server/impl/admin/kungal-sync";
 import * as admin_meilisearch from "@web/server/impl/admin/meilisearch";
 import * as admin_tasks from "@web/server/impl/admin/tasks";
 import * as admin_topics from "@web/server/impl/admin/topics";
@@ -53,6 +54,11 @@ export const bffRegistry: Record<string, BffImplLike> = {
 	"admin.friend-links.adminUpdateFriendLink": admin_friend_links.adminUpdateFriendLink,
 	"admin.friend-links.adminDeleteFriendLink": admin_friend_links.adminDeleteFriendLink,
 	"admin.friend-links.adminReorderFriendLinks": admin_friend_links.adminReorderFriendLinks,
+	"admin.kungal-sync.getKungalSyncProgress": admin_kungal_sync.getKungalSyncProgress,
+	"admin.kungal-sync.triggerKungalFullSync": admin_kungal_sync.triggerKungalFullSync,
+	"admin.kungal-sync.triggerKungalDeltaSync": admin_kungal_sync.triggerKungalDeltaSync,
+	"admin.kungal-sync.triggerKungalCharactersSync": admin_kungal_sync.triggerKungalCharactersSync,
+	"admin.kungal-sync.triggerKungalWalkthroughsSync": admin_kungal_sync.triggerKungalWalkthroughsSync,
 	"admin.meilisearch.getMeiliSearchProgress": admin_meilisearch.getMeiliSearchProgress,
 	"admin.meilisearch.getMeiliStats": admin_meilisearch.getMeiliStats,
 	"admin.meilisearch.getEmbedders": admin_meilisearch.getEmbedders,

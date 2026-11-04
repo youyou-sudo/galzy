@@ -107,11 +107,26 @@ export const adminNav: AdminNavSection[] = [
 				keywords: ["meili", "search", "索引", "sousuo"],
 			},
 			{
+				to: "/admin/kungal-sync",
+				label: "Kungal 数据同步",
+				description: "作品、角色、攻略的主数据源",
+				icon: DatabaseIcon,
+				keywords: [
+					"kungal",
+					"nextmoe",
+					"walkthrough",
+					"character",
+					"攻略",
+					"角色",
+					"tongbu",
+				],
+			},
+			{
 				to: "/admin/vndb-sync",
 				label: "VNDB 数据同步",
-				description: "全量/增量同步与监控",
+				description: "锚点数据：VN / 标签 / 发行版",
 				icon: DatabaseIcon,
-				keywords: ["vndb", "sync", "同步", "tongbu"],
+				keywords: ["vndb", "sync", "同步", "tongbu", "锚点"],
 			},
 			{
 				to: "/admin/tasks",
