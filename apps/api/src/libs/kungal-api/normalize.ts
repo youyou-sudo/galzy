@@ -1,6 +1,7 @@
 import { type SQL, sql } from 'drizzle-orm'
 import type {
   KungalCharacterItem,
+  KungalWalkthrough,
   KungalWorkCharacter,
   KungalWorkItem,
 } from './types'
@@ -480,5 +481,68 @@ export function normalizeWork(
       refs: parseRefs(item.refs),
     },
     titles,
+  }
+}
+
+/** galrc_kungal_walkthroughs 行（不含 syncedAt，由同步侧统一补时间戳）。 */
+export interface KungalWalkthroughRow {
+  id: string
+  workId: string
+  lang: string | null
+  source: string | null
+  sourceUrl: string | null
+  sourceAuthor: string | null
+  sourceUpdatedOn: string | null
+  workContentLimit: string | null
+  workRouteHints: boolean | null
+  release: unknown
+  characters: unknown
+  chart: unknown
+  endingCount: number | null
+  saveCount: number | null
+  segmentCount: number | null
+  upstreamUpdatedAt: Date | null
+}
+
+/** ISO 时间串 → Date；解不开/为空一律 null（列表行缺 updated_at 时不能当"已变更"）。 */
+function timestampOrNull(value: unknown): Date | null {
+  if (typeof value !== 'string' || value.trim().length === 0) return null
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+/**
+ * Walkthrough 行（列表行或详情行）→ galrc_kungal_walkthroughs 行。
+ *
+ * 只把**最外层标量**映射成 camelCase；release / characters / chart 三块原样
+ * 保留（理由见 schema 注释：整块透传，上游加字段不丢、不用迁移）。chart 在
+ * 列表行里本来就没有，这里保持 null，同步侧据此知道"这行没有详情"。
+ *
+ * 计数容错：上游的 *_count 是 int64，但驱动在个别场景会给字符串，统一走
+ * intOrNull 归一，避免把 null 写成 NaN。
+ */
+export function normalizeWalkthrough(
+  item: KungalWalkthrough,
+): KungalWalkthroughRow {
+  return {
+    id: String(item.id),
+    workId: String(item.work_id),
+    lang: textOrNull(item.lang),
+    source: textOrNull(item.source),
+    sourceUrl: textOrNull(item.source_url),
+    sourceAuthor: textOrNull(item.source_author),
+    sourceUpdatedOn: textOrNull(item.source_updated_on),
+    workContentLimit: textOrNull(item.work_content_limit),
+    workRouteHints:
+      typeof item.work_route_hints === 'boolean' ? item.work_route_hints : null,
+    release: item.release ?? null,
+    // 上游承诺 characters 恒为数组（绝非 null）；异常时落空数组而不是 null，
+    // 让读侧可以无条件 .map。
+    characters: Array.isArray(item.characters) ? item.characters : [],
+    chart: item.chart ?? null,
+    endingCount: intOrNull(item.ending_count),
+    saveCount: intOrNull(item.save_count),
+    segmentCount: intOrNull(item.segment_count),
+    upstreamUpdatedAt: timestampOrNull(item.updated_at),
   }
 }

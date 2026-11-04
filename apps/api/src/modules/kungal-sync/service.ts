@@ -3,6 +3,7 @@ import {
   db,
   kungalCharacterAppearances,
   kungalCharacters,
+  kungalWalkthroughs,
   kungalWorks,
   kungalWorkTitles,
   siteConfig,
@@ -17,11 +18,15 @@ import {
   type KungalCharacterItem,
   type KungalCharacterRow,
   KungalClient,
+  type KungalWalkthrough,
+  type KungalWalkthroughChart,
+  type KungalWalkthroughRow,
   type KungalWorkCharacter,
   type KungalWorkItem,
   normalizeAppearance,
   normalizeCharacter,
   normalizeCharacterFromRoster,
+  normalizeWalkthrough,
   normalizeWork,
   parseRefs,
   refsToAliasPairs,
@@ -35,6 +40,10 @@ const RESOLVE_BATCH = 100
 const CHARACTER_WORK_BATCH = 10
 /** delta 每次最多补多少个「还没有名册行」的存量作品（避免每轮都扫全表）。 */
 const DELTA_CHARACTER_BACKFILL = 200
+/** 攻略阶段每个事务处理的作品数（每作品 1 次列表请求 + 每变更行 1 次详情请求）。 */
+const WALKTHROUGH_WORK_BATCH = 10
+/** delta 每次最多补多少个「完全没有任何攻略行」的存量作品（同角色的口径）。 */
+const DELTA_WALKTHROUGH_BACKFILL = 200
 
 /**
  * jsonb 列写入表达式（null 透传）。
@@ -55,11 +64,14 @@ let _progressCache: KungalSyncProgress | null = null
 
 export interface KungalSyncProgress {
   status: 'idle' | 'running' | 'completed' | 'failed'
-  /** 'characters' = 只跑角色阶段（POST /kungal-sync/characters）。 */
-  type: 'full' | 'delta' | 'characters' | null
+  /**
+   * 'characters' = 只跑角色阶段（POST /kungal-sync/characters）；
+   * 'walkthroughs' = 只跑攻略阶段（POST /kungal-sync/walkthroughs）。
+   */
+  type: 'full' | 'delta' | 'characters' | 'walkthroughs' | null
   startedAt: string | null
   completedAt: string | null
-  stage: 'resolve' | 'works' | 'characters' | 'cache' | null
+  stage: 'resolve' | 'works' | 'characters' | 'walkthroughs' | 'cache' | null
   totalItems: number
   processedItems: number
   errors: number
@@ -70,6 +82,14 @@ export interface KungalSyncProgress {
   charactersUpserted: number
   /** 角色阶段：已 upsert 的名册（出场）行数。 */
   appearancesUpserted: number
+  /** 攻略阶段：本次要处理的作品数。 */
+  walkthroughTotal: number
+  /** 攻略阶段：已 upsert 的攻略行数。 */
+  walkthroughsUpserted: number
+  /** 攻略阶段：实际拉过的详情请求数（= 新出现或 updated_at 变了的攻略数）。 */
+  walkthroughDetails: number
+  /** 攻略阶段：因上游已下线而删掉的本地行数。 */
+  walkthroughsRemoved: number
   logs: Array<{
     time: string
     level: 'info' | 'error' | 'success'
@@ -91,6 +111,10 @@ const IDLE_PROGRESS: KungalSyncProgress = {
   characterTotal: 0,
   charactersUpserted: 0,
   appearancesUpserted: 0,
+  walkthroughTotal: 0,
+  walkthroughsUpserted: 0,
+  walkthroughDetails: 0,
+  walkthroughsRemoved: 0,
   logs: [],
   lastUpdated: new Date().toISOString(),
 }
@@ -175,6 +199,39 @@ export const KungalSync = {
       await this.addLog(
         'error',
         `角色同步失败: ${err instanceof Error ? err.message : String(err)}`,
+      )
+      throw err
+    } finally {
+      await releaseLockKv(lockKey, lockVal)
+    }
+  },
+
+  /**
+   * 只同步攻略（管理端手动触发 / 队列 type='kungal-walkthroughs'）。
+   *
+   * 锁独立于作品/角色同步：攻略阶段与作品同步可以并行（两者都只写自己的表），
+   * 但两次攻略同步不会重叠 —— 否则同一 work 的「拉列表 → 删本地多余行」
+   * 会互相踩，把对方刚写进来的行删掉。
+   */
+  async syncWalkthroughs(
+    onProgress?: (processed: number, total: number) => void,
+  ) {
+    const lockKey = 'kungal-sync-walkthroughs'
+    const lockVal = crypto.randomUUID()
+    if (!(await acquireLockKv(lockKey, lockVal, 3600_000))) return
+    try {
+      await this.runWalkthroughStage({ standalone: true }, onProgress)
+    } catch (err) {
+      // 整体失败（kungal 不可达 / DB 连不上）：收尾成 failed，
+      // 否则管理页会一直停在「运行中」。
+      await this.updateProgress({
+        status: 'failed',
+        stage: null,
+        completedAt: new Date().toISOString(),
+      })
+      await this.addLog(
+        'error',
+        `攻略同步失败: ${err instanceof Error ? err.message : String(err)}`,
       )
       throw err
     } finally {
@@ -450,11 +507,14 @@ export const KungalSync = {
   },
 
   /**
-   * 角色阶段的作品集合。
-   * - 指定 workIds：只同步这些作品（增量补角色 / 手动补）
+   * 按阶段遍历的作品集合（角色 / 攻略阶段共用）。
+   * - 指定 workIds：只同步这些作品（增量补 / 手动补）
    * - 未指定：galrc_kungal_works 全表，先有 vndb 锚点的、再 kungal-only 的
+   *
+   * 顺序有意义：vndb 锚点作品是用户在站内能点到的条目，kungal-only 作品只在
+   * 网盘目录里出现，排后面可以保证可访问条目的附加数据先齐。
    */
-  async getCharacterTargets(
+  async getSyncTargets(
     workIds?: string[],
   ): Promise<Array<{ id: string; vndbId: string | null }>> {
     const columns = { id: kungalWorks.id, vndbId: kungalWorks.vndbId }
@@ -471,6 +531,13 @@ export const KungalSync = {
       .select(columns)
       .from(kungalWorks)
       .orderBy(sql`${kungalWorks.vndbId} IS NULL`, kungalWorks.id)
+  },
+
+  /** 角色阶段的作品集合（语义等同 getSyncTargets，保留命名便于调用处读起来清楚）。 */
+  async getCharacterTargets(
+    workIds?: string[],
+  ): Promise<Array<{ id: string; vndbId: string | null }>> {
+    return await this.getSyncTargets(workIds)
   },
 
   /**
@@ -490,6 +557,323 @@ export const KungalSync = {
     return [...new Set([...syncedWorkIds, ...missing.map((r) => r.id)])]
   },
 
+  /**
+   * 攻略阶段：works/{id}/walkthroughs 列表 → 只为新出现/变更的行拉详情 → upsert。
+   *
+   * 为什么先列表后详情：列表行已经带 updated_at 和三个计数，唯独不带 chart
+   * （chart 是一整棵选择图，单行可达几十 KB）。每次全量重拉 chart 会把一个
+   * 几百作品的目录变成几千次大响应；按 updated_at 比一遍，存量库每轮基本
+   * 只发列表请求。本地 chart 为空的行（上一次详情请求失败留下的半截行）也算
+   * 「需要详情」，让失败可以自愈。
+   *
+   * 失败口径与角色阶段一致：单批（WALKTHROUGH_WORK_BATCH 个作品）失败只计数
+   * 不抛出；攻略是附加数据，不该让整轮作品同步失败。
+   */
+  async runWalkthroughStage(
+    options?: { workIds?: string[]; standalone?: boolean },
+    onProgress?: (processed: number, total: number) => void,
+  ) {
+    const targets = await this.getSyncTargets(options?.workIds)
+    if (targets.length === 0) {
+      if (options?.standalone) {
+        await this.updateProgress({
+          status: 'completed',
+          type: 'walkthroughs',
+          startedAt: new Date().toISOString(),
+          completedAt: new Date().toISOString(),
+          stage: null,
+        })
+      }
+      await this.addLog('info', '攻略同步: 没有待同步的作品')
+      return
+    }
+
+    await this.updateProgress({
+      ...(options?.standalone
+        ? {
+            status: 'running' as const,
+            type: 'walkthroughs' as const,
+            startedAt: new Date().toISOString(),
+            completedAt: null,
+            errors: 0,
+          }
+        : {}),
+      stage: 'walkthroughs',
+      walkthroughTotal: targets.length,
+      walkthroughsUpserted: 0,
+      walkthroughDetails: 0,
+      walkthroughsRemoved: 0,
+    })
+    await this.addLog('info', `攻略阶段开始: ${targets.length} 个作品`)
+
+    let upserted = 0
+    let details = 0
+    let removed = 0
+    let walkthroughErrors = 0
+    let processed = 0
+
+    for (let i = 0; i < targets.length; i += WALKTHROUGH_WORK_BATCH) {
+      const batch = targets.slice(i, i + WALKTHROUGH_WORK_BATCH)
+      try {
+        // 1) 每作品拉列表。用 allSettled 而不是 all —— 一个作品 404/超时不该
+        //    把同批另外 9 个作品一起丢掉。
+        const settled = await Promise.allSettled(
+          batch.map(async (work) => ({
+            workId: work.id,
+            rows: await KungalClient.fetchWorkWalkthroughs(work.id),
+          })),
+        )
+        const listings: Array<{
+          workId: string
+          rows: KungalWalkthrough[]
+        }> = []
+        for (const item of settled) {
+          if (item.status === 'fulfilled') listings.push(item.value)
+          else {
+            walkthroughErrors++
+            console.error('❌ Kungal 攻略列表拉取失败:', item.reason)
+          }
+        }
+        if (listings.length === 0) continue
+
+        // 2) 与本地比对，算出本批真正需要拉详情的 id：
+        //    ① 本地没有的行（新攻略）；② updated_at 变了的行（上游改过）；
+        //    ③ 本地 chart 为 NULL 的行（上次详情请求失败/历史上只写了列表行）。
+        //    updated_at 解不出时间（上游异常）时按「变了」处理，宁可多拉一次。
+        const localRows = await db
+          .select({
+            id: kungalWalkthroughs.id,
+            upstreamUpdatedAt: kungalWalkthroughs.upstreamUpdatedAt,
+            hasChart: sql<boolean>`${kungalWalkthroughs.chart} IS NOT NULL`.as(
+              'has_chart',
+            ),
+          })
+          .from(kungalWalkthroughs)
+          .where(
+            inArray(
+              kungalWalkthroughs.workId,
+              listings.map((l) => l.workId),
+            ),
+          )
+        const local = new Map<
+          string,
+          { updatedAt: number | null; hasChart: boolean }
+        >()
+        for (const row of localRows) {
+          local.set(row.id, {
+            updatedAt: row.upstreamUpdatedAt?.getTime() ?? null,
+            hasChart: row.hasChart === true,
+          })
+        }
+        const needDetail = new Set<string>()
+        for (const { rows } of listings) {
+          for (const item of rows) {
+            const id = String(item.id)
+            if (needDetail.has(id)) continue
+            const prev = local.get(id)
+            const nextTs = item.updated_at
+              ? new Date(item.updated_at).getTime()
+              : Number.NaN
+            if (!prev || prev.updatedAt !== nextTs || !prev.hasChart) {
+              needDetail.add(id)
+            }
+          }
+        }
+
+        // 3) 详情（含 chart）。单个失败只丢 chart，列表字段照常落库；
+        //    404 说明这条在列表与详情之间下线了，留着旧 chart 等下一轮列表刷新。
+        const charts = new Map<string, KungalWalkthroughChart>()
+        const detailSettled = await Promise.allSettled(
+          [...needDetail].map(async (id) => ({
+            id,
+            row: await KungalClient.fetchWalkthrough(id),
+          })),
+        )
+        for (const item of detailSettled) {
+          if (item.status === 'rejected') {
+            walkthroughErrors++
+            console.error('❌ Kungal 攻略详情拉取失败:', item.reason)
+            continue
+          }
+          const { id, row } = item.value
+          if (!row?.chart) {
+            console.warn(`⚠️ Kungal 攻略 ${id} 详情无 chart（可能刚下线）`)
+            continue
+          }
+          charts.set(id, row.chart)
+          details++
+        }
+
+        // 4) 组装行：批内按 id 去重 —— 同一行在 ON CONFLICT 里二次命中会让
+        //    Postgres 报 21000 并整批失败（与 works/characters 同因）。
+        const seen = new Set<string>()
+        const withChart: KungalWalkthroughRow[] = []
+        const keepChart: KungalWalkthroughRow[] = []
+        for (const { rows } of listings) {
+          for (const item of rows) {
+            const id = String(item.id)
+            if (seen.has(id)) continue
+            seen.add(id)
+            const row = normalizeWalkthrough(item)
+            const chart = charts.get(id)
+            if (chart) withChart.push({ ...row, chart })
+            else keepChart.push(row)
+          }
+        }
+
+        const syncedAt = new Date()
+        // 三块 jsonb 统一走 ::text::jsonb，绕开驱动二次编码（与 works 同因）；
+        // characters 恒为数组（上游承诺非 null），空数组也要落成真 jsonb '[]'。
+        const toValues = (row: KungalWalkthroughRow) => ({
+          ...row,
+          release: jsonbTextOrNull(row.release),
+          characters: jsonbTextOrNull(row.characters),
+          chart: jsonbTextOrNull(row.chart),
+          syncedAt,
+        })
+        const chartValues = withChart.map(toValues)
+        const plainValues = keepChart.map(toValues)
+
+        await db.transaction(async (tx) => {
+          if (chartValues.length > 0) {
+            await tx
+              .insert(kungalWalkthroughs)
+              .values(chartValues)
+              .onConflictDoUpdate({
+                target: kungalWalkthroughs.id,
+                set: {
+                  workId: sql`excluded.work_id`,
+                  lang: sql`excluded.lang`,
+                  source: sql`excluded.source`,
+                  sourceUrl: sql`excluded.source_url`,
+                  sourceAuthor: sql`excluded.source_author`,
+                  sourceUpdatedOn: sql`excluded.source_updated_on`,
+                  workContentLimit: sql`excluded.work_content_limit`,
+                  workRouteHints: sql`excluded.work_route_hints`,
+                  release: sql`excluded.release`,
+                  characters: sql`excluded.characters`,
+                  chart: sql`excluded.chart`,
+                  endingCount: sql`excluded.ending_count`,
+                  saveCount: sql`excluded.save_count`,
+                  segmentCount: sql`excluded.segment_count`,
+                  upstreamUpdatedAt: sql`excluded.upstream_updated_at`,
+                  syncedAt: sql`excluded.synced_at`,
+                },
+              })
+          }
+          if (plainValues.length > 0) {
+            // 这批只有列表行，没有 chart：**不要把 chart 写进 set**，
+            // 否则会把库里已有的整棵选择图覆盖成 NULL（详情请求失败的代价）。
+            await tx
+              .insert(kungalWalkthroughs)
+              .values(plainValues)
+              .onConflictDoUpdate({
+                target: kungalWalkthroughs.id,
+                set: {
+                  workId: sql`excluded.work_id`,
+                  lang: sql`excluded.lang`,
+                  source: sql`excluded.source`,
+                  sourceUrl: sql`excluded.source_url`,
+                  sourceAuthor: sql`excluded.source_author`,
+                  sourceUpdatedOn: sql`excluded.source_updated_on`,
+                  workContentLimit: sql`excluded.work_content_limit`,
+                  workRouteHints: sql`excluded.work_route_hints`,
+                  release: sql`excluded.release`,
+                  characters: sql`excluded.characters`,
+                  endingCount: sql`excluded.ending_count`,
+                  saveCount: sql`excluded.save_count`,
+                  segmentCount: sql`excluded.segment_count`,
+                  upstreamUpdatedAt: sql`excluded.upstream_updated_at`,
+                  syncedAt: sql`excluded.synced_at`,
+                },
+              })
+          }
+          // 攻略以本次上游列表为准：清掉本作品已不在列表里的行（上游下线/合并），
+          // 否则作品页会一直显示点不开的幽灵攻略。列表为空 = 上游确实没有了。
+          for (const { workId, rows } of listings) {
+            const keep = [...new Set(rows.map((row) => String(row.id)))]
+            const deleted = await tx
+              .delete(kungalWalkthroughs)
+              .where(
+                keep.length > 0
+                  ? and(
+                      eq(kungalWalkthroughs.workId, workId),
+                      notInArray(kungalWalkthroughs.id, keep),
+                    )
+                  : eq(kungalWalkthroughs.workId, workId),
+              )
+              .returning({ id: kungalWalkthroughs.id })
+            removed += deleted.length
+          }
+        })
+
+        upserted += chartValues.length + plainValues.length
+      } catch (err) {
+        // 单批失败（DB 抖动 / 上游形状异常）吞掉并计数，继续下一批
+        walkthroughErrors += batch.length
+        console.error(
+          `❌ Kungal 攻略批 ${i / WALKTHROUGH_WORK_BATCH + 1} 失败:`,
+          err,
+        )
+      }
+
+      processed += batch.length
+      await this.updateProgress({
+        stage: 'walkthroughs',
+        walkthroughTotal: targets.length,
+        walkthroughsUpserted: upserted,
+        walkthroughDetails: details,
+        walkthroughsRemoved: removed,
+      })
+      onProgress?.(processed, targets.length)
+      await this.addLog(
+        'info',
+        `walkthroughs batch ${Math.min(i + WALKTHROUGH_WORK_BATCH, targets.length)}/${targets.length} done`,
+      )
+    }
+
+    // 失败数并入整轮 errors（standalone 时开头已重置为 0）
+    const current = await this.getProgress()
+    await this.updateProgress({
+      errors: (current.errors ?? 0) + walkthroughErrors,
+      walkthroughsUpserted: upserted,
+      walkthroughDetails: details,
+      walkthroughsRemoved: removed,
+      ...(options?.standalone
+        ? {
+            status: 'completed' as const,
+            completedAt: new Date().toISOString(),
+            stage: null,
+          }
+        : {}),
+    })
+    await this.addLog(
+      walkthroughErrors > 0 ? 'error' : 'success',
+      `攻略阶段完成: 作品 ${targets.length}, 攻略 ${upserted}, 详情 ${details}, 下线 ${removed}, 失败 ${walkthroughErrors}`,
+    )
+    console.log(
+      `✅ Kungal 攻略阶段完成: 作品 ${targets.length}, 攻略 ${upserted}, 详情 ${details}, 下线 ${removed}, 失败 ${walkthroughErrors}`,
+    )
+  },
+
+  /**
+   * 增量同步的攻略目标：本次同步到的作品 + 还没有任何攻略行的存量作品。
+   *
+   * 后者是攻略功能上线前的历史缺口。每轮最多补 DELTA_WALKTHROUGH_BACKFILL 个：
+   * 「没有攻略」的作品本来就永远补不齐（多数作品真的没有攻略），用上限把每轮
+   * 的额外请求量钉死，避免 delta 变成隐形全量。
+   */
+  async getDeltaWalkthroughWorkIds(syncedWorkIds: string[]): Promise<string[]> {
+    const missing = await db
+      .select({ id: kungalWorks.id })
+      .from(kungalWorks)
+      .where(
+        sql`NOT EXISTS (SELECT 1 FROM ${kungalWalkthroughs} wt WHERE wt.work_id = ${kungalWorks.id})`,
+      )
+      .limit(DELTA_WALKTHROUGH_BACKFILL)
+    return [...new Set([...syncedWorkIds, ...missing.map((r) => r.id)])]
+  },
+
   /** full = 全部 alistb 锚点；delta = 新作品及缺少封面尺寸的旧记录。 */
   async runSync(
     type: 'full' | 'delta',
@@ -503,11 +887,16 @@ export const KungalSync = {
     const kungalOnlyIds = await this.getKungalOnlyWorkIds()
     if (vids.length === 0 && kungalOnlyIds.length === 0) {
       // delta 即使没有需要同步的条目，也要消费 redirects（合并事件与条目无关），
-      // 并补一轮「还没有名册行」的存量作品角色（角色功能上线前的历史缺口）。
+      // 并补一轮「还没有名册行 / 攻略行」的存量作品（角色与攻略功能上线前的缺口）。
       if (type === 'delta') {
         await this.consumeRedirects()
         await this.runCharacterStage({
           workIds: await this.getDeltaCharacterWorkIds([]),
+        })
+        // 攻略与角色同一口径：即使本轮没有作品要同步，也要补一轮存量缺口，
+        // 否则攻略功能上线后的第一次 delta 什么都不会做。
+        await this.runWalkthroughStage({
+          workIds: await this.getDeltaWalkthroughWorkIds([]),
         })
       }
       return
@@ -588,6 +977,11 @@ export const KungalSync = {
         await this.consumeRedirects()
         await this.runCharacterStage({
           workIds: await this.getDeltaCharacterWorkIds([]),
+        })
+        // 攻略与角色同一口径：即使本轮没有作品要同步，也要补一轮存量缺口，
+        // 否则攻略功能上线后的第一次 delta 什么都不会做。
+        await this.runWalkthroughStage({
+          workIds: await this.getDeltaWalkthroughWorkIds([]),
         })
       }
       return
@@ -819,6 +1213,17 @@ export const KungalSync = {
       workIds:
         type === 'delta'
           ? await this.getDeltaCharacterWorkIds(syncedWorkIds)
+          : undefined,
+    })
+
+    // 阶段 2.7：攻略。同样必须排在作品落库之后（walkthroughs.work_id 外键指向
+    // galrc_kungal_works）；全量跑全表，增量只跑本次作品 + 尚无攻略行的存量。
+    // 攻略阶段自己会按 updated_at 决定要不要拉详情，所以这里的"全表"并不等于
+    // 全量重拉 chart。
+    await this.runWalkthroughStage({
+      workIds:
+        type === 'delta'
+          ? await this.getDeltaWalkthroughWorkIds(syncedWorkIds)
           : undefined,
     })
 

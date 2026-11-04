@@ -20,12 +20,12 @@ import {
   producer,
   search,
   status,
-  strategy,
   tags,
   tasks,
   topics,
   views,
   vndbSync,
+  walkthroughs,
 } from '@api/modules'
 import { OpenAPI } from '@api/modules/auth/service'
 import { setDeployStatus } from '@api/modules/status/service'
@@ -94,7 +94,6 @@ async function buildApp() {
       .use(download)
       .use(friendLinks)
       .use(search)
-      .use(strategy)
       .use(media)
       .use(producer)
       .use(status)
@@ -102,6 +101,7 @@ async function buildApp() {
       .use(tasks)
       .use(vndbSync)
       .use(kungalSync)
+      .use(walkthroughs)
   )
 }
 

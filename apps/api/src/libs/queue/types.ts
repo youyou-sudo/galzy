@@ -28,7 +28,12 @@ export type QueueName = (typeof QUEUE)[keyof typeof QUEUE]
  */
 export const QUEUE_TASKS = {
   [QUEUE.vndbSync]: ['vndb-full', 'vndb-delta', 'vndb-producers'],
-  [QUEUE.kungalSync]: ['kungal-full', 'kungal-delta', 'kungal-characters'],
+  [QUEUE.kungalSync]: [
+    'kungal-full',
+    'kungal-delta',
+    'kungal-characters',
+    'kungal-walkthroughs',
+  ],
   [QUEUE.meiliIndex]: ['meili-game', 'meili-tag', 'meili-producer'],
   [QUEUE.cloudreveSync]: ['cloudreve-sync'],
   [QUEUE.metrics]: ['queue-log-prune'],

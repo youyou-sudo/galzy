@@ -41,3 +41,15 @@ export const kungalSync = new Elysia({ prefix: '/kungal-sync' })
     },
     { isAdmin: true },
   )
+  // 攻略入库单独入口：同作品/角色一样是「附加数据」，重刷攻略不该连带重刷作品。
+  // 攻略阶段会自己按 upstream_updated_at 跳过没变的行，所以重复触发很便宜。
+  .post(
+    '/walkthroughs',
+    async () => {
+      const jobId = await enqueue(QUEUE.kungalSync, {
+        type: 'kungal-walkthroughs',
+      })
+      return { ok: true, message: 'Kungal 攻略同步已入队', jobId }
+    },
+    { isAdmin: true },
+  )

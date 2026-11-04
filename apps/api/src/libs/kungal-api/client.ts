@@ -7,6 +7,8 @@ import type {
   KungalProblem,
   KungalRedirect,
   KungalRedirectListData,
+  KungalWalkthrough,
+  KungalWalkthroughListData,
   KungalWorkCharacter,
   KungalWorkItem,
   KungalWorksListData,
@@ -366,6 +368,55 @@ export async function lookupWork(
   return items[0] ?? null
 }
 
+/**
+ * 一个作品的攻略列表：GET /catalog/walkthroughs?work_id=…&nsfw=true，游标翻页取全。
+ *
+ * 列表行**不含 chart**（整棵选择图只在详情接口下发），但带 updated_at 与
+ * 三个计数，所以同步侧可以先只拉列表：updated_at 没变的行不必再拉详情。
+ * 同一作品可能有多条（日文原版 / 汉化 / 不同作者），id 全局唯一。
+ */
+export async function fetchWorkWalkthroughs(
+  workId: string,
+): Promise<KungalWalkthrough[]> {
+  const out: KungalWalkthrough[] = []
+  let cursor: string | undefined
+  // 页数上限防止上游游标坏掉时空转（与名册/出场列表同一个防御口径）
+  for (let page = 0; page < 20; page++) {
+    const params = new URLSearchParams({
+      work_id: workId,
+      nsfw: 'true',
+      limit: String(REFS_BATCH),
+    })
+    if (cursor) params.set('cursor', cursor)
+    const data = await request<KungalWalkthroughListData>(
+      `/catalog/walkthroughs?${params.toString()}`,
+    )
+    out.push(...(data.items ?? []))
+    cursor = data.next_cursor ?? undefined
+    if (!cursor) break
+  }
+  return out
+}
+
+/**
+ * 单条攻略详情（含 chart）；404（作品不可见 / 攻略已下线）返回 null。
+ *
+ * 用 nsfw=true：本地库不做成人向过滤（前端按作品分级自己决定是否展示），
+ * 同步侧必须拿到全量数据，否则 r18 作品的攻略会整批缺行。
+ */
+export async function fetchWalkthrough(
+  id: string,
+): Promise<KungalWalkthrough | null> {
+  try {
+    return await request<KungalWalkthrough>(
+      `/catalog/walkthroughs/${encodeURIComponent(id)}?nsfw=true`,
+    )
+  } catch (err) {
+    if (err instanceof KungalApiError && err.status === 404) return null
+    throw err
+  }
+}
+
 export const KungalClient = {
   resolveWorkByVndbId,
   resolveWorksByVndbIds,
@@ -376,5 +427,7 @@ export const KungalClient = {
   fetchCharacter,
   fetchCharacterAppearances,
   fetchWorkRedirects,
+  fetchWorkWalkthroughs,
+  fetchWalkthrough,
   lookupWork,
 }

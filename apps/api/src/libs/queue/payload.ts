@@ -12,6 +12,7 @@ export type TaskPayload =
   | { type: 'kungal-full' }
   | { type: 'kungal-delta' }
   | { type: 'kungal-characters' }
+  | { type: 'kungal-walkthroughs' }
   | { type: 'meili-game' }
   | { type: 'meili-tag' }
   | { type: 'meili-producer' }

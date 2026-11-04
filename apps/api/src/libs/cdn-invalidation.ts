@@ -54,12 +54,6 @@ export async function invalidateAfterMutation(path: string): Promise<void> {
       return
     }
 
-    if (path === '/strategy' || path.startsWith('/strategy/')) {
-      // 攻略文章挂在游戏详情页签下：失效游戏列表与首页
-      await purgeByTags(['page-games', 'page-home'])
-      return
-    }
-
     if (path === '/adverts' || path.startsWith('/adverts/')) {
       // 广告位/素材影响所有公共页面的顶部广告：首页立即失效，
       // 其他页面靠较短的 s-maxage 窗口自愈
