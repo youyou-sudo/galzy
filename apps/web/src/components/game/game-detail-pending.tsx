@@ -1,8 +1,7 @@
-import { Link, usePathname } from "@web/lib/nav";
 import { useSelector } from "@tanstack/react-store";
 import {
-	GameTabSkeleton,
 	type GameTabKey,
+	GameTabSkeleton,
 } from "@web/components/game/game-tab-skeleton";
 import { GameCard } from "@web/components/home/card";
 import { GameTabs, gameTabOf } from "@web/components/home/game/GameTabs";
@@ -17,6 +16,7 @@ import {
 import { AspectRatio } from "@web/components/ui/aspect-ratio";
 import { Card, CardContent } from "@web/components/ui/card";
 import { Skeleton } from "@web/components/ui/skeleton";
+import { Link, usePathname } from "@web/lib/nav";
 import { type GameHeroData, gameHeroStore } from "@web/stores/gameHeroStore";
 
 // 详情页封面默认比例，对齐 GameCard.Image（SensitiveImage）的 DETAIL_IMAGE_RATIO

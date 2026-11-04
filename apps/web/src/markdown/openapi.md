@@ -1,6 +1,6 @@
 # 游戏条目 API
 
-获取指定游戏的游戏信息、文件列表、攻略文章
+获取指定游戏的游戏信息与文件列表
 ---
 
 ## 基本信息
@@ -82,40 +82,6 @@
           }
         ]
       }
-    ],
-    "strategy": [
-      {
-        "id": 44,
-        "vid": "v4",
-        "otherid": null,
-        "title": "智代篇",
-        "content":"此处为 HTML OR Markdown OR HTML & Mrkdown",
-        "copyright": "",
-        "type": "strategy",
-        "createdAt": "2025-09-27T09:08:26.625Z",
-        "updatedAt": "2025-09-27T09:08:26.625Z",
-        "user": {
-          "id": "pThdiZDRRaaLsjNKIEAtpBGQeaeGs17I",
-          "name": "admin@admin.com",
-          "image": null
-        }
-      },
-      {
-        "id": 45,
-        "vid": "v4",
-        "otherid": null,
-        "title": "clannad攻略",
-        "content":"此处为 HTML OR Markdown OR HTML & Mrkdown",
-        "copyright": "",
-        "type": "strategy",
-        "createdAt": "2025-09-27T09:09:27.376Z",
-        "updatedAt": "2025-09-27T09:09:27.376Z",
-        "user": {
-          "id": "pThdiZDRRaaLsjNKIEAtpBGQeaeGs17I",
-          "name": "admin@admin.com",
-          "image": null
-        }
-      }
     ]
   }
 }
@@ -136,7 +102,6 @@ export interface GameData {
   alias: string | null
   description?: string | null
   filelist: FileItem[]
-  strategy: Strategy[]
 }
 
 export interface FileItem {
@@ -151,26 +116,6 @@ export interface FileItem {
   // 同名 readme 的 md 文件 id
   redame?: string
   children?: FileItem[]
-}
-
-export interface Strategy {
-  id: number
-  vid: string
-  otherid: number | null
-  title: string
-  content: string
-  copyright: string
-  type: "strategy"
-  createdAt: string
-  updatedAt: string
-  user:User
-}
-
-
-export interface User {
-  id: string
-  name: string
-  image: string | null
 }
 
 ```

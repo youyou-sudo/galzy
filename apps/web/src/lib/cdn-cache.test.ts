@@ -21,8 +21,8 @@ describe("cdnCacheRuleFor", () => {
 		expect(cdnCacheRuleFor("/")?.sMaxAge).toBe(60);
 		expect(cdnCacheRuleFor("/games")?.sMaxAge).toBe(60);
 		expect(cdnCacheRuleFor("/v123")?.sMaxAge).toBe(300);
-		expect(cdnCacheRuleFor("/v123/introduction")?.sMaxAge).toBe(300);
-		expect(cdnCacheRuleFor("/v123/introduction/42")?.sMaxAge).toBe(300);
+		expect(cdnCacheRuleFor("/v123/walkthrough")?.sMaxAge).toBe(300);
+		expect(cdnCacheRuleFor("/v123/walkthrough/42")?.sMaxAge).toBe(300);
 		expect(cdnCacheRuleFor("/v123/relations")?.sMaxAge).toBe(300);
 		expect(cdnCacheRuleFor("/v123/translate")?.sMaxAge).toBe(300);
 		expect(cdnCacheRuleFor("/v123/characters")?.sMaxAge).toBe(300);
@@ -42,7 +42,6 @@ describe("cdnCacheRuleFor", () => {
 		expect(cdnCacheRuleFor("/auth/login")).toBeNull();
 		expect(cdnCacheRuleFor("/topics/create")).toBeNull();
 		expect(cdnCacheRuleFor("/topics/42/edit")).toBeNull();
-		expect(cdnCacheRuleFor("/introduction/create")).toBeNull();
 		expect(cdnCacheRuleFor("/api/search")).toBeNull();
 		expect(cdnCacheRuleFor("/_furin/sync")).toBeNull();
 		expect(cdnCacheRuleFor("/error")).toBeNull();

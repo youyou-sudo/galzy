@@ -1,6 +1,5 @@
 import "@teyik0/furin/server-only";
 import * as admin_adverts from "@web/server/impl/admin/adverts";
-import * as admin_articles from "@web/server/impl/admin/articles";
 import * as admin_collections from "@web/server/impl/admin/collections";
 import * as admin_comments from "@web/server/impl/admin/comments";
 import * as admin_friend_links from "@web/server/impl/admin/friend-links";
@@ -14,7 +13,6 @@ import * as collections from "@web/server/impl/collections";
 import * as comments_index from "@web/server/impl/comments/index";
 import * as friend_links_index from "@web/server/impl/friend-links/index";
 import * as game_index from "@web/server/impl/game/index";
-import * as introduction_index from "@web/server/impl/introduction/index";
 import * as producer_index from "@web/server/impl/producer/index";
 import * as search_index from "@web/server/impl/search/index";
 import * as tags_index from "@web/server/impl/tags/index";
@@ -37,10 +35,6 @@ export const bffRegistry: Record<string, BffImplLike> = {
 	"admin.adverts.adminUpdateAdvert": admin_adverts.adminUpdateAdvert,
 	"admin.adverts.adminDeleteAdvert": admin_adverts.adminDeleteAdvert,
 	"admin.adverts.adminReorderAdverts": admin_adverts.adminReorderAdverts,
-	"admin.articles.adminGetAllArticles": admin_articles.adminGetAllArticles,
-	"admin.articles.adminUpdateArticle": admin_articles.adminUpdateArticle,
-	"admin.articles.adminDeleteArticle": admin_articles.adminDeleteArticle,
-	"admin.articles.adminChangeArticleStatus": admin_articles.adminChangeArticleStatus,
 	"admin.collections.adminGetCollections": admin_collections.adminGetCollections,
 	"admin.collections.adminCreateCollection": admin_collections.adminCreateCollection,
 	"admin.collections.adminUpdateCollection": admin_collections.adminUpdateCollection,
@@ -116,6 +110,8 @@ export const bffRegistry: Record<string, BffImplLike> = {
 	"game.getGameRelations": game_index.getGameRelations,
 	"game.getGameCharacters": game_index.getGameCharacters,
 	"game.getCharacterInfo": game_index.getCharacterInfo,
+	"game.getGameWalkthroughs": game_index.getGameWalkthroughs,
+	"game.getWalkthroughInfo": game_index.getWalkthroughInfo,
 	"game.getFileList": game_index.getFileList,
 	"game.refreshFileList": game_index.refreshFileList,
 	"game.translateData": game_index.translateData,
@@ -123,11 +119,6 @@ export const bffRegistry: Record<string, BffImplLike> = {
 	"game.getGameList": game_index.getGameList,
 	"game.getTotalCount": game_index.getTotalCount,
 	"game.getCritical": game_index.getCritical,
-	"introduction.getIntroductionArticle": introduction_index.getIntroductionArticle,
-	"introduction.getintroductionList": introduction_index.getintroductionList,
-	"introduction.createIntroduction": introduction_index.createIntroduction,
-	"introduction.updateIntroduction": introduction_index.updateIntroduction,
-	"introduction.deleteIntroduction": introduction_index.deleteIntroduction,
 	"producer.producerInfo": producer_index.producerInfo,
 	"producer.producerGameList": producer_index.producerGameList,
 	"producer.getSearchProducers": producer_index.getSearchProducers,

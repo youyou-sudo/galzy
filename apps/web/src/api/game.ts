@@ -22,13 +22,14 @@ function jsonResponse(data: unknown, status = 200) {
 }
 
 async function getData(vid: string) {
-	const [gameResp, fileListResp, strategyList] = await Promise.all([
+	// 站内攻略文章已下线（条目页改用 kungal walkthrough），这里不再取 /strategy
+	const [gameResp, fileListResp] = await Promise.all([
 		api.games.get({ query: { id: vid } }),
 		api.games.openlistfiles.get({ query: { id: vid } }),
-		api.strategy.gamestrategys.get({ query: { gameId: vid } }),
 	]);
 
-	if (gameResp.status >= 400) return jsonResponse(vltdma.getMessage("notFound"), vltdma.code);
+	if (gameResp.status >= 400)
+		return jsonResponse(vltdma.getMessage("notFound"), vltdma.code);
 
 	const datas = gameResp.data;
 	const titlesData =
@@ -43,8 +44,10 @@ async function getData(vid: string) {
 		.join(", ");
 
 	const openlist = fileListResp.data as GameModel.TreeNode[];
-	if (fileListResp.status >= 400) return jsonResponse({ code: "502", message: "文件服务暂不可用" }, 502);
-	if (!openlist?.length) return jsonResponse(vltdma.getMessage("noFiles"), vltdma.code);
+	if (fileListResp.status >= 400)
+		return jsonResponse({ code: "502", message: "文件服务暂不可用" }, 502);
+	if (!openlist?.length)
+		return jsonResponse(vltdma.getMessage("noFiles"), vltdma.code);
 
 	return {
 		code: 200,
@@ -55,25 +58,20 @@ async function getData(vid: string) {
 			alias: aliasData,
 			description: datas?.vn?.description,
 			filelist: groupSplitArchives(openlist[0].children),
-			strategy:
-				strategyList.data?.map(({ user, ...rest }) => ({
-					...rest,
-					user: {
-						id: user?.id,
-						name: user?.name,
-						image: user?.image,
-					},
-				})) ?? [],
 		},
 	};
 }
 
 export { groupSplitArchives };
 
-export const gameApi = new Elysia({ prefix: "/api" }).get("/game", {}, async ({ request }) => {
-	const vid = new URL(request.url).searchParams.get("vid");
-	if (!vid) return jsonResponse(vltdma.getMessage("notFound"), vltdma.code);
-	const data = await getData(vid);
-	if (data instanceof Response) return data;
-	return jsonResponse(data);
-});
+export const gameApi = new Elysia({ prefix: "/api" }).get(
+	"/game",
+	{},
+	async ({ request }) => {
+		const vid = new URL(request.url).searchParams.get("vid");
+		if (!vid) return jsonResponse(vltdma.getMessage("notFound"), vltdma.code);
+		const data = await getData(vid);
+		if (data instanceof Response) return data;
+		return jsonResponse(data);
+	},
+);

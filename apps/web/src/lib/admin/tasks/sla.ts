@@ -30,6 +30,7 @@ export const SLA_MINUTES: Record<string, number> = {
 	"vndb-delta": 30,
 	"kungal-delta": 30,
 	"kungal-characters": 60,
+	"kungal-walkthroughs": 60,
 	"vndb-producers": 60,
 	"meili-game": 60,
 	"meili-tag": 60,

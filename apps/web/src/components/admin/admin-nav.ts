@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
 	DatabaseIcon,
-	FileTextIcon,
 	HeartHandshakeIcon,
 	LayoutDashboardIcon,
 	ListTodoIcon,
@@ -59,13 +58,6 @@ export const adminNav: AdminNavSection[] = [
 				description: "删除、编辑、隐藏与置顶",
 				icon: MessageSquareTextIcon,
 				keywords: ["comments", "回复", "pinglun"],
-			},
-			{
-				to: "/admin/articles",
-				label: "文章管理",
-				description: "审核、编辑、隐藏与删除",
-				icon: FileTextIcon,
-				keywords: ["articles", "攻略", "wenzhang"],
 			},
 			{
 				to: "/admin/topics",

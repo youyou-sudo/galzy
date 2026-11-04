@@ -1,9 +1,6 @@
-import {
-	GameCover,
-	GameTitle,
-} from "@web/components/home/game/GameHeader";
-import { GameInfo } from "@web/components/home/game/GameInfo";
 import { DownloadSpotlight } from "@web/components/home/game/download-spotlight";
+import { GameCover, GameTitle } from "@web/components/home/game/GameHeader";
+import { GameInfo } from "@web/components/home/game/GameInfo";
 import { GameTabs, gameTabOf } from "@web/components/home/game/GameTabs";
 import { Glgczujm } from "@web/components/home/game/tips";
 import { Card, CardContent } from "@web/components/ui/card";
@@ -42,7 +39,7 @@ export default function GameLayoutPage({
 				void router.prefetch({ to: "/:id/characters", params: { id } });
 			},
 			(router) => {
-				void router.prefetch({ to: "/:id/introduction", params: { id } });
+				void router.prefetch({ to: "/:id/walkthrough", params: { id } });
 			},
 			(router) => {
 				void router.prefetch({ to: "/:id/comment", params: { id } });
@@ -84,9 +81,7 @@ export default function GameLayoutPage({
 			<Card className="ring-border/60">
 				<CardContent>
 					{/* 下载定位按钮的高亮锚点：包住 tab 内容本体（不含下方推荐位） */}
-					<div data-download-target="">
-						{children}
-					</div>
+					<div data-download-target="">{children}</div>
 					<Glgczujm />
 				</CardContent>
 			</Card>

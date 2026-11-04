@@ -10,7 +10,6 @@ import { useSeedQueries } from "@web/lib/query-seed";
 import { seoMeta } from "@web/lib/seo";
 import { documentOnly } from "@web/lib/spa-request";
 import { cn } from "@web/lib/utils";
-import { adminGetAllArticles } from "@web/server/admin/articles";
 import { adminGetAllComments } from "@web/server/admin/comments";
 import { adminGetAllTopics } from "@web/server/admin/topics";
 import { adminListUsers } from "@web/server/auth/auth.functions";
@@ -19,7 +18,6 @@ import {
 	ArrowRightIcon,
 	BarChart3Icon,
 	ExternalLinkIcon,
-	FileTextIcon,
 	LayoutDashboardIcon,
 	MessageSquareTextIcon,
 	MessagesSquareIcon,
@@ -65,18 +63,16 @@ async function readTotal(request: Promise<unknown>): Promise<number | null> {
 type DashboardStats = {
 	users: number | null;
 	comments: number | null;
-	articles: number | null;
 	topics: number | null;
 };
 
 async function fetchDashboardStats(): Promise<DashboardStats> {
-	const [users, comments, articles, topics] = await Promise.all([
+	const [users, comments, topics] = await Promise.all([
 		readTotal(adminListUsers({ data: { limit: 1, offset: 0 } })),
 		readTotal(adminGetAllComments({ data: { page: 1, limit: 1 } })),
-		readTotal(adminGetAllArticles({ data: { page: 1, limit: 1 } })),
 		readTotal(adminGetAllTopics({ data: { page: 1, limit: 1 } })),
 	]);
-	return { users, comments, articles, topics };
+	return { users, comments, topics };
 }
 
 function formatNumber(value: number | null | undefined): string {
@@ -161,13 +157,6 @@ function ContentMixCard({
 			value: stats?.comments ?? 0,
 			icon: MessageSquareTextIcon,
 			tone: "primary" as const,
-		},
-		{
-			key: "articles",
-			label: "攻略文章",
-			value: stats?.articles ?? 0,
-			icon: FileTextIcon,
-			tone: "success" as const,
 		},
 		{
 			key: "topics",
@@ -363,13 +352,6 @@ function DashboardPage({
 			icon: MessageSquareTextIcon,
 			value: stats?.comments ?? null,
 			description: "全站评论与回复",
-		},
-		{
-			key: "articles",
-			label: "攻略文章",
-			icon: FileTextIcon,
-			value: stats?.articles ?? null,
-			description: "审核中与已发布",
 		},
 		{
 			key: "topics",

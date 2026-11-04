@@ -127,7 +127,7 @@ describe("GameDetailPending", () => {
 		// 页签是真实的导航链接（不是骨架），pending 期间即可直接切 tab
 		for (const href of [
 			'href="/v17"',
-			'href="/v17/introduction"',
+			'href="/v17/walkthrough"',
 			'href="/v17/comment"',
 			'href="/v17/translate"',
 			'href="/v17/relations"',
@@ -154,11 +154,11 @@ describe("GameDetailPending", () => {
 		expect(markup).not.toContain("w-full h-9 rounded-lg");
 	});
 
-	it("攻略文章嵌套路径仍按攻略页签出文章行骨架", () => {
-		routerMock.pathname = "/v17/introduction/42";
+	it("攻略（walkthrough）嵌套路径仍按攻略页签出攻略骨架", () => {
+		routerMock.pathname = "/v17/walkthrough/42";
 		const markup = renderToString(<GameDetailPending id="v17" />);
-		expect(markup).toContain("攻略文章");
-		expect(markup).toContain("h-4 w-3/5");
+		expect(markup).toContain("角色路线");
+		expect(markup).toContain("h-64");
 		expect(markup).not.toContain("w-full h-9 rounded-lg");
 	});
 

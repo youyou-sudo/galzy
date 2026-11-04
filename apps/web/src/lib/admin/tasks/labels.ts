@@ -60,6 +60,7 @@ export const TASK_TYPE_LABELS: Record<string, string> = {
 	"kungal-full": "Kungal 全量同步",
 	"kungal-delta": "Kungal 增量同步",
 	"kungal-characters": "Kungal 角色同步",
+	"kungal-walkthroughs": "Kungal 攻略同步",
 	"meili-game": "游戏索引重建",
 	"meili-tag": "标签索引重建",
 	"meili-producer": "厂商索引重建",

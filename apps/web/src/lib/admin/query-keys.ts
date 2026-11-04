@@ -35,12 +35,6 @@ export const adminKeys = {
 	comments: (filters: ListFilters) =>
 		[...root, "comments", "list", filters] as const,
 
-	articlesRoot: () => [...root, "articles"] as const,
-	articles: (filters: ListFilters) =>
-		[...root, "articles", "list", filters] as const,
-	article: (articleId: string) =>
-		[...root, "articles", "detail", articleId] as const,
-
 	topicsRoot: () => [...root, "topics"] as const,
 	topics: (filters: ListFilters) =>
 		[...root, "topics", "list", filters] as const,
@@ -113,7 +107,6 @@ export const listFields = {
 /** 常用失效集合，避免每个页面重复拼。 */
 export const invalidations = {
 	comments: [adminKeys.commentsRoot()] as QueryKey[],
-	articles: [adminKeys.articlesRoot(), adminKeys.dashboard()] as QueryKey[],
 	topics: [adminKeys.topicsRoot(), adminKeys.dashboard()] as QueryKey[],
 	collections: [
 		adminKeys.collectionsRoot(),
