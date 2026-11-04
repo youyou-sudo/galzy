@@ -94,6 +94,12 @@ declare module "@teyik0/furin/routes" {
       parent: typeof import("./src/pages/admin/_route").route;
       pathParams: {};
     };
+    "/admin/kungal-sync": {
+      kind: "page";
+      pattern: "/admin/kungal-sync";
+      parent: typeof import("./src/pages/admin/_route").route;
+      pathParams: {};
+    };
     "/admin/meilisearch": {
       kind: "page";
       pattern: "/admin/meilisearch";
@@ -274,6 +280,7 @@ declare module "@teyik0/furin/routes" {
     "/admin/collections": typeof import("./src/pages/admin/collections").route;
     "/admin/comments": typeof import("./src/pages/admin/comments").route;
     "/admin/friend-links": typeof import("./src/pages/admin/friend-links").route;
+    "/admin/kungal-sync": typeof import("./src/pages/admin/kungal-sync").route;
     "/admin/meilisearch": typeof import("./src/pages/admin/meilisearch").route;
     "/admin/tasks": typeof import("./src/pages/admin/tasks").route;
     "/admin/topics": typeof import("./src/pages/admin/topics").route;

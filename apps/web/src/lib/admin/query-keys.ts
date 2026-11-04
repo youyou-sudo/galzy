@@ -74,6 +74,9 @@ export const adminKeys = {
 		[...root, "tasks", "dead-letter", queue] as const,
 
 	/* ── 外部同步 ─────────────────────────────────────────────── */
+	/** kungal（主数据源：作品 / 角色 / 攻略）。 */
+	kungalSyncRoot: () => [...root, "kungal-sync"] as const,
+	kungalSyncProgress: () => [...root, "kungal-sync", "progress"] as const,
 	vndbSyncRoot: () => [...root, "vndb-sync"] as const,
 	vndbSyncProgress: () => [...root, "vndb-sync", "progress"] as const,
 	vndbSyncCloudreve: () => [...root, "vndb-sync", "cloudreve"] as const,
@@ -130,5 +133,6 @@ export const invalidations = {
 		adminKeys.dashboard(),
 	] as QueryKey[],
 	meili: [adminKeys.meiliRoot()] as QueryKey[],
+	kungalSync: [adminKeys.kungalSyncRoot()] as QueryKey[],
 	vndbSync: [adminKeys.vndbSyncRoot()] as QueryKey[],
 };
