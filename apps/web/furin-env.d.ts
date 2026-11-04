@@ -34,18 +34,6 @@ declare module "@teyik0/furin/routes" {
       parent: typeof import("./src/pages/[id]/_route").route;
       pathParams: { id: string };
     };
-    "/[id]/introduction": {
-      kind: "page";
-      pattern: "/:id/introduction";
-      parent: typeof import("./src/pages/[id]/_route").route;
-      pathParams: { id: string };
-    };
-    "/[id]/introduction/[articleId]": {
-      kind: "page";
-      pattern: "/:id/introduction/:articleId";
-      parent: typeof import("./src/pages/[id]/_route").route;
-      pathParams: { id: string; articleId: string };
-    };
     "/[id]/relations": {
       kind: "page";
       pattern: "/:id/relations";
@@ -57,6 +45,18 @@ declare module "@teyik0/furin/routes" {
       pattern: "/:id/translate";
       parent: typeof import("./src/pages/[id]/_route").route;
       pathParams: { id: string };
+    };
+    "/[id]/walkthrough": {
+      kind: "page";
+      pattern: "/:id/walkthrough";
+      parent: typeof import("./src/pages/[id]/_route").route;
+      pathParams: { id: string };
+    };
+    "/[id]/walkthrough/[walkthroughId]": {
+      kind: "page";
+      pattern: "/:id/walkthrough/:walkthroughId";
+      parent: typeof import("./src/pages/[id]/_route").route;
+      pathParams: { id: string; walkthroughId: string };
     };
     "/admin": {
       kind: "page";
@@ -75,18 +75,6 @@ declare module "@teyik0/furin/routes" {
       pattern: "/admin/adverts";
       parent: typeof import("./src/pages/admin/_route").route;
       pathParams: {};
-    };
-    "/admin/articles": {
-      kind: "page";
-      pattern: "/admin/articles";
-      parent: typeof import("./src/pages/admin/_route").route;
-      pathParams: {};
-    };
-    "/admin/articles/[articleId]/edit": {
-      kind: "page";
-      pattern: "/admin/articles/:articleId/edit";
-      parent: typeof import("./src/pages/admin/_route").route;
-      pathParams: { articleId: string };
     };
     "/admin/collections": {
       kind: "page";
@@ -184,18 +172,6 @@ declare module "@teyik0/furin/routes" {
       parent: typeof import("./src/pages/root").route;
       pathParams: {};
     };
-    "/introduction/[articleId]/edit": {
-      kind: "page";
-      pattern: "/introduction/:articleId/edit";
-      parent: typeof import("./src/pages/root").route;
-      pathParams: { articleId: string };
-    };
-    "/introduction/create": {
-      kind: "page";
-      pattern: "/introduction/create";
-      parent: typeof import("./src/pages/root").route;
-      pathParams: {};
-    };
     "/openapi": {
       kind: "page";
       pattern: "/openapi";
@@ -289,14 +265,12 @@ declare module "@teyik0/furin/routes" {
     "/:id": typeof import("./src/pages/[id]/index").route;
     "/:id/characters": typeof import("./src/pages/[id]/characters").route;
     "/:id/comment": typeof import("./src/pages/[id]/comment").route;
-    "/:id/introduction": typeof import("./src/pages/[id]/introduction/index").route;
-    "/:id/introduction/:articleId": typeof import("./src/pages/[id]/introduction/[articleId]").route;
     "/:id/relations": typeof import("./src/pages/[id]/relations").route;
     "/:id/translate": typeof import("./src/pages/[id]/translate").route;
+    "/:id/walkthrough": typeof import("./src/pages/[id]/walkthrough").route;
+    "/:id/walkthrough/:walkthroughId": typeof import("./src/pages/[id]/walkthrough/[walkthroughId]").route;
     "/admin": typeof import("./src/pages/admin/index").route;
     "/admin/adverts": typeof import("./src/pages/admin/adverts").route;
-    "/admin/articles": typeof import("./src/pages/admin/articles").route;
-    "/admin/articles/:articleId/edit": typeof import("./src/pages/admin/articles/[articleId]/edit").route;
     "/admin/collections": typeof import("./src/pages/admin/collections").route;
     "/admin/comments": typeof import("./src/pages/admin/comments").route;
     "/admin/friend-links": typeof import("./src/pages/admin/friend-links").route;
@@ -313,8 +287,6 @@ declare module "@teyik0/furin/routes" {
     "/contact": typeof import("./src/pages/contact").route;
     "/friend-links": typeof import("./src/pages/friend-links").route;
     "/games": typeof import("./src/pages/games/index").route;
-    "/introduction/:articleId/edit": typeof import("./src/pages/introduction/[articleId]/edit").route;
-    "/introduction/create": typeof import("./src/pages/introduction/create").route;
     "/openapi": typeof import("./src/pages/openapi").route;
     "/producer": typeof import("./src/pages/producer/index").route;
     "/producer/:pid": typeof import("./src/pages/producer/[pid]").route;

@@ -25,14 +25,14 @@ import { toast } from "sonner";
  *   最终：invalidateQueries（用服务端真值校正乐观结果）
  *
  * @example
- * const publish = useAdminMutation({
- *   mutationFn: (id: string) => adminPublishArticle({ data: { id } }),
- *   affects: invalidations.articles,
+ * const hide = useAdminMutation({
+ *   mutationFn: (id: string) => adminHideTopic({ data: { id } }),
+ *   affects: invalidations.topics,
  *   optimistic: (qc, id) =>
- *     patchListItems<AdminArticle>(qc, adminKeys.articlesRoot(), "items", (a) =>
- *       a.id === id ? { ...a, status: "published" } : a,
+ *     patchListItems<AdminTopic>(qc, adminKeys.topicsRoot(), "items", (t) =>
+ *       t.id === id ? { ...t, status: "hidden" } : t,
  *     ),
- *   successMessage: "文章已发布",
+ *   successMessage: "话题已隐藏",
  * });
  */
 

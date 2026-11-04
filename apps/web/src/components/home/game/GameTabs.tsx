@@ -1,18 +1,18 @@
-import { Link, usePathname } from "@web/lib/nav";
 import { Tabs, TabsList, TabsTrigger } from "@web/components/ui/tabs";
+import { Link, usePathname } from "@web/lib/nav";
 import { cn } from "@web/lib/utils";
 import {
 	ArrowDownToLine,
 	GitFork,
 	MessageCircle,
-	Swords,
+	Route,
 	TrendingUp,
 	Users,
 } from "lucide-react";
 
 const TAB_SEGMENTS = new Set([
 	"characters",
-	"introduction",
+	"walkthrough",
 	"comment",
 	"translate",
 	"relations",
@@ -37,7 +37,7 @@ const tabTriggerClass = cn(
 
 /**
  * 由 pathname 推断当前页签：/<id>/<segment> 的第二段属于页签段就用它，
- * 否则（含 /<id> 本身，以及 introduction 下嵌套的 /:articleId）归到默认的下载页签。
+ * 否则（含 /<id> 本身，以及 walkthrough 下嵌套的 /:walkthroughId）归到默认的下载页签。
  * 详情页 pending 态（game-detail-pending.tsx）复用同一判定，避免两处逻辑漂移：
  * 以后新增页签只改这里，pending 的内容区骨架不会掉回文件列表。
  */
@@ -59,13 +59,7 @@ export function GameTabs({ id, path }: { id: string; path?: string }) {
 					value="download"
 					nativeButton={false}
 					className={tabTriggerClass}
-					render={
-						<Link
-							to="/:id"
-							params={{ id: id }}
-							resetScroll={false}
-						/>
-					}
+					render={<Link to="/:id" params={{ id: id }} resetScroll={false} />}
 				>
 					<ArrowDownToLine aria-hidden="true" />
 					下载
@@ -86,18 +80,18 @@ export function GameTabs({ id, path }: { id: string; path?: string }) {
 					详情
 				</TabsTrigger>
 				<TabsTrigger
-					value="introduction"
+					value="walkthrough"
 					nativeButton={false}
 					className={tabTriggerClass}
 					render={
 						<Link
-							to="/:id/introduction"
+							to="/:id/walkthrough"
 							params={{ id: id }}
 							resetScroll={false}
 						/>
 					}
 				>
-					<Swords aria-hidden="true" />
+					<Route aria-hidden="true" />
 					攻略
 				</TabsTrigger>
 				<TabsTrigger
@@ -105,11 +99,7 @@ export function GameTabs({ id, path }: { id: string; path?: string }) {
 					nativeButton={false}
 					className={tabTriggerClass}
 					render={
-						<Link
-							to="/:id/comment"
-							params={{ id: id }}
-							resetScroll={false}
-						/>
+						<Link to="/:id/comment" params={{ id: id }} resetScroll={false} />
 					}
 				>
 					<MessageCircle aria-hidden="true" />
@@ -120,11 +110,7 @@ export function GameTabs({ id, path }: { id: string; path?: string }) {
 					nativeButton={false}
 					className={tabTriggerClass}
 					render={
-						<Link
-							to="/:id/translate"
-							params={{ id: id }}
-							resetScroll={false}
-						/>
+						<Link to="/:id/translate" params={{ id: id }} resetScroll={false} />
 					}
 				>
 					<TrendingUp aria-hidden="true" />
@@ -135,11 +121,7 @@ export function GameTabs({ id, path }: { id: string; path?: string }) {
 					nativeButton={false}
 					className={tabTriggerClass}
 					render={
-						<Link
-							to="/:id/relations"
-							params={{ id: id }}
-							resetScroll={false}
-						/>
+						<Link to="/:id/relations" params={{ id: id }} resetScroll={false} />
 					}
 				>
 					<GitFork aria-hidden="true" />

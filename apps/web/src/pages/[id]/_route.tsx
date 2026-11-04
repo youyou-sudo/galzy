@@ -5,7 +5,6 @@ import {
 	BreadcrumbItem,
 	BreadcrumbLink,
 	BreadcrumbList,
-	BreadcrumbPage,
 	BreadcrumbSeparator,
 } from "@web/components/shared/breadcrumb";
 import {
@@ -14,7 +13,7 @@ import {
 	isSameGameRouteId,
 	normalizeGameRouteId,
 } from "@web/lib/game-id";
-import { getRouteApi, Link, redirect } from "@web/lib/nav";
+import { Link, redirect } from "@web/lib/nav";
 import { useSeedQueries } from "@web/lib/query-seed";
 import { gameTitleOf } from "@web/lib/seo";
 import { getGameDetail } from "@web/server/game";
@@ -24,9 +23,6 @@ import type { ReactNode } from "react";
 const paramsSchema = t.Object({ id: t.String() });
 
 type GameDetail = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>;
-
-/** 攻略文章页的 loader 数据（面包屑末两级）。pattern 必须与激活页面完全一致。 */
-const articleRouteApi = getRouteApi("/:id/introduction/:articleId");
 
 /**
  * 游戏详情布局：/[id] 及其全部页签（下载/评论/攻略/统计/系列）。
@@ -78,10 +74,6 @@ function GameDetailShell({
 	// 在页面组件里播种查询缓存（persist 白名单会把它持久化到 localStorage）。
 	useSeedQueries([[["gameDetail", id], game]]);
 
-	// 文章页的面包屑末两级只在 /<id>/introduction/<articleId> 下渲染；
-	// 用服务端下发的 path 判定（SSR 的 useRouterState 拿不到真实 location）。
-	const articleId = articleIdOfPath(path, id);
-
 	return (
 		<div>
 			<Breadcrumb className="mb-4">
@@ -97,13 +89,10 @@ function GameDetailShell({
 					</BreadcrumbItem>
 					<BreadcrumbSeparator />
 					<BreadcrumbItem>
-						<BreadcrumbLink
-							render={<Link to="/:id" params={{ id }} />}
-						>
+						<BreadcrumbLink render={<Link to="/:id" params={{ id }} />}>
 							{gameTitleOf(game)}
 						</BreadcrumbLink>
 					</BreadcrumbItem>
-					{articleId ? <ArticleCrumbs gameId={id} /> : null}
 				</BreadcrumbList>
 			</Breadcrumb>
 			<GameLayoutPage game={game} id={id} path={path}>
@@ -111,43 +100,4 @@ function GameDetailShell({
 			</GameLayoutPage>
 		</div>
 	);
-}
-
-/** 文章页独有的两段面包屑：攻略 → 文章标题（标题来自文章页 loader） */
-function ArticleCrumbs({ gameId }: { gameId: string }) {
-	const data = articleRouteApi.useLoaderData() as {
-		article?: { title?: string | null } | null;
-	};
-	const title = data?.article?.title;
-	if (!title) return null;
-
-	return (
-		<>
-			<BreadcrumbSeparator />
-			<BreadcrumbItem>
-				<BreadcrumbLink
-					render={<Link to="/:id/introduction" params={{ id: gameId }} />}
-				>
-					攻略
-				</BreadcrumbLink>
-			</BreadcrumbItem>
-			<BreadcrumbSeparator />
-			<BreadcrumbItem>
-				<BreadcrumbPage>{title}</BreadcrumbPage>
-			</BreadcrumbItem>
-		</>
-	);
-}
-
-/** /<id>/introduction/<articleId> → articleId；其它路径返回 null */
-function articleIdOfPath(path: string | undefined, gameId: string) {
-	const segments = (path ?? "").split("?")[0].split("/").filter(Boolean);
-	if (
-		segments.length === 3 &&
-		segments[0] === gameId &&
-		segments[1] === "introduction"
-	) {
-		return segments[2] ?? null;
-	}
-	return null;
 }

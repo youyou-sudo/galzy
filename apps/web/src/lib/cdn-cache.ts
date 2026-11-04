@@ -23,80 +23,85 @@ import { isPersonalizedPath } from "@web/lib/is-personalized-path";
  * 不进 CDN —— 由 {@link isCdnBypassed} 判定。
  */
 export type CdnCacheRule = {
-  /** CDN 缓存秒数。 */
-  sMaxAge: number;
-  /** 过期后允许继续返回旧副本、后台回源的秒数。 */
-  staleWhileRevalidate: number;
+	/** CDN 缓存秒数。 */
+	sMaxAge: number;
+	/** 过期后允许继续返回旧副本、后台回源的秒数。 */
+	staleWhileRevalidate: number;
 };
 
-const rule = (sMaxAge: number, staleWhileRevalidate = sMaxAge): CdnCacheRule => ({
-  sMaxAge,
-  staleWhileRevalidate,
+const rule = (
+	sMaxAge: number,
+	staleWhileRevalidate = sMaxAge,
+): CdnCacheRule => ({
+	sMaxAge,
+	staleWhileRevalidate,
 });
 
 const EXACT_RULES: Readonly<Record<string, CdnCacheRule>> = {
-  "/": rule(60),
-  "/games": rule(60, 120),
-  "/search": rule(60, 120),
-  "/tags": rule(120, 120),
-  "/collections": rule(120, 120),
-  "/producer": rule(300),
-  "/topics": rule(60, 120),
-  "/friend-links": rule(300),
-  "/contact": rule(3600),
-  "/tools": rule(3600),
-  "/tools/plate": rule(3600),
-  "/openapi": rule(3600),
+	"/": rule(60),
+	"/games": rule(60, 120),
+	"/search": rule(60, 120),
+	"/tags": rule(120, 120),
+	"/collections": rule(120, 120),
+	"/producer": rule(300),
+	"/topics": rule(60, 120),
+	"/friend-links": rule(300),
+	"/contact": rule(3600),
+	"/tools": rule(3600),
+	"/tools/plate": rule(3600),
+	"/openapi": rule(3600),
 };
 
 function normalize(pathname: string): string {
-  if (pathname.length > 1 && pathname.endsWith("/")) {
-    return pathname.replace(/\/+$/, "");
-  }
-  return pathname;
+	if (pathname.length > 1 && pathname.endsWith("/")) {
+		return pathname.replace(/\/+$/, "");
+	}
+	return pathname;
 }
 
 /** 明确不进 CDN 的路径：接口、框架端点、个性化页、评论（实时）。 */
 export function isCdnBypassed(pathname: string): boolean {
-  const path = normalize(pathname);
-  if (path === "/api" || path.startsWith("/api/")) return true;
-  if (path === "/_furin" || path.startsWith("/_furin/")) return true;
-  if (isPersonalizedPath(path)) return true;
-  // 评论页签由 loader 直取评论，属于实时内容，不能进 CDN。
-  if (path.endsWith("/comment")) return true;
-  // 错误页/静态资源不是可缓存页面。
-  if (path === "/error" || path === "/not-found") return true;
-  if (path.includes(".")) return true;
-  return false;
+	const path = normalize(pathname);
+	if (path === "/api" || path.startsWith("/api/")) return true;
+	if (path === "/_furin" || path.startsWith("/_furin/")) return true;
+	if (isPersonalizedPath(path)) return true;
+	// 评论页签由 loader 直取评论，属于实时内容，不能进 CDN。
+	if (path.endsWith("/comment")) return true;
+	// 错误页/静态资源不是可缓存页面。
+	if (path === "/error" || path === "/not-found") return true;
+	if (path.includes(".")) return true;
+	return false;
 }
 
 /**
  * 返回该路径的 CDN 缓存规则；`null` 表示不进 CDN（保持 furin 的 `no-store`）。
  */
 export function cdnCacheRuleFor(pathname: string): CdnCacheRule | null {
-  const path = normalize(pathname);
-  if (isCdnBypassed(path)) return null;
+	const path = normalize(pathname);
+	if (isCdnBypassed(path)) return null;
 
-  const exact = EXACT_RULES[path];
-  if (exact) return exact;
+	const exact = EXACT_RULES[path];
+	if (exact) return exact;
 
-  // 标签分类 / 标签详情
-  if (/^\/tags\/category\/[^/]+$/.test(path)) return rule(300);
-  if (/^\/tags\/[^/]+$/.test(path)) return rule(300);
-  // 合集详情
-  if (/^\/collections\/[^/]+$/.test(path)) return rule(300);
-  // 厂商详情
-  if (/^\/producer\/[^/]+$/.test(path)) return rule(300);
-  // 论坛主题详情
-  if (/^\/topics\/[^/]+$/.test(path)) return rule(120);
-  // 游戏详情页签：/[id]、/[id]/introduction(/[articleId])、/[id]/relations、
-  // /[id]/translate、/[id]/characters（详情页签的角色名册，公开只读、内容随同步变化）
-  if (/^\/[^/]+$/.test(path)) return rule(300);
-  if (/^\/[^/]+\/(introduction|relations|translate|characters)(\/.*)?$/.test(path)) {
-    return rule(300);
-  }
+	// 标签分类 / 标签详情
+	if (/^\/tags\/category\/[^/]+$/.test(path)) return rule(300);
+	if (/^\/tags\/[^/]+$/.test(path)) return rule(300);
+	// 合集详情
+	if (/^\/collections\/[^/]+$/.test(path)) return rule(300);
+	// 厂商详情
+	if (/^\/producer\/[^/]+$/.test(path)) return rule(300);
+	// 论坛主题详情
+	if (/^\/topics\/[^/]+$/.test(path)) return rule(120);
+	// 游戏详情页签：/[id]、/[id]/walkthrough(/[walkthroughId])、/[id]/relations、
+	// /[id]/translate、/[id]/characters（详情页签的角色名册，公开只读、内容随同步变化）
+	if (/^\/[^/]+$/.test(path)) return rule(300);
+	if (
+		/^\/[^/]+\/(walkthrough|relations|translate|characters)(\/.*)?$/.test(path)
+	) {
+		return rule(300);
+	}
 
-  return null;
+	return null;
 }
 
 /**
@@ -108,30 +113,30 @@ export function cdnCacheRuleFor(pathname: string): CdnCacheRule | null {
  * - 其余按 {@link cdnCacheRuleFor} 设置 `Cache-Control`。
  */
 export function applyCdnCacheHeaders(
-  request: Request,
-  response: Response,
+	request: Request,
+	response: Response,
 ): Response {
-  const method = request.method.toUpperCase();
-  if (method !== "GET" && method !== "HEAD") return response;
-  if (response.status !== 200) return response;
+	const method = request.method.toUpperCase();
+	if (method !== "GET" && method !== "HEAD") return response;
+	if (response.status !== 200) return response;
 
-  const url = new URL(request.url);
-  if (url.searchParams.has("_furin")) return response;
-  if (response.headers.has("set-cookie")) return response;
+	const url = new URL(request.url);
+	if (url.searchParams.has("_furin")) return response;
+	if (response.headers.has("set-cookie")) return response;
 
-  const cacheRule = cdnCacheRuleFor(url.pathname);
-  if (!cacheRule) return response;
+	const cacheRule = cdnCacheRuleFor(url.pathname);
+	if (!cacheRule) return response;
 
-  const headers = new Headers(response.headers);
-  headers.set(
-    "cache-control",
-    `public, max-age=0, s-maxage=${cacheRule.sMaxAge}, stale-while-revalidate=${cacheRule.staleWhileRevalidate}`,
-  );
-  headers.set("cdn-cache-control", `max-age=${cacheRule.sMaxAge}`);
+	const headers = new Headers(response.headers);
+	headers.set(
+		"cache-control",
+		`public, max-age=0, s-maxage=${cacheRule.sMaxAge}, stale-while-revalidate=${cacheRule.staleWhileRevalidate}`,
+	);
+	headers.set("cdn-cache-control", `max-age=${cacheRule.sMaxAge}`);
 
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers,
-  });
+	return new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers,
+	});
 }

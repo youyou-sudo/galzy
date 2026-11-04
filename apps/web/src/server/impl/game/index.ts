@@ -94,6 +94,35 @@ export const getCharacterInfo = defineBff(
 	},
 );
 
+/**
+ * 条目页「攻略」页签：该作品收录的 kungal 攻略列表（通常只有 1 条）。
+ *
+ * 列表只带摘要（结局/存档/角色计数、来源署名）：chart 只在详情接口返回，
+ * 免得列表页把整张流程图也拉下来。
+ */
+export const getGameWalkthroughs = defineBff(
+	z.object({ id: z.string().check(z.minLength(1)) }),
+	async ({ data }) => {
+		const { data: walkthroughs, error } = await api.walkthroughs.game.get({
+			query: { gameId: data.id },
+		});
+		elysiaErrorF(error);
+		return walkthroughs;
+	},
+);
+
+/** 攻略详情（含整张选项流程图）：攻略详情页 loader 直取，不走客户端二次请求 */
+export const getWalkthroughInfo = defineBff(
+	z.object({ walkthroughId: z.string().check(z.minLength(1)) }),
+	async ({ data }) => {
+		const { data: info, error } = await api.walkthroughs.info.get({
+			query: { id: data.walkthroughId },
+		});
+		elysiaErrorF(error);
+		return info;
+	},
+);
+
 export const getFileList = defineBff(
 	z.object({ id: z.string() }),
 	async ({ data }) => {

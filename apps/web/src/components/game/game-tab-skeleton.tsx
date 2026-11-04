@@ -2,13 +2,13 @@ import { CommentThreadSkeleton } from "@web/components/cmments/comment-skeleton"
 import { GameCard } from "@web/components/home/card";
 import { SectionHeader } from "@web/components/shared/section-header";
 import { Skeleton } from "@web/components/ui/skeleton";
-import { BookOpen, TrendingUp, Users } from "lucide-react";
+import { Route, TrendingUp, Users } from "lucide-react";
 
 /** 详情页六个页签：各自内容形状不同，加载态不能再共用一个通用骨架 */
 export type GameTabKey =
 	| "download"
 	| "characters"
-	| "introduction"
+	| "walkthrough"
 	| "comment"
 	| "translate"
 	| "relations";
@@ -26,8 +26,8 @@ export function GameTabSkeleton({ tab = "download" }: { tab?: GameTabKey }) {
 	switch (tab) {
 		case "characters":
 			return <CharactersTabSkeleton />;
-		case "introduction":
-			return <IntroductionTabSkeleton />;
+		case "walkthrough":
+			return <WalkthroughTabSkeleton />;
 		case "comment":
 			return <CommentThreadSkeleton />;
 		case "translate":
@@ -39,23 +39,31 @@ export function GameTabSkeleton({ tab = "download" }: { tab?: GameTabKey }) {
 	}
 }
 
-/** 攻略页签：真实区块标题 +「创建文章」按钮占位 + 文章行 */
-function IntroductionTabSkeleton() {
+/**
+ * 攻略页签：概览块 → 角色路线卡 → 工具栏 → 内容区，四段与真实攻略页同序。
+ * 高度写死成整段（而不是几十个小块）：攻略正文长度不可预知，
+ * 骨架只负责「有内容在加载」的观感，不在数据到达时制造高度跳变。
+ */
+function WalkthroughTabSkeleton() {
 	return (
-		<div aria-hidden>
-			<SectionHeader
-				icon={BookOpen}
-				title="攻略文章"
-				action={<Skeleton className="w-24 h-8 rounded-lg" />}
-			/>
-			<ul className="flex flex-col divide-y divide-border/60">
-				{(["w-3/5", "w-2/3", "w-1/2"] as const).map((width) => (
-					<li key={width} className="flex gap-2 items-center py-2.5">
-						<Skeleton className="shrink-0 size-4 rounded-sm" />
-						<Skeleton className={`h-4 ${width}`} />
-					</li>
-				))}
-			</ul>
+		<div aria-hidden className="space-y-6">
+			<Skeleton className="w-full h-24 rounded-xl" />
+			<div>
+				<SectionHeader icon={Route} title="角色路线" />
+				<div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+					{(["w-1/2", "w-3/5", "w-2/5"] as const).map((width) => (
+						<div
+							key={width}
+							className="flex flex-col gap-2 p-3 rounded-xl ring-1 ring-border/60"
+						>
+							<Skeleton className={`h-4 ${width}`} />
+							<Skeleton className="w-2/3 h-3" />
+						</div>
+					))}
+				</div>
+			</div>
+			<Skeleton className="w-full h-9 rounded-xl" />
+			<Skeleton className="w-full h-64 rounded-xl" />
 		</div>
 	);
 }

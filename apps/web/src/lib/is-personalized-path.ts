@@ -12,8 +12,6 @@ const PERSONALIZED_PREFIXES = ["/admin", "/user", "/auth"] as const;
 const PERSONALIZED_PATTERNS: readonly RegExp[] = [
 	/^\/topics\/create\/?$/,
 	/^\/topics\/[^/]+\/edit\/?$/,
-	/^\/introduction\/create\/?$/,
-	/^\/introduction\/[^/]+\/edit\/?$/,
 ];
 
 export function isPersonalizedPath(pathname: string): boolean {

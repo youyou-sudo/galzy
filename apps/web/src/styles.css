@@ -500,21 +500,6 @@
   mix-blend-mode: normal;
 }
 
-/* 攻略文章标题（article-title-<id>）共享元素：单元素飞行。
-   两端字号/盒子比例不同，默认的快照交叉淡化会呈现「旧标题放大淡出」的
-   割裂感，拉伸填充又会把文本拉变形。这里隐藏旧快照、新快照全程不透明：
-   点击瞬间同文本的新标题在原位替换旧标题（渲染尺寸近似、几乎无感），
-   随后作为唯一元素沿 group 的位移/缩放飞入详情页，无重影无二次缩放。 */
-::view-transition-old(.article-title) {
-  animation: none;
-  opacity: 0;
-}
-
-::view-transition-new(.article-title) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
 /* 首页 ↔ /games 搜索栏共享元素（site-search-bar）：
    两端宽度/位置不同，交给 group 做位移与尺寸 morph；快照用普通混合，
    避免半透明 input 背景在交叉淡化时被 plus-lighter 叠亮。 */
@@ -571,8 +556,8 @@
   }
 
   /* 触屏整体收紧 group 时长（UA 默认 250ms → 200ms）：少 3–4 帧，掉帧概率
-     下降，观感上仍是「共享元素飞行」。下方的 .article-title/.producer-name
-     按 class 指定 220ms，选择器特异度更高，不受本规则影响。 */
+     下降，观感上仍是「共享元素飞行」。下方的 .producer-name 按 class
+     指定 220ms，选择器特异度更高，不受本规则影响。 */
   ::view-transition-group(*) {
     animation-duration: 200ms;
   }
@@ -587,7 +572,6 @@
     }
   }
 
-  ::view-transition-group(.article-title),
   ::view-transition-group(.producer-name) {
     animation-duration: 220ms;
   }
