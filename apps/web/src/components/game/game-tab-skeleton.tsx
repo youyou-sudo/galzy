@@ -83,8 +83,8 @@ function CharactersTabSkeleton() {
 	return (
 		<div aria-hidden>
 			<SectionHeader icon={Users} title="主要角色" />
-			<div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-				{Array.from({ length: 6 }, (_, i) => (
+			<div className="grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-4 sm:gap-x-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
+				{Array.from({ length: 8 }, (_, i) => (
 					<div key={i} className="flex flex-col gap-2">
 						<Skeleton className="w-full rounded-xl aspect-[3/4]" />
 						<Skeleton className="w-2/3 h-4" />
