@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, within } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { CharacterList } from "./character-list";
@@ -27,27 +27,53 @@ const characters = readCharacterList({
 });
 
 describe("CharacterList", () => {
-	it("默认隐藏剧透角色，并给出开关与数量", () => {
+	it("不分分组，平铺渲染并给身份徽章；剧透角色默认隐藏", () => {
 		const html = renderToString(
 			<CharacterList characters={characters} onSelect={vi.fn()} />,
 		);
-		expect(html).toContain("主要角色");
+		// 身份徽章取代分组标题
+		expect(html).toContain("主角");
+		expect(html).not.toContain("主要角色");
+		expect(html).toContain("遠野 秋葉");
+		expect(html).toContain("Tohno Akiha");
+		// 剧透角色默认不渲染
 		expect(html).not.toContain("シエル");
-		expect(html).not.toContain("登场角色");
+		expect(html).not.toContain("配角");
 		expect(html).toContain("显示剧透角色");
 		expect(html).toContain("（<!-- -->1<!-- -->）");
 		// 未打勾
 		expect(html).not.toContain("checked");
 	});
 
-	it("勾选后显示剧透角色并带上剧透徽章", () => {
-		render(<CharacterList characters={characters} onSelect={vi.fn()} />);
-		fireEvent.click(screen.getByRole("checkbox"));
-		expect(screen.getByText("シエル")).toBeDefined();
-		expect(screen.getByText("登场角色")).toBeDefined();
-		expect(screen.getByText("重度剧透")).toBeDefined();
+	it("勾选后补出剧透角色，身份与剧透徽章并排", () => {
+		const { container } = render(
+			<CharacterList characters={characters} onSelect={vi.fn()} />,
+		);
+		fireEvent.click(container.querySelector('input[type="checkbox"]')!);
+		expect(within(container).getByText("シエル")).toBeDefined();
+		expect(within(container).getByText("配角")).toBeDefined();
+		expect(within(container).getByText("重度剧透")).toBeDefined();
 		// 无图占位：取姓名首字
-		expect(screen.getByText("遠")).toBeDefined();
+		expect(within(container).getByText("遠")).toBeDefined();
+	});
+
+	it("主角 → 配角 → 未知身份依次排序，同档保持原序", () => {
+		const list = readCharacterList({
+			characters: [
+				{ id: "1", name: "配角甲", rosterRole: "appears" },
+				{ id: "2", name: "主角甲", rosterRole: "main" },
+				{ id: "3", name: "未知身份" },
+				{ id: "4", name: "主角乙", rosterRole: "main" },
+				{ id: "5", name: "配角乙", rosterRole: "secondary" },
+			],
+		});
+		const { container } = render(
+			<CharacterList characters={list} onSelect={vi.fn()} />,
+		);
+		const names = [...container.querySelectorAll("p.font-medium")].map(
+			(node) => node.textContent,
+		);
+		expect(names).toEqual(["主角甲", "主角乙", "配角乙", "配角甲", "未知身份"]);
 	});
 
 	it("没有角色时给空态文案", () => {

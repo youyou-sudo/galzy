@@ -29,7 +29,7 @@ describe("CharacterDialog", () => {
 		);
 		expect(screen.getByText("遠野 秋葉")).toBeDefined();
 		expect(screen.getByText("Tohno Akiha")).toBeDefined();
-		expect(screen.getByText("主要角色")).toBeDefined();
+		expect(screen.getByText("主角")).toBeDefined();
 		expect(screen.getByText("出演作品")).toBeDefined();
 	});
 
