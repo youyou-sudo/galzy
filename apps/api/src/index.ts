@@ -118,6 +118,9 @@ async function startServer() {
   const dbReady = await dbAction()
   if (process.env.NODE_ENV === 'production' && dbReady) {
     // 任务队列 Worker + 定时调度（已替代 croner，见 docs/task-queue-migration.md）。
+    // 这里刻意只对 production 生效：本机 dev 的 .env 里 REDIS_ENABLED=true 且指向共享
+    // 生产 Redis，若本地也起 Worker，就会去抢线上队列里的任务（并改写生产库状态）。
+    // 代价是 dev 没有消费方——由 tasks/service.ts 的 enqueue 内联执行兜住，见文档 §11。
     await startQueueWorkers()
     // bun:sql 池卡死自动恢复：独立探针确认 DB 健康而池失败时退出进程，
     // 由编排层重启。上游 oven-sh/bun#30494 仍未关闭（1.4.x 已修一批同类问题，

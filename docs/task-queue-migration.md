@@ -130,7 +130,10 @@ export function queueConnection(overrides?: Partial<QueueConnectionConfig>): Que
 |------|-------|------------|--------|---------|
 | production | 有 | ✅ 启动 | ❌（已移除） | 入队，返回 jobId |
 | production（Redis 短暂不可用） | 无 | Worker 启动失败→依赖 `safeRedisOp` 语义跳过并告警 | — | 入队失败→返回 503 |
-| development | 无 | ❌ 不启动 | ❌ 不启动 | **同步执行**（直接 `await` 业务函数），便于调试 |
+| development | 无 | ❌ 不启动 | ❌ 不启动 | **进程内联执行**（fire-and-forget，见 §11），便于调试 |
+
+> ⚠️ 上表的「development」行不能理解为「Redis 一定是关的」。本仓库 `apps/api/.env` 本地就是
+> `REDIS_ENABLED=true` + 生产 `REDIS_URL`，而 Worker 只在 `NODE_ENV=production` 启动 —— 见 §11。
 
 ---
 
@@ -364,4 +367,103 @@ Worker handler 注入一个 `logger`（薄封装），内部实现：
 - `0026_nasty_the_twelve.sql`：6 条组合/排序索引（`db:generate` 生成）
 - `0027_queue_job_search_indexes.sql`：`id/type/error` 的 `pg_trgm` GIN（手写，参照 0009/0023）
 - 应用方式不变：`bun --cwd apps/api db:up`
+
+---
+
+## 11. 无 Worker 进程的内联执行（2026-11 落地）
+
+**问题（线上真实发生）**：本地 `apps/api/.env` 里 `REDIS_ENABLED=true` 且 `REDIS_URL` 指向**共享生产 Redis**，
+而 Worker 只在 `NODE_ENV=production` 启动（`apps/api/src/index.ts:119`）。于是本机点「同步」按钮会真的入队，
+被线上**旧镜像**的 Worker 领走 → 它不认识新加的任务类型 → `未知的 kungal 任务类型: kungal-characters` →
+重试耗尽进 dead-letter。用户侧表现是「点了没反应」，队列里却堆着一串永远跑不完的旧任务。
+
+原 `enqueue()` 只对「Redis 整个不可用」(`!isQueueEnabled`) 做降级，且仅 `meili-` 类型降级为同步执行；
+「Redis 可用、但本进程没有消费方」这一档完全没有覆盖 —— 这正是本机 dev 的形态。
+
+### 11.1 决策：按「有没有消费方」分三条路，而不是按「Redis 是否可用」
+
+| 条件 | 路径 | 返回 |
+|---|---|---|
+| `isWorkerRunning()`（本进程起了 Worker，生产唯一路径） | 正常入队 | `queue.add()` 的 jobId |
+| 无 Worker 且 `NODE_ENV !== production` | **进程内联执行** | `inline:<type>:<ts>`，立刻返回 |
+| 生产且队列不可用 | 抛错（保持原语义） | — |
+
+- `isWorkerRunning()` 是模块级标志，只有 `startQueueWorkers()` 注册完全部 Worker 后才置 `true`。
+  判定放在 `enqueue` 入口，所以**生产路径行为完全不变**：生产一定有 Worker，一定走队列。
+- 内联路径**只对非生产开放**。生产即使 Redis 短暂不可用导致 Worker 没起来，也仍然报「队列不可用」，
+  不能悄悄改成同步跑全量同步 —— 那会把 HTTP 请求拖死（kungal/vndb 全量要几十分钟）。
+
+### 11.2 内联执行的行为契约
+
+- **fire-and-forget**：立刻返回 jobId，handler 在后台 `void` 跑。全量同步动辄几十分钟，HTTP 等不起（Eden 会先超时）。
+- **照常落 PG**：`galrc_queue_job` 走 queued → running(+startedAt) → completed/failed，并写 `galrc_queue_job_log`，
+  管理端「任务」页能看到这一条，不必为本地开发单独做一套视图。
+- **jobId 前缀 `inline:`**：与 bun-queue 的雪花 id 不冲突，也不占用 `cron:` 前缀（对账逻辑据 `cron:` 跳过 repeatable job）。
+  凡是按 jobId 摸 Redis 的地方（`detachFromQueue`、启动对账）都要跳过它。
+- **同 type 去重**：进程内 `Map<type, jobId>` 记录在跑的内联任务，重复触发直接返回已有 jobId，
+  避免连点起两个全量同步（原来靠队列串行 + `TASK_ALREADY_ACTIVE`，内联路径没有队列来兜）。
+- **失败必须自己写终态**：内联路径没有 bun-queue 的 `jobCompleted` / `jobMovedToDeadLetter` 事件，
+  不显式 `markFailed` 行就会永远停在 running —— 这与生产上那条 `status=queued` 僵尸行是同一成因。
+
+### 11.3 影响与代价
+
+| 项 | 影响 |
+|---|---|
+| 生产 | **零影响**：仍有 Worker，`canRunInline()` 恒 false |
+| 本机 dev | 任务不再进共享生产队列，不再被线上旧镜像 Worker 领走；结果只写本地连的那个库 |
+| 进程退出 | 未跑完的内联任务会中断，行停在 running；由启动对账标 interrupted，与队列任务口径一致 |
+| 并发保护 | 仅覆盖「同进程同 type」；起两个 API 进程各自内联同一 type 不会互斥（本地开发可接受） |
+| 删除任务 | `detachFromQueue` 对内联 jobId 直接 return，不去 Redis 白跑一次 `removeJob` |
+
+### 11.4 配套：终态兜底与启动对账
+
+僵尸行的**真正成因**（bun-queue 0.1.8 `dist` 里 `moveToFailed` 之后的决策链）：
+
+```js
+await job.moveToFailed(err)                       // 一定写 finishedOn + failedReason
+if (dlqEnabled && job.attemptsMade >= dlqMax)     // ① 进死信
+  return queue.moveToDeadLetter(job.id, …)        //    发 jobMovedToDeadLetter
+if (job.attemptsMade < maxAttempts)               // ② 重试（放 delayed 或 retry）
+  return /* delayed / retry */
+// ③ 两档都不满足：不重试、不进 DLQ、**也不发任何事件**，job 静静躺在 failed 列表
+```
+
+第 ③ 档是致命的：`resetRetries` 的死信重放会把 `attempts` 置 0，而库内部按 `opts.attempts || 1`
+处理，于是第二次失败就落进这一档 —— 生产库里的 `mw2cbfguibyno98h28` 正因此停在 `status=queued`、
+`started_at` 有值、`finished_at=null`（Redis 侧 `failedReason` 是「未知的 kungal 任务类型: kungal-characters」）。
+
+对策三条，缺一不可：
+
+1. **Worker 三档齐写**（`createWorker` 的 catch）：`willDeadLetter` → `markDeadLetter`；
+   `willRetry` → 只记日志（终态留给后续尝试）；**两档皆否 → `markFailed`**。
+   判定必须逐条复刻库的逻辑，注意两个易错点：`maxAttempts = opts.attempts || 1`（**是 `||` 不是 `??`**）、
+   `dlqEnabled` 要先看单 job 的 `opts.deadLetter` 再看队列默认值。
+   事件随后再来写同值，幂等无害。
+2. **queued 僵尸对账**：`reconcileQueuedZombies()` 扫 `status=queued`（按 `created_at` 升序、单轮上限 500，
+   每行一次 Redis 往返，不设上限会把启动拖成分钟级），分三种结局：
+   - `getJob` 返回 `null` → 标 `interrupted`（记录在队列里已不存在）；
+   - job 已终结（`finishedOn` 有值**且** `attemptsMade` 已耗尽重试或够 DLQ 阈值）→ 按 Redis 真实结果补写
+     `failed` / `dead-letter` / `completed`，失败原因带上库里的 `failedReason`；
+   - 其余（还在 wait/active/delayed）→ 不动。
+   两个必须注意的判定细节：① 该队列 `ping()` 成功才查 —— bun-queue 的 `getJob` 内部吞异常返回 `null`，
+   不先 ping 会把 Redis 抖动误判成「job 不存在」；② **不能只看 `finishedOn`** —— `moveToFailed` 无论
+   后面重不重试都会写它，光凭它会误伤正在 delayed 等下一轮重试的任务；
+   ③ 是否进过 DLQ 要查 DLQ 自己的 key（`<prefix>:<queue>-dead-letter:<id>`），因为 bun-queue 只把 job
+   移出 `failed` 列表、原 job key 仍在。标错会让管理端的「重放」按钮消失。
+3. **上个进程的内联行**：`inline:` 行不在 Redis 里，但走到对账就说明「本进程有 Worker」（对账只由
+   `startQueueWorkers` 触发）而内联执行只发生在没有 Worker 的进程 —— 两者不可能同时成立，所以这些
+   一定是上个进程的遗留（本地 dev 连的就是生产库），单独标 `interrupted` 并给出如实的错误文案。
+
+`cron:` 前缀的行直接跳过：repeatable job 的实体在 scheduler zset 里、没有普通 job key，按「查不到」判定必然误伤。
+整步失败只告警，不拦启动（对账不是关键路径）。
+
+### 11.5 配套：分派表统一
+
+原来的 `runMeiliHandler` / `runVndbHandler` / `runKungalHandler` / `runCloudreveHandler` 各自 `switch` + `default throw`，
+与 `QUEUE_TASKS` 白名单是**两份并行真相**：白名单新增类型时漏写 case 照样编译通过，运行时才炸成
+`未知的 xxx 任务类型`（生产上真出过一次 dead-letter）。现在合并为单一 `TASK_HANDLERS`，
+用 `satisfies Record<TaskPayload["type"], TaskHandler>` 让类型系统兜住穷尽性。
+
+运行时仍保留一层兜底（payload 来自 Redis/DB，可能是旧镜像写入的历史类型），错误文案经
+`taskFamilyOf()` 还原成 `未知的 <族> 任务类型: <type>` —— 这四条串是线上日志的检索锚点，合并后不能丢。
 
