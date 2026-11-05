@@ -16,7 +16,7 @@ const FALLBACK_IMAGE_HEIGHT = 533;
 
 /** 卡片徽章：封面颜色不可控，统一近实底 + 发丝边，保证任何底图上都可读 */
 const badgeClass =
-	"h-5 rounded-lg bg-background/95 ring-1 ring-border/70 shadow-sm backdrop-blur-sm pointer-events-none";
+	"h-5 rounded-lg bg-background/95 ring-1 ring-border/70 shadow-sm backdrop-blur-sm pointer-events-none max-sm:h-4 max-sm:px-1.5 max-sm:text-[10px]";
 
 /**
  * 角色卡片：竖版封面 + 姓名（副标拉丁名）+ 身份/剧透徽章。

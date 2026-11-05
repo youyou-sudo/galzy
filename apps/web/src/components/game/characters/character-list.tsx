@@ -4,9 +4,12 @@ import { Users } from "lucide-react";
 import { CharacterCard } from "./character-card";
 import { type CharacterView, groupCharacters } from "./character-types";
 
-/** 与系列页签同一套栅格断点，卡片密度一致 */
+/**
+ * 角色卡比系列卡再小一档：角色封面是 3:4 竖版、名字短，
+ * 同一行能放更多；手机端也从 2 列提到 3 列。
+ */
 const gridClass =
-	"grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6";
+	"grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-4 sm:gap-x-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7";
 
 /**
  * 角色列表：按身份分组（主要 / 次要 / 登场 / 其他），每组一张章节标题 + 卡片栅格。
