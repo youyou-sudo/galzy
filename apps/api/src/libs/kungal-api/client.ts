@@ -15,7 +15,6 @@ import type {
 } from './types'
 
 const BASE = 'https://api.nextmoe.dev/v2'
-const KEY = process.env.KUNGALAPI_KEY
 
 /** refs= 批量通道上限（≤100/次）。 */
 const REFS_BATCH = 100
@@ -45,11 +44,42 @@ class RateLimiter {
 
 const limiter = new RateLimiter()
 
+/**
+ * 读取 kungal v2 应用密钥（每次调用现读，不在模块加载期快照）。
+ *
+ * 为什么不在模块顶层 `const KEY = process.env.KUNGALAPI_KEY`：
+ * ① 那是加载期快照 —— 进程起来之后再设置/替换 env（测试替身、配置热读、
+ *    部署注入顺序不同）一律读不到，只能重启进程；
+ * ② 本项目真出现过 .env 里 KUNGALAPI_KEY 写两行（旧的 nm_ 前缀 v1 废钥 +
+ *    新的 nmk_ 前缀 v2 钥）。快照写法把「用哪一行」完全交给加载器「后者
+ *    覆盖前者」的实现细节，顺序一变就静默用上废钥，症状是整轮同步 401、
+ *    而配置看起来「明明写了」。
+ *
+ * 规范化：去包裹引号、去首尾空白与换行（复制粘贴常带）、按空白/逗号拆多值
+ * 后优先取 v2 密钥（nmk_ 前缀），没有候选就取第一个非空值。
+ * 不合格返回 null，由调用方抛带指引的错。
+ */
+function readKey(): string | null {
+  const raw = process.env.KUNGALAPI_KEY
+  if (typeof raw !== 'string') return null
+  const tokens = raw
+    .split(/[\s,]+/)
+    .map((token) => token.replace(/^["']+|["']+$/g, '').trim())
+    .filter((token) => token.length > 0)
+  if (tokens.length === 0) return null
+  // 多值并存时优先 v2 前缀：v1 的 nm_ 废钥在 /v2 上直接 401（见 .env 历史）。
+  return tokens.find((token) => token.startsWith('nmk_')) ?? tokens[0]
+}
+
 function authHeaders(): Record<string, string> {
-  if (!KEY) {
-    throw new Error('KUNGALAPI_KEY 未配置（apps/api/.env）')
+  const key = readKey()
+  if (!key) {
+    throw new Error(
+      'KUNGALAPI_KEY 未配置或为空：请在 apps/api/.env 配置 v2 应用密钥（nmk_ 前缀，' +
+        '门户 developer.nextmoe.dev/dashboard 自助铸造），并删除旧的 nm_ 前缀 v1 密钥',
+    )
   }
-  return { Authorization: `Bearer ${KEY}` }
+  return { Authorization: `Bearer ${key}` }
 }
 
 /** RFC 9457 业务错误：携带 HTTP status 与顶层错误 code，不参与网络重试。 */
