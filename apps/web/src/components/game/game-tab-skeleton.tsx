@@ -2,7 +2,7 @@ import { CommentThreadSkeleton } from "@web/components/cmments/comment-skeleton"
 import { GameCard } from "@web/components/home/card";
 import { SectionHeader } from "@web/components/shared/section-header";
 import { Skeleton } from "@web/components/ui/skeleton";
-import { Route, TrendingUp, Users } from "lucide-react";
+import { Route, TrendingUp } from "lucide-react";
 
 /** 详情页六个页签：各自内容形状不同，加载态不能再共用一个通用骨架 */
 export type GameTabKey =
@@ -78,20 +78,27 @@ function TranslateTabSkeleton() {
 	);
 }
 
-/** 详情（角色）页签：与真实角色栅格相同断点 + 竖版卡片 + 两行姓名 */
+/**
+ * 详情（角色）页签：与真实角色栅格相同断点 + 竖版卡片 + 两行姓名。
+ * 真实列表是扁平栅格（身份靠卡片左上角徽章表达），骨架同样不放分组标题，
+ * 只在封面上放一枚徽章底片。
+ */
 function CharactersTabSkeleton() {
 	return (
-		<div aria-hidden>
-			<SectionHeader icon={Users} title="主要角色" />
-			<div className="grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-4 sm:gap-x-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
-				{Array.from({ length: 8 }, (_, i) => (
-					<div key={i} className="flex flex-col gap-2">
+		<div
+			aria-hidden
+			className="grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-4 sm:gap-x-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7"
+		>
+			{Array.from({ length: 12 }, (_, i) => (
+				<div key={i} className="flex flex-col gap-2">
+					<div className="relative">
 						<Skeleton className="w-full rounded-xl aspect-[3/4]" />
-						<Skeleton className="w-2/3 h-4" />
-						<Skeleton className="w-1/2 h-3" />
+						<Skeleton className="absolute top-1.5 left-1.5 w-8 h-4 rounded-md" />
 					</div>
-				))}
-			</div>
+					<Skeleton className="w-2/3 h-4" />
+					<Skeleton className="w-1/2 h-3" />
+				</div>
+			))}
 		</div>
 	);
 }

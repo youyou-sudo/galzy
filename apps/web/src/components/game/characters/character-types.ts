@@ -66,14 +66,15 @@ export type CharacterInfoView = CharacterView & {
 	appearances?: CharacterAppearanceView[] | null;
 };
 
-/** 分组标题与顺序：主要 → 次要 → 登场 → 其他 */
+/**
+ * 身份徽章文案：名册只有 main / secondary / appears 三档，
+ * 展示上收敛成两档「主角 / 配角」—— 不再按身份拆分组标题。
+ */
 export const CHARACTER_ROLE_LABELS: Record<CharacterRole, string> = {
-	main: "主要角色",
-	secondary: "次要角色",
-	appears: "登场角色",
+	main: "主角",
+	secondary: "配角",
+	appears: "配角",
 };
-
-const OTHER_ROLE_LABEL = "其他角色";
 
 const SPOILER_LABELS: Record<CharacterSpoiler, string> = {
 	none: "",
@@ -270,32 +271,6 @@ export function toCharacterInfoView(value: unknown): CharacterInfoView | null {
 		.map(toAppearanceView)
 		.filter((item): item is CharacterAppearanceView => item !== null);
 	return { ...character, appearances };
-}
-
-export type CharacterGroup = {
-	key: CharacterRole | "other";
-	label: string;
-	characters: CharacterView[];
-};
-
-/** 按身份分组：主要/次要/登场固定顺序，未知身份收在末尾的「其他角色」 */
-export function groupCharacters(list: CharacterView[]): CharacterGroup[] {
-	const groups: CharacterGroup[] = [];
-	for (const role of CHARACTER_ROLES) {
-		const characters = list.filter((item) => item.rosterRole === role);
-		if (characters.length > 0) {
-			groups.push({
-				key: role,
-				label: CHARACTER_ROLE_LABELS[role],
-				characters,
-			});
-		}
-	}
-	const others = list.filter((item) => item.rosterRole === null);
-	if (others.length > 0) {
-		groups.push({ key: "other", label: OTHER_ROLE_LABEL, characters: others });
-	}
-	return groups;
 }
 
 /** 卡片上的身份徽章文案：未知身份不显示 */

@@ -4,7 +4,6 @@ import {
 	formatBloodType,
 	formatGender,
 	formatMeasurements,
-	groupCharacters,
 	readCharacterList,
 	roleLabelOf,
 	spoilerLabelOf,
@@ -44,7 +43,9 @@ describe("角色展示格式化", () => {
 	});
 
 	it("身份与剧透徽章文案", () => {
-		expect(roleLabelOf("main")).toBe("主要角色");
+		expect(roleLabelOf("main")).toBe("主角");
+		expect(roleLabelOf("secondary")).toBe("配角");
+		expect(roleLabelOf("appears")).toBe("配角");
 		expect(roleLabelOf(null)).toBe("");
 		expect(spoilerLabelOf("minor")).toBe("剧透");
 		expect(spoilerLabelOf("none")).toBe("");
@@ -146,25 +147,5 @@ describe("DTO 归一化", () => {
 				spoiler: "none",
 			},
 		]);
-	});
-});
-
-describe("分组", () => {
-	it("按 主要/次要/登场/其他 顺序输出，空组不出现", () => {
-		const list = readCharacterList({
-			characters: [
-				{ id: "1", name: "A", rosterRole: "appears" },
-				{ id: "2", name: "B", rosterRole: "main" },
-				{ id: "3", name: "C", rosterRole: "unknown" },
-				{ id: "4", name: "D", rosterRole: "main" },
-			],
-		});
-		const groups = groupCharacters(list);
-		expect(groups.map((group) => group.label)).toEqual([
-			"主要角色",
-			"登场角色",
-			"其他角色",
-		]);
-		expect(groups[0]?.characters.map((item) => item.id)).toEqual(["2", "4"]);
 	});
 });

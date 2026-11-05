@@ -14,7 +14,7 @@ type GameSeoSource = {
 /** 与其它页签同源：标题取作品名，description 换成角色页的说明 */
 function gameDescription(game: GameSeoSource | undefined) {
 	const title = gameTitleOf(game);
-	return `${title} 角色详情，收录该作品的主要角色、次要角色与登场角色介绍。`;
+	return `${title} 角色详情，收录该作品的主角、配角与剧透角色介绍。`;
 }
 
 /**
