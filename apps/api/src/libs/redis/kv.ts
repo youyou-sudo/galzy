@@ -88,6 +88,24 @@ const LOCK_RELEASE_SCRIPT_SHA1 = createHash('sha1')
   .digest('hex')
 
 // ============================================================
+// Lua script: atomically extend a lock TTL only if value matches
+// ============================================================
+
+// PEXPIRE 而不是 EXPIRE：与 acquireLockKv 一样按毫秒传 TTL，少一次单位换算。
+const LOCK_RENEW_SCRIPT = `
+if redis.call("get", KEYS[1]) == ARGV[1]
+then
+  return redis.call("pexpire", KEYS[1], ARGV[2])
+else
+  return 0
+end
+`
+
+const LOCK_RENEW_SCRIPT_SHA1 = createHash('sha1')
+  .update(LOCK_RENEW_SCRIPT)
+  .digest('hex')
+
+// ============================================================
 // KV operations
 // ============================================================
 
@@ -251,6 +269,77 @@ export const releaseLockKv = async (key: string, value: string) => {
     false,
     `releaseLockKv(${key})`,
   )
+}
+
+/**
+ * 续期分布式锁（compare-and-extend）。
+ *
+ * 长任务的锁 TTL 只能给有限值（给一天就等于永不过期，进程被 kill 后要等一天才
+ * 有人能接手），所以必须由持有者周期性续期：进程活着就不断把过期时间往后推，
+ * 进程一死 TTL 自然到期、别的进程能立刻接手。
+ *
+ * 与 releaseLockKv 同样的 GET==value 前置：锁已经被别人抢走（自己上一次续期前
+ * 刚好过期）时绝不能替新持有者续命，否则两把锁会同时「有效」。
+ *
+ * @returns true = 续期成功或 Redis 禁用（dev 单实例无需续期）；false = 锁已不归自己
+ */
+export const renewLockKv = async (
+  key: string,
+  value: string,
+  ttlMs: number,
+) => {
+  // 开发模式 Redis 不生效：acquireLockKv 根本没写键，这里没有可续的对象，
+  // 返回 true 让调用方按「仍在持有」继续跑。
+  if (!isRedisEnabled) return true
+  return safeRedisOp(
+    async (client) => {
+      const send = async (script: string, argv: string[]) => {
+        const result = await client.send(script, argv)
+        return result === 1 || result === 1n
+      }
+      const ttl = ttlMs.toString()
+      try {
+        const ok = await send('EVALSHA', [
+          LOCK_RENEW_SCRIPT_SHA1,
+          '1',
+          key,
+          value,
+          ttl,
+        ])
+        redisLog.debug(`[Redis] renewLockKv(${key}) ${ok ? 'renewed' : 'noop'}`)
+        return ok
+      } catch (innerErr: any) {
+        if (!String(innerErr).includes('NOSCRIPT')) throw innerErr
+        // 脚本没缓存在这个节点上（新节点 / Redis 重启过），回退 EVAL
+        const ok = await send('EVAL', [LOCK_RENEW_SCRIPT, '1', key, value, ttl])
+        redisLog.debug(`[Redis] renewLockKv(${key}) ${ok ? 'renewed' : 'noop'}`)
+        return ok
+      }
+    },
+    // 续期失败绝不抛错打断业务：降级成 false，调用方只 warn。
+    false,
+    'renewLockKv(' + key + ')',
+  )
+}
+
+/**
+ * 锁当前是否仍被某个进程持有（只判存在性，不比对值）。
+ *
+ * 用于区分「同步进程还活着、正在跑」与「进程已被 kill、但锁还没到 TTL」。
+ *
+ * 返回值刻意是三态：null = 查询失败（Redis 不可达）。调用方必须把 null 当成
+ *「不知道」而放弃判断，不能像 safeRedisOp 那样降级成 false ——「所有锁都查不到」
+ * 会被对账逻辑解读成「没有任何进程在跑」，进而把正在跑的同步误标成失败。
+ * Redis 禁用时返回 false（dev 下 acquireLockKv 根本不写键，不存在锁的概念）。
+ */
+export const isLockHeldKv = async (key: string): Promise<boolean | null> => {
+  if (!isRedisEnabled) return false
+  try {
+    return Number(await getRedisClient().exists(key)) > 0
+  } catch (err) {
+    redisLog.warn('[Redis] isLockHeldKv(' + key + ') failed:', err)
+    return null
+  }
 }
 
 /**

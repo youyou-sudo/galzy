@@ -31,7 +31,13 @@ import {
   parseRefs,
   refsToAliasPairs,
 } from '@api/libs/kungal-api'
-import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
+import {
+  acquireLockKv,
+  isLockHeldKv,
+  isRedisEnabled,
+  releaseLockKv,
+  renewLockKv,
+} from '@api/libs/redis'
 import { CronService } from '@api/modules/cron/service'
 import { and, eq, inArray, isNotNull, isNull, notInArray } from 'drizzle-orm'
 
@@ -58,6 +64,250 @@ const DELTA_WALKTHROUGH_BACKFILL = 200
  */
 function jsonbTextOrNull(value: unknown): unknown {
   return value === null || value === undefined ? null : jsonbArray(value)
+}
+
+/**
+ * 全量 / 角色 / 攻略阶段的锁 TTL 基数。
+ *
+ * 不是「任务最长耗时」而是「心跳续期的兜底」：进程活着时 withSyncLock 每 60s
+ * 续一次，跑十几小时也不会掉；进程被 kill 后最长等这一个 TTL 就能有人接手。
+ */
+const LOCK_TTL_LONG_MS = 3600_000
+/** 增量同步锁 TTL 基数：只处理新条目，正常几分钟内结束。 */
+const LOCK_TTL_DELTA_MS = 600_000
+
+/** 四个同步锁键（withSyncLock 的 lockKey 全集，对账要逐个查是否还有持有者）。 */
+const SYNC_LOCK_KEYS = [
+  'kungal-sync-full',
+  'kungal-sync-delta',
+  'kungal-sync-characters',
+  'kungal-sync-walkthroughs',
+] as const
+
+/**
+ * 进度「假运行中」的判定阈值：lastUpdated 比这更旧，才认为写进度的进程不在了。
+ *
+ * 宁可判晚不判早：同步过程中也有几十秒不写进度的时段（一批作品要跑 30s–8min），
+ * 判早了会把正在跑的同步误标成 failed。
+ */
+const STALE_PROGRESS_MS = 120_000
+
+/**
+ * 带分布式锁跑一轮同步。
+ *
+ * 四个入口（full / delta / characters / walkthroughs）原本各自抄了一份
+ *「取锁 → try → catch 收尾 failed → finally 放锁」，任何一处漏掉 finally 都会
+ * 让锁挂到 TTL 过期；收敛成一处后，锁的生命周期只在这里维护。
+ *
+ * 锁被占用时返回 undefined 而不是抛错：这是既有契约 —— 队列 worker 把抛错当
+ * 任务失败并重试，而「已有一轮在跑」是正常情况（管理端连点、定时任务撞车）。
+ *
+ * options.failureLog 非空时才会做失败收尾（full/delta 原本就没有这一段：
+ * 它们失败时由 runSync 自己在进度里收尾）。
+ */
+async function withSyncLock(
+  lockKey: string,
+  ttlMs: number,
+  run: () => Promise<void>,
+  options?: { failureLog?: string },
+): Promise<void> {
+  const lockVal = crypto.randomUUID()
+  if (!(await acquireLockKv(lockKey, lockVal, ttlMs))) {
+    // 锁被占用是「已有一轮在跑」而不是失败（见上面的契约），但必须留下痕迹：
+    // 队列任务会显示成功，没有日志的话运维分不清「跑完了」和「根本没跑」。
+    const message = `${lockKey} 仍被占用，本轮跳过（可能已有同步在跑）`
+    console.log(`⚠️ Kungal ${message}`)
+    await KungalSync.addLog('info', message)
+    return
+  }
+  // 心跳续期：TTL 只是「进程死后多久能接手」的上限，不等于任务最长耗时。
+  // 按 TTL/3 续（1h → 20min、10min → 200s），比固定 60s 更贴合各入口的实际
+  // 预算，也不会对短任务白跑一堆定时器。
+  // unref() 让续期定时器不阻止进程退出：CLI 脚本跑完就该能直接结束。
+  const heartbeat = setInterval(
+    () => {
+      void renewLockKv(lockKey, lockVal, ttlMs).then((ok) => {
+        // 续期失败只 warn：锁丢了顶多是下一次同步可能撞车，但绝不能因此打断
+        // 已经在跑的同步（它可能已经写了半张表）。
+        if (!ok && isRedisEnabled) {
+          console.warn(
+            `⚠️ Kungal ${lockKey} 续期失败：锁已不归本进程，另一轮同步可能已开始`,
+          )
+        }
+      })
+    },
+    Math.floor(ttlMs / 3),
+  )
+  heartbeat.unref?.()
+  try {
+    await run()
+  } catch (err) {
+    if (options?.failureLog) {
+      // 整体失败（kungal 不可达 / DB 连不上）：把进度收尾成 failed，
+      // 否则管理页会一直停在「运行中」。
+      await KungalSync.updateProgress({
+        status: 'failed',
+        stage: null,
+        completedAt: new Date().toISOString(),
+      })
+      await KungalSync.addLog(
+        'error',
+        `${options.failureLog}: ${err instanceof Error ? err.message : String(err)}`,
+      )
+    }
+    throw err
+  } finally {
+    // 先停心跳再放锁：反过来的话，放锁后到 clearInterval 之间还会续一次，
+    // 那次 GET==val 已经失败（键已删），只会白打一条 warn。
+    clearInterval(heartbeat)
+    await releaseLockKv(lockKey, lockVal)
+  }
+}
+
+/** 角色 / 攻略两个「附加数据阶段」的差异点（其余收尾逻辑完全同构）。 */
+interface StageSpec {
+  stage: 'characters' | 'walkthroughs'
+  /** 进度里的 type 值（standalone 轮次用它标识「只跑这个阶段」）。 */
+  type: 'characters' | 'walkthroughs'
+  /**
+   * 中文日志前缀，'角色' / '攻略'。**不要改动**：运维按日志字符串 grep
+   * （`角色阶段完成` / ✅ Kungal 攻略阶段完成 都是被脚本消费的）。
+   */
+  label: string
+  /** 阶段开始时清零的计数（各阶段字段不同，故由 spec 提供）。 */
+  reset: (total: number) => Partial<KungalSyncProgress>
+}
+
+const CHARACTER_STAGE: StageSpec = {
+  stage: 'characters',
+  type: 'characters',
+  label: '角色',
+  reset: (total) => ({
+    characterTotal: total,
+    charactersUpserted: 0,
+    appearancesUpserted: 0,
+  }),
+}
+
+const WALKTHROUGH_STAGE: StageSpec = {
+  stage: 'walkthroughs',
+  type: 'walkthroughs',
+  label: '攻略',
+  reset: (total) => ({
+    walkthroughTotal: total,
+    walkthroughsUpserted: 0,
+    walkthroughDetails: 0,
+    walkthroughsRemoved: 0,
+  }),
+}
+
+/**
+ * 阶段开始时的进度重置。
+ *
+ * standalone（管理端单独触发该阶段）时顺便把整轮状态改成 running 并清零
+ * errors；作为 full/delta 的一环时只写阶段字段，不能覆盖外层正在跑的状态。
+ */
+async function beginStage(
+  spec: StageSpec,
+  standalone: boolean,
+  total: number,
+): Promise<void> {
+  await KungalSync.updateProgress({
+    ...(standalone
+      ? {
+          status: 'running' as const,
+          type: spec.type,
+          startedAt: new Date().toISOString(),
+          completedAt: null,
+          errors: 0,
+        }
+      : {}),
+    stage: spec.stage,
+    ...spec.reset(total),
+  })
+  await KungalSync.addLog('info', `${spec.label}阶段开始: ${total} 个作品`)
+}
+
+/**
+ * 没有待同步作品时的收尾。
+ *
+ * standalone 必须显式写 completed：锁已经释放，不会再有别的代码改这份进度，
+ * 不写就会让管理页永远停在「运行中」。
+ */
+async function finishStageWithoutTargets(
+  spec: StageSpec,
+  standalone: boolean,
+): Promise<void> {
+  if (standalone) {
+    await KungalSync.updateProgress({
+      status: 'completed',
+      type: spec.type,
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      stage: null,
+    })
+  }
+  await KungalSync.addLog('info', `${spec.label}同步: 没有待同步的作品`)
+}
+
+/**
+ * 阶段收尾：累计失败数、落最终计数、standalone 时收尾成 completed、打两条
+ * 完成日志（addLog 进进度面板，console 进容器日志）。
+ *
+ * summary 由调用方拼（各阶段的计数项不同），但前缀固定是「X阶段完成: 」，
+ * console 那行统一加 ✅ Kungal 前缀，保持运维 grep 的字符串不变。
+ */
+async function finishStage(
+  standalone: boolean,
+  stageErrors: number,
+  counts: Partial<KungalSyncProgress>,
+  summary: string,
+): Promise<void> {
+  // 失败数并入整轮 errors（standalone 时开头已重置为 0）
+  const current = await KungalSync.getProgress()
+  await KungalSync.updateProgress({
+    errors: (current.errors ?? 0) + stageErrors,
+    ...counts,
+    ...(standalone
+      ? {
+          status: 'completed' as const,
+          completedAt: new Date().toISOString(),
+          stage: null,
+        }
+      : {}),
+  })
+  await KungalSync.addLog(stageErrors > 0 ? 'error' : 'success', summary)
+  console.log(`✅ Kungal ${summary}`)
+}
+
+/**
+ * 一批作品并发拉子资源（名册 / 攻略列表）。
+ *
+ * 用 allSettled 而不是 all：一个作品 404 或超时就该只丢它自己，不能把同批另外
+ * 九个作品一起丢掉。失败作品整条不出现在返回值里，由下一轮同步补。
+ */
+async function fetchWorkRowsInBatch<T>(
+  batch: Array<{ id: string }>,
+  fetchRows: (workId: string) => Promise<T[]>,
+  onFailure: () => void,
+  failureLabel: string,
+): Promise<Array<{ workId: string; rows: T[] }>> {
+  const settled = await Promise.allSettled(
+    batch.map(async (work) => ({
+      workId: work.id,
+      rows: await fetchRows(work.id),
+    })),
+  )
+  const out: Array<{ workId: string; rows: T[] }> = []
+  for (const item of settled) {
+    if (item.status === 'fulfilled') {
+      out.push(item.value)
+    } else {
+      onFailure()
+      console.error(`❌ Kungal ${failureLabel}拉取失败:`, item.reason)
+    }
+  }
+  return out
 }
 
 let _progressCache: KungalSyncProgress | null = null
@@ -154,25 +404,17 @@ interface RedirectStats {
 
 export const KungalSync = {
   async syncFull(onProgress?: (processed: number, total: number) => void) {
-    const lockKey = 'kungal-sync-full'
-    const lockVal = crypto.randomUUID()
-    if (!(await acquireLockKv(lockKey, lockVal, 3600_000))) return
-    try {
+    // 失败收尾由 runSync 自己在进度里写（它能区分「解析失败」与「落库失败」），
+    // 这里只负责锁：不要给 withSyncLock 传 failureLog，否则会覆盖更细的进度。
+    await withSyncLock('kungal-sync-full', LOCK_TTL_LONG_MS, async () => {
       await this.runSync('full', onProgress)
-    } finally {
-      await releaseLockKv(lockKey, lockVal)
-    }
+    })
   },
 
   async syncDelta(onProgress?: (processed: number, total: number) => void) {
-    const lockKey = 'kungal-sync-delta'
-    const lockVal = crypto.randomUUID()
-    if (!(await acquireLockKv(lockKey, lockVal, 600_000))) return
-    try {
+    await withSyncLock('kungal-sync-delta', LOCK_TTL_DELTA_MS, async () => {
       await this.runSync('delta', onProgress)
-    } finally {
-      await releaseLockKv(lockKey, lockVal)
-    }
+    })
   },
 
   /**
@@ -183,27 +425,16 @@ export const KungalSync = {
   async syncCharacters(
     onProgress?: (processed: number, total: number) => void,
   ) {
-    const lockKey = 'kungal-sync-characters'
-    const lockVal = crypto.randomUUID()
-    if (!(await acquireLockKv(lockKey, lockVal, 3600_000))) return
-    try {
-      await this.runCharacterStage({ standalone: true }, onProgress)
-    } catch (err) {
-      // 整体失败（kungal 不可达 / DB 连不上）：把进度收尾成 failed，
-      // 否则管理页会一直停在「运行中」。
-      await this.updateProgress({
-        status: 'failed',
-        stage: null,
-        completedAt: new Date().toISOString(),
-      })
-      await this.addLog(
-        'error',
-        `角色同步失败: ${err instanceof Error ? err.message : String(err)}`,
-      )
-      throw err
-    } finally {
-      await releaseLockKv(lockKey, lockVal)
-    }
+    await withSyncLock(
+      'kungal-sync-characters',
+      LOCK_TTL_LONG_MS,
+      async () => {
+        await this.runCharacterStage({ standalone: true }, onProgress)
+      },
+      // 整体失败（kungal 不可达 / DB 连不上 / 写库失败）必须把进度收尾成
+      // failed，否则管理页永远停在「运行中」。
+      { failureLog: '角色同步失败' },
+    )
   },
 
   /**
@@ -216,27 +447,14 @@ export const KungalSync = {
   async syncWalkthroughs(
     onProgress?: (processed: number, total: number) => void,
   ) {
-    const lockKey = 'kungal-sync-walkthroughs'
-    const lockVal = crypto.randomUUID()
-    if (!(await acquireLockKv(lockKey, lockVal, 3600_000))) return
-    try {
-      await this.runWalkthroughStage({ standalone: true }, onProgress)
-    } catch (err) {
-      // 整体失败（kungal 不可达 / DB 连不上）：收尾成 failed，
-      // 否则管理页会一直停在「运行中」。
-      await this.updateProgress({
-        status: 'failed',
-        stage: null,
-        completedAt: new Date().toISOString(),
-      })
-      await this.addLog(
-        'error',
-        `攻略同步失败: ${err instanceof Error ? err.message : String(err)}`,
-      )
-      throw err
-    } finally {
-      await releaseLockKv(lockKey, lockVal)
-    }
+    await withSyncLock(
+      'kungal-sync-walkthroughs',
+      LOCK_TTL_LONG_MS,
+      async () => {
+        await this.runWalkthroughStage({ standalone: true }, onProgress)
+      },
+      { failureLog: '攻略同步失败' },
+    )
   },
 
   /**
@@ -254,36 +472,12 @@ export const KungalSync = {
     onProgress?: (processed: number, total: number) => void,
   ) {
     const targets = await this.getCharacterTargets(options?.workIds)
+    const standalone = options?.standalone === true
     if (targets.length === 0) {
-      if (options?.standalone) {
-        await this.updateProgress({
-          status: 'completed',
-          type: 'characters',
-          startedAt: new Date().toISOString(),
-          completedAt: new Date().toISOString(),
-          stage: null,
-        })
-      }
-      await this.addLog('info', '角色同步: 没有待同步的作品')
+      await finishStageWithoutTargets(CHARACTER_STAGE, standalone)
       return
     }
-
-    await this.updateProgress({
-      ...(options?.standalone
-        ? {
-            status: 'running' as const,
-            type: 'characters' as const,
-            startedAt: new Date().toISOString(),
-            completedAt: null,
-            errors: 0,
-          }
-        : {}),
-      stage: 'characters',
-      characterTotal: targets.length,
-      charactersUpserted: 0,
-      appearancesUpserted: 0,
-    })
-    await this.addLog('info', `角色阶段开始: ${targets.length} 个作品`)
+    await beginStage(CHARACTER_STAGE, standalone, targets.length)
 
     let charactersUpserted = 0
     let appearancesUpserted = 0
@@ -293,25 +487,13 @@ export const KungalSync = {
     for (let i = 0; i < targets.length; i += CHARACTER_WORK_BATCH) {
       const batch = targets.slice(i, i + CHARACTER_WORK_BATCH)
       try {
-        // 1) 名册：每作品游标翻页。用 allSettled 而不是 all —— 一个作品
-        //    404/超时不该把同批另外 9 个作品一起丢掉。
-        const settled = await Promise.allSettled(
-          batch.map(async (work) => ({
-            workId: work.id,
-            rows: await KungalClient.fetchWorkCharacters(work.id),
-          })),
+        // 1) 名册：每作品游标翻页（单作品失败只丢它自己，见 fetchWorkRowsInBatch）
+        const rosters = await fetchWorkRowsInBatch<KungalWorkCharacter>(
+          batch,
+          (workId) => KungalClient.fetchWorkCharacters(workId),
+          () => characterErrors++,
+          '角色名册',
         )
-        const rosters: Array<{
-          workId: string
-          rows: KungalWorkCharacter[]
-        }> = []
-        for (const item of settled) {
-          if (item.status === 'fulfilled') rosters.push(item.value)
-          else {
-            characterErrors++
-            console.error('❌ Kungal 角色名册拉取失败:', item.reason)
-          }
-        }
         if (rosters.length === 0) continue
 
         // 2) 名册里的 character id 去重后走 ids= 水合（≤100/次）
@@ -483,26 +665,11 @@ export const KungalSync = {
       )
     }
 
-    // 角色阶段的失败数并入整轮 errors（standalone 时开头已重置为 0）
-    const current = await this.getProgress()
-    await this.updateProgress({
-      errors: (current.errors ?? 0) + characterErrors,
-      charactersUpserted,
-      appearancesUpserted,
-      ...(options?.standalone
-        ? {
-            status: 'completed' as const,
-            completedAt: new Date().toISOString(),
-            stage: null,
-          }
-        : {}),
-    })
-    await this.addLog(
-      characterErrors > 0 ? 'error' : 'success',
+    await finishStage(
+      standalone,
+      characterErrors,
+      { charactersUpserted, appearancesUpserted },
       `角色阶段完成: 作品 ${targets.length}, 角色 ${charactersUpserted}, 名册 ${appearancesUpserted}, 失败 ${characterErrors}`,
-    )
-    console.log(
-      `✅ Kungal 角色阶段完成: 作品 ${targets.length}, 角色 ${charactersUpserted}, 名册 ${appearancesUpserted}, 失败 ${characterErrors}`,
     )
   },
 
@@ -574,37 +741,12 @@ export const KungalSync = {
     onProgress?: (processed: number, total: number) => void,
   ) {
     const targets = await this.getSyncTargets(options?.workIds)
+    const standalone = options?.standalone === true
     if (targets.length === 0) {
-      if (options?.standalone) {
-        await this.updateProgress({
-          status: 'completed',
-          type: 'walkthroughs',
-          startedAt: new Date().toISOString(),
-          completedAt: new Date().toISOString(),
-          stage: null,
-        })
-      }
-      await this.addLog('info', '攻略同步: 没有待同步的作品')
+      await finishStageWithoutTargets(WALKTHROUGH_STAGE, standalone)
       return
     }
-
-    await this.updateProgress({
-      ...(options?.standalone
-        ? {
-            status: 'running' as const,
-            type: 'walkthroughs' as const,
-            startedAt: new Date().toISOString(),
-            completedAt: null,
-            errors: 0,
-          }
-        : {}),
-      stage: 'walkthroughs',
-      walkthroughTotal: targets.length,
-      walkthroughsUpserted: 0,
-      walkthroughDetails: 0,
-      walkthroughsRemoved: 0,
-    })
-    await this.addLog('info', `攻略阶段开始: ${targets.length} 个作品`)
+    await beginStage(WALKTHROUGH_STAGE, standalone, targets.length)
 
     let upserted = 0
     let details = 0
@@ -615,25 +757,13 @@ export const KungalSync = {
     for (let i = 0; i < targets.length; i += WALKTHROUGH_WORK_BATCH) {
       const batch = targets.slice(i, i + WALKTHROUGH_WORK_BATCH)
       try {
-        // 1) 每作品拉列表。用 allSettled 而不是 all —— 一个作品 404/超时不该
-        //    把同批另外 9 个作品一起丢掉。
-        const settled = await Promise.allSettled(
-          batch.map(async (work) => ({
-            workId: work.id,
-            rows: await KungalClient.fetchWorkWalkthroughs(work.id),
-          })),
+        // 1) 每作品拉列表（单作品失败只丢它自己，见 fetchWorkRowsInBatch）
+        const listings = await fetchWorkRowsInBatch<KungalWalkthrough>(
+          batch,
+          (workId) => KungalClient.fetchWorkWalkthroughs(workId),
+          () => walkthroughErrors++,
+          '攻略列表',
         )
-        const listings: Array<{
-          workId: string
-          rows: KungalWalkthrough[]
-        }> = []
-        for (const item of settled) {
-          if (item.status === 'fulfilled') listings.push(item.value)
-          else {
-            walkthroughErrors++
-            console.error('❌ Kungal 攻略列表拉取失败:', item.reason)
-          }
-        }
         if (listings.length === 0) continue
 
         // 2) 与本地比对，算出本批真正需要拉详情的 id：
@@ -832,27 +962,15 @@ export const KungalSync = {
       )
     }
 
-    // 失败数并入整轮 errors（standalone 时开头已重置为 0）
-    const current = await this.getProgress()
-    await this.updateProgress({
-      errors: (current.errors ?? 0) + walkthroughErrors,
-      walkthroughsUpserted: upserted,
-      walkthroughDetails: details,
-      walkthroughsRemoved: removed,
-      ...(options?.standalone
-        ? {
-            status: 'completed' as const,
-            completedAt: new Date().toISOString(),
-            stage: null,
-          }
-        : {}),
-    })
-    await this.addLog(
-      walkthroughErrors > 0 ? 'error' : 'success',
+    await finishStage(
+      standalone,
+      walkthroughErrors,
+      {
+        walkthroughsUpserted: upserted,
+        walkthroughDetails: details,
+        walkthroughsRemoved: removed,
+      },
       `攻略阶段完成: 作品 ${targets.length}, 攻略 ${upserted}, 详情 ${details}, 下线 ${removed}, 失败 ${walkthroughErrors}`,
-    )
-    console.log(
-      `✅ Kungal 攻略阶段完成: 作品 ${targets.length}, 攻略 ${upserted}, 详情 ${details}, 下线 ${removed}, 失败 ${walkthroughErrors}`,
     )
   },
 
@@ -1570,6 +1688,65 @@ export const KungalSync = {
         target: siteConfig.key,
         set: { config: updated as any },
       })
+  },
+
+  /**
+   * 收尾「假运行中」的进度记录：进程被 kill 后 status 会永远停在 running，
+   * 管理页就变成一个永远不会停的转圈。
+   *
+   * 判定要有两层，缺一不可：
+   * 1) lastUpdated 超过 STALE_PROGRESS_MS —— 一批 10 个作品要跑 30s–8min，
+   *    刚启动的进程还没写进度是正常的，用时间兜住这段静默期；
+   * 2) 四个同步锁一个都不存在 —— 只要有锁，就说明有进程正握着锁在跑，
+   *    哪怕它很久没写进度也不能判死（否则会把正在跑的长任务标成失败）。
+   * 顺序不能反：先看时间，再看锁，能省掉三次 Redis 往返。
+   *
+   * 只在「读进度」的 UI 路径上调用，不要放进 getProgress —— addLog/updateProgress
+   * 都会回调 getProgress，那会变成每次写进度都做一次对账（递归 + 写放大）。
+   *
+   * @returns 1 = 本次修好了一条；0 = 无需处理
+   */
+  async reconcileStaleProgress(): Promise<number> {
+    // dev 下 REDIS_ENABLED=false 时 acquireLockKv 是直接放行、根本没有锁键，
+    // 「锁不存在」不代表进程死了 —— 这种情况下无从判断，直接跳过。
+    if (!isRedisEnabled) return 0
+    const progress = await this.getProgress()
+    if (progress.status !== 'running') return 0
+    const lastUpdated = Date.parse(progress.lastUpdated)
+    const idleMs = Number.isNaN(lastUpdated)
+      ? Number.POSITIVE_INFINITY
+      : Date.now() - lastUpdated
+    if (idleMs < STALE_PROGRESS_MS) return 0
+    // 串行查四个锁：任何一个还在持有就说明真有进程在跑。
+    // 查询失败（null）同样返回 0：Redis 不可达时无法判断，宁可漏收尾一次，
+    // 也不能把仍在跑的同步误标成失败。
+    for (const lockKey of SYNC_LOCK_KEYS) {
+      const held = await isLockHeldKv(lockKey)
+      if (held === null || held) return 0
+    }
+    const message = '检测到上次同步进程已中断（无锁持有），已标记为失败'
+    await this.updateProgress({
+      status: 'failed',
+      stage: null,
+      completedAt: new Date().toISOString(),
+    })
+    await this.addLog('error', message)
+    console.log(`⚠️ Kungal ${message}`)
+    return 1
+  },
+
+  /**
+   * 管理端读进度专用：先对账再返回。
+   *
+   * 对账失败只 warn —— 收尾是锦上添花，不能因为它让管理页 500。
+   */
+  async getProgressForUi(): Promise<KungalSyncProgress> {
+    try {
+      await this.reconcileStaleProgress()
+    } catch (err) {
+      console.warn('⚠️ Kungal 进度对账失败（忽略，继续返回当前进度）:', err)
+    }
+    return await this.getProgress()
   },
 
   async getProgress(): Promise<KungalSyncProgress> {
