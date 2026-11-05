@@ -96,13 +96,24 @@ function percentOf(processed: number, total: number): number {
 }
 
 /**
+ * 日志器只需要「job id + 回写进度」两件事。
+ *
+ * 队列 Job 天然满足；进程内联执行（本地 dev 无 Worker）没有 Redis job，
+ * 只给 id 即可——这样两条执行路径共用同一套落库/进度逻辑，不用写第二份。
+ */
+type LogJobRef = {
+  id: string
+  updateProgress?: (percent: number) => Promise<void>
+}
+
+/**
  * 任务日志器：把执行日志写入 galrc_queue_job_log，进度同步双写
  * galrc_queue_job.progress 与 bun-queue 的 job.progress（Redis，供 stalled/DLQ 语义）。
  */
 export class JobLogger {
-  private readonly job: Job<TaskPayload>
+  private readonly job: LogJobRef
 
-  constructor(job: Job<TaskPayload>) {
+  constructor(job: LogJobRef) {
     this.job = job
   }
 
@@ -133,13 +144,17 @@ export class JobLogger {
   /** 更新进度（0-100）：同时落 galrc_queue_job.progress 与 Redis job.progress。 */
   async progress(percent: number) {
     const p = Math.max(0, Math.min(100, Math.round(percent)))
-    await Promise.all([
+    const writes: Promise<unknown>[] = [
       db
         .update(queueJob)
         .set({ progress: p })
         .where(eq(queueJob.id, this.job.id)),
-      this.job.updateProgress(p),
-    ])
+    ]
+    // 内联执行没有 Redis job：跳过进度回写，只留 PG。
+    if (this.job.updateProgress) {
+      writes.push(this.job.updateProgress(p))
+    }
+    await Promise.all(writes)
   }
 }
 
@@ -244,20 +259,309 @@ export const TaskLifecycle = {
     )
     return rows.length
   },
+  /**
+   * 回收「停摆在 queued」的僵尸行。
+   *
+   * 起因：生产库出现过 status=queued、started_at 有值、finished_at=null 的行。
+   * 这类行不归 reconcileInterrupted 管（它只看 running），Worker 也不会再碰它，
+   * 于是永远挂在「排队中」，管理页一直飘红。根因是终态事件偶发缺失，
+   * 已在 createWorker 里补了 dead-letter 兜底；对账这一步负责清理历史存量。
+   *
+   * 停摆有两种形态，必须都收：
+   * ① Redis 里根本查不到这条 job（key 被清理 / 从未真正入队）→ 标 interrupted；
+   * ② job 在 Redis 侧已经结束（finishedOn / failedReason 有值），但 PG 还停在
+   *    queued —— 就是终态事件丢了。生产库里 mw2cbfguibyno98h28 正是第 ② 类：
+   *    Redis 的 failed 列表里有它、failedReason 是「未知的 kungal 任务类型」，
+   *    而 PG 一直显示排队中。只判 getJob 返回 null 抓不到这一类，而它才是真实
+   *    出现过的那条，所以这里按 job 的实际结果补写终态（failed / completed）。
+   *
+   * Redis 不可用时整步跳过（对账不是关键路径，不能因此让启动失败）；
+   * cron 注册的 repeatable job 的 jobId 形如 `cron:xxx`，它本来就不在
+   * 普通 job key 里，必须跳过，否则每次重启都会把它们误标成 interrupted。
+   */
+  async reconcileQueuedZombies(): Promise<number> {
+    // 逐条 getJob 是一次 Redis 往返，排队行数不可控（历史上一次全量同步会留下几百条），
+    // 不设上限会把启动拖成分钟级。这里只处理最老的一段——僵尸本来就是老的，
+    // 剩下的留给下一次重启继续清（每轮都能推进，不会卡死）。
+    const rows = await db
+      .select({ id: queueJob.id, queue: queueJob.queue })
+      .from(queueJob)
+      .where(eq(queueJob.status, 'queued'))
+      .orderBy(asc(queueJob.createdAt))
+      .limit(QUEUED_RECONCILE_LIMIT)
+    if (rows.length === 0) return 0
+
+    // job key 不在了（未真正入队 / 被清理）：无从得知结果，只能标中断。
+    const orphanIds: string[] = []
+    const staleInlineIds: string[] = []
+    // 上个进程留下的内联行（见下方 inline 分支）：与上面分开写，
+    // 因为「排队记录在队列中不存在」这句话对它们不成立，错误文案要如实。
+    // job 在 Redis 侧已终结、PG 还停在 queued：按真实结果补写终态。
+    const finished: {
+      id: string
+      failedReason?: string
+      returnvalue: unknown
+      inDeadLetter: boolean
+    }[] = []
+    // 队列 → 是否可查（Redis 不可用/该队列 ping 不通时整队列跳过）。
+    const usable = new Map<string, boolean>()
+    for (const row of rows) {
+      // cron 任务没有普通 job key，按「Redis 查不到」判定必然误伤。
+      if (row.id.startsWith(CRON_JOB_PREFIX)) continue
+      // 内联任务也不在 Redis 里，但它的「没人接手」是确定的：对账只由
+      // startQueueWorkers 触发（生产），而内联执行只在没有 Worker 的进程里发生
+      // ——两件事不可能同时成立。所以走到这里的 inline 行一定是上个进程的遗留
+      // （本机 dev 的库就是生产库，遗留行会堆在管理页），直接回收。
+      if (row.id.startsWith(INLINE_JOB_PREFIX)) {
+        staleInlineIds.push(row.id)
+        continue
+      }
+      let ok = usable.get(row.queue)
+      if (ok === undefined) {
+        try {
+          ok = await queueOf(
+            row.queue as (typeof QUEUE)[keyof typeof QUEUE],
+          ).ping()
+        } catch {
+          ok = false
+        }
+        usable.set(row.queue, ok)
+      }
+      if (!ok) continue
+      try {
+        const queue = queueOf(row.queue as (typeof QUEUE)[keyof typeof QUEUE])
+        // bun-queue 的 getJob 内部吞掉异常返回 null，所以前面必须先 ping 成功，
+        // 否则 Redis 抖动会被误判成「job 不存在」，把正常排队任务标成中断。
+        const job = await queue.getJob(row.id)
+        if (!job) {
+          orphanIds.push(row.id)
+          continue
+        }
+        // 判定「已终结」必须自己重算一遍，不能只看 finishedOn —— bun-queue 的
+        // moveToFailed 无论后面重不重试都会写 finishedOn，光凭它会误伤正在
+        // delayed 里等下一轮重试的任务（PG 这时可能还没写回 running）。
+        // 这里复刻 Worker 的决策：重试耗尽 or 够 DLQ 阈值才算终结。
+        if (!job.finishedOn) continue
+        const attemptsMade = job.attemptsMade
+        // 与 bun-queue 一致用 || 而非 ??：attempts=0 它按 1 次处理（死信重放的
+        // job 就是 attempts=0，正因如此才会走完「不重试也不进 DLQ」的无事件分支）。
+        const maxAttempts = job.opts.attempts || 1
+        const dlqMax = queue.getDefaultDeadLetterOptions()?.maxRetries ?? 3
+        if (attemptsMade < maxAttempts && attemptsMade < dlqMax) continue
+        // 进过 DLQ 的要标 dead-letter 而不是 failed：管理端对两者的可操作项
+        // 不一样（dead-letter 才能重放），标错会让用户的「重试」按钮消失。
+        // DLQ 的 job 副本在独立 key 下，原 job key 仍在（bun-queue 只把它移出
+        // failed 列表），所以只能按 DLQ 的 key 是否存在来判定。
+        let inDeadLetter = false
+        try {
+          const dlqKey = `${QUEUE_PREFIX}:${queue.getDeadLetterQueue().getQueueName()}:${row.id}`
+          inDeadLetter = await (queue.redisClient.exists(
+            dlqKey,
+          ) as Promise<boolean>)
+        } catch {
+          // 判不出来就当普通 failed：宁可少标 dead-letter，也不要给出错误的重放入口。
+          inDeadLetter = false
+        }
+        finished.push({
+          id: row.id,
+          failedReason: job.failedReason,
+          returnvalue: job.returnvalue,
+          inDeadLetter,
+        })
+      } catch (e) {
+        console.warn(`[queue] 对账查询 job ${row.id} 失败（跳过）:`, e)
+      }
+    }
+
+    // 两类僵尸分开写：已经结束的那批要把 Redis 侧的真实结果带出来，
+    // 只标 interrupted 会丢掉失败原因（线上那条的 failedReason 就是排查线索）。
+    let repaired = 0
+    for (const { id, failedReason, returnvalue, inDeadLetter } of finished) {
+      try {
+        const suffix = '（Redis 侧已结束，启动对账补写终态）'
+        if (inDeadLetter) {
+          await TaskLifecycle.markDeadLetter(
+            id,
+            `${failedReason ?? '重试耗尽'}${suffix}`,
+          )
+        } else if (failedReason) {
+          await TaskLifecycle.markFailed(id, `${failedReason}${suffix}`)
+        } else {
+          await TaskLifecycle.markCompleted(id, returnvalue ?? null)
+        }
+        repaired += 1
+      } catch (e) {
+        console.warn(`[queue] 对账补写终态失败 ${id}（跳过）:`, e)
+      }
+    }
+
+    if (orphanIds.length > 0) {
+      await db
+        .update(queueJob)
+        .set({
+          status: 'interrupted',
+          finishedAt: new Date(),
+          error: '排队记录在队列中已不存在（启动对账清理僵尸行）',
+        })
+        .where(inArray(queueJob.id, orphanIds))
+      console.log(
+        `[queue] 启动对账: ${orphanIds.length} 个 queued 僵尸行标记为 interrupted`,
+      )
+    }
+    if (staleInlineIds.length > 0) {
+      await db
+        .update(queueJob)
+        .set({
+          status: 'interrupted',
+          finishedAt: new Date(),
+          error: '内联执行随进程退出而中断（非生产环境无 Worker，无需重排）',
+        })
+        .where(inArray(queueJob.id, staleInlineIds))
+      console.log(
+        `[queue] 启动对账: ${staleInlineIds.length} 个遗留内联行标记为 interrupted`,
+      )
+    }
+    if (repaired > 0) {
+      console.log(
+        `[queue] 启动对账: ${repaired} 个 queued 行按 Redis 终态补写（failed/completed）`,
+      )
+    }
+    return orphanIds.length + staleInlineIds.length + repaired
+  },
 }
 
-/** 入队：校验白名单 + 写 galrc_queue_job 记录 + 放入 bun-queue，返回 job.id。 */
+/** 单轮 queued 对账处理的最大行数（每行一次 Redis 往返，见 reconcileQueuedZombies）。 */
+const QUEUED_RECONCILE_LIMIT = 500
+
+/* ─────────────────── 进程内联执行（无消费方时的兜底） ─────────────────── */
+
+/**
+ * 本进程是否注册了队列 Worker。
+ *
+ * 关键场景：本机 dev 的 .env 里 REDIS_ENABLED=true、REDIS_URL 指向共享生产 Redis，
+ * 而 Worker 只在 NODE_ENV=production 启动（index.ts:119）。于是 enqueue 会把任务
+ * 推进生产队列，被线上旧镜像的 Worker 领走 → 它不认识新类型 → 重试 3 次进 DLQ，
+ * 用户侧表现是「点了没反应」。
+ *
+ * 所以入队前要先区分「有没有消费方」：没有就走进程内联执行，绝不把任务丢进
+ * 别人的队列。
+ */
+let workerRunning = false
+
+/** Worker 是否已在本进程启动（仅 startQueueWorkers 成功后置 true）。 */
+export function isWorkerRunning(): boolean {
+  return workerRunning
+}
+
+/**
+ * 能否在本进程内联执行任务。
+ *
+ * 生产环境即使没有 Worker（Redis 短暂不可用导致启动失败）也必须保持原语义
+ * （入队失败 → 明确报错），不能悄悄改成同步执行——线上没有队列消费链路，
+ * 就地跑全量同步会把 HTTP 拖死。故内联路径只对非生产环境开放。
+ */
+function canRunInline(): boolean {
+  return !workerRunning && process.env.NODE_ENV !== 'production'
+}
+
+/** 本进程正在跑的内联任务：type → jobId（同类型不重复启动）。 */
+const inlineJobs = new Map<string, string>()
+
+/**
+ * 内联执行的 job id 前缀。
+ *
+ * 刻意不用 cron: 前缀（对账逻辑据此跳过 repeatable job），
+ * 也不会与 bun-queue 的雪花 id 撞车；inline: 前缀让管理端一眼看出
+ * 「这条记录没有 Redis job，删了也不会留下孤儿」。
+ */
+const INLINE_JOB_PREFIX = 'inline:'
+
+/** 是否为内联任务的 job id（供删除/对账判断要不要碰 Redis）。 */
+export function isInlineJobId(jobId: string): boolean {
+  return jobId.startsWith(INLINE_JOB_PREFIX)
+}
+
+/**
+ * cron 注册的 repeatable job 的固定 id 前缀（见 startQueueWorkers 的 scheduleCron）。
+ * 这类 job 的实体在 scheduler zset 里、不在普通 job key 中，任何「按 job key
+ * 判断是否存在」的对账都必须跳过它们。
+ */
+export const CRON_JOB_PREFIX = 'cron:'
+
+/**
+ * 进内联执行：fire-and-forget。
+ *
+ * 只等一条 INSERT（写 queued 记录）就返回，重活由后台 void 跑——kungal/vndb 全量
+ * 要几十分钟，HTTP 等不起（Eden 会先超时）。代价是进程退出时未跑完的内联任务会中断，
+ * 行停在 running，由启动对账标成 interrupted，与队列任务的处理口径一致。
+ */
+async function runInline(queueName: string, payload: TaskPayload) {
+  const jobId = `${INLINE_JOB_PREFIX}${payload.type}:${Date.now()}`
+  inlineJobs.set(payload.type, jobId)
+
+  // 先落一条 queued 记录再返回：一次 INSERT 而已，换来「管理端立刻能看到这条任务」；
+  // 与队列路径（add 之后 await markQueued）保持同一顺序，失败也能同步暴露给调用方。
+  try {
+    await TaskLifecycle.markQueued(queueName, payload, jobId)
+  } catch (e) {
+    // 落库失败就别占着去重槽位，否则同类型再也起不来。
+    if (inlineJobs.get(payload.type) === jobId) inlineJobs.delete(payload.type)
+    throw e
+  }
+
+  void (async () => {
+    const logger = new JobLogger({ id: jobId })
+    try {
+      await TaskLifecycle.markRunning(jobId, queueName, payload)
+      await logger.info(`进程内联执行（本进程无 Worker）: ${payload.type}`)
+      const result = await runTaskHandler(payload, (p, t) => {
+        void logger.progress(percentOf(p, t))
+      })
+      await TaskLifecycle.markCompleted(jobId, result ?? null)
+      await logger.success('执行完成')
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      // 终态兜底：内联路径没有 bun-queue 事件，失败必须自己写，
+      // 否则行永远停在 running（正是生产上那条 queued 僵尸的成因）。
+      try {
+        await TaskLifecycle.markFailed(jobId, msg)
+        await logger.error(msg)
+      } catch (logError) {
+        console.error('[queue] 内联任务终态写入失败:', logError)
+      }
+      console.error(`[queue] 内联任务失败 ${payload.type}:`, e)
+    } finally {
+      // 只删除自己登记的那条：期间可能已有新的内联任务顶替。
+      if (inlineJobs.get(payload.type) === jobId) {
+        inlineJobs.delete(payload.type)
+      }
+    }
+  })()
+
+  return jobId
+}
+
+/**
+ * 入队：校验白名单 → 写 galrc_queue_job 记录 → 放入 bun-queue，返回 job.id。
+ *
+ * 三条路径：
+ * - 本进程有 Worker：正常入队（生产唯一路径，行为与改动前完全一致）；
+ * - 无 Worker 且非生产（本机 dev）：进程内联执行，立刻返回 inline jobId；
+ * - 生产且队列不可用：明确报错（保持原语义）。
+ */
 export async function enqueue(queueName: string, payload: TaskPayload) {
   if (!isValidTask(queueName, payload.type)) {
     throw status(400, `非法任务: queue=${queueName} type=${payload.type}`)
   }
 
-  // dev 无 Redis（决策 1）：不启动队列，手动触发按类型同步执行，便于本地调试。
+  if (canRunInline()) {
+    // 同类型已在跑：直接返回原 jobId，避免连点起两个全量同步。
+    const running = inlineJobs.get(payload.type)
+    if (running) return running
+    return await runInline(queueName, payload)
+  }
+
   if (!isQueueEnabled) {
-    if (payload.type.startsWith('meili-')) {
-      await runMeiliHandler(payload, null)
-      return `sync:${payload.type}:${Date.now()}`
-    }
     throw new Error(`队列不可用（Redis 未启用），无法入队: ${queueName}`)
   }
 
@@ -446,6 +750,8 @@ export type WriteOpResult = {
 
 /** 从 Redis 摘除任务（尽力而为：失败不阻断 PG 删除）。 */
 async function detachFromQueue(jobId: string, queueName: string) {
+  // 内联任务在 Redis 里根本不存在，removeJob 只会白发一次往返。
+  if (isInlineJobId(jobId)) return
   if (!isQueueEnabled) return
   try {
     await queueOf(queueName as (typeof QUEUE)[keyof typeof QUEUE]).removeJob(
@@ -942,6 +1248,10 @@ export async function getTaskMeta() {
     queueWaitSlaMinutes: QUEUE_WAIT_SLA_MINUTES,
     retentionDays: QUEUE_JOB_RETENTION_DAYS,
     queueEnabled: isQueueEnabled,
+    // 前端据此提示「本进程就地执行」，而不是显示一条永远在「排队中」的记录：
+    // 本地 dev 没有 Worker，任务确实不会进 Redis。
+    workerRunning: isWorkerRunning(),
+    inlineExecution: canRunInline(),
   }
 }
 
@@ -1095,76 +1405,79 @@ export async function getJobLogs(jobId: string, query: TasksModel.logsQuery) {
 
 type ProgressReporter = ((processed: number, total: number) => void) | null
 
-/**
- * Meilisearch job 分派：按 payload.type 调用已滚动改造的 CronService 方法。
- * onProgress 把页级进度透传给 JobLogger（双写 PG + Redis）。
- */
-async function runMeiliHandler(
+type TaskHandler = (
   payload: TaskPayload,
   onProgress: ProgressReporter,
-) {
-  switch (payload.type) {
-    case 'meili-game':
-      return await CronService.meiliSearchAddIndex(onProgress ?? undefined)
-    case 'meili-tag':
-      return await CronService.meiliSearchAddTag(onProgress ?? undefined)
-    case 'meili-producer':
-      return await CronService.meiliSearchAddProducer(onProgress ?? undefined)
-    default:
-      throw new Error(`未知的 meili 任务类型: ${(payload as TaskPayload).type}`)
-  }
-}
+) => Promise<unknown>
 
 /**
- * VNDB 数据同步分派。
- * 注意：`VndbSync.syncFull/syncDelta/syncProducersFromDb` 内部自带 Redis 分布式锁
- * 防重入（返回 undefined 表示锁被占用），队列 concurrency=1 再保证串行。
+ * 任务类型 → 执行函数（唯一分派真相）。
+ *
+ * 之前是四个 runXxxHandler 各自写 switch + default throw，与 QUEUE_TASKS 白名单
+ * 形成两份并行真相：白名单新增类型时忘了加 case 也能编译通过，只会在运行时
+ * 才炸成「未知的 kungal 任务类型」（生产上真出过一次 dead-letter）。
+ * 现在用 satisfies Record<TaskPayload['type'], TaskHandler> 让类型系统兜住：
+ * 白名单漏一个 handler 直接编译失败。
+ *
+ * 注：runPruneHandler 在本文件后面定义，函数声明会提升，此处引用是安全的。
  */
-async function runVndbHandler(
+export const TASK_HANDLERS = {
+  'vndb-full': (_payload, onProgress) =>
+    VndbSync.syncFull(onProgress ?? undefined),
+  'vndb-delta': (_payload, onProgress) =>
+    VndbSync.syncDelta(onProgress ?? undefined),
+  'vndb-producers': (_payload, onProgress) =>
+    VndbSync.syncProducersFromDb(onProgress ?? undefined),
+  'kungal-full': (_payload, onProgress) =>
+    KungalSync.syncFull(onProgress ?? undefined),
+  'kungal-delta': (_payload, onProgress) =>
+    KungalSync.syncDelta(onProgress ?? undefined),
+  'kungal-characters': (_payload, onProgress) =>
+    KungalSync.syncCharacters(onProgress ?? undefined),
+  'kungal-walkthroughs': (_payload, onProgress) =>
+    KungalSync.syncWalkthroughs(onProgress ?? undefined),
+  'meili-game': (_payload, onProgress) =>
+    CronService.meiliSearchAddIndex(onProgress ?? undefined),
+  'meili-tag': (_payload, onProgress) =>
+    CronService.meiliSearchAddTag(onProgress ?? undefined),
+  'meili-producer': (_payload, onProgress) =>
+    CronService.meiliSearchAddProducer(onProgress ?? undefined),
+  'cloudreve-sync': () => CronService.cloudreveSyncScript(),
+  'queue-log-prune': () => runPruneHandler(),
+} satisfies Record<TaskPayload['type'], TaskHandler>
+
+/**
+ * 类型前缀 → 族名。只服务于「未知类型」错误文案：原来的四条错误串
+ * （未知的 vndb/kungal/meili/cloudreve 任务类型）是线上日志的检索锚点，
+ * 合并分派表后不能丢，否则历史告警的 grep 会断。
+ */
+function taskFamilyOf(type: string): string {
+  if (type.startsWith('vndb-')) return 'vndb'
+  if (type.startsWith('kungal-')) return 'kungal'
+  if (type.startsWith('meili-')) return 'meili'
+  if (type.startsWith('cloudreve-')) return 'cloudreve'
+  return type.split('-')[0] || type
+}
+
+/**
+ * 统一分派：查表执行。
+ *
+ * 表用 satisfies 保证了编译期穷尽，但 payload 来自 Redis/DB（可能是旧镜像写入的
+ * 历史类型），运行时仍要兜一层，避免脏 payload 把 Worker 打成未捕获异常。
+ */
+export async function runTaskHandler(
   payload: TaskPayload,
   onProgress: ProgressReporter,
 ) {
-  switch (payload.type) {
-    case 'vndb-full':
-      return await VndbSync.syncFull(onProgress ?? undefined)
-    case 'vndb-delta':
-      return await VndbSync.syncDelta(onProgress ?? undefined)
-    case 'vndb-producers':
-      return await VndbSync.syncProducersFromDb(onProgress ?? undefined)
-    default:
-      throw new Error(`未知的 vndb 任务类型: ${(payload as TaskPayload).type}`)
-  }
-}
-
-/** Kungal（NextMoe）目录数据同步分派。 */
-async function runKungalHandler(
-  payload: TaskPayload,
-  onProgress: ProgressReporter,
-) {
-  switch (payload.type) {
-    case 'kungal-full':
-      return await KungalSync.syncFull(onProgress ?? undefined)
-    case 'kungal-delta':
-      return await KungalSync.syncDelta(onProgress ?? undefined)
-    case 'kungal-characters':
-      return await KungalSync.syncCharacters(onProgress ?? undefined)
-    case 'kungal-walkthroughs':
-      return await KungalSync.syncWalkthroughs(onProgress ?? undefined)
-    default:
-      throw new Error(
-        `未知的 kungal 任务类型: ${(payload as TaskPayload).type}`,
-      )
-  }
-}
-
-/** Cloudreve 文件→VNDB ID 同步分派。 */
-async function runCloudreveHandler(payload: TaskPayload) {
-  if (payload.type !== 'cloudreve-sync') {
+  const handler = (TASK_HANDLERS as Record<string, TaskHandler | undefined>)[
+    payload.type
+  ]
+  if (!handler) {
     throw new Error(
-      `未知的 cloudreve 任务类型: ${(payload as TaskPayload).type}`,
+      `未知的 ${taskFamilyOf(payload.type)} 任务类型: ${payload.type}`,
     )
   }
-  return await CronService.cloudreveSyncScript()
+  return await handler(payload, onProgress)
 }
 
 /** 单批删除行数：既控制事务/锁的粒度，也避免一次性把全部被删 id 拉进内存。 */
@@ -1289,25 +1602,43 @@ function createWorker<T extends QueueWorkerSpec>(spec: T) {
       const msg = e instanceof Error ? e.message : String(e)
       await logger.error(msg)
 
-      // 终态判定：与 bun-queue Worker 内部的调度逻辑保持一致，避免中间态误标。
+      // 终态判定必须逐条复刻 bun-queue Worker 的调度逻辑（dist 里 moveToFailed
+      // 之后的 if 链），否则我们标的状态会和 Redis 里的实际去向不一致：
+      //   maxAttempts = opts.attempts || 1        ← 是 || 不是 ??
+      //   dlqEnabled  = opts.deadLetter ?? 队列默认  ← 先看单 job 覆盖
+      //   dlqMax      = 单 job maxRetries || 队列默认 || 3
+      // 我们的 handler 先于 moveToFailed 抛错，所以这里的 attemptsMade 要 +1
+      // 才是库随后写进 hash 的值。
       const attemptsMade = job.attemptsMade + 1
-      const maxAttempts = job.opts.attempts ?? 1
+      const maxAttempts = job.opts.attempts || 1
+      const jobDlq = job.opts.deadLetter
       const dlqOpts = q.getDefaultDeadLetterOptions()
-      const dlqEnabled = dlqOpts?.enabled ?? false
-      const dlqMax = dlqOpts?.maxRetries ?? 3
+      const dlqEnabled =
+        jobDlq !== undefined ? Boolean(jobDlq) : (dlqOpts?.enabled ?? false)
+      const dlqMax =
+        (typeof jobDlq === 'object' && jobDlq !== null
+          ? jobDlq.maxRetries
+          : dlqOpts?.maxRetries) || 3
       const willDeadLetter = dlqEnabled && attemptsMade >= dlqMax
       const willRetry = !willDeadLetter && attemptsMade < maxAttempts
 
-      if (willRetry) {
-        await logger.warn(
-          `第 ${attemptsMade}/${maxAttempts} 次执行失败，将自动重试`,
-        )
-      } else if (willDeadLetter) {
+      if (willDeadLetter) {
         await logger.warn(
           `第 ${attemptsMade} 次执行失败，已耗尽重试，转入死信队列`,
         )
-        // 终态由 queue.events jobMovedToDeadLetter 写入 dead-letter，无需在此处理。
+        // 终态兜底：正常情况下由 queue.events 的 jobMovedToDeadLetter 写 dead-letter。
+        // 这里直接写一次 —— 事件随后再来写同值，幂等无害。
+        await TaskLifecycle.markDeadLetter(job.id, msg)
+      } else if (willRetry) {
+        await logger.warn(
+          `第 ${attemptsMade}/${maxAttempts} 次执行失败，将自动重试`,
+        )
       } else {
+        // 第三档：既不再重试、也够不上 DLQ 阈值。bun-queue 在这一档什么都不做
+        // ——不重试、不进 DLQ、**也不发任何事件**，job 就静静躺在 failed 列表里。
+        // 线上那条 status=queued 的僵尸行就是这么来的：死信重放时 resetRetries
+        // 把 attempts 置 0，库按 || 当 1 次算，第二次失败即落入本档。
+        // 所以这一档必须我们自己写终态，否则 PG 永远停在 running/queued。
         await TaskLifecycle.markFailed(job.id, msg)
       }
       throw e
@@ -1360,7 +1691,7 @@ export async function startQueueWorkers() {
       queue: QUEUE.vndbSync,
       concurrency: 1,
       run: (payload, { logger }) =>
-        runVndbHandler(payload, (p, t) => {
+        runTaskHandler(payload, (p, t) => {
           void logger.progress(percentOf(p, t))
         }),
     }),
@@ -1372,7 +1703,7 @@ export async function startQueueWorkers() {
       queue: QUEUE.kungalSync,
       concurrency: 1,
       run: (payload, { logger }) =>
-        runKungalHandler(payload, (p, t) => {
+        runTaskHandler(payload, (p, t) => {
           void logger.progress(percentOf(p, t))
         }),
     }),
@@ -1384,7 +1715,7 @@ export async function startQueueWorkers() {
       queue: QUEUE.meiliIndex,
       concurrency: 3,
       run: (payload, { logger }) =>
-        runMeiliHandler(payload, (p, t) => {
+        runTaskHandler(payload, (p, t) => {
           void logger.progress(percentOf(p, t))
         }),
     }),
@@ -1395,7 +1726,7 @@ export async function startQueueWorkers() {
     createWorker({
       queue: QUEUE.cloudreveSync,
       concurrency: 1,
-      run: (payload) => runCloudreveHandler(payload),
+      run: (payload) => runTaskHandler(payload, null),
       onSuccess: async (_result, { logger }) => {
         // 保留原有行为：云同步成功后紧跟一次 VNDB / Kungal 增量同步。
         // 独立 try/catch，链式入队失败只告警，绝不污染 cloudreve 任务的 completed 终态。
@@ -1420,9 +1751,14 @@ export async function startQueueWorkers() {
     createWorker({
       queue: QUEUE.metrics,
       concurrency: 1,
-      run: () => runPruneHandler(),
+      run: (payload) => runTaskHandler(payload, null),
     }),
   )
+
+  // 5 个 Worker 全部注册完之后才置位：enqueue 从此刻起必须走真正的队列。
+  // 生产里 canRunInline() 本来就因为 NODE_ENV==='production' 恒 false，这里置位
+  // 是给「非生产却主动起了 Worker」的场景（本地联调队列）保底，避免自我内联。
+  workerRunning = true
 
   for (const q of [
     queueOf(QUEUE.vndbSync),
@@ -1435,11 +1771,19 @@ export async function startQueueWorkers() {
     queues.push(q)
   }
 
-  // ── 启动对账：把上次进程异常退出遗留的 running 任务标记为 interrupted ──
+  // ── 启动对账：回收上次进程异常退出遗留的非终态记录 ──
+  // 1) running：进程没了，任务不会再有结果；
+  // 2) queued 但 Redis 里已无该 job：终态事件偶发缺失留下的僵尸行。
+  // 两步互不依赖，一步失败不影响另一步，也都不允许拦住启动。
   try {
     await TaskLifecycle.reconcileInterrupted()
   } catch (e) {
-    console.warn('[queue] 启动对账失败（跳过）:', e)
+    console.warn('[queue] 启动对账（running）失败（跳过）:', e)
+  }
+  try {
+    await TaskLifecycle.reconcileQueuedZombies()
+  } catch (e) {
+    console.warn('[queue] 启动对账（queued 僵尸）失败（跳过）:', e)
   }
 
   // 清理历史遗留的 repeatable cron jobs：直接操作 Redis（ZREM delayed 成员 + DEL job hash），
