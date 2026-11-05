@@ -4,22 +4,23 @@ import { Badge } from "@web/components/ui/badge";
 import { useThumbHashDataUrl } from "@web/lib/image";
 import { cn } from "@web/lib/utils";
 import { useState } from "react";
-import {
-	type CharacterView,
-	roleLabelOf,
-	spoilerLabelOf,
-} from "./character-types";
+import { type CharacterView, spoilerLabelOf } from "./character-types";
 
 /** 封面默认竖版比例（名册行没带 width/height 时的兜底） */
 const FALLBACK_IMAGE_WIDTH = 400;
 const FALLBACK_IMAGE_HEIGHT = 533;
 
-/** 卡片徽章：封面颜色不可控，统一近实底 + 发丝边，保证任何底图上都可读 */
-const badgeClass =
-	"h-5 rounded-lg bg-background/95 ring-1 ring-border/70 shadow-sm backdrop-blur-sm pointer-events-none max-sm:h-4 max-sm:px-1.5 max-sm:text-[10px]";
+/**
+ * 剧透徽章：只留这一枚，压到右上角、缩到 10px。
+ *
+ * 身份（主要/次要/登场）不再逐卡打标 —— 分组标题已经写明了，
+ * 卡片上重复一遍既冗余，窄屏还会占掉封面顶部一大块。
+ */
+const spoilerBadgeClass =
+	"h-4 px-1.5 rounded-md text-[10px] bg-background/95 text-destructive ring-1 ring-border/70 shadow-sm backdrop-blur-sm pointer-events-none";
 
 /**
- * 角色卡片：竖版封面 + 姓名（副标拉丁名）+ 身份/剧透徽章。
+ * 角色卡片：竖版封面 + 姓名（副标拉丁名）+ 剧透徽章（仅剧透角色才有）。
  *
  * 整卡是原生 button 语义：键盘 Tab 可聚焦、Enter/Space 打开详情弹窗；
  * 不嵌套链接，避免出现「按钮里套按钮」的无障碍问题。
@@ -38,7 +39,6 @@ export function CharacterCard({
 	const imageUrl = failed ? null : character.imageUrl;
 	// 无图占位：姓名首字（CJK 一个字，拉丁名取首字母大写）
 	const initial = character.name.trim().slice(0, 1) || "?";
-	const roleLabel = roleLabelOf(character.rosterRole);
 	const spoilerLabel = spoilerLabelOf(character.spoiler);
 
 	return (
@@ -83,22 +83,13 @@ export function CharacterCard({
 						</span>
 					)}
 				</AspectRatio>
-				{(roleLabel || spoilerLabel) && (
-					<div className="flex absolute top-2 left-2 z-10 flex-wrap gap-1 max-w-[calc(100%-1rem)]">
-						{roleLabel && (
-							<Badge className={badgeClass} variant="outline">
-								{roleLabel}
-							</Badge>
-						)}
-						{spoilerLabel && (
-							<Badge
-								className={cn(badgeClass, "text-destructive")}
-								variant="outline"
-							>
-								{spoilerLabel}
-							</Badge>
-						)}
-					</div>
+				{spoilerLabel && (
+					<Badge
+						className={cn(spoilerBadgeClass, "absolute top-1.5 right-1.5 z-10")}
+						variant="outline"
+					>
+						{spoilerLabel}
+					</Badge>
 				)}
 			</div>
 			<div className="min-w-0 px-0.5">
