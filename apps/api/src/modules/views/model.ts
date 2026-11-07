@@ -11,6 +11,15 @@ export namespace ViewsModel {
   })
   export type recordTagView = typeof RecordTagView.static
 
+  /**
+   * 论坛帖子阅读数：targetId 是自增整数（URL 里可能带前导零），
+   * service 层统一折算成 String(Number(topicId)) 再入库。
+   */
+  export const RecordTopicView = t.Object({
+    topicId: t.String({ minLength: 1 }),
+  })
+  export type recordTopicView = typeof RecordTopicView.static
+
   export const HotGame = t.Object({
     r18: t.Optional(t.Boolean()),
   })

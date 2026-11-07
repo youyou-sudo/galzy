@@ -147,4 +147,5 @@ export const bffRegistry: Record<string, BffImplLike> = {
 	"upload.avatar.uploadAvatar": upload_avatar.uploadAvatar,
 	"views.recordGameView": views_index.recordGameView,
 	"views.recordTagView": views_index.recordTagView,
+	"views.recordTopicView": views_index.recordTopicView,
 };

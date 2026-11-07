@@ -21,3 +21,12 @@ export const recordTagView = defineBff(z.object({
 		const { error } = await api.views.tag.post({ tagId: data.tagId }, ipPass());
 		elysiaErrorF(error);
 	});
+
+// 论坛帖子阅读数：帖子详情页挂载时上报一次（与 tags 详情页的 recordTagView 同构）。
+// IP 同样由 ipPass 在服务端透传，供 API 侧做按 IP 的固定窗口限流（防脚本刷阅读量）。
+export const recordTopicView = defineBff(z.object({
+			topicId: z.string().check(z.minLength(1)),
+		}), async ({ data }) => {
+		const { error } = await api.views.topic.post({ topicId: data.topicId }, ipPass());
+		elysiaErrorF(error);
+	});
