@@ -3,27 +3,24 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { WalkthroughListPage } from "./walkthrough-list-page";
 
 // Link 在真实应用里由 furin 的路由上下文提供，单测里换成裸 <a>，
-// 断言 href 就够了（与 game-detail-pending.test.tsx 同一套 mock）。
-const routerMock = vi.hoisted(() => ({ pathname: "/v15/walkthrough" }));
+// 断言 href 就够了（与 game-detail-pending.test.tsx 同一套 mock）；
+// lastProps 额外保留完整 props，用来断言攻略卡传了 resetScroll=false。
+const routerMock = vi.hoisted(() => ({
+	pathname: "/v15/walkthrough",
+	lastProps: null as Record<string, unknown> | null,
+}));
 
 vi.mock("@web/lib/nav", async () => {
 	const { createElement } = await import("react");
 	type Params = Record<string, string> | undefined;
 	return {
-		Link: ({
-			to,
-			params,
-			children,
-		}: {
-			to: string;
-			params?: Params;
-			children?: unknown;
-		}) => {
-			let href = to;
-			for (const [key, value] of Object.entries(params ?? {})) {
+		Link: (props: { to: string; params?: Params; children?: unknown }) => {
+			routerMock.lastProps = props as unknown as Record<string, unknown>;
+			let href = props.to;
+			for (const [key, value] of Object.entries(props.params ?? {})) {
 				href = href.replace(`:${key}`, value);
 			}
-			return createElement("a", { href }, children as never);
+			return createElement("a", { href }, props.children as never);
 		},
 		usePathname: () => routerMock.pathname,
 	};
@@ -31,6 +28,7 @@ vi.mock("@web/lib/nav", async () => {
 
 beforeEach(() => {
 	routerMock.pathname = "/v15/walkthrough";
+	routerMock.lastProps = null;
 });
 
 /** 与后端 GameWalkthroughsResult 同形：列表项没有 chart（spec 就是这么切的） */
@@ -73,6 +71,9 @@ describe("WalkthroughListPage", () => {
 		expect(html).toContain("更新于 2026-11-01");
 		// 详情链接要把两个动态段都填进去
 		expect(html).toContain('href="/v15/walkthrough/2804"');
+		// 关掉 furin 的滚动复位：进详情后的页签锚定由布局钩子负责，
+		// 复位晚于页内 layout effect，会把锚定覆盖掉
+		expect(routerMock.lastProps?.resetScroll).toBe(false);
 	});
 
 	it("没有攻略时给空态，而不是空列表", () => {

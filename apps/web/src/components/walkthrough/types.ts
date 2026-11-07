@@ -29,15 +29,20 @@ export function isWalkthroughView(value: unknown): value is WalkthroughView {
 	return WALKTHROUGH_VIEWS.includes(value as WalkthroughView);
 }
 
-/** 三档语言（写进 ?lang=）：双语 / 原文 / 中文 */
-export const WALKTHROUGH_LANGS = ["both", "source", "zh"] as const;
+/**
+ * 三档语言（写进 ?lang=）：中文 / 原文 / 双语。
+ *
+ * 顺序即界面顺序：站点面向中文读者，默认看中文，缺中文时 resolveText 自动
+ * 回退原文；「双语」（中文主文 + 括号原文）是给核对原文的人用的第三档。
+ */
+export const WALKTHROUGH_LANGS = ["zh", "source", "both"] as const;
 
 export type WalkthroughLang = (typeof WALKTHROUGH_LANGS)[number];
 
 export const WALKTHROUGH_LANG_LABELS: Record<WalkthroughLang, string> = {
-	both: "双语",
-	source: "原文",
 	zh: "中文",
+	source: "原文",
+	both: "双语",
 };
 
 export function isWalkthroughLang(value: unknown): value is WalkthroughLang {

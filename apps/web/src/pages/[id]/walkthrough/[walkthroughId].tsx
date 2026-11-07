@@ -4,7 +4,7 @@ import { WalkthroughPage } from "@web/components/walkthrough/walkthrough-page";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { ApiError } from "@web/lib";
 import { gameTitleOf } from "@web/lib/seo";
-import { type getGameDetail, getWalkthroughInfo } from "@web/server/game";
+import { getGameCharacters, getWalkthroughInfo } from "@web/server/game";
 import { t } from "elysia";
 import * as z from "zod/mini";
 
@@ -22,24 +22,6 @@ const searchSchema = z.object({
 	lang: z.optional(z.string()),
 	character: z.optional(z.string()),
 });
-
-type GameDetail = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>;
-
-/**
- * 作品侧元信息：概览卡要「制作会社 / 发售日期」，
- * 数据来自布局 loader 的 game（VNDB 厂商与发售日），不走攻略 DTO——
- * DTO 里的 release.companies 是发行版/汉化补丁的组名，不是制作会社。
- */
-function workMetaOf(game: GameDetail | null | undefined) {
-	const released = game?.released_first ?? null;
-	const companies: string[] = [];
-	for (const producer of game?.producers ?? []) {
-		const name = producer?.name?.trim();
-		if (!name || companies.includes(name)) continue;
-		companies.push(name);
-	}
-	return { releasedAt: released, companies };
-}
 
 /**
  * 取攻略，把后端的 404 翻成路由级 notFound。
@@ -68,10 +50,14 @@ async function loadWalkthrough(walkthroughId: string) {
 export const route = defineRoute("/[id]/walkthrough/[walkthroughId]")
 	.config({ mode: "ssr", params: paramsSchema, query: searchSchema })
 	.loader(async ({ params }) => {
-		const walkthrough = await loadWalkthrough(params.walkthroughId);
+		// 名册与攻略并行取：角色路线卡要用名册的头像/身份，慢一步都不该串行
+		const [walkthrough, roster] = await Promise.all([
+			loadWalkthrough(params.walkthroughId),
+			getGameCharacters({ data: { id: params.id } }).catch(() => null),
+		]);
 		// BFF 正常返回时才可能为 null（API 对不存在的 id 直接 404）
 		if (!walkthrough) notFound({ message: "攻略不存在" });
-		return { walkthrough };
+		return { walkthrough, roster };
 	})
 	.head(({ game, walkthrough }) => {
 		const detail = readWalkthroughDetail(walkthrough);
@@ -94,17 +80,12 @@ export const route = defineRoute("/[id]/walkthrough/[walkthroughId]")
 			],
 		};
 	})
-	.page(({ walkthrough, query, id, game }) => {
-		const work = workMetaOf(game);
-		return (
-			<WalkthroughPage
-				companies={work.companies}
-				data={walkthrough}
-				gameId={id}
-				initialCharacter={query.character}
-				initialLang={query.lang}
-				initialView={query.view}
-				releasedAt={work.releasedAt}
-			/>
-		);
-	});
+	.page(({ walkthrough, roster, query }) => (
+		<WalkthroughPage
+			data={walkthrough}
+			roster={roster}
+			initialCharacter={query.character}
+			initialLang={query.lang}
+			initialView={query.view}
+		/>
+	));
