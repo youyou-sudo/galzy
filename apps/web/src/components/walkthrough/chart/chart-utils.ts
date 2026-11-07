@@ -137,7 +137,7 @@ export function segmentSection(chart: WalkthroughChart, segment: ChartSegment) {
  * 按角色过滤段落：
  * - 命中 section.character_keys 的段落属于该角色；
  * - 没有 section 或 section.character_keys 为空的段落是全线共用段，所有角色都看得到。
- * 不传 characterKey 时返回全部（流程图「显示全部路线」）。
+ * 不传 characterKey 时返回全部（流程图看全部路线）。
  */
 export function segmentsForCharacter(
 	chart: WalkthroughChart,
@@ -273,4 +273,114 @@ export function chartStats(chart: WalkthroughChart): ChartStats {
 		entries: (chart.entries ?? []).length,
 		byCharacter,
 	};
+}
+/**
+ * 流程图上的一条「边」。
+ *
+ * 上游的 segment 是「段」而不是「边」：一段 22 步里可能声明了好几个存档点
+ * （`step_type: save` + `save_key`），下一段就从那个存档点续写。参考站的
+ * 流程图正是按存档点切的：START —3 个选项→ ◆存档01 —1 个选项→ ◆存档02 …
+ * 所以画图前必须先把段落切成边，否则整段只能画成一条线、存档点全成孤岛
+ * （改造前的实现就是这个毛病）。
+ */
+export interface ChartEdgeChunk {
+	/** 稳定 id：`<段落 key>#<段内第几块>`，用来做 hover/选中态与测试断言 */
+	id: string;
+	/** 这条边来自哪个段落（「在路线列表中查看」要按段落 key 跳锚点） */
+	segment: ChartSegment;
+	from: ChartNode;
+	to: ChartNode;
+	/** 这条边自己的步骤（不含末尾那条切分它的 save 步骤） */
+	steps: ChartStep[];
+	/** choice + action 条数，与连线上「N 个选项」同一口径 */
+	optionCount: number;
+}
+
+/**
+ * 把段落切成边：遇到 save 步骤就收一条边，终点是那个存档节点。
+ *
+ * 注意这条 save 步骤**不进**边里的 steps —— 它表达的就是「这里是下一个节点」，
+ * 再画一遍会变成「存档 01 —> 在这里存档 01」的自我重复。段落末尾剩下的步骤
+ * 收给 from → to_node 那条边。
+ */
+export function chartEdgeChunks(
+	chart: WalkthroughChart,
+	characterKey?: string | null,
+): ChartEdgeChunk[] {
+	const chunks: ChartEdgeChunk[] = [];
+	for (const segment of segmentsForCharacter(chart, characterKey)) {
+		let from = segment.from_node;
+		let buffer: ChartStep[] = [];
+		let index = 0;
+		const push = (to: ChartNode) => {
+			chunks.push({
+				id: `${segment.key}#${index}`,
+				segment,
+				from,
+				to,
+				steps: buffer,
+				optionCount: buffer.filter(
+					(step) => step.step_type === "choice" || step.step_type === "action",
+				).length,
+			});
+			index += 1;
+		};
+		for (const step of segment.steps ?? []) {
+			if (step.step_type === "save" && step.save_key) {
+				const saveNode: ChartNode = { node_type: "save", key: step.save_key };
+				push(saveNode);
+				from = saveNode;
+				buffer = [];
+				continue;
+			}
+			buffer.push(step);
+		}
+		push(segment.to_node);
+	}
+	return chunks;
+}
+
+/** 连线文案：有选项就报数，没有选项（只有标题/说明）就说「查看步骤」 */
+export function edgeOptionLabel(optionCount: number): string {
+	return optionCount > 0 ? `${optionCount} 个选项` : "查看步骤";
+}
+/** 段落分组：同一 section 的连续段落归一组（section 变化就换组，保源文顺序） */
+export interface ChartSegmentGroup {
+	/** section_key（没有分组的共用段固定 '__none__'） */
+	key: string;
+	/** 分组标题（section.title 的多语言解析结果） */
+	title: ChartText | null;
+	segments: ChartSegment[];
+}
+
+/**
+ * 按 section 把段落分组。顺序视图与「段落目录」共用一套分组口径：
+ * 两处各分一次的话，编号与标题迟早会不一致。
+ */
+export function segmentGroups(
+	chart: WalkthroughChart,
+	lang: ChartLang,
+	characterKey?: string | null,
+): ChartSegmentGroup[] {
+	const groups: ChartSegmentGroup[] = [];
+	for (const segment of segmentsForCharacter(chart, characterKey)) {
+		const groupKey = segment.section_key ?? "__none__";
+		const last = groups.at(-1);
+		if (last && last.key === groupKey) {
+			last.segments.push(segment);
+			continue;
+		}
+		const section = segment.section_key
+			? ((chart.sections ?? []).find((s) => s.key === segment.section_key) ??
+				null)
+			: null;
+		groups.push({
+			key: groupKey,
+			title: section
+				? resolveText(section.title, section.localized, lang)
+				: null,
+			segments: [segment],
+		});
+	}
+	return groups;
 }

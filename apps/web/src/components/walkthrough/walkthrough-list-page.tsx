@@ -77,6 +77,9 @@ function WalkthroughCard({
 		<Link
 			className="block group"
 			params={{ id: gameId, walkthroughId: item.id }}
+			// 进攻略详情后由 GameTabs 内的页签锚定把页签栏顶到视口顶部；
+			// 交给 furin 复位滚动会把这次锚定覆盖掉（复位晚于页内的 layout effect）
+			resetScroll={false}
 			to="/:id/walkthrough/:walkthroughId"
 		>
 			<Card className="py-0 transition-colors duration-200 ring-border/60 group-hover:bg-muted/40">

@@ -6,22 +6,30 @@
  * 内部文件（layout、step 渲染）不对外暴露，方便以后换布局实现。
  */
 
-export type { ChartNodeId } from "./chart-utils";
+export type {
+	ChartEdgeChunk,
+	ChartNodeId,
+	ChartSegmentGroup,
+} from "./chart-utils";
 export {
+	chartEdgeChunks,
 	chartNodeId,
 	chartStats,
+	edgeOptionLabel,
 	endingTypeBadgeLabel,
 	endingTypeLabel,
 	nodeLabel,
 	nodeStartPhrase,
 	resolveText,
 	segmentAnchorId,
+	segmentGroups,
 	segmentOptionCount,
 	segmentsForCharacter,
 	stepNumbers,
 	withAffixes,
 	zhText,
 } from "./chart-utils";
+export { CharacterView, type CharacterViewProps } from "./character-view";
 export { GraphView, type GraphViewProps } from "./graph-view";
 export { OrderView, type OrderViewProps } from "./order-view";
 export type {
