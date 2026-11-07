@@ -5,7 +5,7 @@ import {
 } from "@web/components/game/game-tab-skeleton";
 import { GameCard } from "@web/components/home/card";
 import { GameTabs, gameTabOf } from "@web/components/home/game/GameTabs";
-import { Glgczujm } from "@web/components/home/game/tips";
+import { DownloadTips, Glgczujm } from "@web/components/home/game/tips";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -105,7 +105,8 @@ export function GameDetailPending({ id }: { id: string }) {
 				<Card className="ring-border/60">
 					<CardContent>
 						<GameTabSkeleton tab={currentTab as GameTabKey} />
-						<Glgczujm />
+						{currentTab === "download" ? <DownloadTips /> : null}
+			<Glgczujm />
 					</CardContent>
 				</Card>
 			</div>

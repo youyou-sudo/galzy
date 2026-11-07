@@ -157,7 +157,9 @@ describe("GameDetailPending", () => {
 	it("攻略（walkthrough）嵌套路径仍按攻略页签出攻略骨架", () => {
 		routerMock.pathname = "/v17/walkthrough/42";
 		const markup = renderToString(<GameDetailPending id="v17" />);
-		expect(markup).toContain("角色路线");
+		// 骨架与真实页对齐：角色卡上方只有一行提示小字，不再有「角色路线」标题
+		expect(markup).toContain("选择角色查看这条路线的选项");
+		expect(markup).not.toContain("角色路线");
 		expect(markup).toContain("h-64");
 		expect(markup).not.toContain("w-full h-9 rounded-lg");
 	});

@@ -2,7 +2,7 @@ import { CommentThreadSkeleton } from "@web/components/cmments/comment-skeleton"
 import { GameCard } from "@web/components/home/card";
 import { SectionHeader } from "@web/components/shared/section-header";
 import { Skeleton } from "@web/components/ui/skeleton";
-import { Route, TrendingUp } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 
 /** 详情页六个页签：各自内容形状不同，加载态不能再共用一个通用骨架 */
 export type GameTabKey =
@@ -40,7 +40,7 @@ export function GameTabSkeleton({ tab = "download" }: { tab?: GameTabKey }) {
 }
 
 /**
- * 攻略页签：概览块 → 角色路线卡 → 工具栏 → 内容区，四段与真实攻略页同序。
+ * 攻略页签：概览块 → 视图工具栏 → 角色路线卡 → 内容区，四段与真实攻略页同序。
  * 高度写死成整段（而不是几十个小块）：攻略正文长度不可预知，
  * 骨架只负责「有内容在加载」的观感，不在数据到达时制造高度跳变。
  */
@@ -48,8 +48,13 @@ function WalkthroughTabSkeleton() {
 	return (
 		<div aria-hidden className="space-y-6">
 			<Skeleton className="w-full h-24 rounded-xl" />
+			{/* 视图 / 语言选项卡：真实页里角色选择在它下面 */}
+			<Skeleton className="w-full h-9 rounded-xl" />
 			<div>
-				<SectionHeader icon={Route} title="角色路线" />
+				{/* 真实页已经没有「角色路线」标题，只剩一行提示小字 */}
+				<p className="mb-3 text-muted-foreground text-xs">
+					选择角色查看这条路线的选项
+				</p>
 				<div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
 					{(["w-1/2", "w-3/5", "w-2/5"] as const).map((width) => (
 						<div
@@ -62,7 +67,6 @@ function WalkthroughTabSkeleton() {
 					))}
 				</div>
 			</div>
-			<Skeleton className="w-full h-9 rounded-xl" />
 			<Skeleton className="w-full h-64 rounded-xl" />
 		</div>
 	);
