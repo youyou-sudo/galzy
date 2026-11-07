@@ -6,6 +6,7 @@ import { CommentMarkdown } from "@web/components/cmments/comment-markdown";
 import { CommentThreadSkeleton } from "@web/components/cmments/comment-skeleton";
 import { ReplyEidtInput } from "@web/components/cmments/reply-edit-input";
 import { RichContent } from "@web/components/RichContent";
+import { TopicDetailSkeleton } from "@web/components/topics/topic-detail-skeleton";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -32,6 +33,7 @@ import { Card, CardContent, CardHeader } from "@web/components/ui/card";
 import { EmptyState } from "@web/components/shared/empty-state";
 import { SectionHeader } from "@web/components/shared/section-header";
 import { seoTemplate } from "@web/config/seoTemplate";
+import { formatCount } from "@web/lib/format-count";
 import { cn } from "@web/lib/utils";
 import { seoMeta, truncateText } from "@web/lib/seo";
 import { authClient } from "@web/server/auth/auth-client";
@@ -42,9 +44,17 @@ import {
 	toggleTopicFavorite,
 	toggleTopicLike,
 } from "@web/server/topics";
+import { recordTopicView } from "@web/server/views";
 import { replycardActions } from "@web/stores/reply-edit-input";
-import { Bookmark, Heart, MessageSquare, Pencil, Trash2 } from "lucide-react";
-import { useState, useMemo } from "react";
+import {
+	Bookmark,
+	Eye,
+	Heart,
+	MessageSquare,
+	Pencil,
+	Trash2,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 function formatTime(dateStr: string) {
@@ -98,7 +108,7 @@ function TopicDetailPage({
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const [deleteOpen, setDeleteOpen] = useState(false);
-	const { data: topic } = useQuery({
+	const { data: topic, isPending } = useQuery({
 		queryKey: ["topic", topicId],
 		queryFn: async () => await getTopic({ data: { id: Number(topicId) } }),
 		initialData: loadedTopic,
@@ -113,7 +123,31 @@ function TopicDetailPage({
 		},
 	});
 
+	/** 已上报过阅读数的帖子 id：同一实例重复渲染不重复计数 */
+	const recordedRef = useRef<string | null>(null);
+
+	// 阅读数上报：只在组件真正挂载（= 用户进入页面）时记一次。
+	// 列表页的悬停/视口预取走 router.prefetch，不会挂载组件，因此不会污染统计。
+	// 成功后就地把缓存里的 viewCount +1，让本次访问立刻体现在数字上；
+	// 失败静默忽略——阅读数是旁路统计，不能挡住正文渲染。
+	useEffect(() => {
+		if (!topic || recordedRef.current === topicId) return;
+		recordedRef.current = topicId;
+		void recordTopicView({ data: { topicId } })
+			.then(() => {
+				queryClient.setQueryData(["topic", topicId], (prev: any) =>
+					prev ? { ...prev, viewCount: (prev.viewCount ?? 0) + 1 } : prev,
+				);
+			})
+			.catch(() => {
+				// silently ignore recording failures
+			});
+	}, [topic, topicId, queryClient]);
+
 	if (!topic) {
+		// 数据还没到（loader 未带数据 / 站内切页首帧）时出骨架，
+		// 只有查询已经结束仍为空才判定「帖子不存在」。
+		if (isPending) return <TopicDetailSkeleton />;
 		return (
 			<div className="mx-auto w-full max-w-4xl">
 				<EmptyState
@@ -205,6 +239,16 @@ function TopicDetailPage({
 						</span>
 						<span className="text-xs tabular-nums text-muted-foreground">
 							{formatTime((topic as any).createdAt)}
+						</span>
+						{/* 阅读数：累计浏览量（galrc_stat_windows kind='topic_view'）。
+						    详情页 HTML 由 CDN 缓存（s-maxage=120），冷缓存命中的页面上
+						    这个数字最多滞后两分钟，属于预期。 */}
+						<span
+							className="flex gap-1 items-center text-xs tabular-nums text-muted-foreground"
+							title="阅读量"
+						>
+							<Eye className="size-3.5" aria-hidden="true" />
+							<span>{formatCount((topic as any).viewCount ?? 0)}</span>
 						</span>
 						{(isOwner || isAdmin) && (
 							<div className="flex gap-1 items-center ml-auto">
