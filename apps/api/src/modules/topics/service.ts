@@ -3,6 +3,7 @@ import {
   comments,
   db,
   sanitizeHtml,
+  statWindows,
   stripHtml,
   topicFavorites,
   topicLikes,
@@ -474,39 +475,55 @@ export const TopicService = {
       throw status(404, '帖子不存在')
     }
 
-    const [topicUser, likesSummary, favsSummary] = await Promise.all([
-      db
-        .select({ id: users.id, name: users.name, image: users.image })
-        .from(users)
-        .where(eq(users.id, topic.userId ?? ''))
-        .then((r) => r[0] ?? null),
-      db
-        .select({
-          count: count(),
-          userLiked: userId
-            ? sql<boolean>`bool_or(${topicLikes.userId} = ${userId})`
-            : sql<boolean>`FALSE`,
-        })
-        .from(topicLikes)
-        .where(eq(topicLikes.topicId, numericId))
-        .then((r) => r[0] ?? { count: 0, userLiked: false }),
-      db
-        .select({
-          count: count(),
-          userFavorited: userId
-            ? sql<boolean>`bool_or(${topicFavorites.userId} = ${userId})`
-            : sql<boolean>`FALSE`,
-        })
-        .from(topicFavorites)
-        .where(eq(topicFavorites.topicId, numericId))
-        .then((r) => r[0] ?? { count: 0, userFavorited: false }),
-    ])
+    const [topicUser, likesSummary, favsSummary, viewsSummary] =
+      await Promise.all([
+        db
+          .select({ id: users.id, name: users.name, image: users.image })
+          .from(users)
+          .where(eq(users.id, topic.userId ?? ''))
+          .then((r) => r[0] ?? null),
+        db
+          .select({
+            count: count(),
+            userLiked: userId
+              ? sql<boolean>`bool_or(${topicLikes.userId} = ${userId})`
+              : sql<boolean>`FALSE`,
+          })
+          .from(topicLikes)
+          .where(eq(topicLikes.topicId, numericId))
+          .then((r) => r[0] ?? { count: 0, userLiked: false }),
+        db
+          .select({
+            count: count(),
+            userFavorited: userId
+              ? sql<boolean>`bool_or(${topicFavorites.userId} = ${userId})`
+              : sql<boolean>`FALSE`,
+          })
+          .from(topicFavorites)
+          .where(eq(topicFavorites.topicId, numericId))
+          .then((r) => r[0] ?? { count: 0, userFavorited: false }),
+        // 阅读数：写时增量表按 (kind='topic_view', target_id) 累计求和，
+        // 主键前缀命中即可（与 views 模块上报的 target 口径一致，见 libs/stats.ts）
+        db
+          .select({
+            total: sql<number>`COALESCE(SUM(${statWindows.total}), 0)::int`,
+          })
+          .from(statWindows)
+          .where(
+            and(
+              eq(statWindows.kind, 'topic_view'),
+              eq(statWindows.targetId, String(numericId)),
+            ),
+          )
+          .then((r) => r[0] ?? { total: 0 }),
+      ])
 
     return {
       ...topic,
       user: topicUser,
       likeCount: Number(likesSummary.count),
       favoriteCount: Number(favsSummary.count),
+      viewCount: Number(viewsSummary.total),
       isLiked: likesSummary.userLiked,
       isFavorited: favsSummary.userFavorited,
     }
@@ -555,6 +572,8 @@ export const TopicService = {
       user: topicUser ?? null,
       likeCount: 0,
       favoriteCount: 0,
+      // 与 getTopic 返回结构对齐（新帖还没有任何阅读记录）
+      viewCount: 0,
       isLiked: false,
       isFavorited: false,
     }
@@ -630,6 +649,8 @@ export const TopicService = {
       user: topicUser ?? null,
       likeCount: 0,
       favoriteCount: 0,
+      // 编辑不改阅读数：这里只用于回显，真实值以 getTopic 为准
+      viewCount: 0,
       isLiked: false,
       isFavorited: false,
     }

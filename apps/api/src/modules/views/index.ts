@@ -45,6 +45,15 @@ export const views = new Elysia({ prefix: '/views' })
       body: ViewsModel.RecordTagView,
     },
   )
+  .post(
+    '/topic',
+    async ({ body, request, server }) => {
+      await ViewsService.recordTopicView(body, getClientIp(request, server))
+    },
+    {
+      body: ViewsModel.RecordTopicView,
+    },
+  )
   .get(
     '/hot/game',
     async ({ query }) => {

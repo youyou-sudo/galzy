@@ -152,7 +152,7 @@ export const collectionsRelations = relations(collections, ({ many }) => ({
 export const statCounters = pgTable(
   'galrc_stat_counters',
   {
-    /** 计数维度：'game_view' | 'tag_view' | 'game_download'（与 event_type 对齐）。 */
+    /** 计数维度：'game_view' | 'tag_view' | 'game_download' | 'topic_view'（与 event_type 对齐）。 */
     kind: varchar('kind', { length: 32 }).notNull(),
     /** 计数对象：gameId / tagId / otherId。 */
     targetId: varchar('target_id', { length: 255 }).notNull(),
@@ -186,7 +186,7 @@ export const statCounters = pgTable(
 export const statWindows = pgTable(
   'galrc_stat_windows',
   {
-    /** 计数维度：'game_view' | 'tag_view' | 'game_download'。 */
+    /** 计数维度：'game_view' | 'tag_view' | 'game_download' | 'topic_view'。 */
     kind: varchar('kind', { length: 32 }).notNull(),
     /** 计数对象：游戏展示身份（alistb.display_id）或 tagId。 */
     targetId: varchar('target_id', { length: 255 }).notNull(),

@@ -9,6 +9,9 @@
  *   累计值 = SUM(total) WHERE kind = ? AND target_id = ?
  *   周榜   = SUM(total) GROUP BY target_id WHERE kind = ? AND window_start >= ?
  *
+ * 浏览量维度（game_view / tag_view / topic_view）与下载维度（game_download）共用
+ * 同一张表：论坛帖子阅读数也是 kind='topic_view' 的累计求和，与热榜同一读取口径。
+ *
  * 下面两个 SQL 片段给 games / cron 的列表与 Meilisearch 索引文档复用；入参是 SQL
  * 列引用表达式（如 'vn.id'），由调用方使用内部常量拼接，不接受用户输入。
  */
@@ -18,11 +21,14 @@ import { statWindows } from '../db/schema/services'
 import { getWeekKey } from './time-window'
 
 /** 计数维度：与 galrc_stat_windows.kind 一一对应。 */
-export type StatKind = 'game_view' | 'tag_view' | 'game_download'
+export type StatKind = 'game_view' | 'tag_view' | 'game_download' | 'topic_view'
 
-/** 累计事件浏览量（kind: 'game_view' | 'tag_view'）。 */
+/** 浏览量维度：累计阅读数都按这几类求和。 */
+export type ViewEventType = 'game_view' | 'tag_view' | 'topic_view'
+
+/** 累计事件浏览量（kind: 'game_view' | 'tag_view' | 'topic_view'）。 */
 export const eventViewCountSql = (
-  eventType: 'game_view' | 'tag_view',
+  eventType: ViewEventType,
   targetIdExpr: string,
 ): string =>
   `(SELECT COALESCE(SUM(total), 0)::int FROM galrc_stat_windows WHERE kind = '${eventType}' AND target_id = ${targetIdExpr})`

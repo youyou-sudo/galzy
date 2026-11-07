@@ -27,7 +27,7 @@ const VIEW_RATE_WINDOW_SECONDS = 60 * 60 * 24
 
 async function hitViewRateLimit(
   ip: string | null,
-  scope: 'game' | 'tag',
+  scope: 'game' | 'tag' | 'topic',
 ): Promise<boolean> {
   if (!ip) return false
   // 开发模式 Redis 不生效：防刷逻辑停用，直接放行
@@ -109,6 +109,25 @@ export const ViewsService = {
     if (await hitViewRateLimit(ip, 'tag'))
       throw status(429, '请求过于频繁，请稍后再试喵～')
     await bumpStatWindows('tag_view', tagId)
+  },
+
+  /**
+   * 论坛帖子阅读数（详情页挂载时上报一次）。
+   *
+   * 与浏览/下载计数同样是旁路统计：写失败不影响主流程（调用方 .catch()），
+   * 但这里仍保留 IP 限流，避免脚本刷同一篇帖子的阅读量。
+   * targetId 统一折算成 String(Number(topicId))：帖子 id 是自增整数，
+   * URL 里出现前导零（/topics/007）时不能记成另一个 target。
+   */
+  async recordTopicView(
+    { topicId }: ViewsModel.recordTopicView,
+    ip: string | null,
+  ) {
+    if (await hitViewRateLimit(ip, 'topic'))
+      throw status(429, '请求过于频繁，请稍后再试喵～')
+    const numericId = Number(topicId)
+    if (!Number.isSafeInteger(numericId) || numericId <= 0) return
+    await bumpStatWindows('topic_view', String(numericId))
   },
 
   /** 标签页一次记录多个标签（含父标签链）：合并成一条多行 upsert。 */
