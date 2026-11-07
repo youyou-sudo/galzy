@@ -47,14 +47,17 @@ function DrawerContent({
 	children,
 	showGrabBar = true,
 	showCloseButton = true,
+	backdropForceRender = false,
 	...props
 }: DrawerPrimitive.Popup.Props & {
 	showGrabBar?: boolean;
 	showCloseButton?: boolean;
+	/** 嵌套在 Dialog 里时默认不画遮罩；需要「模态中的模态」观感就打开 */
+	backdropForceRender?: boolean;
 }) {
 	return (
 		<DrawerPortal>
-			<DrawerBackdrop />
+			<DrawerBackdrop forceRender={backdropForceRender} />
 			<DrawerViewport>
 				<DrawerPrimitive.Popup
 					data-slot="drawer-content"
