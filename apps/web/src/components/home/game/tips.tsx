@@ -47,21 +47,29 @@ const AdBadge = () => (
 const adLinkClass =
 	"underline decoration-dotted underline-offset-2 transition-colors duration-200 hover:text-foreground";
 
+/**
+ * 下载提示条：只属于「下载」页签。
+ *
+ * 以前它坐在 `Glgczujm`（页内广告）里，跟着布局壳出现在所有页签——攻略页、
+ * 讨论页都会冒出一句「用 IDM 下载」，读者根本没在下载。现在单独导出，
+ * 由布局壳按 gameTabOf() === 'download' 决定要不要渲染。
+ */
+export const DownloadTips = () => {
+	return (
+		<Alert className="gap-2 px-0 py-1 mt-4 text-xs text-muted-foreground bg-transparent border-0 opacity-80">
+			<Info aria-hidden="true" className="shrink-0 size-3.5 translate-y-0.5" />
+			<AlertDescription className="text-xs leading-relaxed">
+				建议使用 IDM 或 Aria2 在一小时内下载完成；PC 端使用 WinRAR，移动端使用 RAR /
+				ZArchiver；文件请放在全英文路径下。喜欢的话请购买原版或支持作者喵～
+			</AlertDescription>
+		</Alert>
+	);
+};
+
 // 页内广告
 export const Glgczujm = () => {
 	return (
 		<div className="flex flex-col gap-2 px-0 mt-4">
-			<Alert className="gap-2 px-0 py-1 text-xs text-muted-foreground bg-transparent border-0 opacity-80">
-				<Info
-					aria-hidden="true"
-					className="shrink-0 size-3.5 translate-y-0.5"
-				/>
-				<AlertDescription className="text-xs leading-relaxed">
-					建议使用 IDM 或 Aria2 在一小时内下载完成；PC 端使用 WinRAR，移动端使用
-					RAR / ZArchiver；文件请放在全英文路径下。喜欢的话请购买原版或支持作者喵～
-				</AlertDescription>
-			</Alert>
-
 			{/* DZMM 页内广告：标题 + 图片合在同一张 Card 里，整块可点 */}
 			<aside>
 				<a

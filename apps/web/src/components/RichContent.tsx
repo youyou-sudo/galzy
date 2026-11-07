@@ -9,8 +9,12 @@
  * tiptap 渲染链走动态 import（见 lib/rich-content-render.ts），因此 html
  * 分支用 React.use() + 内置 Suspense 消费缓存的 Promise：首次渲染显示同
  * 结构空占位，模块就绪后无缝替换；结果有缓存，重复渲染零开销。
+ *
+ * fallback 用骨架而非空占位：tiptap chunk 未就绪（冷启动 / 弱网 / 正文很长）
+ * 时给出与正文同宽的灰条加载态，正文区域不会先空白再突然出现。
  */
 
+import { RichContentSkeleton } from "@web/components/rich-content-skeleton";
 import { SmartMarkdown } from "@web/components/SmartMarkdown";
 import { renderHtmlContent } from "@web/lib/rich-content-render";
 import { cn } from "@web/lib/utils";
@@ -51,7 +55,14 @@ export function RichContent({
 
 	if (contentType === "html") {
 		return (
-			<Suspense fallback={<div className={cn(htmlProseClass, className)} />}>
+			<Suspense
+				fallback={
+					// 与正文保持同一层 prose 容器：加载完成时宽度/缩进不跳动
+					<div className={cn(htmlProseClass, className)} aria-busy="true">
+						<RichContentSkeleton />
+					</div>
+				}
+			>
 				<StaticHtmlContent content={content} className={className} />
 			</Suspense>
 		);

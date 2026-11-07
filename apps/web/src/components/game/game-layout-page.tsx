@@ -2,7 +2,7 @@ import { DownloadSpotlight } from "@web/components/home/game/download-spotlight"
 import { GameCover, GameTitle } from "@web/components/home/game/GameHeader";
 import { GameInfo } from "@web/components/home/game/GameInfo";
 import { GameTabs, gameTabOf } from "@web/components/home/game/GameTabs";
-import { Glgczujm } from "@web/components/home/game/tips";
+import { DownloadTips, Glgczujm } from "@web/components/home/game/tips";
 import { Card, CardContent } from "@web/components/ui/card";
 import { useIdlePreload } from "@web/hooks/use-idle-preload";
 import type { ReactNode } from "react";
@@ -82,6 +82,8 @@ export default function GameLayoutPage({
 				<CardContent>
 					{/* 下载定位按钮的高亮锚点：包住 tab 内容本体（不含下方推荐位） */}
 					<div data-download-target="">{children}</div>
+					{/* 下载提示只属于下载页签：攻略/讨论页没有文件可下，这句是噪音 */}
+					{isDownloadTab ? <DownloadTips /> : null}
 					<Glgczujm />
 				</CardContent>
 			</Card>
