@@ -1,5 +1,10 @@
+import {
+	type CharacterView as RosterCharacter,
+	readCharacterList,
+} from "@web/components/game/characters/character-types";
 import { EmptyState } from "@web/components/shared/empty-state";
 import {
+	CharacterView,
 	chartStats,
 	GraphView,
 	OrderView,
@@ -7,7 +12,7 @@ import {
 } from "@web/components/walkthrough/chart";
 import { useShallowSearch } from "@web/lib/admin/use-shallow-search";
 import { Route } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
 	isWalkthroughLang,
 	isWalkthroughView,
@@ -15,6 +20,7 @@ import {
 	type WalkthroughLang,
 	type WalkthroughView,
 } from "./types";
+import { WalkthroughGraphFullscreen } from "./walkthrough-graph-fullscreen";
 import { WalkthroughLegend } from "./walkthrough-legend";
 import { WalkthroughOverview } from "./walkthrough-overview";
 import { WalkthroughRoutes } from "./walkthrough-routes";
@@ -30,7 +36,8 @@ type WalkthroughSearch = {
 
 const SEARCH_DEFAULTS: Partial<WalkthroughSearch> = {
 	view: "character",
-	lang: "both",
+	// 默认中文：没有中文译文的句子由 resolveText 回退原文，不必让读者先切档
+	lang: "zh",
 };
 
 /**
@@ -42,19 +49,14 @@ const SEARCH_DEFAULTS: Partial<WalkthroughSearch> = {
  */
 export function WalkthroughPage({
 	data,
-	gameId,
-	releasedAt,
-	companies,
+	roster,
 	initialView,
 	initialLang,
 	initialCharacter,
 }: {
 	data: unknown;
-	gameId: string;
-	/** 作品的首次发售日（概览块的「发售日期」） */
-	releasedAt?: string | null;
-	/** 作品的厂商展示名（概览块的「制作会社」，来自 game.producers） */
-	companies?: string[];
+	/** 条目页角色名册（BFF 原样）：角色路线卡的头像/身份来自这里 */
+	roster?: unknown;
 	initialView?: string;
 	initialLang?: string;
 	initialCharacter?: string;
@@ -75,11 +77,15 @@ export function WalkthroughPage({
 		: "character";
 	const lang: WalkthroughLang = isWalkthroughLang(search.lang)
 		? search.lang
-		: "both";
+		: "zh";
 
 	const chart = detail?.chart ?? null;
 	const stats = useMemo(() => (chart ? chartStats(chart) : null), [chart]);
 	const characters = detail?.characters ?? [];
+	const rosterList: RosterCharacter[] = useMemo(
+		() => (roster ? readCharacterList(roster) : []),
+		[roster],
+	);
 
 	// 链接里的 character 可能是旧 key（攻略更新后角色被删）：不认识就当没选
 	const requestedCharacter = search.character?.trim() || null;
@@ -91,16 +97,23 @@ export function WalkthroughPage({
 
 	const scrollToSegment = useCallback((segmentKey: string) => {
 		if (typeof document === "undefined") return;
+		// scrollIntoView 在 jsdom 里不存在：可选调用，测试里退化成 no-op
 		document
 			.getElementById(segmentAnchorId(segmentKey))
-			?.scrollIntoView({ behavior: "smooth", block: "start" });
+			?.scrollIntoView?.({ behavior: "smooth", block: "start" });
 	}, []);
 
+	/** 内联流程图的全屏 Modal */
+	const [fullscreenOpen, setFullscreenOpen] = useState(false);
+	/** 「在路线列表中查看」待滚段落：全屏里要先关 Modal，等关闭动画结束再滚 */
+	const pendingSegmentRef = useRef<string | null>(null);
+
 	/**
-	 * 流程图里点节点/边：锚点只存在于顺序视图（OrderView），所以先切视图，
-	 * 下一帧再滚——同一帧里刚 setState 的 DOM 还没渲染出来，直接查会扑空。
+	 * 内联流程图里点「在路线列表中查看」：切到「按顺序」（那就是路线清单，每段带锚点）
+	 * 再滚过去。滚动要放到下一帧——同一帧里刚 setState 的 DOM 还没渲染出来，
+	 * 直接查会扑空。
 	 */
-	const handleGraphSegment = useCallback(
+	const handleInlineSegment = useCallback(
 		(segmentKey: string) => {
 			setSearch({ view: "order" });
 			if (typeof requestAnimationFrame !== "function") return;
@@ -108,6 +121,26 @@ export function WalkthroughPage({
 		},
 		[scrollToSegment, setSearch],
 	);
+
+	/**
+	 * 全屏 Modal 里点「在路线列表中查看」：先记下段落、切到「按顺序」并关掉
+	 * Modal，等 `onOpenChangeComplete`（退场动画结束、焦点归还完毕）再滚。
+	 * 在同一帧滚会被 Modal 关闭时的焦点复位盖掉。
+	 */
+	const handleFullscreenSegment = useCallback(
+		(segmentKey: string) => {
+			pendingSegmentRef.current = segmentKey;
+			setSearch({ view: "order" });
+			setFullscreenOpen(false);
+		},
+		[setSearch],
+	);
+	const handleFullscreenClosed = useCallback(() => {
+		const segmentKey = pendingSegmentRef.current;
+		if (!segmentKey) return;
+		pendingSegmentRef.current = null;
+		scrollToSegment(segmentKey);
+	}, [scrollToSegment]);
 
 	const handleViewChange = useCallback(
 		(next: WalkthroughView) => setSearch({ view: next }),
@@ -119,11 +152,9 @@ export function WalkthroughPage({
 	);
 	const handleCharacterChange = useCallback(
 		(next: string | null) => {
-			setSearch((previous) => ({
-				character: next ?? undefined,
-				// 选角色即进入「按角色」；清空选择时保持当前视图
-				view: next ? "character" : previous.view,
-			}));
+			// 角色只是过滤条件，和视图正交：在流程图 Modal 里点角色药丸只换图，
+			// 不能把 URL 里的视图改回「按角色」。
+			setSearch({ character: next ?? undefined });
 		},
 		[setSearch],
 	);
@@ -141,61 +172,77 @@ export function WalkthroughPage({
 
 	return (
 		<div className="space-y-6">
-			<WalkthroughOverview
-				companies={companies}
-				detail={detail}
-				gameId={gameId}
-				releasedAt={releasedAt}
-			/>
+			<WalkthroughOverview detail={detail} />
 			{chart && stats ? (
-				<>
-					<WalkthroughRoutes
+				<div className="space-y-4">
+					<WalkthroughToolbar
+						lang={lang}
+						onLangChange={handleLangChange}
+						onViewChange={handleViewChange}
+						view={view}
+					/>
+					{/* 角色卡只给需要它的视图：「按顺序」列的是整份攻略的阅读顺序，
+					    本来就不按角色过滤，摆一排点了没反应的卡只会误导。
+					    位置上它排在视图选项卡之后：先选看哪张视图，再决定只看哪条线 */}
+					{view === "order" ? null : (
+						<WalkthroughRoutes
+							characters={characters}
+							onSelect={handleCharacterChange}
+							roster={rosterList}
+							selectedKey={characterKey}
+							stats={stats}
+						/>
+					)}
+					{view === "graph" ? (
+						// 流程图仍是内联视图；「全屏」只是画布操作按钮里的一个入口
+						<GraphView
+							characterKey={characterKey}
+							chart={chart}
+							lang={lang}
+							onOpenSegment={handleInlineSegment}
+							onToggleFullscreen={() => setFullscreenOpen(true)}
+						/>
+					) : view === "order" ? (
+						// 按顺序 = 整份攻略拍平成可勾选进度的折叠清单（不按角色过滤）
+						<OrderView
+							characters={characters}
+							chart={chart}
+							lang={lang}
+							storageKey={detail.id}
+						/>
+					) : (
+						<>
+							{/* 按角色 = 段落目录 + 长文正文，过滤条件跟着 characterKey 走 */}
+							<WalkthroughSegments
+								characterKey={characterKey}
+								chart={chart}
+								lang={lang}
+								onSelect={scrollToSegment}
+							/>
+							<CharacterView
+								characterKey={characterKey}
+								chart={chart}
+								lang={lang}
+							/>
+						</>
+					)}
+					<WalkthroughLegend chart={chart} lang={lang} />
+					<WalkthroughGraphFullscreen
+						characterKey={characterKey}
 						characters={characters}
-						onSelect={handleCharacterChange}
-						selectedKey={characterKey}
+						chart={chart}
+						lang={lang}
+						onCharacterChange={handleCharacterChange}
+						onLangChange={handleLangChange}
+						onOpenChange={setFullscreenOpen}
+						onOpenChangeComplete={(open) => {
+							if (!open) handleFullscreenClosed();
+						}}
+						onOpenSegment={handleFullscreenSegment}
+						open={fullscreenOpen}
 						stats={stats}
 					/>
-					<div className="space-y-4">
-						<WalkthroughToolbar
-							lang={lang}
-							onLangChange={handleLangChange}
-							// 参考站的「显示全部路线」只出现在流程图视图：那张图按角色
-							// 过滤后会少一半节点，必须有一步能退回来
-							onShowAll={
-								view === "graph" && characterKey
-									? () => handleCharacterChange(null)
-									: undefined
-							}
-							onViewChange={handleViewChange}
-							view={view}
-						/>
-						{view === "graph" ? (
-							<GraphView
-								chart={chart}
-								characterKey={characterKey}
-								lang={lang}
-								onSegmentSelect={handleGraphSegment}
-							/>
-						) : (
-							<>
-								{/* 按角色与按顺序共用同一套段落卡片：两页只有 URL 不同，
-								    所以不写两套布局，只是过滤条件跟着 characterKey 走 */}
-								<WalkthroughSegments
-									characterKey={characterKey}
-									chart={chart}
-									lang={lang}
-									onSelect={scrollToSegment}
-								/>
-								<OrderView
-									characterKey={characterKey}
-									chart={chart}
-									lang={lang}
-								/>
-							</>
-						)}
-						<WalkthroughLegend chart={chart} lang={lang} />
-					</div>
-				</>
+				</div>
 			) : (
 				<EmptyState
 					description="这份攻略还没有可展示的选项流程"
