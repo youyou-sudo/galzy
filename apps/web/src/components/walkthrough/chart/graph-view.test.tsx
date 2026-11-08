@@ -155,6 +155,31 @@ describe("GraphView", () => {
 		expect(label?.textContent ?? "").toContain("2 个选项");
 	});
 
+	// 性能：缩放/平移直接写 DOM，不经过 React state（否则每帧都要重建
+	// 200 个节点 + 连线 + 标签）。这里锁死「按钮 → transform/读数」的联动。
+	it("缩放按钮直接写 transform 与缩放读数", () => {
+		const { container } = render(<GraphView chart={chart} lang="both" />);
+		const content = container.querySelector("[data-graph-content]");
+		const pct = screen.getByText("100%");
+		fireEvent.click(screen.getByRole("button", { name: "放大" }));
+		expect(content?.getAttribute("style") ?? "").toContain("scale(1.2)");
+		expect(pct.textContent).toBe("120%");
+		fireEvent.click(screen.getByRole("button", { name: "重置视图" }));
+		expect(content?.getAttribute("style") ?? "").toContain("scale(1)");
+		expect(pct.textContent).toBe("100%");
+	});
+
+	// 滚轮同样走命令式路径：不 setState，只改 transform / 网格背景 / 读数
+	it("滚轮缩放不经过 React 渲染", () => {
+		const { container } = render(<GraphView chart={chart} lang="both" />);
+		const viewport = container.querySelector(
+			"[data-graph-viewport]",
+		) as Element;
+		const content = container.querySelector("[data-graph-content]");
+		fireEvent.wheel(viewport, { deltaY: -100 });
+		expect(content?.getAttribute("style") ?? "").toContain("scale(1.12)");
+	});
+
 	// 用户要求「将选项放到右边」：jsdom 不算 CSS，只校验 DOM 顺序
 	// （画布在前、选项在后 = 桌面端 flex-row 里选项在右）
 	it("桌面端选项面板排在画布右侧", () => {
