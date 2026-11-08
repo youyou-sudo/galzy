@@ -59,11 +59,40 @@ const app = new Elysia()
  * `onShutdown` / `port`）；开发模式由 `import.meta.main` 调用。不能只写在
  * `import.meta.main` 里——构建产物是被入口 import 的模块，那里它是 false。
  */
+/**
+ * 让「本机自取」绕过 HTTP(S)_PROXY。
+ *
+ * Bun 的 fetch 会读 HTTP(S)_PROXY / NO_PROXY。开发模式下 furin 用
+ * `server.url.origin` 自取 `/_bun_hmr_entry` 来拼文档模板；服务默认绑定
+ * `0.0.0.0`，这条自取就变成了 `http://0.0.0.0:3000/_bun_hmr_entry`。
+ * 本机代理（Clash / v2ray 等）无法路由 0.0.0.0，会返回 502，页面于是变成
+ * 「/_bun_hmr_entry returned 502」的开发错误页 —— 改业务代码、刷新浏览器都
+ * 不会好，只有关代理或重启服务才恢复。
+ *
+ * 所以在 listen 之前，把绑定地址与本机回环补进 NO_PROXY（大小写两套变量都写，
+ * 不同运行环境读的键名不一致）。生产容器通常没有代理变量，加这几项也无副作用。
+ */
+function bypassProxyForLocalOrigins(hostname: string): void {
+	const locals = ["localhost", "127.0.0.1", "0.0.0.0", hostname];
+	for (const key of ["NO_PROXY", "no_proxy"] as const) {
+		const entries = new Set(
+			(process.env[key] ?? "")
+				.split(",")
+				.map((item) => item.trim())
+				.filter(Boolean),
+		);
+		for (const local of locals) entries.add(local);
+		process.env[key] = [...entries].join(",");
+	}
+}
+
 export async function startServer(): Promise<void> {
 	if (app.server) return;
+	const hostname = process.env.HOST ?? "0.0.0.0";
+	bypassProxyForLocalOrigins(hostname);
 	const instance = app.listen({
 		port,
-		hostname: process.env.HOST ?? "0.0.0.0",
+		hostname,
 	});
 	console.log(
 		"[web] furin server listening on http://localhost:" +
