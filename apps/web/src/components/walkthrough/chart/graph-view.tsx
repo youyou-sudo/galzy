@@ -73,6 +73,12 @@ const COL_STEP = 224;
 const ROW_STEP = 92;
 const MARGIN = 24;
 
+/** 缩放下限 0.3 / 上限 2：再小字就糊，再大只是把细节放大 */
+const MIN_SCALE = 0.3;
+const MAX_SCALE = 2;
+const clampScale = (value: number) =>
+	Math.min(MAX_SCALE, Math.max(MIN_SCALE, value));
+
 /**
  * 画布底：借用标签层级图（tags/[tagId]）那一套 —— 点阵网格 + 中心柔光，
  * 底色是 muted 混 card，比纯白更「像一块画布」，也让节点卡片浮得起来。
@@ -482,8 +488,48 @@ export function GraphView({
 	}, [isNarrow, fullscreen]);
 	const [hoverEdge, setHoverEdge] = useState<string | null>(null);
 	const [activeChunkId, setActiveChunkId] = useState<string | null>(null);
-	const [view, setView] = useState({ scale: 1, x: 0, y: 0 });
+
+	/**
+	 * 视图变换（缩放 / 平移）刻意**不进 React state**。
+	 *
+	 * 滚轮和拖拽每秒会触发几十上百次；只要 setState，整棵树（200 个节点 +
+	 * 200 条连线 + 200 个选项标签）就会跟着重渲染一遍，低端机上直接掉帧。
+	 * 这里把变换只留在 ref 里，并把 transform / 网格背景 / 缩放读数直接写 DOM——
+	 * 手势期间一次 React 渲染都不会发生，只有选中项 / hover 变化才重渲染。
+	 */
 	const viewportRef = useRef<HTMLDivElement | null>(null);
+	const contentRef = useRef<HTMLDivElement | null>(null);
+	const pctRef = useRef<HTMLSpanElement | null>(null);
+	const viewRef = useRef({ scale: 1, x: 0, y: 0 });
+
+	const applyView = useCallback(
+		(next: { scale: number; x: number; y: number }) => {
+			viewRef.current = next;
+			const element = viewportRef.current;
+			if (element) {
+				// 网格跟着平移/缩放走：拖动画布时底纹有位移感，而不是贴在视口上。
+				// 尺寸只在缩放变化时写（平移时它不变），少一次无意义的样式失效。
+				const size = `100% 100%, ${GRID * next.scale}px ${GRID * next.scale}px`;
+				if (element.style.backgroundSize !== size) {
+					element.style.backgroundSize = size;
+				}
+				element.style.backgroundPosition = `0 0, ${next.x}px ${next.y}px`;
+			}
+			const content = contentRef.current;
+			if (content) {
+				content.style.transform = `translate(${next.x}px, ${next.y}px) scale(${next.scale})`;
+			}
+			// 读数只在缩放真的变了才写：平移时 scale 不变，textContent 赋值同样会
+			// 触发一次 DOM mutation，拖拽期间白白多几百次
+			if (pctRef.current) {
+				const label = `${Math.round(next.scale * 100)}%`;
+				if (pctRef.current.textContent !== label) {
+					pctRef.current.textContent = label;
+				}
+			}
+		},
+		[],
+	);
 	const dragRef = useRef<{
 		pointerId: number;
 		startX: number;
@@ -507,24 +553,26 @@ export function GraphView({
 		if (!width || !height) return;
 		// 下限定在 0.7：整条路线（多角色全开）可能有十几列，硬塞进画布会把
 		// 「N 个选项」缩成看不清的灰点 —— 宁可让画布可拖拽，也不做到看不清的自适应
-		const scale = Math.min(
-			1.1,
-			Math.max(
-				0.7,
-				Math.min(
-					(width - 48) / Math.max(graph.width, 1),
-					(height - 48) / Math.max(graph.height, 1),
+		const scale = clampScale(
+			Math.min(
+				1.1,
+				Math.max(
+					0.7,
+					Math.min(
+						(width - 48) / Math.max(graph.width, 1),
+						(height - 48) / Math.max(graph.height, 1),
+					),
 				),
 			),
 		);
 		const contentHeight = graph.height * scale;
-		setView({
+		applyView({
 			scale,
 			x: (width - graph.width * scale) / 2,
 			// 放得下就居中，放不下从顶部起排（往下拖看后续，而不是从中间截断）
 			y: contentHeight <= height - 32 ? (height - contentHeight) / 2 : 16,
 		});
-	}, [graph.width, graph.height]);
+	}, [applyView, graph.width, graph.height]);
 
 	// 首屏与切角色后自适应；jsdom 里 clientWidth=0 直接跳过（单测不需要布局）
 	useEffect(() => {
@@ -537,38 +585,46 @@ export function GraphView({
 		if (!element) return;
 		const handleWheel = (event: WheelEvent) => {
 			event.preventDefault();
+			const current = viewRef.current;
 			const factor = event.deltaY < 0 ? 1.12 : 1 / 1.12;
-			setView((current) => {
-				const scale = Math.min(2, Math.max(0.3, current.scale * factor));
-				const rect = element.getBoundingClientRect();
-				const cx = event.clientX - rect.left;
-				const cy = event.clientY - rect.top;
-				const ratio = scale / current.scale;
-				return {
-					scale,
-					x: cx - (cx - current.x) * ratio,
-					y: cy - (cy - current.y) * ratio,
-				};
+			const scale = clampScale(current.scale * factor);
+			if (scale === current.scale) return;
+			const rect = element.getBoundingClientRect();
+			const cx = event.clientX - rect.left;
+			const cy = event.clientY - rect.top;
+			const ratio = scale / current.scale;
+			applyView({
+				scale,
+				x: cx - (cx - current.x) * ratio,
+				y: cy - (cy - current.y) * ratio,
 			});
 		};
 		element.addEventListener("wheel", handleWheel, { passive: false });
 		return () => element.removeEventListener("wheel", handleWheel);
-	}, []);
+	}, [applyView]);
 
-	const zoomBy = useCallback((factor: number) => {
-		setView((current) => {
+	/** 以画布中心为锚点缩放（工具条的 ± 按钮） */
+	const zoomBy = useCallback(
+		(factor: number) => {
+			const current = viewRef.current;
+			const scale = clampScale(current.scale * factor);
+			if (scale === current.scale) return;
 			const element = viewportRef.current;
 			const width = element?.clientWidth ?? 0;
 			const height = element?.clientHeight ?? 0;
-			const scale = Math.min(2, Math.max(0.3, current.scale * factor));
 			const ratio = scale / current.scale;
-			return {
+			applyView({
 				scale,
 				x: width / 2 - (width / 2 - current.x) * ratio,
 				y: height / 2 - (height / 2 - current.y) * ratio,
-			};
-		});
-	}, []);
+			});
+		},
+		[applyView],
+	);
+
+	const resetView = useCallback(() => {
+		applyView({ scale: 1, x: 0, y: 0 });
+	}, [applyView]);
 
 	const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
 		if (event.button !== 0) return;
@@ -585,8 +641,8 @@ export function GraphView({
 			pointerId: event.pointerId,
 			startX: event.clientX,
 			startY: event.clientY,
-			originX: view.x,
-			originY: view.y,
+			originX: viewRef.current.x,
+			originY: viewRef.current.y,
 		};
 		event.currentTarget.setPointerCapture?.(event.pointerId);
 	};
@@ -594,11 +650,13 @@ export function GraphView({
 	const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
 		const drag = dragRef.current;
 		if (!drag || drag.pointerId !== event.pointerId) return;
-		setView((current) => ({
-			...current,
+		// 直接写 DOM，不 setState：拖动时每帧都有 pointermove，
+		// 走 React 会把整棵树重渲染（见 applyView 的注释）
+		applyView({
+			scale: viewRef.current.scale,
 			x: drag.originX + (event.clientX - drag.startX),
 			y: drag.originY + (event.clientY - drag.startY),
-		}));
+		});
 	};
 
 	const endDrag = () => {
@@ -701,26 +759,26 @@ export function GraphView({
 						<div className="absolute inset-0">
 							<div
 								className="absolute inset-0 cursor-grab touch-none select-none overflow-hidden active:cursor-grabbing"
+								data-graph-viewport
 								onPointerCancel={endDrag}
 								onPointerDown={handlePointerDown}
 								onPointerMove={handlePointerMove}
 								onPointerUp={endDrag}
 								ref={viewportRef}
 								style={{
-									// 标签层级图同款：点阵网格 + 中心柔光。网格跟着平移/缩放走，
-									// 拖动画布时底纹有位移感，而不是一块贴在视口上的贴图
+									// 标签层级图同款：点阵网格 + 中心柔光。网格的尺寸/位移由
+									// applyView 直接写 DOM（跟着平移/缩放走），这里只给初始值
 									backgroundColor: CANVAS_BG,
 									backgroundImage: `${SPOTLIGHT}, radial-gradient(circle, ${DOT} 1px, transparent 1px)`,
-									backgroundSize: `100% 100%, ${GRID * view.scale}px ${GRID * view.scale}px`,
-									backgroundPosition: `0 0, ${view.x}px ${view.y}px`,
+									backgroundSize: `100% 100%, ${GRID}px ${GRID}px`,
+									backgroundPosition: "0 0, 0px 0px",
 								}}
 							>
 								<div
-									className="absolute top-0 left-0"
-									style={{
-										transform: `translate(${view.x}px, ${view.y}px) scale(${view.scale})`,
-										transformOrigin: "0 0",
-									}}
+									className="absolute top-0 left-0 will-change-transform"
+									data-graph-content
+									ref={contentRef}
+									style={{ transformOrigin: "0 0" }}
 								>
 									<div
 										className="relative"
@@ -968,8 +1026,12 @@ export function GraphView({
 										<Icon className="size-3.5" />
 									</button>
 								))}
-								<span className="w-9 text-center text-[11px] text-muted-foreground tabular-nums">
-									{Math.round(view.scale * 100)}%
+								{/* 读数由 applyView 直接写 textContent：缩放时不需要重渲染 */}
+								<span
+									className="w-9 text-center text-[11px] text-muted-foreground tabular-nums"
+									ref={pctRef}
+								>
+									100%
 								</span>
 								<span className="mx-0.5 h-4 w-px bg-border" />
 								{[
@@ -977,7 +1039,7 @@ export function GraphView({
 									{
 										icon: RotateCcw,
 										label: "重置视图",
-										onClick: () => setView({ scale: 1, x: 0, y: 0 }),
+										onClick: resetView,
 									},
 									...(onToggleFullscreen
 										? [
