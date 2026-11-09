@@ -1,4 +1,12 @@
-import { db, queueJob, queueJobLog, sql } from '@api/libs'
+import {
+  type ActiveTaskLogger,
+  db,
+  queueJob,
+  queueJobLog,
+  runInTaskLogContext,
+  sql,
+  type TaskLogLevel,
+} from '@api/libs'
 import type { TaskPayload } from '@api/libs/queue'
 import {
   defaultJobOptions,
@@ -95,6 +103,35 @@ function percentOf(processed: number, total: number): number {
   return Math.max(0, Math.min(100, Math.round((processed / total) * 100)))
 }
 
+/** 毫秒 → 可读耗时（日志用；长任务动辄几十分钟，毫秒数人类读不出来）。 */
+function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return '未知耗时'
+  if (ms < 1000) return `${Math.round(ms)}ms`
+  const seconds = ms / 1000
+  if (seconds < 60) return `${seconds.toFixed(1)}s`
+  const minutes = Math.floor(seconds / 60)
+  return `${minutes}m${Math.round(seconds % 60)}s`
+}
+
+/**
+ * 结果摘要（一行）：让日志本身能读懂这次任务干了什么。
+ * 管理端「结果」tab 是全量 JSON，这里只收短摘要，过长（大对象）就干脆不写，
+ * 免得把日志表灌成 result 的副本。
+ */
+function summarizeResult(result: unknown): string | null {
+  if (result === null || result === undefined) return null
+  if (typeof result !== 'object') {
+    const text = String(result)
+    return text.length <= 200 ? text : null
+  }
+  try {
+    const text = JSON.stringify(result)
+    return text.length <= 200 ? text : null
+  } catch {
+    return null
+  }
+}
+
 /**
  * 日志器只需要「job id + 回写进度」两件事。
  *
@@ -109,23 +146,47 @@ type LogJobRef = {
 /**
  * 任务日志器：把执行日志写入 galrc_queue_job_log，进度同步双写
  * galrc_queue_job.progress 与 bun-queue 的 job.progress（Redis，供 stalled/DLQ 语义）。
+ *
+ * 写库走内部串行链：业务层转发（libs/queue/task-context.ts 的 forwardTaskLogs）
+ * 是 fire-and-forget，多条 insert 同时到达时靠它保证「表里的顺序 = 产生的顺序」。
  */
-export class JobLogger {
+export class JobLogger implements ActiveTaskLogger {
   private readonly job: LogJobRef
+  private writes: Promise<void> = Promise.resolve()
+  /**
+   * 终态已落库：关闭日志器。
+   *
+   * 业务层有 `void updateProgress(...)` 这类 fire-and-forget 写入，可能在任务
+   * 结束之后才 resolve；关掉后这些迟到日志直接丢弃，避免「执行完成」后面还挂一行。
+   */
+  private closed = false
 
   constructor(job: LogJobRef) {
     this.job = job
   }
 
-  private async write(
-    level: 'info' | 'warn' | 'error' | 'success',
-    message: string,
-  ) {
-    await db.insert(queueJobLog).values({
-      jobId: this.job.id,
-      level,
-      message,
-    })
+  get jobId(): string {
+    return this.job.id
+  }
+
+  private write(level: TaskLogLevel, message: string): Promise<void> {
+    if (this.closed) return Promise.resolve()
+    const next = this.writes
+      .then(async () => {
+        if (this.closed) return
+        await db.insert(queueJobLog).values({
+          jobId: this.job.id,
+          level,
+          message,
+        })
+      })
+      // 日志是旁路：写失败只告警，绝不能把失败分支的终态写库带崩
+      // （那条路径一旦抛出，job 会停在 running 变成僵尸行）。
+      .catch((e) => {
+        console.warn(`[queue] 写任务日志失败 (${this.job.id}):`, e)
+      })
+    this.writes = next
+    return next
   }
 
   info(message: string) {
@@ -141,8 +202,15 @@ export class JobLogger {
     return this.write('success', message)
   }
 
+  /** 任务终态已写库：不再接受迟到日志（见 closed 的注释）。 */
+  close() {
+    this.closed = true
+  }
+
   /** 更新进度（0-100）：同时落 galrc_queue_job.progress 与 Redis job.progress。 */
   async progress(percent: number) {
+    // 任务已终结：onProgress 是 fire-and-forget 调用的，迟到的回写会把 100 覆盖回去。
+    if (this.closed) return
     const p = Math.max(0, Math.min(100, Math.round(percent)))
     const writes: Promise<unknown>[] = [
       db
@@ -513,12 +581,21 @@ async function runInline(queueName: string, payload: TaskPayload) {
     const logger = new JobLogger({ id: jobId })
     try {
       await TaskLifecycle.markRunning(jobId, queueName, payload)
-      await logger.info(`进程内联执行（本进程无 Worker）: ${payload.type}`)
-      const result = await runTaskHandler(payload, (p, t) => {
-        void logger.progress(percentOf(p, t))
+      // 与 Worker 路径共用同一套任务上下文：业务层写进 siteConfig 进度的日志
+      // 会被 forwardTaskLogs 桥接到本 job 的 galrc_queue_job_log。
+      await runInTaskLogContext(logger, async () => {
+        const startedAt = Date.now()
+        await logger.info(`进程内联执行（本进程无 Worker）: ${payload.type}`)
+        const result = await runTaskHandler(payload, (p, t) => {
+          void logger.progress(percentOf(p, t))
+        })
+        const summary = summarizeResult(result)
+        if (summary) await logger.info(`执行结果: ${summary}`)
+        await TaskLifecycle.markCompleted(jobId, result ?? null)
+        await logger.success(
+          `执行完成，耗时 ${formatDuration(Date.now() - startedAt)}`,
+        )
       })
-      await TaskLifecycle.markCompleted(jobId, result ?? null)
-      await logger.success('执行完成')
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       // 终态兜底：内联路径没有 bun-queue 事件，失败必须自己写，
@@ -531,6 +608,7 @@ async function runInline(queueName: string, payload: TaskPayload) {
       }
       console.error(`[queue] 内联任务失败 ${payload.type}:`, e)
     } finally {
+      logger.close()
       // 只删除自己登记的那条：期间可能已有新的内联任务顶替。
       if (inlineJobs.get(payload.type) === jobId) {
         inlineJobs.delete(payload.type)
@@ -1577,72 +1655,90 @@ function createWorker<T extends QueueWorkerSpec>(spec: T) {
   const worker = new Worker<TaskPayload>(q, concurrency, async (job) => {
     const logger = new JobLogger(job)
     const queueName = job.queue.name
+    const payload = job.data as TaskPayload
     const ctx: WorkerHandlerContext = {
       jobId: job.id,
       queue: queueName,
       logger,
     }
 
-    await TaskLifecycle.markRunning(job.id, queueName, job.data as TaskPayload)
-    try {
-      const result = await run(job.data as TaskPayload, ctx)
-      // 链式收尾失败（如 cloudreve 后入队 vndb-delta 时 Redis 抖动）不影响主任务终态。
-      if (onSuccess) {
-        try {
-          await onSuccess(result, ctx)
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e)
-          await logger.warn(
-            `任务成功后收尾失败（已忽略，不影响主任务）: ${msg}`,
-          )
+    await TaskLifecycle.markRunning(job.id, queueName, payload)
+
+    // 整条执行链包进任务上下文：业务层仍把日志写进 siteConfig 进度
+    // （libs/queue/task-context.ts），由 forwardTaskLogs 桥接到本 job 的日志表。
+    return await runInTaskLogContext(logger, async () => {
+      const startedAt = Date.now()
+      const attempt = (job.attemptsMade ?? 0) + 1
+      await logger.info(
+        `开始执行 ${payload.type}${attempt > 1 ? `（第 ${attempt} 次尝试）` : ''}`,
+      )
+      try {
+        const result = await run(payload, ctx)
+        // 链式收尾失败（如 cloudreve 后入队 vndb-delta 时 Redis 抖动）不影响主任务终态。
+        if (onSuccess) {
+          try {
+            await onSuccess(result, ctx)
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e)
+            await logger.warn(
+              `任务成功后收尾失败（已忽略，不影响主任务）: ${msg}`,
+            )
+          }
         }
-      }
-      return result
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e)
-      await logger.error(msg)
-
-      // 终态判定必须逐条复刻 bun-queue Worker 的调度逻辑（dist 里 moveToFailed
-      // 之后的 if 链），否则我们标的状态会和 Redis 里的实际去向不一致：
-      //   maxAttempts = opts.attempts || 1        ← 是 || 不是 ??
-      //   dlqEnabled  = opts.deadLetter ?? 队列默认  ← 先看单 job 覆盖
-      //   dlqMax      = 单 job maxRetries || 队列默认 || 3
-      // 我们的 handler 先于 moveToFailed 抛错，所以这里的 attemptsMade 要 +1
-      // 才是库随后写进 hash 的值。
-      const attemptsMade = job.attemptsMade + 1
-      const maxAttempts = job.opts.attempts || 1
-      const jobDlq = job.opts.deadLetter
-      const dlqOpts = q.getDefaultDeadLetterOptions()
-      const dlqEnabled =
-        jobDlq !== undefined ? Boolean(jobDlq) : (dlqOpts?.enabled ?? false)
-      const dlqMax =
-        (typeof jobDlq === 'object' && jobDlq !== null
-          ? jobDlq.maxRetries
-          : dlqOpts?.maxRetries) || 3
-      const willDeadLetter = dlqEnabled && attemptsMade >= dlqMax
-      const willRetry = !willDeadLetter && attemptsMade < maxAttempts
-
-      if (willDeadLetter) {
-        await logger.warn(
-          `第 ${attemptsMade} 次执行失败，已耗尽重试，转入死信队列`,
+        const summary = summarizeResult(result)
+        if (summary) await logger.info(`执行结果: ${summary}`)
+        await logger.success(
+          `执行完成，耗时 ${formatDuration(Date.now() - startedAt)}`,
         )
-        // 终态兜底：正常情况下由 queue.events 的 jobMovedToDeadLetter 写 dead-letter。
-        // 这里直接写一次 —— 事件随后再来写同值，幂等无害。
-        await TaskLifecycle.markDeadLetter(job.id, msg)
-      } else if (willRetry) {
-        await logger.warn(
-          `第 ${attemptsMade}/${maxAttempts} 次执行失败，将自动重试`,
-        )
-      } else {
-        // 第三档：既不再重试、也够不上 DLQ 阈值。bun-queue 在这一档什么都不做
-        // ——不重试、不进 DLQ、**也不发任何事件**，job 就静静躺在 failed 列表里。
-        // 线上那条 status=queued 的僵尸行就是这么来的：死信重放时 resetRetries
-        // 把 attempts 置 0，库按 || 当 1 次算，第二次失败即落入本档。
-        // 所以这一档必须我们自己写终态，否则 PG 永远停在 running/queued。
-        await TaskLifecycle.markFailed(job.id, msg)
+        return result
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        await logger.error(msg)
+
+        // 终态判定必须逐条复刻 bun-queue Worker 的调度逻辑（dist 里 moveToFailed
+        // 之后的 if 链），否则我们标的状态会和 Redis 里的实际去向不一致：
+        //   maxAttempts = opts.attempts || 1        ← 是 || 不是 ??
+        //   dlqEnabled  = opts.deadLetter ?? 队列默认  ← 先看单 job 覆盖
+        //   dlqMax      = 单 job maxRetries || 队列默认 || 3
+        // 我们的 handler 先于 moveToFailed 抛错，所以这里的 attemptsMade 要 +1
+        // 才是库随后写进 hash 的值。
+        const attemptsMade = job.attemptsMade + 1
+        const maxAttempts = job.opts.attempts || 1
+        const jobDlq = job.opts.deadLetter
+        const dlqOpts = q.getDefaultDeadLetterOptions()
+        const dlqEnabled =
+          jobDlq !== undefined ? Boolean(jobDlq) : (dlqOpts?.enabled ?? false)
+        const dlqMax =
+          (typeof jobDlq === 'object' && jobDlq !== null
+            ? jobDlq.maxRetries
+            : dlqOpts?.maxRetries) || 3
+        const willDeadLetter = dlqEnabled && attemptsMade >= dlqMax
+        const willRetry = !willDeadLetter && attemptsMade < maxAttempts
+
+        if (willDeadLetter) {
+          await logger.warn(
+            `第 ${attemptsMade} 次执行失败，已耗尽重试，转入死信队列`,
+          )
+          // 终态兜底：正常情况下由 queue.events 的 jobMovedToDeadLetter 写 dead-letter。
+          // 这里直接写一次 —— 事件随后再来写同值，幂等无害。
+          await TaskLifecycle.markDeadLetter(job.id, msg)
+        } else if (willRetry) {
+          await logger.warn(
+            `第 ${attemptsMade}/${maxAttempts} 次执行失败，将自动重试`,
+          )
+        } else {
+          // 第三档：既不再重试、也够不上 DLQ 阈值。bun-queue 在这一档什么都不做
+          // ——不重试、不进 DLQ、**也不发任何事件**，job 就静静躺在 failed 列表里。
+          // 线上那条 status=queued 的僵尸行就是这么来的：死信重放时 resetRetries
+          // 把 attempts 置 0，库按 || 当 1 次算，第二次失败即落入本档。
+          // 所以这一档必须我们自己写终态，否则 PG 永远停在 running/queued。
+          await TaskLifecycle.markFailed(job.id, msg)
+        }
+        throw e
+      } finally {
+        logger.close()
       }
-      throw e
-    }
+    })
   })
   worker.start()
   return worker

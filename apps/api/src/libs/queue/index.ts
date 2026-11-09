@@ -40,5 +40,6 @@ export {
   queueConnection,
 } from './config'
 export type { TaskPayload } from './payload'
+export * from './task-context'
 export type { QueueName, QueueTaskMap, TaskType } from './types'
 export { isValidTask, QUEUE, queueTaskTypes } from './types'
