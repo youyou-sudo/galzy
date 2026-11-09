@@ -5,6 +5,7 @@ import {
   db,
   eventViewCountSql,
   externalIds,
+  forwardTaskLogs,
   gameDownloadCountSql,
   images,
   kungalWorks,
@@ -564,6 +565,9 @@ export const CronService = {
         target: siteConfig.key,
         set: { config: updated as any },
       })
+    // 同 VndbSync/KungalSync：进度 JSON 里的日志桥接到当前队列任务
+    // （/admin/tasks 任务详情读的是 galrc_queue_job_log）。
+    forwardTaskLogs(partial.logs)
   },
 
   async getMeiliProgress(

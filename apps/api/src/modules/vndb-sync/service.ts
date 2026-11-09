@@ -1,6 +1,7 @@
 import {
   alistb,
   db,
+  forwardTaskLogs,
   images,
   producers,
   releases,
@@ -494,6 +495,10 @@ export const VndbSync = {
         target: siteConfig.key,
         set: { config: updated as any },
       })
+    // /admin/tasks 的日志读的是 galrc_queue_job_log，而本函数的 logs 仍写在
+    // siteConfig 进度 JSON 里（旧同步页数据源）。队列化后必须桥接一份过去，
+    // 否则管理端任务详情永远是「暂无日志」。无任务上下文时本调用是空操作。
+    forwardTaskLogs(partial.logs)
   },
 
   async getProgress(): Promise<SyncProgress> {

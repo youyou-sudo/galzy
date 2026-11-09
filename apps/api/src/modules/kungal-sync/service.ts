@@ -1,6 +1,7 @@
 import {
   alistb,
   db,
+  forwardTaskLogs,
   kungalCharacterAppearances,
   kungalCharacters,
   kungalWalkthroughs,
@@ -1688,6 +1689,8 @@ export const KungalSync = {
         target: siteConfig.key,
         set: { config: updated as any },
       })
+    // 同 VndbSync：把本轮新增的进度日志桥接到当前队列任务（/admin/tasks 日志 tab）。
+    forwardTaskLogs(partial.logs)
   },
 
   /**
