@@ -156,28 +156,132 @@ describe("GraphView", () => {
 	});
 
 	// 性能：缩放/平移直接写 DOM，不经过 React state（否则每帧都要重建
-	// 200 个节点 + 连线 + 标签）。这里锁死「按钮 → transform/读数」的联动。
-	it("缩放按钮直接写 transform 与缩放读数", () => {
+	// 200 个节点 + 连线 + 标签）。
+	// 缩放走布局 zoom、平移才用 translate —— transform: scale 是把栅格化好的
+	// 位图交给合成器放大，放大即糊（用户反馈的「一放大就模糊」）。
+	it("缩放写布局 zoom、平移只写 translate，读数同步", () => {
 		const { container } = render(<GraphView chart={chart} lang="both" />);
-		const content = container.querySelector("[data-graph-content]");
+		const pan = container.querySelector("[data-graph-content]");
+		const scaler = container.querySelector("[data-graph-scaler]");
 		const pct = screen.getByText("100%");
+		// 静止状态不该挂着 will-change：永久提升图层会让文字失去亚像素抗锯齿
+		expect(pan?.className ?? "").not.toContain("will-change");
 		fireEvent.click(screen.getByRole("button", { name: "放大" }));
-		expect(content?.getAttribute("style") ?? "").toContain("scale(1.2)");
+		expect((scaler as HTMLElement).style.zoom).toBe("1.2");
+		expect(pan?.getAttribute("style") ?? "").toContain("translate(");
+		expect(pan?.getAttribute("style") ?? "").not.toContain("scale(");
 		expect(pct.textContent).toBe("120%");
 		fireEvent.click(screen.getByRole("button", { name: "重置视图" }));
-		expect(content?.getAttribute("style") ?? "").toContain("scale(1)");
+		expect((scaler as HTMLElement).style.zoom).toBe("1");
 		expect(pct.textContent).toBe("100%");
 	});
 
-	// 滚轮同样走命令式路径：不 setState，只改 transform / 网格背景 / 读数
-	it("滚轮缩放不经过 React 渲染", () => {
+	// 滚轮同样走命令式路径：不 setState，只改 zoom / 网格背景 / 读数。
+	// 事件按帧合并（一次写入就是一次重排），所以断言要等一帧。
+	it("滚轮缩放按帧合并写 DOM", async () => {
 		const { container } = render(<GraphView chart={chart} lang="both" />);
 		const viewport = container.querySelector(
 			"[data-graph-viewport]",
 		) as Element;
-		const content = container.querySelector("[data-graph-content]");
+		const scaler = container.querySelector(
+			"[data-graph-scaler]",
+		) as HTMLElement;
 		fireEvent.wheel(viewport, { deltaY: -100 });
-		expect(content?.getAttribute("style") ?? "").toContain("scale(1.12)");
+		await waitFor(() => expect(scaler.style.zoom).toBe("1.12"));
+	});
+
+	// 手机上缩放只能靠双指：画布是 touch-action: none（页面缩放被关掉），
+	// 组件自己不实现捏合，用户「怎么捏都没反应」（用户反馈的 bug）
+	it("触屏双指捏合缩放", async () => {
+		const { container } = render(<GraphView chart={chart} lang="both" />);
+		const viewport = container.querySelector(
+			"[data-graph-viewport]",
+		) as Element;
+		const scaler = container.querySelector(
+			"[data-graph-scaler]",
+		) as HTMLElement;
+		fireEvent.pointerDown(viewport, {
+			pointerId: 1,
+			pointerType: "touch",
+			clientX: 300,
+			clientY: 200,
+		});
+		fireEvent.pointerDown(viewport, {
+			pointerId: 2,
+			pointerType: "touch",
+			clientX: 400,
+			clientY: 200,
+		});
+		// 两指从相距 100px 张开到 200px：缩放翻倍
+		fireEvent.pointerMove(viewport, {
+			pointerId: 1,
+			pointerType: "touch",
+			clientX: 250,
+			clientY: 200,
+		});
+		fireEvent.pointerMove(viewport, {
+			pointerId: 2,
+			pointerType: "touch",
+			clientX: 450,
+			clientY: 200,
+		});
+		await waitFor(() => expect(Number(scaler.style.zoom)).toBeCloseTo(2, 1));
+	});
+
+	// 触屏上拖完抬手浏览器还会补一次 click：位移够大必须吞掉，
+	// 否则「滑一下看图」的收尾会被当成点了一个节点
+	it("触屏拖动后抬手不再触发点击", () => {
+		const { container } = render(<GraphView chart={chart} lang="both" />);
+		const viewport = container.querySelector(
+			"[data-graph-viewport]",
+		) as Element;
+		const label = container.querySelector('[data-edge-label="seg4#0"]');
+		fireEvent.pointerDown(viewport, {
+			pointerId: 7,
+			pointerType: "touch",
+			clientX: 100,
+			clientY: 100,
+		});
+		fireEvent.pointerMove(viewport, {
+			pointerId: 7,
+			pointerType: "touch",
+			clientX: 240,
+			clientY: 180,
+		});
+		fireEvent.pointerUp(viewport, {
+			pointerId: 7,
+			pointerType: "touch",
+			clientX: 240,
+			clientY: 180,
+		});
+		fireEvent.click(label as Element);
+		// 面板仍停在被拖走之前那条边，没被这次 click 切走
+		expect(container.textContent ?? "").not.toContain("有点担心");
+	});
+
+	// 手势期间才挂 will-change（平移交给合成器），停手立刻撤掉：
+	// 静止时图层不能被永久提升，否则整张图的文字发虚
+	it("手势中临时挂 will-change，停手后撤掉", async () => {
+		const { container } = render(<GraphView chart={chart} lang="both" />);
+		const viewport = container.querySelector(
+			"[data-graph-viewport]",
+		) as Element;
+		const pan = container.querySelector("[data-graph-content]") as HTMLElement;
+		expect(pan.style.willChange).toBe("");
+		fireEvent.pointerDown(viewport, {
+			pointerId: 3,
+			pointerType: "touch",
+			clientX: 100,
+			clientY: 100,
+		});
+		expect(pan.style.willChange).toBe("transform");
+		fireEvent.pointerUp(viewport, {
+			pointerId: 3,
+			pointerType: "touch",
+			clientX: 100,
+			clientY: 100,
+		});
+		await waitFor(() => expect(pan.style.willChange).toBe(""));
 	});
 
 	// 用户要求「将选项放到右边」：jsdom 不算 CSS，只校验 DOM 顺序

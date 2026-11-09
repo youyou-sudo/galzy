@@ -80,6 +80,32 @@ const clampScale = (value: number) =>
 	Math.min(MAX_SCALE, Math.max(MIN_SCALE, value));
 
 /**
+ * 触屏上「拖完抬手」浏览器还会补一次 click：累计位移超过这个像素就不再算点击，
+ * 否则捏合/滑动看图的收尾会被当成点了某个节点。
+ */
+const CLICK_SLOP = 8;
+
+/** 手势停手后隔多久撤掉 will-change（让浏览器按静止缩放重新栅格化文字） */
+const SETTLE_MS = 180;
+
+/**
+ * 粗指针（触屏）：没有滚轮，画布手势是「单指拖拽平移 + 双指捏合缩放」，
+ * 左下角的提示文案要跟着换一套。
+ */
+function useCoarsePointer() {
+	const [coarse, setCoarse] = useState(false);
+	useEffect(() => {
+		if (typeof window.matchMedia !== "function") return;
+		const media = window.matchMedia("(pointer: coarse)");
+		const update = () => setCoarse(media.matches);
+		update();
+		media.addEventListener("change", update);
+		return () => media.removeEventListener("change", update);
+	}, []);
+	return coarse;
+}
+
+/**
  * 画布底：借用标签层级图（tags/[tagId]）那一套 —— 点阵网格 + 中心柔光，
  * 底色是 muted 混 card，比纯白更「像一块画布」，也让节点卡片浮得起来。
  */
@@ -478,6 +504,7 @@ export function GraphView({
 	// 用 1024 而不是 768：768–1023 的平板放 340px 侧栏后画布只剩三百多像素。
 	// 首帧按桌面渲染，effect 后再切，SSR/水合一致。
 	const isNarrow = useIsNarrow(1024);
+	const coarse = useCoarsePointer();
 	const [hoverNode, setHoverNode] = useState<ChartNodeId | null>(null);
 	const [optionsOpen, setOptionsOpen] = useState(false);
 
@@ -494,13 +521,49 @@ export function GraphView({
 	 *
 	 * 滚轮和拖拽每秒会触发几十上百次；只要 setState，整棵树（200 个节点 +
 	 * 200 条连线 + 200 个选项标签）就会跟着重渲染一遍，低端机上直接掉帧。
-	 * 这里把变换只留在 ref 里，并把 transform / 网格背景 / 缩放读数直接写 DOM——
+	 * 这里把变换只留在 ref 里，并把位移 / 缩放 / 网格背景 / 缩放读数直接写 DOM——
 	 * 手势期间一次 React 渲染都不会发生，只有选中项 / hover 变化才重渲染。
+	 *
+	 * 缩放**不能写成 `transform: scale()`**：那等于把已经按 100% 栅格化好的
+	 * 位图交给合成器放大，放大后节点和「N 个选项」的字是糊的（再叠上
+	 * `will-change: transform` 更糟 —— 层被永久提升，文字连亚像素抗锯齿都没了，
+	 * 静止时就已经发虚）。所以这里拆成两层：
+	 * - 外层（panRef）只写 `translate()`：平移是纯位移，字不会被重新采样；
+	 * - 内层（zoomRef）写 CSS `zoom`：缩放走**布局**，浏览器按缩放后的字号重新
+	 *   栅格化字形，100%～200% 都是锐利的（`zoom` 现在是 CSS Viewport 规范的一部分，
+	 *   Chrome / Safari / Firefox 126+ 都支持；只有很老的浏览器会退化成「不缩放」，
+	 *   但拖拽、点选仍然可用）。
+	 * 平移/捏合进行中临时给外层挂 `will-change: transform`（手势里没人逐字看，
+	 * 合成层只负责别掉帧），停手 SETTLE_MS 后立刻撤掉，让浏览器按静止状态重新
+	 * 栅格化 —— 否则刚放大的那一下会一直糊着。
 	 */
 	const viewportRef = useRef<HTMLDivElement | null>(null);
-	const contentRef = useRef<HTMLDivElement | null>(null);
+	const panRef = useRef<HTMLDivElement | null>(null);
+	const zoomRef = useRef<HTMLDivElement | null>(null);
 	const pctRef = useRef<HTMLSpanElement | null>(null);
 	const viewRef = useRef({ scale: 1, x: 0, y: 0 });
+	/** 上一次真正写进 DOM 的变换：缩放/位移没变就不再碰 DOM */
+	const appliedRef = useRef<{ scale: number; x: number; y: number } | null>(
+		null,
+	);
+	const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	/** 滚轮增量合并：同一帧里常有三到十个 wheel 事件，合并成一次重排 */
+	const wheelPendingRef = useRef({ steps: 0, x: 0, y: 0 });
+	const wheelFrameRef = useRef(0);
+
+	/** 手势进行中：临时把平移层交给合成器，停手后撤销（见上面的注释） */
+	const markMoving = useCallback(() => {
+		const pan = panRef.current;
+		// 手势里每帧都会调：值没变就别再制造一次样式失效
+		if (pan && pan.style.willChange !== "transform") {
+			pan.style.willChange = "transform";
+		}
+		if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+		settleTimerRef.current = setTimeout(() => {
+			settleTimerRef.current = null;
+			if (panRef.current) panRef.current.style.willChange = "";
+		}, SETTLE_MS);
+	}, []);
 
 	const applyView = useCallback(
 		(next: { scale: number; x: number; y: number }) => {
@@ -515,10 +578,17 @@ export function GraphView({
 				}
 				element.style.backgroundPosition = `0 0, ${next.x}px ${next.y}px`;
 			}
-			const content = contentRef.current;
-			if (content) {
-				content.style.transform = `translate(${next.x}px, ${next.y}px) scale(${next.scale})`;
+			const applied = appliedRef.current;
+			// 平移层：只写位移。CSS 会把小数原样保留，视觉上是亚像素移动，不会变糊
+			const pan = panRef.current;
+			if (pan) {
+				pan.style.transform = `translate(${next.x}px, ${next.y}px)`;
 			}
+			// 缩放层：zoom 走布局。只有缩放变化才碰它（平移时重排一次都是浪费）
+			if (zoomRef.current && (!applied || applied.scale !== next.scale)) {
+				zoomRef.current.style.zoom = String(next.scale);
+			}
+			appliedRef.current = next;
 			// 读数只在缩放真的变了才写：平移时 scale 不变，textContent 赋值同样会
 			// 触发一次 DOM mutation，拖拽期间白白多几百次
 			if (pctRef.current) {
@@ -530,6 +600,14 @@ export function GraphView({
 		},
 		[],
 	);
+
+	useEffect(
+		() => () => {
+			if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+			if (wheelFrameRef.current) cancelAnimationFrame(wheelFrameRef.current);
+		},
+		[],
+	);
 	const dragRef = useRef<{
 		pointerId: number;
 		startX: number;
@@ -537,6 +615,25 @@ export function GraphView({
 		originX: number;
 		originY: number;
 	} | null>(null);
+	/** 触屏手势：同时按下的指针（双指 = 捏合缩放） */
+	const pointersRef = useRef(new Map<number, { x: number; y: number }>());
+	/**
+	 * 捏合基准：开始时两指的间距/中点 + 当时的视图。
+	 *
+	 * 手机上缩放只能靠双指（没有滚轮），工具条的 ± 按钮只是单指退路 —— 没有
+	 * 这段捏合，两根手指在画布上一叉，`touch-action: none` 又把浏览器的页面
+	 * 缩放关掉了，结果就是「怎么捏都没反应」。
+	 */
+	const pinchRef = useRef<{
+		dist: number;
+		midX: number;
+		midY: number;
+		scale: number;
+		x: number;
+		y: number;
+	} | null>(null);
+	/** 本次按下累计的位移：触屏抬手后浏览器补的那次 click 靠它决定吞不吞 */
+	const movedRef = useRef(0);
 
 	// 选中态：管理一个 id，找不到就退回第一条边（切换角色/换攻略时自动归位）
 	const activeEdge =
@@ -579,19 +676,28 @@ export function GraphView({
 		fitToView();
 	}, [fitToView]);
 
-	// 滚轮缩放必须挂在原生监听上：React 的 onWheel 是 passive，preventDefault 无效
+	/**
+	 * 滚轮缩放必须挂在原生监听上：React 的 onWheel 是 passive，preventDefault 无效。
+	 *
+	 * 事件按帧合并：触控板一帧能派发三到十个 wheel，而缩放现在走布局（见 applyView），
+	 * 一次写入就是一次重排；合并之后一帧最多重排一次。
+	 */
 	useEffect(() => {
 		const element = viewportRef.current;
 		if (!element) return;
-		const handleWheel = (event: WheelEvent) => {
-			event.preventDefault();
+		const flush = () => {
+			wheelFrameRef.current = 0;
+			const pending = wheelPendingRef.current;
+			wheelPendingRef.current = { steps: 0, x: pending.x, y: pending.y };
+			if (!pending.steps) return;
 			const current = viewRef.current;
-			const factor = event.deltaY < 0 ? 1.12 : 1 / 1.12;
-			const scale = clampScale(current.scale * factor);
+			const scale = clampScale(current.scale * 1.12 ** pending.steps);
 			if (scale === current.scale) return;
+			markMoving();
+			// 光标下的那个点缩放前后必须重合：只量一次包围盒（一次重排的代价）
 			const rect = element.getBoundingClientRect();
-			const cx = event.clientX - rect.left;
-			const cy = event.clientY - rect.top;
+			const cx = pending.x - rect.left;
+			const cy = pending.y - rect.top;
 			const ratio = scale / current.scale;
 			applyView({
 				scale,
@@ -599,9 +705,25 @@ export function GraphView({
 				y: cy - (cy - current.y) * ratio,
 			});
 		};
+		const handleWheel = (event: WheelEvent) => {
+			event.preventDefault();
+			const steps = event.deltaY < 0 ? 1 : event.deltaY > 0 ? -1 : 0;
+			if (steps === 0) return;
+			const pending = wheelPendingRef.current;
+			pending.steps += steps;
+			pending.x = event.clientX;
+			pending.y = event.clientY;
+			if (!wheelFrameRef.current) {
+				wheelFrameRef.current = requestAnimationFrame(flush);
+			}
+		};
 		element.addEventListener("wheel", handleWheel, { passive: false });
-		return () => element.removeEventListener("wheel", handleWheel);
-	}, [applyView]);
+		return () => {
+			element.removeEventListener("wheel", handleWheel);
+			if (wheelFrameRef.current) cancelAnimationFrame(wheelFrameRef.current);
+			wheelFrameRef.current = 0;
+		};
+	}, [applyView, markMoving]);
 
 	/** 以画布中心为锚点缩放（工具条的 ± 按钮） */
 	const zoomBy = useCallback(
@@ -626,17 +748,63 @@ export function GraphView({
 		applyView({ scale: 1, x: 0, y: 0 });
 	}, [applyView]);
 
+	/** 进入双指捏合：记下基准，把在途的单指拖拽丢掉，并接管两根手指 */
+	const beginPinch = (element: HTMLDivElement) => {
+		const [a, b] = [...pointersRef.current.values()];
+		if (!a || !b) return;
+		const view = viewRef.current;
+		pinchRef.current = {
+			dist: Math.hypot(a.x - b.x, a.y - b.y),
+			midX: (a.x + b.x) / 2,
+			midY: (a.y + b.y) / 2,
+			scale: view.scale,
+			x: view.x,
+			y: view.y,
+		};
+		dragRef.current = null;
+		movedRef.current = CLICK_SLOP + 1;
+		// 捏合时两根手指常常压在画布边缘：抓住指针，滑到面板/画布外也不丢事件
+		for (const id of pointersRef.current.keys()) {
+			element.setPointerCapture?.(id);
+		}
+	};
+
 	const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
 		if (event.button !== 0) return;
-		// 节点/标签/工具条自己处理点击，拖拽只从空白画布开始。
-		// 从工具条上开始拖拽会被 setPointerCapture 抢走，按钮就点不动了。
-		if (
-			(event.target as HTMLElement).closest(
-				"[data-node-id], [data-edge-key], [data-edge-label], [data-overlay]",
-			)
-		) {
+		const target = event.target as HTMLElement;
+		// 工具条/提示浮层：一旦在它们上面开始拖拽，setPointerCapture 会把后续
+		// click 重定向到画布，按钮就彻底点不动了
+		if (target.closest("[data-overlay]")) return;
+
+		if (event.pointerType === "touch") {
+			// 触屏不 setPointerCapture：节点/标签的 click 要留在自己身上，否则
+			// 从节点上起手拖动画布之后，抬手那次 click 会被重定向到画布、点不中。
+			// 两个手指都落在画布子树里，pointermove 照常冒泡到视口，捏合不缺事件。
+			movedRef.current = 0;
+			pointersRef.current.set(event.pointerId, {
+				x: event.clientX,
+				y: event.clientY,
+			});
+			markMoving();
+			if (pointersRef.current.size >= 2) {
+				beginPinch(event.currentTarget);
+				return;
+			}
+			dragRef.current = {
+				pointerId: event.pointerId,
+				startX: event.clientX,
+				startY: event.clientY,
+				originX: viewRef.current.x,
+				originY: viewRef.current.y,
+			};
 			return;
 		}
+
+		// 鼠标/触控笔：节点/标签自己处理点击，拖拽只从空白画布开始
+		if (target.closest("[data-node-id], [data-edge-key], [data-edge-label]")) {
+			return;
+		}
+		movedRef.current = 0;
 		dragRef.current = {
 			pointerId: event.pointerId,
 			startX: event.clientX,
@@ -645,13 +813,73 @@ export function GraphView({
 			originY: viewRef.current.y,
 		};
 		event.currentTarget.setPointerCapture?.(event.pointerId);
+		markMoving();
 	};
 
 	const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+		if (event.pointerType === "touch") {
+			if (!pointersRef.current.has(event.pointerId)) return;
+			pointersRef.current.set(event.pointerId, {
+				x: event.clientX,
+				y: event.clientY,
+			});
+			const pinch = pinchRef.current;
+			const pointers = [...pointersRef.current.values()];
+			if (pinch && pointers.length >= 2) {
+				const [a, b] = pointers;
+				if (!a || !b) return;
+				const dist = Math.hypot(a.x - b.x, a.y - b.y);
+				if (pinch.dist <= 0 || dist <= 0) return;
+				const rect = event.currentTarget.getBoundingClientRect();
+				const scale = clampScale(pinch.scale * (dist / pinch.dist));
+				// 捏合开始时压在两指中点下的那个图坐标点，捏合后要落回新的中点下；
+				// 两指整体平移 = 中点跟着动，顺带把平移也做了
+				const fromX = pinch.midX - rect.left;
+				const fromY = pinch.midY - rect.top;
+				const toX = (a.x + b.x) / 2 - rect.left;
+				const toY = (a.y + b.y) / 2 - rect.top;
+				const graphX = (fromX - pinch.x) / pinch.scale;
+				const graphY = (fromY - pinch.y) / pinch.scale;
+				movedRef.current = CLICK_SLOP + 1;
+				markMoving();
+				applyView({
+					scale,
+					x: toX - graphX * scale,
+					y: toY - graphY * scale,
+				});
+				return;
+			}
+			const drag = dragRef.current;
+			if (!drag || drag.pointerId !== event.pointerId) return;
+			const dx = event.clientX - drag.startX;
+			const dy = event.clientY - drag.startY;
+			movedRef.current = Math.hypot(dx, dy);
+			// 位移过阈值才接管指针：此前还可能是「点节点」，capture 会把那次 click
+			// 重定向到画布；一旦确认是在拖，抓住指针才不会被滑出画布丢掉事件
+			if (
+				movedRef.current > CLICK_SLOP &&
+				!event.currentTarget.hasPointerCapture?.(event.pointerId)
+			) {
+				event.currentTarget.setPointerCapture?.(event.pointerId);
+			}
+			markMoving();
+			applyView({
+				scale: viewRef.current.scale,
+				x: drag.originX + dx,
+				y: drag.originY + dy,
+			});
+			return;
+		}
+
 		const drag = dragRef.current;
 		if (!drag || drag.pointerId !== event.pointerId) return;
+		movedRef.current = Math.hypot(
+			event.clientX - drag.startX,
+			event.clientY - drag.startY,
+		);
 		// 直接写 DOM，不 setState：拖动时每帧都有 pointermove，
 		// 走 React 会把整棵树重渲染（见 applyView 的注释）
+		markMoving();
 		applyView({
 			scale: viewRef.current.scale,
 			x: drag.originX + (event.clientX - drag.startX),
@@ -659,8 +887,33 @@ export function GraphView({
 		});
 	};
 
-	const endDrag = () => {
+	const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+		if (event.pointerType === "touch") {
+			pointersRef.current.delete(event.pointerId);
+			if (pointersRef.current.size < 2) pinchRef.current = null;
+			const [remaining] = [...pointersRef.current.entries()];
+			if (pointersRef.current.size === 1 && remaining) {
+				// 捏合中途松开一根，剩下的那根继续平移而不是卡住：
+				// 以它当前的位置作为新的拖拽起点
+				dragRef.current = {
+					pointerId: remaining[0],
+					startX: remaining[1].x,
+					startY: remaining[1].y,
+					originX: viewRef.current.x,
+					originY: viewRef.current.y,
+				};
+			} else {
+				dragRef.current = null;
+			}
+			if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+				event.currentTarget.releasePointerCapture(event.pointerId);
+			}
+			return;
+		}
 		dragRef.current = null;
+		if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+			event.currentTarget.releasePointerCapture(event.pointerId);
+		}
 	};
 
 	// hover 时把与当前对象无关的连线/节点压暗，一眼看出这条路径去哪儿
@@ -760,6 +1013,14 @@ export function GraphView({
 							<div
 								className="absolute inset-0 cursor-grab touch-none select-none overflow-hidden active:cursor-grabbing"
 								data-graph-viewport
+								// 触屏上拖完抬手浏览器还会补一次 click：位移超过阈值就吞掉它，
+								// 否则「捏合 / 滑动看图」的收尾会被当成点了某个节点
+								onClickCapture={(event) => {
+									if (movedRef.current <= CLICK_SLOP) return;
+									movedRef.current = 0;
+									event.preventDefault();
+									event.stopPropagation();
+								}}
 								onPointerCancel={endDrag}
 								onPointerDown={handlePointerDown}
 								onPointerMove={handlePointerMove}
@@ -774,14 +1035,19 @@ export function GraphView({
 									backgroundPosition: "0 0, 0px 0px",
 								}}
 							>
+								{/* 平移层：只写 translate。缩放不能写在这里 —— */}
+								{/* transform: scale 是把 100% 栅格化的位图交给合成器放大，字会糊 */}
 								<div
-									className="absolute top-0 left-0 will-change-transform"
+									className="absolute top-0 left-0"
 									data-graph-content
-									ref={contentRef}
+									ref={panRef}
 									style={{ transformOrigin: "0 0" }}
 								>
+									{/* 缩放层：CSS zoom 走布局，浏览器按缩放后的字号重新栅格化字形 */}
 									<div
 										className="relative"
+										data-graph-scaler
+										ref={zoomRef}
 										style={{ width: graph.width, height: graph.height }}
 									>
 										<svg
@@ -1001,7 +1267,9 @@ export function GraphView({
 							    会把后续 click 吃掉，按钮点不动）。 */}
 							{/* 窄屏画布比工具条宽不了多少，提示条会压到工具条上，只在 ≥sm 显示 */}
 							<div className="pointer-events-none absolute bottom-2 left-3 z-20 hidden items-center gap-1.5 rounded-full border border-border/60 bg-popover/85 px-2.5 py-1 text-[11px] text-muted-foreground shadow-sm backdrop-blur sm:flex">
-								拖拽平移 · 滚轮缩放 · 点「N 个选项」看这一段
+								{coarse
+									? "单指拖动平移 · 双指捏合缩放 · 点「N 个选项」看这一段"
+									: "拖拽平移 · 滚轮缩放 · 点「N 个选项」看这一段"}
 							</div>
 							<div
 								className="absolute right-2 bottom-2 z-20 flex items-center gap-0.5 rounded-full border border-border/60 bg-popover/85 p-0.5 shadow-sm backdrop-blur"
