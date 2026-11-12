@@ -8,6 +8,8 @@ import type {
   KungalRedirect,
   KungalRedirectListData,
   KungalWalkthrough,
+  KungalWalkthroughIndexListData,
+  KungalWalkthroughIndexRow,
   KungalWalkthroughListData,
   KungalWorkCharacter,
   KungalWorkItem,
@@ -18,6 +20,12 @@ const BASE = 'https://api.nextmoe.dev/v2'
 
 /** refs= 批量通道上限（≤100/次）。 */
 const REFS_BATCH = 100
+/**
+ * 全局攻略目录的翻页上限（100 条/页）。当前全站约 4.2k 条 → 43 页，这里留了
+ * 近 7 倍余量；翻到上限还没追平说明上游游标坏了，宁可抛错也不要被当成
+ * 「目录就这些」去删本地行。
+ */
+const WALKTHROUGH_INDEX_MAX_PAGES = 300
 const RESOLVE_CONCURRENCY = 4
 /** works 批量水合/解析共用的 include 块（v2 中 titles 取代 v1 的 names）。 */
 const WORKS_INCLUDE = 'titles,intros,covers,ratings,refs'
@@ -429,6 +437,72 @@ export async function fetchWorkWalkthroughs(
 }
 
 /**
+ * 全站攻略目录：不带 work_id 的 GET /catalog/walkthroughs 就是全量集合
+ * （id 键集分页，100 条/页），翻完一遍就是「上游现在有哪些攻略」的权威人口。
+ *
+ * 用 fields= 裁到 id/work_id/updated_at：这一遍只做发现与变更比对，真正要
+ * 落库的行再走 fetchWalkthroughsByIds 批量水合（完整列表行，仍不含 chart）。
+ * 这样全站 4.2k 条攻略的「发现」从「每部作品一次列表请求」降到 ~43 个请求。
+ *
+ * 翻到页数上限仍未追平会抛错：同步侧据此放弃删除，避免把半截目录当成
+ * 「全都下线」而误删一大片。
+ */
+export async function fetchWalkthroughIndex(options?: {
+  maxPages?: number
+}): Promise<KungalWalkthroughIndexRow[]> {
+  const maxPages = Math.max(options?.maxPages ?? WALKTHROUGH_INDEX_MAX_PAGES, 1)
+  const out: KungalWalkthroughIndexRow[] = []
+  let cursor: string | undefined
+  for (let page = 0; page < maxPages; page++) {
+    const params = new URLSearchParams({
+      nsfw: 'true',
+      limit: String(REFS_BATCH),
+      fields: 'id,work_id,updated_at',
+    })
+    if (cursor) params.set('cursor', cursor)
+    const data = await request<KungalWalkthroughIndexListData>(
+      `/catalog/walkthroughs?${params.toString()}`,
+    )
+    out.push(...(data.items ?? []))
+    cursor = data.next_cursor ?? undefined
+    // 末页整体缺省 next_cursor（不是 null）：判空要写 `if (!cursor)`
+    if (!cursor) return out
+  }
+  throw new Error(
+    `Kungal 攻略目录超过 ${maxPages} 页仍未追平（已收 ${out.length} 条），本轮放弃（不删本地行）`,
+  )
+}
+
+/**
+ * ids= 批量刷新攻略列表行（≤100/次；批量车道无分页，也不带 chart）。
+ *
+ * 必须带 nsfw=true：r18 作品的行否则整条落进 missing[]。这不是理论问题 ——
+ * work 15 就是 content_rating=r18 / content_limit=sfw，不带 nsfw 时 ids= 返回空。
+ */
+export async function fetchWalkthroughsByIds(
+  ids: string[],
+): Promise<KungalWalkthrough[]> {
+  const unique = [
+    ...new Set(
+      ids.map((id) => id?.trim()).filter((id): id is string => Boolean(id)),
+    ),
+  ]
+  const out: KungalWalkthrough[] = []
+  for (let i = 0; i < unique.length; i += REFS_BATCH) {
+    const chunk = unique.slice(i, i + REFS_BATCH)
+    const params = new URLSearchParams({
+      ids: chunk.join(','),
+      nsfw: 'true',
+    })
+    const data = await request<KungalWalkthroughListData>(
+      `/catalog/walkthroughs?${params.toString()}`,
+    )
+    out.push(...(data.items ?? []))
+  }
+  return out
+}
+
+/**
  * 单条攻略详情（含 chart）；404（作品不可见 / 攻略已下线）返回 null。
  *
  * 用 nsfw=true：本地库不做成人向过滤（前端按作品分级自己决定是否展示），
@@ -458,6 +532,8 @@ export const KungalClient = {
   fetchCharacterAppearances,
   fetchWorkRedirects,
   fetchWorkWalkthroughs,
+  fetchWalkthroughIndex,
+  fetchWalkthroughsByIds,
   fetchWalkthrough,
   lookupWork,
 }

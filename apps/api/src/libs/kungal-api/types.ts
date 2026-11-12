@@ -347,3 +347,24 @@ export interface KungalWalkthroughListData {
   missing?: string[]
   next_cursor?: string | null
 }
+
+/**
+ * 全局攻略目录的裁剪行（fields= id,work_id,updated_at）。
+ *
+ * 不带 work_id 的 GET /catalog/walkthroughs 就是全站攻略集合，同步侧先用它
+ * 做「发现 + 变更比对」；真正要落库的行再走 ids= 批量车道拿完整的列表行。
+ */
+export interface KungalWalkthroughIndexRow {
+  object?: 'walkthrough'
+  id: string
+  work_id: string
+  updated_at?: string | null
+}
+
+/** 裁剪后的攻略列表响应（目录翻页与 ids= 批量车道共用 v2 的 list 形状）。 */
+export interface KungalWalkthroughIndexListData {
+  items: KungalWalkthroughIndexRow[]
+  missing?: string[]
+  next_cursor?: string | null
+  total?: number
+}
