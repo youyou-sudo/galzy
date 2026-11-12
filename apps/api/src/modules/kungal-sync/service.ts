@@ -13,6 +13,7 @@ import {
 import { purgeAfterSync } from '@api/libs/cloudflare-cache'
 import { linkAliases } from '@api/libs/identity'
 import {
+  assertKungalKey,
   extractVndbRef,
   jsonbArray,
   type KungalAppearanceRow,
@@ -24,6 +25,7 @@ import {
   type KungalWalkthroughRow,
   type KungalWorkCharacter,
   type KungalWorkItem,
+  kungalRatePerMin,
   normalizeAppearance,
   normalizeCharacter,
   normalizeCharacterFromRoster,
@@ -51,7 +53,7 @@ const DELTA_CHARACTER_BACKFILL = 200
 const WALKTHROUGH_ID_BATCH = 100
 /** 攻略 upsert 每批行数（chart 单行可达几十 KB，太大的一次语句会拖慢远程事务）。 */
 const WALKTHROUGH_UPSERT_BATCH = 100
-/** 攻略详情（chart）并发批大小；客户端另有 20 req/s 令牌桶兜底。 */
+/** 攻略详情（chart）并发批大小；客户端另有 300 次/分 令牌桶兜底。 */
 const WALKTHROUGH_DETAIL_BATCH = 10
 /** 本地攻略行按作品 id 查询的分片大小（inArray 参数过多会拖慢解析）。 */
 const WALKTHROUGH_LOCAL_BATCH = 500
@@ -509,6 +511,9 @@ export const KungalSync = {
     options?: { workIds?: string[]; standalone?: boolean },
     onProgress?: (processed: number, total: number) => void,
   ) {
+    // 缺钥/废钥在动数据库之前就炸。角色阶段是「逐批 catch、只计数不抛」的
+    // 形态，不做这个断言会安静地跑完整轮、把每部作品都记成失败。
+    assertKungalKey()
     const targets = await this.getCharacterTargets(options?.workIds)
     const standalone = options?.standalone === true
     if (targets.length === 0) {
@@ -788,6 +793,7 @@ export const KungalSync = {
     options?: { workIds?: string[]; standalone?: boolean },
     onProgress?: (processed: number, total: number) => void,
   ) {
+    assertKungalKey()
     const targets = await this.getSyncTargets(options?.workIds)
     const standalone = options?.standalone === true
     if (targets.length === 0) {
@@ -1070,6 +1076,9 @@ export const KungalSync = {
     type: 'full' | 'delta',
     onProgress?: (processed: number, total: number) => void,
   ) {
+    // 同步是长跑：缺钥/废钥必须在这里就失败，而不是每条请求 401、最后收下
+    // 一堆 per-batch 错误。失败的进度收尾由 withSyncLock 负责。
+    assertKungalKey()
     // 两路锚点：① vndb 锚点（走 refs= 批量通道）② 只有 kungal 锚点的条目
     // （走 ids= 批量通道）。后者此前完全没有同步入口 —— 网盘先出现
     // [kungal-X] 目录、目录里又没有 vndb 锚点时，galrc_alistb 有行而
@@ -1179,7 +1188,7 @@ export const KungalSync = {
     }
 
     console.log(
-      `🔄 Kungal ${type} 同步开始: ${target.length} 个 VN + ${kungalTarget.length} 个 kungal-only 条目`,
+      `🔄 Kungal ${type} 同步开始（限速 ${kungalRatePerMin()} 次/分）: ${target.length} 个 VN + ${kungalTarget.length} 个 kungal-only 条目`,
     )
     await this.updateProgress({
       status: 'running',
@@ -1479,6 +1488,7 @@ export const KungalSync = {
   async applyWorkRedirects(options?: {
     dryRun?: boolean
   }): Promise<RedirectStats> {
+    assertKungalKey()
     const dryRun = options?.dryRun === true
     const stats: RedirectStats = {
       redirects: 0,

@@ -570,7 +570,7 @@ spec 原文还提到：**站点做编号时跳过 heading 与 note**；遇到**�
 - 千万别在列表循环里传 `view=full` / `include=` 指望带出 chart——**spec 明确 chart 只在详情**；
 - `limit` 超过 100 是 400 而不是 clamp；
 - `nsfw=true` 必须带，否则 r18 作品整批不可见；
-- 现有 `client.ts` 已经有 `fetchWorkWalkthroughs` / `fetchWalkthrough`（404→null）与 20 req/s 令牌桶，同步侧直接复用。
+- 现有 `client.ts` 已经有 `fetchWorkWalkthroughs` / `fetchWalkthrough`（404→null）与 300 次/分令牌桶（上游 600/分 配额的一半；429 全局冷却），同步侧直接复用。
 
 ---
 

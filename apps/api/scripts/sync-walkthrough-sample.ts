@@ -20,10 +20,9 @@
  * 5. 只有「还不完整」的作品会重跑：库里已有行且 chart 都不为 NULL 的作品
  *    直接跳过，所以重复执行只补缺口。
  *
- * 上游限流：免费档按短窗口计，客户端内置的 20 req/s 令牌桶偏激进（实测
- * 连翻十几页、或连续拉详情就会 429）。脚本在这里把 globalThis.fetch 串行
- * 化并限速（默认 500ms/次 = 2 req/s），429 再按 Retry-After 退避重试，
- * 保证一次跑完不用人盯着。--interval=<ms> 可调。
+ * 上游限流：脚本自己不做 —— 一律走 libs/kungal-api 的 KungalClient（内置
+ * 300 次/分 令牌桶 = 上游 600 次/分 配额的一半，429 有全局冷却退避）。
+ * 凭证与限速只保留一份实现，脚本不自己发 fetch、也不自己读 key。
  *
  * 用法（在 apps/api 目录下，自动读 .env）：
  *   bun run scripts/sync-walkthrough-sample.ts --dry-run
@@ -33,16 +32,15 @@
  * 参数：
  *   --target=<n>     目标攻略条数（默认 350，取到即停）
  *   --pages=<n>      全局目录最多翻多少页（默认 60 页 = 6000 条上限，防游标异常）
- *   --interval=<ms>  上游请求最小间隔（默认 500，0 = 交给客户端 20 req/s 令牌桶）
  *   --refresh-plan   忽略缓存的扫描计划，重新扫一遍全局目录
  *   --dry-run        只打印计划，不写库
  */
 import { db } from '../src/db/client'
 import { kungalWalkthroughs } from '../src/db/schema/kungal'
+import { KungalClient } from '../src/libs/kungal-api'
 import { KungalSync } from '../src/modules/kungal-sync/service'
 import { inArray, sql } from 'drizzle-orm'
 
-const BASE = 'https://api.nextmoe.dev/v2'
 const argv = process.argv.slice(2)
 const dryRun = argv.includes('--dry-run')
 const argNum = (name: string, fallback: number) => {
@@ -52,70 +50,6 @@ const argNum = (name: string, fallback: number) => {
 }
 const TARGET = argNum('target', 350)
 const MAX_PAGES = argNum('pages', 60)
-const INTERVAL_MS = argNum('interval', 500)
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
-
-/**
- * 全局请求限速 + 429 退避。
- *
- * 客户端（libs/kungal-api）只有 20 req/s 的令牌桶，没有对上游短窗口配额的
- * 认识；同步阶段又是「10 个作品并发列表 + 一串详情」的突发形状，很容易整批
- * 429。这里在最外层包一层：所有请求串行排队、间隔 INTERVAL_MS，遇到 429 就
- * 按 Retry-After（缺省指数退避）重试。只影响本脚本进程。
- */
-function installPacedFetch() {
-  if (INTERVAL_MS <= 0) return
-  const real = globalThis.fetch
-  let lastAt = 0
-  let queue: Promise<unknown> = Promise.resolve()
-  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-    const run = queue.then(async () => {
-      const wait = Math.max(0, lastAt + INTERVAL_MS - Date.now())
-      if (wait > 0) await sleep(wait)
-      lastAt = Date.now()
-      for (let attempt = 1; attempt <= 6; attempt++) {
-        const res = await real(input, init)
-        if (res.status !== 429) return res
-        const retryAfter = Number(res.headers.get('retry-after') ?? 0) * 1000
-        const wait2 = retryAfter > 0 ? retryAfter : 2000 * attempt
-        console.log(`  ⏳ 429（第 ${attempt} 次），${Math.round(wait2 / 1000)}s 后重试`)
-        await sleep(wait2)
-      }
-      throw new Error(`上游连续 429：${String(input)}`)
-    })
-    queue = run.catch(() => undefined)
-    return await run
-  }) as typeof fetch
-}
-
-function authHeaders(): Record<string, string> {
-  const raw = process.env.KUNGALAPI_KEY ?? ''
-  const tokens = raw
-    .split(/[\s,]+/)
-    .map((t) => t.replace(/^["']+|["']+$/g, '').trim())
-    .filter(Boolean)
-  const key = tokens.find((t) => t.startsWith('nmk_')) ?? tokens[0]
-  if (!key) throw new Error('KUNGALAPI_KEY 未配置')
-  return { Authorization: `Bearer ${key}` }
-}
-
-/** 全局攻略目录一页（带 work_id、不含 chart）。 */
-async function fetchWalkthroughPage(cursor?: string): Promise<{
-  items?: Array<{ id: string; work_id: string }>
-  next_cursor?: string
-}> {
-  const params = new URLSearchParams({ nsfw: 'true', limit: '100' })
-  if (cursor) params.set('cursor', cursor)
-  const res = await fetch(`${BASE}/catalog/walkthroughs?${params.toString()}`, {
-    headers: authHeaders(),
-  })
-  if (!res.ok) throw new Error(`kungal ${res.status}: ${(await res.text()).slice(0, 300)}`)
-  return (await res.json()) as {
-    items?: Array<{ id: string; work_id: string }>
-    next_cursor?: string
-  }
-}
 
 // ---- 1. 本地作品（只取有 vndb 锚点的：站内能打开 /vNNN） ----
 const localWorks = await db.execute<{
@@ -162,23 +96,30 @@ if (!argv.includes('--refresh-plan')) {
   }
 }
 
-installPacedFetch()
-
-let cursor: string | undefined
-while (!cached && pages < MAX_PAGES) {
-  const page = await fetchWalkthroughPage(cursor)
-  pages++
-  for (const item of page.items ?? []) {
-    scanned++
-    const workId = String(item.work_id)
-    if (!localById.has(workId)) continue
-    hitLocal++
-    workIds.add(workId)
-    picked.set(String(item.id), { id: String(item.id), workId })
+if (!cached) {
+  // 翻全局目录：鉴权 / 限速 / 429 退避都在 KungalClient 里，这里只按目标条数
+  // 收手。返回 true 让客户端提前结束翻页，不必为了几百条样本翻完整个目录。
+  try {
+    await KungalClient.fetchWalkthroughIndex({
+      maxPages: MAX_PAGES,
+      onPage: (rows) => {
+        pages++
+        for (const item of rows) {
+          scanned++
+          const workId = String(item.work_id)
+          if (!localById.has(workId)) continue
+          hitLocal++
+          workIds.add(workId)
+          picked.set(String(item.id), { id: String(item.id), workId })
+        }
+        return picked.size >= TARGET
+      },
+    })
+  } catch (err) {
+    // 翻满 --pages 还没追平：保留已收样本继续。客户端抛错是为了保护全量同步
+    // 不误删本地行，抽样脚本没有这个约束。
+    console.warn(`⚠️ 全局目录翻页中断（已收 ${scanned} 条）：`, err)
   }
-  if (picked.size >= TARGET) break
-  cursor = page.next_cursor
-  if (!cursor) break
 }
 
 if (!cached) {

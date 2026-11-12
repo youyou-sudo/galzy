@@ -231,7 +231,7 @@ v2 无信封、无 `code` 字段——资源直接就是 body。错误是 RFC 94
 
 ## 本项目集成
 
-- 本项目 kungal 调用封装在 `apps/api/src/libs/kungal-api/`（`client.ts` 请求封装 + `types.ts` 类型 + `normalize.ts` 归一化），密钥 env 为 `KUNGALAPI_KEY`（`nmk_live_…`），内置 20 req/s 令牌桶限流（平台免费但有防滥用限流，保持温和节奏）。
+- 本项目 kungal 调用封装在 `apps/api/src/libs/kungal-api/`（`client.ts` 请求封装 + `types.ts` 类型 + `normalize.ts` 归一化），密钥 env 为 `KUNGALAPI_KEY`（`nmk_live_…`），内置 300 次/分（上游 600/分 配额的一半）令牌桶限流 + 429 全局冷却退避；配额是硬账，不要拉满。
 - 消费方：`apps/api/src/modules/kungal-sync/service.ts`（vndb 锚点 → kungal work 解析、批量水合、alistb vid 对照）。全量同步按 vid 走 `works?refs=vndb:<vid>` 批量通道（≤100/次），命中后核对 refs 锚点再入库。
 
 ## 典型用法

@@ -93,6 +93,17 @@ galzy/
 - `db:up` 应用挂起迁移：走 bun-sql migrator（`src/db/up.ts`，与启动自动迁移同一实现/日志表 `drizzle.__drizzle_migrations`，幂等）。drizzle-kit 0.31 的 `up` 命令只是快照格式升级器，**不应用迁移**，不要改回 `drizzle-kit up`。
 - Correct workflow: `db:generate` → `db:up` → `db:check`.
 
+## 外部 API 使用约束（CRITICAL）
+
+第三方 API（Kungal/NextMoe 的 `https://api.nextmoe.dev/v2`、VNDB `https://api.vndb.org/kana`，以及其他任何非本项目自建的接口）**不是可以随便扫的公开数据源**。AI 在运行时发出的每一次请求都记在真实配额与风控账上：
+
+- **禁止无密钥批量遍历**：不要写脚本对整站 id 空间 / 全量分页「不带 key 地爬一遍」来摸底、比对或验证。这类行为会触发提供方的滥用警报（进而限流、封 IP、封来源），且难以撤销。
+- **必须带上密钥**：走项目既有客户端与密钥环境变量（Kungal：`KUNGALAPI_KEY`，`nmk_` 前缀 v2 应用密钥，`Authorization: Bearer`），不要用匿名请求绕过。
+- **必须遵守对方文档的速率限制**：以对方文档写明的 limits 为准并留余量（Kungal 上游配额 600 次/分，项目内客户端固定按 **300 次/分** ≈ 5 req/s 令牌桶实现、`refs=` 批量 ≤100/次；可用 `KUNGAL_RATE_PER_MIN` 往下调，但硬上限就是 300，不要拉满）；遇到 `429` 全局冷却退避，不要并发压满。
+- **先量后遍历**：要扫 N 条前先确认 N；优先用批量接口（`refs=` / 多 id 查询）而不是逐 id 请求；本地已有数据（`galrc_kungal_*` 表、`docs/kungal-*.md` 里的取证结果）能复用就不要重新打接口。
+- **代码入口唯一**：Kungal 的所有请求必须经 `apps/api/src/libs/kungal-api/client.ts` 的 `KungalClient`（已内置鉴权、令牌桶、429 退避）。不要在新代码或临时脚本里裸 `fetch('https://api.nextmoe.dev/...')`。
+- **探测优先级**：先查 `docs/kungal-characters-api.md` / `docs/kungal-walkthroughs-api.md` 的 schema 与样本，再考虑真实请求；确需新增探测时只取 1–2 条样本并放后台任务，禁止全量扫描。
+
 ## Code Conventions & Common Patterns
 
 ### Formatting (Biome)
@@ -370,7 +381,7 @@ export const myActions = {
 | strategy | `/strategy` | admin (write) | Game strategy guides, articles |
 | views | `/views` | public | View tracking, hot games/tags rankings |
 | vndb-sync | `/vndb-sync` | admin | VNDB full/delta sync with progress tracking |
-| kungal-sync | `/kungal-sync` | admin | Kungal (NextMoe) catalog sync — vndb-anchored works, kungal-priority display |
+| kungal-sync | `/kungal-sync` | admin | Kungal (NextMoe) catalog sync — vndb-anchored works, kungal-priority display（外部请求遵守「外部 API 使用约束」：带 `KUNGALAPI_KEY`、走 `KungalClient`、≤300 次/分 = 上游 600/分 的一半） |
 | cron | — | — | Scheduled tasks: Meilisearch index, Alist sync, CF metrics |
 | health | `/health` | public | Health check: `{ ok: true }` |
 | status | `/status` | public | Deploy lifecycle: starting → migrating → ready / error |
