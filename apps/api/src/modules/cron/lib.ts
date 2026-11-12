@@ -241,6 +241,8 @@ export interface CloudreveSyncStats {
   kept: number
   deleted: number
   renamed: number
+  /** 因唯一索引被存量行占住而跳过的行数（>0 时巡检会列出明细） */
+  blocked?: number
   tookMs: number
 }
 
@@ -290,6 +292,20 @@ function displayIdOfRow(row: AlistbRow): string {
 }
 
 /**
+ * 展示身份的比较键。
+ *
+ * 'vNNN' / 'kgX' 是同一个作品的语义身份，大小写从来不是区分维度：历史代码对
+ * 同一个 kungal work 既写过 `kg<目录原样>`（kungalDisplay 命中时）也写过
+ * `kg<小写>`（未命中时的兜底），于是库里可能留下大小写不同的两行候选。
+ * 若按区分大小写的键比对，这些行每轮都会被判成「待新增」，而插入又会撞上
+ * `lower(kungal_id)` 唯一索引（23505），整轮同步事务随之回滚 —— 症状就是后台
+ * 「检测文件缺失」永远固定 N 条待新增、同步也永远修不掉。展示身份比对统一走这里。
+ */
+function displayKey(displayId: string): string {
+  return displayId.toLowerCase()
+}
+
+/**
  * 计算 Cloudreve 搜索结果与 alistb 现有数据的差异。
  *
  * @param data        Cloudreve 搜索结果原始项（`[vndb-` 与 `[kungal-` 两批并集）
@@ -317,11 +333,17 @@ export async function diffCloudreveData(
   }
   const resolved = resolveAnchors(anchors, kungalDisplay)
   const collapsed = Math.max(0, anchors.length - resolved.length)
-  const freshDisplayIds = new Set(resolved.map((r) => r.id))
+  const freshDisplayKeys = new Set(resolved.map((r) => displayKey(r.id)))
 
   const existingByDisplay = new Map<string, AlistbRow>()
   for (const row of existing) {
-    existingByDisplay.set(displayIdOfRow(row), row)
+    const key = displayKey(displayIdOfRow(row))
+    // 同键多行（历史大小写重复）只留一行：优先留持有 kungal 锚点的那行，
+    // 否则 upsert 会落到另一行、再去抢 kungal_id 撞唯一索引。
+    const prev = existingByDisplay.get(key)
+    if (!prev || (!prev.kungalId && row.kungalId)) {
+      existingByDisplay.set(key, row)
+    }
   }
 
   const chunks: AlistbUpsertRow[] = []
@@ -350,9 +372,13 @@ export async function diffCloudreveData(
       path: newPaths,
     }
 
-    const direct = existingByDisplay.get(r.id)
+    const direct = existingByDisplay.get(displayKey(r.id))
     if (direct) {
+      // 主键沿用库里那一行：大小写不同的写法是同一条目，绝不能新插一条
+      row.id = direct.id
+      const displayDrift = displayIdOfRow(direct) !== r.id
       if (
+        !displayDrift &&
         samePaths(direct.path, newPaths) &&
         (direct.vid ?? null) === r.vid &&
         (direct.kungalId ?? null) === r.kungalId
@@ -375,7 +401,8 @@ export async function diffCloudreveData(
     const renamedFrom = findRenameSource(
       existing,
       r,
-      freshDisplayIds,
+      freshDisplayKeys,
+      claimedOldIds,
       kungalDisplay,
     )
     if (renamedFrom) {
@@ -405,7 +432,7 @@ export async function diffCloudreveData(
 
   for (const row of existing) {
     const displayId = displayIdOfRow(row)
-    if (freshDisplayIds.has(displayId)) continue
+    if (freshDisplayKeys.has(displayKey(displayId))) continue
     if (claimedOldIds.has(row.id)) continue
     // 没有 vndb 也没有 kungal 锚点的旧手工行（other 条目）不参与自动删除
     if (!row.vid && !row.kungalId) continue
@@ -455,27 +482,44 @@ export async function diffCloudreveData(
 /**
  * 为新展示身份寻找"被它取代的旧行"（改名 / kungal→vndb 升级 / kungal 合并）。
  *
- * 判定：旧行的 kungal 锚点（或它当前展示身份里的 kg 锚点）经 kungalDisplay 解析后
- * 正好等于本展示身份，且旧展示身份已不在本次搜索结果里。
- * 对 kungal-only 的合并（kgOld → kgCurrent）同样成立，因此不会因为
- * "收口后 display_id 变了"而多出一条重复条目。
+ * 判定（任一成立即为同一作品，且旧展示身份已不在本次搜索结果里）：
+ * ① 旧行的 kungal 锚点（或它当前展示身份里的 kg 锚点）经 kungalDisplay 解析后
+ *    等于本展示身份（kungal → vndb 升级、kungal 合并）；
+ * ② 旧行与本展示身份记录的是同一个 kungal work（大小写不敏感）—— 覆盖目录 map
+ *    里查不到该 work 时，旧行写法与新兜底写法不一致的情况；
+ * ③ 旧展示身份与本展示身份只差大小写。
+ * 三条都是"同一作品的另一种写法"，所以必须走 rename 收口，否则新增插入会撞上
+ * lower(kungal_id) 唯一索引，把整轮同步事务打回滚。
  */
 function findRenameSource(
   existing: AlistbRow[],
   target: ResolvedRow,
-  freshDisplayIds: Set<string>,
+  freshDisplayKeys: Set<string>,
+  claimedOldIds: Set<string>,
   kungalDisplay: Map<string, string>,
 ): AlistbRow | null {
+  const targetKey = displayKey(target.id)
+  const targetKungal = target.kungalId?.toLowerCase() ?? null
+
   for (const row of existing) {
+    if (claimedOldIds.has(row.id)) continue
     const rowDisplay = displayIdOfRow(row)
-    if (rowDisplay === target.id) continue
+    const rowKey = displayKey(rowDisplay)
+    if (rowKey === targetKey) continue
     // 旧展示身份仍出现在本次搜索结果里 → 不是改名，是另一条独立条目
-    if (freshDisplayIds.has(rowDisplay)) continue
+    if (freshDisplayKeys.has(rowKey)) continue
 
     const kungalId = row.kungalId ?? kungalIdFromDisplayId(rowDisplay)
-    if (!kungalId) continue
-    const resolved = kungalDisplay.get(kungalId.toLowerCase())
-    if (resolved && resolved === target.id) return row
+    if (kungalId) {
+      const resolved = kungalDisplay.get(kungalId.toLowerCase())
+      if (resolved && displayKey(resolved) === targetKey) return row
+      // ② 只在两侧都是 kungal 形态时成立：把已有 vndb 锚点的行改名成 kgX
+      //    是身份降级（路由/搜索 id 全变），宁可 blocked 也不自动降级。
+      const rowIsVndb = row.vid !== null || /^v\d+$/i.test(rowDisplay)
+      if (!rowIsVndb && target.vid === null && targetKungal) {
+        if (kungalId.toLowerCase() === targetKungal) return row
+      }
+    }
   }
   return null
 }
@@ -484,6 +528,93 @@ function findRenameSource(
 function kungalIdFromDisplayId(displayId: string): string | null {
   const m = displayId.match(/^kg(.+)$/i)
   return m ? m[1] : null
+}
+
+// ── 写入前冲突分流 ────────────────────────────────────
+
+/** 一条待写入行被存量行占住展示身份 / kungal 锚点，无法直接 upsert。 */
+export interface BlockedUpsert {
+  /** 本应写入的主键（展示身份）。 */
+  id: string
+  displayId: string
+  /** display_id_taken: 展示身份被别的行占着；kungal_id_taken: kungal 锚点被别的行占着。 */
+  reason: 'display_id_taken' | 'kungal_id_taken'
+  /** 占住唯一索引的存量行主键。 */
+  occupantId: string
+}
+
+/**
+ * 把「要写什么」和「能不能写」分开：先把确定要删的主键（rename 的旧行、
+ * 确认失效的行）排除掉，再检查每条 upsert 的 display_id / lower(kungal_id)
+ * 是否仍被别的、不打算删除的行占着。
+ *
+ * 为什么必须在写之前分流：alistb 上有 uq(display_id) 与 uq(lower(kungal_id))，
+ * 被占住的那一行在同一个事务里 INSERT 会直接 23505，回滚的是**整轮**同步 ——
+ * 一条修不掉的历史行就能让所有新增/更新/删除永远落不了库。剩下的冲突行跳过并
+ * 随巡检结果上报（reason + occupantId），下一轮 diff 修正写法后即可自动收口。
+ */
+export function partitionCloudreveWrites(
+  diff: CloudreveDiffResult,
+  existing: AlistbRow[],
+): { upserts: AlistbUpsertRow[]; blocked: BlockedUpsert[] } {
+  const deleting = new Set<string>([
+    ...diff.renames.map((r) => r.fromId),
+    ...diff.toDelete.map((r) => r.id),
+  ])
+
+  const byDisplay = new Map<string, AlistbRow>()
+  const byKungal = new Map<string, AlistbRow>()
+  for (const row of existing) {
+    if (deleting.has(row.id)) continue
+    const display = displayKey(displayIdOfRow(row))
+    if (!byDisplay.has(display)) byDisplay.set(display, row)
+    const kungal = row.kungalId?.toLowerCase()
+    if (kungal && !byKungal.has(kungal)) byKungal.set(kungal, row)
+  }
+
+  const upserts: AlistbUpsertRow[] = []
+  const blocked: BlockedUpsert[] = []
+  const claimed = new Map<string, string>()
+
+  for (const row of [...diff.renames.map((r) => r.row), ...diff.chunks]) {
+    const display = displayKey(row.displayId)
+    const occupant = byDisplay.get(display)
+    if (occupant && occupant.id !== row.id) {
+      blocked.push({
+        id: row.id,
+        displayId: row.displayId,
+        reason: 'display_id_taken',
+        occupantId: occupant.id,
+      })
+      continue
+    }
+    const kungalOccupant = row.kungalId
+      ? byKungal.get(row.kungalId.toLowerCase())
+      : undefined
+    if (kungalOccupant && kungalOccupant.id !== row.id) {
+      blocked.push({
+        id: row.id,
+        displayId: row.displayId,
+        reason: 'kungal_id_taken',
+        occupantId: kungalOccupant.id,
+      })
+      continue
+    }
+    const prior = claimed.get(display)
+    if (prior && prior !== row.id) {
+      blocked.push({
+        id: row.id,
+        displayId: row.displayId,
+        reason: 'display_id_taken',
+        occupantId: prior,
+      })
+      continue
+    }
+    claimed.set(display, row.id)
+    upserts.push(row)
+  }
+
+  return { upserts, blocked }
 }
 
 /** 导出用于单测：展示身份归一并保持大小写规则 */

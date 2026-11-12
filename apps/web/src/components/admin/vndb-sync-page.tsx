@@ -743,6 +743,9 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 				</Badge>
 				<Badge variant="secondary">待删除 {report.deleted}</Badge>
 				<Badge variant="secondary">保留 {report.kept}</Badge>
+				{(report.blocked ?? 0) > 0 && (
+					<Badge variant="destructive">唯一索引阻塞 {report.blocked}</Badge>
+				)}
 				<Badge
 					variant={
 						report.vnWithoutAlistb.samples.length > 0
@@ -808,6 +811,28 @@ function CloudreveReport({ report }: { report: CloudreveCheckResult }) {
 							<div key={row.displayId}>
 								<span className="text-primary">{row.displayId}</span>{" "}
 								{row.paths.join(" / ")}
+							</div>
+						))}
+					</div>
+				</div>
+			)}
+
+			{(report.blockedRows?.length ?? 0) > 0 && (
+				<div className="flex flex-col gap-1">
+					<p className="text-sm font-medium">
+						以下条目同步时会被唯一索引挡下（展示身份 / kungal 锚点已被另一行占用），
+						修掉占用行后下一轮自动收口
+					</p>
+					<div className="flex overflow-y-auto flex-col gap-1 p-3 max-h-40 font-mono text-xs bg-muted/40 rounded-xl ring-1 ring-border/60">
+						{report.blockedRows?.map((row) => (
+							<div key={`${row.id}->${row.occupantId}`}>
+								<span className="text-destructive">{row.displayId}</span>{" "}
+								<span className="text-muted-foreground">
+									{row.reason === "display_id_taken"
+										? "展示身份被占用"
+										: "kungal 锚点被占用"}{" "}
+									← {row.occupantId}
+								</span>
 							</div>
 						))}
 					</div>

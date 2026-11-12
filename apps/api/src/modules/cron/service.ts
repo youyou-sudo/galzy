@@ -36,6 +36,7 @@ import {
   CLOUDREVE_SYNC_TIME_KEY,
   type CloudreveSyncStats,
   diffCloudreveData,
+  partitionCloudreveWrites,
 } from './lib'
 
 /** 读取 alistb 全量行，path jsonb 在 drizzle 中类型为 unknown，此处归一为 string[] | null */
@@ -63,7 +64,7 @@ async function getAlistbRows(): Promise<AlistbRow[]> {
  * 两者都归一到「展示身份」，网盘里仍在用旧 kungal id 命名的目录才不会另建条目。
  */
 async function getKungalDisplayMap(): Promise<Map<string, string>> {
-  const [works, merged] = await Promise.all([
+  const [works, merged, aliased] = await Promise.all([
     db
       .select({ id: kungalWorks.id, vndbId: kungalWorks.vndbId })
       .from(kungalWorks),
@@ -79,6 +80,21 @@ async function getKungalDisplayMap(): Promise<Map<string, string>> {
           eq(externalIds.canonicalKind, 'kungal'),
         ),
       ),
+    // ③ kungal → vndb 别名：该 work 在 galrc_kungal_works 缺行、但身份表已把
+    //    它归一到 vNNN 时，目录里的 [kungal-X] 必须落到 vndb 展示身份，
+    //    否则会被算成新的 kg 条目（再撞 lower(kungal_id) 唯一索引整轮回滚）。
+    db
+      .select({
+        externalId: externalIds.externalId,
+        canonicalId: externalIds.canonicalId,
+      })
+      .from(externalIds)
+      .where(
+        and(
+          eq(externalIds.kind, 'kungal'),
+          eq(externalIds.canonicalKind, 'vndb'),
+        ),
+      ),
   ])
   const map = new Map<string, string>()
   for (const r of works) {
@@ -90,6 +106,13 @@ async function getKungalDisplayMap(): Promise<Map<string, string>> {
   for (const r of merged) {
     if (r.externalId && r.canonicalId) {
       map.set(r.externalId.toLowerCase(), `kg${r.canonicalId}`)
+    }
+  }
+  // kungal→vndb 别名只补缺：works 表的口径优先，别名兜底
+  for (const r of aliased) {
+    if (r.externalId && r.canonicalId) {
+      const key = r.externalId.toLowerCase()
+      if (!map.has(key)) map.set(key, r.canonicalId.toLowerCase())
     }
   }
   return map
@@ -139,7 +162,7 @@ async function collectCloudreveDiff() {
     cloudrevePathExists,
     kungalDisplay,
   )
-  return { foldersFound: items.length, diff }
+  return { foldersFound: items.length, diff, existing }
 }
 
 export interface MeiliProgress {
@@ -304,7 +327,9 @@ export const CronService = {
     if (!lock) return null
     const startedAt = Date.now()
     try {
-      const { foldersFound, diff } = await collectCloudreveDiff()
+      const { foldersFound, diff, existing } = await collectCloudreveDiff()
+      // 写入前分流：被存量行占住唯一索引的行跳过并上报，绝不靠事务回滚兜底
+      const { upserts, blocked } = partitionCloudreveWrites(diff, existing)
 
       const stats = {
         foldersFound,
@@ -314,6 +339,15 @@ export const CronService = {
         kept: diff.toKeep.length,
         deleted: diff.toDelete.length,
         renamed: diff.renamed,
+        blocked: blocked.length,
+      }
+      if (blocked.length > 0) {
+        console.warn(
+          `[Cloudreve] ${blocked.length} 行因唯一索引被占用跳过: ${blocked
+            .slice(0, 5)
+            .map((b) => `${b.displayId}(${b.reason} ← ${b.occupantId})`)
+            .join(', ')}`,
+        )
       }
       const record: CloudreveSyncStats = {
         lastUpdate: Date.now(),
@@ -324,9 +358,9 @@ export const CronService = {
       await db.transaction(async (trx) => {
         const CHUNK_SIZE = 500
 
-        // ① 改名/升级收口：先删旧主键行，再由下面的 upsert 写入新行。
-        // 必须「先删后写」且同事务：alistb.display_id 上有唯一索引，
-        // 顺序反了会直接撞 23505；不删则会留下两条指向同一作品的可见条目。
+        // ① 先删后写：改名/升级的旧主键行 + 已确认失效的行。
+        // 顺序反了会撞 23505（display_id / lower(kungal_id)），且一条旧行就能
+        // 让整轮事务回滚，所以删除必须全部排在 insert 之前。
         for (let i = 0; i < diff.renames.length; i += CHUNK_SIZE) {
           const chunk = diff.renames.slice(i, i + CHUNK_SIZE)
           await trx.delete(alistb).where(
@@ -337,10 +371,20 @@ export const CronService = {
           )
         }
 
+        for (let i = 0; i < diff.toDelete.length; i += CHUNK_SIZE) {
+          const chunk = diff.toDelete.slice(i, i + CHUNK_SIZE)
+          await trx.delete(alistb).where(
+            inArray(
+              alistb.id,
+              chunk.map((r) => r.id),
+            ),
+          )
+        }
+
         // ② Bulk UPSERT in chunks to avoid N per-row round trips。
         // 仅覆盖 vid/anchor 相关列与 path：保留 existing.other，
         // 防止覆盖管理员手工绑定的 other 关联。
-        const upsertRows = [...diff.renames.map((r) => r.row), ...diff.chunks]
+        const upsertRows = upserts
         for (let i = 0; i < upsertRows.length; i += CHUNK_SIZE) {
           const chunk = upsertRows.slice(i, i + CHUNK_SIZE)
           await trx
@@ -367,17 +411,6 @@ export const CronService = {
                 displayId: sql.raw('excluded.display_id'),
               },
             })
-        }
-
-        // ③ 删除已确认不存在的行（搜索结果缺失且所有存储路径均已验证失效），分块删除
-        for (let i = 0; i < diff.toDelete.length; i += CHUNK_SIZE) {
-          const chunk = diff.toDelete.slice(i, i + CHUNK_SIZE)
-          await trx.delete(alistb).where(
-            inArray(
-              alistb.id,
-              chunk.map((r) => r.id),
-            ),
-          )
         }
 
         await trx
@@ -410,7 +443,10 @@ export const CronService = {
 
   /** 只读巡检：搜索 Cloudreve 并对比 alistb，报告待新增/更新/删除与无文件游戏，不落库 */
   async cloudreveSyncCheck() {
-    const { foldersFound, diff } = await collectCloudreveDiff()
+    const { foldersFound, diff, existing } = await collectCloudreveDiff()
+    // 与同步同一条分流逻辑：这里列出「同步也写不进去」的行，
+    // 避免待新增数量长期不降却看不出原因。
+    const { blocked } = partitionCloudreveWrites(diff, existing)
 
     // VNDB 数据存在但无 alistb 行（无文件条目）的游戏
     const [countRow] = await db
@@ -434,6 +470,8 @@ export const CronService = {
       kept: diff.toKeep.length,
       deleted: diff.toDelete.length,
       renamed: diff.renamed,
+      blocked: blocked.length,
+      blockedRows: blocked,
       anchorHits: diff.anchorHits,
       /** >0 表示同一作品存在多种网盘命名，已归并成一条（多路径） */
       collapsed: diff.collapsed,
