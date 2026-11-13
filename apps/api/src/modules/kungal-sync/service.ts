@@ -1429,15 +1429,15 @@ export const KungalSync = {
 
     // 阶段 3：缓存与 CDN 失效
     await this.updateProgress({ stage: 'cache' })
-    // Meilisearch 的游戏文档也包含封面尺寸，否则搜索页会继续使用旧比例。
-    await CronService.syncGameBatchToMeili([...resolvedByVndb.keys()])
-    // kungal-only 条目没有 vn 行，走独立的文档通道；否则这次补建出来的
-    // work 行只对详情页生效，列表/搜索仍搜不到。
-    if (kungalTarget.length > 0) {
-      await CronService.syncKungalOnlyBatchToMeili(
-        kungalTarget.map((r) => r.displayId),
-      )
-    }
+    // Meilisearch 的游戏文档也包含封面尺寸与标题，否则搜索页会继续用旧比例/旧标题。
+    // 统一出口 syncGamesByDisplayIds：vndb 锚点条目（含 vn 行还没同步到的）
+    // 与 kungal-only 条目一次推完整文档 —— 文档内数据 kungal 优先、vn 回退。
+    // 旧实现分两条通道，vn 缺失的 vndb 锚点条目两条都覆盖不到，导致
+    // 「详情页更新了、搜索/列表仍是空壳」。
+    await CronService.syncGamesByDisplayIds([
+      ...resolvedByVndb.keys(),
+      ...kungalTarget.map((r) => r.displayId),
+    ])
     await this.updateProgress({
       status: 'completed',
       completedAt: new Date().toISOString(),
