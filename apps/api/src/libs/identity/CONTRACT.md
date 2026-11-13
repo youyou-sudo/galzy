@@ -152,7 +152,7 @@ kungal-only（`kungalOnly === true`）时：**`vn` 不是 null，而是由 kunga
 - 不变量：**每个 `alistb.kungal_id` 都应有对应 `galrc_kungal_works` 行**。
   只有前者时，网盘先出现 `[kungal-X]` 目录、VNDB 侧尚无对应作品的条目永远拿不到行，
   详情页/列表/搜索全部降级为空壳（历史故障 `kg218897`）。
-- 写库后必须同时刷新两个搜索文档通道：`syncGameBatchToMeili`（vn 驱动）+ `syncKungalOnlyBatchToMeili`（`kgX` 驱动）。后者以 `vn` 为主键的增量路径永远覆盖不到 kungal-only 条目。
+- 写库后刷新的唯一搜索文档通道是 `CronService.syncGamesByDisplayIds(displayIds)`：文档以 `alistb` 为驱动表构建，有 `vn` 行时用 vn 聚合（内部 kungal 数据优先覆盖），`vn` 缺失时整条回退 `galrc_kungal_works`（先按 `kungal_id`，再按 `vndb_id` 命中）。旧的 `syncGameBatchToMeili`（vn 驱动）与 `syncKungalOnlyBatchToMeili`（`kgX` 驱动）两条通道对「有 vid、vn 行还没同步到」的条目都会漏，已合并删除。禁止再引入以 `vn` 为驱动表的增量文档通道。
 - delta 口径：work 行缺失，或 `cover_url`/封面尺寸/`thumbhash` 不全时重新水合；齐全则跳过。
 
 ## 7. 读取侧统一规则
@@ -164,15 +164,15 @@ kungal-only（`kungalOnly === true`）时：**`vn` 不是 null，而是由 kunga
 
 ## 8. 写作用域归属（避免同文件双写）
 
-| 文件 / 目录                                                                                                                         | 唯一 owner     |
-| ----------------------------------------------------------------------------------------------------------------------------------- | -------------- |
-| `apps/api/drizzle/**`, `apps/api/src/db/schema/*`                                                                                   | Lead           |
-| `apps/api/src/libs/identity/**`                                                                                                     | Lead           |
-| `apps/api/src/modules/cron/**`                                                                                                      | Lead           |
-| `apps/api/src/modules/vndb-sync/service.ts`（vid 口径）                                                                             | Lead           |
-| `apps/api/src/modules/games/**`, `apps/api/src/modules/views/**`                                                                    | Lead           |
-| `apps/api/src/modules/kungal-sync/**`, `apps/api/src/libs/kungal-api/**`                                                            | kungal-anchors |
-| `apps/web/src/routes/$id/**`, `apps/web/src/server/game/index.ts`, `apps/web/src/lib/game-id.ts`（新建）                            | web-route      |
-| `apps/api/src/modules/tasks/**`（扫描文案/统计展示）                                                                                | tasks-panel    |
+| 文件 / 目录                                                                                              | 唯一 owner     |
+| -------------------------------------------------------------------------------------------------------- | -------------- |
+| `apps/api/drizzle/**`, `apps/api/src/db/schema/*`                                                        | Lead           |
+| `apps/api/src/libs/identity/**`                                                                          | Lead           |
+| `apps/api/src/modules/cron/**`                                                                           | Lead           |
+| `apps/api/src/modules/vndb-sync/service.ts`（vid 口径）                                                  | Lead           |
+| `apps/api/src/modules/games/**`, `apps/api/src/modules/views/**`                                         | Lead           |
+| `apps/api/src/modules/kungal-sync/**`, `apps/api/src/libs/kungal-api/**`                                 | kungal-anchors |
+| `apps/web/src/routes/$id/**`, `apps/web/src/server/game/index.ts`, `apps/web/src/lib/game-id.ts`（新建） | web-route      |
+| `apps/api/src/modules/tasks/**`（扫描文案/统计展示）                                                     | tasks-panel    |
 
 写入他人作用域前必须先发消息给 owner。
