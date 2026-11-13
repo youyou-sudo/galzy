@@ -1,11 +1,16 @@
-import { buildCoverUrl, bumpStatWindows, MeiliClient } from '@api/libs'
+import {
+  buildCoverUrl,
+  bumpStatWindows,
+  MeiliClient,
+  normalizeSearchQuery,
+} from '@api/libs'
 import { status } from 'elysia'
 import { t } from 'try'
 import type { SearchModel } from './model'
 
 export const Search = {
   async get({ q, limit, startDate, endDate }: SearchModel.search) {
-    const safeQ = q?.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim()
+    const safeQ = normalizeSearchQuery(q)
     const filters: string[] = []
 
     if (startDate && endDate) {
@@ -86,8 +91,7 @@ export const Search = {
       includeFacets = false,
     } = params
 
-    const safeQ =
-      q?.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim() ?? ''
+    const safeQ = normalizeSearchQuery(q)
 
     // Build filters
     const filters: string[] = []
@@ -262,8 +266,7 @@ export const Search = {
     }
   },
   async searchTags({ q, limit }: SearchModel.tagSearch) {
-    const safeQ =
-      q?.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim() || ''
+    const safeQ = normalizeSearchQuery(q)
     const result = await MeiliClient.index(
       process.env.MEILISEARCH_TAG_INDEXNAME || 'galrc_Tag',
     ).search(safeQ, {
@@ -279,8 +282,7 @@ export const Search = {
     page = 1,
     hitsPerPage = 24,
   }: SearchModel.producerSearch) {
-    const safeQ =
-      q?.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim() || ''
+    const safeQ = normalizeSearchQuery(q)
     const result = await MeiliClient.index(
       process.env.MEILISEARCH_PRODUCER_INDEXNAME || 'galrc_Producer',
     ).search(safeQ, {
