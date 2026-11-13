@@ -329,25 +329,77 @@ async function finishStage(
 async function fetchWorkRowsInBatch<T>(
   batch: Array<{ id: string }>,
   fetchRows: (workId: string) => Promise<T[]>,
-  onFailure: () => void,
+  onFailure: (workId: string, reason: unknown) => void,
   failureLabel: string,
 ): Promise<Array<{ workId: string; rows: T[] }>> {
   const settled = await Promise.allSettled(
-    batch.map(async (work) => ({
-      workId: work.id,
-      rows: await fetchRows(work.id),
-    })),
+    batch.map((work) => fetchRows(work.id)),
   )
   const out: Array<{ workId: string; rows: T[] }> = []
-  for (const item of settled) {
+  // allSettled 保序，第 i 个结果对应的就是 batch[i]
+  for (let i = 0; i < settled.length; i++) {
+    const item = settled[i]
+    const workId = batch[i].id
     if (item.status === 'fulfilled') {
-      out.push(item.value)
+      out.push({ workId, rows: item.value })
     } else {
-      onFailure()
-      console.error(`❌ Kungal ${failureLabel}拉取失败:`, item.reason)
+      onFailure(workId, item.reason)
+      console.error(
+        `❌ Kungal ${failureLabel}拉取失败 (${workId}):`,
+        item.reason,
+      )
     }
   }
   return out
+}
+
+/** 每个阶段最多展开多少条失败明细（其余只报总数，避免刷满 100 条进度日志）。 */
+const STAGE_FAILURE_LOG_LIMIT = 10
+
+/** 统一错误文案：Error.message → 单行、截断，便于写进任务日志。 */
+function errorText(reason: unknown): string {
+  const text = reason instanceof Error ? reason.message : String(reason)
+  return text.replace(/\s+/g, ' ').trim().slice(0, 300)
+}
+
+/**
+ * 阶段失败明细收集器。
+ *
+ * 各阶段对「附加数据」的单条/单批失败只计数不抛出（角色/攻略失败不该让整轮
+ * 同步失败），但此前细节只打到容器 console —— 管理端 /admin/tasks 里只剩
+ * 「失败 N」一行，既看不出是哪部作品、哪个接口挂的，也无法判断该不该重跑。
+ *
+ * 这里按有界样本收集，阶段收尾统一写进任务日志（addLog → galrc_queue_job_log），
+ * 让「失败 2」变成「名册 12345: 429 Too Many Requests」这种可定位的记录。
+ */
+function createStageFailureLog(label: string) {
+  const samples: string[] = []
+  let events = 0
+  return {
+    /** @param weight 这次失败代表几条（批失败按批内条数计，便于和汇总数对齐） */
+    add(subject: string, reason: unknown, weight = 1) {
+      events += weight
+      if (samples.length < STAGE_FAILURE_LOG_LIMIT) {
+        samples.push(`${subject}: ${errorText(reason)}`)
+      }
+    },
+    get events() {
+      return events
+    },
+    /** 把失败明细写进任务日志；没有失败时是空操作。 */
+    async flush() {
+      if (events === 0 && samples.length === 0) return
+      for (const line of samples) {
+        await KungalSync.addLog('error', `${label}失败明细: ${line}`)
+      }
+      if (events > samples.length) {
+        await KungalSync.addLog(
+          'error',
+          `${label}另有 ${events - samples.length} 条失败未展开（明细上限 ${STAGE_FAILURE_LOG_LIMIT} 条）`,
+        )
+      }
+    },
+  }
 }
 
 let _progressCache: KungalSyncProgress | null = null
@@ -524,8 +576,9 @@ export const KungalSync = {
 
     let charactersUpserted = 0
     let appearancesUpserted = 0
-    let characterErrors = 0
     let processed = 0
+    // 失败明细：只计数不抛出（角色是附加数据），但要写进任务日志便于定位
+    const failures = createStageFailureLog('角色')
 
     for (let i = 0; i < targets.length; i += CHARACTER_WORK_BATCH) {
       const batch = targets.slice(i, i + CHARACTER_WORK_BATCH)
@@ -534,7 +587,7 @@ export const KungalSync = {
         const rosters = await fetchWorkRowsInBatch<KungalWorkCharacter>(
           batch,
           (workId) => KungalClient.fetchWorkCharacters(workId),
-          () => characterErrors++,
+          (workId, reason) => failures.add(`名册 ${workId}`, reason),
           '角色名册',
         )
         if (rosters.length === 0) continue
@@ -556,7 +609,11 @@ export const KungalSync = {
             }
           } catch (err) {
             // 单批水合失败只丢资料字段：下面用名册兜底行继续落库名册行
-            characterErrors++
+            failures.add(
+              `角色水合 ${chunk.length} 个（${chunk[0]}…）`,
+              err,
+              chunk.length,
+            )
             console.error('❌ Kungal 角色水合失败:', err)
           }
         }
@@ -687,7 +744,11 @@ export const KungalSync = {
       } catch (err) {
         // 单批失败（DB 抖动/上游形状异常）吞掉并计数，继续下一批：
         // 角色是附加数据，不该让整轮作品同步失败。
-        characterErrors += batch.length
+        failures.add(
+          `角色批 ${i / CHARACTER_WORK_BATCH + 1}（${batch.length} 部）`,
+          err,
+          batch.length,
+        )
         console.error(
           `❌ Kungal 角色批 ${i / CHARACTER_WORK_BATCH + 1} 失败:`,
           err,
@@ -708,11 +769,13 @@ export const KungalSync = {
       )
     }
 
+    // 先写失败明细，再写汇总行（管理端日志按时间顺序阅读）
+    await failures.flush()
     await finishStage(
       standalone,
-      characterErrors,
+      failures.events,
       { charactersUpserted, appearancesUpserted },
-      `角色阶段完成: 作品 ${targets.length}, 角色 ${charactersUpserted}, 名册 ${appearancesUpserted}, 失败 ${characterErrors}`,
+      `角色阶段完成: 作品 ${targets.length}, 角色 ${charactersUpserted}, 名册 ${appearancesUpserted}, 失败 ${failures.events}`,
     )
   },
 
@@ -808,7 +871,8 @@ export const KungalSync = {
     let upserted = 0
     let details = 0
     let removed = 0
-    let walkthroughErrors = 0
+    // 失败明细：只计数不抛出（攻略是附加数据），但要写进任务日志便于定位
+    const failures = createStageFailureLog('攻略')
 
     // ── 读取阶段 ────────────────────────────────────────────────────────
     // 1) 全局目录：id → 上游 work_id / updated_at。只收范围内的作品 —— 上游有
@@ -859,22 +923,21 @@ export const KungalSync = {
         }
       }
     } catch (err) {
-      walkthroughErrors += targets.length
-      const message = err instanceof Error ? err.message : String(err)
+      failures.add('攻略目录/本地行读取', err, targets.length)
       console.error(
         '❌ Kungal 攻略目录/本地行读取失败（本轮不写库、不删行）:',
         err,
       )
-      await this.addLog('error', `攻略目录读取失败: ${message}`)
+      await failures.flush()
       await finishStage(
         standalone,
-        walkthroughErrors,
+        failures.events,
         {
           walkthroughsUpserted: 0,
           walkthroughDetails: 0,
           walkthroughsRemoved: 0,
         },
-        `攻略阶段完成: 作品 ${targets.length}, 攻略 0, 详情 0, 下线 0, 失败 ${walkthroughErrors}`,
+        `攻略阶段完成: 作品 ${targets.length}, 攻略 0, 详情 0, 下线 0, 失败 ${failures.events}`,
       )
       return
     }
@@ -917,7 +980,11 @@ export const KungalSync = {
           rowsById.set(String(item.id), item)
         }
       } catch (err) {
-        walkthroughErrors += chunk.length
+        failures.add(
+          `攻略批量刷新 ${chunk[0]}…（${chunk.length} 条）`,
+          err,
+          chunk.length,
+        )
         console.error(
           `❌ Kungal 攻略批量刷新失败（${chunk[0]}…，${chunk.length} 条）:`,
           err,
@@ -937,10 +1004,15 @@ export const KungalSync = {
           row: await KungalClient.fetchWalkthrough(id),
         })),
       )
-      for (const item of settled) {
+      for (let j = 0; j < settled.length; j++) {
+        const item = settled[j]
+        const walkthroughId = chunk[j]
         if (item.status === 'rejected') {
-          walkthroughErrors++
-          console.error('❌ Kungal 攻略详情拉取失败:', item.reason)
+          failures.add(`攻略详情 ${walkthroughId}`, item.reason)
+          console.error(
+            `❌ Kungal 攻略详情拉取失败 (${walkthroughId}):`,
+            item.reason,
+          )
           continue
         }
         const { id, row } = item.value
@@ -996,7 +1068,11 @@ export const KungalSync = {
           upserted += chunk.length
           for (const row of chunk) touched.add(row.workId)
         } catch (err) {
-          walkthroughErrors += chunk.length
+          failures.add(
+            `攻略落库批 ${i / WALKTHROUGH_UPSERT_BATCH + 1}`,
+            err,
+            chunk.length,
+          )
           console.error(
             `❌ Kungal 攻略批 ${i / WALKTHROUGH_UPSERT_BATCH + 1} 落库失败:`,
             err,
@@ -1026,7 +1102,11 @@ export const KungalSync = {
           .returning({ id: kungalWalkthroughs.id })
         removed += deleted.length
       } catch (err) {
-        walkthroughErrors += chunk.length
+        failures.add(
+          `攻略下线清理 ${chunk[0]}…（${chunk.length} 条）`,
+          err,
+          chunk.length,
+        )
         console.error(
           `❌ Kungal 攻略下线清理失败（${chunk[0]}…，${chunk.length} 条）:`,
           err,
@@ -1041,15 +1121,16 @@ export const KungalSync = {
     }
     onProgress?.(targets.length, targets.length)
 
+    await failures.flush()
     await finishStage(
       standalone,
-      walkthroughErrors,
+      failures.events,
       {
         walkthroughsUpserted: upserted,
         walkthroughDetails: details,
         walkthroughsRemoved: removed,
       },
-      `攻略阶段完成: 作品 ${targets.length}, 攻略 ${upserted}, 详情 ${details}, 下线 ${removed}, 失败 ${walkthroughErrors}`,
+      `攻略阶段完成: 作品 ${targets.length}, 攻略 ${upserted}, 详情 ${details}, 下线 ${removed}, 失败 ${failures.events}`,
     )
   },
 
@@ -1255,6 +1336,8 @@ export const KungalSync = {
     let errors = 0
     let upserted = 0
     let aliases = 0
+    // 作品批/别名批失败明细（只计数不抛出，收尾写进任务日志）
+    const failures = createStageFailureLog('作品')
     // 本次真正落库的 work id：增量同步的角色阶段只补这些作品（外加无名册的存量）
     const syncedWorkIds: string[] = []
     const entries = resolvedEntries
@@ -1377,6 +1460,8 @@ export const KungalSync = {
             await linkAliases(aliasPairs)
             aliases += aliasPairs.length
           } catch (err) {
+            // 别名失败不计入 errors（作品本身已落库），但明细要留痕
+            failures.add(`锚点别名批 ${i / RESOLVE_BATCH + 1}`, err, 0)
             console.error(
               `❌ Kungal alias batch ${i / RESOLVE_BATCH + 1} failed:`,
               err,
@@ -1385,6 +1470,11 @@ export const KungalSync = {
         }
       } catch (err) {
         errors += batch.length
+        failures.add(
+          `作品批 ${i / RESOLVE_BATCH + 1}（${batch.length} 条）`,
+          err,
+          batch.length,
+        )
         console.error(
           `❌ Kungal upsert batch ${i / RESOLVE_BATCH + 1} failed:`,
           err,
@@ -1438,6 +1528,8 @@ export const KungalSync = {
       ...resolvedByVndb.keys(),
       ...kungalTarget.map((r) => r.displayId),
     ])
+    // 失败明细先落日志，再写「同步完成」汇总，管理端按时间顺序即可读完
+    await failures.flush()
     await this.updateProgress({
       status: 'completed',
       completedAt: new Date().toISOString(),
