@@ -190,13 +190,79 @@ export interface MeiliProgress {
  * Each column is a scalar subquery optimized by PostgreSQL's query planner —
  * the shared definition avoids copy-paste drift across the three call sites.
  */
+/**
+ * Kungal 跨源评分的 SQL 归一（0-100，与 VNDB 的 c_rating 同量纲）。
+ *
+ * 注意：`galrc_kungal_works.ratings` 是被「序列化两次」的 jsonb ——
+ * `jsonb_typeof(ratings)` 是 `string` 而不是 `array`，必须先 `#>> '{}'` 取出文本
+ * 再 `::jsonb`，否则 `jsonb_array_elements` 会直接报「cannot get array length of a scalar」。
+ *
+ * 来源优先级：vndb > bangumi > nextmoe > erogamescape > dlsite。
+ * 归一化换算：vndb/bangumi/nextmoe 是 10 分制 ×10，dlsite 是 5 分制 ×20，
+ * erogamescape 本身就是 100 分制。`howlongtobeat` 的 score 是通关时长而不是评分，
+ * 从取值集合里排除。
+ *
+ * 排序用（Meilisearch sortable `rating`/votecount）：文档里 kungal 优先、vn 兜底，
+ * 否则 kungal-only / vn 行尚未同步到的条目永远是 null，按评分排序时被扔到最后。
+ */
+const KUNGAL_RATING_SOURCES = sql.raw(
+  `('vndb','bangumi','nextmoe','erogamescape','dlsite')`,
+)
+const KUNGAL_RATING_ORDER = sql.raw(
+  `CASE r->>'source' WHEN 'vndb' THEN 1 WHEN 'bangumi' THEN 2 WHEN 'nextmoe' THEN 3 WHEN 'erogamescape' THEN 4 WHEN 'dlsite' THEN 5 ELSE 9 END`,
+)
+const KUNGAL_RATING_SCALE = sql.raw(
+  `CASE r->>'source' WHEN 'dlsite' THEN 20 WHEN 'erogamescape' THEN 1 ELSE 10 END`,
+)
+
+/** vndb 锚点版：给 vn 文档做 COALESCE 兜底（vn.c_rating 为空时用 kungal 评分）。 */
+const kungalRatingByVndb = sql`(
+  SELECT round((r->>'score')::numeric * ${KUNGAL_RATING_SCALE}, 2)
+  FROM ${kungalWorks} kw, jsonb_array_elements((kw.ratings #>> '{}')::jsonb) r
+  WHERE kw.vndb_id = vn.id
+    AND (r->>'score') IS NOT NULL
+    AND r->>'source' IN ${KUNGAL_RATING_SOURCES}
+  ORDER BY ${KUNGAL_RATING_ORDER}
+  LIMIT 1
+)`
+const kungalVotecountByVndb = sql`(
+  SELECT COALESCE((r->>'vote_count')::int, 0)
+  FROM ${kungalWorks} kw, jsonb_array_elements((kw.ratings #>> '{}')::jsonb) r
+  WHERE kw.vndb_id = vn.id
+    AND (r->>'score') IS NOT NULL
+    AND r->>'source' IN ${KUNGAL_RATING_SOURCES}
+  ORDER BY ${KUNGAL_RATING_ORDER}
+  LIMIT 1
+)`
+
+/** 当前 join 到的 kungal 行版本（kungal-only 与 vn 缺失回退文档用）。 */
+const kungalRatingJoined = sql`(
+  SELECT round((r->>'score')::numeric * ${KUNGAL_RATING_SCALE}, 2)
+  FROM jsonb_array_elements(((${kungalWorks.ratings}) #>> '{}')::jsonb) r
+  WHERE (r->>'score') IS NOT NULL
+    AND r->>'source' IN ${KUNGAL_RATING_SOURCES}
+  ORDER BY ${KUNGAL_RATING_ORDER}
+  LIMIT 1
+)`
+const kungalVotecountJoined = sql`(
+  SELECT COALESCE((r->>'vote_count')::int, 0)
+  FROM jsonb_array_elements(((${kungalWorks.ratings}) #>> '{}')::jsonb) r
+  WHERE (r->>'score') IS NOT NULL
+    AND r->>'source' IN ${KUNGAL_RATING_SOURCES}
+  ORDER BY ${KUNGAL_RATING_ORDER}
+  LIMIT 1
+)`
+
 const gameMeiliDocBase = {
   id: vn.id,
   alias: vn.alias,
   olang: vn.olang,
   devstatus: vn.devstatus,
-  rating: vn.cRating,
-  votecount: vn.cVotecount,
+  // kungal 优先、vn 兜底：既覆盖 kungal-only/未同步条目，也让评分排序口径统一
+  // 逐项 ::double precision：COALESCE(numeric, real) 会被 PG 收敛成 real（float4），
+  // 70.1 会变成 70.0999984741211；Meilisearch 的 sortable 数值要干净
+  rating: sql`COALESCE((${kungalRatingByVndb})::double precision, (${vn.cRating})::double precision)`,
+  votecount: sql`(COALESCE(${kungalVotecountByVndb}, ${vn.cVotecount}))::int`,
   // 注意：子查询内的列引用必须显式限定表名（vn/kw/rv/r/t…）。
   // Drizzle 在 sql`` 模板里嵌入列对象只渲染裸列名（如 "id"），
   // 在多表 JOIN 作用域下会造成列歧义（42702）或静默绑定到错误的表。
@@ -1154,8 +1220,8 @@ const kungalOnlyMeiliDoc = {
   alias: kungalWorks.displayName,
   olang: kungalWorks.olang,
   devstatus: sql`NULL::smallint`,
-  rating: sql`NULL::real`,
-  votecount: sql`NULL::int`,
+  rating: sql`(${kungalRatingJoined})::double precision`,
+  votecount: sql`(${kungalVotecountJoined})::int`,
   description: kungalWorks.intro,
   released_first: sql`COALESCE(${kungalWorks.releasedFirst}, '')`,
   dl_count: sql.raw(`${gameDownloadCountSql('galrc_alistb.display_id')}::int`),
