@@ -37,6 +37,7 @@ import {
   CLOUDREVE_SYNC_TIME_KEY,
   type CloudreveSyncStats,
 } from '@api/modules/cron/lib'
+import { CronService } from '@api/modules/cron/service'
 import { eq, isNotNull } from 'drizzle-orm'
 
 const BATCH_SIZE = 100
@@ -578,9 +579,6 @@ export const VndbSync = {
 
     const tagIds = new Set<string>()
 
-    // Collect docs for incremental Meilisearch sync
-    const meiliDocs: Record<string, unknown>[] = []
-
     for await (const results of VndbClient.paginateAll<VnResult>(
       'vn',
       fields,
@@ -706,35 +704,19 @@ export const VndbSync = {
               })),
             )
           }
-
-          // Build partial Meilisearch doc from VNDB API data（纯内存，随事务一起走）
-          meiliDocs.push({
-            id: vnData.id,
-            alias: vnData.aliases?.[0] ?? null,
-            olang: vnData.olang,
-            devstatus: vnData.devstatus,
-            rating: vnData.rating == null ? null : Math.round(vnData.rating),
-            votecount: vnData.votecount,
-            description: vnData.description,
-            titles: vnData.titles?.map((t) => t.title) ?? [],
-          })
         }
       })
       console.log(`  → batch transaction done, sleeping 2s...`)
       await new Promise((r) => setTimeout(r, 2000))
     }
 
-    // Push to Meilisearch incrementally
-    if (meiliDocs.length > 0) {
-      try {
-        const index = MeiliClient.index(
-          process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
-        )
-        await index.updateDocuments(meiliDocs, { primaryKey: 'id' })
-        console.log(`  → MeiliSearch 增量更新: ${meiliDocs.length} docs`)
-      } catch (e) {
-        console.error('  → MeiliSearch 增量更新失败:', e)
-      }
+    // 刷新搜索文档走 cron 的统一出口（完整文档，kungal 优先）。
+    // 不能再用「8 字段 partial doc」：updateDocuments 对不存在的文档会新建，
+    // 新 vn 会留下半截文档（缺 titles_obj/images/released_first/has_download）；
+    // 对已存在的完整文档则会把 titles/description 覆盖成 VNDB-only，
+    // 把 kungal 的中文标题冲掉，直到下一次全量重建才自愈。
+    if (vids.length > 0) {
+      await CronService.syncGamesByDisplayIds(vids)
     }
 
     console.log(`  ← syncVnBatch returning ${tagIds.size} tagIds`)
