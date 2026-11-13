@@ -1642,6 +1642,41 @@ interface QueueWorkerSpec {
   onSuccess?: (result: unknown, ctx: WorkerHandlerContext) => Promise<void>
 }
 
+/** 任务执行期间刷新 processedOn 的心跳间隔（bun-queue 的 stalled 判定阈值是 10s）。 */
+const JOB_HEARTBEAT_MS = 5_000
+
+/**
+ * 任务执行心跳：定时刷新 Redis 里的 `processedOn`。
+ *
+ * 背景（bun-queue 0.1.8）：StalledJobChecker 判断「卡死」的唯一依据是
+ * `processedOn` 是否超过 10 秒，而 processedOn 只在开始执行时写一次、
+ * 没有任何续期机制。于是**任何执行超过约 10 秒的任务**都会在下一次检查
+ * （默认每 30s）被判成 stalled → 从 active 挪回 waiting 重跑，最多
+ * `maxStalledJobRetries`（默认 3）次。
+ *
+ * 表现为：长同步任务「执行完成」后立刻又出现「第 2/3/4 次尝试」，整轮
+ * 上游请求与写库被重复执行，管理端日志里却没有任何失败原因 —— 重试不是
+ * 业务失败引起的，是检查器误判。
+ *
+ * 用心跳刷新 processedOn 后：
+ * - 正常的长任务不会再被误判（每次检查时年龄都 < 10s）；
+ * - 进程崩溃/任务真的挂死时心跳停止，检查器仍能按原逻辑回收重试。
+ */
+function startJobHeartbeat(
+  queue: Queue<TaskPayload>,
+  jobId: string,
+): () => void {
+  const jobKey = queue.getJobKey(jobId)
+  const timer = setInterval(() => {
+    void queue.redisClient
+      .send('HSET', [jobKey, 'processedOn', Date.now().toString()])
+      .catch(() => {})
+  }, JOB_HEARTBEAT_MS)
+  // 心跳不能阻止进程退出
+  ;(timer as unknown as { unref?: () => void }).unref?.()
+  return () => clearInterval(timer)
+}
+
 /**
  * 注册单个队列的 Worker，统一处理：
  * - 生命周期（running → completed / failed / dead-letter，由 queue events 驱动终态）；
@@ -1669,10 +1704,12 @@ function createWorker<T extends QueueWorkerSpec>(spec: T) {
     return await runInTaskLogContext(logger, async () => {
       const startedAt = Date.now()
       const attempt = (job.attemptsMade ?? 0) + 1
-      await logger.info(
-        `开始执行 ${payload.type}${attempt > 1 ? `（第 ${attempt} 次尝试）` : ''}`,
-      )
+      // 心跳包住整次尝试（含开始日志）：避免长任务被 stalled 检查误判后整轮重跑
+      const stopHeartbeat = startJobHeartbeat(q, job.id)
       try {
+        await logger.info(
+          `开始执行 ${payload.type}${attempt > 1 ? `（第 ${attempt} 次尝试）` : ''}`,
+        )
         const result = await run(payload, ctx)
         // 链式收尾失败（如 cloudreve 后入队 vndb-delta 时 Redis 抖动）不影响主任务终态。
         if (onSuccess) {
@@ -1736,6 +1773,7 @@ function createWorker<T extends QueueWorkerSpec>(spec: T) {
         }
         throw e
       } finally {
+        stopHeartbeat()
         logger.close()
       }
     })
