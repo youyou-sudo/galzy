@@ -28,7 +28,7 @@ import {
 } from '@api/libs'
 import { purgeByTags } from '@api/libs/cloudflare-cache'
 import { acquireLockKv, releaseLockKv } from '@api/libs/redis'
-import { and, asc, count, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, count, eq, inArray, isNull, or } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { Index } from 'meilisearch'
 import {
@@ -184,9 +184,8 @@ export interface MeiliProgress {
 /**
  * Shared SELECT columns for Meilisearch game documents.
  * Centralizes the 13 correlated subqueries used by:
- * - MeiliSearchData (batch indexing)
- * - syncGameToMeili (single incremental sync)
- * - syncGameBatchToMeili (batch incremental sync)
+ * - MeiliSearchData / buildGameMeiliDocsByDisplayIds（全量 + 增量，共享）
+ * - syncGamesByDisplayIds（写库后统一增量出口）
  *
  * Each column is a scalar subquery optimized by PostgreSQL's query planner —
  * the shared definition avoids copy-paste drift across the three call sites.
@@ -274,12 +273,6 @@ const gameMeiliDocBase = {
   releases: sql`COALESCE((SELECT json_agg(row_to_json(rel.*)) FROM (SELECT r.title, r.released FROM ${releasesVn} rv INNER JOIN ${releases} r ON r.id = rv.id WHERE rv.vid = vn.id) rel), '[]'::json)`,
   tags_obj: sql`COALESCE((SELECT json_agg(row_to_json(tag.*)) FROM (SELECT DISTINCT z.alias, z.name, z.id FROM ${tagsVn} tv INNER JOIN ${zhtags} z ON tv.tag = z.id WHERE tv.vid = vn.id AND z.exhibition = TRUE) tag), '[]'::json)`,
   has_download: sql`TRUE`,
-}
-
-/** Subquery-based columns used when alistb is NOT joined (incremental sync paths). */
-const gameMeiliDocOtherSubquery = {
-  other: sql`(SELECT ga.other FROM ${alistb} ga WHERE ga.vid = vn.id LIMIT 1)`,
-  otherData: sql`(SELECT row_to_json(other_sub.*) FROM (SELECT o.id, a.other_val AS other, o.title, o.alias, COALESCE((SELECT json_agg(row_to_json(om_sub.*)) FROM (SELECT om.*, (SELECT row_to_json(m.*) FROM ${media} m WHERE m.hash = om.media_hash) AS media FROM ${otherMedia} om WHERE om.other_id = o.id) om_sub), '[]'::json) AS other_media FROM ${others} o CROSS JOIN LATERAL (SELECT ga2.other AS other_val FROM ${alistb} ga2 WHERE ga2.vid = vn.id LIMIT 1) a WHERE o.id = a.other_val) other_sub)`,
 }
 
 /** Direct-reference columns used when alistb IS joined (batch indexing path). */
@@ -1033,83 +1026,40 @@ export const CronService = {
     }
   },
 
-  // Incremental sync: push one VN to Meilisearch by ID
-  async syncGameToMeili(vnId: string) {
-    const index = MeiliClient.index(
-      process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
-    )
-    try {
-      const doc = await db
-        .select({
-          ...gameMeiliDocBase,
-          ...gameMeiliDocOtherSubquery,
-        })
-        .from(vn)
-        .where(eq(vn.id, vnId))
-        .limit(1)
-      if (doc.length > 0 && doc[0]) {
-        addImageUrlToDocs(doc)
-        await index.updateDocuments([doc[0]])
-        console.log(`[Meili] 增量更新: ${vnId}`)
-      }
-    } catch (e) {
-      console.error(`[Meili] 增量更新失败 ${vnId}:`, e)
-    }
-  },
-
-  // Incremental sync: push a batch of VN IDs to Meilisearch
-  async syncGameBatchToMeili(vnIds: string[]) {
-    if (vnIds.length === 0) return
-    const index = MeiliClient.index(
-      process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
-    )
-    try {
-      const docs = await db
-        .select({
-          ...gameMeiliDocBase,
-          ...gameMeiliDocOtherSubquery,
-        })
-        .from(vn)
-        .where(inArray(vn.id, vnIds))
-      if (docs.length > 0) {
-        addImageUrlToDocs(docs)
-        await index.updateDocuments(docs, { primaryKey: 'id' })
-      }
-    } catch (e) {
-      console.error(`[Meili] 批量增量更新失败:`, e)
-    }
-  },
-
   /**
-   * 增量同步「kungal-only 条目」的 Meilisearch 文档（无 vn 行，数据全部来自
-   * galrc_kungal_works）。
+   * 增量同步：按展示身份推送「完整」游戏文档。
    *
-   * 与 syncGameBatchToMeili 的区别：那条以 vn 为驱动表，kungal-only 条目
-   * 没有 vn 行，永远进不去。kungal 同步补建 work 行后必须走这条通道，
-   * 否则详情页修好了、列表与搜索仍然搜不到。
+   * 这是所有写库后刷新搜索的**统一出口**（vndb-sync / kungal-sync / 单条修复）：
+   * 文档构建走 buildGameMeiliDocsByDisplayIds —— 有 vn 行走 vn 聚合（内部
+   * kungal 数据优先覆盖），vn 行缺失时整条回退 kungal 数据源。
    *
-   * @param displayIds 展示身份（'kgX'），不是 kungal work id
+   * 旧实现拆成「vn 驱动」与「kungal-only 驱动」两条通道，而
+   * 「alistb 有 vid、vn 行还没同步到」的条目两条都覆盖不到：详情页因为读侧
+   * 有 kungal 回退能正常打开，搜索/列表却永远缺这一条。
    */
-  async syncKungalOnlyBatchToMeili(displayIds: string[]) {
-    if (displayIds.length === 0) return
+  async syncGamesByDisplayIds(displayIds: string[]) {
+    const ids = [...new Set(displayIds.filter((id): id is string => !!id))]
+    if (ids.length === 0) return 0
     const index = MeiliClient.index(
       process.env.MEILISEARCH_INDEXNAME || 'galzy_games',
     )
+    let total = 0
     try {
-      const docs = await db
-        .select(kungalOnlyMeiliDoc)
-        .from(alistb)
-        .innerJoin(kungalWorks, eq(kungalWorks.id, alistb.kungalId))
-        .where(inArray(alistb.displayId, displayIds))
-      if (docs.length > 0) {
-        const items = docs as Array<Record<string, unknown>>
-        addImageUrlToDocs(items)
-        await index.updateDocuments(items, { primaryKey: 'id' })
-        console.log(`[Meili] kungal-only 增量更新: ${items.length} docs`)
+      for (let i = 0; i < ids.length; i += MEILI_INCREMENTAL_CHUNK) {
+        const docs = await buildGameMeiliDocsByDisplayIds(
+          ids.slice(i, i + MEILI_INCREMENTAL_CHUNK),
+        )
+        if (docs.length === 0) continue
+        // 传的是完整文档：updateDocuments 对已存在文档等价于整体替换，
+        // 对不存在的文档直接新建，不会再产生「只有 8 个字段」的半截文档。
+        await index.updateDocuments(docs, { primaryKey: 'id' })
+        total += docs.length
       }
+      if (total > 0) console.log(`[Meili] 游戏文档增量更新: ${total} docs`)
     } catch (e) {
-      console.error('[Meili] kungal-only 增量更新失败:', e)
+      console.error('[Meili] 游戏文档增量更新失败:', e)
     }
+    return total
   },
 
   // Incremental sync: push one producer to Meilisearch by ID
@@ -1245,12 +1195,76 @@ const kungalOnlyMeiliDoc = {
   otherData: gameMeiliDocOtherDirect.otherData,
 }
 
+/** 增量文档单批上限：13 个相关子查询 × 过大的 id 列表会拖慢单次查询。 */
+const MEILI_INCREMENTAL_CHUNK = 200
+
 /**
- * 分页构造游戏索引文档。
+ * 按展示身份取「kungal 数据源」文档 —— 与读侧 `games.loadKungalWork` 同口径：
+ * 先按 `alistb.kungal_id` 命中 work，未命中的再按 `kungalWorks.vndb_id = alistb.vid`
+ * 回退。返回行的 id 恒为 `alistb.display_id`。
+ *
+ * 为什么拆成两次查询而不是一个 OR join：同一行可能同时命中两个 work
+ * （`kungal_id` 指向 A、`vndb_id` 又指向 B），一个 JOIN 会产出两条同 id 文档，
+ * 而 Meilisearch 的批量写入不接受重复主键。两次查询 + 差集保证一个身份只出一条。
+ */
+export async function kungalMeiliDocsByDisplayIds(displayIds: string[]) {
+  if (displayIds.length === 0) return [] as Array<Record<string, unknown>>
+  const byKungalId = await db
+    .select(kungalOnlyMeiliDoc)
+    .from(alistb)
+    .innerJoin(kungalWorks, eq(kungalWorks.id, alistb.kungalId))
+    .where(inArray(alistb.displayId, displayIds))
+  const hit = new Set(byKungalId.map((d) => String(d.id)))
+  const rest = displayIds.filter((id) => !hit.has(id))
+  if (rest.length === 0) return byKungalId as Array<Record<string, unknown>>
+  const byVndbId = await db
+    .select(kungalOnlyMeiliDoc)
+    .from(alistb)
+    .innerJoin(kungalWorks, eq(kungalWorks.vndbId, alistb.vid))
+    .where(inArray(alistb.displayId, rest))
+  return [...byKungalId, ...byVndbId] as Array<Record<string, unknown>>
+}
+
+/**
+ * 按展示身份构建「完整」游戏文档（kungal 优先，`vn` 行缺失时整条回退 kungal）。
+ *
+ * 驱动表固定 `alistb`：条目只要在网盘里存在就必须有文档。早先「有 vid 就
+ * innerJoin(vn)」会让「alistb 行已建、vndb 侧尚未同步到 vn 行」的条目整条消失
+ * （inner join 静默丢行），而差集删除又把它算作保留集，于是永远补不出来。
+ * 见 CONTRACT §7：vn 为空时回退 kungalWorks（按 kungal_id 或 vndb_id）。
+ */
+export const buildGameMeiliDocsByDisplayIds = async (displayIds: string[]) => {
+  const ids = [...new Set(displayIds.filter((id): id is string => !!id))]
+  if (ids.length === 0) return [] as Array<Record<string, unknown>>
+
+  const vndbDocs = await db
+    .select({
+      ...gameMeiliDocBase,
+      id: alistb.displayId,
+      ...gameMeiliDocOtherDirect,
+    })
+    .from(alistb)
+    .innerJoin(vn, eq(alistb.vid, vn.id))
+    // 入参既可能是展示身份（常规）也可能是 vid（vndb-sync 的入参）：
+    // vndb 锚点行两者恒等（CONTRACT §2），两个都匹配，免去调用方换算。
+    .where(or(inArray(alistb.displayId, ids), inArray(alistb.vid, ids)))
+
+  const hit = new Set(vndbDocs.map((d) => String(d.id)))
+  const missing = ids.filter((id) => !hit.has(id))
+  const kungalDocs = await kungalMeiliDocsByDisplayIds(missing)
+
+  const items = [...vndbDocs, ...kungalDocs] as Array<Record<string, unknown>>
+  addImageUrlToDocs(items)
+  return items
+}
+
+/**
+ * 分页构造游戏索引文档（全量重建入口）。
  *
  * 驱动表必须是 alistb：kungal-only 条目没有 vn 行，早先的 `innerJoin(vn)` 会把
  * 这类条目整条漏掉（既不被索引，也会在差集删除里被当成过期文档）。
- * 因此按 alistb 分页后再分两路取数：有 vid 的走 vn 聚合，没有的走 kungal 聚合。
+ * 现在按 alistb 分页后：有 vid 的先走 vn 聚合（vn 文档内部 kungal 数据优先覆盖），
+ * vn 缺失（含 kungal-only）的统一回退 kungal 数据源，保证「网盘有行 ⇒ 索引有文档」。
  *
  * 导出以便单测/校验脚本直接验证文档形状（两路查询的字段必须对齐）。
  */
@@ -1261,7 +1275,6 @@ export const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
     .select({
       displayId: alistb.displayId,
       vid: alistb.vid,
-      kungalId: alistb.kungalId,
     })
     .from(alistb)
     // 必须显式排序：无 ORDER BY 的 LIMIT/OFFSET 翻页不保证各页不重不漏
@@ -1269,14 +1282,12 @@ export const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
     .limit(pageSize)
     .offset(offset)
 
-  const vndbDisplayIds = page.filter((r) => r.vid).map((r) => r.displayId)
-  const kungalDisplayIds = page
-    .filter((r) => !r.vid && r.kungalId)
-    .map((r) => r.displayId)
+  const displayIds = page.map((r) => r.displayId)
+  const withVid = page.filter((r) => r.vid).map((r) => r.displayId)
 
-  const [vndbDocs, kungalDocs] = await Promise.all([
-    vndbDisplayIds.length > 0
-      ? db
+  const vndbDocs =
+    withVid.length > 0
+      ? await db
           .select({
             ...gameMeiliDocBase,
             id: alistb.displayId,
@@ -1284,19 +1295,28 @@ export const MeiliSearchData = async (pageSize: number, pageIndex: number) => {
           })
           .from(alistb)
           .innerJoin(vn, eq(alistb.vid, vn.id))
-          .where(inArray(alistb.displayId, vndbDisplayIds))
-      : Promise.resolve([] as Array<Record<string, unknown>>),
-    kungalDisplayIds.length > 0
-      ? db
-          .select(kungalOnlyMeiliDoc)
-          .from(alistb)
-          .innerJoin(kungalWorks, eq(kungalWorks.id, alistb.kungalId))
-          .where(inArray(alistb.displayId, kungalDisplayIds))
-      : Promise.resolve([] as Array<Record<string, unknown>>),
-  ])
+          .where(inArray(alistb.displayId, withVid))
+      : []
+
+  const hit = new Set(vndbDocs.map((d) => String(d.id)))
+  const missing = displayIds.filter((id) => !hit.has(id))
+  const kungalDocs = await kungalMeiliDocsByDisplayIds(missing)
 
   const items = [...vndbDocs, ...kungalDocs] as Array<Record<string, unknown>>
   addImageUrlToDocs(items)
+
+  // 可观测性：alistb 有行、但 vn 与 kungal 两边都没有数据的条目出不了文档。
+  // 这类 ghost 是永久缺口（差集删除把它们算作保留集，不会误删也不会补出），
+  // 重建日志里点名，避免再次出现「网盘有目录、搜索永远搜不到」却无人察觉。
+  const docIds = new Set(items.map((d) => String((d as { id: unknown }).id)))
+  const undocumented = displayIds.filter((id) => !docIds.has(id))
+  if (undocumented.length > 0) {
+    console.warn(
+      `[Meili] 第 ${pageIndex} 页有 ${undocumented.length} 条 alistb 行无 vn/kungal 数据，未生成文档: ${undocumented
+        .slice(0, 20)
+        .join(', ')}`,
+    )
+  }
   return { items }
 }
 
