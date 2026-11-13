@@ -8,6 +8,7 @@ import {
   kungalWorkTitles,
   listCloudreveFiles,
   MeiliClient,
+  normalizeSearchQuery,
   others,
   pathToCloudreveUri,
   producers,
@@ -43,6 +44,7 @@ import {
   or,
   type SQL,
 } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import { status } from 'elysia'
 import type { GameModel } from './model'
 
@@ -62,6 +64,16 @@ const RELATION_INVERSE: Record<string, string> = {
   preq: 'seq',
 }
 
+/**
+ * List 查询用的两个 kungal 锚点 join。
+ *
+ * 一条 alistb 行可能同时有 `kungal_id`（kungal 工作）与 `vid`（VNDB 锚点），
+ * 而 kungal work 可能由其中任一命中；用一个 OR join 会把同一行撕成两行，
+ * 所以两个锚点各 join 一次，再 COALESCE 出 work id（CONTRACT §7 的读侧规则）。
+ */
+const kungalByAnchorId = alias(kungalWorks, 'kw_by_anchor_id')
+const kungalByVndbId = alias(kungalWorks, 'kw_by_vndb_id')
+
 /** `/games/gamelist` 响应形状。 */
 type GameListData = {
   items: unknown[]
@@ -74,6 +86,8 @@ type GameListData = {
 type GameListRow = {
   id: string
   olang: string | null
+  /** 内部 join 键：命中任一 kungal 锚点的 work id，返回前会删掉 */
+  kungalWorkId: string | null
   titles: unknown
   images: unknown
   other: number | null
@@ -152,12 +166,23 @@ export const Game = {
       .select({ count: countAll() })
       .from(alistb)
       .leftJoin(vn, eq(alistb.vid, vn.id))
-      // 有 vn 行（常规作品）或 kungal 锚点（kungal-only 条目）都算收录；
-      // vid 指向不存在 vn 的幽灵行不计入。
-      // 口径必须与 Meilisearch 列表（真正的前端列表数据源）一致：那里按
-      // alistb 逐行建文档，kungal 锚点缺 work 行时该条目仍会被计入总数，
-      // 因此这里保留 kungal_id 判定即可，不要改成只看 vn。
-      .where(or(isNotNull(vn.id), isNotNull(alistb.kungalId)))
+      .leftJoin(kungalByAnchorId, eq(kungalByAnchorId.id, alistb.kungalId))
+      // 锚点已命中时不再按 vndb_id 命中第二个 work（理论上 kungal_id 与 vid 可指向
+      // 不同 work，OR 语义会撕成两行、把总数算重）
+      .leftJoin(
+        kungalByVndbId,
+        and(eq(kungalByVndbId.vndbId, alistb.vid), isNull(kungalByAnchorId.id)),
+      )
+      // 收录口径 = 「有 vn 行，或有任一 kungal work」，与 List、Meilisearch
+      // 列表、详情页的 kungal 回退口径一致（CONTRACT §7）。
+      // vid 指向不存在 vn、kungal 又没有对应 work 的幽灵行不计入。
+      .where(
+        or(
+          isNotNull(vn.id),
+          isNotNull(kungalByAnchorId.id),
+          isNotNull(kungalByVndbId.id),
+        ),
+      )
       .then((r) => r[0])
     return Number(totalCountResult?.count || 0)
   },
@@ -180,8 +205,6 @@ export const Game = {
     // 每次事件 upsert 一行）：按 target_id 求和即终身累计值，读侧不再扫明细表。
     const releasedAgg = sql`(SELECT rv.vid AS target_id, MIN(r.released) AS released_first
       FROM releases_vn rv INNER JOIN releases r ON r.id = rv.id GROUP BY rv.vid) AS rel_agg`
-    const kungalAgg = sql`(SELECT vndb_id AS target_id, released_first
-      FROM galrc_kungal_works WHERE vndb_id IS NOT NULL) AS kw_agg`
     const viewAgg = sql`(SELECT target_id, SUM(total)::int AS total
       FROM galrc_stat_windows WHERE kind = 'game_view' GROUP BY target_id) AS vw_agg`
     const downloadAgg = sql`(SELECT target_id, SUM(total)::int AS total
@@ -189,20 +212,24 @@ export const Game = {
 
     let orderClause: SQL
     if (sortBy === 'released') {
-      orderClause = sql`COALESCE(kw_agg.released_first, rel_agg.released_first) ${sql.raw(dir)} NULLS LAST, vn.id ${sql.raw(dir)}`
+      // 发售日 kungal 优先（与读侧一致），回退 releases；展示身份作稳定次序
+      orderClause = sql`COALESCE(${kungalByAnchorId.releasedFirst}, ${kungalByVndbId.releasedFirst}, rel_agg.released_first) ${sql.raw(dir)} NULLS LAST, galrc_alistb.display_id ${sql.raw(dir)}`
     } else if (sortBy === 'downloads') {
-      orderClause = sql`COALESCE(dl_agg.total, 0) ${sql.raw(dir)} NULLS LAST, vn.id ${sql.raw(dir)}`
+      orderClause = sql`COALESCE(dl_agg.total, 0) ${sql.raw(dir)} NULLS LAST, galrc_alistb.display_id ${sql.raw(dir)}`
     } else if (sortBy === 'views') {
-      orderClause = sql`COALESCE(vw_agg.total, 0) ${sql.raw(dir)} NULLS LAST, vn.id ${sql.raw(dir)}`
+      orderClause = sql`COALESCE(vw_agg.total, 0) ${sql.raw(dir)} NULLS LAST, galrc_alistb.display_id ${sql.raw(dir)}`
     } else {
-      orderClause = sql`vn.id ${sql.raw(dir)}, galrc_alistb.other ${sql.raw(dir)}`
+      orderClause = sql`galrc_alistb.display_id ${sql.raw(dir)}, galrc_alistb.other ${sql.raw(dir)}`
     }
 
+    // 驱动表必须是 alistb（CONTRACT §7）：kungal-only 条目没有 vn 行，
+    // vn 缺失但 kungal 有 work 的条目也要出现在列表里 —— 早先的 innerJoin(vn)
+    // 会把这两类整条漏掉，与搜索/详情页口径不一致。
     // 不同排序挂的聚合 join 不同，drizzle 的链式泛型会随之变化；这里只在拼 join
     // 时放宽类型，结果行形状仍由下方 GameListRow 断言约束。
     let listQuery: any = db
       .select({
-        id: vn.id,
+        id: alistb.displayId,
         olang: vn.olang,
         titles: sql`
           COALESCE(
@@ -233,20 +260,50 @@ export const Game = {
             WHERE o2.id = galrc_alistb.other
           ) o)
         `,
-        dl_count: sql.raw(`${gameDownloadCountSql('vn.id')}::int`),
-        vw_count: sql.raw(`${eventViewCountSql('game_view', 'vn.id')}::int`),
+        // 统计键一律用展示身份（CONTRACT §1）：kungal-only 条目没有 vn.id
+        dl_count: sql.raw(
+          `${gameDownloadCountSql('galrc_alistb.display_id')}::int`,
+        ),
+        vw_count: sql.raw(
+          `${eventViewCountSql('game_view', 'galrc_alistb.display_id')}::int`,
+        ),
+        // 命中任一 kungal 锚点的 work id（内部用，返回前删除）
+        kungalWorkId: sql<
+          string | null
+        >`COALESCE(${kungalByAnchorId.id}, ${kungalByVndbId.id})`,
       })
       .from(alistb)
-      .innerJoin(vn, eq(alistb.vid, vn.id))
+      .leftJoin(vn, eq(alistb.vid, vn.id))
+      .leftJoin(kungalByAnchorId, eq(kungalByAnchorId.id, alistb.kungalId))
+      // 锚点已命中时不再按 vndb_id 命中第二个 work（同一 alistb 行的两个锚点
+      // 理论上可能指向不同 work，无此守卫会撕出重复行、把分页算重）
+      .leftJoin(
+        kungalByVndbId,
+        and(eq(kungalByVndbId.vndbId, alistb.vid), isNull(kungalByAnchorId.id)),
+      )
+      .where(
+        or(
+          isNotNull(vn.id),
+          isNotNull(kungalByAnchorId.id),
+          isNotNull(kungalByVndbId.id),
+        ),
+      )
 
     if (sortBy === 'released') {
-      listQuery = listQuery
-        .leftJoin(releasedAgg, sql`rel_agg.target_id = vn.id`)
-        .leftJoin(kungalAgg, sql`kw_agg.target_id = vn.id`)
+      listQuery = listQuery.leftJoin(
+        releasedAgg,
+        sql`rel_agg.target_id = galrc_alistb.vid`,
+      )
     } else if (sortBy === 'downloads') {
-      listQuery = listQuery.leftJoin(downloadAgg, sql`dl_agg.target_id = vn.id`)
+      listQuery = listQuery.leftJoin(
+        downloadAgg,
+        sql`dl_agg.target_id = galrc_alistb.display_id`,
+      )
     } else if (sortBy === 'views') {
-      listQuery = listQuery.leftJoin(viewAgg, sql`vw_agg.target_id = vn.id`)
+      listQuery = listQuery.leftJoin(
+        viewAgg,
+        sql`vw_agg.target_id = galrc_alistb.display_id`,
+      )
     }
 
     // 分页数据与总数互不依赖，并行发出：原来顺序 await 会白吃一次完整往返
@@ -255,22 +312,27 @@ export const Game = {
       listQuery.orderBy(orderClause).limit(pageSize).offset(offset),
       this.Count(),
     ])) as [GameListRow[], number]
-    // Kungal 数据源优先：批量载入本页 vid 的 kungal 记录与标题，逐个覆盖
-    const pageVids = items.map((i) => i.id)
-    const kungalRows = pageVids.length
+
+    // Kungal 数据源优先：批量载入本页命中的 work（含 vn 缺失 / kungal-only 条目），
+    // 标题、封面、语言缺什么补什么 —— 与详情页的合并口径一致。
+    const pageWorkIds = items
+      .map((item) => item.kungalWorkId)
+      .filter((id): id is string => !!id)
+    const kungalRows = pageWorkIds.length
       ? await db
           .select({
             id: kungalWorks.id,
-            vndbId: kungalWorks.vndbId,
+            olang: kungalWorks.olang,
+            contentRating: kungalWorks.contentRating,
             coverUrl: kungalWorks.coverUrl,
             coverWidth: kungalWorks.coverWidth,
             coverHeight: kungalWorks.coverHeight,
             coverThumbhash: kungalWorks.coverThumbhash,
           })
           .from(kungalWorks)
-          .where(inArray(kungalWorks.vndbId, pageVids))
+          .where(inArray(kungalWorks.id, pageWorkIds))
       : []
-    const kungalMap = new Map(kungalRows.map((r) => [r.vndbId, r]))
+    const kungalMap = new Map(kungalRows.map((r) => [r.id, r]))
     let kungalTitlesMap = new Map<string, Array<Record<string, unknown>>>()
     if (kungalRows.length > 0) {
       const kt = await db
@@ -303,21 +365,26 @@ export const Game = {
         kungalTitlesMap.set(row.workId, list)
       }
     }
-    // Transform image URLs: replace VNDB host with configured CDN (kungal 记录用 kungal 封面)
+
     for (const item of items) {
-      const kungalWork = kungalMap.get(item.id)
+      const kungalWork = item.kungalWorkId
+        ? kungalMap.get(item.kungalWorkId)
+        : undefined
       const img = item.images as Record<string, unknown> | null
-      if (kungalWork && kungalTitlesMap.has(kungalWork.id)) {
-        // 标题按语言合并：kungal 优先，缺的语言用 vndb 补（保证 olang 标题恒在）
-        const kt = kungalTitlesMap.get(kungalWork.id)!
-        const vt = Array.isArray(item.titles) ? (item.titles as any[]) : []
-        const kLangs = new Set(
-          kt.map((t) => t.lang).filter((l): l is string => !!l),
-        )
-        ;(item as any).titles = [
-          ...kt,
-          ...vt.filter((t) => !kLangs.has(t.lang as string)),
-        ]
+      if (kungalWork) {
+        if (!item.olang) item.olang = kungalWork.olang
+        if (kungalTitlesMap.has(kungalWork.id)) {
+          // 标题按语言合并：kungal 优先，缺的语言用 vndb 补（保证 olang 标题恒在）
+          const kt = kungalTitlesMap.get(kungalWork.id)!
+          const vt = Array.isArray(item.titles) ? (item.titles as any[]) : []
+          const kLangs = new Set(
+            kt.map((t) => t.lang).filter((l): l is string => !!l),
+          )
+          ;(item as any).titles = [
+            ...kt,
+            ...vt.filter((t) => !kLangs.has(t.lang as string)),
+          ]
+        }
       }
       if (
         kungalWork &&
@@ -331,7 +398,10 @@ export const Game = {
         )
       ) {
         ;(item as any).images = {
-          ...(img ?? { c_sexual_avg: 0 }),
+          ...(img ?? {
+            // vn 缺失时没有图片投票数据，用 kungal 的分级映射（与 Meili 文档同口径）
+            c_sexual_avg: kungalWork.contentRating === 'r18' ? 1 : 0,
+          }),
           id: null,
           url: kungalWork.coverUrl,
           imageUrl: kungalWork.coverUrl,
@@ -352,6 +422,11 @@ export const Game = {
         }
       }
     }
+    // 内部 join 键不对外暴露（响应形状保持 id/olang/titles/images/other/other_datas/dl_count/vw_count）
+    for (const item of items) {
+      delete (item as unknown as Record<string, unknown>).kungalWorkId
+    }
+
     const totalPages = Math.ceil(totalCount / pageSize)
     const datas: GameListData = {
       items,
@@ -1121,8 +1196,7 @@ export const Game = {
     }
   },
   async quickSearch({ q, limit = 20 }: { q: string; limit?: number }) {
-    const safeQ =
-      q?.replace(/[+\-*/=<>!&|%^$#@~?:;'",()[\]{}\\]/g, '').trim() ?? ''
+    const safeQ = normalizeSearchQuery(q)
 
     // Exact VID match via DB fallback (e.g. v123, d456)
     const vidMatch = safeQ.match(/^([vd]\d+)$/i)
