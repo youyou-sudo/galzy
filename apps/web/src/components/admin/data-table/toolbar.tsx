@@ -232,16 +232,21 @@ export function ColumnVisibilityMenu({
 				<Columns3Icon className="size-3.5 opacity-70" />列
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-44">
-				<DropdownMenuLabel>显示列</DropdownMenuLabel>
-				{columns.map((column) => (
-					<DropdownMenuCheckboxItem
-						key={column.id}
-						checked={!column.hidden}
-						onCheckedChange={(checked) => onToggle(column.id, checked === true)}
-					>
-						{column.label}
-					</DropdownMenuCheckboxItem>
-				))}
+				{/* GroupLabel 必须在 Menu.Group 内，否则 Base UI 抛 MenuGroupContext is missing */}
+				<DropdownMenuGroup>
+					<DropdownMenuLabel>显示列</DropdownMenuLabel>
+					{columns.map((column) => (
+						<DropdownMenuCheckboxItem
+							key={column.id}
+							checked={!column.hidden}
+							onCheckedChange={(checked) =>
+								onToggle(column.id, checked === true)
+							}
+						>
+							{column.label}
+						</DropdownMenuCheckboxItem>
+					))}
+				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
@@ -264,16 +269,21 @@ export function DensityMenu({
 				<Rows3Icon className="size-3.5 opacity-70" />
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-36">
-				<DropdownMenuLabel>行高</DropdownMenuLabel>
-				<DropdownMenuRadioGroup
-					value={density}
-					onValueChange={(value) => onDensityChange(value as AdminTableDensity)}
-				>
-					<DropdownMenuRadioItem value="comfortable">
-						标准
-					</DropdownMenuRadioItem>
-					<DropdownMenuRadioItem value="compact">紧凑</DropdownMenuRadioItem>
-				</DropdownMenuRadioGroup>
+				{/* GroupLabel 必须在 Menu.Group 内，否则 Base UI 抛 MenuGroupContext is missing */}
+				<DropdownMenuGroup>
+					<DropdownMenuLabel>行高</DropdownMenuLabel>
+					<DropdownMenuRadioGroup
+						value={density}
+						onValueChange={(value) =>
+							onDensityChange(value as AdminTableDensity)
+						}
+					>
+						<DropdownMenuRadioItem value="comfortable">
+							标准
+						</DropdownMenuRadioItem>
+						<DropdownMenuRadioItem value="compact">紧凑</DropdownMenuRadioItem>
+					</DropdownMenuRadioGroup>
+				</DropdownMenuGroup>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
