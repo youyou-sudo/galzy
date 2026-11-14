@@ -195,6 +195,22 @@ function isExternal(to: string): boolean {
 	return /^(https?:|mailto:|tel:|\/\/)/.test(to) || to.startsWith("#");
 }
 
+/**
+ * `search` 的两种写法：直接给对象，或「基于当前 query 返回新 query」的函数。
+ *
+ * 函数形式必须先求值再交给框架：furin 的 `resolveRouteTarget` 用
+ * `Object.keys(search)` 判断 query 是否为空，函数在上面恒为 `[]`，
+ * 于是整个 query 被静默丢掉（`/user?tab=security` 变成 `/user`）。
+ * 这正是「/user 的安全/喜欢/收藏页签点了没反应」的根因：`navigate` 只收到
+ * 一个函数，furin 生成的目标里没有 `tab`，切页后又是默认页签。
+ */
+function resolveSearch(
+	search: Destination["search"],
+	searchStr: string,
+): Record<string, unknown> | undefined {
+	return typeof search === "function" ? search(parseSearch(searchStr)) : search;
+}
+
 function buildHref(destination: Destination): string {
 	const to = destination.to ?? snapshot.pathname;
 	if (isExternal(to)) return to;
@@ -203,10 +219,7 @@ function buildHref(destination: Destination): string {
 		const value = params[key];
 		return value === undefined || value === null ? "" : encodeURIComponent(String(value));
 	});
-	const search =
-		typeof destination.search === "function"
-			? destination.search(parseSearch(snapshot.searchStr))
-			: destination.search;
+	const search = resolveSearch(destination.search, snapshot.searchStr);
 	const query = new URLSearchParams();
 	if (search) {
 		for (const [key, value] of Object.entries(search)) {
@@ -287,6 +300,14 @@ export function useNavigate(_options?: { from?: string } | string) {
 				return Promise.resolve();
 			}
 			const { viewTransition, ...options } = target;
+			// furin 的 navigate 只认 search 对象；函数形式在这里按当前地址栏求值，
+			// 否则 query 会被框架当成空对象丢掉（页签/分页就会「点了没反应」）。
+			if (options.search !== undefined) {
+				options.search = resolveSearch(
+					options.search,
+					readLocation().searchStr,
+				);
+			}
 			const run = () => navigate(options as never);
 			if (viewTransition === false) return Promise.resolve(run()) as Promise<void>;
 			return runViewTransition(run) as Promise<void>;
