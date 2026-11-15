@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { defineRoute } from '@teyik0/furin'
-import { Link, redirect, useNavigate } from '@web/lib/nav'
+import { useShallowSearch } from '@web/lib/admin/use-shallow-search'
+import { Link, redirect } from '@web/lib/nav'
 import { useSeedQueries } from '@web/lib/query-seed'
 import { EmptyState } from '@web/components/shared/empty-state'
 import { PageHeader } from '@web/components/shared/page-header'
@@ -59,6 +60,14 @@ const USER_TABS = [
   { value: 'likes', label: '喜欢', icon: Heart, cardTitle: '喜欢的帖子' },
   { value: 'favorites', label: '收藏', icon: Bookmark, cardTitle: '收藏的帖子' },
 ] as const
+
+/** 页签值的联合类型（与 route 的 query schema 同源，改 schema 这里自动跟着变）。 */
+type UserTab = UserSearch['tab']
+
+/** Base UI 的 value 是 `any`：只接受 USER_TABS 里登记过的值，避免写进脏 query。 */
+function isUserTab(value: unknown): value is UserTab {
+  return USER_TABS.some((tab) => tab.value === value)
+}
 
 /** 页签栏：真实页和 pending 态共用，加载时标签也是可读的真实 HTML */
 function UserTabsList() {
@@ -170,7 +179,8 @@ export const route = defineRoute('/user')
 
 type UserSearch = z.infer<typeof UserSearchSchema>
 
-function UserPage({
+/** 个人中心主体（导出以便单测直接渲染；路由只认本文件的 `route`）。 */
+export function UserPage({
   session,
   accounts,
   favorites,
@@ -188,13 +198,21 @@ function UserPage({
     [['userFavorites', search.page], favorites],
     [['userLikes', search.page], likes],
   ] as never)
-  const {
-    error: errorCode,
-    error_description: errorDescription,
-    tab,
-    page,
-  } = search
-  const navigate = useNavigate()
+  const { error: errorCode, error_description: errorDescription } = search
+  /**
+   * 页签 / 分页是**页内状态**：写进地址栏（可分享、刷新可还原），但改地址栏用
+   * `history.replaceState` 而不是 furin 导航。
+   *
+   * 之前这里走 `navigate({ to: '/user', search: ... })`，一次点击会重新请求
+   * `?_furin=data`、重跑整条 loader（会话 + 账号列表 + 收藏/喜欢两个列表），
+   * 等于切个页签要等一轮 web → API → DB；这期间界面没有任何反馈（没有 pending
+   * 组件，旧内容原样留在屏上），点起来就像「页签点不动」。面板本身是纯客户端
+   * 数据（`useQuery` 已按 page 缓存），根本不需要重新取页面。
+   */
+  const [{ tab, page }, patchSearch] = useShallowSearch<{
+    tab: UserTab
+    page: number
+  }>({ tab: search.tab, page: search.page }, { tab: 'profile', page: 1 })
 
   const { data: clientSession, refetch: refetchSession } =
     authClient.useSession()
@@ -220,12 +238,7 @@ function UserPage({
     queryFn: async () => await getUserLikes({ data: { page, limit: 10 } }),
   })
 
-  const goPage = (next: number) =>
-    navigate({
-      to: '/user',
-      search: (s: Record<string, unknown>) => ({ ...s, page: next }),
-      resetScroll: false,
-    })
+  const goPage = (next: number) => patchSearch({ page: next })
 
   if (!user) return null
 
@@ -262,13 +275,9 @@ function UserPage({
         {/* 标签页：个人资料 & 安全 & 收藏 & 喜欢 */}
         <Tabs
           value={tab}
-          onValueChange={(v) =>
-            navigate({
-              to: '/user',
-              search: (s: Record<string, unknown>) => ({ ...s, tab: v as typeof tab }),
-              resetScroll: false,
-            })
-          }
+          onValueChange={(v) => {
+            if (isUserTab(v)) patchSearch({ tab: v })
+          }}
         >
           <UserTabsList />
 

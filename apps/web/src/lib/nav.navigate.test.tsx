@@ -34,7 +34,9 @@ function Probe({ destination }: { destination: unknown }) {
 function click(destination: unknown): Record<string, unknown> {
 	render(<Probe destination={destination} />);
 	fireEvent.click(screen.getByRole("button"));
-	const call = furin.navigate.mock.calls.at(-1) as [Record<string, unknown>];
+	const call = furin.navigate.mock.calls.at(-1) as unknown as [
+		Record<string, unknown>,
+	];
 	return call[0];
 }
 
