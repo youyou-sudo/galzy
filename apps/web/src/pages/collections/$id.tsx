@@ -27,7 +27,7 @@ import { ChevronLeft, Layers, Library } from "lucide-react";
 
 const paramsSchema = t.Object({ id: t.String() });
 
-export const route = defineRoute("/collections/[id]")
+export const route = defineRoute("/collections/$id")
 	.config({ mode: "ssr", params: paramsSchema })
 	.loader(async ({ params }) => {
 		const [collection, previews] = await Promise.all([

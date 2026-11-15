@@ -4,6 +4,7 @@ import tailwind from "bun-plugin-tailwind";
 export default defineConfig({
 	rootDir: ".",
 	pagesDir: "src/pages",
+	style: "tanstack",
 	serverEntry: "src/server.ts",
 	reactCompiler: true,
 	plugins: [{ ...tailwind, buildOnly: true }],

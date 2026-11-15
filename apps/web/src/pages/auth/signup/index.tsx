@@ -46,7 +46,7 @@ const signupSchema = z
 		}),
 	);
 
-export const route = defineRoute("/auth/signup")
+export const route = defineRoute("/auth/signup/")
 	.config({ mode: "ssr", query: ReturnToSchema })
 	.loader(async ({ query }) => {
 		const auth = await getSession();

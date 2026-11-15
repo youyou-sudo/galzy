@@ -11,7 +11,7 @@ import {
 import ToolsPage from "@web/components/tools/tools-page";
 import { seoTemplate } from "@web/config/seoTemplate";
 
-export const route = defineRoute("/tools")
+export const route = defineRoute("/tools/")
 	.config({ mode: "ssr" })
 	.head(() => ({
 		meta: [

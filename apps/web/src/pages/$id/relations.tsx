@@ -1,8 +1,8 @@
 import { defineRoute } from "@teyik0/furin";
-import { ChartAreaLinear } from "@web/components/home/game/translate/chart-area-linear";
+import { RelationsPage } from "@web/components/home/game/relations/relations-page";
 import { seoTemplate } from "@web/config/seoTemplate";
 import { gameTitleOf } from "@web/lib/seo";
-import { translateData } from "@web/server/game";
+import { getGameRelations } from "@web/server/game";
 import { t } from "elysia";
 
 const paramsSchema = t.Object({ id: t.String() });
@@ -17,18 +17,18 @@ function gameDescription(game: GameSeoSource | undefined) {
 	return `${title} 资源下载，游戏别名：${game?.vn?.alias || "无"}，简介：${game?.vn?.description || "暂无简介"}`;
 }
 
-/** 下载统计页签（/:id/translate） */
-export const route = defineRoute("/[id]/translate")
+/** 系列关系页签（/:id/relations）：数据给 RelationsPage 自己从 page props 读 */
+export const route = defineRoute("/$id/relations")
 	.config({ mode: "ssr", params: paramsSchema })
 	.loader(async ({ params }) => ({
-		translateData: await translateData({ data: { id: params.id } }),
+		relations: await getGameRelations({ data: { id: params.id } }),
 	}))
 	.head(({ game }) => ({
 		meta: [
 			{
-				title: `${gameTitleOf(game)} 下载统计 | ${seoTemplate.title}`,
+				title: `${gameTitleOf(game)} 系列关系 | ${seoTemplate.title}`,
 			},
 			{ name: "description", content: gameDescription(game) },
 		],
 	}))
-	.page(() => <ChartAreaLinear />);
+	.page(() => <RelationsPage />);

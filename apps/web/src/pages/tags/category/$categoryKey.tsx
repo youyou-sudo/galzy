@@ -38,7 +38,7 @@ const paramsSchema = t.Object({ categoryKey: t.String() });
 const isTagGroupKey = (value: string): value is (typeof TAG_GROUP_KEYS)[number] =>
 	(TAG_GROUP_KEYS as readonly string[]).includes(value);
 
-export const route = defineRoute("/tags/category/[categoryKey]")
+export const route = defineRoute("/tags/category/$categoryKey")
 	.config({
 		mode: "ssr",
 		params: paramsSchema,

@@ -141,7 +141,7 @@ function FormSkeleton() {
   )
 }
 
-export const route = defineRoute('/user')
+export const route = defineRoute('/user/')
   .config({ mode: 'ssr', query: UserSearchSchema })
   .loader(async ({ query }) => {
     const session = await getSession()

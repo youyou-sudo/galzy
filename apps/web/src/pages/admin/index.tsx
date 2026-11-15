@@ -36,7 +36,7 @@ import type { ReactNode } from "react";
 
 const ADMIN_TITLE = "管理后台 | GalZY - Galgame 资源站";
 
-export const route = defineRoute("/admin")
+export const route = defineRoute("/admin/")
 	.config({ mode: "ssr" })
 	.loader(async ({ request }) => ({
 		stats: await documentOnly(request, () => fetchDashboardStats()),

@@ -42,7 +42,7 @@ type ProducersResult = {
 	hitsPerPage: number;
 };
 
-export const route = defineRoute("/producer")
+export const route = defineRoute("/producer/")
 	.config({ mode: "ssr", query: producerSearchSchema })
 	.loader(async ({ query }) => {
 		const producers = (await getSearchProducers({

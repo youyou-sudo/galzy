@@ -23,7 +23,7 @@ function gameDescription(game: GameSeoSource | undefined) {
  * 名册由 loader 直取（与攻略/统计/系列同一套写法），角色资料（性别/生日/三围/
  * 简介/属性/出演作品）在打开弹窗时按需拉取，不进首屏关键路径。
  */
-export const route = defineRoute("/[id]/characters")
+export const route = defineRoute("/$id/characters")
 	.config({ mode: "ssr", params: paramsSchema })
 	.loader(async ({ params }) => ({
 		characters: await getGameCharacters({ data: { id: params.id } }),

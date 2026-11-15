@@ -33,7 +33,7 @@ const searchSchema = z.object({
 	page: z.catch(z.coerce.number(), 1),
 });
 
-export const route = defineRoute("/collections")
+export const route = defineRoute("/collections/")
 	.config({ mode: "ssr", query: searchSchema })
 	.loader(async ({ query }) => {
 		const collections = (await getCollectionsWithPreview({

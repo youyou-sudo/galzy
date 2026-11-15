@@ -1,6 +1,8 @@
 import { defineRootRoute, HeadContent, Scripts } from "@teyik0/furin";
 import { TopAdSlot } from "@web/components/adverts/top-ad-slot";
 import Errors from "@web/components/error";
+import RootError from "@web/components/root-error";
+import RootNotFound from "@web/components/root-not-found";
 import { RouteLoadingIndicator } from "@web/components/shared/route-loading-indicator";
 import { TopProgressBar } from "@web/components/shared/top-progress-bar";
 import { TooltipProvider } from "@web/components/ui/tooltip";
@@ -55,6 +57,9 @@ export const route = defineRootRoute()
 	 * 公开页面交给客户端查询，省掉每个访客一次会话往返。
 	 */
 	.config({ mode: "ssr" })
+	// 0.9 的 TanStack 风格没有 error.tsx / not-found.tsx 特例文件：根边界显式挂在这里。
+	.error(RootError)
+	.notFound(RootNotFound)
 	/**
 	 * 顶部广告位在根布局取数（等价于重构前 `__root.tsx` 的 `beforeLoad` 预取）：
 	 * SSR 首帧的 HTML 里就带广告，客户端 hydration 复用同一份数据，

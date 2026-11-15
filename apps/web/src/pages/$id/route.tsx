@@ -30,7 +30,7 @@ type GameDetail = NonNullable<Awaited<ReturnType<typeof getGameDetail>>>;
  * loader 只阻塞 game 本体（快速点击时首屏秒出）；tags / filelist 仍由各卡片内的
  * useQuery 懒加载，沿用旧实现的「不进入导航关键路径」设计。
  */
-export const route = defineRoute("/[id]/_route")
+export const route = defineRoute("/$id")
 	.config({ mode: "ssr", params: paramsSchema })
 	.loader(async ({ params }) => {
 		// 路由身份命名空间见 lib/game-id.ts：vNNN / dNNN（vndb 侧）与

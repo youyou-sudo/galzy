@@ -47,7 +47,7 @@ async function loadWalkthrough(walkthroughId: string) {
  * 整张选项流程图在 loader 里就取回来：图表是这页的主体内容，
  * 客户端再补一次请求只会让首屏先出现「图表加载中」。
  */
-export const route = defineRoute("/[id]/walkthrough/[walkthroughId]")
+export const route = defineRoute("/$id/walkthrough/$walkthroughId")
 	.config({ mode: "ssr", params: paramsSchema, query: searchSchema })
 	.loader(async ({ params }) => {
 		// 名册与攻略并行取：角色路线卡要用名册的头像/身份，慢一步都不该串行

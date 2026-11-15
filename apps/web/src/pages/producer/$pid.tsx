@@ -20,7 +20,7 @@ import { t } from "elysia";
 
 const paramsSchema = t.Object({ pid: t.String() });
 
-export const route = defineRoute("/producer/[pid]")
+export const route = defineRoute("/producer/$pid")
 	.config({ mode: "ssr", params: paramsSchema })
 	.loader(async ({ params }) => {
 		const { pid } = params;

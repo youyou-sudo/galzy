@@ -27,7 +27,7 @@ import { getSession } from "@web/server/auth/auth.functions";
  * AdminShell（侧栏 + 顶栏 + ⌘K 命令面板）只在这里挂载一次：用户端 Header/Footer
  * 由 `pages/root.tsx` 的 AppChrome 依据 matches 跳过，不会重复渲染。
  */
-export const route = defineRoute("/admin/_route")
+export const route = defineRoute("/admin")
 	.config({ mode: "ssr" })
 	.loader(async ({ request }) => {
 		if (isSpaDataRequest(request)) return {};

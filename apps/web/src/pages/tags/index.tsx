@@ -33,7 +33,7 @@ export const TagsSearchSchema = z.object({
 	),
 });
 
-export const route = defineRoute("/tags")
+export const route = defineRoute("/tags/")
 	.config({ mode: "ssr", query: TagsSearchSchema })
 	.loader(async ({ query }) => {
 		const q = query.q?.trim() ?? "";

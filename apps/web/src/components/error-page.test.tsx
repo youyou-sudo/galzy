@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import Errors from "@web/components/error";
-import RootError from "@web/pages/error";
+import RootError from "@web/components/root-error";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
@@ -21,7 +21,7 @@ vi.mock("@web/lib/nav", async () => {
 	};
 });
 
-describe("错误页（pages/error.tsx）", () => {
+describe("错误页（components/root-error.tsx，根路由 .error() 边界）", () => {
 	it("把真实 message / digest 放进折叠详情，而不是只显示默认文案", () => {
 		const html = renderToString(
 			<RootError

@@ -23,7 +23,7 @@ function gameDescription(game: GameSeoSource | undefined) {
  * 数据源是 kungal walkthrough：站内不再有攻略文章，页签只做「收录了哪些攻略」
  * 的列表（通常 1 条）。body 全部来自 loader，客户端不二次取数。
  */
-export const route = defineRoute("/[id]/walkthrough")
+export const route = defineRoute("/$id/walkthrough/")
 	.config({ mode: "ssr", params: paramsSchema })
 	.loader(async ({ params }) => ({
 		walkthroughs: await getGameWalkthroughs({ data: { id: params.id } }),

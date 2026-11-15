@@ -27,7 +27,7 @@ type TagDetail = {
 	[key: string]: unknown;
 } | null;
 
-export const route = defineRoute("/tags/[tagId]")
+export const route = defineRoute("/tags/$tagId")
 	.config({ mode: "ssr", params: paramsSchema })
 	.loader(async ({ params }) => {
 		const { tagId } = params;

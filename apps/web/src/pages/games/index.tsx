@@ -178,7 +178,7 @@ const searchSchema = z.object({
 	),
 });
 
-export const route = defineRoute("/games")
+export const route = defineRoute("/games/")
 	.config({ mode: "ssr", query: searchSchema })
 	.loader(async ({ query }) => {
 		const { q, startDate, endDate, sortBy, order } = query;

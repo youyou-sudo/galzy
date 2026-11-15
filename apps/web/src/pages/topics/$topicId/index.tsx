@@ -75,7 +75,7 @@ function formatTime(dateStr: string) {
 const byCreatedAtAsc = (a: any, b: any) =>
 	Date.parse(a.createdAt) - Date.parse(b.createdAt);
 
-export const route = defineRoute("/topics/[topicId]")
+export const route = defineRoute("/topics/$topicId/")
 	.config({ mode: "ssr", params: t.Object({ topicId: t.String() }) })
 	.loader(async ({ params }) => {
 		// 只取公共数据：详情页会被列表页视口预取批量请求，跳过会话省一次往返

@@ -23,7 +23,7 @@ function downloadDescription(game: GameSeoSource | undefined) {
  * useQuery(filelistQueryOptions) 在客户端拉取；任务书里「下载 tab 懒加载」是
  * 旧实现的显式决策，迁移不改。
  */
-export const route = defineRoute("/[id]")
+export const route = defineRoute("/$id/")
 	.config({ mode: "ssr", params: paramsSchema })
 	.head(({ game }) => ({
 		meta: [

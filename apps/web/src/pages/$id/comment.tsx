@@ -25,7 +25,7 @@ function gameDescription(game: GameSeoSource | undefined) {
  * initialData —— CommentItem 通过 getRouteApi("/:id/comment") 读取
  * 本页 loader data，因此这里返回的字段名必须保持 commentsData / id 不变。
  */
-export const route = defineRoute("/[id]/comment")
+export const route = defineRoute("/$id/comment")
 	.config({ mode: "ssr", params: paramsSchema })
 	.loader(async ({ params }) => ({
 		commentsData: await getCmments({

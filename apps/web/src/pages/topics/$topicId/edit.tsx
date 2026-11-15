@@ -18,7 +18,7 @@ import { getTopic, updateTopic } from "@web/server/topics";
 import { PenLine } from "lucide-react";
 import { toast } from "sonner";
 
-export const route = defineRoute("/topics/[topicId]/edit")
+export const route = defineRoute("/topics/$topicId/edit")
 	.config({ mode: "ssr", params: t.Object({ topicId: t.String() }) })
 	.loader(async ({ params }) => {
 		const session = await getSession();

@@ -7,259 +7,271 @@ declare module "@teyik0/furin/routes" {
     "/": {
       kind: "page";
       pattern: "/";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
-    "/[id]": {
-      kind: "page";
-      pattern: "/:id";
-      parent: typeof import("./src/pages/[id]/_route").route;
-      pathParams: { id: string };
-    };
-    "/[id]/_route": {
+    "/$id": {
       kind: "layout";
       pattern: "/:id";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: { id: string };
     };
-    "/[id]/characters": {
+    "/$id/": {
+      kind: "page";
+      pattern: "/:id";
+      parent: typeof import("./src/pages/$id/route").route;
+      pathParams: { id: string };
+    };
+    "/$id/characters": {
       kind: "page";
       pattern: "/:id/characters";
-      parent: typeof import("./src/pages/[id]/_route").route;
+      parent: typeof import("./src/pages/$id/route").route;
       pathParams: { id: string };
     };
-    "/[id]/comment": {
+    "/$id/comment": {
       kind: "page";
       pattern: "/:id/comment";
-      parent: typeof import("./src/pages/[id]/_route").route;
+      parent: typeof import("./src/pages/$id/route").route;
       pathParams: { id: string };
     };
-    "/[id]/relations": {
+    "/$id/relations": {
       kind: "page";
       pattern: "/:id/relations";
-      parent: typeof import("./src/pages/[id]/_route").route;
+      parent: typeof import("./src/pages/$id/route").route;
       pathParams: { id: string };
     };
-    "/[id]/translate": {
+    "/$id/translate": {
       kind: "page";
       pattern: "/:id/translate";
-      parent: typeof import("./src/pages/[id]/_route").route;
+      parent: typeof import("./src/pages/$id/route").route;
       pathParams: { id: string };
     };
-    "/[id]/walkthrough": {
+    "/$id/walkthrough": {
+      kind: "layout";
+      pattern: "/:id/walkthrough";
+      parent: typeof import("./src/pages/$id/route").route;
+      pathParams: { id: string };
+    };
+    "/$id/walkthrough/": {
       kind: "page";
       pattern: "/:id/walkthrough";
-      parent: typeof import("./src/pages/[id]/_route").route;
+      parent: typeof import("./src/pages/$id/walkthrough/route").route;
       pathParams: { id: string };
     };
-    "/[id]/walkthrough/[walkthroughId]": {
+    "/$id/walkthrough/$walkthroughId": {
       kind: "page";
       pattern: "/:id/walkthrough/:walkthroughId";
-      parent: typeof import("./src/pages/[id]/_route").route;
+      parent: typeof import("./src/pages/$id/walkthrough/route").route;
       pathParams: { id: string; walkthroughId: string };
     };
     "/admin": {
-      kind: "page";
-      pattern: "/admin";
-      parent: typeof import("./src/pages/admin/_route").route;
-      pathParams: {};
-    };
-    "/admin/_route": {
       kind: "layout";
       pattern: "/admin";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
+      pathParams: {};
+    };
+    "/admin/": {
+      kind: "page";
+      pattern: "/admin";
+      parent: typeof import("./src/pages/admin/route").route;
       pathParams: {};
     };
     "/admin/adverts": {
       kind: "page";
       pattern: "/admin/adverts";
-      parent: typeof import("./src/pages/admin/_route").route;
+      parent: typeof import("./src/pages/admin/route").route;
       pathParams: {};
     };
     "/admin/collections": {
       kind: "page";
       pattern: "/admin/collections";
-      parent: typeof import("./src/pages/admin/_route").route;
+      parent: typeof import("./src/pages/admin/route").route;
       pathParams: {};
     };
     "/admin/comments": {
       kind: "page";
       pattern: "/admin/comments";
-      parent: typeof import("./src/pages/admin/_route").route;
+      parent: typeof import("./src/pages/admin/route").route;
       pathParams: {};
     };
     "/admin/friend-links": {
       kind: "page";
       pattern: "/admin/friend-links";
-      parent: typeof import("./src/pages/admin/_route").route;
+      parent: typeof import("./src/pages/admin/route").route;
       pathParams: {};
     };
     "/admin/kungal-sync": {
       kind: "page";
       pattern: "/admin/kungal-sync";
-      parent: typeof import("./src/pages/admin/_route").route;
+      parent: typeof import("./src/pages/admin/route").route;
       pathParams: {};
     };
     "/admin/meilisearch": {
       kind: "page";
       pattern: "/admin/meilisearch";
-      parent: typeof import("./src/pages/admin/_route").route;
+      parent: typeof import("./src/pages/admin/route").route;
       pathParams: {};
     };
     "/admin/tasks": {
       kind: "page";
       pattern: "/admin/tasks";
-      parent: typeof import("./src/pages/admin/_route").route;
+      parent: typeof import("./src/pages/admin/route").route;
       pathParams: {};
     };
     "/admin/topics": {
       kind: "page";
       pattern: "/admin/topics";
-      parent: typeof import("./src/pages/admin/_route").route;
+      parent: typeof import("./src/pages/admin/route").route;
       pathParams: {};
     };
     "/admin/users": {
       kind: "page";
       pattern: "/admin/users";
-      parent: typeof import("./src/pages/admin/_route").route;
+      parent: typeof import("./src/pages/admin/route").route;
       pathParams: {};
     };
     "/admin/vndb-sync": {
       kind: "page";
       pattern: "/admin/vndb-sync";
-      parent: typeof import("./src/pages/admin/_route").route;
+      parent: typeof import("./src/pages/admin/route").route;
       pathParams: {};
     };
     "/auth/login": {
       kind: "page";
       pattern: "/auth/login";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
-    "/auth/signup": {
+    "/auth/signup/": {
       kind: "page";
       pattern: "/auth/signup";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
     "/auth/signup/Verification": {
       kind: "page";
       pattern: "/auth/signup/Verification";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
-    "/collections": {
+    "/collections/": {
       kind: "page";
       pattern: "/collections";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
-    "/collections/[id]": {
+    "/collections/$id": {
       kind: "page";
       pattern: "/collections/:id";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: { id: string };
     };
     "/contact": {
       kind: "page";
       pattern: "/contact";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
     "/friend-links": {
       kind: "page";
       pattern: "/friend-links";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
-    "/games": {
+    "/games/": {
       kind: "page";
       pattern: "/games";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
     "/openapi": {
       kind: "page";
       pattern: "/openapi";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
-    "/producer": {
+    "/producer/": {
       kind: "page";
       pattern: "/producer";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
-    "/producer/[pid]": {
+    "/producer/$pid": {
       kind: "page";
       pattern: "/producer/:pid";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: { pid: string };
     };
-    "/search": {
+    "/search/": {
       kind: "page";
       pattern: "/search";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
-    "/tags": {
+    "/tags/": {
       kind: "page";
       pattern: "/tags";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
-    "/tags/[tagId]": {
+    "/tags/$tagId": {
       kind: "page";
       pattern: "/tags/:tagId";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: { tagId: string };
     };
-    "/tags/category/[categoryKey]": {
+    "/tags/category/$categoryKey": {
       kind: "page";
       pattern: "/tags/category/:categoryKey";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: { categoryKey: string };
     };
-    "/tools": {
+    "/tools/": {
       kind: "page";
       pattern: "/tools";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
     "/tools/plate": {
       kind: "page";
       pattern: "/tools/plate";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
-    "/topics": {
+    "/topics/": {
       kind: "page";
       pattern: "/topics";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
-    "/topics/[topicId]": {
-      kind: "page";
+    "/topics/$topicId": {
+      kind: "layout";
       pattern: "/topics/:topicId";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: { topicId: string };
     };
-    "/topics/[topicId]/edit": {
+    "/topics/$topicId/": {
+      kind: "page";
+      pattern: "/topics/:topicId";
+      parent: typeof import("./src/pages/topics/$topicId/route").route;
+      pathParams: { topicId: string };
+    };
+    "/topics/$topicId/edit": {
       kind: "page";
       pattern: "/topics/:topicId/edit";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/topics/$topicId/route").route;
       pathParams: { topicId: string };
     };
     "/topics/create": {
       kind: "page";
       pattern: "/topics/create";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
-    "/user": {
+    "/user/": {
       kind: "page";
       pattern: "/user";
-      parent: typeof import("./src/pages/root").route;
+      parent: typeof import("./src/pages/__root").route;
       pathParams: {};
     };
   }
@@ -268,13 +280,13 @@ declare module "@teyik0/furin/routes" {
 declare module "@teyik0/furin/routes" {
   interface RouteMap {
     "/": typeof import("./src/pages/index").route;
-    "/:id": typeof import("./src/pages/[id]/index").route;
-    "/:id/characters": typeof import("./src/pages/[id]/characters").route;
-    "/:id/comment": typeof import("./src/pages/[id]/comment").route;
-    "/:id/relations": typeof import("./src/pages/[id]/relations").route;
-    "/:id/translate": typeof import("./src/pages/[id]/translate").route;
-    "/:id/walkthrough": typeof import("./src/pages/[id]/walkthrough").route;
-    "/:id/walkthrough/:walkthroughId": typeof import("./src/pages/[id]/walkthrough/[walkthroughId]").route;
+    "/:id": typeof import("./src/pages/$id/index").route;
+    "/:id/characters": typeof import("./src/pages/$id/characters").route;
+    "/:id/comment": typeof import("./src/pages/$id/comment").route;
+    "/:id/relations": typeof import("./src/pages/$id/relations").route;
+    "/:id/translate": typeof import("./src/pages/$id/translate").route;
+    "/:id/walkthrough": typeof import("./src/pages/$id/walkthrough/index").route;
+    "/:id/walkthrough/:walkthroughId": typeof import("./src/pages/$id/walkthrough/$walkthroughId").route;
     "/admin": typeof import("./src/pages/admin/index").route;
     "/admin/adverts": typeof import("./src/pages/admin/adverts").route;
     "/admin/collections": typeof import("./src/pages/admin/collections").route;
@@ -290,22 +302,22 @@ declare module "@teyik0/furin/routes" {
     "/auth/signup": typeof import("./src/pages/auth/signup/index").route;
     "/auth/signup/Verification": typeof import("./src/pages/auth/signup/Verification").route;
     "/collections": typeof import("./src/pages/collections/index").route;
-    "/collections/:id": typeof import("./src/pages/collections/[id]").route;
+    "/collections/:id": typeof import("./src/pages/collections/$id").route;
     "/contact": typeof import("./src/pages/contact").route;
     "/friend-links": typeof import("./src/pages/friend-links").route;
     "/games": typeof import("./src/pages/games/index").route;
     "/openapi": typeof import("./src/pages/openapi").route;
     "/producer": typeof import("./src/pages/producer/index").route;
-    "/producer/:pid": typeof import("./src/pages/producer/[pid]").route;
+    "/producer/:pid": typeof import("./src/pages/producer/$pid").route;
     "/search": typeof import("./src/pages/search/index").route;
     "/tags": typeof import("./src/pages/tags/index").route;
-    "/tags/:tagId": typeof import("./src/pages/tags/[tagId]").route;
-    "/tags/category/:categoryKey": typeof import("./src/pages/tags/category/[categoryKey]").route;
+    "/tags/:tagId": typeof import("./src/pages/tags/$tagId").route;
+    "/tags/category/:categoryKey": typeof import("./src/pages/tags/category/$categoryKey").route;
     "/tools": typeof import("./src/pages/tools/index").route;
     "/tools/plate": typeof import("./src/pages/tools/plate").route;
     "/topics": typeof import("./src/pages/topics/index").route;
-    "/topics/:topicId": typeof import("./src/pages/topics/[topicId]").route;
-    "/topics/:topicId/edit": typeof import("./src/pages/topics/[topicId]/edit").route;
+    "/topics/:topicId": typeof import("./src/pages/topics/$topicId/index").route;
+    "/topics/:topicId/edit": typeof import("./src/pages/topics/$topicId/edit").route;
     "/topics/create": typeof import("./src/pages/topics/create").route;
     "/user": typeof import("./src/pages/user/index").route;
   }

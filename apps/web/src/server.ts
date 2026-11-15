@@ -41,6 +41,11 @@ const app = new Elysia()
 		// 捕获原始 Request（含 `_furin=data`）后原样转交给下游 fetch
 		enterRequestContext(request);
 		const response = await fetch(request, ...rest);
+		// WebSocket 升级没有 Response：`/_furin/events`（devtools / 浏览器事件通道）
+		// 走 Elysia 的 .ws() 路由，server.upgrade() 成功后处理器返回 undefined，
+		// Bun 已经发出 101。这里必须原样放行，否则下面读 response.status 会抛
+		// 「undefined is not an object」并把每次 WS 连接记成 500。
+		if (!(response instanceof Response)) return response;
 		// 源站实时 SSR，但公开页面允许 CDN 边缘缓存：把 furin 的 no-store
 		// 改写成 s-maxage（评论/后台/用户中心等保持 no-store）。
 		return applyCdnCacheHeaders(request, response);
@@ -49,6 +54,7 @@ const app = new Elysia()
 	.use(
 		await furin({
 			pagesDir: "./src/pages",
+			style: "tanstack",
 		}),
 	);
 
