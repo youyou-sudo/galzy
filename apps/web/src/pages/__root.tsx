@@ -19,6 +19,7 @@ import { isPersonalizedPath } from "@web/lib/is-personalized-path";
 import { NavPathProvider, usePathname } from "@web/lib/nav";
 import { useSeedQueries } from "@web/lib/query-seed";
 import { isSpaDataRequest } from "@web/lib/spa-request";
+import { type UmamiScript, umamiScript } from "@web/lib/umami";
 import { getSession } from "@web/server/auth/auth.functions";
 import { type ReactNode, useEffect, useState } from "react";
 import { Toaster } from "sonner";
@@ -44,6 +45,8 @@ type RootLayoutProps = {
 	authKnown: boolean;
 	/** 是否开发模式（`bun --hot` 下空闲预取会阻塞调试，见 use-viewport-preload） */
 	dev: boolean;
+	/** 统计脚本配置（仅文档请求下非空） */
+	umami: UmamiScript | null;
 };
 
 export const route = defineRootRoute()
@@ -70,14 +73,17 @@ export const route = defineRootRoute()
 	 */
 	.loader(async ({ path, request }) => {
 		const personalized = isPersonalizedPath(path);
-		// 站内切页（?_furin=data）不重取会话：客户端缓存里已经有了
-		const fetchAuth = personalized && !isSpaDataRequest();
+		// 站内切页（?_furin=data）不重取会话、也不重复下发统计配置：
+		// 客户端缓存里已经有会话，统计脚本也只在首屏文档里注入一次。
+		const documentRequest = !isSpaDataRequest();
+		const fetchAuth = personalized && documentRequest;
 		return {
 			adSlot: await loadTopAdSlot(undefined, path),
 			authSession: fetchAuth ? await getSession() : null,
 			authKnown: fetchAuth,
 			dev: process.env.NODE_ENV !== "production",
 			search: requestSearch(request),
+			umami: documentRequest ? umamiScript() : null,
 		};
 	})
 	.layout(
@@ -89,12 +95,21 @@ export const route = defineRootRoute()
 			authSession,
 			authKnown,
 			dev,
+			umami,
 		}: RootLayoutProps) => (
 			<html lang="zh-Hans" suppressHydrationWarning>
 				<head>
 					<script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
 					{/* 封面来自图片子域：提前建连省一个 RTT（host 需与 API 的 GAME_IMAGE_BASE_URL 保持一致） */}
 					<link rel="preconnect" href="https://vndb-t.galzy.moe" />
+					{/* 访问统计：defer 下载、不阻塞首屏；未配置环境变量时整段消失 */}
+					{umami ? (
+						<script
+							defer
+							src={umami.scriptUrl}
+							data-website-id={umami.websiteId}
+						/>
+					) : null}
 					<HeadContent />
 				</head>
 				<body className="flex flex-col min-h-screen font-sans antialiased">
