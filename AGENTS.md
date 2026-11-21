@@ -21,7 +21,7 @@ PostgreSQL    Redis     Meilisearch
  (Drizzle)  (locks/queue) (search)
 ```
 
-- **API** (`apps/api/`): ElysiaJS HTTP server. 19 domain modules, each a three-file Elysia plugin (`index.ts` routes, `model.ts` TypeBox schemas, `service.ts` business logic). Better Auth handles authentication with `auth`/`isAdmin` macros. Drizzle ORM (bun-sql adapter) for PostgreSQL. Redis only for distributed locks / idempotency / rate-limit / task queue (no business cache). Meilisearch for full-text search.
+- **API** (`apps/api/`): ElysiaJS HTTP server. 20 domain modules, each a three-file Elysia plugin (`index.ts` routes, `model.ts` TypeBox schemas, `service.ts` business logic). Better Auth handles authentication with `auth`/`isAdmin` macros. Drizzle ORM (bun-sql adapter) for PostgreSQL. Redis only for distributed locks / idempotency / rate-limit / task queue (no business cache). Meilisearch for full-text search.
 - **Web** (`apps/web/`): Furin SSR app on Bun + Elysia 2. File-based pages (`src/pages/**`, `defineRoute(...).config().loader().head().page()`); the same Elysia process serves `/api/*`. BFF handlers live in `src/server/impl/<domain>.ts` (`defineBff`) and are exposed through isomorphic surfaces in `src/server/<domain>.ts` (`bffFn`): SSR dispatches in-process, the browser POSTs `/api/_bff/:id`. TanStack Query v5 for client state (seeded from loader data via `useSeedQueries`). `src/lib/nav.tsx` is a thin navigation adapter over Furin's public APIs (`Link`/`useNavigate`/`useRouter`/`getRouteApi`/`redirect`, plus local `usePathname`/`useLocation`/`useSearch`); route ids are Furin patterns (`/:id`). shadcn/ui (base-nova style) + Tailwind CSS v4 via `bun-plugin-tailwind`.
 - **Shared** (`packages/`): `libs` provides the Eden Treaty client (`treaty<app>`) with cookie forwarding and timeout. `config` provides shared TypeScript configs with path aliases (`@api`, `@web`, `@libs`). Pure TypeScript source — no build step.
 - **Data flow:** Browser → SSR (server functions) → Eden Treaty → Elysia API → Drizzle ORM → PostgreSQL. Redis sits alongside only for locks / idempotency / rate-limit / queue — there is **no business read cache**. Meilisearch is populated by cron jobs and queried by the search module.
@@ -33,7 +33,7 @@ galzy/
 ├── apps/api/                     # ElysiaJS backend (port 3001)
 │   ├── src/
 │   │   ├── index.ts              # App bootstrap — builds Elysia, mounts all modules
-│   │   ├── modules/              # 19 domain modules (see below)
+│   │   ├── modules/              # 20 domain modules (see below)
 │   │   ├── db/                   # Drizzle ORM schema + client
 │   │   │   ├── client.ts         # Bun SQL → drizzle() initialization
 │   │   │   ├── schema/           # 5 schema files: alist, auth, content, services, vndb
@@ -377,6 +377,7 @@ export const myActions = {
 | producer | `/producer` | public | Producer/developer info, game lists |
 | search | `/search` | public | Meilisearch full-text search, admin embedder management |
 | media | `/media` | auth | S3 image upload (avatars, game media), hash-based dedup |
+| moderation | `/moderation` | admin | 大模型内容审核：评论/帖子创建后异步送审，命中广告先标记删除，高可信自动封禁作者，低可信进待处理队列；配置（API/Key/模型/提示词/阈值）存 `galrc_ai_moderation_settings` |
 | download | `/download` | public | Alist file proxy with CF Worker load balancing |
 | strategy | `/strategy` | admin (write) | Game strategy guides, articles |
 | views | `/views` | public | View tracking, hot games/tags rankings |
