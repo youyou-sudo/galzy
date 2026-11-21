@@ -1,4 +1,4 @@
-import { Link } from "@web/lib/nav";
+import { GraphNodeCard } from "@web/components/shared/graph-node";
 import {
 	TagTooltip,
 	TagTooltipContent,
@@ -9,6 +9,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@web/components/ui/tooltip";
+import { Link } from "@web/lib/nav";
 import { cn } from "@web/lib/utils";
 import { tagHeroActions } from "@web/stores/tagHeroStore";
 import {
@@ -635,65 +636,44 @@ function NodeChip({
 	className?: string;
 	style?: CSSProperties;
 }) {
-	const base = cn(
-		// 圆角矩形：节点是链上的一个「站点」，框宽固定、圆角统一（132×30、8px 圆角），
-		// 长短不一的标签名一律居中截断，边缘因此总是齐的。
-		"flex justify-center items-center px-2.5 text-xs leading-none rounded-lg border transition-all duration-150",
-		// 普通节点不加投影。g835 这类标签有 80 个节点，每个都带一层 box-shadow 时
-		// 阴影会沿子标签列叠成一条黑带（用户反馈的「阴影叠起来」）。边框已经足够
-		// 区分节点，只给当前焦点节点保留投影。
-		current
-			? "font-medium text-primary-foreground bg-primary border-primary/40 ring-[3px] ring-primary/20 shadow-md"
-			: navigable
-				? "text-foreground bg-card border-border/80 hover:bg-muted hover:border-primary/50 hover:shadow-sm hover:-translate-y-px"
-				: // 未本地化的祖先不可点击：不给 hover 反馈，虚线边框示意「到此为止」
-					"text-muted-foreground bg-muted/30 border-dashed border-border/70",
-		className,
-	);
-	if (current) {
-		return (
-			<TagTooltip>
-				<TooltipTrigger
-					render={
-						<div data-node className={base} style={style} aria-current="page" />
-					}
-				>
-					<span className="truncate">{label}</span>
-				</TooltipTrigger>
-				<TagTooltipContent>{label}</TagTooltipContent>
-			</TagTooltip>
-		);
-	}
-	if (!navigable) {
-		return (
-			<TagTooltip>
-				<TooltipTrigger
-					render={<div data-node className={base} style={style} />}
-				>
-					<span className="truncate">{label}</span>
-				</TooltipTrigger>
-				<TagTooltipContent>{`${label}（暂无中文名，无法进入）`}</TagTooltipContent>
-			</TagTooltip>
-		);
-	}
-	return (
-		<TagTooltip>
-			<TooltipTrigger
-				render={
+	// 节点外观直接复用攻略流程图的节点卡（shared/graph-node）：两图共用同一套
+	// 站点卡语言，只有当前标签用 primary 实底，未本地化的祖先退化成不可点的虚线框。
+	// 尺寸仍是标签图的 132×30 —— 这里只换外观，栅格布局不动。
+	const chip = (
+		<GraphNodeCard
+			aria-current={current ? "page" : undefined}
+			className={cn(
+				"px-2.5 leading-none",
+				// 普通节点才给悬停反馈；当前标签与不可点的祖先保持静态
+				navigable &&
+					!current &&
+					"hover:bg-muted hover:shadow-sm hover:-translate-y-px",
+				className,
+			)}
+			current={Boolean(current)}
+			data-node
+			interactive={navigable}
+			label={label}
+			muted={!navigable}
+			render={
+				navigable && !current ? (
 					<Link
 						to="/tags/:tagId"
 						params={{ tagId: id }}
 						// 点击时回写展示名，标签详情 pending 态复用
 						onClick={() => tagHeroActions.fromTag({ id, name: label })}
-						data-node
-						className={base}
-						style={style}
 					/>
-				}
-			>
-				<span className="truncate">{label}</span>
-			</TooltipTrigger>
-			<TagTooltipContent>{label}</TagTooltipContent>
+				) : undefined
+			}
+			style={style}
+		/>
+	);
+	return (
+		<TagTooltip>
+			<TooltipTrigger render={chip} />
+			<TagTooltipContent>
+				{navigable ? label : `${label}（暂无中文名，无法进入）`}
+			</TagTooltipContent>
 		</TagTooltip>
 	);
 }

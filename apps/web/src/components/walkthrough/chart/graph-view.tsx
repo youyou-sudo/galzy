@@ -1,3 +1,4 @@
+import { GraphNodeCard } from "@web/components/shared/graph-node";
 import { Drawer, DrawerContent, DrawerTitle } from "@web/components/ui/drawer";
 import { useIsNarrow } from "@web/hooks/use-mobile";
 import { cn } from "@web/lib/utils";
@@ -157,10 +158,6 @@ const NODE_TYPE_TONE: Record<
 	collect: "border-dashed border-border/70 bg-muted/25 text-muted-foreground",
 	open: "border-dashed border-border/70 bg-muted/25 text-muted-foreground",
 };
-
-/** 选中与 hover：完全复用层级图「当前节点」的那一圈柔光环 */
-const SELECTED_RING = "ring-[3px] ring-primary/20";
-const HOVER_RING = "ring-2 ring-primary/15";
 
 interface GraphNode {
 	id: ChartNodeId;
@@ -1197,64 +1194,48 @@ export function GraphView({
 												activeEdge !== null &&
 												(node.id === activeEdge.from.id ||
 													node.id === activeEdge.to.id);
-											// 形状统一成层级图的「站点卡」：同高同宽、圆角一致、文字居中截断；
-											// 只有起点是药丸（终结感的两个端点才换形状）
-											const radius =
-												node.node.node_type === "entry" ||
-												node.node.node_type === "ending"
-													? "rounded-full"
-													: "rounded-lg";
 											const isMuted =
 												node.node.node_type === "collect" ||
 												node.node.node_type === "open";
 											return (
-												<button
+												<GraphNodeCard
+													// 节点组件与标签层级图共用；这里只补流程图自己的定位与配色。
+													// 框一多阴影会叠成一条黑带，所以不用「当前」实底，只给选中边
+													// 两端的节点挂一环 + 主色边，避免一条边连出三块实心主色。
 													className={cn(
-														"absolute flex items-center justify-center border px-3 text-left transition-[opacity,box-shadow,border-color,background-color] duration-150",
-														radius,
-														"focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-primary",
-														tone,
-														// 层级图里除「当前」以外都不投影：框一多阴影会叠成一条黑带。
-														// 「当前」在这张图上是选中那条边的标签，节点只加一环 + 主色边，
-														// 否则一条边会连出三块实心主色，反而看不清读的是哪一段
-														selected
-															? cn(
-																	"z-20 border-primary/40 shadow-sm",
-																	SELECTED_RING,
-																)
-															: hovered
-																? cn("z-20 shadow-sm", HOVER_RING)
-																: "text-foreground",
-														hovered
-															? "border-primary/50"
-															: "hover:border-primary/50",
-														isMuted && !selected
-															? "text-muted-foreground"
-															: null,
-														dimmed ? "opacity-40" : "opacity-100",
+														"absolute px-3 text-left",
+														(selected || hovered) && "z-20",
 													)}
 													data-node-id={node.id}
 													data-node-type={node.node.node_type}
+													dimmed={dimmed}
+													hovered={hovered}
+													icon={<NodeIcon node={node.node} />}
 													key={node.id}
-													title={node.label.primary}
+													label={node.label.primary}
+													muted={isMuted}
 													onClick={() => selectNode(node)}
 													onMouseEnter={() => setHoverNode(node.id)}
 													onMouseLeave={() => setHoverNode(null)}
+													// 形状统一成层级图的「站点卡」：同高同宽、圆角一致、文字居中截断；
+													// 只有起点/结局是药丸（终结感的两个端点才换形状）
+													render={<button type="button" />}
+													selected={selected}
+													shape={
+														node.node.node_type === "entry" ||
+														node.node.node_type === "ending"
+															? "pill"
+															: "card"
+													}
 													style={{
 														left: node.x,
 														top: node.y,
 														width: NODE_WIDTH,
 														height: NODE_HEIGHT,
 													}}
-													type="button"
-												>
-													<span className="flex min-w-0 items-center gap-1.5">
-														<NodeIcon node={node.node} />
-														<span className="truncate font-medium text-xs">
-															{node.label.primary}
-														</span>
-													</span>
-												</button>
+													title={node.label.primary}
+													tone={tone}
+												/>
 											);
 										})}
 									</div>
