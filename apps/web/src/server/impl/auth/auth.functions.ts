@@ -58,6 +58,8 @@ export const adminListUsers = defineBff(
 		limit: z.optional(z.number()),
 		offset: z.optional(z.number()),
 		searchValue: z.optional(z.string()),
+		/** 搜索字段：email=邮箱（listUsers 默认），name=用户名 */
+		searchField: z.optional(z.enum(["email", "name"])),
 	}),
 	async ({ data }) => {
 		const res = await authServerClient.admin.listUsers({
@@ -65,6 +67,7 @@ export const adminListUsers = defineBff(
 				limit: data.limit ?? 15,
 				offset: data.offset ?? 0,
 				searchValue: data.searchValue,
+				searchField: data.searchField,
 				sortBy: "createdAt",
 				sortDirection: "desc",
 			},

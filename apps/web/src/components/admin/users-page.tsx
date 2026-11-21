@@ -93,9 +93,14 @@ export type AdminUsersListResponse = {
 	offset?: number;
 };
 
+/** Better Auth 的 listUsers 只支持单字段搜索：邮箱或用户名。 */
+export type UsersSearchField = "email" | "name";
+
 /** 列表查询条件：既是 query key 的组成，也是请求参数。 */
 export type UsersListFilters = {
 	searchValue: string;
+	/** searchValue 命中哪个字段：email=邮箱，name=用户名 */
+	searchField: UsersSearchField;
 	offset: number;
 	limit: number;
 	/** "" | "active" | "banned" */
@@ -110,6 +115,7 @@ export function usersListFilters(
 ): UsersListFilters {
 	return {
 		searchValue: input.searchValue ?? "",
+		searchField: input.searchField ?? "email",
 		offset: input.offset ?? 0,
 		limit: input.limit ?? USERS_PAGE_SIZE,
 		status: input.status ?? "",
@@ -143,7 +149,7 @@ export async function fetchUsersList(
 			limit: filters.limit,
 			offset: filters.offset,
 			searchValue: filters.searchValue || undefined,
-			searchField: "email",
+			searchField: filters.searchField,
 			searchOperator: "contains",
 			sortBy: "createdAt",
 			sortDirection: "desc",
@@ -218,6 +224,7 @@ export default function UsersPage() {
 function UsersTable({ onCreate }: { onCreate: () => void }) {
 	const [searchInput, setSearchInput] = useState("");
 	const [search, setSearch] = useState("");
+	const [searchField, setSearchField] = useState<UsersSearchField>("email");
 	const [status, setStatus] = useState("");
 	const [roleTarget, setRoleTarget] = useState<AdminUser | null>(null);
 	const [passwordTarget, setPasswordTarget] = useState<AdminUser | null>(null);
@@ -232,6 +239,7 @@ function UsersTable({ onCreate }: { onCreate: () => void }) {
 
 	const filters = usersListFilters({
 		searchValue: search,
+		searchField,
 		offset: (table.page - 1) * table.pageSize,
 		limit: table.pageSize,
 		status,
@@ -430,14 +438,33 @@ function UsersTable({ onCreate }: { onCreate: () => void }) {
 								if (!value) applySearch("");
 							},
 							onSubmit: applySearch,
-							placeholder: "搜索用户邮箱…",
-							ariaLabel: "搜索用户邮箱",
+							placeholder:
+								searchField === "name" ? "搜索用户名…" : "搜索用户邮箱…",
+							ariaLabel: searchField === "name" ? "搜索用户名" : "搜索用户邮箱",
 						}}
+						leading={
+							<Select
+								value={searchField}
+								onValueChange={(value) => {
+									setSearchField(value === "name" ? "name" : "email");
+									table.resetToFirstPage();
+								}}
+							>
+								<SelectTrigger size="sm" aria-label="搜索字段">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="name">用户名</SelectItem>
+									<SelectItem value="email">邮箱</SelectItem>
+								</SelectContent>
+							</Select>
+						}
 						filters={[statusFilter]}
 						isFiltered={isFiltered}
 						onReset={() => {
 							setSearchInput("");
 							setSearch("");
+							setSearchField("email");
 							setStatus("");
 							table.resetToFirstPage();
 						}}
