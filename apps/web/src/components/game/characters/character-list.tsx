@@ -3,11 +3,7 @@ import { EmptyState } from "@web/components/shared/empty-state";
 import { Users } from "lucide-react";
 import { useState } from "react";
 import { CharacterCard } from "./character-card";
-import {
-	type CharacterRole,
-	type CharacterView,
-	spoilerLabelOf,
-} from "./character-types";
+import { type CharacterView, spoilerLabelOf } from "./character-types";
 
 /**
  * 角色卡比系列卡再小一档：角色封面是 3:4 竖版、名字短，
@@ -29,32 +25,15 @@ function isSpoilerCharacter(character: CharacterView): boolean {
 	return (character.spoiler ?? "none") !== "none";
 }
 
-/**
- * 分组只认名册的 rosterRole：main → 主角、secondary → 配角，
- * appears / unknown（以及取值缺失）统一归「其他登场角色」。
- */
-type SectionKey = "main" | "secondary" | "other";
-
-const SECTION_META: Array<{
-	key: SectionKey;
-	title: string;
-	layout: "grid" | "list";
-}> = [
-	{ key: "main", title: "主角", layout: "grid" },
-	{ key: "secondary", title: "配角", layout: "grid" },
-	{ key: "other", title: "其他登场角色", layout: "list" },
-];
-
-function sectionKeyOf(role: CharacterRole | null | undefined): SectionKey {
-	if (role === "main") return "main";
-	if (role === "secondary") return "secondary";
-	return "other";
+/** 有立绘的角色铺卡片网格；没有立绘的才单独收进「其他登场角色」紧凑行 */
+function hasCharacterImage(character: CharacterView): boolean {
+	return Boolean(character.imageUrl);
 }
 
 /**
- * 同一个人在上游名册里可能落成两条（例如 secondary 有图 + unknown 无图的重复
- * 条目，名字只差空格）。比较时去掉空白并忽略大小写，「其他登场角色」不再
- * 重复列出已经在主角/配角卡片里出现过的名字。
+ * 同一个人在上游名册里可能落成两条（一条有图、一条无图的重复条目，名字只差
+ * 空格）。比较时去掉空白并忽略大小写，「其他登场角色」不再重复列出已经在
+ * 卡片里出现过的名字。
  */
 function normalizedName(name: string): string {
 	return name.replace(/\s+/g, "").toLowerCase();
@@ -63,7 +42,7 @@ function normalizedName(name: string): string {
 /**
  * 其他登场角色的紧凑行：小缩略图（无图用姓名首字）+ 姓名（副标拉丁名）。
  *
- * 这些角色大多没有立绘，用行而不是 3:4 卡片，一屏能扫完几十个人，
+ * 这些角色都没有立绘，用行而不是 3:4 卡片，一屏能扫完几十个人，
  * 不会被大块首字占位空卡淹没；点击仍然打开同一个角色弹窗。
  */
 function CharacterRow({
@@ -136,11 +115,11 @@ function CharacterRow({
 }
 
 /**
- * 角色列表：按名册身份分组（主角 / 配角 / 其他登场角色）。
+ * 角色列表：有立绘的统一铺卡片网格，没有立绘的才单独收进「其他登场角色」。
  *
- * 分组依据是 API 数据源的名册字段 roster_role（main / secondary / appears /
- * unknown）：主角、配角用卡片网格，其他登场角色用紧凑行 —— 这批角色大多没有
- * 立绘，铺成 3:4 大卡只会得到一整屏「首字占位」空卡。组内保持上游名册顺序。
+ * 不再按名册身份（main / secondary / appears）分标题：身份只体现在卡片角标上，
+ * 有立绘就一视同仁地展示。无立绘的角色铺成 3:4 大卡只会得到一整屏「首字占位」
+ * 空卡，所以统一用紧凑行。两段都保持上游名册顺序。
  *
  * 剧透角色默认隐藏：名册里的 spoiler 标记通常对应「出场即剧透」的角色
  * （身份反转、真结局角色等），直接铺在列表里就把玩点漏了。开关是组件内部
@@ -181,29 +160,24 @@ export function CharacterList({
 		);
 	}
 
-	// 用「全部名册」算卡片名字：剧透卡片默认隐藏时，重复的 other 行也不能
+	// 用「全部名册」算卡片名字：剧透卡片默认隐藏时，重复的无图行也不能
 	// 把它的名字提前漏出来
 	const cardNames = new Set(
 		characters
-			.filter((character) => sectionKeyOf(character.rosterRole) !== "other")
+			.filter(hasCharacterImage)
 			.map((character) => normalizedName(character.name)),
 	);
 
-	const grouped = new Map<SectionKey, CharacterView[]>();
+	const cards: CharacterView[] = [];
+	const others: CharacterView[] = [];
 	for (const character of visible) {
-		const key = sectionKeyOf(character.rosterRole);
-		if (key === "other" && cardNames.has(normalizedName(character.name))) {
+		if (hasCharacterImage(character)) {
+			cards.push(character);
 			continue;
 		}
-		const bucket = grouped.get(key);
-		if (bucket) bucket.push(character);
-		else grouped.set(key, [character]);
+		if (cardNames.has(normalizedName(character.name))) continue;
+		others.push(character);
 	}
-	// 没有可见角色的组（全被剧透开关藏起、或与卡片同名被去重）不渲染标题
-	const sections = SECTION_META.flatMap((meta) => {
-		const list = grouped.get(meta.key);
-		return list && list.length > 0 ? [{ ...meta, characters: list }] : [];
-	});
 
 	return (
 		<div className="space-y-4">
@@ -219,37 +193,36 @@ export function CharacterList({
 				</label>
 			)}
 			<div className="space-y-6">
-				{sections.map((section) => (
-					<section className="space-y-3" key={section.key}>
+				{cards.length > 0 && (
+					<div className={gridClass}>
+						{cards.map((character) => (
+							<CharacterCard
+								character={character}
+								key={character.id}
+								onSelect={onSelect}
+							/>
+						))}
+					</div>
+				)}
+				{others.length > 0 && (
+					<section className="space-y-3">
 						<h3 className="flex gap-1.5 items-baseline text-sm font-semibold">
-							{section.title}
+							其他登场角色
 							<span className="text-xs font-normal text-muted-foreground">
-								{section.characters.length}
+								{others.length}
 							</span>
 						</h3>
-						{section.layout === "grid" ? (
-							<div className={gridClass}>
-								{section.characters.map((character) => (
-									<CharacterCard
-										character={character}
-										key={character.id}
-										onSelect={onSelect}
-									/>
-								))}
-							</div>
-						) : (
-							<div className={rowGridClass}>
-								{section.characters.map((character) => (
-									<CharacterRow
-										character={character}
-										key={character.id}
-										onSelect={onSelect}
-									/>
-								))}
-							</div>
-						)}
+						<div className={rowGridClass}>
+							{others.map((character) => (
+								<CharacterRow
+									character={character}
+									key={character.id}
+									onSelect={onSelect}
+								/>
+							))}
+						</div>
 					</section>
-				))}
+				)}
 			</div>
 		</div>
 	);

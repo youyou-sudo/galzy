@@ -13,7 +13,7 @@ const characters = readCharacterList({
 			latin: "Tohno Akiha",
 			rosterRole: "main",
 			spoiler: "none",
-			imageUrl: null,
+			imageUrl: "https://example.com/Tohno Akiha.jpg",
 		},
 		{
 			id: "2",
@@ -27,17 +27,15 @@ const characters = readCharacterList({
 });
 
 describe("CharacterList", () => {
-	it("按身份分组渲染：主角出卡片，剧透角色默认隐藏", () => {
+	it("有立绘的角色直接成卡片网格，不按身份分标题；剧透角色默认隐藏", () => {
 		const html = renderToString(
 			<CharacterList characters={characters} onSelect={vi.fn()} />,
 		);
-		// 主角组标题 + 卡片
-		expect(html).toContain("主角");
 		expect(html).toContain("遠野 秋葉");
 		expect(html).toContain("Tohno Akiha");
-		// 无图占位：取姓名首字
-		expect(html).toContain("遠");
-		// 剧透角色默认不渲染；只有剧透角色时「其他登场角色」不出现空组
+		// 身份只留卡片角标，不再有主角 / 配角分组标题
+		expect(html).not.toContain("<h3");
+		// 剧透角色默认不渲染；没有无图角色时不出现「其他登场角色」空组
 		expect(html).not.toContain("シエル");
 		expect(html).not.toContain("其他登场角色");
 		expect(html).toContain("显示剧透角色");
@@ -46,7 +44,7 @@ describe("CharacterList", () => {
 		expect(html).not.toContain("checked");
 	});
 
-	it("勾选后把其他登场角色补成紧凑行，并保留剧透标记", () => {
+	it("勾选后把无图剧透角色补成「其他登场角色」紧凑行，并保留剧透标记", () => {
 		const { container } = render(
 			<CharacterList characters={characters} onSelect={vi.fn()} />,
 		);
@@ -54,16 +52,28 @@ describe("CharacterList", () => {
 		expect(within(container).getByText("シエル")).toBeDefined();
 		expect(within(container).getByText("其他登场角色")).toBeDefined();
 		expect(within(container).getByText("重度剧透")).toBeDefined();
+		// 有图的角色仍在卡片网格里，不跟着挪进紧凑行
+		expect(within(container).getByText("遠野 秋葉")).toBeDefined();
 	});
 
-	it("主角 → 配角 → 其他登场角色依次成组，组内保持名册原序", () => {
+	it("有图的按名册顺序铺卡片，无图的单独归到「其他登场角色」", () => {
 		const list = readCharacterList({
 			characters: [
-				{ id: "1", name: "配角甲", rosterRole: "appears" },
-				{ id: "2", name: "主角甲", rosterRole: "main" },
-				{ id: "3", name: "未知身份" },
-				{ id: "4", name: "主角乙", rosterRole: "main" },
-				{ id: "5", name: "配角乙", rosterRole: "secondary" },
+				{ id: "1", name: "无图甲", rosterRole: "main" },
+				{
+					id: "2",
+					name: "有图主角",
+					rosterRole: "main",
+					imageUrl: "https://example.com/a.jpg",
+				},
+				{ id: "3", name: "无图乙" },
+				{
+					id: "4",
+					name: "有图配角",
+					rosterRole: "secondary",
+					imageUrl: "https://example.com/b.jpg",
+				},
+				{ id: "5", name: "无图丙", rosterRole: "secondary" },
 			],
 		});
 		const { container } = render(
@@ -72,17 +82,30 @@ describe("CharacterList", () => {
 		const names = [...container.querySelectorAll("[data-character-name]")].map(
 			(node) => node.textContent,
 		);
-		expect(names).toEqual(["主角甲", "主角乙", "配角乙", "配角甲", "未知身份"]);
+		// 卡片网格在前、紧凑行在后，两段各自保持名册原序
+		expect(names).toEqual([
+			"有图主角",
+			"有图配角",
+			"无图甲",
+			"无图乙",
+			"无图丙",
+		]);
 		const headings = [...container.querySelectorAll("h3")].map(
 			(node) => node.firstChild?.textContent,
 		);
-		expect(headings).toEqual(["主角", "配角", "其他登场角色"]);
+		// 只有无图分组有标题，主角 / 配角不再分标题
+		expect(headings).toEqual(["其他登场角色"]);
 	});
 
-	it("同名重复条目只保留卡片，不再混进其他登场角色", () => {
+	it("同名有图 / 无图重复条目只保留卡片，不再混进其他登场角色", () => {
 		const list = readCharacterList({
 			characters: [
-				{ id: "1", name: "仙石 一縷", rosterRole: "secondary" },
+				{
+					id: "1",
+					name: "仙石 一縷",
+					rosterRole: "secondary",
+					imageUrl: "https://example.com/c.jpg",
+				},
 				{ id: "2", name: "仙石一縷", rosterRole: "unknown" },
 			],
 		});

@@ -67,8 +67,8 @@ export type CharacterInfoView = CharacterView & {
 };
 
 /**
- * 身份徽章文案：与列表分组口径一致 —— main 主角、secondary 配角，
- * appears（以及其他登场角色）在徽章里收敛成「其他」，不再冒充配角。
+ * 身份徽章文案：main 主角、secondary 配角，appears 在徽章里收敛成「其他」，
+ * 不再冒充配角。列表本身只按有无立绘分段，身份只作为卡片角标保留。
  */
 export const CHARACTER_ROLE_LABELS: Record<CharacterRole, string> = {
 	main: "主角",
