@@ -1,5 +1,8 @@
 import "@teyik0/furin/server-only";
+import { api } from "@libs";
+import { elysiaErrorF } from "@web/lib";
 import { defineBff, defineBffNoInput } from "@web/lib/bff/define";
+import { cookiePass } from "@web/lib/cookie-pass";
 import { authServerClient } from "@web/server/auth/auth.server";
 import { getServerSession } from "@web/server/auth/server-session";
 import * as z from "zod/mini";
@@ -53,26 +56,38 @@ export const getAccountInfo = defineBff(
 	},
 );
 
+/**
+ * 后台用户列表。
+ *
+ * 不能走 Better Auth 的 admin.listUsers：它的 filter 只能命中 galrc_user 的列，
+ * 而「邮箱注册 / 第三方登录」要看 galrc_account.providerId，所以改由 API 直查
+ * 数据库（GET /users/admin）。
+ */
 export const adminListUsers = defineBff(
 	z.object({
 		limit: z.optional(z.number()),
 		offset: z.optional(z.number()),
 		searchValue: z.optional(z.string()),
-		/** 搜索字段：email=邮箱（listUsers 默认），name=用户名 */
+		/** 搜索字段：email=邮箱，name=用户名 */
 		searchField: z.optional(z.enum(["email", "name"])),
+		/** 不传=全部，active=正常，banned=已封禁 */
+		status: z.optional(z.enum(["active", "banned"])),
+		/** 不传=全部，email=邮箱账号，third-party=第三方账号 */
+		authMethod: z.optional(z.enum(["email", "third-party"])),
 	}),
 	async ({ data }) => {
-		const res = await authServerClient.admin.listUsers({
+		const { data: res, error } = await api.users.admin.get({
 			query: {
 				limit: data.limit ?? 15,
 				offset: data.offset ?? 0,
 				searchValue: data.searchValue,
 				searchField: data.searchField,
-				sortBy: "createdAt",
-				sortDirection: "desc",
+				status: data.status,
+				authMethod: data.authMethod,
 			},
+			...cookiePass(),
 		});
-		if (res.error) throw new Error(res.error.message || "获取用户列表失败");
-		return res.data;
+		elysiaErrorF(error);
+		return res;
 	},
 );
