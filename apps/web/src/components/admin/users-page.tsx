@@ -47,12 +47,15 @@ import {
 	removeListItems,
 } from "@web/lib/admin/optimistic";
 import { adminKeys, invalidations } from "@web/lib/admin/query-keys";
+import { adminListUsers } from "@web/server/auth/auth.functions";
 import { authClient } from "@web/server/auth/auth-client";
 import {
 	BanIcon,
 	CircleCheckIcon,
 	CopyIcon,
+	LinkIcon,
 	LockIcon,
+	MailIcon,
 	PlusIcon,
 	ShieldIcon,
 	Trash2Icon,
@@ -65,9 +68,10 @@ import { toast } from "sonner";
 /**
  * 用户管理页。
  *
- * 数据来自 Better Auth 的 admin 插件（listUsers + setRole / banUser / …），
- * 所有写操作走「先改缓存、失败回滚」的乐观更新：封禁、解封、改角色、删除
- * 都不会整表转圈，也不会把搜索词 / 页码打回第一页。
+ * 列表读 API 的 /users/admin（搜索 / 封禁状态 / 邮箱或第三方注册方式都在库里
+ * 过滤）；写操作仍走 Better Auth 的 admin 插件（setRole / banUser / …），全部
+ * 是「先改缓存、失败回滚」的乐观更新：封禁、解封、改角色、删除都不会整表转圈，
+ * 也不会把搜索词 / 页码打回第一页。
  */
 
 // ── 类型 ──────────────────────────────────────────────────────
@@ -96,6 +100,9 @@ export type AdminUsersListResponse = {
 /** Better Auth 的 listUsers 只支持单字段搜索：邮箱或用户名。 */
 export type UsersSearchField = "email" | "name";
 
+/** 账号来源：邮箱密码账号 / 第三方 OAuth 账号（"" 表示不筛选）。 */
+export type UsersAuthMethod = "" | "email" | "third-party";
+
 /** 列表查询条件：既是 query key 的组成，也是请求参数。 */
 export type UsersListFilters = {
 	searchValue: string;
@@ -105,6 +112,7 @@ export type UsersListFilters = {
 	limit: number;
 	/** "" | "active" | "banned" */
 	status: string;
+	authMethod: UsersAuthMethod;
 };
 
 export const USERS_PAGE_SIZE = 15;
@@ -119,50 +127,31 @@ export function usersListFilters(
 		offset: input.offset ?? 0,
 		limit: input.limit ?? USERS_PAGE_SIZE,
 		status: input.status ?? "",
+		authMethod: input.authMethod ?? "",
 	};
 }
 
-/** Better Auth 的 listUsers 只支持单条 filter 条件，这里把状态映射成 banned 等值过滤。 */
-function bannedCondition(status: string) {
-	if (status === "banned") {
-		return {
-			filterField: "banned",
-			filterOperator: "eq" as const,
-			filterValue: true,
-		};
-	}
-	if (status === "active") {
-		return {
-			filterField: "banned",
-			filterOperator: "eq" as const,
-			filterValue: false,
-		};
-	}
-	return {};
-}
-
+/**
+ * 列表走 BFF → API 的 /users/admin：Better Auth 的 admin.listUsers 只能按
+ * galrc_user 的列过滤，判断不了「邮箱注册 / 第三方登录」这类账号来源。
+ */
 export async function fetchUsersList(
 	filters: UsersListFilters,
 ): Promise<AdminUsersListResponse> {
-	const res = await authClient.admin.listUsers({
-		query: {
+	const res = await adminListUsers({
+		data: {
 			limit: filters.limit,
 			offset: filters.offset,
 			searchValue: filters.searchValue || undefined,
 			searchField: filters.searchField,
-			searchOperator: "contains",
-			sortBy: "createdAt",
-			sortDirection: "desc",
-			...bannedCondition(filters.status),
+			status:
+				filters.status === ""
+					? undefined
+					: (filters.status as "active" | "banned"),
+			authMethod: filters.authMethod === "" ? undefined : filters.authMethod,
 		},
 	});
-	if (res.error) {
-		throw new Error(res.error.message || "获取用户列表失败");
-	}
-	return (res.data ?? {
-		users: [],
-		total: 0,
-	}) as unknown as AdminUsersListResponse;
+	return res as unknown as AdminUsersListResponse;
 }
 
 // ── 常量 ──────────────────────────────────────────────────────
@@ -226,6 +215,7 @@ function UsersTable({ onCreate }: { onCreate: () => void }) {
 	const [search, setSearch] = useState("");
 	const [searchField, setSearchField] = useState<UsersSearchField>("email");
 	const [status, setStatus] = useState("");
+	const [authMethod, setAuthMethod] = useState<UsersAuthMethod>("");
 	const [roleTarget, setRoleTarget] = useState<AdminUser | null>(null);
 	const [passwordTarget, setPasswordTarget] = useState<AdminUser | null>(null);
 	const [banTarget, setBanTarget] = useState<AdminUser | null>(null);
@@ -243,6 +233,7 @@ function UsersTable({ onCreate }: { onCreate: () => void }) {
 		offset: (table.page - 1) * table.pageSize,
 		limit: table.pageSize,
 		status,
+		authMethod,
 	});
 
 	const { data, isLoading, isFetching, error } = useQuery({
@@ -325,6 +316,28 @@ function UsersTable({ onCreate }: { onCreate: () => void }) {
 		],
 	};
 
+	const authMethodFilter: AdminFilter = {
+		id: "authMethod",
+		label: "注册方式",
+		value: authMethod,
+		onChange: (next) => {
+			setAuthMethod(next as UsersAuthMethod);
+			table.resetToFirstPage();
+		},
+		options: [
+			{
+				value: "email",
+				label: "邮箱注册",
+				icon: <MailIcon className="size-3.5 text-muted-foreground" />,
+			},
+			{
+				value: "third-party",
+				label: "第三方登录",
+				icon: <LinkIcon className="size-3.5 text-muted-foreground" />,
+			},
+		],
+	};
+
 	const columns: AdminColumn<AdminUser>[] = [
 		{
 			id: "user",
@@ -399,7 +412,7 @@ function UsersTable({ onCreate }: { onCreate: () => void }) {
 		(column) => !table.hiddenColumns.includes(column.id),
 	);
 
-	const isFiltered = Boolean(search) || Boolean(status);
+	const isFiltered = Boolean(search) || Boolean(status) || Boolean(authMethod);
 
 	return (
 		<>
@@ -419,7 +432,7 @@ function UsersTable({ onCreate }: { onCreate: () => void }) {
 					icon: UsersIcon,
 					title: isFiltered ? "没有匹配的用户" : "暂无用户数据",
 					description: isFiltered
-						? "换个关键词或状态筛选，再看看"
+						? "换个关键词或筛选条件，再看看"
 						: "创建第一个用户账号，或等待用户注册",
 					action: !isFiltered ? (
 						<Button variant="outline" size="sm" onClick={onCreate}>
@@ -459,13 +472,14 @@ function UsersTable({ onCreate }: { onCreate: () => void }) {
 								</SelectContent>
 							</Select>
 						}
-						filters={[statusFilter]}
+						filters={[statusFilter, authMethodFilter]}
 						isFiltered={isFiltered}
 						onReset={() => {
 							setSearchInput("");
 							setSearch("");
 							setSearchField("email");
 							setStatus("");
+							setAuthMethod("");
 							table.resetToFirstPage();
 						}}
 						visibility={table.visibility}
