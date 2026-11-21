@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { defineRoute } from "@teyik0/furin";
+import { defineRoute, notFound } from "@teyik0/furin";
 import { t } from "elysia";
+import { ApiError } from "@web/lib";
 import { Link, useNavigate } from "@web/lib/nav";
 import { CommentMarkdown } from "@web/components/cmments/comment-markdown";
 import { CommentThreadSkeleton } from "@web/components/cmments/comment-skeleton";
@@ -77,12 +78,25 @@ const byCreatedAtAsc = (a: any, b: any) =>
 
 export const route = defineRoute("/topics/$topicId/")
 	.config({ mode: "ssr", params: t.Object({ topicId: t.String() }) })
-	.loader(async ({ params }) => {
-		// 只取公共数据：详情页会被列表页视口预取批量请求，跳过会话省一次往返
-		const topic = await getTopic({
-			data: { id: Number(params.topicId), publicOnly: true },
-		});
-		return { topic };
+	.loader(async ({ params, request }) => {
+		const id = Number(params.topicId);
+		// 只取公共数据：详情页会被列表页视口预取批量请求，跳过会话省一次往返。
+		// 未发布/已删除的帖子只对归属者与管理员可见，公共取数 404 时再带会话取
+		// 一次 —— 既保证旁人拿到 404，也让本人/管理员能看到自己的帖子。
+		try {
+			return { topic: await getTopic({ data: { id, publicOnly: true } }) };
+		} catch (error) {
+			if (!(error instanceof ApiError && error.status === 404)) throw error;
+			if (!request.headers.get("cookie")) notFound({ message: "帖子不存在" });
+			try {
+				return { topic: await getTopic({ data: { id } }) };
+			} catch (retryError) {
+				if (retryError instanceof ApiError && retryError.status === 404) {
+					notFound({ message: "帖子不存在" });
+				}
+				throw retryError;
+			}
+		}
 	})
 	.head(({ topic, params }) =>
 		seoMeta({
@@ -213,7 +227,11 @@ function TopicDetailPage({
 								variant="outline"
 								className="shrink-0 text-warning bg-warning/10 border-warning/30"
 							>
-								{status === "draft" ? "草稿" : "未发布"}
+								{status === "draft"
+									? "草稿"
+									: status === "deleted"
+										? "已删除"
+										: "未发布"}
 							</Badge>
 						)}
 					</div>
@@ -300,7 +318,7 @@ function TopicDetailPage({
 						content={(topic as any).content}
 						contentType={(topic as any).contentType || "markdown"}
 					/>
-					{session && (
+					{session && status === "published" && (
 						<div className="flex gap-2 items-center pt-3 mt-5 border-t border-border/60">
 							<LikeButton topic={topic as any} topicId={topicId} />
 							<FavoriteButton topic={topic as any} topicId={topicId} />
@@ -315,6 +333,7 @@ function TopicDetailPage({
 					targetType="topic"
 					targetId={topicId}
 					session={session}
+					readOnly={status !== "published"}
 				/>
 			</section>
 		</div>
@@ -385,10 +404,13 @@ function TopicComments({
 	targetType,
 	targetId,
 	session,
+	readOnly = false,
 }: {
 	targetType: string;
 	targetId: string;
 	session: any;
+	/** 未发布/已删除的帖子不接受新评论，只读展示已有评论 */
+	readOnly?: boolean;
 }) {
 	const { data: commentsData, isLoading } = useQuery({
 		queryKey: ["comments", targetType, targetId],
@@ -412,12 +434,14 @@ function TopicComments({
 
 	return (
 		<div className="space-y-4">
-			<ReplyEidtInput
-				targetType={targetType}
-				targetId={targetId}
-				commentscomp={true}
-				showTypeSelector={false}
-			/>
+			{!readOnly && (
+				<ReplyEidtInput
+					targetType={targetType}
+					targetId={targetId}
+					commentscomp={true}
+					showTypeSelector={false}
+				/>
+			)}
 
 			{comments.length > 0 ? (
 				<div className="divide-y divide-border/60">
@@ -428,6 +452,7 @@ function TopicComments({
 							targetType={targetType}
 							targetId={targetId}
 							session={session}
+							readOnly={readOnly}
 						/>
 					))}
 				</div>
@@ -448,11 +473,13 @@ function CommentCard({
 	targetType,
 	targetId,
 	session,
+	readOnly = false,
 }: {
 	comment: any;
 	targetType: string;
 	targetId: string;
 	session: any;
+	readOnly?: boolean;
 }) {
 	return (
 		<div className="py-3 first:pt-0 last:pb-0">
@@ -475,7 +502,7 @@ function CommentCard({
 							<span className="tabular-nums">
 								{formatTime(comment.createdAt)}
 							</span>
-							{session && (
+							{session && !readOnly && (
 								<button
 									type="button"
 									className="transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
@@ -497,13 +524,15 @@ function CommentCard({
 						<CommentMarkdown content={comment.content} />
 					</div>
 
-					<ReplyEidtInput
-						reId={comment.id}
-						targetType={targetType}
-						targetId={targetId}
-						commentscomp={false}
-						showTypeSelector={false}
-					/>
+					{!readOnly && (
+						<ReplyEidtInput
+							reId={comment.id}
+							targetType={targetType}
+							targetId={targetId}
+							commentscomp={false}
+							showTypeSelector={false}
+						/>
+					)}
 
 					{comment.re?.length > 0 && (
 						<div className="mt-1">
@@ -512,6 +541,7 @@ function CommentCard({
 								targetType={targetType}
 								targetId={targetId}
 								session={session}
+								readOnly={readOnly}
 								depth={0}
 							/>
 						</div>
@@ -527,12 +557,14 @@ function ReplyList({
 	targetType,
 	targetId,
 	session,
+	readOnly = false,
 	depth = 0,
 }: {
 	replies: any[];
 	targetType: string;
 	targetId: string;
 	session: any;
+	readOnly?: boolean;
 	depth?: number;
 }) {
 	const sorted = useMemo(() => [...replies].sort(byCreatedAtAsc), [replies]);
@@ -564,7 +596,7 @@ function ReplyList({
 								<span className="text-xs tabular-nums text-muted-foreground">
 									{formatTime(reply.createdAt)}
 								</span>
-								{session && (
+								{session && !readOnly && (
 									<button
 										type="button"
 										className="text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
@@ -585,13 +617,15 @@ function ReplyList({
 								<CommentMarkdown content={reply.content} />
 							</div>
 
-							<ReplyEidtInput
-								reId={reply.id}
-								targetType={targetType}
-								targetId={targetId}
-								commentscomp={false}
-								showTypeSelector={false}
-							/>
+							{!readOnly && (
+								<ReplyEidtInput
+									reId={reply.id}
+									targetType={targetType}
+									targetId={targetId}
+									commentscomp={false}
+									showTypeSelector={false}
+								/>
+							)}
 
 							{reply.re?.length > 0 && (
 								<ReplyList
@@ -599,6 +633,7 @@ function ReplyList({
 									targetType={targetType}
 									targetId={targetId}
 									session={session}
+									readOnly={readOnly}
 									depth={depth + 1}
 								/>
 							)}

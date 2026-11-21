@@ -78,12 +78,9 @@ export const getTopic = defineBff(
 		publicOnly: z.optional(z.boolean()),
 	}),
 	async ({ data }) => {
-		// 详情页会被列表页视口预取批量请求，同样走请求级合并的会话读取
-		const session = data.publicOnly ? null : await getServerSession();
+		// 可见性由 API 按会话判定（未发布/已删除的帖子仅归属者与管理员可见），
+		// 这里只负责透传浏览器 cookie：publicOnly 时不传，取到的就是公共数据。
 		const { data: res, error } = await api.topics({ id: data.id }).get({
-			query: {
-				userId: session?.user?.id,
-			},
 			...(data.publicOnly ? {} : cookiePass()),
 		});
 		elysiaErrorF(error);
