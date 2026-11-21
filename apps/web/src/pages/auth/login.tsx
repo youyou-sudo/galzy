@@ -155,7 +155,7 @@ function LoginPage({ search }: { search: LoginSearch }) {
 									<FieldContent>
 										<Input
 											type="email"
-											placeholder="{{EMAIL_qaiqwufz}}"
+											placeholder="user@example.com"
 											autoComplete="email"
 											value={field.state.value}
 											onChange={(e) => field.handleChange(e.target.value)}
