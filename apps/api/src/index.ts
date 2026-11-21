@@ -23,6 +23,7 @@ import {
   tags,
   tasks,
   topics,
+  users,
   views,
   vndbSync,
   walkthroughs,
@@ -98,6 +99,7 @@ async function buildApp() {
       .use(producer)
       .use(status)
       .use(topics)
+      .use(users)
       .use(tasks)
       .use(vndbSync)
       .use(kungalSync)
