@@ -140,4 +140,6 @@ export interface ChartStats {
 	saves: number;
 	entries: number;
 	byCharacter: Record<string, ChartCharacterStats>;
+	/** 不属于任何角色的结局与段落（普通 END、CG 回收、共同序章）→「共通 / 其他」卡 */
+	common: ChartCharacterStats;
 }

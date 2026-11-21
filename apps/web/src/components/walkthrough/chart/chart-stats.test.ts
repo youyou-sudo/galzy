@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { makeChart, makeEmptyChart } from "./chart-fixtures";
 import {
+	makeChart,
+	makeEmptyChart,
+	makeSharedSectionChart,
+} from "./chart-fixtures";
+import {
+	COMMON_CHARACTER_KEY,
 	chartNodeId,
 	chartStats,
 	endingTypeBadgeLabel,
 	nodeStartPhrase,
 	resolveText,
 	segmentAnchorId,
+	segmentCharacterKeys,
 	segmentOptionCount,
 	segmentsForCharacter,
 	stepNumbers,
@@ -22,6 +28,7 @@ describe("chartStats", () => {
 		expect(stats.entries).toBe(2);
 		expect(stats.byCharacter.c1).toEqual({ endings: 2, segments: 3 });
 		expect(stats.byCharacter.c2).toEqual({ endings: 2, segments: 2 });
+		expect(stats.common).toEqual({ endings: 0, segments: 0 });
 	});
 
 	it("空图全零，不抛错", () => {
@@ -31,7 +38,50 @@ describe("chartStats", () => {
 			saves: 0,
 			entries: 0,
 			byCharacter: {},
+			common: { endings: 0, segments: 0 },
 		});
+	});
+});
+
+// v50215（アマカノ３）实测：上游的分组把同段出场的 3 个女角全写进
+// section.character_keys，按分组归属会把三条线算成「每人 3 段」
+describe("段落归属", () => {
+	it("终点是结局时按结局的角色算，分组挂几个角色都不影响", () => {
+		const chart = makeSharedSectionChart();
+		expect(segmentCharacterKeys(chart, chart.segments[0])).toEqual(["c1"]);
+		expect(segmentCharacterKeys(chart, chart.segments[1])).toEqual(["c2"]);
+	});
+
+	it("终点不是结局才退回分组（共享回收段），分组没挂角色是共通", () => {
+		const chart = makeSharedSectionChart();
+		expect(segmentCharacterKeys(chart, chart.segments[2])).toEqual([
+			"c1",
+			"c2",
+			"c3",
+		]);
+		expect(segmentCharacterKeys(chart, chart.segments[3])).toEqual([]);
+	});
+
+	it("角色卡计数与段落过滤同一口径，共通单独归一组", () => {
+		const chart = makeSharedSectionChart();
+		const stats = chartStats(chart);
+		expect(stats.byCharacter.c1).toEqual({ endings: 1, segments: 2 });
+		expect(stats.byCharacter.c2).toEqual({ endings: 1, segments: 2 });
+		expect(stats.byCharacter.c3).toEqual({ endings: 0, segments: 1 });
+		expect(stats.common).toEqual({ endings: 1, segments: 1 });
+
+		expect(segmentsForCharacter(chart, "c1").map((s) => s.key)).toEqual([
+			"g1",
+			"g3",
+		]);
+		expect(segmentsForCharacter(chart, "c2").map((s) => s.key)).toEqual([
+			"g2",
+			"g3",
+		]);
+		// 共通段不混进角色线：卡片数字就是列表长度
+		expect(
+			segmentsForCharacter(chart, COMMON_CHARACTER_KEY).map((s) => s.key),
+		).toEqual(["g4"]);
 	});
 });
 
@@ -84,7 +134,7 @@ describe("双语解析", () => {
 });
 
 describe("段落工具", () => {
-	it("按角色过滤，共用段（section 为空）保留", () => {
+	it("按角色过滤：只留归属该角色的段落", () => {
 		const chart = makeChart();
 		expect(segmentsForCharacter(chart, null).length).toBe(5);
 		expect(segmentsForCharacter(chart, "c1").map((s) => s.key)).toEqual([

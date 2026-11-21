@@ -5,6 +5,7 @@ import type {
 	ChartLocalized,
 	ChartNode,
 	ChartSave,
+	ChartSection,
 	ChartSegment,
 	ChartStep,
 	ChartStepType,
@@ -69,6 +70,20 @@ export function ending(
 
 export function save(key: string, label: string, zh: string | null): ChartSave {
 	return { key, label, localized: localized(zh) };
+}
+
+export function section(
+	key: string,
+	title: string,
+	zh: string | null,
+	characterKeys: string[],
+): ChartSection {
+	return {
+		key,
+		title,
+		localized: localized(zh),
+		character_keys: characterKeys,
+	};
 }
 
 export function segment(
@@ -184,6 +199,54 @@ export function makeChart(): WalkthroughChart {
 					"変なことは言わない方がいいか",
 					"奇怪的话还是别说比较好吧",
 				),
+			]),
+		],
+	};
+}
+
+/**
+ * 上游分组把「这一段里出场过的女角」全写进去的图（实测 v50215：叶梦/诗梦/纱由美
+ * 三段的 section.character_keys 都挂着 c1/c2/c3）。
+ *
+ * 用来锁住归属口径：段落终点是结局时按结局的角色算，只有终点不是结局
+ * （回收 / 无标注终点）才退回分组；分组没挂角色的段落归「共通 / 其他」。
+ */
+export function makeSharedSectionChart(): WalkthroughChart {
+	return {
+		sections: [
+			section("s1", "■叶夢ルート", "■叶梦线", ["c1", "c2", "c3"]),
+			section("s2", "■詩夢ルート", "■诗梦线", ["c1", "c2", "c3"]),
+			section("s3", "■その他", "■其他", []),
+		],
+		legend: [],
+		entries: [
+			{
+				key: "en1",
+				label: "START",
+				localized: {},
+				unlocked_by_ending_key: null,
+			},
+		],
+		saves: [save("sv01", "◆セーブ01", "◆存档01")],
+		endings: [
+			ending("e1", "叶夢END", "叶梦END", "heroine", ["c1"]),
+			ending("e2", "詩夢END", "诗梦END", "heroine", ["c2"]),
+			ending("e6", "ノーマルEND", "普通END", "normal", []),
+		],
+		segments: [
+			segment("g1", "s1", node("entry", "en1"), node("ending", "e1"), [
+				step("choice", "釣りを見る", "看钓鱼"),
+			]),
+			segment("g2", "s2", node("save", "sv01"), node("ending", "e2"), [
+				step("choice", "声をかける", "搭话"),
+			]),
+			// 终点是回收点：归属退回分组，这条回收段被三条线共享
+			segment("g3", "s1", node("save", "sv01"), node("collect", null), [
+				step("choice", "回収する", "回收"),
+			]),
+			// 分组没挂角色 → 共通 / 其他
+			segment("g4", "s3", node("save", "sv01"), node("ending", "e6"), [
+				step("action", "家に帰る", "回家"),
 			]),
 		],
 	};

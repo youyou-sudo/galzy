@@ -134,10 +134,48 @@ export function segmentSection(chart: WalkthroughChart, segment: ChartSegment) {
 }
 
 /**
- * 按角色过滤段落：
- * - 命中 section.character_keys 的段落属于该角色；
- * - 没有 section 或 section.character_keys 为空的段落是全线共用段，所有角色都看得到。
- * 不传 characterKey 时返回全部（流程图看全部路线）。
+ * 「共通 / 其他」的合成角色 key。
+ *
+ * 攻略里总有段落不属于任何角色（普通 END、CG 回收、共同序章）。上游把它们放在
+ * 没有 character_keys 的分组里，角色卡上本来没地方放，只能挂在合成 key 上；
+ * 它只存在于前端筛选状态（`?character=__common__`），不写回数据。
+ */
+export const COMMON_CHARACTER_KEY = "__common__";
+
+/**
+ * 段落归属的角色 key（空数组 = 共通 / 其他）。
+ *
+ * 先看段落终点的结局：结局的 character_keys 才真正说明「这段通向谁」，个人线
+ * 结局基本一个角色一个。只有终点不是结局（回收 / 无标注终点）或结局没挂角色时，
+ * 才退回原页面的分组（section.character_keys）——上游的分组会把同一段里出场的
+ * 女角全写进去（实测 v50215 三段各挂 3 个角色），拿它当归属会把几条线合成一条，
+ * 所以只能当兜底。
+ */
+export function segmentCharacterKeys(
+	chart: WalkthroughChart,
+	segment: ChartSegment,
+): string[] {
+	if (segment.to_node.node_type === "ending") {
+		const ending = (chart.endings ?? []).find(
+			(item) => item.key === segment.to_node.key,
+		);
+		if (ending && ending.character_keys.length > 0)
+			return ending.character_keys;
+	}
+	const section = segment.section_key
+		? ((chart.sections ?? []).find(
+				(item) => item.key === segment.section_key,
+			) ?? null)
+		: null;
+	return section?.character_keys ?? [];
+}
+
+/**
+ * 按角色过滤段落：只留归属该角色的段落（见 segmentCharacterKeys）。
+ *
+ * 不属于任何角色的段落不进角色线：它们有自己的「共通 / 其他」入口，
+ * 混进每个人的列表会让「N 段」与实际看到的段数对不上。
+ * 不传 characterKey 时返回全部（全部路线 / 流程图看全部）。
  */
 export function segmentsForCharacter(
 	chart: WalkthroughChart,
@@ -145,12 +183,14 @@ export function segmentsForCharacter(
 ): ChartSegment[] {
 	const segments = chart.segments ?? [];
 	if (!characterKey) return segments;
-	const byKey = new Map((chart.sections ?? []).map((s) => [s.key, s]));
-	return segments.filter((segment) => {
-		const section = segment.section_key ? byKey.get(segment.section_key) : null;
-		if (!section || section.character_keys.length === 0) return true;
-		return section.character_keys.includes(characterKey);
-	});
+	if (characterKey === COMMON_CHARACTER_KEY) {
+		return segments.filter(
+			(segment) => segmentCharacterKeys(chart, segment).length === 0,
+		);
+	}
+	return segments.filter((segment) =>
+		segmentCharacterKeys(chart, segment).includes(characterKey),
+	);
 }
 
 /**
@@ -236,9 +276,9 @@ export function nodeStartPhrase(
 }
 
 /**
- * 全量统计 + 每角色统计。角色卡「N 个结局 · N 段」直接用 byCharacter。
- * 段数只算 section 里明确挂在该角色名下的段落：共用段（character_keys 为空）
- * 会被每个角色看到，但算进每人的「段」会让数字失去区分度。
+ * 全量统计 + 每角色统计。角色卡「N 个结局 · N 段」直接用 byCharacter，
+ * 「共通 / 其他」卡用 common。段数按 segmentCharacterKeys 的归属算，
+ * 与按角色过滤的口径同一个来源——两边各算一次，卡片数与列表长度迟早对不上。
  */
 export function chartStats(chart: WalkthroughChart): ChartStats {
 	const endings = chart.endings ?? [];
@@ -253,16 +293,19 @@ export function chartStats(chart: WalkthroughChart): ChartStats {
 		for (const key of ending.character_keys) characterKeys.add(key);
 	}
 
+	// 段落归属只算一次：下面按角色筛计数时直接查表，不必每个角色重扫一遍
+	const owners = new Map<string, string[]>();
+	for (const segment of segments) {
+		owners.set(segment.key, segmentCharacterKeys(chart, segment));
+	}
+
 	const byCharacter: ChartStats["byCharacter"] = {};
 	for (const key of characterKeys) {
 		byCharacter[key] = {
 			endings: endings.filter((e) => e.character_keys.includes(key)).length,
-			segments: segments.filter((segment) => {
-				const section = segment.section_key
-					? sections.find((s) => s.key === segment.section_key)
-					: null;
-				return section?.character_keys.includes(key) ?? false;
-			}).length,
+			segments: segments.filter((segment) =>
+				(owners.get(segment.key) ?? []).includes(key),
+			).length,
 		};
 	}
 
@@ -272,6 +315,14 @@ export function chartStats(chart: WalkthroughChart): ChartStats {
 		saves: (chart.saves ?? []).length,
 		entries: (chart.entries ?? []).length,
 		byCharacter,
+		common: {
+			// 没挂角色的结局（普通 END / 无标注结局）与段落都归「共通 / 其他」
+			endings: endings.filter((ending) => ending.character_keys.length === 0)
+				.length,
+			segments: segments.filter(
+				(segment) => (owners.get(segment.key) ?? []).length === 0,
+			).length,
+		},
 	};
 }
 /**

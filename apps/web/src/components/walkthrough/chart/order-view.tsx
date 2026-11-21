@@ -9,6 +9,7 @@ import {
 	endingTypeBadgeLabel,
 	nodeLabel,
 	resolveText,
+	segmentCharacterKeys,
 	segmentOptionCount,
 	stepNumbers,
 } from "./chart-utils";
@@ -150,19 +151,9 @@ export function OrderView({
 	const doneCount = segments.filter((segment) => doneKeys.has(segment.key)).length;
 	const percent = Math.round((doneCount / segments.length) * 100);
 
-	/** 一段属于哪个角色：终点是结局就看结局，否则看所属 section */
-	const characterKeyOf = (segment: ChartSegment): string | null => {
-		if (segment.to_node.node_type === "ending") {
-			const ending = (chart.endings ?? []).find(
-				(item) => item.key === segment.to_node.key,
-			);
-			if (ending?.character_keys.length) return ending.character_keys[0] ?? null;
-		}
-		const section = segment.section_key
-			? sectionByKey.get(segment.section_key)
-			: null;
-		return section?.character_keys[0] ?? null;
-	};
+	/** 一段属于哪个角色：与角色路线过滤同一口径（segmentCharacterKeys），取首个当标签 */
+	const characterKeyOf = (segment: ChartSegment): string | null =>
+		segmentCharacterKeys(chart, segment)[0] ?? null;
 
 	const characterLabelOf = (segment: ChartSegment): string | null => {
 		const key = characterKeyOf(segment);
