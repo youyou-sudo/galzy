@@ -1,5 +1,9 @@
 "use client";
 
+// 注意：reactjs-tiptap-editor 自 1.0.47 起会把 React 整份打进自己的产物
+// （lib/react-*.js），组件内的 hooks 走的是另一份 React（dispatcher 为 null），
+// 发帖/编辑页会直接抛 Invalid hook call 打成 500。package.json 里因此固定使用
+// 最后一个正常版本 1.0.46，升级前必须确认产物里不再自带 React。
 import { RichTextProvider } from "reactjs-tiptap-editor";
 import "reactjs-tiptap-editor/style.css";
 import { EditorContent, useEditor } from "@tiptap/react";

@@ -64,7 +64,7 @@
     "react-markdown": "^10.1.0",
     "react-photo-view": "1.2.7",
     "react-use-measure": "^2.1.7",
-    "reactjs-tiptap-editor": "^1.0.48",
+    "reactjs-tiptap-editor": "1.0.46",
     "recharts": "3.10.1",
     "rehype-raw": "^7.0.0",
     "rehype-stringify": "^10.0.1",
