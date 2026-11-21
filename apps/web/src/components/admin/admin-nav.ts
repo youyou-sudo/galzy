@@ -8,6 +8,7 @@ import {
 	MessageSquareTextIcon,
 	PackageIcon,
 	SearchIcon,
+	ShieldAlertIcon,
 	UsersIcon,
 } from "lucide-react";
 
@@ -65,6 +66,21 @@ export const adminNav: AdminNavSection[] = [
 				description: "审核、隐藏与删除",
 				icon: MessageSquareTextIcon,
 				keywords: ["topics", "论坛", "huati"],
+			},
+			{
+				to: "/admin/moderation",
+				label: "内容审核",
+				description: "大模型识别广告与垃圾内容",
+				icon: ShieldAlertIcon,
+				keywords: [
+					"moderation",
+					"spam",
+					"ai",
+					"审核",
+					"shenhe",
+					"广告",
+					"guanggao",
+				],
 			},
 			{
 				to: "/admin/collections",

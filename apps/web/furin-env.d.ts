@@ -112,6 +112,12 @@ declare module "@teyik0/furin/routes" {
       parent: typeof import("./src/pages/admin/route").route;
       pathParams: {};
     };
+    "/admin/moderation": {
+      kind: "page";
+      pattern: "/admin/moderation";
+      parent: typeof import("./src/pages/admin/route").route;
+      pathParams: {};
+    };
     "/admin/tasks": {
       kind: "page";
       pattern: "/admin/tasks";
@@ -294,6 +300,7 @@ declare module "@teyik0/furin/routes" {
     "/admin/friend-links": typeof import("./src/pages/admin/friend-links").route;
     "/admin/kungal-sync": typeof import("./src/pages/admin/kungal-sync").route;
     "/admin/meilisearch": typeof import("./src/pages/admin/meilisearch").route;
+    "/admin/moderation": typeof import("./src/pages/admin/moderation").route;
     "/admin/tasks": typeof import("./src/pages/admin/tasks").route;
     "/admin/topics": typeof import("./src/pages/admin/topics").route;
     "/admin/users": typeof import("./src/pages/admin/users").route;

@@ -5,6 +5,7 @@ import * as admin_comments from "@web/server/impl/admin/comments";
 import * as admin_friend_links from "@web/server/impl/admin/friend-links";
 import * as admin_kungal_sync from "@web/server/impl/admin/kungal-sync";
 import * as admin_meilisearch from "@web/server/impl/admin/meilisearch";
+import * as admin_moderation from "@web/server/impl/admin/moderation";
 import * as admin_tasks from "@web/server/impl/admin/tasks";
 import * as admin_topics from "@web/server/impl/admin/topics";
 import * as admin_vndb_sync from "@web/server/impl/admin/vndb-sync";
@@ -69,6 +70,13 @@ export const bffRegistry: Record<string, BffImplLike> = {
 	"admin.meilisearch.triggerGameIndexRebuild": admin_meilisearch.triggerGameIndexRebuild,
 	"admin.meilisearch.triggerTagIndexRebuild": admin_meilisearch.triggerTagIndexRebuild,
 	"admin.meilisearch.triggerProducerIndexRebuild": admin_meilisearch.triggerProducerIndexRebuild,
+	"admin.moderation.adminGetModerationSettings": admin_moderation.adminGetModerationSettings,
+	"admin.moderation.adminUpdateModerationSettings": admin_moderation.adminUpdateModerationSettings,
+	"admin.moderation.adminTestModeration": admin_moderation.adminTestModeration,
+	"admin.moderation.adminGetModerationQueue": admin_moderation.adminGetModerationQueue,
+	"admin.moderation.adminConfirmModeration": admin_moderation.adminConfirmModeration,
+	"admin.moderation.adminRestoreModeration": admin_moderation.adminRestoreModeration,
+	"admin.moderation.adminRetryModeration": admin_moderation.adminRetryModeration,
 	"admin.tasks.listTasks": admin_tasks.listTasks,
 	"admin.tasks.getTaskStats": admin_tasks.getTaskStats,
 	"admin.tasks.getQueueStats": admin_tasks.getQueueStats,

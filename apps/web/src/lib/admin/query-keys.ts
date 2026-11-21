@@ -54,6 +54,14 @@ export const adminKeys = {
 	adverts: (slotId: number | null = null) =>
 		[...root, "adverts", "list", slotId ?? "all"] as const,
 
+	/* ── 内容审核（大模型） ───────────────────────────────────── */
+	moderationRoot: () => [...root, "moderation"] as const,
+	/** 配置（单例） */
+	moderationSettings: () => [...root, "moderation", "settings"] as const,
+	/** 审核队列：status / targetType / 搜索 / 分页整体参与键 */
+	moderationQueue: (filters: ListFilters) =>
+		[...root, "moderation", "queue", filters] as const,
+
 	/* ── 用户 ─────────────────────────────────────────────────── */
 	usersRoot: () => [...root, "users"] as const,
 	users: (filters: ListFilters) => [...root, "users", "list", filters] as const,
@@ -117,6 +125,13 @@ export const invalidations = {
 		adminKeys.dashboard(),
 	] as QueryKey[],
 	users: [adminKeys.usersRoot(), adminKeys.dashboard()] as QueryKey[],
+	/** 审核处置会删/恢复评论与帖子，也可能封禁用户 */
+	moderation: [
+		adminKeys.moderationRoot(),
+		adminKeys.commentsRoot(),
+		adminKeys.topicsRoot(),
+		adminKeys.usersRoot(),
+	] as QueryKey[],
 	friendLinks: [
 		adminKeys.friendLinksRoot(),
 		publicKeys.friendLinks,
