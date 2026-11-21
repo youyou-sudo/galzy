@@ -1,5 +1,6 @@
 import { comments, db, sql, users } from '@api/libs'
 import { emailServer } from '@api/libs/seedMail'
+import { ModerationService } from '@api/modules/moderation/service'
 import {
   and,
   asc,
@@ -286,6 +287,19 @@ export const CommentService = {
 
       return [result]
     })
+
+    // 大模型内容审核：入队只是同步写一行记录，模型调用在后台跑，不阻塞发评论。
+    // 未启用 / 检测失败都不能影响评论本身，因此整体包一层 try。
+    try {
+      await ModerationService.enqueueInspection({
+        targetType: 'comment',
+        targetId: String(inserted!.id),
+        userId,
+        content,
+      })
+    } catch (error) {
+      console.error('[moderation] 评论送审入队失败:', error)
+    }
 
     // Fire-and-forget email notification to parent comment author
     if (parentId && parent && parent.userId !== userId) {

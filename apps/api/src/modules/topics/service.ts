@@ -9,6 +9,7 @@ import {
   topicLikes,
   users,
 } from '@api/libs'
+import { ModerationService } from '@api/modules/moderation/service'
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { TopicModel } from './model'
@@ -550,6 +551,20 @@ export const TopicService = {
         updatedAt: now,
       })
       .returning()
+
+    // 大模型内容审核：入队同步写一行，模型调用在后台跑（未启用时直接跳过）。
+    // HTML 正文原样送审（href 本身就是广告识别的重要信号，不能先剥标签）。
+    try {
+      await ModerationService.enqueueInspection({
+        targetType: 'topic',
+        targetId: String(inserted!.id),
+        userId,
+        title,
+        content: safeContent,
+      })
+    } catch (error) {
+      console.error('[moderation] 帖子送审入队失败:', error)
+    }
 
     // 与列表/详情返回结构一致：author 列以 userId 字段对外暴露
     const topic = {
