@@ -70,7 +70,8 @@ import { toast } from "sonner";
  *
  * 两个 Tab：
  * - 审核队列：创建评论 / 帖子时由 API 送审，命中广告先标记删除；可信度不足
- *   阈值的落到「待处理」，高可信的已自动封禁，也需要在这里留档与复核。
+ *   阈值的落到「待处理」，高可信的已自动封禁，判定正常的记为「已通过」留档，
+ *   所以「我的帖子到底过没过审」在这张表里能查到。
  * - 模型配置：API 地址 / Key / 模型 / 提示词 / 阈值，保存后立即对新内容生效。
  *
  * Tab 与筛选都走浅层 URL（不触发 furin 导航），队列分页沿用后台通用表格状态。
@@ -79,6 +80,7 @@ import { toast } from "sonner";
 export type ModerationStatus =
 	| "analyzing"
 	| "pending"
+	| "clean"
 	| "auto_banned"
 	| "confirmed"
 	| "restored"
@@ -180,6 +182,7 @@ export function moderationQueueQueryOptions(filters: ModerationFilters) {
 					counts: {
 						analyzing: 0,
 						pending: 0,
+						clean: 0,
 						auto_banned: 0,
 						confirmed: 0,
 						restored: 0,
@@ -198,6 +201,7 @@ const STATUS_META: Record<
 > = {
 	analyzing: { label: "分析中", tone: "info" },
 	pending: { label: "待处理", tone: "warning" },
+	clean: { label: "已通过", tone: "success" },
 	auto_banned: { label: "已自动封禁", tone: "destructive" },
 	confirmed: { label: "已确认", tone: "destructive" },
 	restored: { label: "已恢复", tone: "success" },
@@ -239,7 +243,7 @@ export default function ModerationAdminPage({
 				icon={ShieldAlertIcon}
 				eyebrow="内容管理"
 				title="内容审核"
-				description="评论与帖子发布时由大模型判断是否为广告 / 垃圾内容：命中的先标记删除，高可信直接封禁作者，其余进入待处理队列"
+				description="评论与帖子发布时由大模型判断是否为广告 / 垃圾内容：命中的先标记删除，高可信直接封禁作者，其余进入待处理队列；判定正常的记为「已通过」"
 			/>
 
 			<Tabs value={tab} onValueChange={handleTabChange} className="w-full">
@@ -539,7 +543,11 @@ function QueuePanel() {
 		const isRestoring = pendingRestore.some((item) => item.id === row.id);
 		const isRetrying = pendingRetry.some((item) => item.id === row.id);
 		const busy = confirming || isRestoring || isRetrying;
-		const settled = row.status === "confirmed" || row.status === "restored";
+		const settled =
+			row.status === "confirmed" ||
+			row.status === "restored" ||
+			// 已通过的记录没有可处置的对象：确认会误删正常内容，恢复也无内容可恢复
+			row.status === "clean";
 
 		return (
 			<RowActionsMenu
@@ -576,7 +584,7 @@ function QueuePanel() {
 						label: "判定误判，恢复内容",
 						icon: Undo2Icon,
 						disabled: busy,
-						hidden: row.status === "restored",
+						hidden: settled || row.status === "restored",
 						separator: true,
 						onSelect: () => setRestoring(row),
 					},
@@ -597,6 +605,7 @@ function QueuePanel() {
 			allLabel: "全部状态",
 			options: [
 				{ value: "pending", label: "待处理", count: counts?.pending },
+				{ value: "clean", label: "已通过", count: counts?.clean },
 				{
 					value: "auto_banned",
 					label: "已自动封禁",
@@ -641,7 +650,7 @@ function QueuePanel() {
 					title: isFiltered ? "没有符合条件的审核记录" : "没有待处理的审核记录",
 					description: isFiltered
 						? "试试调整状态 / 类型筛选或搜索关键词"
-						: "命中广告的内容会先标记删除；可信度不足阈值的会出现在这里",
+						: "命中广告的内容会先标记删除；可信度不足阈值的会出现在这里，「全部状态」还能看到已通过的送审记录",
 					action: (
 						<Button
 							variant="outline"
