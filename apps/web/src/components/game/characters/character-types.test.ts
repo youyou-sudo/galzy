@@ -45,7 +45,7 @@ describe("角色展示格式化", () => {
 	it("身份与剧透徽章文案", () => {
 		expect(roleLabelOf("main")).toBe("主角");
 		expect(roleLabelOf("secondary")).toBe("配角");
-		expect(roleLabelOf("appears")).toBe("配角");
+		expect(roleLabelOf("appears")).toBe("其他");
 		expect(roleLabelOf(null)).toBe("");
 		expect(spoilerLabelOf("minor")).toBe("剧透");
 		expect(spoilerLabelOf("none")).toBe("");

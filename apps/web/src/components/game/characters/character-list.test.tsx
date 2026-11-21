@@ -27,37 +27,36 @@ const characters = readCharacterList({
 });
 
 describe("CharacterList", () => {
-	it("不分分组，平铺渲染并给身份徽章；剧透角色默认隐藏", () => {
+	it("按身份分组渲染：主角出卡片，剧透角色默认隐藏", () => {
 		const html = renderToString(
 			<CharacterList characters={characters} onSelect={vi.fn()} />,
 		);
-		// 身份徽章取代分组标题
+		// 主角组标题 + 卡片
 		expect(html).toContain("主角");
-		expect(html).not.toContain("主要角色");
 		expect(html).toContain("遠野 秋葉");
 		expect(html).toContain("Tohno Akiha");
-		// 剧透角色默认不渲染
+		// 无图占位：取姓名首字
+		expect(html).toContain("遠");
+		// 剧透角色默认不渲染；只有剧透角色时「其他登场角色」不出现空组
 		expect(html).not.toContain("シエル");
-		expect(html).not.toContain("配角");
+		expect(html).not.toContain("其他登场角色");
 		expect(html).toContain("显示剧透角色");
 		expect(html).toContain("（<!-- -->1<!-- -->）");
 		// 未打勾
 		expect(html).not.toContain("checked");
 	});
 
-	it("勾选后补出剧透角色，身份与剧透徽章并排", () => {
+	it("勾选后把其他登场角色补成紧凑行，并保留剧透标记", () => {
 		const { container } = render(
 			<CharacterList characters={characters} onSelect={vi.fn()} />,
 		);
 		fireEvent.click(container.querySelector('input[type="checkbox"]')!);
 		expect(within(container).getByText("シエル")).toBeDefined();
-		expect(within(container).getByText("配角")).toBeDefined();
+		expect(within(container).getByText("其他登场角色")).toBeDefined();
 		expect(within(container).getByText("重度剧透")).toBeDefined();
-		// 无图占位：取姓名首字
-		expect(within(container).getByText("遠")).toBeDefined();
 	});
 
-	it("主角 → 配角 → 未知身份依次排序，同档保持原序", () => {
+	it("主角 → 配角 → 其他登场角色依次成组，组内保持名册原序", () => {
 		const list = readCharacterList({
 			characters: [
 				{ id: "1", name: "配角甲", rosterRole: "appears" },
@@ -70,10 +69,28 @@ describe("CharacterList", () => {
 		const { container } = render(
 			<CharacterList characters={list} onSelect={vi.fn()} />,
 		);
-		const names = [...container.querySelectorAll("p.font-medium")].map(
+		const names = [...container.querySelectorAll("[data-character-name]")].map(
 			(node) => node.textContent,
 		);
 		expect(names).toEqual(["主角甲", "主角乙", "配角乙", "配角甲", "未知身份"]);
+		const headings = [...container.querySelectorAll("h3")].map(
+			(node) => node.firstChild?.textContent,
+		);
+		expect(headings).toEqual(["主角", "配角", "其他登场角色"]);
+	});
+
+	it("同名重复条目只保留卡片，不再混进其他登场角色", () => {
+		const list = readCharacterList({
+			characters: [
+				{ id: "1", name: "仙石 一縷", rosterRole: "secondary" },
+				{ id: "2", name: "仙石一縷", rosterRole: "unknown" },
+			],
+		});
+		const { container } = render(
+			<CharacterList characters={list} onSelect={vi.fn()} />,
+		);
+		expect(container.querySelectorAll("[data-character-name]")).toHaveLength(1);
+		expect(within(container).queryByText("其他登场角色")).toBeNull();
 	});
 
 	it("没有角色时给空态文案", () => {

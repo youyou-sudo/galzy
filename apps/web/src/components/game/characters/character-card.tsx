@@ -108,7 +108,11 @@ export function CharacterCard({
 				)}
 			</div>
 			<div className="min-w-0 px-0.5">
-				<p className="text-sm font-medium truncate" title={character.name}>
+				<p
+					className="text-sm font-medium truncate"
+					data-character-name={character.name}
+					title={character.name}
+				>
 					{character.name}
 				</p>
 				{character.latin && (

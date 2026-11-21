@@ -67,13 +67,13 @@ export type CharacterInfoView = CharacterView & {
 };
 
 /**
- * 身份徽章文案：名册只有 main / secondary / appears 三档，
- * 展示上收敛成两档「主角 / 配角」—— 不再按身份拆分组标题。
+ * 身份徽章文案：与列表分组口径一致 —— main 主角、secondary 配角，
+ * appears（以及其他登场角色）在徽章里收敛成「其他」，不再冒充配角。
  */
 export const CHARACTER_ROLE_LABELS: Record<CharacterRole, string> = {
 	main: "主角",
 	secondary: "配角",
-	appears: "配角",
+	appears: "其他",
 };
 
 const SPOILER_LABELS: Record<CharacterSpoiler, string> = {
