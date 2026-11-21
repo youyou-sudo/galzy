@@ -8,7 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { chartStats } from "./chart";
-import { makeChart } from "./chart/chart-fixtures";
+import { makeChart, makeSharedSectionChart } from "./chart/chart-fixtures";
 import { WalkthroughGraphFullscreen } from "./walkthrough-graph-fullscreen";
 
 const chart = makeChart();
@@ -55,6 +55,28 @@ describe("WalkthroughGraphFullscreen", () => {
 		expect(lang.textContent).toContain("中文");
 		expect(
 			within(dialog).getByRole("button", { name: /全部路线/ }),
+		).toBeDefined();
+	});
+
+	// 角色药丸按段落归属计数；不属于任何角色的内容有自己的「共通 / 其他」入口
+	it("有共通内容时多一个「共通 / 其他」药丸", () => {
+		const sharedChart = makeSharedSectionChart();
+		render(
+			<WalkthroughGraphFullscreen
+				characters={characters}
+				characterKey={null}
+				chart={sharedChart}
+				lang="zh"
+				onCharacterChange={vi.fn()}
+				onLangChange={vi.fn()}
+				onOpenChange={vi.fn()}
+				open
+				stats={chartStats(sharedChart)}
+			/>,
+		);
+		const dialog = screen.getByRole("dialog");
+		expect(
+			within(dialog).getByRole("button", { name: /共通 \/ 其他/ }),
 		).toBeDefined();
 	});
 

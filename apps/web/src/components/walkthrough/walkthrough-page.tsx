@@ -5,6 +5,7 @@ import {
 import { EmptyState } from "@web/components/shared/empty-state";
 import {
 	CharacterView,
+	COMMON_CHARACTER_KEY,
 	chartStats,
 	GraphView,
 	OrderView,
@@ -87,13 +88,17 @@ export function WalkthroughPage({
 		[roster],
 	);
 
-	// 链接里的 character 可能是旧 key（攻略更新后角色被删）：不认识就当没选
+	// 链接里的 character 可能是旧 key（攻略更新后角色被删）：不认识就当没选。
+	// 「共通 / 其他」是合成的筛选 key，不在 characters 里，只有确实有这类内容才认。
 	const requestedCharacter = search.character?.trim() || null;
-	const characterKey = characters.some(
-		(item) => item.key === requestedCharacter,
-	)
-		? requestedCharacter
-		: null;
+	const hasCommonRoute =
+		(stats?.common.endings ?? 0) + (stats?.common.segments ?? 0) > 0;
+	const characterKey =
+		requestedCharacter === COMMON_CHARACTER_KEY && hasCommonRoute
+			? COMMON_CHARACTER_KEY
+			: characters.some((item) => item.key === requestedCharacter)
+				? requestedCharacter
+				: null;
 
 	const scrollToSegment = useCallback((segmentKey: string) => {
 		if (typeof document === "undefined") return;

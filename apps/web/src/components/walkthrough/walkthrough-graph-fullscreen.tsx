@@ -2,7 +2,7 @@ import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
 import { cn } from "@web/lib/utils";
 import { X } from "lucide-react";
 import type { ChartStats, WalkthroughChart } from "./chart";
-import { GraphView } from "./chart";
+import { COMMON_CHARACTER_KEY, GraphView } from "./chart";
 import {
 	characterNameOf,
 	routeCountsLine,
@@ -10,6 +10,17 @@ import {
 	type WalkthroughLang,
 } from "./types";
 import { WalkthroughLangSwitch } from "./walkthrough-toolbar";
+
+/** 有内容的角色才有药丸（0 结局 0 段的角色切过去只会是一张空图） */
+function routeCharactersOf(
+	characters: WalkthroughCharacter[],
+	stats: ChartStats,
+) {
+	return characters.filter((character) => {
+		const item = stats.byCharacter[character.key];
+		return (item?.endings ?? 0) + (item?.segments ?? 0) > 0;
+	});
+}
 
 /**
  * 流程图全屏 Modal。
@@ -50,6 +61,9 @@ export function WalkthroughGraphFullscreen({
 	stats: ChartStats;
 	onOpenSegment?: (segmentKey: string) => void;
 }) {
+	const routes = routeCharactersOf(characters, stats);
+	const hasCommon = stats.common.endings + stats.common.segments > 0;
+
 	return (
 		<DialogPrimitive.Root
 			onOpenChange={onOpenChange}
@@ -84,7 +98,7 @@ export function WalkthroughGraphFullscreen({
 							<WalkthroughLangSwitch lang={lang} onLangChange={onLangChange} />
 						</div>
 					</header>
-					{characters.length > 0 ? (
+					{routes.length > 0 || hasCommon ? (
 						<div
 							aria-label="角色路线"
 							className="flex shrink-0 items-center gap-1.5 overflow-x-auto border-border/70 border-b px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -96,7 +110,7 @@ export function WalkthroughGraphFullscreen({
 								label="全部路线"
 								onClick={() => onCharacterChange(null)}
 							/>
-							{characters.map((character) => {
+							{routes.map((character) => {
 								const item = stats.byCharacter[character.key];
 								return (
 									<RoutePill
@@ -111,6 +125,17 @@ export function WalkthroughGraphFullscreen({
 									/>
 								);
 							})}
+							{hasCommon ? (
+								<RoutePill
+									active={characterKey === COMMON_CHARACTER_KEY}
+									count={routeCountsLine(
+										stats.common.endings,
+										stats.common.segments,
+									)}
+									label="共通 / 其他"
+									onClick={() => onCharacterChange(COMMON_CHARACTER_KEY)}
+								/>
+							) : null}
 						</div>
 					) : null}
 					<div className="min-h-0 flex-1 p-2 sm:p-3">

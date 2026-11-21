@@ -9,7 +9,7 @@ import {
 } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { makeChart } from "./chart/chart-fixtures";
+import { makeChart, makeSharedSectionChart } from "./chart/chart-fixtures";
 import { WalkthroughPage } from "./walkthrough-page";
 
 // vitest 配了 globals:false，Testing Library 不会自动清理；不手动清就会跨用例累积 DOM
@@ -155,6 +155,46 @@ const multiCharacterData = {
 	chart: makeChart(),
 };
 
+/**
+ * 上游分组把同段出场的女角全挂进来的详情（v50215 的形状）：三段各挂 c1/c2/c3，
+ * 外加一段不带角色的「其他」。用来验证路线卡按段落归属计数、共通单独一张卡。
+ */
+const sharedSectionData = {
+	...detailData,
+	characters: [
+		{
+			key: "c1",
+			name: "柳木叶梦",
+			characterId: null,
+			displayName: "柳木叶梦",
+			localized: {},
+		},
+		{
+			key: "c2",
+			name: "柳木诗梦",
+			characterId: null,
+			displayName: "柳木诗梦",
+			localized: {},
+		},
+		{
+			key: "c3",
+			name: "鸿纱由美",
+			characterId: null,
+			displayName: "鸿纱由美",
+			localized: {},
+		},
+		// 上游名册里挂了个既没有结局也没有段落的角色：不该出一张空卡
+		{
+			key: "c4",
+			name: "无名配角",
+			characterId: null,
+			displayName: "无名配角",
+			localized: {},
+		},
+	],
+	chart: makeSharedSectionChart(),
+};
+
 describe("WalkthroughPage", () => {
 	it("概览卡：三个计数与来源署名（会社/发售日/两个出口已移除）", () => {
 		const html = renderToString(<WalkthroughPage data={detailData} />);
@@ -211,6 +251,28 @@ describe("WalkthroughPage", () => {
 		expect(html).toContain("朝武芳乃");
 		expect(html).toContain("1 个结局 · 1 段");
 		expect(html).toContain("全部路线");
+	});
+
+	// v50215（アマカノ３）实测：上游分组把同段出场的女角全挂进来，路线卡若按
+	// 分组计数，每条都是「3 段」，点进去三条线混在一起
+	it("角色路线卡：按段落归属计数，不带角色的内容单独一张「共通 / 其他」", () => {
+		const html = renderToString(<WalkthroughPage data={sharedSectionData} />);
+		// 叶梦 = 自己那段 + 共享回收段，诗梦/纱由美的线不再算进来
+		expect(html).toContain("1 个结局 · 2 段");
+		expect(html).toContain("共通 / 其他");
+		expect(html).toContain("1 个结局 · 1 段");
+		// 0 结局 0 段的角色不给卡（点进去只会是一条空路线）
+		expect(html).not.toContain("无名配角");
+	});
+
+	it("点「共通 / 其他」只看不属于任何角色的段落", async () => {
+		const { container } = render(<WalkthroughPage data={sharedSectionData} />);
+		fireEvent.click(screen.getByRole("button", { name: /共通 \/ 其他/ }));
+		await waitFor(() =>
+			expect(container.textContent ?? "").toContain("本路线分 1 段"),
+		);
+		expect(container.textContent ?? "").not.toContain("看钓鱼");
+		expect(container.textContent ?? "").toContain("回家");
 	});
 
 	it("角色路线卡：名册头像 + 身份徽章 + 选中态", () => {

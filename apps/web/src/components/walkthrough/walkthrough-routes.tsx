@@ -5,10 +5,13 @@ import {
 } from "@web/components/game/characters/character-types";
 import { AspectRatio } from "@web/components/ui/aspect-ratio";
 import { Badge } from "@web/components/ui/badge";
-import type { ChartStats } from "@web/components/walkthrough/chart";
+import {
+	type ChartStats,
+	COMMON_CHARACTER_KEY,
+} from "@web/components/walkthrough/chart";
 import { useThumbHashDataUrl } from "@web/lib/image";
 import { cn } from "@web/lib/utils";
-import { Check, Users } from "lucide-react";
+import { Check, Users, Waypoints } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
 	characterNameOf,
@@ -61,7 +64,23 @@ export function WalkthroughRoutes({
 		[roster],
 	);
 
-	if (characters.length === 0) return null;
+	// 0 个结局、0 段的角色卡是死入口（点进去一条路线都没有，文案只能报空）：
+	// 上游的 characters 列表常带上只在分组里露过面、其实没有自己路线的角色。
+	const routes = useMemo(
+		() =>
+			characters.filter((character) => {
+				const item = stats.byCharacter[character.key];
+				return (item?.endings ?? 0) + (item?.segments ?? 0) > 0;
+			}),
+		[characters, stats],
+	);
+
+	if (routes.length === 0) return null;
+
+	// 「共通 / 其他」：不属于任何角色的段落与结局。没有这类内容就不给卡，
+	// 免得点进去是一条空路线。
+	const common = stats.common;
+	const hasCommon = common.endings > 0 || common.segments > 0;
 
 	return (
 		<section aria-label="角色路线">
@@ -74,10 +93,11 @@ export function WalkthroughRoutes({
 				<RouteCard
 					active={selectedKey === null}
 					description={routeCountsLine(stats.endings, stats.segments)}
+					kind="all"
 					name="全部路线"
 					onClick={() => onSelect(null)}
 				/>
-				{characters.map((character) => {
+				{routes.map((character) => {
 					const item = stats.byCharacter[character.key];
 					return (
 						<RouteCard
@@ -97,6 +117,16 @@ export function WalkthroughRoutes({
 						/>
 					);
 				})}
+				{hasCommon ? (
+					<RouteCard
+						active={selectedKey === COMMON_CHARACTER_KEY}
+						description={routeCountsLine(common.endings, common.segments)}
+						key={COMMON_CHARACTER_KEY}
+						kind="common"
+						name="共通 / 其他"
+						onClick={() => onSelect(COMMON_CHARACTER_KEY)}
+					/>
+				) : null}
 			</div>
 		</section>
 	);
@@ -113,12 +143,15 @@ function RouteCard({
 	name,
 	description,
 	roster,
+	kind = "character",
 	onClick,
 }: {
 	active: boolean;
 	name: string;
 	description: string;
 	roster?: CharacterView;
+	/** 图位：角色卡走名册头像，「全部路线 / 共通其他」没有脸，用图标 */
+	kind?: "character" | "all" | "common";
 	onClick: () => void;
 }) {
 	const [failed, setFailed] = useState(false);
@@ -126,7 +159,6 @@ function RouteCard({
 	const imageUrl = failed ? null : (roster?.imageUrl ?? null);
 	const initial = name.trim().slice(0, 1) || "?";
 	const roleLabel = roster?.rosterRole ? roleLabelOf(roster.rosterRole) : null;
-	const isAll = !roster && name === "全部路线";
 
 	return (
 		<button
@@ -168,20 +200,26 @@ function RouteCard({
 								width={roster?.imageWidth ?? FALLBACK_IMAGE_WIDTH}
 							/>
 						</>
-					) : isAll ? (
-						<span
-							aria-hidden="true"
-							className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-muted-foreground/70"
-						>
-							<Users className="size-7" />
-							<span className="text-[11px]">全部</span>
-						</span>
-					) : (
+					) : kind === "character" ? (
 						<span
 							aria-hidden="true"
 							className="absolute inset-0 flex items-center justify-center font-semibold text-3xl text-muted-foreground/60 select-none"
 						>
 							{initial}
+						</span>
+					) : (
+						<span
+							aria-hidden="true"
+							className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-muted-foreground/70"
+						>
+							{kind === "all" ? (
+								<>
+									<Users className="size-7" />
+									<span className="text-[11px]">全部</span>
+								</>
+							) : (
+								<Waypoints className="size-7" />
+							)}
 						</span>
 					)}
 				</AspectRatio>
