@@ -33,6 +33,7 @@ import type { ModerationModel } from './model'
 export const MODERATION_STATUSES = [
   'analyzing',
   'pending',
+  'clean',
   'auto_banned',
   'confirmed',
   'restored',
@@ -236,9 +237,20 @@ export const ModerationService = {
         content: row.content,
       })
 
-      // 判定正常：内容不动，记录也不留（队列表只放需要人看的）。
+      // 判定正常：内容不动，记录留成 clean（后台「已通过」可查送审历史）。
       if (!verdict.isSpam) {
-        await db.delete(moderationQueue).where(eq(moderationQueue.id, queueId))
+        await db
+          .update(moderationQueue)
+          .set({
+            status: 'clean',
+            verdict: 'clean',
+            confidence: verdict.confidence,
+            reason: verdict.reason,
+            model: settings.model,
+            raw: raw as never,
+            error: null,
+          })
+          .where(eq(moderationQueue.id, queueId))
         return
       }
 
@@ -493,6 +505,7 @@ export const ModerationService = {
       counts: {
         analyzing: countMap.analyzing ?? 0,
         pending: countMap.pending ?? 0,
+        clean: countMap.clean ?? 0,
         auto_banned: countMap.auto_banned ?? 0,
         confirmed: countMap.confirmed ?? 0,
         restored: countMap.restored ?? 0,
@@ -514,6 +527,8 @@ export const ModerationService = {
       .where(eq(moderationQueue.id, queueId))
 
     if (!row) throw status(404, '审核记录不存在')
+    if (row.status === 'clean')
+      throw status(400, '该记录已判定为正常，无需确认')
 
     // 确认即代表「确实要删」：避免管理员先前手动恢复过的内容又回到前台。
     await ModerationService.markContentDeleted(row.targetType, row.targetId)
@@ -548,6 +563,8 @@ export const ModerationService = {
       .where(eq(moderationQueue.id, queueId))
 
     if (!row) throw status(404, '审核记录不存在')
+    if (row.status === 'clean')
+      throw status(400, '该记录已判定为正常，无需恢复')
 
     if (row.status !== 'restored') {
       await ModerationService.restoreContent(row.targetType, row.targetId)

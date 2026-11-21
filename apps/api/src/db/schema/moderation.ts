@@ -48,11 +48,12 @@ export const aiModerationSettings = pgTable('galrc_ai_moderation_settings', {
 /**
  * galrc_moderation_queue — 审核队列 + 处置记录。
  *
- * 只保留「需要人看」的行：命中广告（低可信待处理 / 高可信已自动封禁）、
- * 人工确认/恢复后的留档、以及调用失败的行。判定为正常的内容不会留下记录。
+ * 除了「需要人看」的行（命中广告：低可信待处理 / 高可信已自动封禁、人工确认/
+ * 恢复后的留档、调用失败），判定为正常的内容也以 clean 留痕：后台「已通过」里
+ * 能看到送审记录，而不是内容发出去后毫无痕迹。
  *
  * 状态机：
- *   analyzing ──(判定正常)──▶ 删除记录
+ *   analyzing ──(判定正常)──▶ clean
  *            ├─(低可信广告)─▶ pending ──确认──▶ confirmed
  *            │                        └─恢复──▶ restored
  *            ├─(高可信广告)─▶ auto_banned ──确认──▶ confirmed
