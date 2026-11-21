@@ -39,10 +39,6 @@ export namespace TopicModel {
     limit: t.Optional(t.Number({ default: 20, minimum: 1, maximum: 100 })),
   })
 
-  export const LikeStatus = t.Object({
-    userId: t.Optional(t.String()),
-  })
-
   export type list = typeof List.static
   export type create = typeof Create.static
   export type update = typeof Update.static
@@ -50,5 +46,4 @@ export namespace TopicModel {
   export type likeToggle = typeof LikeToggle.static
   export type favoritesList = typeof FavoritesList.static
   export type likesList = typeof LikesList.static
-  export type likeStatus = typeof LikeStatus.static
 }

@@ -14,6 +14,56 @@ import { and, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import { status } from 'elysia'
 import type { TopicModel } from './model'
 
+/** 访问者身份：由路由从服务端会话解析，绝不来自客户端参数。 */
+export type TopicViewer = { userId?: string | null; isAdmin?: boolean }
+
+/** 把 Better Auth 会话转成访问者身份（未登录传 null）。 */
+export function topicViewerOf(
+  session: { user: { id: string; role?: string | null } } | null,
+): TopicViewer | null {
+  if (!session) return null
+  return { userId: session.user.id, isAdmin: session.user.role === 'admin' }
+}
+
+/**
+ * 帖子可见性：已发布对所有人生效；草稿/隐藏/已删除只对归属者与管理员生效。
+ *
+ * 评论、点赞、收藏等挂在帖子下的数据都复用它，避免各写一套规则后再次打洞。
+ */
+function canViewTopic(
+  topic: { userId: string | null; status: string },
+  viewer?: TopicViewer | null,
+): boolean {
+  if (topic.status === 'published') return true
+  if (viewer?.isAdmin) return true
+  return viewer?.userId != null && viewer.userId === topic.userId
+}
+
+/**
+ * 对挂在帖子下的数据（评论/点赞/收藏）做可见性校验。
+ *
+ * 帖子不存在、或当前访问者看不到这条帖子时统一抛 404，与帖子详情保持一致：
+ * 不暴露帖子是否存在，也不泄漏已删除/未发布帖子的任何内容。
+ */
+export async function assertTopicVisible(
+  id: string | number,
+  viewer?: TopicViewer | null,
+): Promise<void> {
+  const numericId = Number(id)
+  if (!Number.isInteger(numericId)) {
+    throw status(404, '帖子不存在')
+  }
+
+  const [topic] = await db
+    .select({ userId: articles.author, status: articles.status })
+    .from(articles)
+    .where(and(eq(articles.id, numericId), eq(articles.type, 'topic')))
+
+  if (!topic || !canViewTopic(topic, viewer)) {
+    throw status(404, '帖子不存在')
+  }
+}
+
 export const TopicService = {
   async getTopics(
     {
@@ -456,8 +506,9 @@ export const TopicService = {
     }
   },
 
-  async getTopic({ id }: TopicModel.params, userId?: string) {
+  async getTopic({ id }: TopicModel.params, viewer?: TopicViewer | null) {
     const numericId = Number(id)
+    const userId = viewer?.userId ?? undefined
 
     const [topic] = await db
       .select({
@@ -473,6 +524,12 @@ export const TopicService = {
       .from(articles)
       .where(and(eq(articles.id, numericId), eq(articles.type, 'topic')))
     if (!topic) {
+      throw status(404, '帖子不存在')
+    }
+
+    // 草稿/隐藏/已删除等非公开帖子只对归属者与管理员可见：对其他人一律按
+    // 不存在处理，既不暴露帖子是否存在，也不泄漏正文。
+    if (!canViewTopic(topic, viewer)) {
       throw status(404, '帖子不存在')
     }
 
@@ -617,6 +674,7 @@ export const TopicService = {
       .select({
         id: articles.id,
         userId: articles.author,
+        status: articles.status,
       })
       .from(articles)
       .where(and(eq(articles.id, numericId), eq(articles.type, 'topic')))
@@ -627,6 +685,16 @@ export const TopicService = {
 
     if (topic.userId !== userId && role !== 'admin') {
       throw status(403, '无权编辑该帖子')
+    }
+
+    // 发布/隐藏/删除这类状态变更只有管理员能做：否则作者可以自己把被审核
+    // 删除或被隐藏的帖子改回 published。
+    if (
+      newStatus !== undefined &&
+      newStatus !== topic.status &&
+      role !== 'admin'
+    ) {
+      throw status(403, '只有管理员可以修改帖子状态')
     }
 
     const updateData: Record<string, string | Date> = {}
@@ -674,6 +742,9 @@ export const TopicService = {
   async toggleLike({ id }: TopicModel.params, userId: string) {
     const numericId = Number(id)
 
+    // 未发布/已删除的帖子不接受互动：与帖子详情保持同一套可见性规则
+    await assertTopicVisible(numericId, null)
+
     // Try DELETE first — if row exists, unlike succeeds
     const deleted = await db
       .delete(topicLikes)
@@ -704,6 +775,9 @@ export const TopicService = {
 
   async toggleFavorite({ id }: TopicModel.params, userId: string) {
     const numericId = Number(id)
+
+    // 未发布/已删除的帖子不接受互动：与帖子详情保持同一套可见性规则
+    await assertTopicVisible(numericId, null)
 
     const deleted = await db
       .delete(topicFavorites)

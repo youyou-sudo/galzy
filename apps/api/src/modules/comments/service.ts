@@ -2,6 +2,10 @@ import { comments, db, sql, users } from '@api/libs'
 import { emailServer } from '@api/libs/seedMail'
 import { ModerationService } from '@api/modules/moderation/service'
 import {
+  assertTopicVisible,
+  type TopicViewer,
+} from '@api/modules/topics/service'
+import {
   and,
   asc,
   count,
@@ -17,16 +21,19 @@ import type { CommentModel } from './model'
 
 export const CommentService = {
   // 查询评论
-  async getComments({
-    targetType,
-    targetId,
-    page = 1,
-    limit = 20,
-    type,
-    status = 'normal',
-  }: CommentModel.list) {
+  async getComments(
+    { targetType, targetId, page = 1, limit = 20, type }: CommentModel.list,
+    viewer?: TopicViewer | null,
+  ) {
+    // 公开接口只返回正常评论：status 参数是给后台 /comments/admin 用的，
+    // 否则任何人传 status=deleted 就能翻出被删除的评论。
+    // 帖子类目标还要跟随帖子可见性：未发布/已删除的帖子仅归属者与管理员可读。
+    if (targetType === 'topic' && targetId) {
+      await assertTopicVisible(targetId, viewer)
+    }
+
     const conditions: any[] = [
-      eq(comments.status, status),
+      eq(comments.status, 'normal'),
       isNull(comments.parentId),
       isNull(comments.replyToUserId),
     ]
@@ -206,6 +213,11 @@ export const CommentService = {
     }: CommentModel.create,
     userId: string,
   ) {
+    // 未发布/已删除的帖子不再接受新评论与回复
+    if (targetType === 'topic' && targetId) {
+      await assertTopicVisible(targetId, null)
+    }
+
     const now = new Date()
     let depth = 0
     let rootId: string | null = null
