@@ -86,6 +86,37 @@ describe("applyCdnCacheHeaders", () => {
 		expect(out.headers.get("cache-control")).toBe("no-store");
 	});
 
+	it("keeps session-bearing topic pages out of the shared cache", () => {
+		// 帖子详情会按会话渲染未发布/已删除的帖子：私密正文不能进 CDN
+		const authed = applyCdnCacheHeaders(
+			request("/topics/42", {
+				headers: { cookie: "better-auth.session_token=fake-token" },
+			}),
+			htmlResponse(),
+		);
+		expect(authed.headers.get("cache-control")).toBe("no-store");
+
+		// 匿名访客拿到的仍是公共内容，照常缓存
+		const anonymous = applyCdnCacheHeaders(
+			request("/topics/42"),
+			htmlResponse(),
+		);
+		expect(anonymous.headers.get("cache-control")).toBe(
+			"public, max-age=0, s-maxage=120, stale-while-revalidate=120",
+		);
+
+		// 规则只作用于帖子详情：其他公开页带会话仍可缓存
+		const home = applyCdnCacheHeaders(
+			request("/", {
+				headers: { cookie: "better-auth.session_token=fake-token" },
+			}),
+			htmlResponse(),
+		);
+		expect(home.headers.get("cache-control")).toBe(
+			"public, max-age=0, s-maxage=60, stale-while-revalidate=60",
+		);
+	});
+
 	it("does not cache responses that set cookies", () => {
 		const out = applyCdnCacheHeaders(
 			request("/"),

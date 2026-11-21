@@ -59,6 +59,21 @@ function normalize(pathname: string): string {
 	return pathname;
 }
 
+/** 论坛帖子详情：这里的 HTML 可能因人而异（未发布/已删除的帖子）。 */
+const TOPIC_DETAIL_PATH = /^\/topics\/[^/]+$/;
+
+/**
+ * 请求是否带 better-auth 会话 cookie。
+ *
+ * 带会话的请求可能渲染仅本人/管理员可见的内容，这类响应必须保持 furin 的
+ * `no-store`，不能进共享缓存。
+ */
+function hasSessionCookie(request: Request): boolean {
+	const cookie = request.headers.get("cookie");
+	if (!cookie) return false;
+	return /(?:^|; )(?:__Secure-)?better-auth\./.test(cookie);
+}
+
 /** 明确不进 CDN 的路径：接口、框架端点、个性化页、评论（实时）。 */
 export function isCdnBypassed(pathname: string): boolean {
 	const path = normalize(pathname);
@@ -124,7 +139,14 @@ export function applyCdnCacheHeaders(
 	if (url.searchParams.has("_furin")) return response;
 	if (response.headers.has("set-cookie")) return response;
 
-	const cacheRule = cdnCacheRuleFor(url.pathname);
+	const path = normalize(url.pathname);
+	// 帖子详情会按会话渲染未发布/已删除的帖子（仅归属者与管理员可见）：
+	// 带会话的请求可能返回私密正文，一旦标成 public 就会被边缘缓存、
+	// 原样发给匿名访客，所以这类响应保持 no-store。
+	if (hasSessionCookie(request) && TOPIC_DETAIL_PATH.test(path))
+		return response;
+
+	const cacheRule = cdnCacheRuleFor(path);
 	if (!cacheRule) return response;
 
 	const headers = new Headers(response.headers);
