@@ -33,20 +33,27 @@ const ROOT_ASSET_ALIASES = [
 const ROOT_ASSET_PATH =
 	/^\/(?!public\/|_client\/|_bun\/|_furin\/|api\/)[^/]+\.(?:webp|png|jpe?g|gif|svg|ico|txt|xml|woff2?)$/;
 
-function redirectToPublic(path: string, request: Request): Response {
-	return Response.redirect(new URL("/public" + path, request.url), 301);
+/**
+ * 相对 Location：CDN 终止 TLS 后回源是 http，拿请求地址拼绝对 URL 会把 http
+ * 写进 Location，浏览器随即按混合内容拦掉这个子资源（https 页面上的标签页
+ * 图标就是这么丢的）。相对引用是 RFC 7231 允许的写法，浏览器与爬虫按当前
+ * 请求地址解析，协议自然保持。
+ */
+function redirectToPublic(path: string): Response {
+	return new Response(null, {
+		status: 301,
+		headers: { Location: "/public" + path },
+	});
 }
 
 let publicApi = new Elysia().onRequest(({ request }) => {
 	const pathname = new URL(request.url).pathname;
-	if (ROOT_ASSET_PATH.test(pathname)) return redirectToPublic(pathname, request);
+	if (ROOT_ASSET_PATH.test(pathname)) return redirectToPublic(pathname);
 	return undefined;
 });
 
 for (const path of ROOT_ASSET_ALIASES) {
-	publicApi = publicApi.get(path, {}, ({ request }) =>
-		redirectToPublic(path, request),
-	);
+	publicApi = publicApi.get(path, {}, () => redirectToPublic(path));
 }
 
 export { publicApi };

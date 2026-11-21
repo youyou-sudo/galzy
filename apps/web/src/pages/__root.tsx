@@ -100,6 +100,13 @@ export const route = defineRootRoute()
 			<html lang="zh-Hans" suppressHydrationWarning>
 				<head>
 					<script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+					{/*
+					 * 站标显式声明：浏览器对 /favicon.ico 的隐式请求会被源站 301 到
+					 * /public/favicon.ico，跳转后的地址一旦退回 http（CDN 回源协议），
+					 * Chrome 会按混合内容拦掉图标，标签页就只剩默认图标。这里直接指向
+					 * 真实静态路径，也顺带省掉一次跳转。
+					 */}
+					<link rel="icon" href="/public/favicon.ico" />
 					{/* 封面来自图片子域：提前建连省一个 RTT（host 需与 API 的 GAME_IMAGE_BASE_URL 保持一致） */}
 					<link rel="preconnect" href="https://vndb-t.galzy.moe" />
 					{/* 访问统计：defer 下载、不阻塞首屏；未配置环境变量时整段消失 */}
