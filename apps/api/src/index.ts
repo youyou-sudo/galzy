@@ -17,6 +17,7 @@ import {
   health,
   kungalSync,
   media,
+  moderation,
   producer,
   search,
   status,
@@ -96,6 +97,7 @@ async function buildApp() {
       .use(friendLinks)
       .use(search)
       .use(media)
+      .use(moderation)
       .use(producer)
       .use(status)
       .use(topics)
