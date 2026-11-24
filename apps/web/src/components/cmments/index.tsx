@@ -89,7 +89,8 @@ const ReplyItem = memo(function ReplyItem({
   if (replies.length === 0) return null
 
   return (
-    // 一级回复只缩进 10px；更深层不再继续加缩进（扁平化），靠「回复@xx」保留上下文，
+    // 缩进引导线贴评论最左侧（与父级头像左缘齐平），一级回复在引导线内缩进 10px；
+    // 更深层不再继续加缩进（扁平化），靠「回复@xx」保留上下文，
     // 避免 3 层嵌套后正文被挤到半屏宽。
     <div className={depth === 0 ? "pl-2.5 mt-1 border-l border-border/60" : "mt-1"}>
       {replies.map((reply) => (
@@ -258,16 +259,16 @@ export function CommentItem({ targetType }: { targetType: string }) {
                   commentscomp={false}
                   targetType="game"
                 />
-                {items.re?.length > 0 && (
-                  <ReplyItem
-                    comment={commentMap.get(items.id) as any}
-                    commentMap={commentMap as any}
-                    targetId={id}
-                    depth={0}
-                  />
-                )}
               </div>
             </div>
+            {items.re?.length > 0 && (
+              <ReplyItem
+                comment={commentMap.get(items.id) as any}
+                commentMap={commentMap as any}
+                targetId={id}
+                depth={0}
+              />
+            )}
           </div>
         )
       })}
