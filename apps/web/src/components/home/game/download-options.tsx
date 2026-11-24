@@ -40,7 +40,7 @@ import { Skeleton } from "@web/components/ui/skeleton";
 import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
 import { getFileIcon } from "@web/lib/file-icon";
 import { commitAfterViewTransition } from "@web/lib/reveal-gate";
-import { groupSplitArchives } from "@web/lib/split-archives";
+import { buildFileTreeView } from "@web/lib/file-tree";
 import { cn } from "@web/lib/utils";
 import { dwAcConst, refreshFileList } from "@web/server/game";
 import { downCardStore, downmodalActions } from "@web/stores/downCardData";
@@ -225,31 +225,26 @@ const FileListAdminRefresh = ({ id }: { id: string }) => {
 };
 
 // ---------- 文件浏览器组件 ----------
-const FileExplorer = ({
+// 导出给单测直接渲染（download-options.test.tsx 覆盖多目录作品的显示）
+export const FileExplorer = ({
 	items,
 	onFileClick,
 }: {
 	items: GameModel.TreeNode[];
 	onFileClick: (item: GameModel.TreeNode) => void;
 }) => {
-	// 树变换（分卷识别 + md 同名判定）会递归遍历并新建节点，
-	// 用 useMemo 缓存，仅在 items 引用变化时重算，避免每次渲染重复执行。
-	const simplifiedItems = useMemo(() => {
-		if (
-			items &&
-			items[0]?.type === "folder" &&
-			Array.isArray(items[0].children)
-		) {
-			return groupSplitArchives(items[0].children);
-		}
-		return groupSplitArchives(items);
-	}, [items]);
+	// 视图变换（去掉多目录作品的根包装 + 分卷识别 + md 同名判定）会递归遍历
+	// 并新建节点，用 useMemo 缓存，仅在 items 引用变化时重算，避免重复执行。
+	const { items: treeItems, defaultOpen } = useMemo(
+		() => buildFileTreeView(items),
+		[items],
+	);
 
 	const renderTree = (nodes: GameModel.TreeNode[]): React.ReactNode => {
 		return nodes.map((item) => {
 			if (item.type === "folder" && !item.volumes) {
 				return (
-					<FolderItem value={item.name} key={item.id}>
+					<FolderItem value={item.id} key={item.id}>
 						<FolderTrigger>{item.name}</FolderTrigger>
 						{item.children?.length ? (
 							<FolderContent>
@@ -272,7 +267,18 @@ const FileExplorer = ({
 		});
 	};
 
-	return <Files className="p-1">{renderTree(simplifiedItems || [])}</Files>;
+	// defaultOpen 只在挂载时生效：站内从一部作品切到另一部时（同一路由、不同 $id，
+	// 组件实例复用）根目录集合会变，用 key 让手风琴按新的根节点重建，
+	// 否则新作品的目录会停在收起状态、文件一个都不显示。
+	return (
+		<Files
+			className="p-1"
+			defaultOpen={defaultOpen}
+			key={defaultOpen.join("|")}
+		>
+			{renderTree(treeItems)}
+		</Files>
+	);
 };
 
 // ---------- 下载弹窗 ----------
