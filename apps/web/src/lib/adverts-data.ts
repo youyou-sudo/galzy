@@ -1,4 +1,8 @@
-import { type AdSlotPayload, TOP_AD_SLOT_KEY } from "@web/lib/adverts";
+import {
+	type AdSlotPayload,
+	TOP_AD_SLOT_KEY,
+	TOP_NAV_SLOT_KEY,
+} from "@web/lib/adverts";
 import { isSpaDataRequest } from "@web/lib/spa-request";
 import { getAdSlot } from "@web/server/adverts";
 
@@ -18,7 +22,7 @@ function requestPathname(request: Request | undefined): string {
 }
 
 /**
- * 根布局的顶部广告位取数（`pages/root.tsx` 的 loader 调用）。
+ * 根布局的广告位取数（`pages/root.tsx` 的 loader 调用）。
  *
  * 广告位数据必须在根布局取：只有 SSR 首帧就带着广告，才不会有「先空一块、
  * JS 跑完再补上」的布局跳动；也不会因为浏览器侧对 `/api/_bff/adverts.*` 的请求
@@ -34,7 +38,8 @@ function requestPathname(request: Request | undefined): string {
  * 根布局 loader 只拿得到 `path`（loader ctx），不带 `request`，
  * 所以额外接受 `pathname`。
  */
-export async function loadTopAdSlot(
+async function loadAdSlot(
+	key: string,
 	request?: Request,
 	pathname?: string,
 ): Promise<AdSlotPayload | null> {
@@ -42,8 +47,29 @@ export async function loadTopAdSlot(
 	if (path.startsWith("/admin")) return null;
 	if (isSpaDataRequest(request)) return null;
 	try {
-		return await getAdSlot({ data: { key: TOP_AD_SLOT_KEY } });
+		return await getAdSlot({ data: { key } });
 	} catch {
 		return null;
 	}
+}
+
+/** 顶部横幅广告位（`home_top`）：正文上方的横幅区。 */
+export function loadTopAdSlot(
+	request?: Request,
+	pathname?: string,
+): Promise<AdSlotPayload | null> {
+	return loadAdSlot(TOP_AD_SLOT_KEY, request, pathname);
+}
+
+/**
+ * 顶栏导航广告位（`header_nav`）：顶栏最后一格推广入口。
+ *
+ * 与横幅共用同一套降级规则（后台不取、切页不取、异常吞掉），
+ * 分开取数的意义在于：任何一个位配错/停用都只影响它自己，不会连带另一处消失。
+ */
+export function loadNavAdSlot(
+	request?: Request,
+	pathname?: string,
+): Promise<AdSlotPayload | null> {
+	return loadAdSlot(TOP_NAV_SLOT_KEY, request, pathname);
 }

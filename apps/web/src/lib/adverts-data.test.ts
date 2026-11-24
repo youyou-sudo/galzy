@@ -13,7 +13,7 @@ vi.mock("@web/server/adverts", () => ({
 	getAdSlot: getAdSlotMock,
 }));
 
-const { loadTopAdSlot } = await import("@web/lib/adverts-data");
+const { loadNavAdSlot, loadTopAdSlot } = await import("@web/lib/adverts-data");
 
 function requestFor(pathname: string): Request {
 	return new Request(`http://localhost${pathname}`);
@@ -78,5 +78,25 @@ describe("loadTopAdSlot", () => {
 		getAdSlotMock.mockResolvedValueOnce(payload);
 
 		await expect(loadTopAdSlot(undefined)).resolves.toEqual(payload);
+	});
+});
+
+describe("loadNavAdSlot", () => {
+	it("顶栏推广位按 header_nav 取数，与横幅位互不干扰", async () => {
+		getAdSlotMock.mockResolvedValueOnce(payload);
+
+		await expect(loadNavAdSlot(requestFor("/"))).resolves.toEqual(payload);
+		expect(getAdSlotMock).toHaveBeenCalledWith({ data: { key: "header_nav" } });
+	});
+
+	it("后台与切页照样跳过，推广位不额外打接口", async () => {
+		await expect(loadNavAdSlot(requestFor("/admin"))).resolves.toBeNull();
+		expect(getAdSlotMock).not.toHaveBeenCalled();
+	});
+
+	it("接口异常时安静地不展示推广入口", async () => {
+		getAdSlotMock.mockRejectedValueOnce(new Error("502 Bad Gateway"));
+
+		await expect(loadNavAdSlot(requestFor("/"))).resolves.toBeNull();
 	});
 });

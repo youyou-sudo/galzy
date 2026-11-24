@@ -12,8 +12,9 @@ import {
 	type AdSlotPayload,
 	adSlotQueryKey,
 	TOP_AD_SLOT_KEY,
+	TOP_NAV_SLOT_KEY,
 } from "@web/lib/adverts";
-import { loadTopAdSlot } from "@web/lib/adverts-data";
+import { loadNavAdSlot, loadTopAdSlot } from "@web/lib/adverts-data";
 import { AUTH_QUERY_KEY } from "@web/lib/auth-session-key";
 import { isPersonalizedPath } from "@web/lib/is-personalized-path";
 import { NavPathProvider, usePathname } from "@web/lib/nav";
@@ -40,6 +41,8 @@ type RootLayoutProps = {
 	/** 本次请求的 query 串（含前导 ?），交给 NavPathProvider 供 SSR 期 useSearch 读取 */
 	search: string;
 	adSlot: AdSlotPayload | null;
+	/** 顶栏导航广告位：顶栏最后一格推广入口（纯文字素材） */
+	navAdSlot: AdSlotPayload | null;
 	authSession: AuthSession;
 	/** 本次渲染的会话是否可信（仅登录态相关页面为 true；用户视图走客户端查询） */
 	authKnown: boolean;
@@ -77,8 +80,14 @@ export const route = defineRootRoute()
 		// 客户端缓存里已经有会话，统计脚本也只在首屏文档里注入一次。
 		const documentRequest = !isSpaDataRequest();
 		const fetchAuth = personalized && documentRequest;
+		// 两个广告位互不依赖：并发取数，别让顶栏推广位多背一个 API 往返
+		const [adSlot, navAdSlot] = await Promise.all([
+			loadTopAdSlot(undefined, path),
+			loadNavAdSlot(undefined, path),
+		]);
 		return {
-			adSlot: await loadTopAdSlot(undefined, path),
+			adSlot,
+			navAdSlot,
 			authSession: fetchAuth ? await getSession() : null,
 			authKnown: fetchAuth,
 			dev: process.env.NODE_ENV !== "production",
@@ -92,6 +101,7 @@ export const route = defineRootRoute()
 			path,
 			search,
 			adSlot,
+			navAdSlot,
 			authSession,
 			authKnown,
 			dev,
@@ -125,6 +135,7 @@ export const route = defineRootRoute()
 							<TooltipProvider>
 								<AppChrome
 									adSlot={adSlot}
+									navAdSlot={navAdSlot}
 									authSession={authSession}
 									authKnown={authKnown}
 									dev={dev}
@@ -160,12 +171,14 @@ function requestSearch(request: Request | undefined): string {
 function AppChrome({
 	children,
 	adSlot,
+	navAdSlot,
 	authSession,
 	authKnown,
 	dev,
 }: {
 	children: ReactNode;
 	adSlot: AdSlotPayload | null;
+	navAdSlot: AdSlotPayload | null;
 	authSession: AuthSession;
 	authKnown: boolean;
 	dev: boolean;
@@ -180,6 +193,8 @@ function AppChrome({
 	// 必须放在下面的 /admin 提前 return 之前，保持 hooks 调用顺序稳定。
 	const seeds: Array<[readonly unknown[], unknown]> = [];
 	if (adSlot !== null) seeds.push([adSlotQueryKey(TOP_AD_SLOT_KEY), adSlot]);
+	if (navAdSlot !== null)
+		seeds.push([adSlotQueryKey(TOP_NAV_SLOT_KEY), navAdSlot]);
 	if (authKnown) seeds.push([AUTH_QUERY_KEY, authSession ?? null]);
 	useSeedQueries(seeds);
 
