@@ -26,9 +26,24 @@ export function TopAdSlot() {
 	return <AdSlotView payload={data} />;
 }
 
+/** 横幅渲染的前提：素材必须有图片（纯文字素材只用于导航位）。 */
+type BannerAdvert = PublicAdvert & { image: string };
+
+/**
+ * 横幅只渲染有图片的素材：image 为 NULL 的是纯文字素材（顶栏导航位在用），
+ * 放进横幅会变成一张没有内容的空链接，所以先过滤掉再判断整块是否还有内容。
+ */
+function withImage(adverts: PublicAdvert[]): BannerAdvert[] {
+	return adverts.filter(
+		(advert): advert is BannerAdvert => advert.image !== null,
+	);
+}
+
 /** 纯展示组件：数据由调用方注入，便于单测覆盖各布局组合。 */
 export function AdSlotView({ payload }: { payload: AdSlotPayload }) {
-	const { slot, desktop, mobile } = payload;
+	const { slot } = payload;
+	const desktop = withImage(payload.desktop);
+	const mobile = withImage(payload.mobile);
 	const showMobile = mobile.length > 0 && slot.mobileMode !== "hidden";
 
 	if (desktop.length === 0 && !showMobile) return null;
@@ -92,7 +107,7 @@ function AdvertBanner({
 	advert,
 	priority = false,
 }: {
-	advert: PublicAdvert;
+	advert: BannerAdvert;
 	/** 首条横幅：把排队优先级提到 high（loading 仍为 lazy，隐藏分支因此不会被下载） */
 	priority?: boolean;
 }) {
@@ -189,7 +204,7 @@ function MobileAdvertCarousel({
 	adverts,
 	intervalSeconds,
 }: {
-	adverts: PublicAdvert[];
+	adverts: BannerAdvert[];
 	intervalSeconds: number;
 }) {
 	const trackRef = useRef<HTMLDivElement>(null);

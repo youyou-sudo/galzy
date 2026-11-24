@@ -207,6 +207,7 @@ interface AdvertFormValues {
 	/** Select 的值是字符串，提交时才转成数字 */
 	slotId: string;
 	name: string;
+	/** 空串 = 纯文字素材（没有图片的位置，如顶栏导航位） */
 	image: string;
 	href: string;
 	description: string;
@@ -228,6 +229,7 @@ type AdSlotFormErrors = {
 type AdvertFormErrors = {
 	slotId?: string;
 	name?: string;
+	/** 只在「填了但格式不对」时报错：留空是合法的纯文字素材 */
 	image?: string;
 	href?: string;
 	weight?: string;
@@ -340,11 +342,11 @@ function validateAdvertForm(values: AdvertFormValues): AdvertFormErrors {
 	if (!values.slotId) errors.slotId = "请选择广告位";
 	if (!values.name.trim()) errors.name = "请填写名称";
 
+	// 图片可以留空 = 纯文字素材（文字位没有图片）；填了就必须是合法地址
 	const image = values.image.trim();
-	if (!image) {
-		errors.image = "请填写图片地址";
-	} else if (!IMAGE_PATTERN.test(image)) {
-		errors.image = "图片需是 http(s):// 外链或以 / 开头的站内路径";
+	if (image && !IMAGE_PATTERN.test(image)) {
+		errors.image =
+			"图片需是 http(s):// 外链或以 / 开头的站内路径，留空则为纯文字素材";
 	}
 
 	const href = values.href.trim();
@@ -890,7 +892,7 @@ function AdSlotFormDialog({
 			open={open}
 			onOpenChange={onOpenChange}
 			title={isEdit ? "编辑广告位" : "新增广告位"}
-			desc="标识用于前台模板读取（如 home_top），创建后不建议再改"
+			desc="标识用于前台模板读取（home_top = 顶部横幅，header_nav = 顶栏推广入口），创建后不建议再改"
 			confirmText={isEdit ? "保存" : "创建"}
 			isLoading={mutation.isPending}
 			disabled={!valid}
@@ -1575,12 +1577,12 @@ function SortableAdvertRow({
 	);
 }
 
-/** 横幅缩略图：前台展示的就是这张图，空地址用占位块兜底。 */
+/** 素材缩略图：有图显示图；没有图（纯文字素材）显示占位块。 */
 function AdvertThumb({ advert }: { advert: Advert }) {
 	if (!advert.image) {
 		return (
 			<div className="flex shrink-0 justify-center items-center rounded-lg h-10 w-32 bg-muted text-[10px] text-muted-foreground">
-				无图片
+				文字素材
 			</div>
 		);
 	}
@@ -1646,17 +1648,25 @@ function AdvertFormDialog({
 			const endAt = fromDateTimeLocal(values.endAt);
 			const common = {
 				name: values.name.trim(),
-				image: values.image.trim(),
+				// 空串 = 纯文字素材：更新时传 null 清空，新建时干脆不带这个字段
 				href: values.href.trim(),
 				description: values.description.trim(),
 				device: values.device,
 				weight: parseInteger(values.weight) ?? 10,
 				enabled: values.enabled,
 			};
+			const image = values.image.trim();
 			if (target) {
-				// 更新时显式传 null 表示清空排期（契约：只传一侧时由 API 比较先后）
+				// 更新时显式传 null 表示清空排期（契约：只传一侧时由 API 比较先后）；
+				// 图片同理：传 null 表示改回纯文字素材
 				const updated = await adminUpdateAdvert({
-					data: { id: target.id, ...common, startAt, endAt },
+					data: {
+						id: target.id,
+						...common,
+						image: image || null,
+						startAt,
+						endAt,
+					},
 				});
 				if (!updated) throw new Error("更新广告失败");
 				return updated;
@@ -1665,6 +1675,7 @@ function AdvertFormDialog({
 				data: {
 					slotId: targetSlotId,
 					...common,
+					...(image ? { image } : {}),
 					...(startAt ? { startAt } : {}),
 					...(endAt ? { endAt } : {}),
 				},
@@ -1683,7 +1694,7 @@ function AdvertFormDialog({
 						? {
 								...item,
 								name: values.name.trim(),
-								image: values.image.trim(),
+								image: values.image.trim() || null,
 								href: values.href.trim(),
 								description: values.description.trim() || null,
 								device: values.device,
@@ -1702,7 +1713,7 @@ function AdvertFormDialog({
 				return {
 					id: target.id,
 					name: values.name.trim(),
-					image: values.image.trim(),
+					image: values.image.trim() || null,
 					href: values.href.trim(),
 					device: values.device,
 				};
@@ -1756,7 +1767,7 @@ function AdvertFormDialog({
 			open={open}
 			onOpenChange={onOpenChange}
 			title={isEdit ? "编辑广告" : "新增广告"}
-			desc="广告位、名称、图片地址与跳转链接为必填项；备注只在后台可见"
+			desc="广告位、名称与跳转链接为必填项；图片留空即纯文字素材（如顶栏导航位），备注只在后台可见"
 			confirmText={isEdit ? "保存" : "创建"}
 			isLoading={mutation.isPending}
 			disabled={!valid}
@@ -1832,6 +1843,9 @@ function AdvertFormDialog({
 				<Field>
 					<FieldLabel htmlFor="advert-image">
 						<FieldTitle>图片地址</FieldTitle>
+						<span className="text-xs font-normal text-muted-foreground">
+							选填
+						</span>
 					</FieldLabel>
 					<FieldContent>
 						<Input
@@ -1852,11 +1866,13 @@ function AdvertFormDialog({
 								/>
 							) : (
 								<div className="flex shrink-0 justify-center items-center rounded-lg border border-dashed h-10 w-32 border-border/60 bg-muted/40 text-[10px] text-muted-foreground">
-									图片预览
+									纯文字素材
 								</div>
 							)}
 							<FieldDescription>
-								支持站内路径（如 /dzmm.webp）与 https 外链
+								支持站内路径（如 /dzmm.webp）与 https 外链。
+								留空即「纯文字素材」（顶栏导航位这类没有图片的位置）；
+								横幅位必须配图，无图素材不会在横幅里展示。
 							</FieldDescription>
 						</div>
 						<FieldError id="advert-image-error">{errors.image}</FieldError>

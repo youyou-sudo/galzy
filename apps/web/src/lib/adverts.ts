@@ -41,7 +41,11 @@ export interface Advert {
 	id: number;
 	slotId: number;
 	name: string;
-	image: string;
+	/**
+	 * 图片：null = 纯文字素材（顶栏导航位这类没有图片的位置，前台直接用 name 当文案）。
+	 * 横幅位会跳过没有图片的素材，所以给横幅配素材时图片仍然必填。
+	 */
+	image: string | null;
 	href: string;
 	/** 后台备注，前台不展示 */
 	description: string | null;
@@ -66,7 +70,8 @@ export interface Advert {
 export interface PublicAdvert {
 	id: number;
 	name: string;
-	image: string;
+	/** null = 纯文字素材：文字位渲染 name，横幅位忽略该素材。 */
+	image: string | null;
 	href: string;
 	device: AdvertDevice;
 }
@@ -89,11 +94,32 @@ export interface AdSlotPayload {
 /** 顶部横幅广告位的 key（后台可改广告配置，但位置 key 与组件绑定）。 */
 export const TOP_AD_SLOT_KEY = "home_top";
 
+/**
+ * 顶栏导航广告位的 key：顶栏最后一格推广入口（纯文字素材，只下发 name + href）。
+ * 它复用普通导航条目的排版与状态，只是带 sponsored 标记——所以推广位也归后台
+ * 「广告位」管，改链接不用发版，且链接带 rel="sponsored nofollow" 不进 SEO 链路。
+ */
+export const TOP_NAV_SLOT_KEY = "header_nav";
+
 /** 公开广告位数据 query key 前缀：根布局预取 / 前台组件 / 后台失效共用同一份。 */
 export const AD_SLOT_QUERY_ROOT = ["adverts", "slot"] as const;
 
 export function adSlotQueryKey(key: string) {
 	return [...AD_SLOT_QUERY_ROOT, key] as const;
+}
+
+/**
+ * 文字位（顶栏导航）要展示的那一条素材。
+ *
+ * 顶栏在桌面与手机上是同一个入口，只取一条：优先桌面投放列表，其次手机列表
+ * （素材只投桌面时手机菜单也要有入口，反之亦然）。素材按位内排序取首条，
+ * 所以后台里拖到第一条的就是顶栏展示的那条。
+ */
+export function pickNavAdvert(
+	payload: AdSlotPayload | null,
+): PublicAdvert | null {
+	if (!payload) return null;
+	return payload.desktop[0] ?? payload.mobile[0] ?? null;
 }
 
 /** 后台广告位列表的默认展示条数上限（API 校验 1..4）。 */

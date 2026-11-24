@@ -125,7 +125,8 @@ export const adminGetAdverts = defineBff(z.object({ slotId: z.optional(z.number(
 export const adminCreateAdvert = defineBff(z.object({
 			slotId: z.number(),
 			name: z.string().check(z.minLength(1)),
-			image: z.string().check(z.minLength(1)),
+			// 图片选填：不传 = 纯文字素材（顶栏导航位这类没有图片的位置）
+			image: z.optional(z.string().check(z.minLength(1))),
 			href: z.string().check(z.minLength(1)),
 			description: OPTIONAL_TEXT,
 			enabled: z.optional(z.boolean()),
@@ -149,7 +150,8 @@ export const adminUpdateAdvert = defineBff(z.object({
 			id: z.number(),
 			// 素材归属的广告位创建后不可变更：API 的更新接口不接受 slotId
 			name: z.optional(z.string().check(z.minLength(1))),
-			image: z.optional(z.string().check(z.minLength(1))),
+			// 显式 null = 清空图片（改回纯文字素材）
+			image: z.optional(z.union([z.string().check(z.minLength(1)), z.null()])),
 			href: z.optional(z.string().check(z.minLength(1))),
 			description: OPTIONAL_TEXT,
 			enabled: z.optional(z.boolean()),
