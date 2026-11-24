@@ -33,6 +33,24 @@ function trackClick(advert: PublicAdvert) {
 	void trackAdvert({ data: { id: advert.id, type: "click" } }).catch(() => {});
 }
 
+/**
+ * 推广角标「广」：贴在文案右上角，说明这一格是推广而非站内导航。
+ *
+ * 纯装饰：`aria-hidden` 让它不进入可读名（否则读屏与测试里会读成「AI女友 广」），
+ * 语义已经由 `rel="sponsored nofollow"` 与 `data-ad-slot` 表达。
+ * 不透明度不写在这里：整格已经压到 70%，角标随之一起变淡，再叠一层会淡到看不见。
+ */
+function AdBadge() {
+	return (
+		<span
+			aria-hidden="true"
+			className="absolute -top-1 -right-1.5 text-[10px] leading-none font-medium pointer-events-none select-none"
+		>
+			广
+		</span>
+	);
+}
+
 /** 推广外链的公共属性：语义标记 + 点击统计，桌面与移动共用。 */
 function adLinkProps(advert: PublicAdvert) {
 	return {
@@ -51,6 +69,9 @@ function adLinkProps(advert: PublicAdvert) {
  *
  * 整格连 <li> 一起托管：没有在投素材时连列表项都不渲染，
  * 否则顶栏末尾会留下一个占位的空 <li>（gap 仍会撑出一截空白）。
+ *
+ * 整格（文案 + 角标）固定 70% 不透明度：推广入口在视觉上比站内导航轻一档，
+ * 与顶部横幅位的 opacity 处理同源；排版、hover、可读名仍与其它标签一致。
  */
 export function DesktopNavAdItem() {
 	const advert = useNavAdvert();
@@ -60,10 +81,13 @@ export function DesktopNavAdItem() {
 		<NavigationMenuItem>
 			<a
 				{...adLinkProps(advert)}
-				className={desktopFlatLinkClass}
+				className={cn(desktopFlatLinkClass, "relative opacity-70")}
 				onClick={() => trackClick(advert)}
 			>
-				{advert.name}
+				<span className="relative inline-block">
+					{advert.name}
+					<AdBadge />
+				</span>
 			</a>
 		</NavigationMenuItem>
 	);

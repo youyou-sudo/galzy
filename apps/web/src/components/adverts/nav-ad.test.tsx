@@ -75,6 +75,17 @@ describe("顶栏推广位", () => {
 		expect(link.getAttribute("data-ad-slot")).toBe("header_nav");
 	});
 
+	it("右上角带「广」角标，整格 70% 不透明且不影响可读名", () => {
+		renderWithSlot([navAd]);
+
+		// 可读名仍是后台下发的文案：角标带 aria-hidden，不参与命名计算
+		const link = screen.getByRole("link", { name: "AI女友" });
+		const badge = link.querySelector('[aria-hidden="true"]');
+		expect(badge?.textContent).toBe("广");
+		// 推广格整体压到 70% 不透明度（与顶部横幅位同源的处理）
+		expect(link.className).toContain("opacity-70");
+	});
+
 	it("点击后上报点击统计", () => {
 		renderWithSlot([navAd]);
 
