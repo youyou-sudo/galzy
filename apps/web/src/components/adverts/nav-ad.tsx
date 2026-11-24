@@ -96,6 +96,9 @@ export function DesktopNavAdItem() {
 /**
  * 移动全屏菜单里的推广行：与其它 NavRow 结构一致（图标方块 + 文案 + 箭头），
  * 图标用 Megaphone 表明这是推广，文案仍然来自后台。
+ *
+ * 角标与不透明度与桌面端同源：文案右上角贴「广」，整行压到 70%，
+ * 让推广入口在一屏导航里比站内入口轻一档，不用靠排版差异区分。
  */
 export function MobileNavAdRow({
 	index,
@@ -115,7 +118,7 @@ export function MobileNavAdRow({
 	return (
 		<a
 			{...adLinkProps(advert)}
-			className={mobileNavRowClass}
+			className={cn(mobileNavRowClass, "opacity-70")}
 			style={style}
 			onClick={() => {
 				trackClick(advert);
@@ -132,8 +135,11 @@ export function MobileNavAdRow({
 				<Megaphone className="size-4" />
 			</span>
 			<span className="flex flex-col flex-1 min-w-0">
-				<span className="text-sm leading-tight font-medium truncate">
-					{advert.name}
+				{/* self-start：不吸满整行宽度，角标才会贴在文案右上角而不是箭头旁边；
+				    truncate 放在内层，overflow-hidden 才不会把角标一起裁掉 */}
+				<span className="relative inline-block self-start max-w-full text-sm leading-tight font-medium">
+					<span className="block truncate">{advert.name}</span>
+					<AdBadge />
 				</span>
 			</span>
 			<ChevronRight

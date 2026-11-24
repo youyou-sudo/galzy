@@ -118,6 +118,13 @@ describe("顶栏推广位", () => {
 		expect(link.getAttribute("rel")).toBe(
 			"sponsored nofollow noopener noreferrer",
 		);
+		// 与桌面端同源：文案右上角带「广」角标，整行 70% 不透明。
+		// 行内还有一张 aria-hidden 的图标，所以按文案定位角标，别取第一个。
+		const badge = [...link.querySelectorAll('[aria-hidden="true"]')].find(
+			(el) => el.textContent === "广",
+		);
+		expect(badge).toBeTruthy();
+		expect(link.className).toContain("opacity-70");
 
 		fireEvent.click(link);
 		expect(trackAdvertMock).toHaveBeenCalledWith({
