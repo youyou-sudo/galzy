@@ -3,6 +3,9 @@ import {
 	makeChart,
 	makeEmptyChart,
 	makeSharedSectionChart,
+	node,
+	segment,
+	step,
 } from "./chart-fixtures";
 import {
 	COMMON_CHARACTER_KEY,
@@ -82,6 +85,34 @@ describe("段落归属", () => {
 		expect(
 			segmentsForCharacter(chart, COMMON_CHARACTER_KEY).map((s) => s.key),
 		).toEqual(["g4"]);
+	});
+
+	// v64683（ママトモ）实测：普通 END 的 character_keys 是空数组，但它所在
+	// 「旅行路线」分组把 4 个女角全挂上。之前空数组会退回分组，结果普通 END
+	// 出现在每条角色线里（夏代子只有 2 个自己的段落，却被算成 4 段）。
+	it("结局没挂角色时算共通，不退回把全员都挂上的分组", () => {
+		const chart = makeSharedSectionChart();
+		chart.segments.push(
+			segment("g5", "s1", node("save", "sv01"), node("ending", "e6"), [
+				step("action", "家に帰る", "回家"),
+			]),
+		);
+
+		const commonEndingSegment = chart.segments[4];
+		expect(commonEndingSegment).toBeDefined();
+		expect(segmentCharacterKeys(chart, commonEndingSegment!)).toEqual([]);
+		// 共享分组里的角色线不受影响，普通 END 只进「共通 / 其他」
+		expect(segmentsForCharacter(chart, "c1").map((s) => s.key)).toEqual([
+			"g1",
+			"g3",
+		]);
+		expect(
+			segmentsForCharacter(chart, COMMON_CHARACTER_KEY).map((s) => s.key),
+		).toEqual(["g4", "g5"]);
+
+		const stats = chartStats(chart);
+		expect(stats.byCharacter.c1).toEqual({ endings: 1, segments: 2 });
+		expect(stats.common).toEqual({ endings: 1, segments: 2 });
 	});
 });
 

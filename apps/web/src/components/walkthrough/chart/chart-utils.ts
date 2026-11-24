@@ -146,10 +146,14 @@ export const COMMON_CHARACTER_KEY = "__common__";
  * 段落归属的角色 key（空数组 = 共通 / 其他）。
  *
  * 先看段落终点的结局：结局的 character_keys 才真正说明「这段通向谁」，个人线
- * 结局基本一个角色一个。只有终点不是结局（回收 / 无标注终点）或结局没挂角色时，
- * 才退回原页面的分组（section.character_keys）——上游的分组会把同一段里出场的
+ * 结局基本一个角色一个。只有终点不是结局（回收 / 无标注终点）或结局在表里找不到
+ * 时，才退回原页面的分组（section.character_keys）——上游的分组会把同一段里出场的
  * 女角全写进去（实测 v50215 三段各挂 3 个角色），拿它当归属会把几条线合成一条，
  * 所以只能当兜底。
+ *
+ * 结局存在但 character_keys 为空时同样以结局为准（= 共通 / 其他）：空数组是上游
+ * 对「普通 END / 无标注结局」的明确表达。退回分组会让这类结局挂到分组里出场的
+ * 每个角色上（实测 v64683：普通 END 挂在「旅行路线」分组，四个角色线都多出一段）。
  */
 export function segmentCharacterKeys(
 	chart: WalkthroughChart,
@@ -159,8 +163,7 @@ export function segmentCharacterKeys(
 		const ending = (chart.endings ?? []).find(
 			(item) => item.key === segment.to_node.key,
 		);
-		if (ending && ending.character_keys.length > 0)
-			return ending.character_keys;
+		if (ending) return ending.character_keys;
 	}
 	const section = segment.section_key
 		? ((chart.sections ?? []).find(
