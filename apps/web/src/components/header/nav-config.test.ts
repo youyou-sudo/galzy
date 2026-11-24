@@ -37,7 +37,7 @@ describe("顶栏导航数据源", () => {
 		]);
 	});
 
-	it("移动端顺序：主站 → OpList → 防失联 → 标签 → 会社 → 合集 → 论坛 → 推广位 → 联系", () => {
+	it("移动端顺序：主站 → OpList → 防失联 → 标签 → 会社 → 合集 → 论坛 → 联系 → 推广位", () => {
 		expect(
 			mobileNavEntries.map((entry) =>
 				entry.kind === "ad" ? AD_LABEL : navItem(entry.key).label,
@@ -50,8 +50,8 @@ describe("顶栏导航数据源", () => {
 			"会社",
 			"合集",
 			"论坛",
-			AD_LABEL,
 			"联系",
+			AD_LABEL,
 		]);
 	});
 

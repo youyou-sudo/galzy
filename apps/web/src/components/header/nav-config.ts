@@ -161,8 +161,9 @@ export const desktopNavEntries: readonly DesktopNavEntry[] = [
 ];
 
 /**
- * 移动端全屏菜单的按钮顺序（与桌面端保持一致的既有顺序）：
- * 主站 → OpList → 防失联&发布页 → 标签 → 会社 → 合集 → 论坛 → 推广位 → 联系。
+ * 移动端全屏菜单的按钮顺序：
+ * 主站 → OpList → 防失联&发布页 → 标签 → 会社 → 合集 → 论坛 → 联系 → 推广位。
+ * 推广位排在「联系」之后：它是外链推广，不夹在站内入口中间打断导航动线。
  * 工具分组的 key 在 toolMenuKeys，单独渲染在分隔线下。
  */
 export type MobileNavEntry =
@@ -178,8 +179,8 @@ export const mobileNavEntries: readonly MobileNavEntry[] = [
 	{ kind: "link", key: "producer" },
 	{ kind: "link", key: "collections" },
 	{ kind: "link", key: "topics" },
-	{ kind: "ad" },
 	{ kind: "link", key: "contact" },
+	{ kind: "ad" },
 ];
 
 /** 移动端主菜单里参与错峰入场延迟的条目数（工具分组接在它后面继续编号）。 */

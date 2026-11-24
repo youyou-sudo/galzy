@@ -248,7 +248,7 @@ export function HeaderMobileMenu({
 		>
 			<nav className="flex flex-col gap-0.5 px-4 mx-auto w-full max-w-md">
 				{/* 主菜单顺序：mobileNavEntries（主站→OpList→防失联→标签→会社→
-            合集→论坛→推广位→联系），与桌面端导航同一份数据源 */}
+            合集→论坛→联系→推广位），与桌面端导航同一份数据源 */}
 				{mobileNavEntries.map((entry, index) =>
 					entry.kind === "ad" ? (
 						<MobileNavAdRow
