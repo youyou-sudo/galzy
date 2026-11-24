@@ -1,4 +1,4 @@
-import { Link, usePathname } from "@web/lib/nav";
+import { DesktopNavAdItem } from "@web/components/adverts/nav-ad";
 import {
 	NavigationMenu,
 	NavigationMenuContent,
@@ -7,35 +7,20 @@ import {
 	NavigationMenuList,
 	NavigationMenuTrigger,
 } from "@web/components/ui/navigation-menu";
+import { Link, usePathname } from "@web/lib/nav";
 import { cn } from "@web/lib/utils";
+import type { HeaderNavItem, HeaderNavKey } from "./nav-config";
 import {
 	desktopNavEntries,
 	headerNav,
 	menuPanels,
 	navItem,
 } from "./nav-config";
-import type { HeaderNavItem, HeaderNavKey } from "./nav-config";
-
-/** 扁平链接与下拉触发器共用一套排版：同高同圆角，只差展开箭头 */
-const navItemClass = cn(
-	"gap-1.5 px-3 h-8 text-sm font-medium rounded-lg",
-	// 透明态颜色由 useHeaderTone 写进 .galzy-site-header 的变量；
-	// 滚动成玻璃药丸后 data-header-tone 移除，变量回退到主题色。
-	"text-[color:var(--header-muted)] transition-colors duration-200",
-	"hover:text-[color:var(--header-hover-fg)] hover:bg-[var(--header-hover)]",
-	"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
-);
-
-/** 当前页高亮：TanStack Link 命中时自带 data-status="active" */
-const flatLinkClass = cn(
-	navItemClass,
-	"data-[status=active]:text-[color:var(--header-fg)] data-[status=active]:bg-[var(--header-hover)]",
-);
-
-const triggerClass = cn(
-	navItemClass,
-	"data-popup-open:text-[color:var(--header-fg)] data-popup-open:bg-[var(--header-hover)]",
-);
+import {
+	desktopFlatLinkClass,
+	desktopNavItemClass,
+	desktopNavTriggerClass,
+} from "./nav-styles";
 
 /** 面板行的 render 目标：站外用 <a>，站内用 Link（保留预取） */
 function panelRenderTarget(item: HeaderNavItem) {
@@ -86,6 +71,11 @@ export function DesktopNav() {
 		<NavigationMenu className="flex-none">
 			<NavigationMenuList className="gap-0.5">
 				{desktopNavEntries.map((entry) => {
+					if (entry.kind === "ad") {
+						// 推广位：文案/链接来自后台广告位 header_nav，
+						// 与站外条目共用同一套排版，列表项由组件自己托管
+						return <DesktopNavAdItem key="ad" />;
+					}
 					if (entry.kind === "link") {
 						// 用 navItem 取宽类型条目：这样 external 分支在类型层是活的
 						const item = navItem(entry.key);
@@ -96,7 +86,7 @@ export function DesktopNav() {
 										href={item.href}
 										target="_blank"
 										rel="noreferrer"
-										className={navItemClass}
+										className={desktopNavItemClass}
 									>
 										{item.label}
 									</a>
@@ -106,7 +96,7 @@ export function DesktopNav() {
 						return (
 							<NavigationMenuItem key={entry.key}>
 								<NavigationMenuLink
-									className={flatLinkClass}
+									className={desktopFlatLinkClass}
 									render={<Link to={item.to} preload="viewport" />}
 								>
 									{item.label}
@@ -121,7 +111,7 @@ export function DesktopNav() {
 						<NavigationMenuItem key={entry.id}>
 							<NavigationMenuTrigger
 								className={cn(
-									triggerClass,
+									desktopNavTriggerClass,
 									activeMenu === entry.id &&
 										"text-[color:var(--header-fg)] bg-[var(--header-hover)]",
 								)}

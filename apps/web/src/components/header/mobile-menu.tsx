@@ -1,25 +1,17 @@
+import { MobileNavAdRow } from "@web/components/adverts/nav-ad";
 import { Link } from "@web/lib/nav";
 import { cn } from "@web/lib/utils";
 import { ChevronRight, Info } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import type { Ref } from "react";
-import { mobilePrimaryKeys, navItem, toolMenuKeys } from "./nav-config";
+import { useEffect, useRef, useState } from "react";
 import type { HeaderNavItem } from "./nav-config";
-
-/**
- * 覆盖层里的一行：左侧图标 + 主文案 +（可选）次要描述 + 右侧箭头。
- *
- * 手机端默认折叠说明文字，只保留一行 44px 的可点区域：
- * 8 个主入口 + 工具分组可以在不滚动的一屏内看完；需要看说明时由底部按钮展开。
- */
-const rowClass = cn(
-	"group/row galzy-mobile-item flex gap-2.5 items-center px-2.5 py-2 min-h-11 rounded-xl",
-	"text-foreground no-underline outline-none transition-colors duration-200",
-	"hover:bg-muted/60 focus-visible:bg-muted/60",
-	"focus-visible:ring-2 focus-visible:ring-ring/60",
-	// TanStack Link 命中当前路由时自带 data-status="active"
-	"data-[status=active]:bg-muted/60",
-);
+import {
+	MOBILE_NAV_ENTRY_COUNT,
+	mobileNavEntries,
+	navItem,
+	toolMenuKeys,
+} from "./nav-config";
+import { mobileNavRowClass as rowClass } from "./nav-styles";
 
 type NavRowProps = {
 	item: HeaderNavItem;
@@ -255,19 +247,28 @@ export function HeaderMobileMenu({
 			}}
 		>
 			<nav className="flex flex-col gap-0.5 px-4 mx-auto w-full max-w-md">
-				{/* 主菜单顺序：mobilePrimaryKeys（主站→OpList→防失联→标签→会社→
-            合集→论坛→联系），与桌面端导航同一份数据源 */}
-				{mobilePrimaryKeys.map((key, index) => (
-					<NavRow
-						key={key}
-						item={navItem(key)}
-						index={index}
-						open={open}
-						onSelect={dismissByNavigation}
-						rowRef={index === 0 ? firstRowRef : undefined}
-						showDescription={showDescriptions}
-					/>
-				))}
+				{/* 主菜单顺序：mobileNavEntries（主站→OpList→防失联→标签→会社→
+            合集→论坛→推广位→联系），与桌面端导航同一份数据源 */}
+				{mobileNavEntries.map((entry, index) =>
+					entry.kind === "ad" ? (
+						<MobileNavAdRow
+							key="ad"
+							index={index}
+							open={open}
+							onSelect={dismissByNavigation}
+						/>
+					) : (
+						<NavRow
+							key={entry.key}
+							item={navItem(entry.key)}
+							index={index}
+							open={open}
+							onSelect={dismissByNavigation}
+							rowRef={index === 0 ? firstRowRef : undefined}
+							showDescription={showDescriptions}
+						/>
+					),
+				)}
 
 				<div className="mx-2 my-1.5 h-px bg-border" />
 				<p
@@ -283,13 +284,12 @@ export function HeaderMobileMenu({
 					<NavRow
 						key={key}
 						item={navItem(key)}
-						index={mobilePrimaryKeys.length + index}
+						index={MOBILE_NAV_ENTRY_COUNT + index}
 						open={open}
 						onSelect={dismissByNavigation}
 						showDescription={showDescriptions}
 					/>
 				))}
-
 			</nav>
 
 			{/* 折叠说明 + 关闭提示合并为一行，少占一屏高度 */}

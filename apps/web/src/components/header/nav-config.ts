@@ -1,8 +1,8 @@
 import type { LinkProps } from "@web/lib/nav";
+import type { LucideIcon } from "lucide-react";
 import {
 	Building2,
 	ExternalLink,
-	Heart,
 	Home,
 	Library,
 	Mail,
@@ -11,7 +11,6 @@ import {
 	Tags,
 	Wrench,
 } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 /**
  * 顶栏导航的唯一数据源。
@@ -19,6 +18,9 @@ import type { LucideIcon } from "lucide-react";
  * 桌面下拉面板、移动端全屏菜单都从这里取条目——文案、图标、描述、链接只写一份，
  * 不会再出现「桌面改了、移动端忘改」或两处顺序漂移。
  * **key 列表的顺序就是按钮顺序**，调整导航只需要改下面的 `*Keys`。
+ *
+ * 推广位（顶栏最后一格）不在这里：它归后台「广告位」（广告位 key = header_nav），
+ * 链接与文案由后台下发，见 components/adverts/nav-ad.tsx。
  */
 
 type HeaderNavBase = {
@@ -91,13 +93,6 @@ const nav = {
 		icon: MessageSquare,
 		to: "/topics",
 	},
-	aiGirlfriend: {
-		type: "external",
-		label: "AI女友",
-		description: "AI 陪伴聊天 · yyai.online",
-		icon: Heart,
-		href: "https://www.yyai.online/explore/app/?ranking=recommended_rank&ref=4hbq",
-	},
 	tools: {
 		type: "internal",
 		label: "所有工具",
@@ -145,11 +140,13 @@ export type HeaderMenuId = keyof typeof menuPanels;
 
 /**
  * 桌面端主导航的按钮顺序（数组顺序即渲染顺序）：
- * 主页（下拉）→ 标签 → 会社 → 合集 → 工具（下拉）→ 论坛 → AI女友（外链推广）。
+ * 主页（下拉）→ 标签 → 会社 → 合集 → 工具（下拉）→ 论坛 → 推广位（广告）。
  */
 export type DesktopNavEntry =
 	| { kind: "menu"; id: HeaderMenuId; label: string }
-	| { kind: "link"; key: HeaderNavKey };
+	| { kind: "link"; key: HeaderNavKey }
+	/** 后台广告位 header_nav 下发的推广入口（复用普通链接的排版，带 sponsored 标记） */
+	| { kind: "ad" };
 
 // 显式标注成宽类型（而非 as const）：渲染层需要按 HeaderNavItem 的
 // internal / external 分支窄化，条目以后换成外链时不用改渲染代码。
@@ -160,22 +157,30 @@ export const desktopNavEntries: readonly DesktopNavEntry[] = [
 	{ kind: "link", key: "collections" },
 	{ kind: "menu", id: "tools", label: "工具" },
 	{ kind: "link", key: "topics" },
-	{ kind: "link", key: "aiGirlfriend" },
+	{ kind: "ad" },
 ];
 
 /**
  * 移动端全屏菜单的按钮顺序（与桌面端保持一致的既有顺序）：
- * 主站 → OpList → 防失联&发布页 → 标签 → 会社 → 合集 → 论坛 → AI女友 → 联系。
+ * 主站 → OpList → 防失联&发布页 → 标签 → 会社 → 合集 → 论坛 → 推广位 → 联系。
  * 工具分组的 key 在 toolMenuKeys，单独渲染在分隔线下。
  */
-export const mobilePrimaryKeys = [
-	"home",
-	"oplist",
-	"notice",
-	"tags",
-	"producer",
-	"collections",
-	"topics",
-	"aiGirlfriend",
-	"contact",
-] as const satisfies readonly HeaderNavKey[];
+export type MobileNavEntry =
+	| { kind: "link"; key: HeaderNavKey }
+	/** 后台广告位 header_nav 下发的推广入口 */
+	| { kind: "ad" };
+
+export const mobileNavEntries: readonly MobileNavEntry[] = [
+	{ kind: "link", key: "home" },
+	{ kind: "link", key: "oplist" },
+	{ kind: "link", key: "notice" },
+	{ kind: "link", key: "tags" },
+	{ kind: "link", key: "producer" },
+	{ kind: "link", key: "collections" },
+	{ kind: "link", key: "topics" },
+	{ kind: "ad" },
+	{ kind: "link", key: "contact" },
+];
+
+/** 移动端主菜单里参与错峰入场延迟的条目数（工具分组接在它后面继续编号）。 */
+export const MOBILE_NAV_ENTRY_COUNT = mobileNavEntries.length;
