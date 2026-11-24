@@ -30,7 +30,8 @@ export type AdvertDTO = {
   id: number
   slotId: number
   name: string
-  image: string
+  /** NULL = 纯文字素材（没有图片的位置）。 */
+  image: string | null
   href: string
   description: string | null
   enabled: boolean
@@ -50,7 +51,8 @@ export type AdvertDTO = {
 export type PublicAdvertDTO = {
   id: number
   name: string
-  image: string
+  /** NULL = 纯文字素材：前台渲染 name，不渲染 <img>。 */
+  image: string | null
   href: string
   device: AdvertDevice
 }
@@ -117,7 +119,7 @@ function toAdvertDTO(row: AdvertRow, now: Date): AdvertDTO {
     id: row.id,
     slotId: row.slotId,
     name: row.name,
-    image: row.image,
+    image: row.image ?? null,
     href: row.href,
     description: row.description ?? null,
     enabled: row.enabled,
@@ -461,7 +463,8 @@ export const AdvertService = {
    */
   async create(data: AdvertModel.create): Promise<AdvertDTO> {
     const name = requiredText(data.name, '名称')
-    const image = requiredText(data.image, '图片地址')
+    // 图片可省略：没有图片的位置（如顶栏导航位）落库为 NULL，前台按纯文字渲染
+    const image = emptyToNull(data.image)
     const href = requiredText(data.href, '跳转链接')
     const startAt = parseDateTime(data.startAt, '开始时间') ?? null
     const endAt = parseDateTime(data.endAt, '结束时间') ?? null
@@ -534,9 +537,8 @@ export const AdvertService = {
 
     const patch = {
       ...(data.name !== undefined && { name: requiredText(data.name, '名称') }),
-      ...(data.image !== undefined && {
-        image: requiredText(data.image, '图片地址'),
-      }),
+      // 显式 null = 清空图片（改回纯文字素材），不做必填校验
+      ...(data.image !== undefined && { image: emptyToNull(data.image) }),
       ...(data.href !== undefined && {
         href: requiredText(data.href, '跳转链接'),
       }),

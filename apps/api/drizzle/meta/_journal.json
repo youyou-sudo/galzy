@@ -239,6 +239,13 @@
       "when": 1795248767645,
       "tag": "0033_chilly_darkhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795522877946,
+      "tag": "0034_adverts_image_nullable",
+      "breakpoints": true
     }
   ]
 }

@@ -8,11 +8,14 @@ import { t } from 'elysia'
  *   否则绕过后台表单直接调 API 能写进 javascript: / data: 之类的地址，点开就是 XSS。
  */
 const Name = t.String({ minLength: 1, maxLength: 255, pattern: '\\S' })
-const Image = t.String({
+/** 图片地址：站内路径（/dzmm.webp）或 http(s) 外链。 */
+const ImageAddress = t.String({
   minLength: 1,
   maxLength: 2048,
   pattern: '^(https?://|/)\\S+$',
 })
+/** 图片选填：省略 = 纯文字素材（没有图片的位置用 name 当文案）。 */
+const OptionalImage = t.Optional(ImageAddress)
 const Href = t.String({
   minLength: 1,
   maxLength: 2048,
@@ -107,7 +110,7 @@ export namespace AdvertModel {
   export const Create = t.Object({
     slotId: t.Integer({ minimum: 1 }),
     name: Name,
-    image: Image,
+    image: OptionalImage,
     href: Href,
     description: OptionalText,
     enabled: t.Optional(t.Boolean()),
@@ -120,7 +123,8 @@ export namespace AdvertModel {
   // 排期字段允许显式 null（清空排期）；只传一侧时由 service 与现有另一侧比较先后。
   export const Update = t.Object({
     name: t.Optional(Name),
-    image: t.Optional(Image),
+    // 显式 null = 清空图片（改成纯文字素材）
+    image: t.Optional(t.Nullable(ImageAddress)),
     href: t.Optional(Href),
     description: OptionalText,
     enabled: t.Optional(t.Boolean()),

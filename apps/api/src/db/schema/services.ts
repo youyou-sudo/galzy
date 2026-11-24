@@ -280,6 +280,7 @@ export const adSlots = pgTable(
 // name 同时承担三个身份：后台列表里的识别名、前台 <img alt>、umami 事件名，
 // 因此不做唯一约束但必须非空；description 只是后台备注，前台永不展示。
 // image 允许站内相对路径（/dzmm.webp）与 https 外链，href 只允许 http(s)。
+// image 为 NULL = 纯文字素材（顶栏导航位这类没有图片的位置，用 name 当文案）。
 export const adverts = pgTable(
   'galrc_adverts',
   {
@@ -289,7 +290,8 @@ export const adverts = pgTable(
       .notNull()
       .references(() => adSlots.id, { onDelete: 'cascade' }),
     name: varchar('name', { length: 255 }).notNull(),
-    image: text('image').notNull(),
+    /** NULL = 纯文字素材：没有图片的位置（如顶栏导航位）用 name 当文案。 */
+    image: text('image'),
     href: text('href').notNull(),
     description: text('description'),
     /** 前台是否展示：停用后仍留在后台列表里，只是公开接口读不到（status=paused）。 */
