@@ -14,14 +14,22 @@ import type { HeaderNavKey } from "./nav-config";
  * 这里把顺序钉在测试里：以后调整导航时若动了顺序，测试会立刻失败。
  */
 describe("顶栏导航数据源", () => {
-	it("桌面端顺序：主页 → 标签 → 会社 → 合集 → 工具 → 论坛", () => {
+	it("桌面端顺序：主页 → 标签 → 会社 → 合集 → 工具 → 论坛 → AI女友", () => {
 		const labels = desktopNavEntries.map((entry) =>
 			entry.kind === "menu" ? entry.label : navItem(entry.key).label,
 		);
-		expect(labels).toEqual(["主页", "标签", "会社", "合集", "工具", "论坛"]);
+		expect(labels).toEqual([
+			"主页",
+			"标签",
+			"会社",
+			"合集",
+			"工具",
+			"论坛",
+			"AI女友",
+		]);
 	});
 
-	it("移动端顺序：主站 → OpList → 防失联 → 标签 → 会社 → 合集 → 论坛 → 联系", () => {
+	it("移动端顺序：主站 → OpList → 防失联 → 标签 → 会社 → 合集 → 论坛 → AI女友 → 联系", () => {
 		expect(mobilePrimaryKeys.map((key) => navItem(key).label)).toEqual([
 			"主站",
 			"OpList 站",
@@ -30,6 +38,7 @@ describe("顶栏导航数据源", () => {
 			"会社",
 			"合集",
 			"论坛",
+			"AI女友",
 			"联系",
 		]);
 	});

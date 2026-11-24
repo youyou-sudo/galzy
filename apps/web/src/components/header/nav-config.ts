@@ -2,6 +2,7 @@ import type { LinkProps } from "@web/lib/nav";
 import {
 	Building2,
 	ExternalLink,
+	Heart,
 	Home,
 	Library,
 	Mail,
@@ -90,6 +91,13 @@ const nav = {
 		icon: MessageSquare,
 		to: "/topics",
 	},
+	aiGirlfriend: {
+		type: "external",
+		label: "AI女友",
+		description: "AI 陪伴聊天 · yyai.online",
+		icon: Heart,
+		href: "https://www.yyai.online/explore/app/?ranking=recommended_rank&ref=4hbq",
+	},
 	tools: {
 		type: "internal",
 		label: "所有工具",
@@ -137,7 +145,7 @@ export type HeaderMenuId = keyof typeof menuPanels;
 
 /**
  * 桌面端主导航的按钮顺序（数组顺序即渲染顺序）：
- * 主页（下拉）→ 标签 → 会社 → 合集 → 工具（下拉）→ 论坛。
+ * 主页（下拉）→ 标签 → 会社 → 合集 → 工具（下拉）→ 论坛 → AI女友（外链推广）。
  */
 export type DesktopNavEntry =
 	| { kind: "menu"; id: HeaderMenuId; label: string }
@@ -152,11 +160,12 @@ export const desktopNavEntries: readonly DesktopNavEntry[] = [
 	{ kind: "link", key: "collections" },
 	{ kind: "menu", id: "tools", label: "工具" },
 	{ kind: "link", key: "topics" },
+	{ kind: "link", key: "aiGirlfriend" },
 ];
 
 /**
  * 移动端全屏菜单的按钮顺序（与桌面端保持一致的既有顺序）：
- * 主站 → OpList → 防失联&发布页 → 标签 → 会社 → 合集 → 论坛 → 联系。
+ * 主站 → OpList → 防失联&发布页 → 标签 → 会社 → 合集 → 论坛 → AI女友 → 联系。
  * 工具分组的 key 在 toolMenuKeys，单独渲染在分隔线下。
  */
 export const mobilePrimaryKeys = [
@@ -167,5 +176,6 @@ export const mobilePrimaryKeys = [
 	"producer",
 	"collections",
 	"topics",
+	"aiGirlfriend",
 	"contact",
 ] as const satisfies readonly HeaderNavKey[];
