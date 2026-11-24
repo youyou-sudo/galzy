@@ -1,8 +1,18 @@
 import { Button } from "@web/components/ui/button";
+import {
+	type AnchorScroll,
+	scrollElementToCenter,
+} from "@web/lib/anchor-scroll";
 import { useNavigate } from "@web/lib/nav";
 import { cn } from "@web/lib/utils";
 import { Download } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
 import { createPortal } from "react-dom";
 
 /**
@@ -19,6 +29,8 @@ import { createPortal } from "react-dom";
  * - 高亮框**常驻 DOM**、只切 `opacity`：淡入淡出都是一条 CSS transition，
  *   不需要「等动画播完再卸载」的相位机，也不依赖动画库的 fill-mode；
  * - `pointer-events: none`，永远不拦截列表的点击与悬停；
+ * - 定位滚动复用 `@web/lib/anchor-scroll` 的缓慢缓动（与攻略页签锚定同一套），
+ *   不是原生 `scrollIntoView({ behavior: "smooth" })` 的浏览器时长；
  * - 只依赖 `react-dom` 的 portal + 原生 `ResizeObserver`，**不引入任何第三方库**；
  * - 高亮框处在**文档坐标**（portal 到 body + absolute），滚动时自动跟随，
  *   不需要 scroll 监听；只在「显示中」才挂 ResizeObserver / resize 监听。
@@ -42,12 +54,6 @@ type SpotlightRect = {
 
 function findTarget(): HTMLElement | null {
 	return document.querySelector<HTMLElement>(`[${DOWNLOAD_TARGET_ATTR}]`);
-}
-
-function prefersReducedMotion(): boolean {
-	if (typeof window === "undefined") return false;
-	if (typeof window.matchMedia !== "function") return false;
-	return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 export function DownloadSpotlight({
@@ -78,10 +84,26 @@ export function DownloadSpotlight({
 		hideTimerRef.current = undefined;
 	}, []);
 
+	/** 缓慢定位动画的取消函数：再点一次 / 收起 / 卸载时停掉，别让上一段继续拽滚动 */
+	const scrollCancelRef = useRef<AnchorScroll | null>(null);
+	const cancelScroll = useCallback(() => {
+		scrollCancelRef.current?.();
+		scrollCancelRef.current = null;
+	}, []);
+
 	useEffect(() => {
 		setMounted(true);
-		return clearHideTimer;
-	}, [clearHideTimer]);
+		return () => {
+			clearHideTimer();
+			cancelScroll();
+		};
+	}, [clearHideTimer, cancelScroll]);
+
+	// 收起（到点淡出 / Esc / 点空白）时停掉定位动画：已经不看了就别再拽滚动
+	useEffect(() => {
+		if (shown) return;
+		cancelScroll();
+	}, [shown, cancelScroll]);
 
 	/** 显示 2 秒：连点会刷新计时，并把列表滚进视口 */
 	const show = useCallback(() => {
@@ -97,11 +119,9 @@ export function DownloadSpotlight({
 		const r = target.getBoundingClientRect();
 		// 列表已在视口内就别滚，避免页面无谓跳动
 		if (r.top >= 0 && r.bottom <= window.innerHeight) return;
-		target.scrollIntoView({
-			behavior: prefersReducedMotion() ? "auto" : "smooth",
-			block: "center",
-		});
-	}, [clearHideTimer]);
+		cancelScroll();
+		scrollCancelRef.current = scrollElementToCenter(target);
+	}, [clearHideTimer, cancelScroll]);
 
 	// 从别的页签点进来：等切回下载页签后再高亮（此时列表 DOM 已就位）
 	useEffect(() => {
@@ -137,7 +157,9 @@ export function DownloadSpotlight({
 		// 老 WebView 可能没有 ResizeObserver：缺失时退化为「显示那一刻测一次」，
 		// 不能让异常从 layout effect 抛出（会连累整棵详情页子树）。
 		const observer =
-			typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+			typeof ResizeObserver === "undefined"
+				? null
+				: new ResizeObserver(measure);
 		observer?.observe(target);
 		// 列表**上方**内容变化（字体切换、顶栏广告图到达）会让整块位移但不改自身尺寸，
 		// 顺带观察根元素高度变化，尽量把这类位移也跟上。

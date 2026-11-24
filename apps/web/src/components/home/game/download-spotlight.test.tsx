@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+	act,
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	DOWNLOAD_TARGET_ATTR,
@@ -11,6 +17,22 @@ import {
 const navMock = vi.hoisted(() => ({ navigate: vi.fn() }));
 vi.mock("@web/lib/nav", () => ({
 	useNavigate: () => navMock.navigate,
+}));
+
+/**
+ * 缓慢定位交给 @web/lib/anchor-scroll 自己演（曲线另有单测），
+ * 组件这里只断言「该不该滚、滚到哪个元素、收起时是否取消」。
+ */
+const scrollSpy = vi.hoisted(() => ({
+	centerTargets: [] as Element[],
+	cancel: vi.fn(),
+}));
+
+vi.mock("@web/lib/anchor-scroll", () => ({
+	scrollElementToCenter: (el: Element) => {
+		scrollSpy.centerTargets.push(el);
+		return scrollSpy.cancel;
+	},
 }));
 
 // jsdom 没有 ResizeObserver：给个空实现，组件只用于跟随尺寸变化
@@ -32,6 +54,31 @@ function target() {
 	return document.querySelector<HTMLElement>(`[${DOWNLOAD_TARGET_ATTR}]`);
 }
 
+function viewportTarget() {
+	const el = target();
+	if (!el) throw new Error("缺少 data-download-target 元素");
+	return el;
+}
+
+/** 给锚点一个真实的几何（jsdom 全是 0，高亮框量尺会算出 NaN） */
+function stubRect(
+	el: HTMLElement,
+	{ top, bottom }: { top: number; bottom: number },
+) {
+	el.getBoundingClientRect = () =>
+		({
+			top,
+			bottom,
+			left: 0,
+			right: 100,
+			width: 100,
+			height: bottom - top,
+			x: 0,
+			y: top,
+			toJSON: () => ({}),
+		}) as DOMRect;
+}
+
 function button() {
 	return screen.getByRole("button", { name: /下载/ });
 }
@@ -51,6 +98,8 @@ function renderSpotlight(isDownloadTab = true, gameId = "v1") {
 beforeEach(() => {
 	vi.useFakeTimers();
 	navMock.navigate.mockReset();
+	scrollSpy.centerTargets.length = 0;
+	scrollSpy.cancel.mockClear();
 	vi.stubGlobal("ResizeObserver", ResizeObserverStub);
 	const el = document.createElement("div");
 	el.setAttribute(DOWNLOAD_TARGET_ATTR, "");
@@ -160,25 +209,32 @@ describe("DownloadSpotlight", () => {
 		expect(opacity()).toBe("0");
 	});
 
-	it("列表不在视口内时，点击会把列表滚进视口", () => {
-		const el = target();
-		if (!el) throw new Error("缺少 data-download-target 元素");
-		const scrollIntoView = vi.fn();
-		el.scrollIntoView = scrollIntoView;
-		el.getBoundingClientRect = () =>
-			({
-				top: 2000,
-				bottom: 3000,
-				left: 0,
-				right: 100,
-				width: 100,
-				height: 1000,
-				x: 0,
-				y: 2000,
-				toJSON: () => ({}),
-			}) as DOMRect;
+	it("列表不在视口内时，点击会把列表缓慢定位进视口", () => {
+		stubRect(viewportTarget(), { top: 2000, bottom: 3000 });
+
 		renderSpotlight();
 		fireEvent.click(button());
-		expect(scrollIntoView).toHaveBeenCalledTimes(1);
+
+		expect(scrollSpy.centerTargets).toEqual([viewportTarget()]);
+	});
+
+	it("列表已在视口内：不滚，只高亮", () => {
+		stubRect(viewportTarget(), { top: 100, bottom: 400 });
+
+		renderSpotlight();
+		fireEvent.click(button());
+
+		expect(scrollSpy.centerTargets).toHaveLength(0);
+		expect(opacity()).toBe("1");
+	});
+
+	it("收起时停掉还在播的定位动画", () => {
+		stubRect(viewportTarget(), { top: 2000, bottom: 3000 });
+
+		renderSpotlight();
+		fireEvent.click(button());
+		fireEvent.keyDown(document, { key: "Escape" });
+
+		expect(scrollSpy.cancel).toHaveBeenCalledTimes(1);
 	});
 });
