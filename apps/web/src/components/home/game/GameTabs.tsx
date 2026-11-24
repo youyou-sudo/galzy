@@ -1,4 +1,5 @@
 import { Tabs, TabsList, TabsTrigger } from "@web/components/ui/tabs";
+import { type AnchorScroll, scrollElementToTop } from "@web/lib/anchor-scroll";
 import { Link, usePathname, useRouter } from "@web/lib/nav";
 import { cn } from "@web/lib/utils";
 import {
@@ -55,14 +56,15 @@ const ANCHORED_TAB = "walkthrough";
 
 /**
  * 进入「攻略」页签（`/<id>/walkthrough` 列表与 `/<id>/walkthrough/<id>` 详情）后，
- * 把页签栏滚到视口顶部，让攻略正文从页签下方开始。
+ * 缓慢把页签栏滚到视口顶部，让攻略正文从页签下方开始（动画实现见
+ * `@web/lib/anchor-scroll`：约 0.7s 的缓入缓出，而不是瞬间跳过去）。
  *
  * 取信号用 furin 的**已提交**路由（`router.currentHref`），不用地址栏的
  * `usePathname()`：
  * - 点击导航时，地址栏在提交前就变了、新内容还没上屏；等路由提交再滚，DOM 已是终态；
  * - 浏览器前进/后退是异步加载的，用地址栏会在「加载中就把还在显示的上一个页面滚一次」；
  *   用提交后的信号，浏览器后退时 furin 按历史记录恢复位置（恢复在父级 layout effect，
- *   晚于这里的滚动，恢复优先），不会被抢跳。
+ *   排在这里之后），动画的起点取首帧而不是调用时，所以从恢复后的位置起滑，不会抢跳。
  *
  * 首屏直达/刷新不滚：保持「先整页」（面包屑 + 作品概览卡）的默认落点，只在站内导航时锚定。
  *
@@ -70,26 +72,34 @@ const ANCHORED_TAB = "walkthrough";
  * walkthrough-list-page 的攻略卡）：furin 的复位也在 RouterProvider 的 layout effect 里执行，
  * 比这里的滚动晚，会把位置清零。
  *
- * `scrollIntoView` 会遵守 html 上的 `scroll-padding-top`（固定顶栏 + 余量），
- * 并把滚动距离夹到文档能到的位置 —— 内容不够长时就是「尽量靠上」。
- *
- * 已知的小漂移：页签上方的概览卡里 TagsCard 是客户端异步查询，首访时若标签数据
- * 晚于这次滚动到达，页签会被向下推几十像素。只出现在「刚进页签标签才返回」的窄窗口。
+ * 动画的终点会跟着锚点重算，所以页签上方的内容在动画期间到达也不会落歪。
+ * 已知的小漂移：概览卡的 TagsCard 是客户端异步查询，若标签数据晚于整段动画
+ * 才返回，页签会被向下推几十像素（动画已结束，不再追）。
  */
 function useGameTabAnchor(target: RefObject<HTMLDivElement | null>): void {
 	const router = useRouter();
 	// currentHref 已由 furin 剥掉 basePath，是「逻辑路径 + query」；页签判定只看路径
 	const pathname = (router.currentHref || "/").split("?")[0];
 	const previousPathname = useRef(pathname);
+	/** 正在播的锚定动画的取消函数：切页签/卸载时停掉，别让旧动画继续拽滚动 */
+	const cancelScroll = useRef<AnchorScroll | null>(null);
 
 	useLayoutEffect(() => {
 		const from = previousPathname.current;
 		previousPathname.current = pathname;
+		cancelScroll.current?.();
+		cancelScroll.current = null;
 		// 首帧、同路径重渲染（数据/查询更新）都不滚
 		if (from === pathname) return;
 		// 只有落到攻略页签才锚定；切到其它页签保持原有滚动手感
 		if (gameTabOf(pathname) !== ANCHORED_TAB) return;
-		target.current?.scrollIntoView({ behavior: "instant", block: "start" });
+		const element = target.current;
+		if (!element) return;
+		cancelScroll.current = scrollElementToTop(element);
+		return () => {
+			cancelScroll.current?.();
+			cancelScroll.current = null;
+		};
 	}, [pathname, target]);
 }
 

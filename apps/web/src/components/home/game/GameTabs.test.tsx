@@ -28,11 +28,21 @@ vi.mock("@web/lib/nav", async () => {
 	};
 });
 
-/** 记录每次 scrollIntoView 的调用目标与参数（jsdom 没有布局，只能观察调用） */
-const scrollCalls: Array<{
-	target: HTMLElement;
-	options: unknown;
-}> = [];
+/**
+ * 缓动曲线与逐帧插值由 @web/lib/anchor-scroll 自己的单测覆盖，
+ * 组件这里只断言「该不该锚定、锚到哪个元素、什么时候取消」。
+ */
+const anchorSpy = vi.hoisted(() => ({
+	targets: [] as Element[],
+	cancel: vi.fn(),
+}));
+
+vi.mock("@web/lib/anchor-scroll", () => ({
+	scrollElementToTop: (el: Element) => {
+		anchorSpy.targets.push(el);
+		return anchorSpy.cancel;
+	},
+}));
 
 function mount() {
 	const view = render(<GameTabs id="v17" />);
@@ -58,13 +68,8 @@ beforeEach(() => {
 	navMock.pathname = "/v17";
 	navMock.committedHref = "/v17";
 	navMock.linkProps = {};
-	scrollCalls.length = 0;
-	HTMLElement.prototype.scrollIntoView = function (
-		this: HTMLElement,
-		options?: boolean | ScrollIntoViewOptions,
-	) {
-		scrollCalls.push({ target: this, options });
-	};
+	anchorSpy.targets.length = 0;
+	anchorSpy.cancel.mockClear();
 });
 
 afterEach(() => {
@@ -78,42 +83,37 @@ describe("GameTabs 攻略页签锚定", () => {
 		for (const href of ['href="/v17"', 'href="/v17/walkthrough"']) {
 			expect(anchor.innerHTML).toContain(href);
 		}
-		expect(scrollCalls).toHaveLength(0);
+		expect(anchorSpy.targets).toHaveLength(0);
 	});
 
 	it("直达/刷新（首帧就在攻略页）不滚，保持整页落点", () => {
 		navMock.pathname = "/v17/walkthrough";
 		navMock.committedHref = "/v17/walkthrough";
 		mount();
-		expect(scrollCalls).toHaveLength(0);
+		expect(anchorSpy.targets).toHaveLength(0);
 	});
 
-	it("从下载页签切到攻略：把页签栏锚到视口顶部", () => {
+	it("从下载页签切到攻略：把页签栏交给缓慢滚动定位", () => {
 		const view = mount();
 		navigate(view, "/v17/walkthrough");
-		expect(scrollCalls).toHaveLength(1);
-		expect(scrollCalls[0]?.target).toBe(view.anchor);
-		expect(scrollCalls[0]?.options).toEqual({
-			behavior: "instant",
-			block: "start",
-		});
+		expect(anchorSpy.targets).toEqual([view.anchor]);
 	});
 
 	it("攻略列表 → 攻略详情：再锚定一次", () => {
 		const view = mount();
 		navigate(view, "/v17/walkthrough");
 		navigate(view, "/v17/walkthrough/2804");
-		expect(scrollCalls).toHaveLength(2);
+		expect(anchorSpy.targets).toHaveLength(2);
 	});
 
 	it("地址栏先变、路由还没提交时不抢跳（后退加载中不会先滚一次）", () => {
 		const view = mount();
 		navigate(view, "/v17/walkthrough", { commit: false });
-		expect(scrollCalls).toHaveLength(0);
+		expect(anchorSpy.targets).toHaveLength(0);
 		// 提交完成后才锚定
 		navMock.committedHref = "/v17/walkthrough";
 		view.rerender(<GameTabs id="v17" />);
-		expect(scrollCalls).toHaveLength(1);
+		expect(anchorSpy.targets).toHaveLength(1);
 	});
 
 	it("切到其它页签不滚（保持原有滚动手感）", () => {
@@ -121,19 +121,33 @@ describe("GameTabs 攻略页签锚定", () => {
 		navMock.committedHref = "/v17/walkthrough";
 		const view = mount();
 		navigate(view, "/v17/comment");
-		expect(scrollCalls).toHaveLength(0);
+		expect(anchorSpy.targets).toHaveLength(0);
 	});
 
 	it("同一已提交路径重渲染（查询/状态更新）不重复滚", () => {
 		const view = mount();
 		navigate(view, "/v17/walkthrough");
 		navigate(view, "/v17/walkthrough");
-		expect(scrollCalls).toHaveLength(1);
+		expect(anchorSpy.targets).toHaveLength(1);
 	});
 
 	it("攻略页签的 Link 取消 furin 的滚动复位", () => {
 		mount();
 		// 复位在 RouterProvider 的 layout effect 里执行，会晚于页签锚定把位置清零
 		expect(navMock.linkProps["/:id/walkthrough"]?.resetScroll).toBe(false);
+	});
+
+	it("动画还没播完就切走：取消上一段，不让旧动画继续拽滚动", () => {
+		const view = mount();
+		navigate(view, "/v17/walkthrough");
+		navigate(view, "/v17/comment");
+		expect(anchorSpy.cancel).toHaveBeenCalledTimes(1);
+	});
+
+	it("卸载时停掉动画", () => {
+		const view = mount();
+		navigate(view, "/v17/walkthrough");
+		view.unmount();
+		expect(anchorSpy.cancel).toHaveBeenCalledTimes(1);
 	});
 });
