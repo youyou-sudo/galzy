@@ -2,6 +2,22 @@ import type { GameModel } from "@api/modules/games/model";
 import { groupSplitArchives } from "./split-archives";
 
 /**
+ * 网盘目录名开头的锚点标记：`[vndb-v55370]` / `[kungal-X]` / `[other-xxx]`。
+ * 同一个目录可能连续挂多个锚点（如 `[vndb-v21552][vndb-v22594] 突然恋人`），一并去掉。
+ */
+const ANCHOR_PREFIX_RE = /^(?:\s*\[(?:vndb|kungal|other)-[^\]]*\]\s*)+/i;
+
+/**
+ * 目录名去掉锚点前缀，只留文本名：`[vndb-v55370] 神様ちゅ～ず！` → `神様ちゅ～ず！`。
+ * 纯展示用：节点 id（完整网盘路径）保持不变，下载/复制链接不受影响。
+ */
+export function displayFolderName(name: string): string {
+	const stripped = name.replace(ANCHOR_PREFIX_RE, "").trim();
+	// 名字本身就只有锚点（没有文本名）时保留原样，避免出现空标题
+	return stripped || name;
+}
+
+/**
  * 下载页文件树的视图变换。
  *
  * 服务端按 `galrc_alistb.path` 的每条网盘目录各包一层「根文件夹」节点

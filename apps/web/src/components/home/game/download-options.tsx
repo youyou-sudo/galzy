@@ -40,7 +40,7 @@ import { Skeleton } from "@web/components/ui/skeleton";
 import { useBrowserBackModal } from "@web/hooks/use-browser-back-modal";
 import { getFileIcon } from "@web/lib/file-icon";
 import { commitAfterViewTransition } from "@web/lib/reveal-gate";
-import { buildFileTreeView } from "@web/lib/file-tree";
+import { buildFileTreeView, displayFolderName } from "@web/lib/file-tree";
 import { cn } from "@web/lib/utils";
 import { dwAcConst, refreshFileList } from "@web/server/game";
 import { downCardStore, downmodalActions } from "@web/stores/downCardData";
@@ -245,7 +245,8 @@ export const FileExplorer = ({
 			if (item.type === "folder" && !item.volumes) {
 				return (
 					<FolderItem value={item.id} key={item.id}>
-						<FolderTrigger>{item.name}</FolderTrigger>
+						{/* 目录名只展示文本名：网盘里的 `[vndb-v…]` 锚点前缀对用户无意义 */}
+						<FolderTrigger>{displayFolderName(item.name)}</FolderTrigger>
 						{item.children?.length ? (
 							<FolderContent>
 								<SubFiles>{renderTree(item.children)}</SubFiles>
